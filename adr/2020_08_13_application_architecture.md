@@ -17,4 +17,4 @@ The following decisions are taken regarding the application architecture
 The application architecture does initially only involve syncronous operations. Async tasks will be reconsider once certain write operations don't meet performance requirements anymore.
 
 ## Consequences
-Developers not familiar with Django will have to have through the Django tutorial before they get started with development.
+Developers not familiar with Django will have to walk through the [Django tutorial](https://docs.djangoproject.com/en/dev/intro/) before they get started with development.
