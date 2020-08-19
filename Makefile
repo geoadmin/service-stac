@@ -102,11 +102,11 @@ test: .venv/build.timestamp
 # Serve targets. Using these will run the application on your local machine. You can either serve with a wsgi front (like it would be within the container), or without.
 .PHONY: serve
 serve: .venv/build.timestamp
-		$(PYTHON_CMD) $(DJANGO_MANAGER_CMD) runserver $(HTTP_PORT)
+	source dev.env && export HELLO_WORLD=$$HELLO_WORLD && $(PYTHON_CMD) $(DJANGO_MANAGER_CMD) runserver $(HTTP_PORT)
 
 .PHONY: gunicornserve
 gunicornserve: .venv/build.timestamp
-	$(GUNICORN_CMD) --chdir $(DJANGO_PROJECT_DIR) $(DJANGO_PROJECT).wsgi
+	source dev.env && export HELLO_WORLD=$$HELLO_WORLD && $(GUNICORN_CMD) --chdir $(DJANGO_PROJECT_DIR) $(DJANGO_PROJECT).wsgi
 
 # Docker related functions.
 
