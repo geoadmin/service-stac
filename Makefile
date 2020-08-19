@@ -22,6 +22,7 @@ HTTP_PORT ?= 5000
 PYTHON_CMD := $(INSTALL_DIR)/bin/python3
 PIP_CMD := $(INSTALL_DIR)/bin/pip3
 DJANGO_MANAGER_CMD := $(DJANGO_PROJECT_DIR)/manage.py
+GUNICORN_CMD := $(INSTALL_DIR)/bin/gunicorn
 YAPF_CMD := $(INSTALL_DIR)/bin/yapf
 NOSE_CMD := $(INSTALL_DIR)/bin/nose2
 PYLINT_CMD := $(INSTALL_DIR)/bin/pylint
@@ -105,7 +106,7 @@ serve: .venv/build.timestamp
 
 .PHONY: gunicornserve
 gunicornserve: .venv/build.timestamp
-	${PYTHON_CMD} $(DJANGO_PROJECT_DIR)/$(DJANGO_PROJECT)/wsgi.py
+	$(GUNICORN_CMD) --chdir $(DJANGO_PROJECT_DIR) $(DJANGO_PROJECT).wsgi
 
 # Docker related functions.
 
