@@ -12,6 +12,7 @@ def index(request):
 
     return JsonResponse(data)
 
+
 #http://localhost:5000/hello/world get setting from dev.env
 def hello_world(request):
     return HttpResponse("HELLO_WORLD = %s" % settings.HELLO_WORLD)

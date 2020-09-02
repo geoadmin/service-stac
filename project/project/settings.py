@@ -12,19 +12,8 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 
 from pathlib import Path
 import os
+#import logging
 from django.core.exceptions import ImproperlyConfigured
-
-# from https://djangostars.com/blog/configuring-django-settings-best-practices/
-def get_env_value(env_variable):
-    try:
-        return os.environ[env_variable]
-    except KeyError:
-        error_msg = 'Set the {} environment variable'.format(var_name)
-        raise ImproperlyConfigured(error_msg)
-
-HELLO_WORLD = get_env_value('HELLO_WORLD')
-
-
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
@@ -129,5 +118,42 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
+# Logging
+# https://docs.djangoproject.com/en/3.1/topics/logging/
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'WARNING',
+    },
+    'loggers':
+        {
+            'django':
+                {
+                    'handlers': ['console'],
+                    'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
+                    'propagate': False,
+                },
+        },
+}
+
+#logger = logging.getLogger('project.interesting.stuff')
 
 
+# from https://djangostars.com/blog/configuring-django-settings-best-practices/
+def get_env_value(env_variable):
+    try:
+        return os.environ[env_variable]
+    except KeyError:
+        error_msg = 'Set the {} environment variable'.format(env_variable)
+        #logger.error(error_msg)
+        raise ImproperlyConfigured(error_msg)
+
+
+HELLO_WORLD = get_env_value('HELLO_WORLD')

@@ -2,48 +2,54 @@ SHELL = /bin/bash
 
 .DEFAULT_GOAL := help
 
+SERVICE_NAME := service-stac
+
 CURRENT_DIR := $(shell pwd)
-INSTALL_DIR := $(CURRENT_DIR)/.venv
-DJANGO_PROJECT := project
-DJANGO_PROJECT_DIR := $(CURRENT_DIR)/$(DJANGO_PROJECT)
-PYTHON_LOCAL_DIR := $(CURRENT_DIR)/build/local
-PYTHON_FILES := $(shell find $(DJANGO_PROJECT_DIR) -type f -name "*.py" -print)
+VENV := $(CURRENT_DIR)/.venv
+REQUIREMENTS = $(CURRENT_DIR)/requirements.txt
+DEV_REQUIREMENTS = $(CURRENT_DIR)/dev_requirements.txt
 TEST_REPORT_DIR := $(CURRENT_DIR)/tests/report
 TEST_REPORT_FILE := nose2-junit.xml
 
-#FIXME: put this variable in config file
+# Django specific
+DJANGO_PROJECT := project
+DJANGO_PROJECT_DIR := $(CURRENT_DIR)/$(DJANGO_PROJECT)
+
+# Python local build directory
+PYTHON_LOCAL_DIR := $(CURRENT_DIR)/.local
+
+# venv targets timestamps
+VENV_TIMESTAMP = $(VENV)/.timestamp
+REQUIREMENTS_TIMESTAMP = $(VENV)/.requirements.timestamp
+DEV_REQUIREMENTS_TIMESTAMP = $(VENV)/.dev-requirements.timestamp
+
+# general targets timestamps
+TIMESTAMPS = .timestamps
+SYSTEM_PYTHON_TIMESTAMP = $(TIMESTAMPS)/.python-system.timestamp
+PYTHON_LOCAL_BUILD_TIMESTAMP = $(TIMESTAMPS)/.python-build.timestamp
+DOCKER_BUILD_TIMESTAMP = $(TIMESTAMPS)/.dockerbuild.timestamp
+
+# Find all python files that are not inside a hidden directory (directory starting with .)
+PYTHON_FILES := $(shell find ${DJANGO_PROJECT_DIR}/* -type f -name "*.py" -print)
+
 PYTHON_VERSION := 3.7.4
-SYSTEM_PYTHON_CMD := $(shell ./getPythonCmd.sh ${PYTHON_VERSION} ${PYTHON_LOCAL_DIR})
+SYSTEM_PYTHON := $(shell ./getPythonCmd.sh ${PYTHON_VERSION} ${PYTHON_LOCAL_DIR})
 
 # default configuration
 HTTP_PORT ?= 5000
 
 # Commands
-PYTHON_CMD := $(INSTALL_DIR)/bin/python3
-PIP_CMD := $(INSTALL_DIR)/bin/pip3
-DJANGO_MANAGER_CMD := $(DJANGO_PROJECT_DIR)/manage.py
-GUNICORN_CMD := $(INSTALL_DIR)/bin/gunicorn
-YAPF_CMD := $(INSTALL_DIR)/bin/yapf
-NOSE_CMD := $(INSTALL_DIR)/bin/nose2
-PYLINT_CMD := $(INSTALL_DIR)/bin/pylint
+DJANGO_MANAGER := $(DJANGO_PROJECT_DIR)/manage.py
+GUNICORN := $(VENV)/bin/gunicorn
+PYTHON := $(VENV)/bin/python3
+PIP := $(VENV)/bin/pip3
+FLASK := $(VENV)/bin/flask
+YAPF := $(VENV)/bin/yapf
+NOSE := $(VENV)/bin/nose2
+PYLINT := $(VENV)/bin/pylint
+
+
 all: help
-
-# This bit check define the build/python "target": if the system has an acceptable version of python, there will be no need to install python locally.
-
-ifneq ($(SYSTEM_PYTHON_CMD),)
-build/python:
-	@echo "Using system" $(shell $(SYSTEM_PYTHON_CMD) --version 2>&1)
-	@echo $(shell $(SYSTEM_PYTHON_CMD) -c "print('OK')")
-	mkdir -p build
-	touch build/python
-else
-build/python: $(PYTHON_LOCAL_DIR)/bin/python3.7
-	@echo "Using local" $(shell $(SYSTEM_PYTHON_CMD) --version 2>&1)
-	@echo $(shell $(SYSTEM_PYTHON_CMD) -c "print('OK')")
-
-SYSTEM_PYTHON_CMD := $(PYTHON_LOCAL_DIR)/bin/python3.7
-endif
-
 
 
 .PHONY: help
@@ -51,13 +57,16 @@ help:
 	@echo "Usage: make <target>"
 	@echo
 	@echo "Possible targets:"
-	@echo -e " \033[1mBUILD TARGETS\033[0m "
+	@echo -e " \033[1mSetup TARGETS\033[0m "
 	@echo "- setup              Create the python virtual environment"
-	@echo -e " \033[1mLINTING TOOLS TARGETS\033[0m "
-	@echo "- lint               Lint and format the python source code"
+	@echo "- dev                Create the python virtual environment with developper tools"
+	@echo -e " \033[1mFORMATING, LINTING AND TESTING TOOLS TARGETS\033[0m "
+	@echo "- format             Format the python source code"
+	@echo "- lint               Lint the python source code"
+	@echo "- format-lint        Format and lint the python source code"
 	@echo "- test               Run the tests"
 	@echo -e " \033[1mLOCAL SERVER TARGETS\033[0m "
-	@echo "- serve              Run the project using the django debug server. Port can be set by Env variable HTTP_PORT (default: 5000)"
+	@echo "- serve              Run the project using the flask debug server. Port can be set by Env variable HTTP_PORT (default: 5000)"
 	@echo "- gunicornserve      Run the project using the gunicorn WSGI server. Port can be set by Env variable DEBUG_HTTP_PORT (default: 5000)"
 	@echo "- dockerbuild        Build the project localy using the gunicorn WSGI server inside a container"
 	@echo "- dockerrun          Run the project using the gunicorn WSGI server inside a container (exposed port: 5000)"
@@ -66,76 +75,135 @@ help:
 	@echo "- clean              Clean genereated files"
 	@echo "- clean_venv         Clean python venv"
 
-# Build targets. Calling setup is all that is needed for the local files to be installed as needed. Bundesnetz may cause problem.
 
-python: build/python
-	@echo $(shell $(SYSTEM_PYTHON_CMD) --version 2>&1) "installed"
+# Build targets. Calling setup is all that is needed for the local files to be installed as needed.
+
+.PHONY: dev
+dev: $(DEV_REQUIREMENTS_TIMESTAMP)
+
 
 .PHONY: setup
-setup: python .venv/build.timestamp
+setup: $(REQUIREMENTS_TIMESTAMP)
 
-
-$(PYTHON_LOCAL_DIR)/bin/python3.7:
-	@echo "Building a local python..."
-	mkdir -p $(PYTHON_LOCAL_DIR);
-	curl -z $(PYTHON_LOCAL_DIR)/Python-$(PYTHON_VERSION).tar.xz https://www.python.org/ftp/python/$(PYTHON_VERSION)/Python-$(PYTHON_VERSION).tar.xz -o $(PYTHON_LOCAL_DIR)/Python-$(PYTHON_VERSION).tar.xz;
-	cd $(PYTHON_LOCAL_DIR) && tar -xf Python-$(PYTHON_VERSION).tar.xz && Python-$(PYTHON_VERSION)/configure --prefix=$(PYTHON_LOCAL_DIR)/ && make altinstall
-
-.venv/build.timestamp: build/python
-	$(SYSTEM_PYTHON_CMD) -m venv $(INSTALL_DIR) && $(PIP_CMD) install --upgrade pip setuptools
-	${PIP_CMD} install -r dev_requirements.txt
-	$(PIP_CMD) install -r requirements.txt
-	touch .venv/build.timestamp
 
 # linting target, calls upon yapf to make sure your code is easier to read and respects some conventions.
 
+.PHONY: format
+format: $(DEV_REQUIREMENTS_TIMESTAMP)
+	$(YAPF) -p -i --style .style.yapf $(PYTHON_FILES)
+
+
 .PHONY: lint
-lint: .venv/build.timestamp
-	# TODO : tweaking
-	$(YAPF_CMD) -p -i --style .style.yapf $(PYTHON_FILES)
-	$(PYLINT_CMD) $(PYTHON_FILES)
+lint: $(DEV_REQUIREMENTS_TIMESTAMP)
+	$(PYLINT) $(PYTHON_FILES)
+
+
+.PHONY: format-lint
+format-lint: format lint
+
+
+# Test target
 
 .PHONY: test
-test: .venv/build.timestamp
-	$(PYTHON_CMD) $(DJANGO_MANAGER_CMD) test
+test: $(REQUIREMENTS_TIMESTAMP)
+	$(PYTHON) $(DJANGO_MANAGER) test
+
 
 # Serve targets. Using these will run the application on your local machine. You can either serve with a wsgi front (like it would be within the container), or without.
+
 .PHONY: serve
-serve: .venv/build.timestamp
-	source dev.env && export HELLO_WORLD=$$HELLO_WORLD && $(PYTHON_CMD) $(DJANGO_MANAGER_CMD) runserver $(HTTP_PORT)
+serve: $(REQUIREMENTS_TIMESTAMP)
+	$(PYTHON) $(DJANGO_MANAGER) runserver $(HTTP_PORT)
+
 
 .PHONY: gunicornserve
-gunicornserve: .venv/build.timestamp
-	source dev.env && export HELLO_WORLD=$$HELLO_WORLD && $(GUNICORN_CMD) --chdir $(DJANGO_PROJECT_DIR) $(DJANGO_PROJECT).wsgi
+gunicornserve: $(REQUIREMENTS_TIMESTAMP)
+	$(GUNICORN) --chdir $(DJANGO_PROJECT_DIR) $(DJANGO_PROJECT).wsgi
+
 
 # Docker related functions.
 
 .PHONY: dockerbuild
-dockerbuild:
-	#docker build -t swisstopo/service-qrcode:local .
-	@echo "TODO"
+dockerbuild: $(DOCKER_BUILD_TIMESTAMP)
 
-export-http-port:
-	@export HTTP_PORT=$(HTTP_PORT)
 
 .PHONY: dockerrun
-dockerrun: export-http-port
-	@echo "TODO"
-	#docker-compose up -d;
-	#sleep 10
+dockerrun: $(DOCKER_BUILD_TIMESTAMP)
+	export HTTP_PORT=$(HTTP_PORT); docker-compose up -d
+	sleep 10
+
 
 .PHONY: shutdown
-shutdown: export-http-port
-	#docker-compose down
-	@echo "TODO"
+shutdown:
+	export HTTP_PORT=$(HTTP_PORT); docker-compose down
 
-# Cleaning functions. clean_venv will only remove the virtual environment, while clean will also remove the local python installation.
-
-.PHONY: clean
-clean: clean_venv
-	rm -rf build;
 
 .PHONY: clean_venv
 clean_venv:
-	rm -rf ${INSTALL_DIR};
+	rm -rf $(VENV)
+
+
+.PHONY: clean
+clean: clean_venv
+	@# clean python cache files
+	find . -name __pycache__ -type d -print0 | xargs -I {} -0 rm -rf "{}"
+	rm -rf $(PYTHON_LOCAL_DIR)
+	rm -rf $(TEST_REPORT_DIR)
+	rm -rf $(TIMESTAMPS)
+
+
+# Actual builds targets with dependencies
+
+$(TIMESTAMPS):
+	mkdir -p $(TIMESTAMPS)
+
+$(VENV_TIMESTAMP): $(SYSTEM_PYTHON_TIMESTAMP)
+	test -d $(VENV) || $(SYSTEM_PYTHON) -m venv $(VENV) && $(PIP) install --upgrade pip setuptools
+	@touch $(VENV_TIMESTAMP)
+
+
+$(REQUIREMENTS_TIMESTAMP): $(VENV_TIMESTAMP) $(REQUIREMENTS)
+	$(PIP) install -U pip wheel; \
+	$(PIP) install -r $(REQUIREMENTS);
+	@touch $(REQUIREMENTS_TIMESTAMP)
+
+
+$(DEV_REQUIREMENTS_TIMESTAMP): $(REQUIREMENTS_TIMESTAMP) $(DEV_REQUIREMENTS)
+	$(PIP) install -r $(DEV_REQUIREMENTS)
+	@touch $(DEV_REQUIREMENTS_TIMESTAMP)
+
+
+$(DOCKER_BUILD_TIMESTAMP): $(TIMESTAMPS) $(PYTHON_FILES) $(CURRENT_DIR)/Dockerfile
+	docker build -t swisstopo/$(SERVICE_NAME):local .
+	touch $(DOCKER_BUILD_TIMESTAMP)
+
+
+# Python local build target
+
+ifneq ($(SYSTEM_PYTHON),)
+
+# A system python matching version has been found use it
+$(SYSTEM_PYTHON_TIMESTAMP): $(TIMESTAMPS)
+	@echo "Using system" $(shell $(SYSTEM_PYTHON) --version 2>&1)
+	touch $(SYSTEM_PYTHON_TIMESTAMP)
+
+
+else
+
+# No python version found, build it localy
+$(SYSTEM_PYTHON_TIMESTAMP): $(TIMESTAMPS) $(PYTHON_LOCAL_BUILD_TIMESTAMP)
+	@echo "Using local" $(shell $(SYSTEM_PYTHON) --version 2>&1)
+	touch $(SYSTEM_PYTHON_TIMESTAMP)
+
+
+$(PYTHON_LOCAL_BUILD_TIMESTAMP): $(TIMESTAMPS)
+	@echo "Building a local python..."
+	mkdir -p $(PYTHON_LOCAL_DIR);
+	curl -z $(PYTHON_LOCAL_DIR)/Python-$(PYTHON_VERSION).tar.xz https://www.python.org/ftp/python/$(PYTHON_VERSION)/Python-$(PYTHON_VERSION).tar.xz -o $(PYTHON_LOCAL_DIR)/Python-$(PYTHON_VERSION).tar.xz;
+	cd $(PYTHON_LOCAL_DIR) && tar -xf Python-$(PYTHON_VERSION).tar.xz && Python-$(PYTHON_VERSION)/configure --prefix=$(PYTHON_LOCAL_DIR)/ && make altinstall
+	touch $(PYTHON_LOCAL_BUILD_TIMESTAMP)
+
+SYSTEM_PYTHON := $(PYTHON_LOCAL_DIR)/python
+
+endif
 
