@@ -71,6 +71,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'project.wsgi.application'
+WSGI_APPLICATION = 'wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/3.1/ref/settings/#databases
@@ -154,6 +155,3 @@ def get_env_value(env_variable):
         error_msg = 'Set the {} environment variable'.format(env_variable)
         #logger.error(error_msg)
         raise ImproperlyConfigured(error_msg)
-
-
-HELLO_WORLD = get_env_value('HELLO_WORLD')

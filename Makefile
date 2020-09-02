@@ -118,7 +118,8 @@ serve: $(REQUIREMENTS_TIMESTAMP)
 
 .PHONY: gunicornserve
 gunicornserve: $(REQUIREMENTS_TIMESTAMP)
-	$(GUNICORN) --chdir $(DJANGO_PROJECT_DIR) $(DJANGO_PROJECT).wsgi
+	#$(GUNICORN) --chdir $(DJANGO_PROJECT_DIR) $(DJANGO_PROJECT).wsgi
+	$(PYTHON) $(DJANGO_PROJECT_DIR)/wsgi.py
 
 
 # Docker related functions.

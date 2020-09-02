@@ -18,6 +18,5 @@ from django.urls import path, include
 
 urlpatterns = [
     path('api/stac/v0.9/api.html', include('app.urls')),
-    path('hello/', include('app.urls')),
     path('admin/', admin.site.urls),
 ]
