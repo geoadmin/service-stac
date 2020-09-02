@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.gis',
 ]
 
 MIDDLEWARE = [
@@ -80,7 +81,15 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    },
+    'dev': {
+         'ENGINE': 'django.contrib.gis.db.backends.postgis',
+         'NAME': 'geodjango',
+         'USER': os.getenv('DB_USER', 'geo'),
+         'USER': os.getenv('DB_PW', 'very_secret'),
+         'HOST': os.getenv('HOST', 'localhost'),
+         'PORT': '5432'
+    },
 }
 
 # Password validation
@@ -146,12 +155,3 @@ LOGGING = {
 
 #logger = logging.getLogger('project.interesting.stuff')
 
-
-# from https://djangostars.com/blog/configuring-django-settings-best-practices/
-def get_env_value(env_variable):
-    try:
-        return os.environ[env_variable]
-    except KeyError:
-        error_msg = 'Set the {} environment variable'.format(env_variable)
-        #logger.error(error_msg)
-        raise ImproperlyConfigured(error_msg)
