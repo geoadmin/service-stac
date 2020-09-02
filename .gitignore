@@ -57,3 +57,6 @@ nose2-junit.xml
 
 # visual studio code config
 .vscode
+
+# summon
+secrets.yml
