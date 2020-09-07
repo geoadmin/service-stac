@@ -82,14 +82,6 @@ DATABASES = {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     },
-    'dev': {
-         'ENGINE': 'django.contrib.gis.db.backends.postgis',
-         'NAME': 'geodjango',
-         'USER': os.getenv('DB_USER', 'geo'),
-         'USER': os.getenv('DB_PW', 'very_secret'),
-         'HOST': os.getenv('HOST', 'localhost'),
-         'PORT': '5432'
-    },
 }
 
 # Password validation

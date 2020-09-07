@@ -105,7 +105,7 @@ format-lint: format lint
 # Test target
 
 .PHONY: test
-test: $(REQUIREMENTS_TIMESTAMP)
+test: $(DEV_REQUIREMENTS_TIMESTAMP)
 	$(PYTHON) $(DJANGO_MANAGER) test
 
 

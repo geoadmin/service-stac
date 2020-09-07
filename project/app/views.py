@@ -1,4 +1,5 @@
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse
+from django.http import HttpResponse
 from django.conf import settings
 
 
