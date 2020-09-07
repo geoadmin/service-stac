@@ -60,3 +60,6 @@ nose2-junit.xml
 
 # summon
 secrets.yml
+
+# Makefile
+.timestamps
