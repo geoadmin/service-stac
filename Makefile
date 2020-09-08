@@ -8,12 +8,14 @@ CURRENT_DIR := $(shell pwd)
 VENV := $(CURRENT_DIR)/.venv
 REQUIREMENTS = $(CURRENT_DIR)/requirements.txt
 DEV_REQUIREMENTS = $(CURRENT_DIR)/dev_requirements.txt
-TEST_REPORT_DIR := $(CURRENT_DIR)/tests/report
-TEST_REPORT_FILE := nose2-junit.xml
 
 # Django specific
 DJANGO_PROJECT := project
 DJANGO_PROJECT_DIR := $(CURRENT_DIR)/$(DJANGO_PROJECT)
+
+# Test report
+TEST_REPORT_DIR := $(DJANGO_PROJECT_DIR)/test-reports
+TEST_REPORT_FILE := nose2-junit.xml
 
 # Python local build directory
 PYTHON_LOCAL_DIR := $(CURRENT_DIR)/.local
@@ -105,8 +107,8 @@ format-lint: format lint
 # Test target
 
 .PHONY: test
-test: $(DEV_REQUIREMENTS_TIMESTAMP)
-	$(PYTHON) $(DJANGO_MANAGER) test
+test: $(DEV_REQUIREMENTS_TIMESTAMP) $(TEST_REPORT_DIR)
+	TEST_REPORT_PATH=$(TEST_REPORT_DIR)/$(TEST_REPORT_FILE) $(PYTHON) $(DJANGO_MANAGER) test
 
 
 # Serve targets. Using these will run the application on your local machine. You can either serve with a wsgi front (like it would be within the container), or without.
@@ -177,6 +179,10 @@ $(DEV_REQUIREMENTS_TIMESTAMP): $(REQUIREMENTS_TIMESTAMP) $(DEV_REQUIREMENTS)
 $(DOCKER_BUILD_TIMESTAMP): $(TIMESTAMPS) $(PYTHON_FILES) $(CURRENT_DIR)/Dockerfile
 	docker build -t swisstopo/$(SERVICE_NAME):local .
 	touch $(DOCKER_BUILD_TIMESTAMP)
+
+
+$(TEST_REPORT_DIR):
+	mkdir -p $(TEST_REPORT_DIR)
 
 
 # Python local build target

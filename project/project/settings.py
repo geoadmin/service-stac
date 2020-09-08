@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.gis',
+    'django_nose',
 ]
 
 MIDDLEWARE = [
@@ -142,3 +143,10 @@ LOGGING = {
                 },
         },
 }
+
+# Testing
+TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
+NOSE_ARGS = [
+    '--with-xunit',
+    f'--xunit-file={os.getenv("TEST_REPORT_PATH", "nose2-junit.xml")}',
+]

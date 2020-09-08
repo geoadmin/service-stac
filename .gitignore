@@ -40,6 +40,7 @@ local/
 .mypy_cache/
 
 # unittest report
+test-reports/
 nose2-junit.xml
 
 # PyCharm generated files
