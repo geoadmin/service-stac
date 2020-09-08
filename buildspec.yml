@@ -20,6 +20,8 @@ phases:
       - echo "Installing necessary softwares"
       - docker login -u ${CI_DOCKERHUB_USER} -p ${CI_DOCKERHUB_PASSWORD}
       - apt-get update && apt-get install -y docker-compose python3-pip
+      - echo "Installing Geospatial libraries required by Django"
+      - apt-get install -y binutils libproj-dev gdal-bin
   pre_build:
     commands:
       - echo "export of the image tag for build and push purposes"
