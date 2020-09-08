@@ -40,6 +40,8 @@ local/
 .mypy_cache/
 
 # unittest report
+test-reports/
+tests/report/
 nose2-junit.xml
 
 # PyCharm generated files
@@ -60,3 +62,6 @@ nose2-junit.xml
 
 # summon
 secrets.yml
+
+# Makefile
+.timestamps
