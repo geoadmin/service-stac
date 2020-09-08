@@ -41,6 +41,7 @@ local/
 
 # unittest report
 test-reports/
+tests/report/
 nose2-junit.xml
 
 # PyCharm generated files

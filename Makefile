@@ -14,8 +14,8 @@ DJANGO_PROJECT := project
 DJANGO_PROJECT_DIR := $(CURRENT_DIR)/$(DJANGO_PROJECT)
 
 # Test report
-TEST_REPORT_DIR := $(DJANGO_PROJECT_DIR)/test-reports
-TEST_REPORT_FILE := nose2-junit.xml
+TEST_REPORT_DIR ?= $(DJANGO_PROJECT_DIR)/test-reports
+TEST_REPORT_FILE ?= nose2-junit.xml
 
 # Python local build directory
 PYTHON_LOCAL_DIR := $(CURRENT_DIR)/.local
