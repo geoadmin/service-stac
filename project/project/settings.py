@@ -12,8 +12,6 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 
 from pathlib import Path
 import os
-#import logging
-from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
@@ -39,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.gis',
+    'django_nose',
 ]
 
 MIDDLEWARE = [
@@ -145,5 +144,9 @@ LOGGING = {
         },
 }
 
-#logger = logging.getLogger('project.interesting.stuff')
-
+# Testing
+TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
+NOSE_ARGS = [
+    '--with-xunit',
+    f'--xunit-file={os.getenv("TEST_REPORT_PATH", "nose2-junit.xml")}',
+]
