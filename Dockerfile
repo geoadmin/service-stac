@@ -4,10 +4,10 @@ ENV HTTP_PORT 8080
 RUN groupadd -r geoadmin && useradd -r -s /bin/false -g geoadmin geoadmin
 
 
-# HERE : install relevant packages
-# RUN apt-get update && apt-get install -y [packages] \
-#  && apt-get clean \
-#  && rm -rf /var/lib/apt/lists/*
+# install relevent packages
+RUN apt-get update && apt-get install -y binutils libproj-dev gdal-bin \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 COPY "./requirements.txt" "/app/requirements.txt"
