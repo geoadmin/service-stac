@@ -11,3 +11,9 @@ def index(request):
     }
 
     return JsonResponse(data)
+
+
+def checker(request):
+    data = {"success": True, "message": "OK"}
+
+    return JsonResponse(data)
