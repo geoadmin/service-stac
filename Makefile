@@ -133,13 +133,12 @@ dockerbuild: $(DOCKER_BUILD_TIMESTAMP)
 
 .PHONY: dockerrun
 dockerrun: $(DOCKER_BUILD_TIMESTAMP)
-	export HTTP_PORT=$(HTTP_PORT); docker-compose up -d
-	sleep 10
+	HTTP_PORT=$(HTTP_PORT) docker-compose up
 
 
 .PHONY: shutdown
 shutdown:
-	export HTTP_PORT=$(HTTP_PORT); docker-compose down
+	HTTP_PORT=$(HTTP_PORT) docker-compose down
 
 
 .PHONY: clean_venv
