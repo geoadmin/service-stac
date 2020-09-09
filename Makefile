@@ -31,6 +31,9 @@ SYSTEM_PYTHON_TIMESTAMP = $(TIMESTAMPS)/.python-system.timestamp
 PYTHON_LOCAL_BUILD_TIMESTAMP = $(TIMESTAMPS)/.python-build.timestamp
 DOCKER_BUILD_TIMESTAMP = $(TIMESTAMPS)/.dockerbuild.timestamp
 
+# Docker variables
+DOCKER_IMG_LOCAL_TAG = swisstopo/$(SERVICE_NAME):local
+
 # Find all python files that are not inside a hidden directory (directory starting with .)
 PYTHON_FILES := $(shell find ${DJANGO_PROJECT_DIR}/* -type f -name "*.py" -print)
 
@@ -71,7 +74,9 @@ help:
 	@echo -e " \033[1mLOCAL SERVER TARGETS\033[0m "
 	@echo "- serve              Run the project using the flask debug server. Port can be set by Env variable HTTP_PORT (default: 5000)"
 	@echo "- gunicornserve      Run the project using the gunicorn WSGI server. Port can be set by Env variable DEBUG_HTTP_PORT (default: 5000)"
-	@echo "- dockerbuild        Build the project localy using the gunicorn WSGI server inside a container"
+	@echo -e " \033[1mDocker TARGETS\033[0m "
+	@echo "- dockerbuild        Build the project localy (with tag := $(DOCKER_IMG_LOCAL_TAG)) using the gunicorn WSGI server inside a container"
+	@echo "- dockerpush         Build and push the project localy (with tag := $(DOCKER_IMG_LOCAL_TAG))"
 	@echo "- dockerrun          Run the project using the gunicorn WSGI server inside a container (exposed port: 5000)"
 	@echo "- shutdown           Stop the aforementioned container"
 	@echo -e " \033[1mCLEANING TARGETS\033[0m "
@@ -131,6 +136,11 @@ gunicornserve: $(REQUIREMENTS_TIMESTAMP)
 dockerbuild: $(DOCKER_BUILD_TIMESTAMP)
 
 
+.PHONY: dockerpush
+dockerpush: $(DOCKER_BUILD_TIMESTAMP)
+	docker push $(DOCKER_IMG_LOCAL_TAG)
+
+
 .PHONY: dockerrun
 dockerrun: $(DOCKER_BUILD_TIMESTAMP)
 	HTTP_PORT=$(HTTP_PORT) docker-compose up
@@ -177,7 +187,7 @@ $(DEV_REQUIREMENTS_TIMESTAMP): $(REQUIREMENTS_TIMESTAMP) $(DEV_REQUIREMENTS)
 
 
 $(DOCKER_BUILD_TIMESTAMP): $(TIMESTAMPS) $(PYTHON_FILES) $(CURRENT_DIR)/Dockerfile
-	docker build -t swisstopo/$(SERVICE_NAME):local .
+	docker build -t $(DOCKER_IMG_LOCAL_TAG) .
 	touch $(DOCKER_BUILD_TIMESTAMP)
 
 
