@@ -39,6 +39,7 @@ SYSTEM_PYTHON := $(shell ./getPythonCmd.sh ${PYTHON_VERSION} ${PYTHON_LOCAL_DIR}
 
 # default configuration
 HTTP_PORT ?= 5000
+DEBUG ?= 1
 
 # Commands
 DJANGO_MANAGER := $(DJANGO_PROJECT_DIR)/manage.py
@@ -115,13 +116,13 @@ test: $(DEV_REQUIREMENTS_TIMESTAMP) $(TEST_REPORT_DIR)
 
 .PHONY: serve
 serve: $(REQUIREMENTS_TIMESTAMP)
-	$(PYTHON) $(DJANGO_MANAGER) runserver $(HTTP_PORT)
+	DEBUG=$(DEBUG) $(PYTHON) $(DJANGO_MANAGER) runserver $(HTTP_PORT)
 
 
 .PHONY: gunicornserve
 gunicornserve: $(REQUIREMENTS_TIMESTAMP)
 	#$(GUNICORN) --chdir $(DJANGO_PROJECT_DIR) $(DJANGO_PROJECT).wsgi
-	$(PYTHON) $(DJANGO_PROJECT_DIR)/wsgi.py
+	DEBUG=$(DEBUG) $(PYTHON) $(DJANGO_PROJECT_DIR)/wsgi.py
 
 
 # Docker related functions.
