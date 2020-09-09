@@ -143,6 +143,7 @@ dockerpush: $(DOCKER_BUILD_TIMESTAMP)
 
 .PHONY: dockerrun
 dockerrun: $(DOCKER_BUILD_TIMESTAMP)
+	@echo "Listening on port $(HTTP_PORT)"
 	HTTP_PORT=$(HTTP_PORT) docker-compose up
 
 
