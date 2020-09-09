@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.1/ref/settings/
 """
 
+from distutils.util import strtobool
 from pathlib import Path
 import os
 
@@ -23,9 +24,13 @@ BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
 SECRET_KEY = '%5+eq2851!d7qi^sze(nv2g#kt8v$7)4ck3cq*e!5c2rx%13p+'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = bool(strtobool(os.getenv('DEBUG', 'False')))
 
 ALLOWED_HOSTS = []
+if DEBUG:
+    # When the debug flag is set allow local host
+    ALLOWED_HOSTS = ['.localhost', '127.0.0.1', '[::1]']
+ALLOWED_HOSTS += os.getenv('ALLOWED_HOSTS', '').split(',')
 
 # Application definition
 
