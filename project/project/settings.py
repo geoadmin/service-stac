@@ -27,6 +27,10 @@ SECRET_KEY = '%5+eq2851!d7qi^sze(nv2g#kt8v$7)4ck3cq*e!5c2rx%13p+'
 DEBUG = bool(strtobool(os.getenv('DEBUG', 'False')))
 
 ALLOWED_HOSTS = []
+if DEBUG:
+    # When the debug flag is set allow local host
+    ALLOWED_HOSTS = ['.localhost', '127.0.0.1', '[::1]']
+ALLOWED_HOSTS += os.getenv('ALLOWED_HOSTS', '').split(',')
 
 # Application definition
 
