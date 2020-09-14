@@ -1,5 +1,9 @@
+import logging
+
 from django.http import JsonResponse
 # from django.conf import settings
+
+logger = logging.getLogger(__name__)
 
 
 def index(request):
@@ -9,6 +13,8 @@ def index(request):
         "stac_version": "0.9.0",
         "title": "data.geo.admin.ch"
     }
+
+    logger.debug('Landing page: %s', data)
 
     return JsonResponse(data)
 
