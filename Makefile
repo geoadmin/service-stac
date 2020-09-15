@@ -37,12 +37,15 @@ DOCKER_IMG_LOCAL_TAG = swisstopo/$(SERVICE_NAME):local
 # Find all python files that are not inside a hidden directory (directory starting with .)
 PYTHON_FILES := $(shell find ${DJANGO_PROJECT_DIR}/* -type f -name "*.py" -print)
 
+PROJECT_FILES := $(shell find ${DJANGO_PROJECT_DIR}/* -type f -print)
+
 PYTHON_VERSION := 3.7.4
 SYSTEM_PYTHON := $(shell ./getPythonCmd.sh ${PYTHON_VERSION} ${PYTHON_LOCAL_DIR})
 
 # default configuration
 HTTP_PORT ?= 5000
 DEBUG ?= 1
+LOGGING_CFG ?= ${DJANGO_PROJECT_DIR}/logging-cfg-local.yml
 
 # Commands
 DJANGO_MANAGER := $(DJANGO_PROJECT_DIR)/manage.py
@@ -114,20 +117,20 @@ format-lint: format lint
 
 .PHONY: test
 test: $(DEV_REQUIREMENTS_TIMESTAMP) $(TEST_REPORT_DIR)
-	TEST_REPORT_PATH=$(TEST_REPORT_DIR)/$(TEST_REPORT_FILE) $(PYTHON) $(DJANGO_MANAGER) test
+	LOGGING_CFG=$(LOGGING_CFG) TEST_REPORT_PATH=$(TEST_REPORT_DIR)/$(TEST_REPORT_FILE) $(PYTHON) $(DJANGO_MANAGER) test
 
 
 # Serve targets. Using these will run the application on your local machine. You can either serve with a wsgi front (like it would be within the container), or without.
 
 .PHONY: serve
 serve: $(REQUIREMENTS_TIMESTAMP)
-	DEBUG=$(DEBUG) $(PYTHON) $(DJANGO_MANAGER) runserver $(HTTP_PORT)
+	LOGGING_CFG=$(LOGGING_CFG) DEBUG=$(DEBUG) $(PYTHON) $(DJANGO_MANAGER) runserver $(HTTP_PORT)
 
 
 .PHONY: gunicornserve
 gunicornserve: $(REQUIREMENTS_TIMESTAMP)
 	#$(GUNICORN) --chdir $(DJANGO_PROJECT_DIR) $(DJANGO_PROJECT).wsgi
-	DEBUG=$(DEBUG) $(PYTHON) $(DJANGO_PROJECT_DIR)/wsgi.py
+	LOGGING_CFG=$(LOGGING_CFG) DEBUG=$(DEBUG) $(PYTHON) $(DJANGO_PROJECT_DIR)/wsgi.py
 
 
 # Docker related functions.
@@ -187,7 +190,7 @@ $(DEV_REQUIREMENTS_TIMESTAMP): $(REQUIREMENTS_TIMESTAMP) $(DEV_REQUIREMENTS)
 	@touch $(DEV_REQUIREMENTS_TIMESTAMP)
 
 
-$(DOCKER_BUILD_TIMESTAMP): $(TIMESTAMPS) $(PYTHON_FILES) $(CURRENT_DIR)/Dockerfile logging-cfg-*.yml
+$(DOCKER_BUILD_TIMESTAMP): $(TIMESTAMPS) $(PROJECT_FILES) $(CURRENT_DIR)/Dockerfile
 	docker build -t $(DOCKER_IMG_LOCAL_TAG) .
 	touch $(DOCKER_BUILD_TIMESTAMP)
 
