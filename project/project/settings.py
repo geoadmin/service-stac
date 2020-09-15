@@ -152,6 +152,8 @@ LOGGING = {
 # Testing
 TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
 NOSE_ARGS = [
+    '--where=./tests/unit',
+    '--verbosity=3',
     '--with-xunit',
     f'--xunit-file={os.getenv("TEST_REPORT_PATH", "nose2-junit.xml")}',
 ]
