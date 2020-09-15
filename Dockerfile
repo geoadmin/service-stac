@@ -14,12 +14,11 @@ COPY "./requirements.txt" "/app/requirements.txt"
 
 RUN pip3 install -r requirements.txt
 
-COPY "./" "/app/"
+COPY --chown=geoadmin:geoadmin ./project /app/
 
-RUN chown -R geoadmin:geoadmin /app
 USER geoadmin
 
 EXPOSE $HTTP_PORT
 
 # Use a real WSGI server
-ENTRYPOINT ["python3", "./project/wsgi.py"]
+ENTRYPOINT ["python3", "./wsgi.py"]

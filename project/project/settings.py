@@ -14,6 +14,8 @@ from distutils.util import strtobool
 from pathlib import Path
 import os
 
+import yaml
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
 
@@ -126,34 +128,30 @@ STATIC_URL = '/static/'
 
 # Logging
 # https://docs.djangoproject.com/en/3.1/topics/logging/
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-        },
-    },
-    'root': {
-        'handlers': ['console'],
-        'level': 'WARNING',
-    },
-    'loggers':
-        {
-            'django':
-                {
-                    'handlers': ['console'],
-                    'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
-                    'propagate': False,
-                },
-        },
-}
+
+
+# Read configuration from file
+def get_logging_config():
+    '''Read logging configuration
+
+    Read and parse the yaml logging configuration file passed in the environment variable
+    LOGGING_CFG and return it as dictonary
+    '''
+    log_config = {}
+    with open(os.getenv('LOGGING_CFG', 'logging-cfg-local.yml'), 'rt') as fd:
+        log_config = yaml.safe_load(fd.read())
+    return log_config
+
+
+LOGGING = get_logging_config()
 
 # Testing
+
 TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
 NOSE_ARGS = [
     '--where=./tests/unit',
     '--verbosity=3',
     '--with-xunit',
     f'--xunit-file={os.getenv("TEST_REPORT_PATH", "nose2-junit.xml")}',
+    '--logging-clear-handlers'
 ]
