@@ -14,9 +14,8 @@ COPY "./requirements.txt" "/app/requirements.txt"
 
 RUN pip3 install -r requirements.txt
 
-COPY "./" "/app/"
+COPY --chown=geoadmin:geoadmin "./" "/app/"
 
-RUN chown -R geoadmin:geoadmin /app
 USER geoadmin
 
 EXPOSE $HTTP_PORT
