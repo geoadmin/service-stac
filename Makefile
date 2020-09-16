@@ -12,10 +12,13 @@ DEV_REQUIREMENTS = $(CURRENT_DIR)/dev_requirements.txt
 # Django specific
 DJANGO_PROJECT := project
 DJANGO_PROJECT_DIR := $(CURRENT_DIR)/$(DJANGO_PROJECT)
+DJANGO_CONFIG_DIR := $(DJANGO_PROJECT_DIR)/config
 
 # Test report
-TEST_REPORT_DIR ?= $(DJANGO_PROJECT_DIR)/test-reports
+TEST_DIR := $(CURRENT_DIR)/tests
+TEST_REPORT_DIR ?= $(TEST_DIR)/report
 TEST_REPORT_FILE ?= nose2-junit.xml
+TEST_REPORT_PATH := $(TEST_REPORT_DIR)/$(TEST_REPORT_FILE)
 
 # Python local build directory
 PYTHON_LOCAL_DIR := $(CURRENT_DIR)/.local
@@ -35,9 +38,9 @@ DOCKER_BUILD_TIMESTAMP = $(TIMESTAMPS)/.dockerbuild.timestamp
 DOCKER_IMG_LOCAL_TAG = swisstopo/$(SERVICE_NAME):local
 
 # Find all python files that are not inside a hidden directory (directory starting with .)
-PYTHON_FILES := $(shell find ${DJANGO_PROJECT_DIR}/* -type f -name "*.py" -print)
+PYTHON_FILES := $(shell find ${DJANGO_PROJECT_DIR} ${TEST_DIR} -type f -name "*.py" -print)
 
-PROJECT_FILES := $(shell find ${DJANGO_PROJECT_DIR}/* -type f -print)
+PROJECT_FILES := $(shell find ${DJANGO_PROJECT_DIR} -type f -print)
 
 PYTHON_VERSION := 3.7.4
 SYSTEM_PYTHON := $(shell ./getPythonCmd.sh ${PYTHON_VERSION} ${PYTHON_LOCAL_DIR})
@@ -45,7 +48,8 @@ SYSTEM_PYTHON := $(shell ./getPythonCmd.sh ${PYTHON_VERSION} ${PYTHON_LOCAL_DIR}
 # default configuration
 HTTP_PORT ?= 5000
 DEBUG ?= 1
-LOGGING_CFG ?= ${DJANGO_PROJECT_DIR}/logging-cfg-local.yml
+LOGGING_CFG ?= logging-cfg-local.yml
+LOGGING_CFG_PATH := $(DJANGO_CONFIG_DIR)/$(LOGGING_CFG)
 
 # Commands
 DJANGO_MANAGER := $(DJANGO_PROJECT_DIR)/manage.py
@@ -117,20 +121,20 @@ format-lint: format lint
 
 .PHONY: test
 test: $(DEV_REQUIREMENTS_TIMESTAMP) $(TEST_REPORT_DIR)
-	LOGGING_CFG=$(LOGGING_CFG) TEST_REPORT_PATH=$(TEST_REPORT_DIR)/$(TEST_REPORT_FILE) $(PYTHON) $(DJANGO_MANAGER) test
+	LOGGING_CFG=$(LOGGING_CFG_PATH) TEST_DIR=$(TEST_DIR) TEST_REPORT_PATH=$(TEST_REPORT_PATH) $(PYTHON) $(DJANGO_MANAGER) test
 
 
 # Serve targets. Using these will run the application on your local machine. You can either serve with a wsgi front (like it would be within the container), or without.
 
 .PHONY: serve
 serve: $(REQUIREMENTS_TIMESTAMP)
-	LOGGING_CFG=$(LOGGING_CFG) DEBUG=$(DEBUG) $(PYTHON) $(DJANGO_MANAGER) runserver $(HTTP_PORT)
+	LOGGING_CFG=$(LOGGING_CFG_PATH) DEBUG=$(DEBUG) $(PYTHON) $(DJANGO_MANAGER) runserver $(HTTP_PORT)
 
 
 .PHONY: gunicornserve
 gunicornserve: $(REQUIREMENTS_TIMESTAMP)
 	#$(GUNICORN) --chdir $(DJANGO_PROJECT_DIR) $(DJANGO_PROJECT).wsgi
-	LOGGING_CFG=$(LOGGING_CFG) DEBUG=$(DEBUG) $(PYTHON) $(DJANGO_PROJECT_DIR)/wsgi.py
+	LOGGING_CFG=$(LOGGING_CFG_PATH) DEBUG=$(DEBUG) $(PYTHON) $(DJANGO_PROJECT_DIR)/wsgi.py
 
 
 # Docker related functions.
@@ -147,7 +151,7 @@ dockerpush: $(DOCKER_BUILD_TIMESTAMP)
 .PHONY: dockerrun
 dockerrun: $(DOCKER_BUILD_TIMESTAMP)
 	@echo "Listening on port $(HTTP_PORT)"
-	HTTP_PORT=$(HTTP_PORT) docker-compose up
+	LOGGING_CFG=./config/$(LOGGING_CFG) HTTP_PORT=$(HTTP_PORT) docker-compose up
 
 
 .PHONY: shutdown

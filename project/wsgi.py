@@ -12,9 +12,9 @@ import os
 from gunicorn.app.base import BaseApplication
 from django.core.wsgi import get_wsgi_application
 
-from project.settings import get_logging_config
+from config.settings import get_logging_config
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'project.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 application = get_wsgi_application()
 
 

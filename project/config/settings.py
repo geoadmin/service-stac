@@ -17,7 +17,7 @@ import os
 import yaml
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
+BASE_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.1/howto/deployment/checklist/
@@ -57,7 +57,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'project.urls'
+ROOT_URLCONF = 'config.urls'
 API_BASE_PATH = 'api/stac/v0.9/'
 
 TEMPLATES = [
@@ -76,7 +76,6 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'project.wsgi.application'
 WSGI_APPLICATION = 'wsgi.application'
 
 # Database
@@ -85,7 +84,7 @@ WSGI_APPLICATION = 'wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'NAME': BASE_DIR / 'project' / 'db.sqlite3',
     },
 }
 
@@ -137,7 +136,7 @@ def get_logging_config():
     LOGGING_CFG and return it as dictonary
     '''
     log_config = {}
-    with open(os.getenv('LOGGING_CFG', 'logging-cfg-local.yml'), 'rt') as fd:
+    with open(os.getenv('LOGGING_CFG', './project/config/logging-cfg-local.yml'), 'rt') as fd:
         log_config = yaml.safe_load(fd.read())
     return log_config
 
@@ -148,7 +147,7 @@ LOGGING = get_logging_config()
 
 TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
 NOSE_ARGS = [
-    '--where=./tests/unit',
+    f'--where={os.getenv("TEST_DIR")}/unit',
     '--verbosity=3',
     '--with-xunit',
     f'--xunit-file={os.getenv("TEST_REPORT_PATH", "nose2-junit.xml")}',
