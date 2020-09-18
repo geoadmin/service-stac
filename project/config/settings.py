@@ -83,15 +83,11 @@ WSGI_APPLICATION = 'wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'project' / 'db.sqlite3',
-    },
-    'dev': {
          'ENGINE': 'django.contrib.gis.db.backends.postgis',
-         'NAME': 'geodjango',
-         'USER': os.getenv('DB_USER', 'geo'),
-         'PASSWORD': os.getenv('DB_PW', 'very_secret'),
-         'HOST': os.getenv('HOST', 'localhost'),
+         'NAME': 'service_stac_dev',
+         'USER': os.getenv('DB_USER', 'in gopass pgko..'),
+         'PASSWORD': os.getenv('DB_PW', 'in gopass'),
+         'HOST': os.getenv('HOST', 'dito'),
          'PORT': '5432'
     },
 }
