@@ -1,8 +1,9 @@
 from django.urls import path
 
+from project.settings import API_BASE_PATH
 from . import views
 
 urlpatterns = [
-    path('api/stac/v0.9/', views.index, name='index'),
+    path(API_BASE_PATH, views.landing_page, name='landing-page'),
     path('checker/', views.checker, name='checker'),
 ]

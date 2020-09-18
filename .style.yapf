@@ -17,6 +17,7 @@ based_on_style=google
 #       end_ts=now(),
 #   )        # <--- this bracket is dedented and on a separate line
 dedent_closing_brackets=True
+coalesce_brackets=True
 
 # Split before arguments, but do not split all subexpressions recursively
 # (unless needed).
