@@ -7,3 +7,6 @@ services:
     environment:
       - DEBUG=1
       - LOGGING_CFG
+      - DB_USER
+      - DB_PW
+      - HOST

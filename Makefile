@@ -46,6 +46,7 @@ PYTHON_VERSION := 3.7.4
 SYSTEM_PYTHON := $(shell ./getPythonCmd.sh ${PYTHON_VERSION} ${PYTHON_LOCAL_DIR})
 
 # default configuration
+ENV ?= dev
 HTTP_PORT ?= 5000
 DEBUG ?= 1
 LOGGING_CFG ?= logging-cfg-local.yml
@@ -60,6 +61,10 @@ FLASK := $(VENV)/bin/flask
 YAPF := $(VENV)/bin/yapf
 NOSE := $(VENV)/bin/nose2
 PYLINT := $(VENV)/bin/pylint
+
+# Set summon only if not already set, this allow to disable summon on environment
+# that don't use it like for CodeBuild env
+SUMMON ?= summon --up -p gopass -e service-stac-$(ENV)
 
 
 all: help
@@ -122,20 +127,20 @@ format-lint: format lint
 
 .PHONY: test
 test: $(DEV_REQUIREMENTS_TIMESTAMP) $(TEST_REPORT_DIR)
-	LOGGING_CFG=$(LOGGING_CFG_PATH) TEST_DIR=$(TEST_DIR) TEST_REPORT_PATH=$(TEST_REPORT_PATH) $(PYTHON) $(DJANGO_MANAGER) test
+	LOGGING_CFG=$(LOGGING_CFG_PATH) TEST_DIR=$(TEST_DIR) TEST_REPORT_PATH=$(TEST_REPORT_PATH) $(SUMMON) $(PYTHON) $(DJANGO_MANAGER) test
 
 
 # Serve targets. Using these will run the application on your local machine. You can either serve with a wsgi front (like it would be within the container), or without.
 
 .PHONY: serve
 serve: $(REQUIREMENTS_TIMESTAMP)
-	LOGGING_CFG=$(LOGGING_CFG_PATH) DEBUG=$(DEBUG) $(PYTHON) $(DJANGO_MANAGER) runserver $(HTTP_PORT)
+	LOGGING_CFG=$(LOGGING_CFG_PATH) DEBUG=$(DEBUG) $(SUMMON) $(PYTHON) $(DJANGO_MANAGER) runserver $(HTTP_PORT)
 
 
 .PHONY: gunicornserve
 gunicornserve: $(REQUIREMENTS_TIMESTAMP)
 	#$(GUNICORN) --chdir $(DJANGO_PROJECT_DIR) $(DJANGO_PROJECT).wsgi
-	LOGGING_CFG=$(LOGGING_CFG_PATH) DEBUG=$(DEBUG) $(PYTHON) $(DJANGO_PROJECT_DIR)/wsgi.py
+	LOGGING_CFG=$(LOGGING_CFG_PATH) DEBUG=$(DEBUG) $(SUMMON) $(PYTHON) $(DJANGO_PROJECT_DIR)/wsgi.py
 
 
 # Docker related functions.
@@ -152,7 +157,7 @@ dockerpush: $(DOCKER_BUILD_TIMESTAMP)
 .PHONY: dockerrun
 dockerrun: $(DOCKER_BUILD_TIMESTAMP)
 	@echo "Listening on port $(HTTP_PORT)"
-	LOGGING_CFG=./config/$(LOGGING_CFG) HTTP_PORT=$(HTTP_PORT) docker-compose up
+	LOGGING_CFG=./config/$(LOGGING_CFG) HTTP_PORT=$(HTTP_PORT) $(SUMMON) docker-compose up
 
 
 .PHONY: shutdown
@@ -181,12 +186,12 @@ clean: clean_venv
 .PHONY: django-check
 django-check: $(REQUIREMENTS)
 	@echo "Run django check"
-	$(PYTHON) $(DJANGO_MANAGER) check --fail-level WARNING
+	$(SUMMON) $(PYTHON) $(DJANGO_MANAGER) check --fail-level WARNING
 
 
 .PHONY: django-migrate
 django-migrate: $(REQUIREMENTS)
-	$(PYTHON) $(DJANGO_MANAGER) migrate
+	$(SUMMON) $(PYTHON) $(DJANGO_MANAGER) migrate
 
 
 # Actual builds targets with dependencies

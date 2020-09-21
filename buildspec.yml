@@ -8,9 +8,18 @@ env:
     USER: "aws_code_build"
     TEST_REPORT_DIR: "./tests/report"
     TEST_REPORT_FILE: "nose2-junit.xml"
+    ENV: "dev"
+    SUMMON: "" # Deactivate summon in the makefile, we use AWS parameter-store for credentials
+  exported-variables:
+    - SUMMON
+    - TEST_REPORT_DIR
+    - TEST_REPORT_FILE
   parameter-store:
     CI_DOCKERHUB_USER: "/dockerhub/user"
     CI_DOCKERHUB_PASSWORD: "/dockerhub/password"
+    DB_USER: "/service-stac/dev/db/user"
+    DB_PW: "/service-stac/dev/db/password"
+    DB_HOST: "/service-stac/dev/db/host"
 
 phases:
   install:
@@ -49,9 +58,9 @@ phases:
 
   post_build:
     commands:
-      - make lint
+      - make lint DB_HOST=${DB_HOST} DB_USER=${DB_USER} DB_PW=${DB_PW}
       - mkdir -p ${TEST_REPORT_DIR}
-      - TEST_REPORT_DIR=${TEST_REPORT_DIR} TEST_REPORT_FILE=${TEST_REPORT_FILE} make test
+      - make test DB_HOST=${DB_HOST} DB_USER=${DB_USER} DB_PW=${DB_PW}
       # Only push image to dockerhub for merge to develop and master
       - |
         if [ "${GITHUB_BRANCH}" = "master" -o "${GITHUB_BRANCH}" = "develop" ]; then
