@@ -83,12 +83,12 @@ WSGI_APPLICATION = 'wsgi.application'
 
 DATABASES = {
     'default': {
-         'ENGINE': 'django.contrib.gis.db.backends.postgis',
-         'NAME': 'service_stac_dev',
-         'USER': os.getenv('DB_USER', 'in gopass pgko..'),
-         'PASSWORD': os.getenv('DB_PW', 'in gopass'),
-         'HOST': os.getenv('HOST', 'dito'),
-         'PORT': '5432'
+        'ENGINE': 'django.contrib.gis.db.backends.postgis',
+        'NAME': 'service_stac_dev',
+        'USER': os.getenv('DB_USER', 'in gopass pgko..'),
+        'PASSWORD': os.getenv('DB_PW', 'in gopass'),
+        'HOST': os.getenv('HOST', 'dito'),
+        'PORT': '5432'
     },
 }
 
