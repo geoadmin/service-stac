@@ -109,7 +109,8 @@ format: $(DEV_REQUIREMENTS_TIMESTAMP)
 
 
 .PHONY: lint
-lint: $(DEV_REQUIREMENTS_TIMESTAMP)
+lint: $(DEV_REQUIREMENTS_TIMESTAMP) django-check
+	@echo "Run pylint..."
 	$(PYLINT) $(PYTHON_FILES)
 
 
@@ -159,6 +160,8 @@ shutdown:
 	HTTP_PORT=$(HTTP_PORT) docker-compose down
 
 
+# clean targets
+
 .PHONY: clean_venv
 clean_venv:
 	rm -rf $(VENV)
@@ -171,6 +174,19 @@ clean: clean_venv
 	rm -rf $(PYTHON_LOCAL_DIR)
 	rm -rf $(TEST_REPORT_DIR)
 	rm -rf $(TIMESTAMPS)
+
+
+# django targets
+
+.PHONY: django-check
+django-check: $(REQUIREMENTS)
+	@echo "Run django check"
+	$(PYTHON) $(DJANGO_MANAGER) check --fail-level WARNING
+
+
+.PHONY: django-migrate
+django-migrate: $(REQUIREMENTS)
+	$(PYTHON) $(DJANGO_MANAGER) migrate
 
 
 # Actual builds targets with dependencies
