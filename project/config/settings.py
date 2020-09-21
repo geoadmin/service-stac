@@ -81,16 +81,22 @@ WSGI_APPLICATION = 'wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/3.1/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': 'service_stac_dev',
-        'USER': os.getenv('DB_USER', 'in gopass pgko..'),
-        'PASSWORD': os.getenv('DB_PW', 'in gopass'),
-        'HOST': os.getenv('HOST', 'dito'),
-        'PORT': '5432'
-    },
-}
+try:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.contrib.gis.db.backends.postgis',
+            'NAME': 'service_stac_dev',
+            'USER': os.environ['DB_USER'],
+            'PASSWORD': os.environ['DB_PW'],
+            'HOST': os.environ['HOST'],
+            'PORT': '5432',
+            'TEST': {
+                'NAME': 'test_service_stac_dev',
+            }
+        }
+    }
+except KeyError as err:
+    raise KeyError(f'Database environment variables {err} not configured') from err
 
 # Password validation
 # https://docs.djangoproject.com/en/3.1/ref/settings/#auth-password-validators
