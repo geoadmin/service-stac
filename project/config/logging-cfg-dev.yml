@@ -27,7 +27,8 @@ filters:
     application: service-stac
   isotime:
     (): logging_utilities.filters.TimeAttribute
-    isotime: True
+    isotime: False
+    utc_isotime: True
 
 formatters:
   standard:
@@ -37,10 +38,10 @@ formatters:
     add_always_extra: False
     filter_attributes:
       - application
-      - isotime
+      - utc_isotime
     remove_empty: True
     fmt:
-      time: isotime
+      time: utc_isotime
       level: levelname
       app: application
       logger: name
