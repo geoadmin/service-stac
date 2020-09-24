@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 from distutils.util import strtobool
 from pathlib import Path
 import os
+import sys
 
 import yaml
 
@@ -81,22 +82,38 @@ WSGI_APPLICATION = 'wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/3.1/ref/settings/#databases
 
-try:
+if 'test' in sys.argv:
+    # Use a local sqlite DB for test, actually django in the case where the
+    # engine is django.db.backends.sqlite3 uses an in-memory db for testing see
+    # https://docs.djangoproject.com/en/dev/topics/testing/overview/#the-test-database
     DATABASES = {
         'default': {
-            'ENGINE': 'django.contrib.gis.db.backends.postgis',
-            'NAME': 'service_stac_dev',
-            'USER': os.environ['DB_USER'],
-            'PASSWORD': os.environ['DB_PW'],
-            'HOST': os.environ['DB_HOST'],
-            'PORT': '5432',
-            'TEST': {
-                'NAME': 'test_service_stac_dev',
-            }
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': f'{os.getenv("TEST_DIR")}/unit/test_db.sqlite3',
         }
     }
-except KeyError as err:
-    raise KeyError(f'Database environment variables {err} not configured') from err
+else:
+    try:
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.contrib.gis.db.backends.postgis',
+                'NAME': 'service_stac_dev',
+                'USER': os.environ['DB_USER'],
+                'PASSWORD': os.environ['DB_PW'],
+                'HOST': os.environ['DB_HOST'],
+                'PORT': '5432',
+                'TEST': {
+                    'NAME': 'test_service_stac_dev',
+                }
+            }
+        }
+    except KeyError as err:
+        if 'check' in sys.argv or 'help' in sys.argv:
+            # Do not raise an exception for django command that don't requires DB connection like
+            # for example the check and help command.
+            pass
+        else:
+            raise KeyError(f'Database environment variables {err} not configured') from err
 
 # Password validation
 # https://docs.djangoproject.com/en/3.1/ref/settings/#auth-password-validators

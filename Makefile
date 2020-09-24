@@ -127,7 +127,7 @@ format-lint: format lint
 
 .PHONY: test
 test: $(DEV_REQUIREMENTS_TIMESTAMP) $(TEST_REPORT_DIR)
-	LOGGING_CFG=$(LOGGING_CFG_PATH) TEST_DIR=$(TEST_DIR) TEST_REPORT_PATH=$(TEST_REPORT_PATH) $(SUMMON) $(PYTHON) $(DJANGO_MANAGER) test
+	LOGGING_CFG=$(LOGGING_CFG_PATH) TEST_DIR=$(TEST_DIR) TEST_REPORT_PATH=$(TEST_REPORT_PATH) $(PYTHON) $(DJANGO_MANAGER) test
 
 
 # Serve targets. Using these will run the application on your local machine. You can either serve with a wsgi front (like it would be within the container), or without.
@@ -186,7 +186,7 @@ clean: clean_venv
 .PHONY: django-check
 django-check: $(REQUIREMENTS)
 	@echo "Run django check"
-	$(SUMMON) $(PYTHON) $(DJANGO_MANAGER) check --fail-level WARNING
+	$(PYTHON) $(DJANGO_MANAGER) check --fail-level WARNING
 
 
 .PHONY: django-migrate
