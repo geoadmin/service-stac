@@ -88,7 +88,7 @@ try:
             'NAME': 'service_stac_dev',
             'USER': os.environ['DB_USER'],
             'PASSWORD': os.environ['DB_PW'],
-            'HOST': os.environ['HOST'],
+            'HOST': os.environ['DB_HOST'],
             'PORT': '5432',
             'TEST': {
                 'NAME': 'test_service_stac_dev',

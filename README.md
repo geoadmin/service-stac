@@ -45,7 +45,7 @@ This __summon__ command requires to have a `secrets.yml` file located higher up 
 service-stac-dev:
     DB_USER: !var path-to-the-db-user-variable
     DB_PW: !var path-to-the-db-user-password
-    HOST: !var path-to-the-db-host
+    DB_HOST: !var path-to-the-db-host
 ```
 
 ### Setting up to work

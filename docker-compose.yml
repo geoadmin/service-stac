@@ -9,4 +9,4 @@ services:
       - LOGGING_CFG
       - DB_USER
       - DB_PW
-      - HOST
+      - DB_HOST
