@@ -54,6 +54,7 @@ class Items(models.Model):
 class Assets(models.Model):
     feature_id = models.ForeignKey(Items, on_delete=models.CASCADE)
     # TODO: define a field "collection" that references to the collection to which the parent-item belongs to.
+    collection = Assets.feature_id.collection # not sure if that'll work
     id = model.TextField(unique=True, blank=False)
     checksum_multihash = models.TextField(blank=False)
     description = models.TextField()
