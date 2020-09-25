@@ -33,23 +33,42 @@
 
 ### Dependencies
 
-The **Make** targets assume you have **bash**, **curl**, **tar**, **docker** and **docker-compose** installed.
+The **Make** targets assume you have **bash**, **curl**, **tar**, **gopass**, **summon**, **gopass summon provider**, **docker** and **docker-compose** installed.
+
+#### gopass summon provider
+
+For the DB connnection, some makefile targets (`test`, `serve`, `gunicornserve`, ...) uses `summon -p gopass --up -e service-stac-$(ENV)` to gets the credentials as environment variables.
+
+This __summon__ command requires to have a `secrets.yml` file located higher up in the project folder hierarchy (e.g in `${HOME}/secrets.yml` if the project has been cloned in `${HOME}` or in a subfloder). This `secrets.yml` file must have two sections as follow:
+
+```yaml
+service-stac-dev:
+    DB_USER: !var path-to-the-db-user-variable
+    DB_PW: !var path-to-the-db-user-password
+    DB_HOST: !var path-to-the-db-host
+```
 
 ### Setting up to work
 
 First, you'll need to clone the repo
 
-    git clone git@github.com:geoadmin/service-stac.git
+```bash
+git clone git@github.com:geoadmin/service-stac.git
+```
 
 Then, you can run the `dev` target to ensure you have everything needed to develop, test and serve locally
 
-    make dev
+```bash
+make dev
+```
 
 That's it, you're ready to work.
 
 For more help you can use
 
-    make help
+```bash
+make help
+```
 
 ### Linting and formatting your work
 
@@ -57,7 +76,9 @@ In order to have a consistent code style the code should be formatted using `yap
 pythonic idioms code, the project uses the `pylint` linter. Both formatting and linter can be manually run using the
 following command:
 
-    make format-lint
+```bash
+make format-lint
+```
 
 **Formatting and linting should be at best integrated inside the IDE, for this look at
 [Integrate yapf and pylint into IDE](https://github.com/geoadmin/doc-guidelines/blob/master/PYTHON.md#yapf-and-pylint-ide-integration)**
@@ -66,25 +87,35 @@ following command:
 
 Testing if what you developed work is made simple. You have four targets at your disposal. **test, serve, gunicornserve, dockerrun**
 
-    make test
+```bash
+make test
+```
 
 This command run the integration and unit tests.
 
-    make serve
+```bash
+make serve
+```
 
 This will serve the application through Django Server without any wsgi in front.
 
-    make gunicornserve
+```bash
+make gunicornserve
+```
 
 This will serve the application with the Gunicorn layer in front of the application
 
-    make dockerrun
+```bash
+make dockerrun
+```
 
 This will serve the application with the wsgi server, inside a container. To stop serving through container press `CTRL^C`.
 
 To stop the container run,
 
-    make shutdown
+```bash
+make shutdown
+```
 
 ## Deploying the project and continuous integration
 
