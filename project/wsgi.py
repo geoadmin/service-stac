@@ -10,6 +10,7 @@ https://docs.djangoproject.com/en/3.1/howto/deployment/wsgi/
 import os
 
 from gunicorn.app.base import BaseApplication
+
 from django.core.wsgi import get_wsgi_application
 
 from config.settings import get_logging_config

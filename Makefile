@@ -59,6 +59,7 @@ PYTHON := $(VENV)/bin/python3
 PIP := $(VENV)/bin/pip3
 FLASK := $(VENV)/bin/flask
 YAPF := $(VENV)/bin/yapf
+ISORT := $(VENV)/bin/isort
 NOSE := $(VENV)/bin/nose2
 PYLINT := $(VENV)/bin/pylint
 
@@ -111,6 +112,7 @@ setup: $(REQUIREMENTS_TIMESTAMP)
 .PHONY: format
 format: $(DEV_REQUIREMENTS_TIMESTAMP)
 	$(YAPF) -p -i --style .style.yapf $(PYTHON_FILES)
+	$(ISORT) $(PYTHON_FILES)
 
 
 .PHONY: lint

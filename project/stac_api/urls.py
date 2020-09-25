@@ -1,6 +1,7 @@
 from django.urls import path
 
 from config.settings import API_BASE_PATH
+
 from . import views
 
 urlpatterns = [
