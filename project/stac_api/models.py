@@ -35,7 +35,7 @@ class Collection(models.Model):
     title = models.TextField()
 
 
-class Items(models.Model):
+class Item(models.Model):
     collection = models.ForeignKey(Collection, on_delete=models.CASCADE) # models.CASCADE means: when a collection is deleted, all items in it will also be deleted
     bbox = models.JSONField(blank=False) # can be 2D or 3D
     geometry = models.JSONField(blank=False) # this will a GeoJSON Geometry objerct
@@ -51,10 +51,10 @@ class Items(models.Model):
     location = models.URLField()
 
 
-class Assets(models.Model):
+class Asset(models.Model):
     feature_id = models.ForeignKey(Items, on_delete=models.CASCADE)
     # TODO: define a field "collection" that references to the collection to which the parent-item belongs to.
-    collection = Assets.feature_id.collection # not sure if that'll work
+    collection = Asset.feature_id.collection # not sure if that'll work
     id = model.TextField(unique=True, blank=False)
     checksum_multihash = models.TextField(blank=False)
     description = models.TextField()
