@@ -69,7 +69,6 @@ class Item(models.Model):
 
 class Asset(models.Model):
     feature_id = models.ForeignKey(Item, on_delete=models.CASCADE)
-    # TODO: define a field "collection" that references to the collection to which the parent-item belongs to.
 
     @property
     def collection(self):
