@@ -1,5 +1,5 @@
-from django.test import TestCase
 from django.test import Client
+from django.test import TestCase
 
 from config.settings import API_BASE_PATH
 
