@@ -1,4 +1,5 @@
-# from django.apps import AppConfig
+from django.apps import AppConfig
 
-# class AppConfig(AppConfig):
-#     name = 'app'
+
+class StacApiConfig(AppConfig):
+    name = 'stac_api'
