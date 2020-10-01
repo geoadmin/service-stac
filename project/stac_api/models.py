@@ -24,9 +24,9 @@ class Collection(models.Model):
     # Formating/Meaning of those dates see: https://github.com/radiantearth/stac-spec/blob/v0.9.0/collection-spec/collection-spec.md#temporal-extent-object
     # TODO: in sqlite3 the JSON1 extension must be enabled for using JSONFields: https://code.djangoproject.com/wiki/JSON1Extension
     extent = models.JSONField(blank=False)
-    collection_id = models.TextField(
-        primary_key=True, editable=False
-    )  # this is what is simply only called "id" in here: http://ltboc.infra.bgdi.ch/static/products/data.geo.admin.ch/apitransactional.html#operation/createCollection
+    # using "_name" instead of "_id", as "_id" has a default meaning in django
+    collection_name = models.TextField(unique=True, blank=False, default="")
+    # this is what is simply only called "id" in here: http://ltboc.infra.bgdi.ch/static/products/data.geo.admin.ch/apitransactional.html#operation/createCollection
     itemType = models.TextField(default="Feature")
     keywords = models.JSONField()  # containing an array of strings
     license = models.TextField(blank=False)
@@ -41,14 +41,17 @@ class Collection(models.Model):
     )  # this is, where some of the geocat-data could go. So this should contain "eo:gsd", "geoadmin:variant" and "proj:epsg"
     title = models.TextField()
 
+    def __str__(self):
+        return self.collection_name
+
 
 class Item(models.Model):
-    collection = models.ForeignKey(
-        Collection, on_delete=models.CASCADE
-    )  # models.CASCADE means: when a collection is deleted, all items in it will also be deleted
+    collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
+    # models.CASCADE means: when a collection is deleted, all items in it will also be deleted
     bbox = models.JSONField(blank=False)  # can be 2D or 3D
     geometry = models.JSONField(blank=False)  # this will a GeoJSON Geometry objerct
-    item_id = models.TextField(primary_key=True, blank=False)
+    # using "_name" instead of "_id", as "_id" has a default meaning in django
+    item_name = models.TextField(unique=True, blank=False)
     links = models.JSONField(
         blank=False
     )  # containing an array of objects (Links (self, root and item), each with "href" and "rel"
@@ -66,15 +69,25 @@ class Item(models.Model):
     # and is meant to contain a dictionary of asset objects than can be downloaded, each with a unique key
     location = models.URLField()
 
+    def __str__(self):
+        return self.item_name
+
 
 class Asset(models.Model):
-    feature_id = models.ForeignKey(Item, on_delete=models.CASCADE)
+    feature = models.ForeignKey(Item, on_delete=models.CASCADE)
+    collection = models.ForeignKey(Collection, on_delete=models.CASCADE, blank=True, editable=False)
+    id = models.BigIntegerField(primary_key=True)
 
-    @property
-    def collection(self):
-        return self.feature_id.collection
+    # using BigIntegerField as primary_key to deal with the expected large number of assets.
 
-    asset_id = models.TextField(primary_key=True, blank=False)
+    # alter save-function, so that the corresponding collection of the parent item of the asset
+    # is saved, too.
+    def save(self, *args, **kwargs):
+        self.collection = self.feature.collection
+        super().save(*args, **kwargs)
+
+    # using "_name" instead of "_id", as "_id" has a default meaning in django
+    asset_name = models.TextField(unique=True, blank=False)
     checksum_multihash = models.TextField(blank=False)
     description = models.TextField()
     eo_gsd = models.FloatField()
@@ -94,3 +107,6 @@ class Asset(models.Model):
     media_type = models.TextField()
     copyFromHref = models.URLField()
     location = models.URLField()
+
+    def __str__(self):
+        return self.asset_name
