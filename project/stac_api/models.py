@@ -285,7 +285,7 @@ class Extension_Collection(models.Mode):
 
 
 class Extension_Item(models.Mode):
-    collections = models.ManyToManyField(Item)
+    items = models.ManyToManyField(Item)
     url = models.URLField(blank=True)
     name = models.TextField(blank=True)
 
