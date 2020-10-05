@@ -268,7 +268,7 @@ class Provider_Item(models.Model):
                 raise ValidationError(_('Incorrectly defined role found'))
 
 
-class Extension_Collection(models.Mode):
+class Extension_Collection(models.Model):
     collections = models.ManyToManyField(Collection)
     url = models.URLField(blank=True)
     name = models.TextField(blank=True)
@@ -284,7 +284,7 @@ class Extension_Collection(models.Mode):
             raise ValidationError(_('One of the properties url or name must be correctly defined'))
 
 
-class Extension_Item(models.Mode):
+class Extension_Item(models.Model):
     items = models.ManyToManyField(Item)
     url = models.URLField(blank=True)
     name = models.TextField(blank=True)
