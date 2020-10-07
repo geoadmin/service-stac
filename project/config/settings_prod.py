@@ -97,7 +97,7 @@ else:
         DATABASES = {
             'default': {
                 'ENGINE': 'django.contrib.gis.db.backends.postgis',
-                'NAME': 'service_stac_dev',
+                'NAME': os.environ.get('DB_NAME', 'service_stac_dev'),
                 'USER': os.environ['DB_USER'],
                 'PASSWORD': os.environ['DB_PW'],
                 'HOST': os.environ['DB_HOST'],

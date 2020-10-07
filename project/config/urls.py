@@ -17,7 +17,15 @@ from django.contrib import admin
 from django.urls import include
 from django.urls import path
 
+from django.conf import settings
+from django.conf.urls.static import static
+
 urlpatterns = [
     path('', include('stac_api.urls')),
     path('admin/', admin.site.urls),
 ]
+
+# serve static files during local development as well
+# not suited for prod!
+if settings.DEBUG:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
