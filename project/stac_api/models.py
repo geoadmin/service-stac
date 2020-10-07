@@ -1,8 +1,8 @@
+import re
 from django.contrib.gis.db import models
 from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import ValidationError
 from django.contrib.postgres.fields import ArrayField
-import re
 
 # pylint: disable=fixme
 # TODO remove this pylint disable once this is done
@@ -47,13 +47,13 @@ class Collection(models.Model):
     # furthermore GeoDjango and its functionality will be used for that.
     # TODO: overwrite items save() function accordingly
     # suggestions of fields to be auto-populated:
-    SW = ArrayField(models.FloatField(), blank=True)  # [Float], auto-populated
-    NE = ArrayField(models.FloatField(), blank=True)  # [Float], auto-populated
+    southwest = ArrayField(models.FloatField(), blank=True)  # [Float], auto-populated
+    northeast = ArrayField(models.FloatField(), blank=True)  # [Float], auto-populated
 
     collection_name = models.CharField(unique=True, default="")  # string
     # collection_name is what is simply only called "id" in here:
     # http://ltboc.infra.bgdi.ch/static/products/data.geo.admin.ch/apitransactional.html#operation/createCollection
-    itemType = models.CharField(default="Feature")  # string
+    item_type = models.CharField(default="Feature")  # string
 
     # The field formerly known as "Keywords" has been "sourced out" to a
     # separate Keyword class with many-to-many relations to the Collection objects
@@ -106,7 +106,7 @@ class Collection(models.Model):
         # very simple validation, raises error when geoadmin_variant strings contain special
         # characters or umlaut.
         for variant in self.geoadmin_variant:
-            if not (bool(re.search('^[a-zA-Z0-9]*$', variant)) == True):
+            if not bool(re.search('^[a-zA-Z0-9]*$', variant)):
                 raise ValidationError(_('Property geoadmin:variant not correctly specified.'))
 
 
@@ -120,13 +120,14 @@ class Item(models.Model):
     # Example that covers the whole earth with a depth of 100 meters to a height
     # of 150 meters: [[-180.0, -90.0, -100.0, 180.0, 90.0, 150.0]].
     # TODO: use GeoDjango for this:
-    SW = ArrayField(models.FloatField(), blank=True)  # [Float]
-    NE = ArrayField(models.FloatField(), blank=True)  # [Float]
+    southwest = ArrayField(models.FloatField(), blank=True)  # [Float]
+    northeast = ArrayField(models.FloatField(), blank=True)  # [Float]
 
     # TODO: use GeoDjango for this:
     geometry_coordinates = models.TextField()  # [Float]
     geometry_type = models.CharField()  # string, possible geometry types are:
-    # "Point", "MultiPoint", "LineString", "MultiLineString", "Polygon", "MultiPolygon", and "GeometryCollection".
+    # "Point", "MultiPoint", "LineString", "MultiLineString", "Polygon",
+    # "MultiPolygon", and "GeometryCollection".
     item_name = models.CharField(unique=True, blank=False)
 
     # link objects are now represented by separate class "Link_Item" with
@@ -163,12 +164,14 @@ class Item(models.Model):
     )
 
     stac_version = models.CharField(blank=False)
-    GeoJSON_type = models.CharField(default="Feature", blank=False, editable=False)
+    GeoJSON_type = models.CharField(default="Feature", blank=False, editable=False)  # pylint: disable=invalid-name
     # specifies the GeoJSON type and MUST be set to "Feature".
     assets = models.TextField()
-    # this is defined as required here: https://github.com/radiantearth/stac-spec/blob/v0.9.0/item-spec/item-spec.md
-    # and is meant to contain a dictionary of asset objects than can be downloaded, each with a unique key
-    # will be auto-populated on every update of an asset inside this item.
+    # this is defined as required here:
+    # https://github.com/radiantearth/stac-spec/blob/v0.9.0/item-spec/item-spec.md
+    # and is meant to contain a dictionary of asset objects than can be
+    # downloaded, each with a unique key will be auto-populated on every
+    # update of an asset inside this item.
     # TODO: overwrite assets save() function accordingly.
     location = models.URLField()
 
@@ -176,20 +179,25 @@ class Item(models.Model):
         return self.item_name
 
     def clean(self):
-        if len(self.SW) != len(self.NE):
+        if len(self.southwest) != len(self.northeast):  # pylint: disable=no-else-raise
             raise ValidationError(_(
-                'If intended spatial extent is 3D, then elevation needs to be defined in southwesterly most and northeasterly most point.'
+                'If intended spatial extent is 3D, then elevation needs to be' \
+                'defined in southwesterly most and northeasterly most point.'
             ))
-        elif (len(self.SW) != 4) and (len(self.SW) != 6):
+        # don't understand why pylint complains here. Do I get something wrong?
+        # To me this elif makes sense, as it will be executed, when
+        # len(self.southwest) == len(self.northeast). So I disables the pylint
+        # check for the following line.
+        elif (len(self.southwest) != 2) and (len(self.southwest) != 3):
             raise ValidationError(_('Bounding box incorrectly defined.'))
 
-    def save(self, *args, **kwargs):
+    def save(self, *args, **kwargs):  # pylint: disable=signature-differs
         #TODO: on every item update:
-        # 1. re-calculate the envelope over all bboxes of all items inside this collection
-        #    and update the collections' bbox accordingly
+        # 1. re-calculate the envelope over all bboxes of all items inside this
+        #    collection and update the collections' bbox accordingly
         #
-        # 2. loop over all items inside the collection and set the "start_date" of
-        #    the collection to the oldest date found in item dates. Same for
+        # 2. loop over all items inside the collection and set the "start_date"
+        #    of the collection to the oldest date found in item dates. Same for
         #    collections' end_date (set to most recent date found in items)
         #
         # 3. also loop over all items inside the collection and update the
@@ -206,13 +214,13 @@ class Item(models.Model):
 class Asset(models.Model):
     feature = models.ForeignKey(Item, on_delete=models.CASCADE)
     collection = models.ForeignKey(Collection, on_delete=models.CASCADE, blank=True, editable=False)
-    id = models.BigAutoField(primary_key=True)
+    asset_id = models.BigAutoField(primary_key=True)
 
     # using BigIntegerField as primary_key to deal with the expected large number of assets.
 
     # alter save-function, so that the corresponding collection of the parent item of the asset
     # is saved, too.
-    def save(self, *args, **kwargs):
+    def save(self, *args, **kwargs):  # pylint: disable=signature-differs
         self.collection = self.feature.collection
         super().save(*args, **kwargs)
 
@@ -223,12 +231,12 @@ class Asset(models.Model):
     eo_gsd = models.FloatField()
 
     class Language(models.TextChoices):
-        GERMAN = 'de', _('German')
-        ITALIAN = 'it', _('Italian')
-        FRENCH = 'fr', _('French')
-        ROMANSH = 'rm', _('Romansh')
-        ENGLISH = 'en', _('English')
-        NONE = '', _('')
+        GERMAN = 'de', _('German')  # pylint: disable=invalid-name
+        ITALIAN = 'it', _('Italian')  # pylint: disable=invalid-name
+        FRENCH = 'fr', _('French')  # pylint: disable=invalid-name
+        ROMANSH = 'rm', _('Romansh')  # pylint: disable=invalid-name
+        ENGLISH = 'en', _('English')  # pylint: disable=invalid-name
+        NONE = '', _('')  # pylint: disable=invalid-name
 
     geoadmin_lang = models.CharField(max_length=2, choices=Language.choices, default=Language.NONE)
     # after discussion with Chris and Tobias: geoadmin_variant will be an
@@ -238,7 +246,7 @@ class Asset(models.Model):
     proj = models.IntegerField(null=True)
     title = models.CharField()
     media_type = models.CharField()
-    copyFromHref = models.URLField()
+    copy_from_href = models.URLField()
     location = models.URLField()
 
     def __str__(self):
@@ -248,7 +256,7 @@ class Asset(models.Model):
         # very simple validation, raises error when geoadmin_variant strings contain special
         # characters or umlaut.
         for variant in self.geoadmin_variant:
-            if not (bool(re.search('^[a-zA-Z0-9]*$', variant)) == True):
+            if not bool(re.search('^[a-zA-Z0-9]*$', variant)):
                 raise ValidationError(_('Property geoadmin:variant not correctly specified.'))
 
 
@@ -259,7 +267,7 @@ class Keyword(models.Model):
 
 # TODO: probably provider on collection level could be auto-populated and updated
 # on every update of an item inside the collection
-class Provider_Collection(models.Model):
+class ProviderCollection(models.Model):
     collections = models.ManyToManyField(Collection)
     name = models.TextField(blank=False)  # string
     description = models.TextField()  # string
@@ -274,7 +282,7 @@ class Provider_Collection(models.Model):
                 raise ValidationError(_('Incorrectly defined role found'))
 
 
-class Provider_Item(models.Model):
+class ProviderItem(models.Model):
     items = models.ManyToManyField(Item)
     name = models.TextField(blank=False)  # string
     description = models.TextField()  # string
@@ -289,7 +297,7 @@ class Provider_Item(models.Model):
                 raise ValidationError(_('Incorrectly defined role found'))
 
 
-class Link_Collection(models.Model):
+class LinkCollection(models.Model):
     collections = models.ManyToManyField(Collection)
     href = models.URLField()  # string
     rel = models.CharField()  # string
@@ -298,7 +306,7 @@ class Link_Collection(models.Model):
     title = models.CharField(blank=True)  # string
 
 
-class Link_Item(models.Model):
+class LinkItem(models.Model):
     items = models.ManyToManyField(Item)
     href = models.URLField()  # string
     rel = models.CharField()  # string
