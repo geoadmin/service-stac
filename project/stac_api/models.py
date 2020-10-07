@@ -213,11 +213,6 @@ class Item(models.Model):
             raise ValidationError(_('Bounding box incorrectly defined.'))
 
     def save(self, *args, **kwargs):  # pylint: disable=signature-differs
-        # 3. also loop over all items inside the collection and update the
-        #    collections' "summaries"-values (not sure if this should be done on
-        #    asset level instead. I guess so, as "proj" will be defined on asset
-        #     level, whereas gsd is defined on item and asset level...)
-
         # TODO: check if collections' bbox needs to be updated
         # --> this could probably best be done with GeoDjango? (@Tobias)
         # I leave this open for the moment.
