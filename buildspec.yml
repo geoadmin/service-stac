@@ -41,7 +41,7 @@ phases:
       - export IMAGE_TAG="${GITHUB_BRANCH}.${COMMIT_HASH}"
       - echo "GITHUB_BRANCH=${GITHUB_BRANCH} COMMIT_HASH=${COMMIT_HASH} IMAGE_TAG=${IMAGE_TAG}"
       - echo "creating a clean environment"
-      - make clean dev
+      - make setup
       - echo "linting code"
       - make lint
       - echo "starting test build on $(date)"
