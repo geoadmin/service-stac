@@ -2,10 +2,10 @@ from django.test import Client
 from django.test import TestCase
 
 from config.settings import API_BASE_PATH
-from stac_api.models import Collection
+# from stac_api.models import Collection
 
 
-class IndexTestCase(TestCase):
+class CollectionTestCase(TestCase):
 
     # def setUp(self):
         # self.client = Client()
