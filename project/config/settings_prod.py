@@ -20,6 +20,7 @@ import yaml
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
+print(f"BASE_DIR is {BASE_DIR}")
 
 # Determine the application environment (dev|int|prod)
 APP_ENV = os.getenv('APP_ENV', 'prod')
@@ -160,9 +161,11 @@ def get_logging_config():
 
     Read and parse the yaml logging configuration file passed in the environment variable
     LOGGING_CFG and return it as dictonary
+
+    Note: LOGGING_CFG is relative to the root of the repo
     '''
     log_config = {}
-    with open(os.getenv('LOGGING_CFG', BASE_DIR / 'config/logging-cfg-local.yml'), 'rt') as fd:
+    with open(BASE_DIR / os.getenv('LOGGING_CFG', 'project/config/logging-cfg-local.yml'), 'rt') as fd:
         log_config = yaml.safe_load(fd.read())
     return log_config
 
@@ -173,9 +176,9 @@ LOGGING = get_logging_config()
 
 TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
 NOSE_ARGS = [
-    f'--where={os.getenv("TEST_DIR")}/unit',
+    f'--where={BASE_DIR / os.getenv("TEST_DIR")}/unit',
     '--verbosity=3',
     '--with-xunit',
-    f'--xunit-file={os.getenv("TEST_REPORT_PATH", "nose2-junit.xml")}',
+    f'--xunit-file={BASE_DIR / os.getenv("TEST_REPORT_PATH", "nose2-junit.xml")}',
     '--logging-clear-handlers'
 ]

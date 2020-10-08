@@ -33,8 +33,71 @@
 
 ### Dependencies
 
-The **Make** targets assume you have **bash**, **curl**, **tar**, **gopass**, **summon**, **gopass summon provider**, **docker** and **docker-compose** installed.
+<!--The **Make** targets assume you have **bash**, **curl**, **tar**, **gopass**, **summon**, **gopass summon provider**, **docker** and **docker-compose** installed.-->
+Prerequisites for development:
+- a recent python version (>= 3.7)
+- a local postgres (>= 12.0) running
+- postgis extension installed (>= 3.0)
 
+Prerequisite for testing the build/CI stages
+- `docker` and `docker-compose`
+
+### Setup local db
+Create a new superuser (required to create/destroy the test-databases) and a new database
+```
+sudo su - postgres
+psql
+psql> CREATE SUPERUSER <db_user> WITH PASSWORD '<db_pw>';
+# We need a database with utf8 encoding (for jsonfield) and utf8 needs template0
+psql> CREATE DATABASE <db_name> WITH OWNER <db_user> ENCODING 'UTF8' TEMPLATE template0;
+```
+
+The PostGIS extension will be installed automatically by Django.
+
+**Note:** this is a local development setup and not suitable for production!
+
+### Setup app
+These steps you need to do once to setup the project.
+- clone the repo
+```
+git clone git@github.com:geoadmin/service-stac.git
+cd service-stac
+```
+- define the app environment (`APP_ENV=local` causes the settings to populate the env from `.env.local`, otherwise values are taken from the system ENV)
+```
+export APP_ENV=local
+```
+- create and adapt your local copy of `.env.default` with the values defined when creating the database:
+```
+cp .env.default .env.local
+```
+- and finally create your local copy of the `settings.py`, which is in the simplest case just a 
+```
+echo "from .settings_dev import *" > project/config/settings.py
+```
+- creating a virtualenv and installing dependencies
+```
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements_dev.txt
+```
+
+### Starting dev server
+```
+cd project
+# make sure you have the virtualenv activated and `APP_ENV=local` set
+./manage.py runserver
+```
+
+### Running test
+```
+./manage.py test
+```
+you can choose to create a new test-db on every run or to keep the db, which speeds testing up:
+```
+./manage.py test --keepdb
+```
+<!--
 #### gopass summon provider
 
 For the DB connnection, some makefile targets (`test`, `serve`, `gunicornserve`, ...) uses `summon -p gopass --up -e service-stac-$(ENV)` to gets the credentials as environment variables.
@@ -116,7 +179,7 @@ To stop the container run,
 ```bash
 make shutdown
 ```
-
+-->
 ## Deploying the project and continuous integration
 
 When creating a PR, terraform should run a codebuild job to test and build automatically your PR as a tagged container. This container will only be pushed to dockerhub when the PR is accepted and merged.
