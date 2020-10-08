@@ -6,7 +6,7 @@ env:
     SHELL: /bin/bash
     AWS_DEFAULT_REGION: eu-central-1
     USER: "aws_code_build"
-    TEST_REPORT_DIR: "./tests/report"
+    TEST_REPORT_DIR: "./reports"
     TEST_REPORT_FILE: "nose2-junit.xml"
     ENV: "dev"
   exported-variables:
