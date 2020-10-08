@@ -70,4 +70,4 @@ secrets.yml
 
 # ignore local files
 **/settings.py
-.env.dev
+.env.*local

@@ -14,11 +14,20 @@ import os
 import sys
 from distutils.util import strtobool
 from pathlib import Path
+from dotenv import load_dotenv
 
 import yaml
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
+
+# Determine the application environment (dev|int|prod)
+APP_ENV = os.getenv('APP_ENV', 'prod')
+
+# If we develop locally, load ENV from file
+if APP_ENV.lower() == 'local':
+    print("running locally hence injecting env vars from {}".format(BASE_DIR / f'.env.{APP_ENV}'))
+    load_dotenv(BASE_DIR / f'.env.{APP_ENV}' )
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.1/howto/deployment/checklist/
@@ -32,7 +41,7 @@ DEBUG = bool(strtobool(os.getenv('DEBUG', 'False')))
 ALLOWED_HOSTS = []
 if DEBUG:
     # When the debug flag is set allow local host
-    ALLOWED_HOSTS = ['.localhost', '127.0.0.1', '[::1]']
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1', '[::1]']
 ALLOWED_HOSTS += os.getenv('ALLOWED_HOSTS', '').split(',')
 
 # Application definition
@@ -82,38 +91,28 @@ WSGI_APPLICATION = 'wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/3.1/ref/settings/#databases
 
-if 'test' in sys.argv:
-    # Use a local sqlite DB for test, actually django in the case where the
-    # engine is django.db.backends.sqlite3 uses an in-memory db for testing see
-    # https://docs.djangoproject.com/en/dev/topics/testing/overview/#the-test-database
+
+try:
     DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': f'{os.getenv("TEST_DIR")}/unit/test_db.sqlite3',
-        }
-    }
-else:
-    try:
-        DATABASES = {
-            'default': {
-                'ENGINE': 'django.contrib.gis.db.backends.postgis',
-                'NAME': os.environ.get('DB_NAME', 'service_stac_dev'),
-                'USER': os.environ['DB_USER'],
-                'PASSWORD': os.environ['DB_PW'],
-                'HOST': os.environ['DB_HOST'],
-                'PORT': '5432',
-                'TEST': {
-                    'NAME': 'test_service_stac_dev',
-                }
+            'ENGINE': 'django.contrib.gis.db.backends.postgis',
+            'NAME': os.environ.get('DB_NAME', 'service_stac_dev'),
+            'USER': os.environ['DB_USER'],
+            'PASSWORD': os.environ['DB_PW'],
+            'HOST': os.environ['DB_HOST'],
+            'PORT': os.environ.get('DB_PORT', 5432),
+            'TEST': {
+                'NAME': os.environ.get('DB_NAME_TEST', 'test_service_stac_dev'),
             }
         }
-    except KeyError as err:
-        if 'check' in sys.argv or 'help' in sys.argv:
-            # Do not raise an exception for django command that don't requires DB connection like
-            # for example the check and help command.
-            pass
-        else:
-            raise KeyError(f'Database environment variables {err} not configured') from err
+    }
+except KeyError as err:
+    if 'check' in sys.argv or 'help' in sys.argv:
+        # Do not raise an exception for django command that don't requires DB connection like
+        # for example the check and help command.
+        pass
+    else:
+        raise KeyError(f'Database environment variables {err} not configured') from err
 
 # Password validation
 # https://docs.djangoproject.com/en/3.1/ref/settings/#auth-password-validators
@@ -163,7 +162,7 @@ def get_logging_config():
     LOGGING_CFG and return it as dictonary
     '''
     log_config = {}
-    with open(os.getenv('LOGGING_CFG', './project/config/logging-cfg-local.yml'), 'rt') as fd:
+    with open(os.getenv('LOGGING_CFG', BASE_DIR / 'config/logging-cfg-local.yml'), 'rt') as fd:
         log_config = yaml.safe_load(fd.read())
     return log_config
 

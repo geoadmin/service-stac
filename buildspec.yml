@@ -20,12 +20,12 @@ phases:
   install:
     runtime-versions:
       docker: 18
-    commands:
-      - echo "Installing necessary softwares"
-      - docker login -u ${CI_DOCKERHUB_USER} -p ${CI_DOCKERHUB_PASSWORD}
-      - apt-get update && apt-get install -y docker-compose python3-pip
-      - echo "Installing Geospatial libraries required by Django"
-      - apt-get install -y binutils libproj-dev gdal-bin
+  #   commands:
+  #     - echo "Installing necessary softwares"
+  #     - docker login -u ${CI_DOCKERHUB_USER} -p ${CI_DOCKERHUB_PASSWORD}
+  #     - apt-get update && apt-get install -y docker-compose python3-pip
+  #     - echo "Installing Geospatial libraries required by Django"
+  #     - apt-get install -y binutils libproj-dev gdal-bin
   pre_build:
     commands:
       - echo "export of the image tag for build and push purposes"
@@ -41,21 +41,23 @@ phases:
       - export IMAGE_TAG="${GITHUB_BRANCH}.${COMMIT_HASH}"
       - echo "GITHUB_BRANCH=${GITHUB_BRANCH} COMMIT_HASH=${COMMIT_HASH} IMAGE_TAG=${IMAGE_TAG}"
       - echo "creating a clean environment"
-      - make clean dev
+      # - make clean dev
+      - echo Test build started on $(date)
+      - docker-compose up
   build:
     commands:
-      - echo Build started on $(date)
+      - echo Production build started on $(date)
       - export DOCKER_IMG_TAG_BASE=${IMAGE_BASE_NAME}:${GITHUB_BRANCH}
       - export DOCKER_IMG_TAG_HASH=${DOCKER_IMG_TAG_BASE}.${COMMIT_HASH}
       - export DOCKER_IMG_TAG_LATEST=${DOCKER_IMG_TAG_BASE}.latest
       - echo "Building docker image with tags ${DOCKER_IMG_TAG_HASH} and ${DOCKER_IMG_TAG_LATEST}"
-      - docker build -t ${DOCKER_IMG_TAG_HASH} -t ${DOCKER_IMG_TAG_LATEST} .
+      - docker build -t ${DOCKER_IMG_TAG_HASH} -t ${DOCKER_IMG_TAG_LATEST} --target production .
 
   post_build:
     commands:
-      - make lint
-      - mkdir -p ${TEST_REPORT_DIR}
-      - make test
+      # - make lint
+      # - mkdir -p ${TEST_REPORT_DIR}
+      # - make test
       # Only push image to dockerhub for merge to develop and master
       - |
         if [ "${GITHUB_BRANCH}" = "master" -o "${GITHUB_BRANCH}" = "develop" ]; then
