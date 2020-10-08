@@ -43,7 +43,9 @@ phases:
       - echo "creating a clean environment"
       # - make clean dev
       - echo Test build started on $(date)
-      - docker-compose up
+      # the app container will 'exit 0' once tests are completed, we need to
+      # stop the db as well then
+      - docker-compose up --abort-on-container-exit
   build:
     commands:
       - echo Production build started on $(date)
