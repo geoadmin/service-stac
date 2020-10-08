@@ -14,9 +14,9 @@ import os
 import sys
 from distutils.util import strtobool
 from pathlib import Path
-from dotenv import load_dotenv
 
 import yaml
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
@@ -92,7 +92,6 @@ WSGI_APPLICATION = 'wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/3.1/ref/settings/#databases
 
-
 try:
     DATABASES = {
         'default': {
@@ -165,7 +164,7 @@ def get_logging_config():
     Note: LOGGING_CFG is relative to the root of the repo
     '''
     log_config = {}
-    with open(BASE_DIR / os.getenv('LOGGING_CFG', 'project/config/logging-cfg-local.yml'), 'rt') as fd:  # pylint: disable=line-too-long
+    with open(BASE_DIR / os.getenv('LOGGING_CFG', 'app/config/logging-cfg-local.yml'), 'rt') as fd:  # pylint: disable=line-too-long
         log_config = yaml.safe_load(fd.read())
     return log_config
 

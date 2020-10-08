@@ -35,7 +35,7 @@
 
 <!--The **Make** targets assume you have **bash**, **curl**, **tar**, **gopass**, **summon**, **gopass summon provider**, **docker** and **docker-compose** installed.-->
 Prerequisites for development:
-- a recent python version (>= 3.7)
+- a recent python version (>= 3.7) (check with `python -V`)
 - a local postgres (>= 12.0) running
 - postgis extension installed (>= 3.0)
 

@@ -24,7 +24,7 @@ services:
     environment:
       - DEBUG=True
       - TEST_DIR=tests
-      - LOGGING_CFG=project/config/logging-cfg-dev.yml
+      - LOGGING_CFG=app/config/logging-cfg-dev.yml
       - DB_USER=postgres
       - DB_PW=postgres
       - DB_NAME=service_stac

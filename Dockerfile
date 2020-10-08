@@ -16,7 +16,7 @@ COPY "./requirements.txt" "/app/requirements.txt"
 
 RUN pip3 install -r requirements.txt
 
-COPY --chown=geoadmin:geoadmin ./project /app/
+COPY --chown=geoadmin:geoadmin ./app /app/
 
 
 

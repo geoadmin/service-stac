@@ -17,7 +17,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
-
 # django-extensions
 # ------------------------------------------------------------------------------
-INSTALLED_APPS += ['django_extensions', ]
+INSTALLED_APPS += [
+    'django_extensions',
+]
