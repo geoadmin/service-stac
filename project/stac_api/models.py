@@ -213,7 +213,7 @@ class Item(models.Model):
             raise ValidationError(_('Bounding box incorrectly defined.'))
 
     def save(self, *args, **kwargs):  # pylint: disable=signature-differs
-        # TODO: check if collections' bbox needs to be updated
+        # TODO: check if collection's bbox needs to be updated
         # --> this could probably best be done with GeoDjango? (@Tobias)
         # I leave this open for the moment.
 
@@ -221,14 +221,17 @@ class Item(models.Model):
         if self.collection.start_date is None:
 
             self.collection.start_date = self.properties_datetime
+            self.collection.save()
 
         elif self.properties_datetime < self.collection.start_date:
 
             self.collection.start_date = self.properties_datetime
+            self.collection.save()
 
         elif self.properties_datetime > self.collection.end_date or \
             self.collection.end_date is None:
             self.collection.end_date = self.properties_datetime
+            self.collection.save()
 
         super().save(*args, **kwargs)
 
@@ -280,10 +283,11 @@ class Asset(models.Model):
     def save(self, *args, **kwargs):  # pylint: disable=signature-differs
         self.collection = self.feature.collection
 
-        # check if the collections' geoadmin_variant needs to be updated
+        # check if the collection's geoadmin_variant needs to be updated
         for variant in self.geoadmin_variant:
             if not variant in self.feature.collection.geoadmin_variant:
                 self.feature.collection.geoadmin_variant.append(variant)
+                self.feature.collection.save()
 
         # proj (integer) is defined on collection level as well
         # and eo_gsd (float) on item AND collection level as well.
@@ -291,6 +295,7 @@ class Asset(models.Model):
         # and grandparent level.
         if not self.proj in self.feature.collection.summaries_proj:
             self.feature.collection.summaries_proj.append(self.proj)
+            self.feature.collection.save()
 
         # for float-comparison:
         def float_in(f, floats, **kwargs):  # pylint: disable=invalid-name
@@ -298,8 +303,10 @@ class Asset(models.Model):
 
         if not float_in(self.eo_gsd, self.feature.collection.summaries_eo_gsd):
             self.feature.collection.summaries_eo_gsd.append(self.eo_gsd)
+            self.feature.collection.save()
 
         if not float_in(self.eo_gsd, self.feature.properties_eo_gsd):
             self.feature.properties_eo_gsd.append(self.eo_gsd)
+            self.feature.collection.save()
 
         super().save(*args, **kwargs)
