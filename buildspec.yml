@@ -20,10 +20,10 @@ phases:
   install:
     runtime-versions:
       docker: 18
-  #   commands:
-  #     - echo "Installing necessary softwares"
-  #     - docker login -u ${CI_DOCKERHUB_USER} -p ${CI_DOCKERHUB_PASSWORD}
-  #     - apt-get update && apt-get install -y docker-compose python3-pip
+    commands:
+      - echo "Installing necessary dependencies"
+      - docker login -u ${CI_DOCKERHUB_USER} -p ${CI_DOCKERHUB_PASSWORD}
+      - apt-get update && apt-get install -y docker-compose python3-pip
   #     - echo "Installing Geospatial libraries required by Django"
   #     - apt-get install -y binutils libproj-dev gdal-bin
   pre_build:
