@@ -59,6 +59,7 @@ PYTHON := $(VENV)/bin/python3
 PIP := $(VENV)/bin/pip3
 FLASK := $(VENV)/bin/flask
 YAPF := $(VENV)/bin/yapf
+ISORT := $(VENV)/bin/isort
 NOSE := $(VENV)/bin/nose2
 PYLINT := $(VENV)/bin/pylint
 
@@ -75,7 +76,7 @@ help:
 	@echo "Usage: make <target>"
 	@echo
 	@echo "Possible targets:"
-	@echo -e " \033[1mSetup TARGETS\033[0m "
+	@echo -e " \033[1mSETUP TARGETS\033[0m "
 	@echo "- setup              Create the python virtual environment"
 	@echo "- dev                Create the python virtual environment with developper tools"
 	@echo -e " \033[1mFORMATING, LINTING AND TESTING TOOLS TARGETS\033[0m "
@@ -86,7 +87,7 @@ help:
 	@echo -e " \033[1mLOCAL SERVER TARGETS\033[0m "
 	@echo "- serve              Run the project using the flask debug server. Port can be set by Env variable HTTP_PORT (default: 5000)"
 	@echo "- gunicornserve      Run the project using the gunicorn WSGI server. Port can be set by Env variable DEBUG_HTTP_PORT (default: 5000)"
-	@echo -e " \033[1mDocker TARGETS\033[0m "
+	@echo -e " \033[1mDOCKER TARGETS\033[0m "
 	@echo "- dockerbuild        Build the project localy (with tag := $(DOCKER_IMG_LOCAL_TAG)) using the gunicorn WSGI server inside a container"
 	@echo "- dockerpush         Build and push the project localy (with tag := $(DOCKER_IMG_LOCAL_TAG))"
 	@echo "- dockerrun          Run the project using the gunicorn WSGI server inside a container (exposed port: 5000)"
@@ -94,6 +95,9 @@ help:
 	@echo -e " \033[1mCLEANING TARGETS\033[0m "
 	@echo "- clean              Clean genereated files"
 	@echo "- clean_venv         Clean python venv"
+	@echo -e " \033[1mDJANGO TARGETS\033[0m "
+	@echo "- django-check       Inspect the Django project for common problems"
+	@echo "- django-migrate     Synchronize the database state with the current set of models and migrations"
 
 
 # Build targets. Calling setup is all that is needed for the local files to be installed as needed.
@@ -111,6 +115,7 @@ setup: $(REQUIREMENTS_TIMESTAMP)
 .PHONY: format
 format: $(DEV_REQUIREMENTS_TIMESTAMP)
 	$(YAPF) -p -i --style .style.yapf $(PYTHON_FILES)
+	$(ISORT) $(PYTHON_FILES)
 
 
 .PHONY: lint
