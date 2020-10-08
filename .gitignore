@@ -31,7 +31,7 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-local/
+.local/
 
 # virtualenv
 .venv

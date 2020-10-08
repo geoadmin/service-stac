@@ -41,14 +41,16 @@ phases:
       - export IMAGE_TAG="${GITHUB_BRANCH}.${COMMIT_HASH}"
       - echo "GITHUB_BRANCH=${GITHUB_BRANCH} COMMIT_HASH=${COMMIT_HASH} IMAGE_TAG=${IMAGE_TAG}"
       - echo "creating a clean environment"
-      # - make clean dev
-      - echo Test build started on $(date)
+      - make clean dev
+      - echo "linting code"
+      - make lint
+      - echo "starting test build on $(date)"
       # the app container will 'exit 0' once tests are completed, we need to
       # stop the db as well then
       - docker-compose up --abort-on-container-exit
   build:
     commands:
-      - echo Production build started on $(date)
+      - echo "starting production build on $(date)"
       - export DOCKER_IMG_TAG_BASE=${IMAGE_BASE_NAME}:${GITHUB_BRANCH}
       - export DOCKER_IMG_TAG_HASH=${DOCKER_IMG_TAG_BASE}.${COMMIT_HASH}
       - export DOCKER_IMG_TAG_LATEST=${DOCKER_IMG_TAG_BASE}.latest
@@ -57,7 +59,7 @@ phases:
 
   post_build:
     commands:
-      # - make lint
+      
       # - mkdir -p ${TEST_REPORT_DIR}
       # - make test
       # Only push image to dockerhub for merge to develop and master

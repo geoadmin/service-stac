@@ -28,7 +28,7 @@ APP_ENV = os.getenv('APP_ENV', 'prod')
 # If we develop locally, load ENV from file
 if APP_ENV.lower() == 'local':
     print("running locally hence injecting env vars from {}".format(BASE_DIR / f'.env.{APP_ENV}'))
-    load_dotenv(BASE_DIR / f'.env.{APP_ENV}' )
+    load_dotenv(BASE_DIR / f'.env.{APP_ENV}')
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.1/howto/deployment/checklist/
@@ -165,7 +165,7 @@ def get_logging_config():
     Note: LOGGING_CFG is relative to the root of the repo
     '''
     log_config = {}
-    with open(BASE_DIR / os.getenv('LOGGING_CFG', 'project/config/logging-cfg-local.yml'), 'rt') as fd:
+    with open(BASE_DIR / os.getenv('LOGGING_CFG', 'project/config/logging-cfg-local.yml'), 'rt') as fd:  # pylint: disable=line-too-long
         log_config = yaml.safe_load(fd.read())
     return log_config
 

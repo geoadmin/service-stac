@@ -10,14 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.1/ref/settings/
 """
 
-import os
-import sys
-from distutils.util import strtobool
-from pathlib import Path
-
-import yaml
-
-from .settings_prod import *
+from .settings_prod import *  # pylint: disable=wildcard-import, unused-wildcard-import
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True

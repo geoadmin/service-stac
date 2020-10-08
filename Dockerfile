@@ -21,13 +21,13 @@ COPY --chown=geoadmin:geoadmin ./project /app/
 
 
 #############################################
-# Container to perform tests/manage commands
+# Container to perform tests/management tasks
 FROM base as test
 
 WORKDIR /app
 COPY "./requirements_dev.txt" "./wait-for-it.sh" "/app/"
 
-# on test, settings.py just import settings_dev
+# for testing/management, settings.py just imports settings_dev
 RUN echo "from .settings_dev import *" > /app/config/settings.py \
     && chown geoadmin:geoadmin /app/config/settings.py
 
@@ -35,7 +35,7 @@ RUN pip3 install -r requirements_dev.txt
 
 COPY --chown=geoadmin:geoadmin ./tests /app/tests/
 
-# Use a real WSGI server
+# entrypoint is the manage command
 ENTRYPOINT ["python3", "./manage.py"]
 
 

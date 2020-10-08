@@ -7,7 +7,7 @@ SERVICE_NAME := service-stac
 CURRENT_DIR := $(shell pwd)
 VENV := $(CURRENT_DIR)/.venv
 REQUIREMENTS = $(CURRENT_DIR)/requirements.txt
-DEV_REQUIREMENTS = $(CURRENT_DIR)/dev_requirements.txt
+REQUIREMENTS_DEV = $(CURRENT_DIR)/requirements_dev.txt
 
 # Django specific
 DJANGO_PROJECT := project
@@ -26,7 +26,7 @@ PYTHON_LOCAL_DIR := $(CURRENT_DIR)/.local
 # venv targets timestamps
 VENV_TIMESTAMP = $(VENV)/.timestamp
 REQUIREMENTS_TIMESTAMP = $(VENV)/.requirements.timestamp
-DEV_REQUIREMENTS_TIMESTAMP = $(VENV)/.dev-requirements.timestamp
+REQUIREMENTS_DEV_TIMESTAMP = $(VENV)/.dev-requirements.timestamp
 
 # general targets timestamps
 TIMESTAMPS = .timestamps
@@ -42,7 +42,7 @@ PYTHON_FILES := $(shell find ${DJANGO_PROJECT_DIR} ${TEST_DIR} -type f -name "*.
 
 PROJECT_FILES := $(shell find ${DJANGO_PROJECT_DIR} -type f -print)
 
-PYTHON_VERSION := 3.7.4
+PYTHON_VERSION := 3.6
 SYSTEM_PYTHON := $(shell ./getPythonCmd.sh ${PYTHON_VERSION} ${PYTHON_LOCAL_DIR})
 
 # default configuration
@@ -103,7 +103,7 @@ help:
 # Build targets. Calling setup is all that is needed for the local files to be installed as needed.
 
 .PHONY: dev
-dev: $(DEV_REQUIREMENTS_TIMESTAMP)
+dev: $(REQUIREMENTS_DEV_TIMESTAMP)
 
 
 .PHONY: setup
@@ -113,13 +113,13 @@ setup: $(REQUIREMENTS_TIMESTAMP)
 # linting target, calls upon yapf to make sure your code is easier to read and respects some conventions.
 
 .PHONY: format
-format: $(DEV_REQUIREMENTS_TIMESTAMP)
+format: $(REQUIREMENTS_DEV_TIMESTAMP)
 	$(YAPF) -p -i --style .style.yapf $(PYTHON_FILES)
 	$(ISORT) $(PYTHON_FILES)
 
 
 .PHONY: lint
-lint: $(DEV_REQUIREMENTS_TIMESTAMP) django-check
+lint: $(REQUIREMENTS_DEV_TIMESTAMP) django-check
 	@echo "Run pylint..."
 	$(PYLINT) $(PYTHON_FILES)
 
@@ -131,7 +131,7 @@ format-lint: format lint
 # Test target
 
 .PHONY: test
-test: $(DEV_REQUIREMENTS_TIMESTAMP) $(TEST_REPORT_DIR)
+test: $(REQUIREMENTS_DEV_TIMESTAMP) $(TEST_REPORT_DIR)
 	LOGGING_CFG=$(LOGGING_CFG_PATH) TEST_DIR=$(TEST_DIR) TEST_REPORT_PATH=$(TEST_REPORT_PATH) $(PYTHON) $(DJANGO_MANAGER) test
 
 
@@ -215,9 +215,9 @@ $(REQUIREMENTS_TIMESTAMP): $(VENV_TIMESTAMP) $(REQUIREMENTS)
 	@touch $(REQUIREMENTS_TIMESTAMP)
 
 
-$(DEV_REQUIREMENTS_TIMESTAMP): $(REQUIREMENTS_TIMESTAMP) $(DEV_REQUIREMENTS)
-	$(PIP) install -r $(DEV_REQUIREMENTS)
-	@touch $(DEV_REQUIREMENTS_TIMESTAMP)
+$(REQUIREMENTS_DEV_TIMESTAMP): $(REQUIREMENTS_TIMESTAMP) $(REQUIREMENTS_DEV)
+	$(PIP) install -r $(REQUIREMENTS_DEV)
+	@touch $(REQUIREMENTS_DEV_TIMESTAMP)
 
 
 $(DOCKER_BUILD_TIMESTAMP): $(TIMESTAMPS) $(PROJECT_FILES) $(CURRENT_DIR)/Dockerfile
