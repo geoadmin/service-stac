@@ -1,4 +1,9 @@
+import re
 from django.contrib.gis.db import models
+from django.utils.translation import gettext_lazy as _
+from django.core.exceptions import ValidationError
+from django.contrib.postgres.fields import ArrayField
+import numpy as np
 
 # pylint: disable=fixme
 # TODO remove this pylint disable once this is done
@@ -6,23 +11,302 @@ from django.contrib.gis.db import models
 # st_geometry bbox ch
 BBOX_CH = 'POLYGON((2317000 913000,3057000 913000,3057000 1413000,2317000 1413000,2317000 913000))'
 
+# I allowed myself to make excessive use of comments below, as this is still work in progress.
+# all the comments can be deleted later on
+
+
+class Keyword(models.Model):
+    name = models.CharField(max_length=64)  # string
+
+
+class Link(models.Model):
+    href = models.URLField()  # string
+    rel = models.CharField(max_length=30)  # string
+    link_type = models.CharField(blank=True, max_length=150)  # string
+    # added link_ to the fieldname, as "type" is reserved
+    title = models.CharField(blank=True, max_length=255)  # string
+
+
+class Provider(models.Model):
+    name = models.CharField(blank=False, max_length=200)  # string
+    description = models.TextField()  # string
+    roles = ArrayField(models.CharField(max_length=9))  # [string]
+    # possible roles are licensor, producer, processor or host. Probably it might sense
+    url = models.URLField()  # string
+
+    def clean(self):
+        ALLOWED_ROLES = ['licensor', 'producer', 'processor', 'host']  # pylint: disable=invalid-name
+        for role in self.roles:
+            if role not in ALLOWED_ROLES:
+                raise ValidationError(_('Incorrectly defined role found'))
+
+
+# For Collections and Items: No primary key will be defined, so that the auto-generated ones
+# will be used by Django. For assets, a primary key is defined as "BigAutoField" due the
+# expected large number of assets
+
 
 class Collection(models.Model):
-    # TODO: is the service multilingual? title_de, title_fr, title_en, title_it, title_rm
-    bgid_id = models.BigAutoField(primary_key=True)
-    created = models.DateTimeField(auto_now_add=True)
-    updated = models.DateTimeField(auto_now=True)
+    crs = models.URLField(default=["http://www.opengis.net/def/crs/OGC/1.3/CRS84"])  # [string]
+    created = models.DateTimeField(auto_now_add=True)  # datetime
+    updated = models.DateTimeField(auto_now=True)  # datetime
+    description = models.TextField()  # string  / intentionally TextField and
+    # not CharField to provide more space for the text.
+    # TODO: ""description" is required in radiantearth spec, not required in our spec
 
-    layer_id = models.TextField()
-    geocat_uuid = models.UUIDField()
-    goecat_title = models.TextField()
-    geodat_description = models.TextField()
-    gsd = models.TextField()
-    variant = models.TextField()
-    lang = models.TextField()  # TODO: what is its purpose?
-    bbox = models.PolygonField(
-        default=BBOX_CH, srid=2056
-    )  # TODO: directly a geometry for spatial queries? 3D?
-    temporal_interval = models.TimeField(
-    )  # TODO: time field - how many hours are in a (leap) year? textfield?
-    crs = models.URLField(default="http://www.opengis.net/def/crs/OGC/1.3/CRS84")
+    # temporal extent will be auto-populated on every item update inside this collection:
+    # start_date will be set to oldest date, end_date to most current date
+    start_date = models.DateTimeField(blank=True, null=True)  # will be automatically populated
+    end_date = models.DateTimeField(blank=True, null=True)  # will be automatically populated
+
+    # spatial extent (2D ord 3D):
+    # bbox: southwesterly most extent followed by all axes of the northeasterly
+    # most extent specified in Longitude/Latitude or Longitude/Latitude/Elevation
+    # based on WGS 84.
+    # Example that covers the whole Earth: [[-180.0, -90.0, 180.0, 90.0]].
+    # Example that covers the whole earth with a depth of 100 meters to a height
+    # of 150 meters: [[-180.0, -90.0, -100.0, 180.0, 90.0, 150.0]].
+
+    # after discussion with Chris and Tobias:
+    # bbox resp. spatial extent will be auto-generated on collection level everytime
+    # when an item inside the collection is updated.
+    # the bbox of the collection will be a an envelope ("Umhüllende") of all
+    # bboxes of the items inside the collection.
+    # furthermore GeoDjango and its functionality will be used for that.
+    # TODO: overwrite items save() function accordingly
+    # suggestions of fields to be auto-populated:
+    southwest = ArrayField(models.FloatField(), blank=True)  # [Float], auto-populated
+    northeast = ArrayField(models.FloatField(), blank=True)  # [Float], auto-populated
+
+    collection_name = models.CharField(unique=True, max_length=255)  # string
+    # collection_name is what is simply only called "id" in here:
+    # http://ltboc.infra.bgdi.ch/static/products/data.geo.admin.ch/apitransactional.html#operation/createCollection
+    item_type = models.CharField(default="Feature", max_length=20)  # string
+
+    keywords = models.ManyToManyField(Keyword)
+    license = models.CharField(max_length=30)  # string
+    links = models.ManyToManyField(Link)
+    providers = models.ManyToManyField(Provider)
+
+    # after discussion with Chris and Tobias:
+    # stac_extension will be populated with default values that are set to be
+    # non-editable for the moment. Could be changed, should the need arise.
+    stac_extension = ArrayField(
+        models.CharField(max_length=255),
+        default=[
+            'eo',
+            'proj',
+            'view',
+            'https://data.geo.admin.ch/stac/geoadmin-extension/1.0/schema.json'
+        ],
+        editable=False
+    )
+    stac_version = models.CharField(max_length=10)  # string
+
+    # "summaries" values will be updated on every update of an asset inside the
+    # collection
+    summaries_eo_gsd = ArrayField(models.FloatField(), blank=True, null=True)
+    summaries_proj = ArrayField(models.IntegerField(), blank=True, null=True)
+    # after discussion with Chris and Tobias: geoadmin_variant will be an
+    # array field of CharFields. Simple validation is done (e.g. no "Sonderzeichen"
+    # in array)
+    # geoadmin_variant will be also auto-populated on every
+    # update of an asset
+    geoadmin_variant = ArrayField(models.CharField(max_length=15), blank=True, null=True)
+
+    title = models.CharField(blank=True, max_length=255)  # string
+
+    def __str__(self):
+        return self.collection_name
+
+    def clean(self):
+        # TODO: move this check to the items save()
+        if self.start_date is None and self.end_date is None:
+            raise ValidationError(_('At least a start date or an end date has to be defined.'))
+
+        # very simple validation, raises error when geoadmin_variant strings contain special
+        # characters or umlaut.
+        for variant in self.geoadmin_variant:
+            if not bool(re.search('^[a-zA-Z0-9]*$', variant)):
+                raise ValidationError(_('Property geoadmin:variant not correctly specified.'))
+
+
+class Item(models.Model):
+    collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
+    # spatial extent (2D ord 3D):
+    # bbox: southwesterly most extent followed by all axes of the northeasterly
+    # most extent specified in Longitude/Latitude or Longitude/Latitude/Elevation
+    # based on WGS 84.
+    # Example that covers the whole Earth: [[-180.0, -90.0, 180.0, 90.0]].
+    # Example that covers the whole earth with a depth of 100 meters to a height
+    # of 150 meters: [[-180.0, -90.0, -100.0, 180.0, 90.0, 150.0]].
+    # TODO: use GeoDjango for this:
+    southwest = ArrayField(models.FloatField(), blank=True)  # [Float]
+    northeast = ArrayField(models.FloatField(), blank=True)  # [Float]
+
+    # TODO: use GeoDjango for this:
+    geometry_coordinates = models.TextField()  # [Float]
+    geometry_type = models.CharField(max_length=25)  # string, possible geometry types are:
+    # "Point", "MultiPoint", "LineString", "MultiLineString", "Polygon",
+    # "MultiPolygon", and "GeometryCollection".
+    item_name = models.CharField(unique=True, blank=False, max_length=255)
+
+    links = models.ManyToManyField(Link)
+
+    # after discussion with Chris and Tobias: for the moment only support
+    # proterties: datetime, eo_gsd and title (the rest is hence commented out)
+    properties_datetime = models.DateTimeField()
+    # properties_eo_bands = model.TextFields(blank=True)  # ? [string]?
+    # properties_eo_cloud_cover = models.FloatField(blank=True)  # float
+    # eo_gsd is defined on asset level and will be updated here on ever
+    # update of an asset inside this item.
+    properties_eo_gsd = ArrayField(models.FloatField(), blank=True, null=True)
+    # properties_instruments = models.TextField(blank=True)  # [string]
+    # properties_license = models.TextField(blank=True)  # string
+    # properties_platform = models.TextField(blank=True)  # string
+    # properties_providers = models.ManyToManyField(Provider)
+    properties_title = models.CharField(blank=True, max_length=255)  # string
+    # properties_view_off_nadir = models.FloatField(blank=True)
+    # properties_view_sun_azimuth = models.FloatField(blank=True)
+    # properties_view_elevation = models.FloatField(blank=True)
+
+    # after discussion with Chris and Tobias:
+    # stac_extension will be populated with default values that are set to be
+    # non-editable for the moment. Could be changed, should the need arise.
+    stac_extension = ArrayField(
+        models.CharField(max_length=255),
+        default=[
+            'eo',
+            'proj',
+            'view',
+            'https://data.geo.admin.ch/stac/geoadmin-extension/1.0/schema.json'
+        ],
+        editable=False
+    )
+
+    stac_version = models.CharField(blank=False, max_length=10)
+    GeoJSON_type = models.CharField(default="Feature", blank=False, editable=False, max_length=7)  # pylint: disable=invalid-name
+    # specifies the GeoJSON type and MUST be set to "Feature".
+    assets = models.TextField()
+    # this is defined as required here:
+    # https://github.com/radiantearth/stac-spec/blob/v0.9.0/item-spec/item-spec.md
+    # and is meant to contain a dictionary of asset objects than can be
+    # downloaded, each with a unique key will be auto-populated on every
+    # update of an asset inside this item.
+    # TODO: overwrite assets save() function accordingly.
+    location = models.URLField()
+
+    def __str__(self):
+        return self.item_name
+
+    def clean(self):
+        if len(self.southwest) != len(self.northeast):  # pylint: disable=no-else-raise
+            raise ValidationError(_(
+                'If intended spatial extent is 3D, then elevation needs to be' \
+                'defined in southwesterly most and northeasterly most point.'
+            ))
+        # don't understand why pylint complains here. Do I get something wrong?
+        # To me this elif makes sense, as it will be executed, when
+        # len(self.southwest) == len(self.northeast). So I disables the pylint
+        # check for the following line.
+        elif (len(self.southwest) != 2) and (len(self.southwest) != 3):
+            raise ValidationError(_('Bounding box incorrectly defined.'))
+
+    def save(self, *args, **kwargs):  # pylint: disable=signature-differs
+        # TODO: check if collection's bbox needs to be updated
+        # --> this could probably best be done with GeoDjango? (@Tobias)
+        # I leave this open for the moment.
+
+        # check if collection's start_ and end_dates need to be updated
+        if self.collection.start_date is None:
+
+            self.collection.start_date = self.properties_datetime
+            self.collection.save()
+
+        elif self.properties_datetime < self.collection.start_date:
+
+            self.collection.start_date = self.properties_datetime
+            self.collection.save()
+
+        elif self.properties_datetime > self.collection.end_date or \
+            self.collection.end_date is None:
+            self.collection.end_date = self.properties_datetime
+            self.collection.save()
+
+        super().save(*args, **kwargs)
+
+
+class Asset(models.Model):
+    feature = models.ForeignKey(Item, on_delete=models.CASCADE)
+    collection = models.ForeignKey(Collection, on_delete=models.CASCADE, blank=True, editable=False)
+    asset_id = models.BigAutoField(primary_key=True)
+
+    # using BigIntegerField as primary_key to deal with the expected large number of assets.
+
+    # using "_name" instead of "_id", as "_id" has a default meaning in django
+    asset_name = models.CharField(unique=True, blank=False, max_length=255)
+    checksum_multihash = models.CharField(blank=False, max_length=255)
+    description = models.TextField()
+    eo_gsd = models.FloatField()
+
+    class Language(models.TextChoices):
+        GERMAN = 'de', _('German')  # pylint: disable=invalid-name
+        ITALIAN = 'it', _('Italian')  # pylint: disable=invalid-name
+        FRENCH = 'fr', _('French')  # pylint: disable=invalid-name
+        ROMANSH = 'rm', _('Romansh')  # pylint: disable=invalid-name
+        ENGLISH = 'en', _('English')  # pylint: disable=invalid-name
+        NONE = '', _('')  # pylint: disable=invalid-name
+
+    geoadmin_lang = models.CharField(max_length=2, choices=Language.choices, default=Language.NONE)
+    # after discussion with Chris and Tobias: geoadmin_variant will be an
+    # array field of CharFields. Simple validation is done (e.g. no "Sonderzeichen"
+    # in array)
+    geoadmin_variant = ArrayField(models.CharField(max_length=15))
+    proj = models.IntegerField(null=True)
+    title = models.CharField(max_length=255)
+    media_type = models.CharField()
+    copy_from_href = models.URLField(max_length=255)
+    location = models.URLField()
+
+    def __str__(self):
+        return self.asset_name
+
+    def clean(self):
+        # very simple validation, raises error when geoadmin_variant strings contain special
+        # characters or umlaut.
+        for variant in self.geoadmin_variant:
+            if not bool(re.search('^[a-zA-Z0-9]*$', variant)):
+                raise ValidationError(_('Property geoadmin:variant not correctly specified.'))
+
+    # alter save-function, so that the corresponding collection of the parent item of the asset
+    # is saved, too.
+    def save(self, *args, **kwargs):  # pylint: disable=signature-differs
+        self.collection = self.feature.collection
+
+        # check if the collection's geoadmin_variant needs to be updated
+        for variant in self.geoadmin_variant:
+            if not variant in self.feature.collection.geoadmin_variant:
+                self.feature.collection.geoadmin_variant.append(variant)
+                self.feature.collection.save()
+
+        # proj (integer) is defined on collection level as well
+        # and eo_gsd (float) on item AND collection level as well.
+        # So we need to check if these properties need an update on parent
+        # and grandparent level.
+        if not self.proj in self.feature.collection.summaries_proj:
+            self.feature.collection.summaries_proj.append(self.proj)
+            self.feature.collection.save()
+
+        # for float-comparison:
+        def float_in(f, floats, **kwargs):  # pylint: disable=invalid-name
+            return np.any(np.isclose(f, floats, **kwargs))
+
+        if not float_in(self.eo_gsd, self.feature.collection.summaries_eo_gsd):
+            self.feature.collection.summaries_eo_gsd.append(self.eo_gsd)
+            self.feature.collection.save()
+
+        if not float_in(self.eo_gsd, self.feature.properties_eo_gsd):
+            self.feature.properties_eo_gsd.append(self.eo_gsd)
+            self.feature.collection.save()
+
+        super().save(*args, **kwargs)
