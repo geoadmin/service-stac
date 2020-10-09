@@ -31,3 +31,4 @@ services:
       - DB_HOST=db
       - APP_ENV=ci
       - TEST_REPORT_PATH=/app/reports/nose2-junit.xml
+      - TEST_DIR=/app/tests
