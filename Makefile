@@ -114,6 +114,7 @@ setup:
 	test -d $(VENV) || ( $(SYSTEM_PYTHON) -m venv $(VENV) && $(PIP) install --upgrade pip setuptools; \
 	$(PIP) install -U pip wheel; \
 	$(PIP) install -r $(REQUIREMENTS_DEV); )
+	test -d app/config/settings.py || echo "from .settings_dev import *" > app/config/settings.py
 
 # linting target, calls upon yapf to make sure your code is easier to read and respects some conventions.
 
