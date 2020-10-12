@@ -42,7 +42,7 @@ PYTHON_FILES := $(shell find ./app ${TEST_DIR} -type f -name "*.py" -print)
 
 # PROJECT_FILES := $(shell find ./app -type f -print)
 
-PYTHON_VERSION := 3.6
+PYTHON_VERSION := 3.7
 SYSTEM_PYTHON := $(shell ./getPythonCmd.sh ${PYTHON_VERSION} ${PYTHON_LOCAL_DIR})
 ifeq ($(SYSTEM_PYTHON),)
 $(error "No matching python version found on system, minimum $(PYTHON_VERSION) required")
@@ -108,12 +108,14 @@ help:
 # .PHONY: dev
 # dev: $(REQUIREMENTS_DEV_TIMESTAMP)
 
-
+# Setup the development environment
+# Note: we always run then requirements_dev.txt, if there's sth to do (i.e. requirements have changed)
+# 		pip will recognize
 .PHONY: setup
 setup:
 	test -d $(VENV) || ( $(SYSTEM_PYTHON) -m venv $(VENV) && $(PIP) install --upgrade pip setuptools; \
-	$(PIP) install -U pip wheel; \
-	$(PIP) install -r $(REQUIREMENTS_DEV); )
+	$(PIP) install -U pip wheel; )
+	$(PIP) install -r $(REQUIREMENTS_DEV);
 	test -d app/config/settings.py || echo "from .settings_dev import *" > app/config/settings.py
 
 # linting target, calls upon yapf to make sure your code is easier to read and respects some conventions.
