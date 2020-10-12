@@ -1,9 +1,11 @@
 import re
-from django.contrib.gis.db import models
-from django.utils.translation import gettext_lazy as _
-from django.core.exceptions import ValidationError
-from django.contrib.postgres.fields import ArrayField
+
 import numpy as np
+
+from django.contrib.gis.db import models
+from django.contrib.postgres.fields import ArrayField
+from django.core.exceptions import ValidationError
+from django.utils.translation import gettext_lazy as _
 
 # pylint: disable=fixme
 # TODO remove this pylint disable once this is done
@@ -13,6 +15,30 @@ BBOX_CH = 'POLYGON((2317000 913000,3057000 913000,3057000 1413000,2317000 141300
 
 # I allowed myself to make excessive use of comments below, as this is still work in progress.
 # all the comments can be deleted later on
+
+
+# after discussion with Chris and Tobias:
+# stac_extension will be populated with default values that are set to be
+# non-editable for the moment. Could be changed, should the need arise.
+# The following - a bit complicated approach - hopefully serves to solve the
+# error:
+# <begin Quote>
+# "*ArrayField default should be a callable instead of an
+# instance so that it's not shared between all field instances.
+# HINT: Use a callable instead, e.g., use `list` instead of `[]`.""
+# <end quote>
+def get_default_stac_extensions():
+    DEFAULT_STAC_EXTENSIONS = { # pylint: disable=invalid-name
+        "EO":
+            "eo",
+        "PROJ":
+            "proj",
+        "VIEW":
+            "view",
+        "GEOADMIN-EXTENSION":
+            "https://data.geo.admin.ch/stac/geoadmin-extension/1.0/schema.json"
+    }
+    return list(dict(DEFAULT_STAC_EXTENSIONS).values())
 
 
 class Keyword(models.Model):
@@ -88,18 +114,8 @@ class Collection(models.Model):
     links = models.ManyToManyField(Link)
     providers = models.ManyToManyField(Provider)
 
-    # after discussion with Chris and Tobias:
-    # stac_extension will be populated with default values that are set to be
-    # non-editable for the moment. Could be changed, should the need arise.
     stac_extension = ArrayField(
-        models.CharField(max_length=255),
-        default=list([
-            'eo',
-            'proj',
-            'view',
-            'https://data.geo.admin.ch/stac/geoadmin-extension/1.0/schema.json'
-        ]),
-        editable=False
+        models.CharField(max_length=255), default=get_default_stac_extensions, editable=False
     )
     stac_version = models.CharField(max_length=10)  # string
 
@@ -174,14 +190,7 @@ class Item(models.Model):
     # stac_extension will be populated with default values that are set to be
     # non-editable for the moment. Could be changed, should the need arise.
     stac_extension = ArrayField(
-        models.CharField(max_length=255),
-        default=list([
-            'eo',
-            'proj',
-            'view',
-            'https://data.geo.admin.ch/stac/geoadmin-extension/1.0/schema.json'
-        ]),
-        editable=False
+        models.CharField(max_length=255), default=get_default_stac_extensions, editable=False
     )
 
     stac_version = models.CharField(blank=False, max_length=10)
