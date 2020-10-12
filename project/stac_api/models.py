@@ -93,12 +93,12 @@ class Collection(models.Model):
     # non-editable for the moment. Could be changed, should the need arise.
     stac_extension = ArrayField(
         models.CharField(max_length=255),
-        default=[
+        default=list([
             'eo',
             'proj',
             'view',
             'https://data.geo.admin.ch/stac/geoadmin-extension/1.0/schema.json'
-        ],
+        ]),
         editable=False
     )
     stac_version = models.CharField(max_length=10)  # string
@@ -175,12 +175,12 @@ class Item(models.Model):
     # non-editable for the moment. Could be changed, should the need arise.
     stac_extension = ArrayField(
         models.CharField(max_length=255),
-        default=[
+        default=list([
             'eo',
             'proj',
             'view',
             'https://data.geo.admin.ch/stac/geoadmin-extension/1.0/schema.json'
-        ],
+        ]),
         editable=False
     )
 
@@ -264,7 +264,7 @@ class Asset(models.Model):
     geoadmin_variant = ArrayField(models.CharField(max_length=15))
     proj = models.IntegerField(null=True)
     title = models.CharField(max_length=255)
-    media_type = models.CharField()
+    media_type = models.CharField(max_length=200)
     copy_from_href = models.URLField(max_length=255)
     location = models.URLField()
 
