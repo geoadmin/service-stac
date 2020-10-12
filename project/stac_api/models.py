@@ -16,7 +16,6 @@ BBOX_CH = 'POLYGON((2317000 913000,3057000 913000,3057000 1413000,2317000 141300
 # I allowed myself to make excessive use of comments below, as this is still work in progress.
 # all the comments can be deleted later on
 
-
 # after discussion with Chris and Tobias:
 # stac_extension will be populated with default values that are set to be
 # non-editable for the moment. Could be changed, should the need arise.
@@ -27,17 +26,19 @@ BBOX_CH = 'POLYGON((2317000 913000,3057000 913000,3057000 1413000,2317000 141300
 # instance so that it's not shared between all field instances.
 # HINT: Use a callable instead, e.g., use `list` instead of `[]`.""
 # <end quote>
+DEFAULT_STAC_EXTENSIONS = { # pylint: disable=invalid-name
+    "EO":
+        "eo",
+    "PROJ":
+        "proj",
+    "VIEW":
+        "view",
+    "GEOADMIN-EXTENSION":
+        "https://data.geo.admin.ch/stac/geoadmin-extension/1.0/schema.json"
+}
+
+
 def get_default_stac_extensions():
-    DEFAULT_STAC_EXTENSIONS = { # pylint: disable=invalid-name
-        "EO":
-            "eo",
-        "PROJ":
-            "proj",
-        "VIEW":
-            "view",
-        "GEOADMIN-EXTENSION":
-            "https://data.geo.admin.ch/stac/geoadmin-extension/1.0/schema.json"
-    }
     return list(dict(DEFAULT_STAC_EXTENSIONS).values())
 
 
