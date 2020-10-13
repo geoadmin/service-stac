@@ -23,7 +23,10 @@ BASE_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 print(f"BASE_DIR is {BASE_DIR}")
 
 # Determine the application environment (dev|int|prod)
-APP_ENV = os.getenv('APP_ENV', 'prod')
+# Note: the preferred solution would be to have the default
+# APP_ENV 'prod', but have it 'local' by default simplifies
+# the setup
+APP_ENV = os.getenv('APP_ENV', 'local')
 
 # If we develop locally, load ENV from file
 if APP_ENV.lower() == 'local':

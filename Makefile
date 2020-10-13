@@ -10,9 +10,8 @@ REQUIREMENTS = $(CURRENT_DIR)/requirements.txt
 REQUIREMENTS_DEV = $(CURRENT_DIR)/requirements_dev.txt
 
 # Django specific
-# DJANGO_PROJECT := app
-# DJANGO_PROJECT_DIR := $(CURRENT_DIR)/$(DJANGO_PROJECT)
-# DJANGO_CONFIG_DIR := $(DJANGO_PROJECT_DIR)/config
+APP_SRC := app
+DJANGO_MANAGER := $(CURRENT_DIR)/$(APP_SRC)/manage.py
 
 # Test report
 TEST_DIR := $(CURRENT_DIR)/tests
@@ -20,25 +19,15 @@ TEST_REPORT_DIR ?= $(TEST_DIR)/report
 TEST_REPORT_FILE ?= nose2-junit.xml
 TEST_REPORT_PATH := $(TEST_REPORT_DIR)/$(TEST_REPORT_FILE)
 
-# Python local build directory
-# PYTHON_LOCAL_DIR := $(CURRENT_DIR)/.local
-
-# venv targets timestamps
-# VENV_TIMESTAMP = $(VENV)/.timestamp
-# REQUIREMENTS_TIMESTAMP = $(VENV)/.requirements.timestamp
-# REQUIREMENTS_DEV_TIMESTAMP = $(VENV)/.dev-requirements.timestamp
-
 # general targets timestamps
-# TIMESTAMPS = .timestamps
-# SYSTEM_PYTHON_TIMESTAMP = $(TIMESTAMPS)/.python-system.timestamp
-# PYTHON_LOCAL_BUILD_TIMESTAMP = $(TIMESTAMPS)/.python-build.timestamp
-# DOCKER_BUILD_TIMESTAMP = $(TIMESTAMPS)/.dockerbuild.timestamp
+TIMESTAMPS = .timestamps
+SETUP_TIMESTAMP = $(TIMESTAMPS)/.setup.timestamp
 
 # Docker variables
 DOCKER_IMG_LOCAL_TAG = swisstopo/$(SERVICE_NAME):local
 
 # Find all python files that are not inside a hidden directory (directory starting with .)
-PYTHON_FILES := $(shell find ./app ${TEST_DIR} -type f -name "*.py" -print)
+PYTHON_FILES := $(shell find $(APP_SRC) ${TEST_DIR} -type f -name "*.py" -print)
 
 # PROJECT_FILES := $(shell find ./app -type f -print)
 
@@ -56,7 +45,7 @@ LOGGING_CFG ?= logging-cfg-local.yml
 LOGGING_CFG_PATH := $(DJANGO_CONFIG_DIR)/$(LOGGING_CFG)
 
 # Commands
-DJANGO_MANAGER := $(DJANGO_PROJECT_DIR)/manage.py
+# DJANGO_MANAGER := $(DJANGO_PROJECT_DIR)/manage.py
 GUNICORN := $(VENV)/bin/gunicorn
 PYTHON := $(VENV)/bin/python3
 PIP := $(VENV)/bin/pip3
@@ -105,48 +94,47 @@ help:
 
 # Build targets. Calling setup is all that is needed for the local files to be installed as needed.
 
-# .PHONY: dev
-# dev: $(REQUIREMENTS_DEV_TIMESTAMP)
+$(TIMESTAMPS):
+	mkdir -p $(TIMESTAMPS)
+
 
 # Setup the development environment
 # Note: we always run then requirements_dev.txt, if there's sth to do (i.e. requirements have changed)
 # 		pip will recognize
 .PHONY: setup
-setup:
-	test -d $(VENV) || ( $(SYSTEM_PYTHON) -m venv $(VENV) && $(PIP) install --upgrade pip setuptools; \
-	$(PIP) install -U pip wheel; )
-	$(PIP) install -r $(REQUIREMENTS_DEV);
+setup: $(TIMESTAMPS)
+# Test if .venv exists, if not, set it up
+	test -d $(VENV) || ($(SYSTEM_PYTHON) -m venv $(VENV) && \
+	$(PIP) install --upgrade pip setuptools && \
+	$(PIP) install -U pip wheel);
+# Install requirements, pip will track changes itself
+	$(PIP) install -r $(REQUIREMENTS_DEV)
+# Check if we have a default settings.py
 	test -d app/config/settings.py || echo "from .settings_dev import *" > app/config/settings.py
+	@touch $(SETUP_TIMESTAMP)
 
 # linting target, calls upon yapf to make sure your code is easier to read and respects some conventions.
 
 .PHONY: format
-format: # $(REQUIREMENTS_DEV_TIMESTAMP)
+format: $(SETUP_TIMESTAMP)
 	$(YAPF) -p -i --style .style.yapf $(PYTHON_FILES)
 	$(ISORT) $(PYTHON_FILES)
 
 
 .PHONY: lint
-# lint: $(REQUIREMENTS_DEV_TIMESTAMP) django-check
-lint:
+lint: $(SETUP_TIMESTAMP)
 	@echo "Run pylint..."
 	$(PYLINT) $(PYTHON_FILES)
 
 
-# Test target
-
+# Running tests locally
 .PHONY: test
-test:
+test: $(SETUP_TIMESTAMP)
 	mkdir -p $(TEST_REPORT_DIR)
 	$(PYTHON) $(DJANGO_MANAGER) test
 
 
 # Serve targets. Using these will run the application on your local machine. You can either serve with a wsgi front (like it would be within the container), or without.
-
-# .PHONY: serve
-# serve: $(REQUIREMENTS_TIMESTAMP)
-# 	LOGGING_CFG=$(LOGGING_CFG_PATH) DEBUG=$(DEBUG) $(SUMMON) $(PYTHON) $(DJANGO_MANAGER) runserver $(HTTP_PORT)
-
 
 # .PHONY: gunicornserve
 # gunicornserve: $(REQUIREMENTS_TIMESTAMP)
@@ -199,75 +187,11 @@ clean: clean_venv
 	rm -rf $(TIMESTAMPS)
 
 
-# django targets
-
-# .PHONY: django-check
-# django-check: $(REQUIREMENTS)
-# 	@echo "Run django check"
-# 	$(PYTHON) $(DJANGO_MANAGER) check --fail-level WARNING
-
-
-# .PHONY: django-migrate
-# django-migrate: $(REQUIREMENTS)
-# 	$(SUMMON) $(PYTHON) $(DJANGO_MANAGER) migrate
-
 
 # Actual builds targets with dependencies
 
-# $(TIMESTAMPS):
-# 	mkdir -p $(TIMESTAMPS)
-
-# $(VENV_TIMESTAMP): $(SYSTEM_PYTHON_TIMESTAMP)
-# 	test -d $(VENV) || $(SYSTEM_PYTHON) -m venv $(VENV) && $(PIP) install --upgrade pip setuptools
-# 	@touch $(VENV_TIMESTAMP)
-
-
-# $(REQUIREMENTS_TIMESTAMP): $(VENV_TIMESTAMP) $(REQUIREMENTS)
-# 	$(PIP) install -U pip wheel; \
-# 	$(PIP) install -r $(REQUIREMENTS);
-# 	@touch $(REQUIREMENTS_TIMESTAMP)
-
-
-# $(REQUIREMENTS_DEV_TIMESTAMP): $(REQUIREMENTS_TIMESTAMP) $(REQUIREMENTS_DEV)
-# 	$(PIP) install -r $(REQUIREMENTS_DEV)
-# 	@touch $(REQUIREMENTS_DEV_TIMESTAMP)
 
 
 # $(DOCKER_BUILD_TIMESTAMP): $(TIMESTAMPS) $(PROJECT_FILES) $(CURRENT_DIR)/Dockerfile
 # 	docker build -t $(DOCKER_IMG_LOCAL_TAG) .
 # 	touch $(DOCKER_BUILD_TIMESTAMP)
-
-
-# $(TEST_REPORT_DIR):
-# 	mkdir -p $(TEST_REPORT_DIR)
-
-
-# Python local build target
-
-# ifneq ($(SYSTEM_PYTHON),)
-
-# # A system python matching version has been found use it
-# $(SYSTEM_PYTHON_TIMESTAMP): $(TIMESTAMPS)
-# 	@echo "Using system" $(shell $(SYSTEM_PYTHON) --version 2>&1)
-# 	touch $(SYSTEM_PYTHON_TIMESTAMP)
-
-
-# else
-
-# No python version found, build it localy
-# $(SYSTEM_PYTHON_TIMESTAMP): $(TIMESTAMPS) $(PYTHON_LOCAL_BUILD_TIMESTAMP)
-# 	@echo "Using local" $(shell $(SYSTEM_PYTHON) --version 2>&1)
-# 	touch $(SYSTEM_PYTHON_TIMESTAMP)
-
-
-# $(PYTHON_LOCAL_BUILD_TIMESTAMP): $(TIMESTAMPS)
-# 	@echo "Building a local python..."
-# 	mkdir -p $(PYTHON_LOCAL_DIR);
-# 	curl -z $(PYTHON_LOCAL_DIR)/Python-$(PYTHON_VERSION).tar.xz https://www.python.org/ftp/python/$(PYTHON_VERSION)/Python-$(PYTHON_VERSION).tar.xz -o $(PYTHON_LOCAL_DIR)/Python-$(PYTHON_VERSION).tar.xz;
-# 	cd $(PYTHON_LOCAL_DIR) && tar -xf Python-$(PYTHON_VERSION).tar.xz && Python-$(PYTHON_VERSION)/configure --prefix=$(PYTHON_LOCAL_DIR)/ && make altinstall
-# 	touch $(PYTHON_LOCAL_BUILD_TIMESTAMP)
-
-# SYSTEM_PYTHON := $(PYTHON_LOCAL_DIR)/python
-
-# endif
-

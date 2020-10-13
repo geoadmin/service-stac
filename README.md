@@ -47,7 +47,11 @@ Create a new superuser (required to create/destroy the test-databases) and a new
 ```
 sudo su - postgres
 psql
-psql> CREATE SUPERUSER <db_user> WITH PASSWORD '<db_pw>';
+# create a new user, for simplicity make it a superuser
+# this allows the user to automatically create/destroy 
+# databases (used for testing)
+psql> CREATE USER <db_user> WITH PASSWORD '<db_pw>';
+psql> ALTER ROLE <db_user> WITH SUPERUSER;
 # We need a database with utf8 encoding (for jsonfield) and utf8 needs template0
 psql> CREATE DATABASE <db_name> WITH OWNER <db_user> ENCODING 'UTF8' TEMPLATE template0;
 ```
