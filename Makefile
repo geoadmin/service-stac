@@ -7,12 +7,11 @@ SERVICE_NAME := service-stac
 CURRENT_DIR := $(shell pwd)
 VENV := $(CURRENT_DIR)/.venv
 REQUIREMENTS = $(CURRENT_DIR)/requirements.txt
-DEV_REQUIREMENTS = $(CURRENT_DIR)/dev_requirements.txt
+REQUIREMENTS_DEV = $(CURRENT_DIR)/requirements_dev.txt
 
 # Django specific
-DJANGO_PROJECT := project
-DJANGO_PROJECT_DIR := $(CURRENT_DIR)/$(DJANGO_PROJECT)
-DJANGO_CONFIG_DIR := $(DJANGO_PROJECT_DIR)/config
+APP_SRC := app
+DJANGO_MANAGER := $(CURRENT_DIR)/$(APP_SRC)/manage.py
 
 # Test report
 TEST_DIR := $(CURRENT_DIR)/tests
@@ -20,30 +19,23 @@ TEST_REPORT_DIR ?= $(TEST_DIR)/report
 TEST_REPORT_FILE ?= nose2-junit.xml
 TEST_REPORT_PATH := $(TEST_REPORT_DIR)/$(TEST_REPORT_FILE)
 
-# Python local build directory
-PYTHON_LOCAL_DIR := $(CURRENT_DIR)/.local
-
-# venv targets timestamps
-VENV_TIMESTAMP = $(VENV)/.timestamp
-REQUIREMENTS_TIMESTAMP = $(VENV)/.requirements.timestamp
-DEV_REQUIREMENTS_TIMESTAMP = $(VENV)/.dev-requirements.timestamp
-
 # general targets timestamps
 TIMESTAMPS = .timestamps
-SYSTEM_PYTHON_TIMESTAMP = $(TIMESTAMPS)/.python-system.timestamp
-PYTHON_LOCAL_BUILD_TIMESTAMP = $(TIMESTAMPS)/.python-build.timestamp
-DOCKER_BUILD_TIMESTAMP = $(TIMESTAMPS)/.dockerbuild.timestamp
+SETUP_TIMESTAMP = $(TIMESTAMPS)/.setup.timestamp
 
 # Docker variables
 DOCKER_IMG_LOCAL_TAG = swisstopo/$(SERVICE_NAME):local
 
 # Find all python files that are not inside a hidden directory (directory starting with .)
-PYTHON_FILES := $(shell find ${DJANGO_PROJECT_DIR} ${TEST_DIR} -type f -name "*.py" -print)
+PYTHON_FILES := $(shell find $(APP_SRC) ${TEST_DIR} -type f -name "*.py" -print)
 
-PROJECT_FILES := $(shell find ${DJANGO_PROJECT_DIR} -type f -print)
+# PROJECT_FILES := $(shell find ./app -type f -print)
 
-PYTHON_VERSION := 3.7.4
+PYTHON_VERSION := 3.7
 SYSTEM_PYTHON := $(shell ./getPythonCmd.sh ${PYTHON_VERSION} ${PYTHON_LOCAL_DIR})
+ifeq ($(SYSTEM_PYTHON),)
+$(error "No matching python version found on system, minimum $(PYTHON_VERSION) required")
+endif
 
 # default configuration
 ENV ?= dev
@@ -53,7 +45,7 @@ LOGGING_CFG ?= logging-cfg-local.yml
 LOGGING_CFG_PATH := $(DJANGO_CONFIG_DIR)/$(LOGGING_CFG)
 
 # Commands
-DJANGO_MANAGER := $(DJANGO_PROJECT_DIR)/manage.py
+# DJANGO_MANAGER := $(DJANGO_PROJECT_DIR)/manage.py
 GUNICORN := $(VENV)/bin/gunicorn
 PYTHON := $(VENV)/bin/python3
 PIP := $(VENV)/bin/pip3
@@ -76,14 +68,14 @@ help:
 	@echo "Usage: make <target>"
 	@echo
 	@echo "Possible targets:"
-	@echo -e " \033[1mSETUP TARGETS\033[0m "
-	@echo "- setup              Create the python virtual environment"
-	@echo "- dev                Create the python virtual environment with developper tools"
-	@echo -e " \033[1mFORMATING, LINTING AND TESTING TOOLS TARGETS\033[0m "
+	# @echo -e " \033[1mSETUP TARGETS\033[0m "
+	@echo "- setup              Create the python virtual environment and install requirements"
+	# @echo "- dev                Create the python virtual environment with developper tools"
+	# @echo -e " \033[1mFORMATING, LINTING AND TESTING TOOLS TARGETS\033[0m "
 	@echo "- format             Format the python source code"
 	@echo "- lint               Lint the python source code"
-	@echo "- format-lint        Format and lint the python source code"
-	@echo "- test               Run the tests"
+	# @echo "- format-lint        Format and lint the python source code"
+	# @echo "- test               Run the tests"
 	@echo -e " \033[1mLOCAL SERVER TARGETS\033[0m "
 	@echo "- serve              Run the project using the flask debug server. Port can be set by Env variable HTTP_PORT (default: 5000)"
 	@echo "- gunicornserve      Run the project using the gunicorn WSGI server. Port can be set by Env variable DEBUG_HTTP_PORT (default: 5000)"
@@ -95,79 +87,88 @@ help:
 	@echo -e " \033[1mCLEANING TARGETS\033[0m "
 	@echo "- clean              Clean genereated files"
 	@echo "- clean_venv         Clean python venv"
-	@echo -e " \033[1mDJANGO TARGETS\033[0m "
-	@echo "- django-check       Inspect the Django project for common problems"
-	@echo "- django-migrate     Synchronize the database state with the current set of models and migrations"
+	# @echo -e " \033[1mDJANGO TARGETS\033[0m "
+	# @echo "- django-check       Inspect the Django project for common problems"
+	# @echo "- django-migrate     Synchronize the database state with the current set of models and migrations"
 
 
 # Build targets. Calling setup is all that is needed for the local files to be installed as needed.
 
-.PHONY: dev
-dev: $(DEV_REQUIREMENTS_TIMESTAMP)
+$(TIMESTAMPS):
+	mkdir -p $(TIMESTAMPS)
 
 
+# Setup the development environment
+# Note: we always run then requirements_dev.txt, if there's sth to do (i.e. requirements have changed)
+# 		pip will recognize
 .PHONY: setup
-setup: $(REQUIREMENTS_TIMESTAMP)
-
+setup: $(TIMESTAMPS)
+# Test if .venv exists, if not, set it up
+	test -d $(VENV) || ($(SYSTEM_PYTHON) -m venv $(VENV) && \
+	$(PIP) install --upgrade pip setuptools && \
+	$(PIP) install -U pip wheel);
+# Install requirements, pip will track changes itself
+	$(PIP) install -r $(REQUIREMENTS_DEV)
+# Check if we have a default settings.py
+	test -d app/config/settings.py || echo "from .settings_dev import *" > app/config/settings.py
+	@touch $(SETUP_TIMESTAMP)
 
 # linting target, calls upon yapf to make sure your code is easier to read and respects some conventions.
 
 .PHONY: format
-format: $(DEV_REQUIREMENTS_TIMESTAMP)
+format: $(SETUP_TIMESTAMP)
 	$(YAPF) -p -i --style .style.yapf $(PYTHON_FILES)
 	$(ISORT) $(PYTHON_FILES)
 
 
 .PHONY: lint
-lint: $(DEV_REQUIREMENTS_TIMESTAMP) django-check
+lint: $(SETUP_TIMESTAMP)
 	@echo "Run pylint..."
 	$(PYLINT) $(PYTHON_FILES)
 
 
-.PHONY: format-lint
-format-lint: format lint
-
-
-# Test target
-
+# Running tests locally
 .PHONY: test
-test: $(DEV_REQUIREMENTS_TIMESTAMP) $(TEST_REPORT_DIR)
-	LOGGING_CFG=$(LOGGING_CFG_PATH) TEST_DIR=$(TEST_DIR) TEST_REPORT_PATH=$(TEST_REPORT_PATH) $(PYTHON) $(DJANGO_MANAGER) test
+test: $(SETUP_TIMESTAMP)
+	mkdir -p $(TEST_REPORT_DIR)
+	$(PYTHON) $(DJANGO_MANAGER) test
 
 
 # Serve targets. Using these will run the application on your local machine. You can either serve with a wsgi front (like it would be within the container), or without.
 
-.PHONY: serve
-serve: $(REQUIREMENTS_TIMESTAMP)
-	LOGGING_CFG=$(LOGGING_CFG_PATH) DEBUG=$(DEBUG) $(SUMMON) $(PYTHON) $(DJANGO_MANAGER) runserver $(HTTP_PORT)
-
-
-.PHONY: gunicornserve
-gunicornserve: $(REQUIREMENTS_TIMESTAMP)
-	#$(GUNICORN) --chdir $(DJANGO_PROJECT_DIR) $(DJANGO_PROJECT).wsgi
-	LOGGING_CFG=$(LOGGING_CFG_PATH) DEBUG=$(DEBUG) $(SUMMON) $(PYTHON) $(DJANGO_PROJECT_DIR)/wsgi.py
+# .PHONY: gunicornserve
+# gunicornserve: $(REQUIREMENTS_TIMESTAMP)
+# 	#$(GUNICORN) --chdir $(DJANGO_PROJECT_DIR) $(DJANGO_PROJECT).wsgi
+# 	LOGGING_CFG=$(LOGGING_CFG_PATH) DEBUG=$(DEBUG) $(SUMMON) $(PYTHON) $(DJANGO_PROJECT_DIR)/wsgi.py
 
 
 # Docker related functions.
 
-.PHONY: dockerbuild
-dockerbuild: $(DOCKER_BUILD_TIMESTAMP)
+.PHONY: build-test
+build-test:
+	docker build -t swisstopo/$(SERVICE_NAME)-test --target test .
+
+.PHONY: build-production
+	docker build -t swisstopo/$(SERVICE_NAME) --target production .
+
+# .PHONY: dockerbuild
+# dockerbuild: $(DOCKER_BUILD_TIMESTAMP)
 
 
-.PHONY: dockerpush
-dockerpush: $(DOCKER_BUILD_TIMESTAMP)
-	docker push $(DOCKER_IMG_LOCAL_TAG)
+# .PHONY: dockerpush
+# dockerpush: $(DOCKER_BUILD_TIMESTAMP)
+# 	docker push $(DOCKER_IMG_LOCAL_TAG)
 
 
-.PHONY: dockerrun
-dockerrun: $(DOCKER_BUILD_TIMESTAMP)
-	@echo "Listening on port $(HTTP_PORT)"
-	LOGGING_CFG=./config/$(LOGGING_CFG) HTTP_PORT=$(HTTP_PORT) $(SUMMON) docker-compose up
+# .PHONY: dockerrun
+# dockerrun: $(DOCKER_BUILD_TIMESTAMP)
+# 	@echo "Listening on port $(HTTP_PORT)"
+# 	LOGGING_CFG=./config/$(LOGGING_CFG) HTTP_PORT=$(HTTP_PORT) $(SUMMON) docker-compose up
 
 
-.PHONY: shutdown
-shutdown:
-	HTTP_PORT=$(HTTP_PORT) docker-compose down
+# .PHONY: shutdown
+# shutdown:
+# 	HTTP_PORT=$(HTTP_PORT) docker-compose down
 
 
 # clean targets
@@ -186,75 +187,11 @@ clean: clean_venv
 	rm -rf $(TIMESTAMPS)
 
 
-# django targets
-
-.PHONY: django-check
-django-check: $(REQUIREMENTS)
-	@echo "Run django check"
-	$(PYTHON) $(DJANGO_MANAGER) check --fail-level WARNING
-
-
-.PHONY: django-migrate
-django-migrate: $(REQUIREMENTS)
-	$(SUMMON) $(PYTHON) $(DJANGO_MANAGER) migrate
-
 
 # Actual builds targets with dependencies
 
-$(TIMESTAMPS):
-	mkdir -p $(TIMESTAMPS)
-
-$(VENV_TIMESTAMP): $(SYSTEM_PYTHON_TIMESTAMP)
-	test -d $(VENV) || $(SYSTEM_PYTHON) -m venv $(VENV) && $(PIP) install --upgrade pip setuptools
-	@touch $(VENV_TIMESTAMP)
 
 
-$(REQUIREMENTS_TIMESTAMP): $(VENV_TIMESTAMP) $(REQUIREMENTS)
-	$(PIP) install -U pip wheel; \
-	$(PIP) install -r $(REQUIREMENTS);
-	@touch $(REQUIREMENTS_TIMESTAMP)
-
-
-$(DEV_REQUIREMENTS_TIMESTAMP): $(REQUIREMENTS_TIMESTAMP) $(DEV_REQUIREMENTS)
-	$(PIP) install -r $(DEV_REQUIREMENTS)
-	@touch $(DEV_REQUIREMENTS_TIMESTAMP)
-
-
-$(DOCKER_BUILD_TIMESTAMP): $(TIMESTAMPS) $(PROJECT_FILES) $(CURRENT_DIR)/Dockerfile
-	docker build -t $(DOCKER_IMG_LOCAL_TAG) .
-	touch $(DOCKER_BUILD_TIMESTAMP)
-
-
-$(TEST_REPORT_DIR):
-	mkdir -p $(TEST_REPORT_DIR)
-
-
-# Python local build target
-
-ifneq ($(SYSTEM_PYTHON),)
-
-# A system python matching version has been found use it
-$(SYSTEM_PYTHON_TIMESTAMP): $(TIMESTAMPS)
-	@echo "Using system" $(shell $(SYSTEM_PYTHON) --version 2>&1)
-	touch $(SYSTEM_PYTHON_TIMESTAMP)
-
-
-else
-
-# No python version found, build it localy
-$(SYSTEM_PYTHON_TIMESTAMP): $(TIMESTAMPS) $(PYTHON_LOCAL_BUILD_TIMESTAMP)
-	@echo "Using local" $(shell $(SYSTEM_PYTHON) --version 2>&1)
-	touch $(SYSTEM_PYTHON_TIMESTAMP)
-
-
-$(PYTHON_LOCAL_BUILD_TIMESTAMP): $(TIMESTAMPS)
-	@echo "Building a local python..."
-	mkdir -p $(PYTHON_LOCAL_DIR);
-	curl -z $(PYTHON_LOCAL_DIR)/Python-$(PYTHON_VERSION).tar.xz https://www.python.org/ftp/python/$(PYTHON_VERSION)/Python-$(PYTHON_VERSION).tar.xz -o $(PYTHON_LOCAL_DIR)/Python-$(PYTHON_VERSION).tar.xz;
-	cd $(PYTHON_LOCAL_DIR) && tar -xf Python-$(PYTHON_VERSION).tar.xz && Python-$(PYTHON_VERSION)/configure --prefix=$(PYTHON_LOCAL_DIR)/ && make altinstall
-	touch $(PYTHON_LOCAL_BUILD_TIMESTAMP)
-
-SYSTEM_PYTHON := $(PYTHON_LOCAL_DIR)/python
-
-endif
-
+# $(DOCKER_BUILD_TIMESTAMP): $(TIMESTAMPS) $(PROJECT_FILES) $(CURRENT_DIR)/Dockerfile
+# 	docker build -t $(DOCKER_IMG_LOCAL_TAG) .
+# 	touch $(DOCKER_BUILD_TIMESTAMP)

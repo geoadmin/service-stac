@@ -1,8 +1,11 @@
 from django.contrib import admin
 
+from .models import Asset
+from .models import Collection
+from .models import Item
+
 # Register your models here.
 
-from .models import Collection, Item, Asset
 
 admin.site.register(Collection)
 admin.site.register(Item)

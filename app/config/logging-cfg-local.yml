@@ -9,7 +9,7 @@ root:
 
 loggers:
   django:
-    level: DEBUG
+    level: WARNING
   django.utils.autoreload:
     level: INFO
   gunicorn.error:
@@ -17,6 +17,10 @@ loggers:
     handlers:
       - console
   gunicorn.access:
+    level: DEBUG
+    handlers:
+      - console
+  default:
     level: DEBUG
     handlers:
       - console

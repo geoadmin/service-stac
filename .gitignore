@@ -31,7 +31,7 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-local/
+.local/
 
 # virtualenv
 .venv
@@ -57,11 +57,17 @@ nose2-junit.xml
 # git generate files
 *.orig
 
-# visual studio code config
+# IDE config files
 .vscode
+*.sublime-*
+*.code*
 
 # summon
 secrets.yml
 
 # Makefile
 .timestamps
+
+# ignore local files
+**/settings.py
+.env.*local
