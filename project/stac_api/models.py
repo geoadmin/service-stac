@@ -26,15 +26,11 @@ BBOX_CH = 'POLYGON((2317000 913000,3057000 913000,3057000 1413000,2317000 141300
 # instance so that it's not shared between all field instances.
 # HINT: Use a callable instead, e.g., use `list` instead of `[]`.""
 # <end quote>
-DEFAULT_STAC_EXTENSIONS = { # pylint: disable=invalid-name
-    "EO":
-        "eo",
-    "PROJ":
-        "proj",
-    "VIEW":
-        "view",
-    "GEOADMIN-EXTENSION":
-        "https://data.geo.admin.ch/stac/geoadmin-extension/1.0/schema.json"
+DEFAULT_STAC_EXTENSIONS = {
+    "EO": "eo",
+    "PROJ": "proj",
+    "VIEW": "view",
+    "GEOADMIN-EXTENSION": "https://data.geo.admin.ch/stac/geoadmin-extension/1.0/schema.json"
 }
 
 
