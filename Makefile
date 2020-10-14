@@ -85,6 +85,7 @@ help:
 	@echo "- clean_venv         Clean python venv"
 	@echo -e " \033[1mDJANGO TARGETS\033[0m "
 	@echo -e " invoke django targets such as \033[1mserve, test, migrate, ...\033[0m  directly by calling app/manage.py COMMAND. Useful COMMANDS"
+	@echo -e " > \033[1mhint:\033[0m source .venv/bin/activate to use the virualenv corresponding to this application before using app/manage.py"
 	@echo "  $$ app/manage.py showmigrations (show pending and applied migrations)"
 	@echo "  $$ app/manage.py makemigrations (make migrations to reflect the model state in the code in the Database)"
 	@echo "  $$ app/manage.py migrate        (apply changes in the database)"
