@@ -99,7 +99,9 @@ $(TIMESTAMPS):
 # Note: we always run then requirements_dev.txt, if there's sth to do (i.e. requirements have changed)
 # 		pip will recognize
 .PHONY: setup
-setup: $(TIMESTAMPS)
+setup: $(SETUP_TIMESTAMP)
+
+$(SETUP_TIMESTAMP): $(TIMESTAMPS)
 # Test if .venv exists, if not, set it up
 	test -d $(VENV) || ($(SYSTEM_PYTHON) -m venv $(VENV) && \
 	$(PIP) install --upgrade pip setuptools && \
@@ -159,23 +161,10 @@ dockerbuild-test:
 dockerbuild-prod:
 	docker build -t $(DOCKER_IMG_LOCAL_TAG) --target production .
 
-
-###################
-# Dockerrun can be invoked either with just
-# "make dockerrun", which will launch the django dev server (runserver)
-# or passing another manage.py command, e.g.
-# "make dockerrun shell_plus"
-
-# This is some magic to allow for the make anti-pattern "make CMD arg"
-args = `arg="$(filter-out $@,$(MAKECMDGOALS))" && echo $${arg:-${1}}`
-%:
-	@echo "('$@' is not treated as make target, was used as arg to another target)"
-    @:
-
 .PHONY: dockerrun
 dockerrun: dockerbuild-test
 	@echo "starting docker test container with populating ENV from .env.local"
-	docker run -it --rm --env-file .env.local --net=host $(DOCKER_IMG_LOCAL_TAG_TEST) $(call args,runserver)
+	docker run -it --rm --env-file .env.local --net=host $(DOCKER_IMG_LOCAL_TAG_TEST) runserver
 
 
 ###################
