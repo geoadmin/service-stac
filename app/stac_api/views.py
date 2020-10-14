@@ -45,7 +45,7 @@ def landing_page(request):
     }
     # yapf: enable
 
-    logger.debug('Landing page: %s', data)
+    logger.debug('Landing page', extra={'request': request, 'response': data})
 
     return JsonResponse(data)
 
