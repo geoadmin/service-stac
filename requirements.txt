@@ -4,6 +4,6 @@ gevent==20.6.2
 gunicorn==19.9.0
 psycopg2-binary==2.8.5
 pyyaml==5.3.1
-logging-utilities==1.1.0a0
+logging-utilities==1.1.0
 numpy
 python-dotenv==0.14.0
