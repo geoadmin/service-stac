@@ -11,9 +11,11 @@
 - [Links](#links)
 - [Local development](#local-development)
   - [Dependencies](#dependencies)
-  - [Setting up to work](#setting-up-to-work)
+  - [Setup local db](#setup-local-db)
+  - [Setup app](#setup-app)
+  - [Starting dev server](#starting-dev-server)
+  - [Running test](#running-test)
   - [Linting and formatting your work](#linting-and-formatting-your-work)
-  - [Test your work](#test-your-work)
 - [Deploying the project and continuous integration](#deploying-the-project-and-continuous-integration)
 - [Deployment configuration](#deployment-configuration)
 
@@ -33,74 +35,112 @@
 
 ### Dependencies
 
-<!--The **Make** targets assume you have **bash**, **curl**, **tar**, **gopass**, **summon**, **gopass summon provider**, **docker** and **docker-compose** installed.-->
 Prerequisites for development:
+
 - a recent python version (>= 3.7) (check with `python -V`)
 - a local postgres (>= 12.0) running
 - postgis extension installed (>= 3.0)
 
 Prerequisite for testing the build/CI stages
+
 - `docker` and `docker-compose`
 
 ### Setup local db
-Create a new superuser (required to create/destroy the test-databases) and a new database
-```
+
+Create a new superuser (required to create/destroy the test-databases) and a new database.
+
+*Note: the user/password and database name in the example below can be changed if required, these names reflects the one in `.env.default`.*
+
+```bash
 sudo su - postgres
 psql
 # create a new user, for simplicity make it a superuser
 # this allows the user to automatically create/destroy
 # databases (used for testing)
-psql> CREATE USER <db_user> WITH PASSWORD '<db_pw>';
-psql> ALTER ROLE <db_user> WITH SUPERUSER;
+psql> CREATE USER service_stac WITH PASSWORD 'service_stac';
+psql> ALTER ROLE service_stac WITH SUPERUSER;
 # We need a database with utf8 encoding (for jsonfield) and utf8 needs template0
-psql> CREATE DATABASE <db_name> WITH OWNER <db_user> ENCODING 'UTF8' TEMPLATE template0;
+psql> CREATE DATABASE service_stac WITH OWNER service_stac ENCODING 'UTF8' TEMPLATE template0;
 ```
 
 The PostGIS extension will be installed automatically by Django.
 
-**Note:** this is a local development setup and not suitable for production!
+**Note: this is a local development setup and not suitable for production!**
 
 ### Setup app
+
 These steps you need to do once to setup the project.
+
 - clone the repo
-```
-git clone git@github.com:geoadmin/service-stac.git
-cd service-stac
-```
+
+  ```bash
+  git clone git@github.com:geoadmin/service-stac.git
+  cd service-stac
+  ```
+
 - define the app environment (`APP_ENV=local` causes the settings to populate the env from `.env.local`, otherwise values are taken from the system ENV)
-```
-export APP_ENV=local
-```
+
+  ```bash
+  export APP_ENV=local
+  ```
+
 - create and adapt your local copy of `.env.default` with the values defined when creating the database:
-```
-cp .env.default .env.local
-```
+
+  ```bash
+  cp .env.default .env.local
+  ```
+
 - and finally create your local copy of the `settings.py`, which is in the simplest case just a
-```
-echo "from .settings_dev import *" > app/config/settings.py
-```
+
+  ```bash
+  echo "from .settings_dev import *" > app/config/settings.py
+  ```
+
 - creating a virtualenv and installing dependencies
-```
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements_dev.txt
-```
+
+  ```bash
+  python3 -m venv .venv
+  source .venv/bin/activate
+  pip install -r requirements_dev.txt
+  ```
 
 ### Starting dev server
-```
+
+```bash
 cd app
 # make sure you have the virtualenv activated and `APP_ENV=local` set
 ./manage.py runserver
 ```
 
 ### Running test
-```
+
+```bash
 ./manage.py test
 ```
+
 you can choose to create a new test-db on every run or to keep the db, which speeds testing up:
-```
+
+```bash
 ./manage.py test --keepdb
 ```
+
+### Linting and formatting your work
+
+In order to have a consistent code style the code should be formatted using `yapf`. Also to avoid syntax errors and non
+pythonic idioms code, the project uses the `pylint` linter. Both formatting and linter can be manually run using the
+following command:
+
+```bash
+make format
+```
+
+```bash
+make lint
+```
+
+**Formatting and linting should be at best integrated inside the IDE, for this look at
+[Integrate yapf and pylint into IDE](https://github.com/geoadmin/doc-guidelines/blob/master/PYTHON.md#yapf-and-pylint-ide-integration)**
+
 <!--
 #### gopass summon provider
 
@@ -115,75 +155,8 @@ service-stac-dev:
     DB_HOST: !var path-to-the-db-host
 ```
 
-### Setting up to work
-
-First, you'll need to clone the repo
-
-```bash
-git clone git@github.com:geoadmin/service-stac.git
-```
-
-Then, you can run the `dev` target to ensure you have everything needed to develop, test and serve locally
-
-```bash
-make dev
-```
-
-That's it, you're ready to work.
-
-For more help you can use
-
-```bash
-make help
-```
-
-### Linting and formatting your work
-
-In order to have a consistent code style the code should be formatted using `yapf`. Also to avoid syntax errors and non
-pythonic idioms code, the project uses the `pylint` linter. Both formatting and linter can be manually run using the
-following command:
-
-```bash
-make format-lint
-```
-
-**Formatting and linting should be at best integrated inside the IDE, for this look at
-[Integrate yapf and pylint into IDE](https://github.com/geoadmin/doc-guidelines/blob/master/PYTHON.md#yapf-and-pylint-ide-integration)**
-
-### Test your work
-
-Testing if what you developed work is made simple. You have four targets at your disposal. **test, serve, gunicornserve, dockerrun**
-
-```bash
-make test
-```
-
-This command run the integration and unit tests.
-
-```bash
-make serve
-```
-
-This will serve the application through Django Server without any wsgi in front.
-
-```bash
-make gunicornserve
-```
-
-This will serve the application with the Gunicorn layer in front of the application
-
-```bash
-make dockerrun
-```
-
-This will serve the application with the wsgi server, inside a container. To stop serving through container press `CTRL^C`.
-
-To stop the container run,
-
-```bash
-make shutdown
-```
 -->
+
 ## Deploying the project and continuous integration
 
 When creating a PR, terraform should run a codebuild job to test and build automatically your PR as a tagged container. This container will only be pushed to dockerhub when the PR is accepted and merged.
