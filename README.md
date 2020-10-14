@@ -19,7 +19,7 @@
 
 ## Summary of the project
 
-`service-stac` provides and manages access to packaged geospatial data and their metadata. It implements and extends the **STAC API** specification version 0.9.0 [radiantearth/stac-spec/tree/v0.9.0/api-spec](https://github.com/radiantearth/stac-spec/tree/v0.9.0/api-spec). Currently the **STAC API** has been splitted from the main **STAC SPEC** repository into [radiantearth/stac-api-spec](https://github.com/radiantearth/stac-api-spec), which is under active development until the release 1.0-beta.
+`service-stac` provides and manages access to packaged geospatial data and their metadata. It implements and extends the **STAC API** specification version 0.9.0 [radiantearth/stac-spec/tree/v0.9.0/api-spec](https://github.com/radiantearth/stac-spec/tree/v0.9.0/api-spec). Currently the **STAC API** has been split from the main **STAC SPEC** repository into [radiantearth/stac-api-spec](https://github.com/radiantearth/stac-api-spec), which is under active development until the release 1.0-beta.
 
 ## Links
 
@@ -48,7 +48,7 @@ Create a new superuser (required to create/destroy the test-databases) and a new
 sudo su - postgres
 psql
 # create a new user, for simplicity make it a superuser
-# this allows the user to automatically create/destroy 
+# this allows the user to automatically create/destroy
 # databases (used for testing)
 psql> CREATE USER <db_user> WITH PASSWORD '<db_pw>';
 psql> ALTER ROLE <db_user> WITH SUPERUSER;
@@ -75,9 +75,9 @@ export APP_ENV=local
 ```
 cp .env.default .env.local
 ```
-- and finally create your local copy of the `settings.py`, which is in the simplest case just a 
+- and finally create your local copy of the `settings.py`, which is in the simplest case just a
 ```
-echo "from .settings_dev import *" > project/config/settings.py
+echo "from .settings_dev import *" > app/config/settings.py
 ```
 - creating a virtualenv and installing dependencies
 ```
@@ -88,7 +88,7 @@ pip install -r requirements_dev.txt
 
 ### Starting dev server
 ```
-cd project
+cd app
 # make sure you have the virtualenv activated and `APP_ENV=local` set
 ./manage.py runserver
 ```
@@ -104,9 +104,9 @@ you can choose to create a new test-db on every run or to keep the db, which spe
 <!--
 #### gopass summon provider
 
-For the DB connnection, some makefile targets (`test`, `serve`, `gunicornserve`, ...) uses `summon -p gopass --up -e service-stac-$(ENV)` to gets the credentials as environment variables.
+For the DB connection, some makefile targets (`test`, `serve`, `gunicornserve`, ...) uses `summon -p gopass --up -e service-stac-$(ENV)` to gets the credentials as environment variables.
 
-This __summon__ command requires to have a `secrets.yml` file located higher up in the project folder hierarchy (e.g in `${HOME}/secrets.yml` if the project has been cloned in `${HOME}` or in a subfloder). This `secrets.yml` file must have two sections as follow:
+This __summon__ command requires to have a `secrets.yml` file located higher up in the project folder hierarchy (e.g in `${HOME}/secrets.yml` if the project has been cloned in `${HOME}` or in a sub folder). This `secrets.yml` file must have two sections as follow:
 
 ```yaml
 service-stac-dev:
