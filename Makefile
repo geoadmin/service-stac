@@ -44,7 +44,6 @@ LOGGING_CFG ?= logging-cfg-local.yml
 LOGGING_CFG_PATH := $(DJANGO_CONFIG_DIR)/$(LOGGING_CFG)
 
 # Commands
-# DJANGO_MANAGER := $(DJANGO_PROJECT_DIR)/manage.py
 GUNICORN := $(VENV)/bin/gunicorn
 PYTHON := $(VENV)/bin/python3
 PIP := $(VENV)/bin/pip3
