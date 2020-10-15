@@ -165,7 +165,7 @@ class Item(models.Model):
     # Example that covers the whole earth with a depth of 100 meters to a height
     # of 150 meters: [[-180.0, -90.0, -100.0, 180.0, 90.0, 150.0]].
     # TODO: use GeoDjango for this:
-    coverage = models.MultiPolygonField(default=BBOX_CH, dim=3) # 3dim for geology
+    coverage = models.MultiPolygonField(default=BBOX_CH, dim=3, srid=2056) # 3dim for geology
 
     #queryset_coverage['poly__extent3d'])
     #(-96.8016128540039, 29.7633724212646, 0, -95.3631439208984, 32.782058715820, 0)
