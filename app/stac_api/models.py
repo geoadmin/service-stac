@@ -10,8 +10,8 @@ from django.utils.translation import gettext_lazy as _
 # pylint: disable=fixme
 # TODO remove this pylint disable once this is done
 
-# st_geometry bbox ch
-BBOX_CH = 'POLYGON((2317000 913000,3057000 913000,3057000 1413000,2317000 1413000,2317000 913000))'
+# st_geometry bbox ch as default
+BBOX_CH = 'SRID=2056;MULTIPOLYGON(((2317000 913000 0,3057000 913000 0,3057000 1413000 0,2317000 1413000 0,2317000 913000 0)))'
 
 # I allowed myself to make excessive use of comments below, as this is still work in progress.
 # all the comments can be deleted later on
@@ -165,11 +165,21 @@ class Item(models.Model):
     # Example that covers the whole earth with a depth of 100 meters to a height
     # of 150 meters: [[-180.0, -90.0, -100.0, 180.0, 90.0, 150.0]].
     # TODO: use GeoDjango for this:
+    coverage = models.MultiPolygonField(default=BBOX_CH, dim=3) # 3dim for geology
+
+    #queryset_coverage['poly__extent3d'])
+    #(-96.8016128540039, 29.7633724212646, 0, -95.3631439208984, 32.782058715820, 0)
+    #southwest would be the first three tuples
+    #northeast would be the last three tuples
+    #https://docs.djangoproject.com/en/3.1/ref/contrib/gis/geoquerysets/
     southwest = ArrayField(models.FloatField(), blank=True)  # [Float]
     northeast = ArrayField(models.FloatField(), blank=True)  # [Float]
 
     # TODO: use GeoDjango for this:
+    # using GEOSGeometry
+    # geometry_coordinates would be coverage.coords
     geometry_coordinates = models.TextField()  # [Float]
+    # geometry_type would be coverage.geom_type
     geometry_type = models.CharField(max_length=25)  # string, possible geometry types are:
     # "Point", "MultiPoint", "LineString", "MultiLineString", "Polygon",
     # "MultiPolygon", and "GeometryCollection".
