@@ -51,6 +51,7 @@ ALLOWED_HOSTS += os.getenv('ALLOWED_HOSTS', '').split(',')
 # Application definition
 
 INSTALLED_APPS = [
+    'rest_framework',
     'stac_api.apps.StacApiConfig',
     'django.contrib.admin',
     'django.contrib.auth',
