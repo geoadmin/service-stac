@@ -59,7 +59,7 @@ class CollectionSerializer(serializers.Serializer):
         if data.get('end_date') == '':
             data['end_date'] = None
 
-        super().to_internal_value(data)
+        return super().to_internal_value(data)
 
     def create(self, validated_data):
         """
