@@ -1,5 +1,13 @@
 from rest_framework import serializers
-from stac_api.models import Keyword, Provider, Link, Collection, Item, Asset
+
+# from stac_api.models import Asset
+from stac_api.models import Collection
+# from stac_api.models import Item
+from stac_api.models import Keyword
+from stac_api.models import Link
+from stac_api.models import Provider
+
+# pylint: disable=fixme
 
 
 class KeywordSerializer(serializers.Serializer):
