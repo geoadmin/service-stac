@@ -79,9 +79,9 @@ class Provider(models.Model):
 
 
 class Collection(models.Model):
-    crs = models.URLField(default=["http://www.opengis.net/def/crs/OGC/1.3/CRS84"])  # [string]
-    # TODO as crs seems to have to be an array of strings, probably it should be implemented as
-    # an ArrayField(URLField())
+    crs = ArrayField(
+        models.URLField(default="http://www.opengis.net/def/crs/OGC/1.3/CRS84")
+    )  # [string]
     created = models.DateTimeField(auto_now_add=True)  # datetime
     updated = models.DateTimeField(auto_now=True)  # datetime
     description = models.TextField()  # string  / intentionally TextField and

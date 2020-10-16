@@ -1,8 +1,8 @@
 from rest_framework import serializers
 
+# from stac_api.models import Item
 # from stac_api.models import Asset
 from stac_api.models import Collection
-# from stac_api.models import Item
 from stac_api.models import Keyword
 from stac_api.models import Link
 from stac_api.models import Provider
@@ -69,7 +69,7 @@ class LinkSerializer(serializers.Serializer):
 
 class ProviderSerializer(serializers.Serializer):
 
-    name = serializers.CharField(blank=False, max_length=200)  # string
+    name = serializers.CharField(allow_blank=False, max_length=200)  # string
     description = serializers.CharField()  # string
     roles = serializers.ListField(child=serializers.CharField(max_length=9))  # [string]
     url = serializers.URLField()  # string
@@ -105,7 +105,7 @@ class CollectionSerializer(serializers.Serializer):
     # into account here, does it have to be serialized?
     # (In 0001_initial.py, there is an auto-generated entry "serialize=False" for the
     # primary-key field.)
-    crs = serializers.URLField(required=False)
+    crs = serializers.ListField(child=serializers.URLField(required=False))
     created = serializers.DateTimeField(required=True)  # datetime
     updated = serializers.DateTimeField(required=True)  # datetime
     description = serializers.CharField(required=True)  # string
