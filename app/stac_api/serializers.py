@@ -2,6 +2,95 @@ from rest_framework import serializers
 from stac_api.models import Keyword, Provider, Link, Collection, Item, Asset
 
 
+class KeywordSerializer(serializers.Serializer):
+
+    name = serializers.CharField(max_length=64)
+
+    class Meta:
+        model = Keyword
+        fields = ['name']
+
+    def create(self, validated_data):
+        """
+        Create and return a new `Keyword` instance, given the validated data.
+        """
+        return Collection.objects.create(**validated_data)
+
+    def update(self, instance, validated_data):
+        """
+        Update and return an existing `Keyword` instance, given the validated data.
+        """
+
+        instance.name = validated_data.get('name', instance.name)
+
+        instance.save()
+        return instance
+
+
+class LinkSerializer(serializers.Serializer):
+
+    href = serializers.URLField()  # string
+    rel = serializers.CharField(max_length=30)  # string
+    link_type = serializers.CharField(allow_blank=True, max_length=150)  # string
+    title = serializers.CharField(allow_blank=True, max_length=255)  # string
+
+    class Meta:
+        model = Link
+        fields = ['href', 'rel', 'link_type', 'title']
+        # most likely not all fields necessary here, can be adapted
+
+    def create(self, validated_data):
+        """
+        Create and return a new `Link` instance, given the validated data.
+        """
+        return Collection.objects.create(**validated_data)
+
+    def update(self, instance, validated_data):
+        """
+        Update and return an existing `Link` instance, given the validated data.
+        """
+
+        instance.href = validated_data.get('href', instance.href)
+        instance.rel = validated_data.get('rel', instance.rel)
+        instance.link_type = validated_data.get('link_type', instance.link_type)
+        instance.title = validated_data.get('title', instance.title)
+
+        instance.save()
+        return instance
+
+
+class ProviderSerializer(serializers.Serializer):
+
+    name = serializers.CharField(blank=False, max_length=200)  # string
+    description = serializers.CharField()  # string
+    roles = serializers.ListField(child=serializers.CharField(max_length=9))  # [string]
+    url = serializers.URLField()  # string
+
+    class Meta:
+        model = Provider
+        fields = ['name', 'description', 'roles', 'url']
+        # most likely not all fields necessary here, can be adapted
+
+    def create(self, validated_data):
+        """
+        Create and return a new `Provider` instance, given the validated data.
+        """
+        return Collection.objects.create(**validated_data)
+
+    def update(self, instance, validated_data):
+        """
+        Update and return an existing `Provider` instance, given the validated data.
+        """
+
+        instance.name = validated_data.get('name', instance.name)
+        instance.description = validated_data.get('description', instance.description)
+        instance.roles = validated_data.get('roles', instance.roles)
+        instance.url = validated_data.get('url', instance.url)
+
+        instance.save()
+        return instance
+
+
 class CollectionSerializer(serializers.Serializer):
 
     # TODO: Do we have to take the automatically created primary_key field
@@ -18,10 +107,10 @@ class CollectionSerializer(serializers.Serializer):
     northeast = serializers.ListField(child=serializers.FloatField(), allow_empty=True)
     collection_name = serializers.CharField(max_length=255)  # string
     item_type = serializers.CharField(default="Feature", max_length=20)  # string
-    keywords = serializers.StringRelatedField(many=True)
+    keywords = KeywordSerializer(many=True, read_only=True)
     license = serializers.CharField(max_length=30)  # string
-    links = serializers.StringRelatedField(many=True)
-    providers = serializers.StringRelatedField(many=True)
+    links = LinkSerializer(many=True)
+    providers = ProviderSerializer(many=True)
     stac_extension = serializers.ListField(child=serializers.CharField(max_length=255),)
     stac_version = serializers.CharField(max_length=10)  # string
 
@@ -35,16 +124,6 @@ class CollectionSerializer(serializers.Serializer):
         child=serializers.CharField(max_length=15), allow_empty=True, allow_null=True
     )
     title = serializers.CharField(allow_blank=True, max_length=255)  # string
-
-    class Meta:
-        model = Keyword
-        fields = ['keywords']
-
-        model = Link
-        fields = ['links']
-
-        model = Provider
-        fields = ['providers']
 
     def to_internal_value(self, data):
         '''
@@ -63,13 +142,13 @@ class CollectionSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         """
-        Create and return a new `stac_api` instance, given the validated data.
+        Create and return a new `Collection` instance, given the validated data.
         """
         return Collection.objects.create(**validated_data)
 
     def update(self, instance, validated_data):
         """
-        Update and return an existing `stac_api` instance, given the validated data.
+        Update and return an existing `Collection` instance, given the validated data.
         """
 
         instance.crs = validated_data.get('crs', instance.crs)
