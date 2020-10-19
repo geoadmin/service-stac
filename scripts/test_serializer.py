@@ -15,12 +15,15 @@
 # - data (back-translated into Python native)
 # - serializer.validated_data # back-translated into fully populated collection instance
 
-from stac_api.models import *
-from stac_api.serializers import KeywordSerializer, ProviderSerializer, LinkSerializer, CollectionSerializer
-from rest_framework.renderers import JSONRenderer
-from rest_framework.parsers import JSONParser
 from datetime import datetime
 import io
+from rest_framework.renderers import JSONRenderer
+from rest_framework.parsers import JSONParser
+from stac_api.models import *
+from stac_api.serializers import CollectionSerializer
+from stac_api.serializers import KeywordSerializer
+from stac_api.serializers import LinkSerializer
+from stac_api.serializers import ProviderSerializer
 
 # create keyword instance for testing
 keyword = Keyword(name='test1')
