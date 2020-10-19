@@ -101,10 +101,6 @@ class ProviderSerializer(serializers.Serializer):
 
 class CollectionSerializer(serializers.Serializer):
 
-    # TODO: Do we have to take the automatically created primary_key field
-    # into account here, does it have to be serialized?
-    # (In 0001_initial.py, there is an auto-generated entry "serialize=False" for the
-    # primary-key field.)
     crs = serializers.ListField(child=serializers.URLField(required=False))
     created = serializers.DateTimeField(required=True)  # datetime
     updated = serializers.DateTimeField(required=True)  # datetime
