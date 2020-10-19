@@ -41,6 +41,9 @@ def get_default_stac_extensions():
 class Keyword(models.Model):
     name = models.CharField(max_length=64)  # string
 
+    def __str__(self):
+        return self.name
+
 
 class Link(models.Model):
     href = models.URLField()  # string
@@ -49,6 +52,9 @@ class Link(models.Model):
     # added link_ to the fieldname, as "type" is reserved
     title = models.CharField(blank=True, max_length=255)  # string
 
+    def __str__(self):
+        return '%s: %s' % (self.rel, self.href)
+
 
 class Provider(models.Model):
     name = models.CharField(blank=False, max_length=200)  # string
@@ -56,6 +62,9 @@ class Provider(models.Model):
     roles = ArrayField(models.CharField(max_length=9))  # [string]
     # possible roles are licensor, producer, processor or host. Probably it might sense
     url = models.URLField()  # string
+
+    def __str__(self):
+        return self.name
 
     def clean(self):
         ALLOWED_ROLES = ['licensor', 'producer', 'processor', 'host']  # pylint: disable=invalid-name
@@ -70,7 +79,9 @@ class Provider(models.Model):
 
 
 class Collection(models.Model):
-    crs = models.URLField(default=["http://www.opengis.net/def/crs/OGC/1.3/CRS84"])  # [string]
+    crs = ArrayField(
+        models.URLField(default="http://www.opengis.net/def/crs/OGC/1.3/CRS84")
+    )  # [string]
     created = models.DateTimeField(auto_now_add=True)  # datetime
     updated = models.DateTimeField(auto_now=True)  # datetime
     description = models.TextField()  # string  / intentionally TextField and
