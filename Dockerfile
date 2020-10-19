@@ -12,12 +12,11 @@ RUN apt-get update && apt-get install -y binutils libproj-dev gdal-bin \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY "./requirements.txt" "/app/requirements.txt"
+COPY ./requirements.txt /app/requirements.txt
 
 RUN pip3 install -r requirements.txt
 
 COPY --chown=geoadmin:geoadmin ./app /app/
-
 
 
 #############################################
@@ -25,15 +24,13 @@ COPY --chown=geoadmin:geoadmin ./app /app/
 FROM base as test
 
 WORKDIR /app
-COPY "./requirements_dev.txt" "./wait-for-it.sh" "/app/"
+COPY ./requirements_dev.txt ./wait-for-it.sh /app/
 
 # for testing/management, settings.py just imports settings_dev
 RUN echo "from .settings_dev import *" > /app/config/settings.py \
     && chown geoadmin:geoadmin /app/config/settings.py
 
 RUN pip3 install -r requirements_dev.txt
-
-COPY --chown=geoadmin:geoadmin ./tests /app/tests/
 
 # entrypoint is the manage command
 ENTRYPOINT ["python3", "./manage.py"]

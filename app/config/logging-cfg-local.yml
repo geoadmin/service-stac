@@ -8,6 +8,12 @@ root:
   propagate: True
 
 loggers:
+  asyncio:
+    level: INFO
+  nose2:
+    level: INFO
+  tests.django_nose:
+    level: INFO
   django:
     level: WARNING
   django.utils.autoreload:

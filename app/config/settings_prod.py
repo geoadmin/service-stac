@@ -59,7 +59,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.gis',
-    'django_nose',
+    'tests.django_nose'
 ]
 
 MIDDLEWARE = [
@@ -163,7 +163,7 @@ def get_logging_config():
     '''Read logging configuration
 
     Read and parse the yaml logging configuration file passed in the environment variable
-    LOGGING_CFG and return it as dictonary
+    LOGGING_CFG and return it as dictionary
 
     Note: LOGGING_CFG is relative to the root of the repo
     '''
@@ -177,11 +177,4 @@ LOGGING = get_logging_config()
 
 # Testing
 
-TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
-NOSE_ARGS = [
-    f'--where={BASE_DIR / os.getenv("TEST_DIR")}/unit',
-    '--verbosity=3',
-    '--with-xunit',
-    f'--xunit-file={BASE_DIR / os.getenv("TEST_REPORT_PATH", "nose2-junit.xml")}',
-    '--logging-clear-handlers'
-]
+TEST_RUNNER = 'tests.django_nose.TestRunner'
