@@ -131,6 +131,8 @@ lint: $(SETUP_TIMESTAMP)
 # Running tests locally
 .PHONY: test
 test: $(SETUP_TIMESTAMP)
+	# Collect static first to avoid warning in the test
+	$(PYTHON) $(DJANGO_MANAGER) collectstatic --noinput
 	$(PYTHON) $(DJANGO_MANAGER) test --verbosity=2 $(TEST_DIR)
 
 
