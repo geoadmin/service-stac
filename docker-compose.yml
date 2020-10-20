@@ -9,26 +9,22 @@ services:
       - POSTGRES_MULTIPLE_EXTENSIONS=postgis,postgis_topology
   app:
     build:
-      context: . 
+      context: .
       target: test
     image: swisstopo/service-stac-test
     # spinning up postgis container takes some time, app needs to wait
     # for it to be ready before connecting
     # see: https://docs.docker.com/compose/startup-order/
     entrypoint: ["/app/wait-for-it.sh", "db:5432", "--", "python3", "manage.py"]
-    command: "test"
-    volumes:
-        - ./reports:/app/reports
+    command: test --verbosity=2
     depends_on:
       - db
     environment:
       - DEBUG=True
-      - TEST_DIR=tests
-      - LOGGING_CFG=/app/config/logging-cfg-dev.yml
+      - LOGGING_CFG=/app/config/logging-cfg-local.yml
       - DB_USER=postgres
       - DB_PW=postgres
       - DB_NAME=service_stac
       - DB_HOST=db
       - APP_ENV=ci
-      - TEST_REPORT_PATH=/app/reports/nose2-junit.xml
-      - TEST_DIR=/app/tests
+      - TEST_ENABLE_LOGGING=1

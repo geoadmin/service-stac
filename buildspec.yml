@@ -6,12 +6,7 @@ env:
     SHELL: /bin/bash
     AWS_DEFAULT_REGION: eu-central-1
     USER: "aws_code_build"
-    TEST_REPORT_DIR: "./reports"
-    TEST_REPORT_FILE: "nose2-junit.xml"
     ENV: "dev"
-  exported-variables:
-    - TEST_REPORT_DIR
-    - TEST_REPORT_FILE
   parameter-store:
     CI_DOCKERHUB_USER: "/dockerhub/user"
     CI_DOCKERHUB_PASSWORD: "/dockerhub/password"
@@ -24,8 +19,6 @@ phases:
       - echo "Installing necessary dependencies"
       - docker login -u ${CI_DOCKERHUB_USER} -p ${CI_DOCKERHUB_PASSWORD}
       - apt-get update && apt-get install -y docker-compose python3-pip python3-venv
-  #     - echo "Installing Geospatial libraries required by Django"
-  #     - apt-get install -y binutils libproj-dev gdal-bin
   pre_build:
     commands:
       - echo "export of the image tag for build and push purposes"
@@ -59,19 +52,9 @@ phases:
 
   post_build:
     commands:
-      
-      # - mkdir -p ${TEST_REPORT_DIR}
-      # - make test
       # Only push image to dockerhub for merge to develop and master
       - |
         if [ "${GITHUB_BRANCH}" = "master" -o "${GITHUB_BRANCH}" = "develop" ]; then
           docker push ${DOCKER_IMG_TAG_HASH}
           docker push ${DOCKER_IMG_TAG_LATEST}
         fi
-
-reports:
-  nose2_reports:
-    files:
-      - ${TEST_REPORT_FILE}
-    base-directory: ${TEST_REPORT_DIR}
-    file-format: JunitXml

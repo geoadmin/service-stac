@@ -13,10 +13,7 @@ APP_SRC_DIR := app
 DJANGO_MANAGER := $(CURRENT_DIR)/$(APP_SRC_DIR)/manage.py
 
 # Test report
-TEST_DIR := $(CURRENT_DIR)/tests
-TEST_REPORT_DIR ?= $(TEST_DIR)/report
-TEST_REPORT_FILE ?= nose2-junit.xml
-TEST_REPORT_PATH := $(TEST_REPORT_DIR)/$(TEST_REPORT_FILE)
+TEST_DIR := $(CURRENT_DIR)/$(APP_SRC_DIR)/tests
 
 # general targets timestamps
 TIMESTAMPS = .timestamps
@@ -28,7 +25,7 @@ DOCKER_IMG_LOCAL_TAG = swisstopo/$(SERVICE_NAME):local
 DOCKER_IMG_LOCAL_TAG_TEST = swisstopo/$(SERVICE_NAME)-test:local
 
 # Find all python files that are not inside a hidden directory (directory starting with .)
-PYTHON_FILES := $(shell find $(APP_SRC_DIR) ${TEST_DIR} -type f -name "*.py" -print)
+PYTHON_FILES := $(shell find $(APP_SRC_DIR) -type f -name "*.py" -print)
 
 PYTHON_VERSION := 3.7
 SYSTEM_PYTHON := $(shell ./getPythonCmd.sh ${PYTHON_VERSION} ${PYTHON_LOCAL_DIR})
@@ -134,8 +131,7 @@ lint: $(SETUP_TIMESTAMP)
 # Running tests locally
 .PHONY: test
 test: $(SETUP_TIMESTAMP)
-	mkdir -p $(TEST_REPORT_DIR)
-	$(PYTHON) $(DJANGO_MANAGER) test
+	$(PYTHON) $(DJANGO_MANAGER) test --verbosity=2 $(TEST_DIR)
 
 
 # Serve targets. Using these will run the application on your local machine. You can either serve with a wsgi front (like it would be within the container), or without.

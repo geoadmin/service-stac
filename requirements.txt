@@ -1,5 +1,4 @@
 Django==3.1
-django-nose==1.4.7
 gevent==20.6.2
 gunicorn==19.9.0
 psycopg2-binary==2.8.5

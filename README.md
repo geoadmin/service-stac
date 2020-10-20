@@ -124,6 +124,12 @@ you can choose to create a new test-db on every run or to keep the db, which spe
 ./manage.py test --keepdb
 ```
 
+**NOTE:** by default logging is disabled during tests, you can enable it by setting the `TEST_ENABLE_LOGGING=1` environment variable:
+
+```bash
+TEST_ENABLE_LOGGING=1 ./manage.py test
+```
+
 ### Linting and formatting your work
 
 In order to have a consistent code style the code should be formatted using `yapf`. Also to avoid syntax errors and non
