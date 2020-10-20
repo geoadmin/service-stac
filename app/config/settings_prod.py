@@ -177,4 +177,4 @@ LOGGING = get_logging_config()
 
 # Testing
 
-TEST_RUNNER = 'tests.test_runner.TestRunner'
+TEST_RUNNER = 'tests.runner.TestRunner'
