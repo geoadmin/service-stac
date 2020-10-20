@@ -98,27 +98,19 @@ WSGI_APPLICATION = 'wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/3.1/ref/settings/#databases
 
-try:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.contrib.gis.db.backends.postgis',
-            'NAME': os.environ.get('DB_NAME', 'service_stac_dev'),
-            'USER': os.environ['DB_USER'],
-            'PASSWORD': os.environ['DB_PW'],
-            'HOST': os.environ['DB_HOST'],
-            'PORT': os.environ.get('DB_PORT', 5432),
-            'TEST': {
-                'NAME': os.environ.get('DB_NAME_TEST', 'test_service_stac_dev'),
-            }
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.contrib.gis.db.backends.postgis',
+        'NAME': os.environ.get('DB_NAME', 'service_stac'),
+        'USER': os.environ.get('DB_USER', 'service_stac'),
+        'PASSWORD': os.environ.get('DB_PW', 'service_stac'),
+        'HOST': os.environ.get('DB_HOST', 'service_stac'),
+        'PORT': os.environ.get('DB_PORT', 5432),
+        'TEST': {
+            'NAME': os.environ.get('DB_NAME_TEST', 'test_service_stac'),
         }
     }
-except KeyError as err:
-    if 'check' in sys.argv or 'help' in sys.argv:
-        # Do not raise an exception for django command that don't requires DB connection like
-        # for example the check and help command.
-        pass
-    else:
-        raise KeyError(f'Database environment variables {err} not configured') from err
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/3.1/ref/settings/#auth-password-validators
