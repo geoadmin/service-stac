@@ -35,7 +35,7 @@ endif
 
 # default configuration
 ENV ?= dev
-HTTP_PORT ?= 5000
+HTTP_PORT ?= 8000
 DEBUG ?= 1
 LOGGING_CFG ?= logging-cfg-local.yml
 LOGGING_CFG_PATH := $(DJANGO_CONFIG_DIR)/$(LOGGING_CFG)
@@ -70,8 +70,8 @@ help:
 	@echo "- lint               Lint the python source code"
 	@echo "- test               Run the tests"
 	@echo -e " \033[1mLOCAL SERVER TARGETS\033[0m "
-	@echo "- serve              Run the project using the django debug server. Port can be set by Env variable HTTP_PORT in .env.local file (default: 8000)"
-	@echo "- gunicornserve      Run the project using the gunicorn WSGI server. Port can be set by Env variable DEBUG_HTTP_PORT (default: 5000)"
+	@echo "- serve              Run the project using the django debug server. Port can be set by Env variable HTTP_PORT i(default: 8000)"
+	@echo "- gunicornserve      Run the project using the gunicorn WSGI server. Port can be set by Env variable HTTP_PORT (default: 8000)"
 	@echo -e " \033[1mDOCKER TARGETS\033[0m "
 	@echo "- dockerbuild-(test|prod) Build the project locally (with tag := $(DOCKER_IMG_LOCAL_TAG))"
 	@echo "- dockerrun          Run the test container with default manage.py command 'runserver'. Note: ENV is populated from '.env.local'"
@@ -140,7 +140,7 @@ test: $(SETUP_TIMESTAMP)
 
 .PHONY: serve
 serve: $(SETUP_TIMESTAMP)
-	$(PYTHON) $(DJANGO_MANAGER) runserver
+	$(PYTHON) $(DJANGO_MANAGER) runserver $(HTTP_PORT)
 
 .PHONY: gunicornserve
 gunicornserve: $(SETUP_TIMESTAMP)
