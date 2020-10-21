@@ -44,6 +44,9 @@ FROM base as production
 RUN echo "from .settings_prod import *" > /app/config/settings.py \
     && chown geoadmin:geoadmin /app/config/settings.py
 
+# Collect static files
+RUN ./manage.py collectstatic --noinput
+
 # production container must not run as root
 USER geoadmin
 

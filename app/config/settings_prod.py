@@ -11,7 +11,6 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 """
 
 import os
-import sys
 from distutils.util import strtobool
 from pathlib import Path
 
@@ -58,12 +57,14 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'whitenoise.runserver_nostatic',
     'django.contrib.staticfiles',
     'django.contrib.gis'
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -96,27 +97,19 @@ WSGI_APPLICATION = 'wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/3.1/ref/settings/#databases
 
-try:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.contrib.gis.db.backends.postgis',
-            'NAME': os.environ.get('DB_NAME', 'service_stac_dev'),
-            'USER': os.environ['DB_USER'],
-            'PASSWORD': os.environ['DB_PW'],
-            'HOST': os.environ['DB_HOST'],
-            'PORT': os.environ.get('DB_PORT', 5432),
-            'TEST': {
-                'NAME': os.environ.get('DB_NAME_TEST', 'test_service_stac_dev'),
-            }
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.contrib.gis.db.backends.postgis',
+        'NAME': os.environ.get('DB_NAME', 'service_stac'),
+        'USER': os.environ.get('DB_USER', 'service_stac'),
+        'PASSWORD': os.environ.get('DB_PW', 'service_stac'),
+        'HOST': os.environ.get('DB_HOST', 'service_stac'),
+        'PORT': os.environ.get('DB_PORT', 5432),
+        'TEST': {
+            'NAME': os.environ.get('DB_NAME_TEST', 'test_service_stac'),
         }
     }
-except KeyError as err:
-    if 'check' in sys.argv or 'help' in sys.argv:
-        # Do not raise an exception for django command that don't requires DB connection like
-        # for example the check and help command.
-        pass
-    else:
-        raise KeyError(f'Database environment variables {err} not configured') from err
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/3.1/ref/settings/#auth-password-validators
@@ -152,7 +145,10 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
-STATIC_URL = '/static/'
+STATIC_HOST = os.environ.get('DJANGO_STATIC_HOST', '')
+STATIC_URL = STATIC_HOST + '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'var/www/stac_api/static_files')
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Logging
 # https://docs.djangoproject.com/en/3.1/topics/logging/

@@ -7,3 +7,4 @@ logging-utilities==1.1.0
 numpy==1.19.2
 python-dotenv==0.14.0
 djangorestframework==3.12.1
+whitenoise==5.2.0
