@@ -8,7 +8,7 @@ from stac_api.models import Keyword
 from stac_api.models import Link
 from stac_api.models import Provider
 from stac_api.models import get_default_stac_extensions
-from stac_api.serializers import CollectionSerializer
+from stac_api.serializers import DetailViewCollectionSerializer
 
 
 class CollectionsEndpointTestCase(TestCase):  # pylint: disable = too-many-instance-attributes
@@ -170,7 +170,7 @@ class CollectionsEndpointTestCase(TestCase):  # pylint: disable = too-many-insta
         self.link3.save()
 
         # transate to Python native:
-        self.serializer = CollectionSerializer(self.collection1)
+        self.serializer = DetailViewCollectionSerializer(self.collection1)
 
     def test_collections_endpoint(self):
         response = self.client.get("/collections/a_123/?format=json")

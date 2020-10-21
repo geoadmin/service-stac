@@ -6,7 +6,8 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 
 from stac_api.models import Collection
-from stac_api.serializers import CollectionSerializer
+from stac_api.serializers import DetailViewCollectionSerializer
+from stac_api.serializers import ListViewCollectionSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +71,7 @@ class CollectionList(generics.ListAPIView):
     # seems to be tricky. Would need dynamic serializers or different serializers
     # one for ListView and one for the DetailView..
     # working on it..
-    serializer_class = CollectionSerializer
+    serializer_class = ListViewCollectionSerializer
     queryset = Collection.objects.all()
 
 
@@ -78,7 +79,7 @@ class CollectionDetail(generics.RetrieveAPIView):
     '''
     Returns a detail view of the collection instance with all its properties
     '''
-    serializer_class = CollectionSerializer
+    serializer_class = DetailViewCollectionSerializer
     lookup_url_kwarg = "collection_name"
     queryset = Collection.objects.all()
 

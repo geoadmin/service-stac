@@ -99,7 +99,21 @@ class ProviderSerializer(serializers.Serializer):
         return instance
 
 
-class CollectionSerializer(serializers.Serializer):
+class DynamicCollectionSerializer(serializers.ModelSerializer):
+
+    def __init__(self, *args, **kwargs):
+        # Don't pass the 'fields' arg up to the superclass
+        fields = kwargs.pop('fields', None)
+
+        # Instantiate the superclass normally
+        super(DynamicCollectionSerializer, self).__init__(*args, **kwargs)
+
+        if fields is not None:
+            # Drop any fields that are not specified in the `fields` argument.
+            allowed = set(fields)
+            existing = set(self.fields)
+            for field_name in existing - allowed:
+                self.fields.pop(field_name)
 
     crs = serializers.ListField(child=serializers.URLField(required=False))
     created = serializers.DateTimeField(required=True)  # datetime
@@ -179,3 +193,17 @@ class CollectionSerializer(serializers.Serializer):
 
         instance.save()
         return instance
+
+
+class ListViewCollectionSerializer(DynamicCollectionSerializer):
+
+    class Meta:
+        model = Collection
+        fields = ['collection_name', 'links', 'title', 'description']
+
+
+class DetailViewCollectionSerializer(DynamicCollectionSerializer):
+
+    class Meta:
+        model = Collection
+        fields = '__all__'
