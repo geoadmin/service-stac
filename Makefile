@@ -6,7 +6,6 @@ SERVICE_NAME := service-stac
 
 CURRENT_DIR := $(shell pwd)
 VENV := $(CURRENT_DIR)/.venv
-REQUIREMENTS_DEV = $(CURRENT_DIR)/requirements_dev.txt
 
 # Django specific
 APP_SRC_DIR := app
@@ -27,12 +26,6 @@ DOCKER_IMG_LOCAL_TAG_TEST = swisstopo/$(SERVICE_NAME)-test:local
 # Find all python files that are not inside a hidden directory (directory starting with .)
 PYTHON_FILES := $(shell find $(APP_SRC_DIR) -type f -name "*.py" -print)
 
-PYTHON_VERSION := 3.7
-SYSTEM_PYTHON := $(shell ./getPythonCmd.sh ${PYTHON_VERSION} ${PYTHON_LOCAL_DIR})
-ifeq ($(SYSTEM_PYTHON),)
-$(error "No matching python version found on system, minimum $(PYTHON_VERSION) required")
-endif
-
 # default configuration
 ENV ?= dev
 HTTP_PORT ?= 8000
@@ -41,14 +34,11 @@ LOGGING_CFG ?= logging-cfg-local.yml
 LOGGING_CFG_PATH := $(DJANGO_CONFIG_DIR)/$(LOGGING_CFG)
 
 # Commands
-GUNICORN := $(VENV)/bin/gunicorn
-PYTHON := $(VENV)/bin/python3
-PIP := $(VENV)/bin/pip3
-FLASK := $(VENV)/bin/flask
-YAPF := $(VENV)/bin/yapf
-ISORT := $(VENV)/bin/isort
-NOSE := $(VENV)/bin/nose2
-PYLINT := $(VENV)/bin/pylint
+PIPENV_RUN := pipenv run
+PYTHON := $(PIPENV_RUN) python3
+YAPF := $(PIPENV_RUN) yapf
+ISORT := $(PIPENV_RUN) isort
+PYLINT := $(PIPENV_RUN) pylint
 
 # Set summon only if not already set, this allow to disable summon on environment
 # that don't use it like for CodeBuild env
@@ -101,11 +91,7 @@ setup: $(SETUP_TIMESTAMP)
 
 $(SETUP_TIMESTAMP): $(TIMESTAMPS)
 # Test if .venv exists, if not, set it up
-	test -d $(VENV) || ($(SYSTEM_PYTHON) -m venv $(VENV) && \
-	$(PIP) install --upgrade pip setuptools && \
-	$(PIP) install -U pip wheel);
-# Install requirements, pip will track changes itself
-	$(PIP) install -r $(REQUIREMENTS_DEV)
+	pipenv install --dev
 # Check if we have a default settings.py
 	test -e $(APP_SRC_DIR)/config/settings.py || echo "from .settings_dev import *" > $(APP_SRC_DIR)/config/settings.py
 # Check if there's a local env file
@@ -154,10 +140,12 @@ gunicornserve: $(SETUP_TIMESTAMP)
 
 .PHONY: dockerbuild-test
 dockerbuild-test:
+	#pipenv lock --dev -r > $(VENV)/requirements_dev.txt
 	docker build -t $(DOCKER_IMG_LOCAL_TAG_TEST) --target test .
 
 .PHONY: dockerbuild-prod
 dockerbuild-prod:
+	#pipenv lock -r > $(VENV)/requirements.txt
 	docker build -t $(DOCKER_IMG_LOCAL_TAG) --target production .
 
 .PHONY: dockerrun
@@ -171,7 +159,7 @@ dockerrun: dockerbuild-test
 
 .PHONY: clean_venv
 clean_venv:
-	rm -rf $(VENV)
+	pipenv --rm
 
 
 .PHONY: clean

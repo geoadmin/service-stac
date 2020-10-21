@@ -37,7 +37,8 @@
 
 Prerequisites for development:
 
-- a recent python version (>= 3.7) (check with `python -V`)
+- python version 3.7
+- pipenv
 - a local postgres (>= 12.0) running
 - postgis extension installed (>= 3.0)
 

@@ -1,0 +1,27 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+yapf = "==0.30.0"
+pylint = "==2.5.3"
+isort = "==4.3.21"
+pylint-django = "==2.3.0"
+django-extensions = "==3.0.9"
+pip = "*"
+
+[packages]
+gevent = "==20.6.2"
+gunicorn = "==19.9.0"
+psycopg2-binary = "==2.8.5"
+logging-utilities = "==1.1.0"
+numpy = "==1.19.2"
+python-dotenv = "==0.14.0"
+djangorestframework = "==3.12.1"
+Django = "==3.1"
+PyYAML = "==5.3.1"
+whitenoise = "~=5.2.0"
+
+[requires]
+python_version = "3.7"
