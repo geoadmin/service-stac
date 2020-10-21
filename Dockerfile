@@ -16,7 +16,7 @@ RUN apt-get update \
 
 COPY Pipfile* /tmp/
 RUN cd /tmp && \
-    pipenv install --system --deploy
+    pipenv install --system --deploy --ignore-pipfile
 
 # Set the working dir and copy the app
 WORKDIR /app
@@ -27,7 +27,7 @@ COPY --chown=geoadmin:geoadmin ./app /app/
 FROM base as test
 
 RUN cd /tmp && \
-    pipenv install --system --deploy --dev
+    pipenv install --system --deploy --ignore-pipfile --dev
 
 WORKDIR /app
 COPY ./wait-for-it.sh /app/

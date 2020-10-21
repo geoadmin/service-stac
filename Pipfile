@@ -12,7 +12,7 @@ django-extensions = "~=3.0.9"
 pip = "*"
 
 [packages]
-gevent = "~=20.9.0"
+gevent = "==20.9.0"
 gunicorn = "~=19.9.0"
 psycopg2-binary = "~=2.8.5"
 logging-utilities = "~=1.1.0"
