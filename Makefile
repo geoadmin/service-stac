@@ -20,8 +20,8 @@ SETTINGS_TIMESTAMP = $(TIMESTAMPS)/.settins.timestamp
 DOCKER_BUILD_TIMESTAMP = $(TIMESTAMPS)/.docker-test.timestamp
 
 # Docker variables
-DOCKER_IMG_LOCAL_TAG = swisstopo/$(SERVICE_NAME):local
-DOCKER_IMG_LOCAL_TAG_TEST = swisstopo/$(SERVICE_NAME)-test:local
+DOCKER_IMG_LOCAL_TAG = swisstopo/$(SERVICE_NAME):latest
+DOCKER_IMG_LOCAL_TAG_TEST = swisstopo/$(SERVICE_NAME):latest-dev
 
 # Find all python files that are not inside a hidden directory (directory starting with .)
 PYTHON_FILES := $(shell find $(APP_SRC_DIR) -type f -name "*.py" -print)
@@ -156,7 +156,7 @@ dockerbuild-prod:
 .PHONY: dockerrun
 dockerrun: dockerbuild-test
 	@echo "starting docker test container with populating ENV from .env.local"
-	docker run -it --rm --env-file .env.local --net=host $(DOCKER_IMG_LOCAL_TAG_TEST) runserver
+	docker run -it --rm --env-file .env.local --net=host $(DOCKER_IMG_LOCAL_TAG_TEST) ./manage.py runserver
 
 
 ###################

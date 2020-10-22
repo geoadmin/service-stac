@@ -29,15 +29,23 @@ FROM base as test
 RUN cd /tmp && \
     pipenv install --system --deploy --ignore-pipfile --dev
 
-WORKDIR /app
+# this is only used with the docker-compose setup within CI
+# to ensure that the app is only started once the DB container
+# is ready
 COPY ./wait-for-it.sh /app/
 
 # for testing/management, settings.py just imports settings_dev
 RUN echo "from .settings_dev import *" > /app/config/settings.py \
     && chown geoadmin:geoadmin /app/config/settings.py
 
+RUN ./manage.py collectstatic --noinput
+
+USER geoadmin
+
+EXPOSE $HTTP_PORT
+
 # entrypoint is the manage command
-ENTRYPOINT ["python3", "./manage.py"]
+ENTRYPOINT ["python3"]
 
 
 #############################################
@@ -57,4 +65,4 @@ USER geoadmin
 EXPOSE $HTTP_PORT
 
 # Use a real WSGI server
-ENTRYPOINT ["python3", "./wsgi.py"]
+ENTRYPOINT ["python3"]
