@@ -25,11 +25,13 @@ print(f"BASE_DIR is {BASE_DIR}")
 # Note: the preferred solution would be to have the default
 # APP_ENV 'prod', but have it 'local' by default simplifies
 # the setup
-APP_ENV = os.getenv('APP_ENV', 'local')
+APP_ENV = os.environ.get('APP_ENV', 'local')
 
 # If we develop locally, load ENV from file
 if APP_ENV.lower() == 'local':
     print("running locally hence injecting env vars from {}".format(BASE_DIR / f'.env.{APP_ENV}'))
+    # set the APP_ENV to local (in case it was set from default above)
+    os.environ['APP_ENV'] = 'local'
     load_dotenv(BASE_DIR / f'.env.{APP_ENV}')
 
 # Quick-start development settings - unsuitable for production
