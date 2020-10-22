@@ -11,13 +11,15 @@ from django.utils.translation import gettext_lazy as _
 # TODO remove this pylint disable once this is done
 
 # st_geometry bbox ch as default
-BBOX_CH = ('SRID=2056;'
-           'MULTIPOLYGON((('
-           '2317000 913000 0,'
-           '3057000 913000 0,'
-           '3057000 1413000 0,'
-           '2317000 1413000 0,'
-           '2317000 913000 0)))')
+BBOX_CH = (
+    'SRID=2056;'
+    'MULTIPOLYGON((('
+    '2317000 913000 0,'
+    '3057000 913000 0,'
+    '3057000 1413000 0,'
+    '2317000 1413000 0,'
+    '2317000 913000 0)))'
+)
 
 # I allowed myself to make excessive use of comments below, as this is still work in progress.
 # all the comments can be deleted later on
