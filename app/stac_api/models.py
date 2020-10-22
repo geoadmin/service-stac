@@ -11,7 +11,13 @@ from django.utils.translation import gettext_lazy as _
 # TODO remove this pylint disable once this is done
 
 # st_geometry bbox ch as default
-BBOX_CH = 'SRID=2056;MULTIPOLYGON(((2317000 913000 0,3057000 913000 0,3057000 1413000 0,2317000 1413000 0,2317000 913000 0)))'
+BBOX_CH = ('SRID=2056;'
+           'MULTIPOLYGON((('
+           '2317000 913000 0,'
+           '3057000 913000 0,'
+           '3057000 1413000 0,'
+           '2317000 1413000 0,'
+           '2317000 913000 0)))')
 
 # I allowed myself to make excessive use of comments below, as this is still work in progress.
 # all the comments can be deleted later on
@@ -109,8 +115,7 @@ class Collection(models.Model):
     # furthermore GeoDjango and its functionality will be used for that.
     # TODO: overwrite items save() function accordingly
     # suggestions of fields to be auto-populated:
-    southwest = ArrayField(models.FloatField(), blank=True)  # [Float], auto-populated
-    northeast = ArrayField(models.FloatField(), blank=True)  # [Float], auto-populated
+    extent = ArrayField(models.FloatField(), blank=True)  # [Float], auto-populated from items
 
     collection_name = models.CharField(unique=True, max_length=255)  # string
     # collection_name is what is simply only called "id" in here:
@@ -157,34 +162,8 @@ class Collection(models.Model):
 
 class Item(models.Model):
     collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
-    # spatial extent (2D ord 3D):
-    # bbox: southwesterly most extent followed by all axes of the northeasterly
-    # most extent specified in Longitude/Latitude or Longitude/Latitude/Elevation
-    # based on WGS 84.
-    # Example that covers the whole Earth: [[-180.0, -90.0, 180.0, 90.0]].
-    # Example that covers the whole earth with a depth of 100 meters to a height
-    # of 150 meters: [[-180.0, -90.0, -100.0, 180.0, 90.0, 150.0]].
-    # TODO: use GeoDjango for this:
-    coverage = models.MultiPolygonField(default=BBOX_CH, dim=3, srid=2056) # 3dim for geology
-
-    #queryset_coverage['poly__extent3d'])
-    #(-96.8016128540039, 29.7633724212646, 0, -95.3631439208984, 32.782058715820, 0)
-    #southwest would be the first three tuples
-    #northeast would be the last three tuples
-    #https://docs.djangoproject.com/en/3.1/ref/contrib/gis/geoquerysets/
-    southwest = ArrayField(models.FloatField(), blank=True)  # [Float]
-    northeast = ArrayField(models.FloatField(), blank=True)  # [Float]
-
-    # TODO: use GeoDjango for this:
-    # using GEOSGeometry
-    # geometry_coordinates would be coverage.coords
-    geometry_coordinates = models.TextField()  # [Float]
-    # geometry_type would be coverage.geom_type
-    geometry_type = models.CharField(max_length=25)  # string, possible geometry types are:
-    # "Point", "MultiPoint", "LineString", "MultiLineString", "Polygon",
-    # "MultiPolygon", and "GeometryCollection".
+    geometry = models.MultiPolygonField(default=BBOX_CH, dim=3, srid=2056)
     item_name = models.CharField(unique=True, blank=False, max_length=255)
-
     links = models.ManyToManyField(Link)
 
     # after discussion with Chris and Tobias: for the moment only support
@@ -212,8 +191,6 @@ class Item(models.Model):
     )
 
     stac_version = models.CharField(blank=False, max_length=10)
-    GeoJSON_type = models.CharField(default="Feature", blank=False, editable=False, max_length=7)  # pylint: disable=invalid-name
-    # specifies the GeoJSON type and MUST be set to "Feature".
     assets = models.TextField()
     # this is defined as required here:
     # https://github.com/radiantearth/stac-spec/blob/v0.9.0/item-spec/item-spec.md
@@ -225,19 +202,6 @@ class Item(models.Model):
 
     def __str__(self):
         return self.item_name
-
-    def clean(self):
-        if len(self.southwest) != len(self.northeast):  # pylint: disable=no-else-raise
-            raise ValidationError(_(
-                'If intended spatial extent is 3D, then elevation needs to be' \
-                'defined in southwesterly most and northeasterly most point.'
-            ))
-        # don't understand why pylint complains here. Do I get something wrong?
-        # To me this elif makes sense, as it will be executed, when
-        # len(self.southwest) == len(self.northeast). So I disables the pylint
-        # check for the following line.
-        elif (len(self.southwest) != 2) and (len(self.southwest) != 3):
-            raise ValidationError(_('Bounding box incorrectly defined.'))
 
     def save(self, *args, **kwargs):  # pylint: disable=signature-differs
         # TODO: check if collection's bbox needs to be updated

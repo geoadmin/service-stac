@@ -107,10 +107,8 @@ class CollectionSerializer(serializers.Serializer):
     description = serializers.CharField(required=True)  # string
     start_date = serializers.DateTimeField(allow_null=True)
     end_date = serializers.DateTimeField(allow_null=True)
-    southwest = serializers.ListField(child=serializers.FloatField(), allow_empty=True)
-    northeast = serializers.ListField(child=serializers.FloatField(), allow_empty=True)
+    extent = serializers.ListField(child=serializers.FloatField(), allow_empty=True)
     collection_name = serializers.CharField(max_length=255)  # string
-    item_type = serializers.CharField(default="Feature", max_length=20)  # string
     keywords = KeywordSerializer(many=True, read_only=True)
     license = serializers.CharField(max_length=30)  # string
     links = LinkSerializer(many=True)
@@ -161,8 +159,7 @@ class CollectionSerializer(serializers.Serializer):
         instance.description = validated_data.get('description', instance.description)
         instance.start_date = validated_data.get('start_date', instance.start_date)
         instance.end_date = validated_data.get('end_date', instance.end_date)
-        instance.southwest = validated_data.get('southwest', instance.southwest)
-        instance.northeast = validated_data.get('northeast', instance.northeast)
+        instance.extent = validated_data.get('extent', instance.extent)
         instance.collection_name = validated_data.get('collection_name', instance.collection_name)
         instance.item_type = validated_data.get('item_type', instance.item_type)
         instance.keywords = validated_data.get('keywords', instance.keywords)
