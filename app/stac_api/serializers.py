@@ -10,13 +10,13 @@ from stac_api.models import Provider
 # pylint: disable=fixme
 
 
-class KeywordSerializer(serializers.Serializer):
+class KeywordSerializer(serializers.ModelSerializer):
 
     name = serializers.CharField(max_length=64)
 
     class Meta:
         model = Keyword
-        fields = ['name']
+        fields = '__all__'
 
     def create(self, validated_data):
         """
@@ -35,7 +35,7 @@ class KeywordSerializer(serializers.Serializer):
         return instance
 
 
-class LinkSerializer(serializers.Serializer):
+class LinkSerializer(serializers.ModelSerializer):
 
     href = serializers.URLField()  # string
     rel = serializers.CharField(max_length=30)  # string
@@ -44,7 +44,7 @@ class LinkSerializer(serializers.Serializer):
 
     class Meta:
         model = Link
-        fields = ['href', 'rel', 'link_type', 'title']
+        fields = '__all__'
         # most likely not all fields necessary here, can be adapted
 
     def create(self, validated_data):
@@ -67,7 +67,7 @@ class LinkSerializer(serializers.Serializer):
         return instance
 
 
-class ProviderSerializer(serializers.Serializer):
+class ProviderSerializer(serializers.ModelSerializer):
 
     name = serializers.CharField(allow_blank=False, max_length=200)  # string
     description = serializers.CharField()  # string
@@ -76,7 +76,7 @@ class ProviderSerializer(serializers.Serializer):
 
     class Meta:
         model = Provider
-        fields = ['name', 'description', 'roles', 'url']
+        fields = '__all__'
         # most likely not all fields necessary here, can be adapted
 
     def create(self, validated_data):
@@ -99,21 +99,11 @@ class ProviderSerializer(serializers.Serializer):
         return instance
 
 
-class DynamicCollectionSerializer(serializers.ModelSerializer):
+class CollectionSerializer(serializers.ModelSerializer):
 
-    def __init__(self, *args, **kwargs):
-        # Don't pass the 'fields' arg up to the superclass
-        fields = kwargs.pop('fields', None)
-
-        # Instantiate the superclass normally
-        super(DynamicCollectionSerializer, self).__init__(*args, **kwargs)
-
-        if fields is not None:
-            # Drop any fields that are not specified in the `fields` argument.
-            allowed = set(fields)
-            existing = set(self.fields)
-            for field_name in existing - allowed:
-                self.fields.pop(field_name)
+    class Meta:
+        model = Collection
+        fields = '__all__'
 
     crs = serializers.ListField(child=serializers.URLField(required=False))
     created = serializers.DateTimeField(required=True)  # datetime
@@ -193,17 +183,3 @@ class DynamicCollectionSerializer(serializers.ModelSerializer):
 
         instance.save()
         return instance
-
-
-class ListViewCollectionSerializer(DynamicCollectionSerializer):
-
-    class Meta:
-        model = Collection
-        fields = ['collection_name', 'links', 'title', 'description']
-
-
-class DetailViewCollectionSerializer(DynamicCollectionSerializer):
-
-    class Meta:
-        model = Collection
-        fields = '__all__'

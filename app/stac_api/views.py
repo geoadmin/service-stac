@@ -6,8 +6,10 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 
 from stac_api.models import Collection
-from stac_api.serializers import DetailViewCollectionSerializer
-from stac_api.serializers import ListViewCollectionSerializer
+from stac_api.serializers import CollectionSerializer
+
+from stac_api.collection_views import CollectionList
+from stac_api.collection_views import CollectionDetail
 
 logger = logging.getLogger(__name__)
 
@@ -63,28 +65,9 @@ def checker(request):
     return JsonResponse(data)
 
 
-class CollectionList(generics.ListAPIView):
-    '''
-    collections endpoint
-    '''
-    # TODO: restrict the visible fields in ListView if possible # pylint: disable=fixme
-    # seems to be tricky. Would need dynamic serializers or different serializers
-    # one for ListView and one for the DetailView..
-    # working on it..
-    serializer_class = ListViewCollectionSerializer
-    queryset = Collection.objects.all()
+def collection_list():
+    return CollectionList.as_view()
 
 
-class CollectionDetail(generics.RetrieveAPIView):
-    '''
-    Returns a detail view of the collection instance with all its properties
-    '''
-    serializer_class = DetailViewCollectionSerializer
-    lookup_url_kwarg = "collection_name"
-    queryset = Collection.objects.all()
-
-    def get_object(self):
-        collection_name = self.kwargs.get(self.lookup_url_kwarg)
-        queryset = self.get_queryset().filter(collection_name=collection_name)
-        obj = get_object_or_404(queryset)
-        return obj
+def collection_detail():
+    return CollectionDetail.as_view()
