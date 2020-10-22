@@ -2,6 +2,9 @@ import logging
 
 from django.http import JsonResponse
 
+from stac_api.collection_views import CollectionDetail
+from stac_api.collection_views import CollectionList
+
 logger = logging.getLogger(__name__)
 
 
@@ -54,3 +57,11 @@ def checker(request):
     data = {"success": True, "message": "OK"}
 
     return JsonResponse(data)
+
+
+def collection_list():
+    return CollectionList.as_view()
+
+
+def collection_detail():
+    return CollectionDetail.as_view()
