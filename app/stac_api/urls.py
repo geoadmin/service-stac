@@ -9,8 +9,10 @@ from . import views
 urlpatterns = [
     path(API_BASE_PATH, views.landing_page, name='landing-page'),
     path('checker/', views.checker, name='checker'),
-    path('collections/', CollectionList.as_view(), name='CollectionList'),
+    path(f"{API_BASE_PATH}collections/", CollectionList.as_view(), name='collection-list'),
     path(
-        'collections/<slug:collection_name>/', CollectionDetail.as_view(), name='CollectionDetail'
+        f"{API_BASE_PATH}collections/<slug:collection_name>/",
+        CollectionDetail.as_view(),
+        name='collection-detail'
     ),
 ]
