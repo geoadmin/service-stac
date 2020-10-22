@@ -20,7 +20,8 @@ import io
 from rest_framework.renderers import JSONRenderer
 from rest_framework.parsers import JSONParser
 from stac_api.models import *
-from stac_api.serializers import CollectionSerializer
+from stac_api.serializers import DetailViewCollectionSerializer
+from stac_api.serializers import ListViewCollectionSerializer
 from stac_api.serializers import KeywordSerializer
 from stac_api.serializers import LinkSerializer
 from stac_api.serializers import ProviderSerializer
@@ -163,7 +164,7 @@ link3.save()
 
 # test the serialization process:
 # translate into Python native
-serializer = CollectionSerializer(collection1)
+serializer = ListViewCollectionSerializer(collection1)
 serializer.data
 
 # translate into json
@@ -175,7 +176,7 @@ stream = io.BytesIO(content)
 data = JSONParser().parse(stream)
 
 # back-translate into fully populated object instance
-serializer = CollectionSerializer(data=data)
+serializer = ListViewCollectionSerializer(data=data)
 serializer.is_valid()  # hopefully True, if False, serializer.errors gives hints
 
 serializer.validated_data
