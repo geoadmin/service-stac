@@ -7,6 +7,7 @@ env:
     AWS_DEFAULT_REGION: eu-central-1
     USER: "aws_code_build"
     ENV: "dev"
+    PIPENV_NOSPIN: 1
   parameter-store:
     CI_DOCKERHUB_USER: "/dockerhub/user"
     CI_DOCKERHUB_PASSWORD: "/dockerhub/password"
@@ -34,7 +35,7 @@ phases:
       - export IMAGE_TAG="${GITHUB_BRANCH}.${COMMIT_HASH}"
       - echo "GITHUB_BRANCH=${GITHUB_BRANCH} COMMIT_HASH=${COMMIT_HASH} IMAGE_TAG=${IMAGE_TAG}"
       - echo "creating a clean environment"
-      - make setup
+      - make ci
       - echo "linting code"
       - make lint
       - echo "starting test build on $(date)"

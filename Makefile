@@ -6,7 +6,6 @@ SERVICE_NAME := service-stac
 
 CURRENT_DIR := $(shell pwd)
 VENV := $(CURRENT_DIR)/.venv
-REQUIREMENTS_DEV = $(CURRENT_DIR)/requirements_dev.txt
 
 # Django specific
 APP_SRC_DIR := app
@@ -17,7 +16,7 @@ TEST_DIR := $(CURRENT_DIR)/$(APP_SRC_DIR)/tests
 
 # general targets timestamps
 TIMESTAMPS = .timestamps
-SETUP_TIMESTAMP = $(TIMESTAMPS)/.setup.timestamp
+SETTINGS_TIMESTAMP = $(TIMESTAMPS)/.settins.timestamp
 DOCKER_BUILD_TIMESTAMP = $(TIMESTAMPS)/.docker-test.timestamp
 
 # Docker variables
@@ -27,12 +26,6 @@ DOCKER_IMG_LOCAL_TAG_TEST = swisstopo/$(SERVICE_NAME)-test:local
 # Find all python files that are not inside a hidden directory (directory starting with .)
 PYTHON_FILES := $(shell find $(APP_SRC_DIR) -type f -name "*.py" -print)
 
-PYTHON_VERSION := 3.7
-SYSTEM_PYTHON := $(shell ./getPythonCmd.sh ${PYTHON_VERSION} ${PYTHON_LOCAL_DIR})
-ifeq ($(SYSTEM_PYTHON),)
-$(error "No matching python version found on system, minimum $(PYTHON_VERSION) required")
-endif
-
 # default configuration
 ENV ?= dev
 HTTP_PORT ?= 8000
@@ -41,14 +34,11 @@ LOGGING_CFG ?= logging-cfg-local.yml
 LOGGING_CFG_PATH := $(DJANGO_CONFIG_DIR)/$(LOGGING_CFG)
 
 # Commands
-GUNICORN := $(VENV)/bin/gunicorn
-PYTHON := $(VENV)/bin/python3
-PIP := $(VENV)/bin/pip3
-FLASK := $(VENV)/bin/flask
-YAPF := $(VENV)/bin/yapf
-ISORT := $(VENV)/bin/isort
-NOSE := $(VENV)/bin/nose2
-PYLINT := $(VENV)/bin/pylint
+PIPENV_RUN := pipenv run
+PYTHON := $(PIPENV_RUN) python3
+YAPF := $(PIPENV_RUN) yapf
+ISORT := $(PIPENV_RUN) isort
+PYLINT := $(PIPENV_RUN) pylint
 
 # Set summon only if not already set, this allow to disable summon on environment
 # that don't use it like for CodeBuild env
@@ -65,6 +55,7 @@ help:
 	@echo "Possible targets:"
 	@echo -e " \033[1mLOCAL DEVELOPMENT TARGETS\033[0m "
 	@echo "- setup              Create the python virtual environment and install requirements"
+	@echo "- ci                 Create the python virtual environment and install requirements based on the Pipfile.lock"
 	@echo -e " \033[1mFORMATING, LINTING AND TESTING TOOLS TARGETS\033[0m "
 	@echo "- format             Format the python source code"
 	@echo "- lint               Lint the python source code"
@@ -93,44 +84,46 @@ $(TIMESTAMPS):
 	mkdir -p $(TIMESTAMPS)
 
 
-# Setup the development environment
-# Note: we always run then requirements_dev.txt, if there's sth to do (i.e. requirements have changed)
-# 		pip will recognize
-.PHONY: setup
-setup: $(SETUP_TIMESTAMP)
-
-$(SETUP_TIMESTAMP): $(TIMESTAMPS)
-# Test if .venv exists, if not, set it up
-	test -d $(VENV) || ($(SYSTEM_PYTHON) -m venv $(VENV) && \
-	$(PIP) install --upgrade pip setuptools && \
-	$(PIP) install -U pip wheel);
-# Install requirements, pip will track changes itself
-	$(PIP) install -r $(REQUIREMENTS_DEV)
+$(SETTINGS_TIMESTAMP): $(TIMESTAMPS)
 # Check if we have a default settings.py
 	test -e $(APP_SRC_DIR)/config/settings.py || echo "from .settings_dev import *" > $(APP_SRC_DIR)/config/settings.py
 # Check if there's a local env file
 	test -e $(CURRENT_DIR)/.env.local || (cp $(CURRENT_DIR)/.env.default $(CURRENT_DIR)/.env.local && \
 	echo -e "\n  \e[91ma local .env.local was created, adapt it to your needs\e[0m")
-	@touch $(SETUP_TIMESTAMP)
+	touch $(SETTINGS_TIMESTAMP)
+
+
+# Setup the development environment
+
+.PHONY: setup
+setup: $(SETTINGS_TIMESTAMP)
+# Create virtual env with all packages for development
+	pipenv install --dev
+
+
+.PHONY: ci
+ci: $(SETTINGS_TIMESTAMP)
+# Create virtual env with all packages for development using the Pipfile.lock
+	pipenv sync --dev
 
 
 # call yapf to make sure your code is easier to read and respects some conventions.
 .PHONY: format
-format: $(SETUP_TIMESTAMP)
+format:
 	$(YAPF) -p -i --style .style.yapf $(PYTHON_FILES)
 	$(ISORT) $(PYTHON_FILES)
 
 
 # make sure that the code conforms to the style guide
 .PHONY: lint
-lint: $(SETUP_TIMESTAMP)
+lint:
 	@echo "Run pylint..."
 	$(PYLINT) $(PYTHON_FILES)
 
 
 # Running tests locally
 .PHONY: test
-test: $(SETUP_TIMESTAMP)
+test:
 	# Collect static first to avoid warning in the test
 	$(PYTHON) $(DJANGO_MANAGER) collectstatic --noinput
 	$(PYTHON) $(DJANGO_MANAGER) test --verbosity=2 $(TEST_DIR)
@@ -139,11 +132,11 @@ test: $(SETUP_TIMESTAMP)
 # Serve targets. Using these will run the application on your local machine. You can either serve with a wsgi front (like it would be within the container), or without.
 
 .PHONY: serve
-serve: $(SETUP_TIMESTAMP)
+serve:
 	$(PYTHON) $(DJANGO_MANAGER) runserver $(HTTP_PORT)
 
 .PHONY: gunicornserve
-gunicornserve: $(SETUP_TIMESTAMP)
+gunicornserve:
 	$(PYTHON) $(APP_SRC_DIR)/wsgi.py
 
 
@@ -171,13 +164,11 @@ dockerrun: dockerbuild-test
 
 .PHONY: clean_venv
 clean_venv:
-	rm -rf $(VENV)
+	pipenv --rm
 
 
 .PHONY: clean
 clean: clean_venv
 	@# clean python cache files
 	find . -name __pycache__ -type d -print0 | xargs -I {} -0 rm -rf "{}"
-	rm -rf $(PYTHON_LOCAL_DIR)
-	rm -rf $(TEST_REPORT_DIR)
 	rm -rf $(TIMESTAMPS)
