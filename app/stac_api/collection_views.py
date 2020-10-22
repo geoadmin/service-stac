@@ -1,5 +1,7 @@
 from rest_framework import generics
+
 from django.shortcuts import get_object_or_404
+
 from stac_api.models import Collection
 from stac_api.serializers import CollectionSerializer
 

@@ -1,15 +1,9 @@
 import logging
 
-from rest_framework import generics
-
 from django.http import JsonResponse
-from django.shortcuts import get_object_or_404
 
-from stac_api.models import Collection
-from stac_api.serializers import CollectionSerializer
-
-from stac_api.collection_views import CollectionList
 from stac_api.collection_views import CollectionDetail
+from stac_api.collection_views import CollectionList
 
 logger = logging.getLogger(__name__)
 
