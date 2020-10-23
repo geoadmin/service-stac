@@ -38,16 +38,23 @@ phases:
       - make ci
       - echo "linting code"
       - make lint
-      - echo "starting test build on $(date)"
-      # the app container will 'exit 0' once tests are completed, we need to
-      # stop the db as well then
-      - docker-compose up --abort-on-container-exit
+
   build:
     commands:
-      - echo "starting production build on $(date)"
       - export DOCKER_IMG_TAG_BASE=${IMAGE_BASE_NAME}:${GITHUB_BRANCH}
       - export DOCKER_IMG_TAG_HASH=${DOCKER_IMG_TAG_BASE}.${COMMIT_HASH}
       - export DOCKER_IMG_TAG_LATEST=${DOCKER_IMG_TAG_BASE}.latest
+      - export DOCKER_IMG_TAG_LATEST_DEV=${DOCKER_IMG_TAG_BASE}.latest-dev
+      # Starting dev build for testing
+      - echo "starting test build on $(date)"
+      - echo "Building docker image with tags ${DOCKER_IMG_TAG_HASH} and ${DOCKER_IMG_TAG_LATEST_DEV}"
+      - docker build -t ${DOCKER_IMG_TAG_HASH} -t ${DOCKER_IMG_TAG_LATEST_DEV} --target test .
+      # Running tests
+      # Note: the app container will 'exit 0' once tests are completed, we need to
+      # stop the db as well then
+      - docker-compose up --abort-on-container-exit
+      # Starting prod build
+      - echo "starting production build on $(date)"
       - echo "Building docker image with tags ${DOCKER_IMG_TAG_HASH} and ${DOCKER_IMG_TAG_LATEST}"
       - docker build -t ${DOCKER_IMG_TAG_HASH} -t ${DOCKER_IMG_TAG_LATEST} --target production .
 
@@ -55,7 +62,9 @@ phases:
     commands:
       # Only push image to dockerhub for merge to develop and master
       - |
-        if [ "${GITHUB_BRANCH}" = "master" -o "${GITHUB_BRANCH}" = "develop" ]; then
+        if [ "${GITHUB_BRANCH}" = "master" ]; then
           docker push ${DOCKER_IMG_TAG_HASH}
+        elif [ "${GITHUB_BRANCH}" = "develop" ]; then
           docker push ${DOCKER_IMG_TAG_LATEST}
+          docker push ${DOCKER_IMG_TAG_LATEST_DEV}
         fi
