@@ -19,12 +19,17 @@ ALLOWED_HOSTS = ['*']
 
 # django-extensions
 # ------------------------------------------------------------------------------
-INSTALLED_APPS += ['django_extensions', 'debug_toolbar']
+if DEBUG:
+    INSTALLED_APPS += ['django_extensions', 'debug_toolbar']
 
-MIDDLEWARE += [
-    'debug_toolbar.middleware.DebugToolbarMiddleware',
-]
+if DEBUG:
+    MIDDLEWARE = [
+        'debug_toolbar.middleware.DebugToolbarMiddleware',
+    ] + MIDDLEWARE
 
 # configuration for debug_toolbar
 # see https://django-debug-toolbar.readthedocs.io/en/latest/configuration.html#debug-toolbar-config
 DEBUG_TOOLBAR_CONFIG = {'SHOW_TOOLBAR_CALLBACK': 'middleware.debug_toolbar.check_toolbar_env'}
+
+# use the default staticfiles mechanism
+STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'

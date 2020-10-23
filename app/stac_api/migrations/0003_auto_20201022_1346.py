@@ -44,6 +44,11 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='item',
             name='geometry',
-            field=django.contrib.gis.db.models.fields.MultiPolygonField(default='SRID=2056;MULTIPOLYGON(((2317000 913000 0,3057000 913000 0,3057000 1413000 0,2317000 1413000 0,2317000 913000 0)))', dim=3, srid=2056),
+            field=django.contrib.gis.db.models.fields.MultiPolygonField(
+                default=
+                'SRID=2056;MULTIPOLYGON(((2317000 913000 0,3057000 913000 0,3057000 1413000 0,2317000 1413000 0,2317000 913000 0)))',
+                dim=3,
+                srid=2056
+            ),
         ),
     ]
