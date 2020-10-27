@@ -98,8 +98,8 @@ class Collection(models.Model):
 
     # temporal extent will be auto-populated on every item update inside this collection:
     # start_date will be set to oldest date, end_date to most current date
-    start_date = models.DateTimeField(blank=True, null=True)  # will be automatically populated
-    end_date = models.DateTimeField(blank=True, null=True)  # will be automatically populated
+    # start_date = models.DateTimeField(blank=True, null=True)  # will be automatically populated
+    # end_date = models.DateTimeField(blank=True, null=True)  # will be automatically populated
 
     # spatial extent (2D ord 3D):
     # bbox: southwesterly most extent followed by all axes of the northeasterly
@@ -117,8 +117,7 @@ class Collection(models.Model):
     # furthermore GeoDjango and its functionality will be used for that.
     # TODO: overwrite items save() function accordingly
     # suggestions of fields to be auto-populated:
-    extent = ArrayField(models.FloatField(), blank=True)  # [Float], auto-populated from items
-
+    extent = models.JSONField() # [Float], auto-populated from items
     collection_name = models.CharField(unique=True, max_length=255)  # string
     # collection_name is what is simply only called "id" in here:
     # http://ltboc.infra.bgdi.ch/static/products/data.geo.admin.ch/apitransactional.html#operation/createCollection
@@ -136,14 +135,15 @@ class Collection(models.Model):
 
     # "summaries" values will be updated on every update of an asset inside the
     # collection
-    summaries_eo_gsd = ArrayField(models.FloatField(), blank=True, null=True)
-    summaries_proj = ArrayField(models.IntegerField(), blank=True, null=True)
+    summaries=models.JSONField()
+    #summaries_eo_gsd = ArrayField(models.FloatField(), blank=True, null=True)
+    #summaries_proj = ArrayField(models.IntegerField(), blank=True, null=True)
     # after discussion with Chris and Tobias: geoadmin_variant will be an
     # array field of CharFields. Simple validation is done (e.g. no "Sonderzeichen"
     # in array)
     # geoadmin_variant will be also auto-populated on every
     # update of an asset
-    geoadmin_variant = ArrayField(models.CharField(max_length=15), blank=True, null=True)
+    #geoadmin_variant = ArrayField(models.CharField(max_length=15), blank=True, null=True)
 
     title = models.CharField(blank=True, max_length=255)  # string
 
@@ -152,12 +152,12 @@ class Collection(models.Model):
 
     def clean(self):
         # TODO: move this check to the items save()
-        if self.start_date is None and self.end_date is None:
+        if self.extent["temporal"]["interval"][0][0] is None and self.extent["temporal"]["interval"][0][1] is None:
             raise ValidationError(_('At least a start date or an end date has to be defined.'))
 
         # very simple validation, raises error when geoadmin_variant strings contain special
         # characters or umlaut.
-        for variant in self.geoadmin_variant:
+        for variant in self.summaries["geoadmin:variant"]:
             if not bool(re.search('^[a-zA-Z0-9]*$', variant)):
                 raise ValidationError(_('Property geoadmin:variant not correctly specified.'))
 
@@ -211,19 +211,19 @@ class Item(models.Model):
         # I leave this open for the moment.
 
         # check if collection's start_ and end_dates need to be updated
-        if self.collection.start_date is None:
+        if self.collection.extent["temporal"]["interval"][0][0] is None:
 
-            self.collection.start_date = self.properties_datetime
+            self.collection.extent["temporal"]["interval"][0][0] = self.properties_datetime
             self.collection.save()
 
-        elif self.properties_datetime < self.collection.start_date:
+        elif self.properties_datetime < self.collection.extent["temporal"]["interval"][0][0]:
 
-            self.collection.start_date = self.properties_datetime
+            self.collection.extent["temporal"]["interval"][0][0] = self.properties_datetime
             self.collection.save()
 
-        elif self.properties_datetime > self.collection.end_date or \
-            self.collection.end_date is None:
-            self.collection.end_date = self.properties_datetime
+        elif self.properties_datetime > self.collection.extent["temporal"]["interval"][0][1] or \
+            self.collection.extent["temporal"]["interval"][0][1] is None:
+            self.collection.extent["temporal"]["interval"][0][1] = self.properties_datetime
             self.collection.save()
 
         super().save(*args, **kwargs)
@@ -232,7 +232,7 @@ class Item(models.Model):
 class Asset(models.Model):
     feature = models.ForeignKey(Item, on_delete=models.CASCADE)
     collection = models.ForeignKey(Collection, on_delete=models.CASCADE, blank=True, editable=False)
-    asset_id = models.BigAutoField(primary_key=True)
+    id = models.BigAutoField(primary_key=True)
 
     # using BigIntegerField as primary_key to deal with the expected large number of assets.
 
@@ -278,26 +278,27 @@ class Asset(models.Model):
 
         # check if the collection's geoadmin_variant needs to be updated
         for variant in self.geoadmin_variant:
-            if not variant in self.feature.collection.geoadmin_variant:
-                self.feature.collection.geoadmin_variant.append(variant)
+            if not variant in self.feature.collection.summarie["geoadmin:variant"]:
+                self.feature.collection.summarie["geoadmin:variant"].append(variant)
                 self.feature.collection.save()
 
         # proj (integer) is defined on collection level as well
         # and eo_gsd (float) on item AND collection level as well.
         # So we need to check if these properties need an update on parent
         # and grandparent level.
-        if not self.proj in self.feature.collection.summaries_proj:
-            self.feature.collection.summaries_proj.append(self.proj)
+        if not self.proj in self.feature.collection.summaries["proj:epsg"]:
+            self.feature.collection.summaries["proj:epsg"].append(self.proj)
             self.feature.collection.save()
 
         # for float-comparison:
         def float_in(f, floats, **kwargs):  # pylint: disable=invalid-name
             return np.any(np.isclose(f, floats, **kwargs))
 
-        if not float_in(self.eo_gsd, self.feature.collection.summaries_eo_gsd):
-            self.feature.collection.summaries_eo_gsd.append(self.eo_gsd)
+        if not float_in(self.eo_gsd, self.feature.collection.summaries["eo:gsd"]):
+            self.feature.collection.summaries["eo:gsd"].append(self.eo_gsd)
             self.feature.collection.save()
 
+        # TODO: Probably has to be adaptet, depending on how you deal with the properties in items @Brice
         if not float_in(self.eo_gsd, self.feature.properties_eo_gsd):
             self.feature.properties_eo_gsd.append(self.eo_gsd)
             self.feature.collection.save()
