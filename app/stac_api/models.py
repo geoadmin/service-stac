@@ -117,7 +117,7 @@ class Collection(models.Model):
     # furthermore GeoDjango and its functionality will be used for that.
     # TODO: overwrite items save() function accordingly
     # suggestions of fields to be auto-populated:
-    extent = models.JSONField() # [Float], auto-populated from items
+    extent = models.JSONField()  # [Float], auto-populated from items
     collection_name = models.CharField(unique=True, max_length=255)  # string
     # collection_name is what is simply only called "id" in here:
     # http://ltboc.infra.bgdi.ch/static/products/data.geo.admin.ch/apitransactional.html#operation/createCollection
@@ -135,7 +135,7 @@ class Collection(models.Model):
 
     # "summaries" values will be updated on every update of an asset inside the
     # collection
-    summaries=models.JSONField()
+    summaries = models.JSONField()
     #summaries_eo_gsd = ArrayField(models.FloatField(), blank=True, null=True)
     #summaries_proj = ArrayField(models.IntegerField(), blank=True, null=True)
     # after discussion with Chris and Tobias: geoadmin_variant will be an
@@ -152,7 +152,8 @@ class Collection(models.Model):
 
     def clean(self):
         # TODO: move this check to the items save()
-        if self.extent["temporal"]["interval"][0][0] is None and self.extent["temporal"]["interval"][0][1] is None:
+        if self.extent["temporal"]["interval"][0][0] is None and self.extent["temporal"][
+            "interval"][0][1] is None:
             raise ValidationError(_('At least a start date or an end date has to be defined.'))
 
         # very simple validation, raises error when geoadmin_variant strings contain special

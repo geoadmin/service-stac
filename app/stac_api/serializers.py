@@ -76,7 +76,7 @@ class ProviderSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Provider
-        fields = ['name','roles','url', 'description']
+        fields = ['name', 'roles', 'url', 'description']
         # most likely not all fields necessary here, can be adapted
 
     def create(self, validated_data):
@@ -119,13 +119,14 @@ class CollectionSerializer(serializers.ModelSerializer):
             'keywords',
             'crs'
         ]
+
     crs = serializers.ListField(child=serializers.URLField(required=False))
     created = serializers.DateTimeField(required=True)  # datetime
     updated = serializers.DateTimeField(required=True)  # datetime
     description = serializers.CharField(required=True)  # string
     extent = serializers.JSONField()
-    summaries= serializers.JSONField()
-    id = serializers.CharField(max_length=255, source="collection_name")  # string
+    summaries = serializers.JSONField()
+    id = serializers.CharField(max_length=255, source="collection_name")  # string #pylint: disable=invalid-name
     keywords = KeywordSerializer(many=True, read_only=True)
     license = serializers.CharField(max_length=30)  # string
     links = LinkSerializer(many=True)
