@@ -233,7 +233,7 @@ class Item(models.Model):
 class Asset(models.Model):
     feature = models.ForeignKey(Item, on_delete=models.CASCADE)
     collection = models.ForeignKey(Collection, on_delete=models.CASCADE, blank=True, editable=False)
-    id = models.BigAutoField(primary_key=True)
+    id = models.BigAutoField(primary_key=True) #pylint: disable=invalid-name
 
     # using BigIntegerField as primary_key to deal with the expected large number of assets.
 
