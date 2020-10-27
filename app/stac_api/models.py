@@ -278,8 +278,8 @@ class Asset(models.Model):
 
         # check if the collection's geoadmin_variant needs to be updated
         for variant in self.geoadmin_variant:
-            if not variant in self.feature.collection.summarie["geoadmin:variant"]:
-                self.feature.collection.summarie["geoadmin:variant"].append(variant)
+            if not variant in self.feature.collection.summaries["geoadmin:variant"]:
+                self.feature.collection.summaries["geoadmin:variant"].append(variant)
                 self.feature.collection.save()
 
         # proj (integer) is defined on collection level as well
