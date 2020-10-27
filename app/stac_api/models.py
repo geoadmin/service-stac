@@ -299,7 +299,8 @@ class Asset(models.Model):
             self.feature.collection.summaries["eo:gsd"].append(self.eo_gsd)
             self.feature.collection.save()
 
-        # TODO: Probably has to be adaptet, depending on how you deal with the properties in items @Brice
+        # TODO: Probably has to be adapted, depending on how you deal with the
+        #  properties in items @Brice
         if not float_in(self.eo_gsd, self.feature.properties_eo_gsd):
             self.feature.properties_eo_gsd.append(self.eo_gsd)
             self.feature.collection.save()
