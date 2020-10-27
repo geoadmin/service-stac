@@ -95,7 +95,7 @@ collection1 = Collection(
       ]
     }
   },
-    collection_name='b_123',
+    collection_name='a_123',
     item_type='Feature',
     license='test',
     stac_extension=get_default_stac_extensions(),
@@ -188,7 +188,7 @@ collection3 = Collection(
       ]
     }
   },
-    collection_name='b_123',
+    collection_name='c_123',
     item_type='Feature',
     license='test',
     stac_extension=get_default_stac_extensions(),

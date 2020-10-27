@@ -66,7 +66,7 @@ class Link(models.Model):
 
 class Provider(models.Model):
     name = models.CharField(blank=False, max_length=200)  # string
-    description = models.TextField()  # string
+    description = models.TextField(blank=True)  # string
     roles = ArrayField(models.CharField(max_length=9))  # [string]
     # possible roles are licensor, producer, processor or host. Probably it might sense
     url = models.URLField()  # string

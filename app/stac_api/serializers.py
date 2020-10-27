@@ -16,7 +16,7 @@ class KeywordSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Keyword
-        fields = '__all__'
+        fields = ['name']
 
     def create(self, validated_data):
         """
@@ -44,7 +44,7 @@ class LinkSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Link
-        fields = '__all__'
+        fields = ['href', 'rel', 'link_type', 'title']
         # most likely not all fields necessary here, can be adapted
 
     def create(self, validated_data):
@@ -70,13 +70,13 @@ class LinkSerializer(serializers.ModelSerializer):
 class ProviderSerializer(serializers.ModelSerializer):
 
     name = serializers.CharField(allow_blank=False, max_length=200)  # string
-    description = serializers.CharField()  # string
+    description = serializers.CharField(required=False, allow_blank=True)  # string
     roles = serializers.ListField(child=serializers.CharField(max_length=9))  # [string]
     url = serializers.URLField()  # string
 
     class Meta:
         model = Provider
-        fields = '__all__'
+        fields = ['name','roles','url', 'description']
         # most likely not all fields necessary here, can be adapted
 
     def create(self, validated_data):
@@ -103,15 +103,29 @@ class CollectionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Collection
-        fields = '__all__'
-
+        fields = [
+            'stac_version',
+            'stac_extension',
+            'id',
+            'title',
+            'description',
+            'summaries',
+            'extent',
+            'providers',
+            'license',
+            'created',
+            'updated',
+            'links',
+            'keywords',
+            'crs'
+        ]
     crs = serializers.ListField(child=serializers.URLField(required=False))
     created = serializers.DateTimeField(required=True)  # datetime
     updated = serializers.DateTimeField(required=True)  # datetime
     description = serializers.CharField(required=True)  # string
     extent = serializers.JSONField()
     summaries= serializers.JSONField()
-    collection_name = serializers.CharField(max_length=255)  # string
+    id = serializers.CharField(max_length=255, source="collection_name")  # string
     keywords = KeywordSerializer(many=True, read_only=True)
     license = serializers.CharField(max_length=30)  # string
     links = LinkSerializer(many=True)
