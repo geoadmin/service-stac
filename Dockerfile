@@ -9,6 +9,8 @@ RUN groupadd -r geoadmin && useradd -r -s /bin/false -g geoadmin geoadmin
 # install relevent packages
 RUN apt-get update \
     && apt-get install -y binutils libproj-dev gdal-bin \
+    # the following line contains debug tools that can be removed later
+    curl net-tools iputils-ping postgresql-client-common jq openssh-client \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && pip3 install pipenv \
