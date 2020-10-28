@@ -5,9 +5,6 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/collection'
-        text/html:
-          schema:
-            type: string
       description: |-
         Information about the feature collection with id `collectionId`.
 
@@ -26,9 +23,6 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/collections'
-        text/html:
-          schema:
-            type: string
       description: |-
         The feature collections shared by this API.
 
@@ -67,10 +61,7 @@ components:
       content:
         application/geo+json:
           schema:
-            $ref: '#/components/schemas/featureGeoJSON'
-        text/html:
-          schema:
-            type: string
+            $ref: '#/components/schemas/item'
       description: |-
         fetch the feature with id `featureId` in the feature collection
         with id `collectionId`
@@ -78,10 +69,8 @@ components:
       content:
         application/geo+json:
           schema:
-            $ref: '#/components/schemas/featureCollectionGeoJSON'
-        text/html:
-          schema:
-            type: string
+            # $ref: '#/components/schemas/featureCollectionGeoJSON'
+            $ref: '#/components/schemas/itemCollection'
       description: |-
         The response is a document consisting of features in the collection.
         The features included in the response are determined by the server
@@ -107,9 +96,6 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/exception'
-        text/html:
-          schema:
-            type: string
       description: A query parameter has an invalid value.
     LandingPage:
       content:
@@ -126,9 +112,6 @@ components:
             title: data.geo.admin.ch
           schema:
             $ref: '#/components/schemas/landingPage'
-        text/html:
-          schema:
-            type: string
       description: |-
         The landing page provides links to the API definition
         (link relations `service-desc` and `service-doc`),
@@ -143,7 +126,4 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/exception'
-        text/html:
-          schema:
-            type: string
       description: A server error occurred.
