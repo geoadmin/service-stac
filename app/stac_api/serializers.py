@@ -1,13 +1,47 @@
 from rest_framework import serializers
+from rest_framework_gis import serializers as gis_serializers
 
-# from stac_api.models import Item
-# from stac_api.models import Asset
+from stac_api.models import Asset
 from stac_api.models import Collection
+from stac_api.models import CollectionLink
+from stac_api.models import Item
+from stac_api.models import ItemLink
 from stac_api.models import Keyword
-from stac_api.models import Link
 from stac_api.models import Provider
 
-# pylint: disable=fixme
+
+class DictSerializer(serializers.ListSerializer):
+    '''Represent objects within a dictionary instead of a list
+
+    By default the Serializer with `many=True` attribute represent all objects within a list.
+    Here we overwrite the ListSerializer to instead represent multiple objects using a dictionary
+    where the object identifier is used as key.
+
+    For example the following list:
+
+        [{
+                'name': 'object1',
+                'description': 'This is object 1'
+            }, {
+                'name': 'object2',
+                'description': 'This is object 2'
+        }]
+
+    Would be represented as follow:
+
+        {
+            'object1': {'description': 'This is object 1'},
+            'object2': {'description': 'This is object 2'}
+        }
+    '''
+
+    # pylint: disable=abstract-method
+
+    key_identifier = 'name'
+
+    def to_representation(self, data):
+        objects = super().to_representation(data)
+        return {obj.pop(self.key_identifier): obj for obj in objects}
 
 
 class KeywordSerializer(serializers.ModelSerializer):
@@ -30,38 +64,6 @@ class KeywordSerializer(serializers.ModelSerializer):
         """
 
         instance.name = validated_data.get('name', instance.name)
-
-        instance.save()
-        return instance
-
-
-class LinkSerializer(serializers.ModelSerializer):
-
-    href = serializers.URLField()  # string
-    rel = serializers.CharField(max_length=30)  # string
-    link_type = serializers.CharField(allow_blank=True, max_length=150)  # string
-    title = serializers.CharField(allow_blank=True, max_length=255)  # string
-
-    class Meta:
-        model = Link
-        fields = '__all__'
-        # most likely not all fields necessary here, can be adapted
-
-    def create(self, validated_data):
-        """
-        Create and return a new `Link` instance, given the validated data.
-        """
-        return Collection.objects.create(**validated_data)
-
-    def update(self, instance, validated_data):
-        """
-        Update and return an existing `Link` instance, given the validated data.
-        """
-
-        instance.href = validated_data.get('href', instance.href)
-        instance.rel = validated_data.get('rel', instance.rel)
-        instance.link_type = validated_data.get('link_type', instance.link_type)
-        instance.title = validated_data.get('title', instance.title)
 
         instance.save()
         return instance
@@ -99,6 +101,13 @@ class ProviderSerializer(serializers.ModelSerializer):
         return instance
 
 
+class CollectionLinkSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = CollectionLink
+        fields = ['href', 'rel', 'link_type', 'title']
+
+
 class CollectionSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -115,7 +124,7 @@ class CollectionSerializer(serializers.ModelSerializer):
     collection_name = serializers.CharField(max_length=255)  # string
     keywords = KeywordSerializer(many=True, read_only=True)
     license = serializers.CharField(max_length=30)  # string
-    links = LinkSerializer(many=True)
+    links = CollectionLinkSerializer(many=True, read_only=True)
     providers = ProviderSerializer(many=True)
     stac_extension = serializers.ListField(child=serializers.CharField(max_length=255),)
     stac_version = serializers.CharField(max_length=10)  # string
@@ -183,3 +192,106 @@ class CollectionSerializer(serializers.ModelSerializer):
 
         instance.save()
         return instance
+
+
+class ItemLinkSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ItemLink
+        fields = ['href', 'rel', 'link_type', 'title']
+
+
+class ItemsPropertiesSerializer(serializers.Serializer):
+    # pylint: disable=abstract-method
+    # ItemsPropertiesSerializer is a nested serializer and don't directly create/write instances
+    # therefore we don't need to implement the super method create() and update()
+    datetime = serializers.DateTimeField(required=True, source='properties_datetime')
+    eo_gsd = serializers.ListField(required=True, source='properties_eo_gsd')
+    title = serializers.CharField(required=True, source='properties_title', max_length=255)
+
+    def get_fields(self):
+        fields = super().get_fields()
+        # This is a hack to allow fields with special characters
+        fields['eo:gsd'] = fields.pop('eo_gsd')
+        return fields
+
+
+class BboxSerializer(gis_serializers.GeoFeatureModelSerializer):
+
+    class Meta:
+        model = Item
+        geo_field = "geometry"
+        auto_bbox = True
+        fields = ['geometry']
+
+    def to_representation(self, instance):
+        python_native = super().to_representation(instance)
+        return python_native['bbox']
+
+
+class AssetsDictSerializer(DictSerializer):
+    # pylint: disable=abstract-method
+    key_identifier = 'asset_name'
+
+
+class AssetsItemSerializer(serializers.ModelSerializer):
+    type = serializers.CharField(source='media_type', max_length=200)
+    eo_gsd = serializers.FloatField(source='eo_gsd')
+    geoadmin_lang = serializers.CharField(source='geoadmin_lang', max_length=2)
+    geoadmin_variant = serializers.CharField(source='geoadmin_variant', max_length=15)
+    proj_epsq = serializers.IntegerField(source='proj_epsq')
+    checksum_multihash = serializers.CharField(source='checksum_multihash', max_length=255)
+
+    class Meta:
+        model = Asset
+        list_serializer_class = AssetsDictSerializer
+        fields = [
+            'description',
+            'eo_gsd',
+            'geoadmin_lang',
+            'geoadmin_variant',
+            'proj_epsq',
+            'title',
+            'href',
+            'checksum_multihash',
+            'asset_name',
+            'type'
+        ]
+
+    def get_fields(self):
+        fields = super().get_fields()
+        # This is a hack to allow fields with special characters
+        fields['eo:gsd'] = fields.pop('eo_gsd')
+        fields['proj:epsq'] = fields.pop('proj_epsq')
+        fields['geoadmin:variant'] = fields.pop('geoadmin_variant')
+        fields['geoadmin:lang'] = fields.pop('geoadmin_lang')
+        fields['checksum:multihash'] = fields.pop('checksum_multihash')
+        return fields
+
+
+class ItemSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Item
+        fields = [
+            'collection',
+            'geometry',
+            'links',
+            'properties',
+            'stac_extensions',
+            'stac_version',
+            'id',
+            'bbox',
+            'type',
+            'assets'
+        ]
+
+    collection = serializers.StringRelatedField()
+    id = serializers.CharField(source='item_name', required=True, max_length=255)
+    properties = ItemsPropertiesSerializer(source='*')
+    geometry = gis_serializers.GeometryField()
+    # read only fields
+    links = ItemLinkSerializer(many=True, read_only=True)
+    type = serializers.ReadOnlyField(default='Feature')
+    bbox = BboxSerializer(source='*', read_only=True)
+    assets = AssetsItemSerializer(many=True, read_only=True)

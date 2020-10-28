@@ -5,8 +5,8 @@ from django.test import TestCase
 
 from config.settings import API_BASE_PATH
 from stac_api.models import Collection
+from stac_api.models import CollectionLink
 from stac_api.models import Keyword
-from stac_api.models import Link
 from stac_api.models import Provider
 from stac_api.models import get_default_stac_extensions
 from stac_api.serializers import CollectionSerializer
@@ -25,31 +25,6 @@ class CollectionsEndpointTestCase(TestCase):  # pylint: disable = too-many-insta
 
         self.keyword3 = Keyword.objects.create(name='test3')
         self.keyword3.save()
-
-        # create link instances for testing
-        self.link1 = Link.objects.create(
-            href='/collections/a_123/?format=json',
-            rel='self',
-            link_type='image/png',
-            title='testtitel'
-        )
-        self.link1.save()
-
-        self.link2 = Link.objects.create(
-            href='/collections/b_123/?format=json',
-            rel='self',
-            link_type='image/png',
-            title='testtitel2'
-        )
-        self.link2.save()
-
-        self.link3 = Link.objects.create(
-            href='/collections/c_123/?format=json',
-            rel='self',
-            link_type='image/png',
-            title='testtitel3'
-        )
-        self.link3.save()
 
         # create provider instances for testing
         self.provider1 = Provider.objects.create(
@@ -99,7 +74,6 @@ class CollectionsEndpointTestCase(TestCase):  # pylint: disable = too-many-insta
         self.collection1.save()
 
         # populate the ManyToMany relation fields
-        self.collection1.links.add(self.link1)
         self.collection1.keywords.add(self.keyword1, self.keyword3)
         self.collection1.providers.add(self.provider1, self.provider2)
         self.collection1.save()
@@ -126,7 +100,6 @@ class CollectionsEndpointTestCase(TestCase):  # pylint: disable = too-many-insta
         )
         self.collection2.save()
         # populate the ManyToMany relation fields
-        self.collection2.links.add(self.link2)
         self.collection2.keywords.add(self.keyword2, self.keyword3)
         self.collection2.providers.add(self.provider1, self.provider3)
 
@@ -152,7 +125,6 @@ class CollectionsEndpointTestCase(TestCase):  # pylint: disable = too-many-insta
         )
         self.collection3.save()
         # populate the ManyToMany relation fields
-        self.collection3.links.add(self.link3)
         self.collection3.keywords.add(self.keyword2, self.keyword3)
         self.collection3.providers.add(self.provider1, self.provider3)
         self.collection3.save()
@@ -163,8 +135,33 @@ class CollectionsEndpointTestCase(TestCase):  # pylint: disable = too-many-insta
         self.provider1.save()
         self.provider2.save()
         self.provider3.save()
+
+        # create link instances for testing
+        self.link1 = CollectionLink.objects.create(
+            collection=self.collection1,
+            href='/collections/a_123/?format=json',
+            rel='self',
+            link_type='image/png',
+            title='test title'
+        )
         self.link1.save()
+
+        self.link2 = CollectionLink.objects.create(
+            collection=self.collection2,
+            href='/collections/b_123/?format=json',
+            rel='self',
+            link_type='image/png',
+            title='test title 2'
+        )
         self.link2.save()
+
+        self.link3 = CollectionLink.objects.create(
+            collection=self.collection3,
+            href='/collections/c_123/?format=json',
+            rel='self',
+            link_type='image/png',
+            title='test title 3'
+        )
         self.link3.save()
 
         # transate to Python native:
