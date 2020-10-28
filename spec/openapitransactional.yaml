@@ -184,9 +184,6 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/collection'
-        text/html:
-          schema:
-            type: string
       description: |-
         Information about the feature collection with id `collectionId`.
 
@@ -205,9 +202,6 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/collections'
-        text/html:
-          schema:
-            type: string
       description: |-
         The feature collections shared by this API.
 
@@ -246,10 +240,7 @@ components:
       content:
         application/geo+json:
           schema:
-            $ref: '#/components/schemas/featureGeoJSON'
-        text/html:
-          schema:
-            type: string
+            $ref: '#/components/schemas/item'
       description: |-
         fetch the feature with id `featureId` in the feature collection
         with id `collectionId`
@@ -257,10 +248,7 @@ components:
       content:
         application/geo+json:
           schema:
-            $ref: '#/components/schemas/featureCollectionGeoJSON'
-        text/html:
-          schema:
-            type: string
+            $ref: '#/components/schemas/itemCollection'
       description: |-
         The response is a document consisting of features in the collection.
         The features included in the response are determined by the server
@@ -286,9 +274,6 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/exception'
-        text/html:
-          schema:
-            type: string
       description: A query parameter has an invalid value.
     LandingPage:
       content:
@@ -305,9 +290,6 @@ components:
             title: data.geo.admin.ch
           schema:
             $ref: '#/components/schemas/landingPage'
-        text/html:
-          schema:
-            type: string
       description: |-
         The landing page provides links to the API definition
         (link relations `service-desc` and `service-doc`),
@@ -326,9 +308,6 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/exception'
-        text/html:
-          schema:
-            type: string
       description: A server error occurred.
     Assets:
       description: |-
@@ -847,123 +826,6 @@ components:
       - spatial
       - temporal
       type: object
-    featureCollectionGeoJSON:
-      properties:
-        features:
-          items:
-            $ref: '#/components/schemas/featureGeoJSON'
-            type: array
-        links:
-          example:
-          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items
-            rel: self
-          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items?startindex=10
-            rel: next
-        numberMatched:
-          example: 256
-        numberReturned:
-          example: 10
-        timeStamp:
-          example: "2020-07-15T12:30:00Z"
-        type:
-          enum:
-          - FeatureCollection
-          type: string
-      required:
-      - type
-      - features
-      type: object
-    featureGeoJSON:
-      example:
-        assets:
-          smr50-263-2016-2056-kgrs-2.5.tiff:
-            checksum:multihash: 90e402107a7f2588a85362b9beea2a12d4514d45
-            created: "2020-07-14T12:30:00Z"
-            eo:gsd: 2.5
-            geoadmin:variant: kgrs
-            href: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr50-263-2016-2056-kgrs-2.5.tiff
-            proj:epsg: "2056"
-            type: image/tiff; application=geotiff
-            updated: "2020-07-14T12:30:00Z"
-          smr50-263-2016-2056-komb-2.5.tiff:
-            checksum:multihash: 90d402107a7f2588a85362b9beea2a12d4514d45
-            created: "2020-07-14T12:30:00Z"
-            eo:gsd: 2.5
-            geoadmin:variant: komb
-            href: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr50-263-2016-2056-komb-2.5.tiff
-            proj:epsg: "2056"
-            type: image/tiff; application=geotiff
-            updated: "2020-07-14T12:30:00Z"
-          smr50-263-2016-2056-krel-2.5.tiff:
-            checksum:multihash: 90f402107a7f2588a85362b9beea2a12d4514d45
-            created: "2020-07-14T12:30:00Z"
-            eo:gsd: 2.5
-            geoadmin:variant: krel
-            href: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr50-263-2016-2056-krel-2.5.tiff
-            proj:epsg: "2056"
-            type: image/tiff; application=geotiff
-            updated: "2020-07-14T12:30:00Z"
-        bbox:
-        - 7.242974548172171
-        - 46.357085154660915
-        - 7.699524647567326
-        - 46.57310580640624
-        collection: ch.swisstopo.pixelkarte-farbe-pk50.noscale
-        geometry:
-          coordinates:
-          - - - 7.242974548172171
-              - 46.57310580640624
-            - - 7.243756483316452
-              - 46.35721185723752
-            - - 7.698490766144817
-              - 46.357085154660915
-            - - 7.699524647567326
-              - 46.57297861624267
-            - - 7.242974548172171
-              - 46.57310580640624
-          type: Polygon
-        id: smr50-263-2016
-        links:
-        - href: https://data.geo.admin.ch/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr50-263-2016
-          rel: self
-        - href: https://data.geo.admin.ch/api/stac/v0.9/
-          rel: root
-        - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
-          rel: collection
-        properties:
-          created: "2020-07-14T12:30:00Z"
-          datetime: "2016-07-14T12:30:00Z"
-          updated: "2020-07-14T12:30:00Z"
-        stac_extensions:
-        - proj
-        - eo
-        - checksum
-        - https://data.geo.admin.ch/stac/geoadmin-extension/1.0/schema.json
-        stac_version: 0.9.0
-        type: Feature
-      properties:
-        geometry:
-          $ref: '#/components/schemas/geometryGeoJSON'
-        id:
-          oneOf:
-          - type: string
-          - type: integer
-        links:
-          items:
-            $ref: '#/components/schemas/link'
-          type: array
-        properties:
-          nullable: true
-          type: object
-        type:
-          enum:
-          - Feature
-          type: string
-      required:
-      - type
-      - geometry
-      - properties
-      type: object
     geoadmin:lang:
       enum:
       - de
@@ -1022,86 +884,26 @@ components:
     item:
       description: A GeoJSON Feature augmented with foreign members that contain values
         relevant to a STAC entity
-      example:
-        assets:
-          smr50-263-2016-2056-kgrs-2.5.tiff:
-            checksum:multihash: 90e402107a7f2588a85362b9beea2a12d4514d45
-            created: "2020-07-14T12:30:00Z"
-            eo:gsd: 2.5
-            geoadmin:variant: kgrs
-            href: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr50-263-2016-2056-kgrs-2.5.tiff
-            proj:epsg: "2056"
-            type: image/tiff; application=geotiff
-            updated: "2020-07-14T12:30:00Z"
-          smr50-263-2016-2056-komb-2.5.tiff:
-            checksum:multihash: 90d402107a7f2588a85362b9beea2a12d4514d45
-            created: "2020-07-14T12:30:00Z"
-            eo:gsd: 2.5
-            geoadmin:variant: komb
-            href: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr50-263-2016-2056-komb-2.5.tiff
-            proj:epsg: "2056"
-            type: image/tiff; application=geotiff
-            updated: "2020-07-14T12:30:00Z"
-          smr50-263-2016-2056-krel-2.5.tiff:
-            checksum:multihash: 90f402107a7f2588a85362b9beea2a12d4514d45
-            created: "2020-07-14T12:30:00Z"
-            eo:gsd: 2.5
-            geoadmin:variant: krel
-            href: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr50-263-2016-2056-krel-2.5.tiff
-            proj:epsg: "2056"
-            type: image/tiff; application=geotiff
-            updated: "2020-07-14T12:30:00Z"
-        bbox:
-        - 7.242974548172171
-        - 46.357085154660915
-        - 7.699524647567326
-        - 46.57310580640624
-        collection: ch.swisstopo.pixelkarte-farbe-pk50.noscale
-        geometry:
-          coordinates:
-          - - - 7.242974548172171
-              - 46.57310580640624
-            - - 7.243756483316452
-              - 46.35721185723752
-            - - 7.698490766144817
-              - 46.357085154660915
-            - - 7.699524647567326
-              - 46.57297861624267
-            - - 7.242974548172171
-              - 46.57310580640624
-          type: Polygon
-        id: smr50-263-2016
-        links:
-        - href: https://data.geo.admin.ch/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr50-263-2016
-          rel: self
-        - href: https://data.geo.admin.ch/api/stac/v0.9/
-          rel: root
-        - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
-          rel: collection
-        properties:
-          created: "2020-07-14T12:30:00Z"
-          datetime: "2016-07-14T12:30:00Z"
-          updated: "2020-07-14T12:30:00Z"
-        stac_extensions:
-        - proj
-        - eo
-        - checksum
-        - https://data.geo.admin.ch/stac/geoadmin-extension/1.0/schema.json
-        stac_version: 0.9.0
-        type: Feature
       properties:
         assets:
           $ref: '#/components/schemas/itemAssets'
         bbox:
           $ref: '#/components/schemas/bbox'
         geometry:
-          $ref: https://geojson.org/schema/Geometry.json
+          $ref: '#/components/schemas/geometryGeoJSON'
         id:
           $ref: '#/components/schemas/itemId'
         links:
           items:
             $ref: '#/components/schemas/link'
           type: array
+          example:
+          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr50-263-2016
+            rel: self
+          - href: https://data.geo.admin.ch/api/stac/v0.9/
+            rel: root
+          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+            rel: collection
         properties:
           $ref: '#/components/schemas/itemProperties'
         stac_extensions:
@@ -1151,11 +953,45 @@ components:
             description: Media type of the asset
             example: image/png
             type: string
+          proj:epsg:
+            $ref: '#/components/schemas/proj:epsg'
+          geoadmin:variant:
+            $ref: '#/components/schemas/geoadmin:variant'
+          eo:gsd:
+            $ref: '#/components/schemas/eo:gsd'
         required:
         - href
         type: object
         $ref: '#/components/schemas/itemAsset'
       type: object
+      example:
+        smr50-263-2016-2056-kgrs-2.5.tiff:
+          checksum:multihash: 90e402107a7f2588a85362b9beea2a12d4514d45
+          created: "2020-07-14T12:30:00Z"
+          eo:gsd: 2.5
+          geoadmin:variant: kgrs
+          href: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr50-263-2016-2056-kgrs-2.5.tiff
+          proj:epsg: 2056
+          type: image/tiff; application=geotiff
+          updated: "2020-07-14T12:30:00Z"
+        smr50-263-2016-2056-komb-2.5.tiff:
+          checksum:multihash: 90d402107a7f2588a85362b9beea2a12d4514d45
+          created: "2020-07-14T12:30:00Z"
+          eo:gsd: 2.5
+          geoadmin:variant: komb
+          href: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr50-263-2016-2056-komb-2.5.tiff
+          proj:epsg: "2056"
+          type: image/tiff; application=geotiff
+          updated: "2020-07-14T12:30:00Z"
+        smr50-263-2016-2056-krel-2.5.tiff:
+          checksum:multihash: 90f402107a7f2588a85362b9beea2a12d4514d45
+          created: "2020-07-14T12:30:00Z"
+          eo:gsd: 2.5
+          geoadmin:variant: krel
+          href: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr50-263-2016-2056-krel-2.5.tiff
+          proj:epsg: "2056"
+          type: image/tiff; application=geotiff
+          updated: "2020-07-14T12:30:00Z"
     itemCollection:
       description: A GeoJSON FeatureCollection augmented with foreign members that
         contain values relevant to a STAC entity
@@ -1444,12 +1280,25 @@ components:
       - type
       - coordinates
       type: object
+      example:
+        coordinates:
+        - - - 7.242974548172171
+            - 46.57310580640624
+          - - 7.243756483316452
+            - 46.35721185723752
+          - - 7.698490766144817
+            - 46.357085154660915
+          - - 7.699524647567326
+            - 46.57297861624267
+          - - 7.242974548172171
+            - 46.57310580640624
+        type: Polygon
     proj:epsg:
       description: "A Coordinate Reference System (CRS) is the data reference system
-        (sometimes called a 'projection') used by the asset data, and can usually
-        be referenced using an EPSG code. If the asset data does not have a CRS, such
-        as in the case of non-rectified imagery with Ground Control Points, proj:epsg
-        should be set to null. It should also be set to null if a CRS exists, but
+        \n(sometimes called a 'projection') used by the asset data, and can \nusually
+        be referenced using an EPSG code. If the asset data does not have a \nCRS,
+        such as in the case of non-rectified imagery with Ground Control Points, \nproj:epsg
+        should be set to null. It should also be set to null if a CRS exists, \nbut
         for which there is no valid EPSG code."
       example: 2056
       title: EPSG code.
