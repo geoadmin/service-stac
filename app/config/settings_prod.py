@@ -171,7 +171,10 @@ def get_logging_config():
     return log_config
 
 
-LOGGING = get_logging_config()
+if strtobool(os.getenv('DISABLE_LOGGING', 'False')):
+    LOGGING = None
+else:
+    LOGGING = get_logging_config()
 
 # Testing
 

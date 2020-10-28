@@ -1,5 +1,6 @@
 import logging
 import os
+from distutils.util import strtobool
 
 from django.test.runner import DiscoverRunner
 
@@ -19,7 +20,7 @@ class TestRunner(DiscoverRunner):
 
     def setup_test_environment(self, **kwargs):
         super().setup_test_environment(**kwargs)
-        if not os.getenv('TEST_ENABLE_LOGGING', None):
+        if not strtobool(os.getenv('TEST_ENABLE_LOGGING', 'False')):
             logger = logging.getLogger()
             for handler in logger.handlers:
                 if handler.get_name() == 'console':

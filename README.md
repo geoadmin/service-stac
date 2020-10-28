@@ -15,6 +15,7 @@
   - [Setup app](#setup-app)
   - [Starting dev server](#starting-dev-server)
   - [Running test](#running-test)
+  - [Using Django shell](#using-django-shell)
   - [Linting and formatting your work](#linting-and-formatting-your-work)
 - [Deploying the project and continuous integration](#deploying-the-project-and-continuous-integration)
 - [Deployment configuration](#deployment-configuration)
@@ -100,16 +101,15 @@ These steps you need to do once to setup the project.
 - creating a virtualenv and installing dependencies
 
   ```bash
-  python3 -m venv .venv
-  source .venv/bin/activate
-  pip install -r requirements_dev.txt
+  pipenv install
   ```
 
 ### Starting dev server
 
 ```bash
+# enable first your virtual environment and make sure that `APP_ENV=local` is set
+pipenv shell
 cd app
-# make sure you have the virtualenv activated and `APP_ENV=local` set
 ./manage.py runserver
 ```
 
@@ -130,6 +130,24 @@ you can choose to create a new test-db on every run or to keep the db, which spe
 ```bash
 TEST_ENABLE_LOGGING=1 ./manage.py test
 ```
+
+**NOTE:** the environment variable can also be set in the `.venv.local` file.
+
+### Using Django shell
+
+Django shell can be use for development purpose (see [Django: Playing with the API](https://docs.djangoproject.com/en/3.1/intro/tutorial02/#playing-with-the-api))
+
+```bash
+./manage.py shell
+```
+
+You can disable totally logging while playing with the shell as follow:
+
+```bash
+DISABLE_LOGGING=1 ./manage.py shell
+```
+
+**NOTE:** the environment variable can also be set in the `.venv.local` file.
 
 ### Linting and formatting your work
 
