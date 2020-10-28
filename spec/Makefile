@@ -27,3 +27,11 @@ openapitransactional.yaml: $(OPENAPI) $(PARTS_TRANSACTIONAL)
 .PHONY: serve-spec
 serve-spec: $(OPENAPI)
 	python3 -m http.server
+
+
+.PHNOY: ltboc
+ltboc:
+	scp api.html cc-gsd:~/src/public_html/products/data.geo.admin.ch/api.html
+	scp openapi.yaml cc-gsd:~/src/public_html/products/data.geo.admin.ch/openapi.yaml
+	scp apitransactional.html cc-gsd:~/src/public_html/products/data.geo.admin.ch/apitransactional.html
+	scp openapitransactional.yaml cc-gsd:~/src/public_html/products/data.geo.admin.ch/openapitransactional.yaml
