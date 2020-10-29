@@ -246,16 +246,16 @@ class AssetsItemSerializer(serializers.ModelSerializer):
         model = Asset
         list_serializer_class = AssetsDictSerializer
         fields = [
+            'asset_name',
+            'title',
+            'type',
+            'href',
             'description',
             'eo_gsd',
             'geoadmin_lang',
             'geoadmin_variant',
             'proj_epsq',
-            'title',
-            'href',
             'checksum_multihash',
-            'asset_name',
-            'type'
         ]
 
     def get_fields(self):
@@ -274,16 +274,16 @@ class ItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = Item
         fields = [
+            'id',
             'collection',
+            'type',
+            'stac_version',
             'geometry',
-            'links',
+            'bbox',
             'properties',
             'stac_extensions',
-            'stac_version',
-            'id',
-            'bbox',
-            'type',
-            'assets'
+            'links',
+            'assets',
         ]
 
     collection = serializers.StringRelatedField()
