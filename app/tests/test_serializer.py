@@ -9,6 +9,7 @@ from rest_framework.parsers import JSONParser
 from rest_framework.renderers import JSONRenderer
 from rest_framework_gis.fields import GeoJsonDict
 
+from stac_api.serializers import AssetSerializer
 from stac_api.serializers import CollectionSerializer
 from stac_api.serializers import ItemSerializer
 
@@ -122,7 +123,7 @@ class SerializationTestCase(TestCase):
             ],
             'assets': {
                 'my first asset': OrderedDict([
-                    ('title', ''),
+                    ('title', 'my-title'),
                     ('type', 'image/tiff; application=geotiff; profile=cloud-optimize'),
                     (
                         'href',
@@ -147,5 +148,47 @@ class SerializationTestCase(TestCase):
 
         # back-translate into fully populated Item instance:
         back_serializer = ItemSerializer(data=python_native_back)
+        back_serializer.is_valid(raise_exception=True)
+        logger.debug('back validated data:\n%s', pformat(back_serializer.validated_data))
+
+    def test_asset_serialization(self):
+
+        # translate to Python native:
+        serializer = AssetSerializer(self.assets[0])
+        python_native = serializer.data
+
+        logger.debug('serialized fields:\n%s', pformat(serializer.fields))
+        logger.debug('python native:\n%s', pformat(python_native))
+
+        # translate to JSON:
+        json_string = JSONRenderer().render(python_native, renderer_context={'indent': 2})
+        logger.debug('json string: %s', json_string.decode("utf-8"))
+
+        self.assertDictContainsSubset(
+            OrderedDict([
+                ('title', 'my-title'),
+                ('type', 'image/tiff; application=geotiff; profile=cloud-optimize'),
+                (
+                    'href',
+                    'https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-1-2019-2056-kgrs-10.tiff'
+                ),
+                ('description', 'this an asset'),
+                ('eo:gsd', 3.4),
+                ('proj:epsq', 2056),
+                ('geoadmin:variant', 'kgrs'),
+                ('geoadmin:lang', 'fr'),
+                ('checksum:multihash', '01205c3fd6978a7d0b051efaa4263a09'),
+            ]),
+            python_native
+        )
+
+        # Make sure that back translation is possible and valid, though the write is not yet
+        # implemented.
+        # back-translate to Python native:
+        stream = io.BytesIO(json_string)
+        python_native_back = JSONParser().parse(stream)
+
+        # back-translate into fully populated Item instance:
+        back_serializer = AssetSerializer(instance=self.assets[0], data=python_native_back)
         back_serializer.is_valid(raise_exception=True)
         logger.debug('back validated data:\n%s', pformat(back_serializer.validated_data))

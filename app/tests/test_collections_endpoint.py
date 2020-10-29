@@ -9,7 +9,7 @@ import tests.database as db
 API_BASE = settings.API_BASE
 
 
-class CollectionsEndpointTestCase(TestCase):  # pylint: disable = too-many-instance-attributes
+class CollectionsEndpointTestCase(TestCase):
 
     def setUp(self):
         self.client = Client()

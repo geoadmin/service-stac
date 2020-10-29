@@ -122,6 +122,7 @@ def create_assets(collection, item):
     asset = Asset.objects.create(
         collection=collection,
         feature=item,
+        title='my-title',
         asset_name="my first asset",
         checksum_multihash="01205c3fd6978a7d0b051efaa4263a09",
         description="this an asset",
