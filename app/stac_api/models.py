@@ -221,8 +221,12 @@ class Item(models.Model):
             self.collection.extent["temporal"]["interval"][0][0] = self.properties_datetime
             self.collection.save()
 
-        elif self.properties_datetime > self.collection.extent["temporal"]["interval"][0][1] or \
-            self.collection.extent["temporal"]["interval"][0][1] is None:
+        elif self.collection.extent["temporal"]["interval"][0][1] is None:
+
+            self.collection.extent["temporal"]["interval"][0][1] = self.properties_datetime
+            self.collection.save()
+
+        elif self.properties_datetime > self.collection.extent["temporal"]["interval"][0][1]:
 
             self.collection.extent["temporal"]["interval"][0][1] = self.properties_datetime
             self.collection.save()
@@ -285,8 +289,8 @@ class Asset(models.Model):
         self.collection = self.feature.collection
 
         # check if the collection's geoadmin_variant needs to be updated
-        if self.geoadmin_variant not in self.feature.collection.summaries["geoadmin:vairant"]:
-            self.feature.collection.summaries["geoadmin:vairant"].append(self.geoadmin_variant)
+        if self.geoadmin_variant not in self.feature.collection.summaries["geoadmin:variant"]:
+            self.feature.collection.summaries["geoadmin:variant"].append(self.geoadmin_variant)
             self.feature.collection.save()
 
         # proj_epsq (integer) is defined on collection level as well
@@ -301,8 +305,8 @@ class Asset(models.Model):
         def float_in(flt, floats, **kwargs):
             return np.any(np.isclose(flt, floats, **kwargs))
 
-        if not float_in(self.eo_gsd, self.feature.collection.summaries["es:gsd"]):
-            self.feature.collection.summaries["es:gsd"].append(self.eo_gsd)
+        if not float_in(self.eo_gsd, self.feature.collection.summaries["eo:gsd"]):
+            self.feature.collection.summaries["eo:gsd"].append(self.eo_gsd)
             self.feature.collection.save()
 
         if not float_in(self.eo_gsd, self.feature.properties_eo_gsd):

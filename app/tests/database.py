@@ -13,20 +13,25 @@ def create_collection():
     '''
     collection = Collection.objects.create(
         crs=["http://www.opengis.net/def/crs/OGC/1.3/CRS84"],
-        created='2020-10-28T13:05:10.473602Z',
-        updated='2020-10-28T13:05:10.473602Z',
+        created=datetime.now(),
+        updated=datetime.now(),
         description='This is a description',
-        start_date=None,
-        end_date=None,
-        extent=[200000, 100000, 200001, 100005],
+        extent={
+            "spatial": {
+                "bbox": [[None]]
+            }, "temporal": {
+                "interval": [[None, None]]
+            }
+        },
         collection_name='ch.swisstopo.pixelkarte-farbe-pk200.noscale',
         item_type='Feature',
         license='test',
         stac_extension=get_default_stac_extensions(),
+        item_type='Feature',
         stac_version="0.9.0",
-        summaries_eo_gsd=[10.1, 20.3, 30.44],
-        summaries_proj=[1, 4, 22],
-        geoadmin_variant=['blubb', 'blabb', 'blibb'],
+        summaries={
+            "eo:gsd": [None], "geoadmin:variant": [None], "proj:epsg": [None]
+        },
         title='Test title'
     )
     collection.save()
