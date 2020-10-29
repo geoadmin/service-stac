@@ -53,6 +53,7 @@ ALLOWED_HOSTS += os.getenv('ALLOWED_HOSTS', '').split(',')
 
 INSTALLED_APPS = [
     'rest_framework',
+    'rest_framework_gis',
     'stac_api.apps.StacApiConfig',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -166,7 +167,7 @@ def get_logging_config():
     Note: LOGGING_CFG is relative to the root of the repo
     '''
     log_config = {}
-    with open(BASE_DIR / os.getenv('LOGGING_CFG', 'app/config/logging-cfg-local.yml'), 'rt') as fd:  # pylint: disable=line-too-long
+    with open(BASE_DIR / os.getenv('LOGGING_CFG', 'app/config/logging-cfg-local.yml'), 'rt') as fd:
         log_config = yaml.safe_load(fd.read())
     return log_config
 
