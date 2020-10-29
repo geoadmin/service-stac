@@ -1,3 +1,5 @@
+import logging
+
 from rest_framework import serializers
 from rest_framework_gis import serializers as gis_serializers
 
@@ -8,6 +10,8 @@ from stac_api.models import Item
 from stac_api.models import ItemLink
 from stac_api.models import Keyword
 from stac_api.models import Provider
+
+logger = logging.getLogger(__name__)
 
 
 class DictSerializer(serializers.ListSerializer):
@@ -56,14 +60,16 @@ class KeywordSerializer(serializers.ModelSerializer):
         """
         Create and return a new `Keyword` instance, given the validated data.
         """
+        logger.debug('Create Keyword', extra={'validated_data': validated_data})
         return Collection.objects.create(**validated_data)
 
     def update(self, instance, validated_data):
         """
         Update and return an existing `Keyword` instance, given the validated data.
         """
-
         instance.name = validated_data.get('name', instance.name)
+
+        logger.debug('Update Keyword %s', instance.name, extra={'validated_data': validated_data})
 
         instance.save()
         return instance
@@ -85,6 +91,7 @@ class ProviderSerializer(serializers.ModelSerializer):
         """
         Create and return a new `Provider` instance, given the validated data.
         """
+        logger.debug('Create Provider', extra={'validated_data': validated_data})
         return Collection.objects.create(**validated_data)
 
     def update(self, instance, validated_data):
@@ -96,6 +103,8 @@ class ProviderSerializer(serializers.ModelSerializer):
         instance.description = validated_data.get('description', instance.description)
         instance.roles = validated_data.get('roles', instance.roles)
         instance.url = validated_data.get('url', instance.url)
+
+        logger.debug('Update Provider %s', instance.name, extra={'validated_data': validated_data})
 
         instance.save()
         return instance
@@ -213,6 +222,7 @@ class ItemsPropertiesSerializer(serializers.Serializer):
         fields = super().get_fields()
         # This is a hack to allow fields with special characters
         fields['eo:gsd'] = fields.pop('eo_gsd')
+        logger.debug('Updated fields name: %s', fields)
         return fields
 
 
@@ -266,6 +276,7 @@ class AssetsItemSerializer(serializers.ModelSerializer):
         fields['geoadmin:variant'] = fields.pop('geoadmin_variant')
         fields['geoadmin:lang'] = fields.pop('geoadmin_lang')
         fields['checksum:multihash'] = fields.pop('checksum_multihash')
+        logger.debug('Updated fields name: %s', fields)
         return fields
 
 

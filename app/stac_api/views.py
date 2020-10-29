@@ -82,6 +82,8 @@ class CollectionList(generics.ListAPIView):
 
         data = {'collections': serializer.data}
 
+        logging.debug('GET list of collections', extra={"request": request, "response": data})
+
         if page is not None:
             return self.get_paginated_response(data)
         return Response(data)
@@ -117,6 +119,8 @@ class ItemsList(generics.ListAPIView):
             'timeStamp': datetime.utcnow().replace(tzinfo=timezone.utc),
             'features': serializer.data
         }
+
+        logging.debug('GET list of items', extra={"request": request, "response": data})
 
         if page is not None:
             return self.get_paginated_response(data)
