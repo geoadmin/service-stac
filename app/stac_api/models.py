@@ -138,7 +138,7 @@ class Collection(models.Model):
 
     # "summaries" values will be updated on every update of an asset inside the
     # collection
-    summaries=models.JSONField(blank=True, null=True)
+    summaries = models.JSONField(blank=True, null=True)
     #summaries_eo_gsd = ArrayField(models.FloatField(), blank=True, null=True)
     #summaries_proj = ArrayField(models.IntegerField(), blank=True, null=True)
     # after discussion with Chris and Tobias: geoadmin_variant will be an
@@ -154,7 +154,8 @@ class Collection(models.Model):
 
     def clean(self):
         # TODO: move this check to the items save()
-        if self.extent["temporal"]["interval"][0][0] is None and self.extent["temporal"]["interval"][0][1] is None:
+        if self.extent["temporal"]["interval"][0][0] is None and self.extent["temporal"][
+            "interval"][0][1] is None:
             raise ValidationError(_('At least a start date or an end date has to be defined.'))
 
         # very simple validation, raises error when geoadmin_variant strings contain special
@@ -162,7 +163,6 @@ class Collection(models.Model):
         for variant in self.summaries["geoadmin:variant"]:
             if not bool(re.search('^[a-zA-Z0-9]*$', variant)):
                 raise ValidationError(_('Property geoadmin:variant not correctly specified.'))
-
 
 
 class CollectionLink(Link):

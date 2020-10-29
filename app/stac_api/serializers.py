@@ -134,7 +134,7 @@ class CollectionSerializer(serializers.ModelSerializer):
     updated = serializers.DateTimeField(required=True)  # datetime
     description = serializers.CharField(required=True)  # string
     extent = serializers.JSONField(read_only=True)
-    summaries= serializers.JSONField(read_only=True)
+    summaries = serializers.JSONField(read_only=True)
     collection_name = serializers.CharField(max_length=255)  # string
     keywords = KeywordSerializer(many=True, read_only=True)
     license = serializers.CharField(max_length=30)  # string
@@ -143,7 +143,6 @@ class CollectionSerializer(serializers.ModelSerializer):
     stac_extension = serializers.ListField(child=serializers.CharField(max_length=255),)
     stac_version = serializers.CharField(max_length=10)  # string
     title = serializers.CharField(allow_blank=True, max_length=255)  # string
-
 
     def create(self, validated_data):
         """
