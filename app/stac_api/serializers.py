@@ -176,7 +176,7 @@ class CollectionSerializer(serializers.ModelSerializer):
         instance.updated = validated_data.get('updated', instance.updated)
         instance.description = validated_data.get('description', instance.description)
         instance.extent = validated_data.get('extent', instance.extent)
-        instance.collection_name = validated_data.get('collection_name', instance.collection_name)
+        instance.id = validated_data.get('id', instance.id)
         instance.item_type = validated_data.get('item_type', instance.item_type)
         instance.keywords = validated_data.get('keywords', instance.keywords)
         instance.license = validated_data.get('license', instance.license)
