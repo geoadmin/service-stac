@@ -78,10 +78,15 @@ class Provider(models.Model):
         return self.name
 
     def clean(self):
-        ALLOWED_ROLES = ['licensor', 'producer', 'processor', 'host']  # pylint: disable=invalid-name
+        if self.roles is None:
+            # Note this can happen from the admin page where we need to add the roles as comma
+            # separated and not as a python list e.g.
+            # `["licensor", "producer"]` => gives self.roles == None
+            raise ValidationError(_('Invalid role'))
+        allowed_roles = ['licensor', 'producer', 'processor', 'host']
         for role in self.roles:
-            if role not in ALLOWED_ROLES:
-                raise ValidationError(_('Incorrectly defined role found'))
+            if role not in allowed_roles:
+                raise ValidationError(_('Invalid role'))
 
 
 # For Collections and Items: No primary key will be defined, so that the auto-generated ones
