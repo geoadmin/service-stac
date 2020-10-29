@@ -1,15 +1,17 @@
 from datetime import datetime
 
+from django.conf import settings
 from django.test import Client
 from django.test import TestCase
 
-from config.settings import API_BASE_PATH
 from stac_api.models import Collection
 from stac_api.models import CollectionLink
 from stac_api.models import Keyword
 from stac_api.models import Provider
 from stac_api.models import get_default_stac_extensions
 from stac_api.serializers import CollectionSerializer
+
+API_BASE_PATH = settings.API_BASE_PATH
 
 
 class CollectionsEndpointTestCase(TestCase):  # pylint: disable = too-many-instance-attributes
