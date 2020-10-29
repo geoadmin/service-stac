@@ -13,9 +13,9 @@ API_BASE = settings.API_BASE
 urlpatterns = [
     path(API_BASE, views.landing_page, name='landing-page'),
     path('checker/', views.checker, name='checker'),
-    path(f"{API_BASE}collections/", CollectionList.as_view(), name='collection-list'),
+    path(f"{API_BASE}collections", CollectionList.as_view(), name='collection-list'),
     path(
-        f"{API_BASE}collections/<str:collection_name>/",
+        f"{API_BASE}collections/<str:collection_name>",
         CollectionDetail.as_view(),
         name='collection-detail'
     ),
@@ -25,7 +25,7 @@ urlpatterns = [
         name='items-list'
     ),
     path(
-        f"{API_BASE}collections/<str:collection_name>/items/<str:item_name>/",
+        f"{API_BASE}collections/<str:collection_name>/items/<str:item_name>",
         ItemDetail.as_view(),
         name='item-detail'
     ),
