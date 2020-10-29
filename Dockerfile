@@ -23,6 +23,7 @@ RUN cd /tmp && \
 # Set the working dir and copy the app
 WORKDIR /app
 COPY --chown=geoadmin:geoadmin ./app /app/
+COPY --chown=geoadmin:geoadmin ./spec /spec/
 
 #############################################
 # Container to perform tests/management tasks
