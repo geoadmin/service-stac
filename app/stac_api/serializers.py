@@ -127,7 +127,7 @@ class CollectionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Collection
-        fields =         fields = [
+        fields = [
             'stac_version',
             'stac_extension',
             'id',
