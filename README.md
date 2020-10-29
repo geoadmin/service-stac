@@ -141,6 +141,40 @@ DISABLE_LOGGING=1 ./manage.py shell
 
 **NOTE:** the environment variable can also be set in the `.venv.local` file.
 
+#### Migrate DB with Django shell
+With the Django shell ist is possible to migrate the state of the database according to the code base. Please consider following principles:
+
+In general, the code base to setup the according state of the database ist stored here:
+```bash
+stac_api/migrations/
+├── 0001_initial.py
+├── 0002_auto_20201016_1423.py
+├── 0003_auto_20201022_1346.py
+├── 0004_auto_20201028.py
+```
+Please make sure, that per PR only one migrations script gets generated (_if possible_). 
+
+**How to generate a db migrations script?**
+1. First of all this will only happen, when a model has changed
+2. Following command will generate a new migration script:
+   ```bash
+   ./manage.py makemigrations
+   ```
+**How to put the database to the state of a previous code base?**
+
+With the following command of the Django shell a specific state of the database can be achieved:
+```bash
+.manage.py migrate stac_api 0003_auto_20201022_1346
+```
+
+**How to get a working database when migrations scripts screw up?**
+
+With the following commands it is possible to get a proper state of the database:
+```bash
+./manage.py reset_db
+./manage.py migrate
+```
+**Note:** of course the migrations folder has to be clean (_according to the git checkout_)
 ### Linting and formatting your work
 
 In order to have a consistent code style the code should be formatted using `yapf`. Also to avoid syntax errors and non
