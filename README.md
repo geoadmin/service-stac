@@ -8,7 +8,7 @@
 ## Table of Content
 
 - [Summary of the project](#summary-of-the-project)
-- [Specs](#specs)
+- [Specs](spec/README.md)
 - [Local development](#local-development)
   - [Dependencies](#dependencies)
   - [Setup local db](#setup-local-db)
@@ -23,30 +23,6 @@
 ## Summary of the project
 
 `service-stac` provides and manages access to packaged geospatial data and their metadata. It implements and extends the **STAC API** specification version 0.9.0 [radiantearth/stac-spec/tree/v0.9.0/api-spec](https://github.com/radiantearth/stac-spec/tree/v0.9.0/api-spec). Currently the **STAC API** has been split from the main **STAC SPEC** repository into [radiantearth/stac-api-spec](https://github.com/radiantearth/stac-api-spec), which is under active development until the release 1.0-beta.
-
-## Specs
-
-The API of this service is based on the [STAC API Specification](https://github.com/radiantearth/stac-api-spec) in version `0.9.0`, which itself is based on the [STAC Specification](https://github.com/radiantearth/stac-spec/tree/v0.9.0) and the [_OGC API - Features_](https://github.com/opengeospatial/ogcapi-features) specification. The default STAC spec is amended by geoadmin-specific parts that are explicitly mentioned in the spec, as well as adapted examples that resemble geoadmin-specific usecases.
-
-The spec is OpenAPI 3.0 compliant. The files are located in `spec/` and slightly splitted for better understanding. Two different versions of the spec can be compiled from these source files into `spec/static/` folder: an `openapi.yaml` file that contains the 'public' part with the REST endpoint and HTTP methods (mostly GET) defined in the standard spec, and an `openapitransactional.yaml` file that is intended for internal usage and contains info about the additional `/asset` endpoint and additional writing possibilities. 
-
-The spec files can be compiled with 
-
-```
-make spec/openapi.yaml
-make spec/openapitransactional.yaml
-```
-
-and previewed locally with the little html ReDoc wrappers `spec/static/api.html` and `spec/static/apitransactional.html`. The can be served locally by invoking
-
-```
-make serve-spec
-```
-
-which starts a simple http server that can be reached under `http://0.0.0.0:8000` (default port is `8000`, if you need another one, check the Makefile on how to do this).
-
-The generated files along with html wrappers are also included as static targets and are available under `https://<host_env>/api/stac/v0.9/static/api.html`.
-
 
 ## Local development
 
