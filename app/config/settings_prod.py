@@ -148,8 +148,11 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
 STATIC_HOST = os.environ.get('DJANGO_STATIC_HOST', '')
-STATIC_URL = STATIC_HOST + '/static/'
+STATIC_URL = STATIC_HOST + '/api/stac/v0.9/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'var/www/stac_api/static_files')
+STATICFILES_DIRS = [
+    BASE_DIR / "spec/static",
+]
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Logging
