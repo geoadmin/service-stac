@@ -2,11 +2,11 @@ from django.contrib import admin
 
 from .models import Asset
 from .models import Collection
-from .models import Item
-from .models import Provider
-from .models import Keyword
 from .models import CollectionLink
+from .models import Item
 from .models import ItemLink
+from .models import Keyword
+from .models import Provider
 
 # Register your models here.
 

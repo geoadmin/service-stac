@@ -4,11 +4,11 @@ from collections import OrderedDict
 from datetime import datetime
 from pprint import pformat
 
+from django.test import TestCase
+
 from rest_framework.parsers import JSONParser
 from rest_framework.renderers import JSONRenderer
 from rest_framework_gis.fields import GeoJsonDict
-
-from django.test import TestCase
 
 from stac_api.models import Asset
 from stac_api.models import Collection
