@@ -151,7 +151,7 @@ class CollectionSerializer(serializers.ModelSerializer):
     description = serializers.CharField(required=True)  # string
     extent = serializers.JSONField(read_only=True)
     summaries = serializers.JSONField(read_only=True)
-    collection_name = serializers.CharField(max_length=255)  # string
+    id = serializers.CharField(max_length=255, source="collection_name")  # string
     keywords = KeywordSerializer(many=True, read_only=True)
     license = serializers.CharField(max_length=30)  # string
     links = CollectionLinkSerializer(many=True, read_only=True)
