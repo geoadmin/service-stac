@@ -60,7 +60,7 @@ class KeywordSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Keyword
-        fields = '__all__'
+        fields = ['name']
 
     def create(self, validated_data):
         """
@@ -90,7 +90,7 @@ class ProviderSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Provider
-        fields = '__all__'
+        fields = ['name', 'roles', 'url', 'description']
         # most likely not all fields necessary here, can be adapted
 
     def create(self, validated_data):
@@ -127,7 +127,23 @@ class CollectionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Collection
-        fields = '__all__'
+        fields =         fields = [
+            'stac_version',
+            'stac_extension',
+            'id',
+            'title',
+            'description',
+            'summaries',
+            'extent',
+            'providers',
+            'license',
+            'created',
+            'updated',
+            'links',
+            'keywords',
+            'crs'
+        ]
+        # crs and keywords not in sample data, but in specs..
 
     crs = serializers.ListField(child=serializers.URLField(required=False))
     created = serializers.DateTimeField(required=True)  # datetime
