@@ -77,7 +77,7 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'config.urls'
-API_BASE_PATH = 'api/stac/v0.9/'
+API_BASE = 'api/stac/v0.9/'
 
 TEMPLATES = [
     {

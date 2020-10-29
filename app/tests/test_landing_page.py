@@ -1,7 +1,7 @@
 from django.test import Client
 from django.test import TestCase
 
-from config.settings import API_BASE_PATH
+from config.settings import API_BASE
 
 
 class IndexTestCase(TestCase):
@@ -10,7 +10,7 @@ class IndexTestCase(TestCase):
         self.client = Client()
 
     def test_landing_page(self):
-        response = self.client.get(f"/{API_BASE_PATH}")
+        response = self.client.get(f"/{API_BASE}")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         required_keys = ['description', 'id', 'stac_version', 'links']

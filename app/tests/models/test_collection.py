@@ -1,7 +1,7 @@
 # from django.test import Client
 from django.test import TestCase
 
-# from config.settings import API_BASE_PATH
+# from config.settings import API_BASE
 
 # from stac_api.models import Collection
 

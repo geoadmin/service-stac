@@ -1,9 +1,17 @@
 import logging
+from datetime import datetime
+from datetime import timezone
 
 from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
 
-from stac_api.collection_views import CollectionDetail
-from stac_api.collection_views import CollectionList
+from rest_framework import generics
+from rest_framework.response import Response
+
+from stac_api.models import Collection
+from stac_api.models import Item
+from stac_api.serializers import CollectionSerializer
+from stac_api.serializers import ItemSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -59,9 +67,73 @@ def checker(request):
     return JsonResponse(data)
 
 
-def collection_list():
-    return CollectionList.as_view()
+class CollectionList(generics.ListAPIView):
+    serializer_class = CollectionSerializer
+    queryset = Collection.objects.all()
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+        else:
+            serializer = self.get_serializer(queryset, many=True)
+
+        data = {'collections': serializer.data}
+
+        logging.debug('GET list of collections', extra={"request": request, "response": data})
+
+        if page is not None:
+            return self.get_paginated_response(data)
+        return Response(data)
 
 
-def collection_detail():
-    return CollectionDetail.as_view()
+class CollectionDetail(generics.RetrieveAPIView):
+    serializer_class = CollectionSerializer
+    lookup_url_kwarg = "collection_name"
+    queryset = Collection.objects.all()
+
+    def get_object(self):
+        collection_name = self.kwargs.get(self.lookup_url_kwarg)
+        queryset = self.get_queryset().filter(collection_name=collection_name)
+        obj = get_object_or_404(queryset)
+        return obj
+
+
+class ItemsList(generics.ListAPIView):
+    serializer_class = ItemSerializer
+    queryset = Item.objects.all()
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+        else:
+            serializer = self.get_serializer(queryset, many=True)
+
+        data = {
+            'type': 'FeatureCollection',
+            'timeStamp': datetime.utcnow().replace(tzinfo=timezone.utc),
+            'features': serializer.data
+        }
+
+        logging.debug('GET list of items', extra={"request": request, "response": data})
+
+        if page is not None:
+            return self.get_paginated_response(data)
+        return Response(data)
+
+
+class ItemDetail(generics.RetrieveAPIView):
+    serializer_class = ItemSerializer
+    lookup_url_kwarg = "item_name"
+    queryset = Item.objects.all()
+
+    def get_object(self):
+        item_name = self.kwargs.get(self.lookup_url_kwarg)
+        queryset = self.get_queryset().filter(item_name=item_name)
+        obj = get_object_or_404(queryset)
+        return obj

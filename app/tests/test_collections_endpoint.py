@@ -1,15 +1,17 @@
 from datetime import datetime
 
+from django.conf import settings
 from django.test import Client
 from django.test import TestCase
 
-from config.settings import API_BASE_PATH
 from stac_api.models import Collection
 from stac_api.models import CollectionLink
 from stac_api.models import Keyword
 from stac_api.models import Provider
 from stac_api.models import get_default_stac_extensions
 from stac_api.serializers import CollectionSerializer
+
+API_BASE = settings.API_BASE
 
 
 class CollectionsEndpointTestCase(TestCase):  # pylint: disable = too-many-instance-attributes
@@ -168,7 +170,7 @@ class CollectionsEndpointTestCase(TestCase):  # pylint: disable = too-many-insta
         self.serializer = CollectionSerializer(self.collection1)
 
     def test_collections_endpoint(self):
-        response = self.client.get(f"/{API_BASE_PATH}collections/a_123/?format=json")
+        response = self.client.get(f"/{API_BASE}collections/a_123/?format=json")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
             response.data, self.serializer.data, msg="Returned data does not match expected data"

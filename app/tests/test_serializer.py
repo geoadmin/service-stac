@@ -4,11 +4,11 @@ from collections import OrderedDict
 from datetime import datetime
 from pprint import pformat
 
+from django.test import TestCase
+
 from rest_framework.parsers import JSONParser
 from rest_framework.renderers import JSONRenderer
 from rest_framework_gis.fields import GeoJsonDict
-
-from django.test import TestCase
 
 from stac_api.models import Asset
 from stac_api.models import Collection
@@ -188,24 +188,10 @@ class SerializationTestCase(TestCase):
 
         # yapf: disable
         self.assertDictContainsSubset({
-            'assets': {
-                'my first asset': OrderedDict([
-                    ('description', 'this an asset'),
-                    ('title', ''),
-                    (
-                        'href',
-                        'https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-1-2019-2056-kgrs-10.tiff'
-                    ),
-                    ('type', 'image/tiff; application=geotiff; profile=cloud-optimize'),
-                    ('eo:gsd', 3.4),
-                    ('proj:epsq', 2056),
-                    ('geoadmin:variant', 'kgrs'),
-                    ('geoadmin:lang', 'fr'),
-                    ('checksum:multihash', '01205c3fd6978a7d0b051efaa4263a09')
-                ])
-            },
-            'bbox': (2317000.0, 913000.0, 3057000.0, 1413000.0),
+            'id': 'item-for-test',
             'collection': 'my collection',
+            'type': 'Feature',
+            'stac_version': '0.9.0',
             'geometry': GeoJsonDict([
                 ('type', 'MultiPolygon'),
                 ('coordinates', [[[
@@ -216,7 +202,18 @@ class SerializationTestCase(TestCase):
                     [2317000.0, 913000.0, 0.0]
                 ]]])
             ]),
-            'id': 'item-for-test',
+            'bbox': (2317000.0, 913000.0, 3057000.0, 1413000.0),
+            'properties': OrderedDict([
+                ('datetime', '2020-10-28T13:05:10.473602Z'),
+                ('title', 'My Title'),
+                ('eo:gsd', [10, 30, 3.4])
+            ]),
+            'stac_extensions': [
+                'eo',
+                'proj',
+                'view',
+                'https://data.geo.admin.ch/stac/geoadmin-extension/1.0/schema.json'
+            ],
             'links': [
                 OrderedDict([
                     ('href', 'https://data.geo.admin.ch/api/stac/v0.9/'),
@@ -243,19 +240,22 @@ class SerializationTestCase(TestCase):
                     ('title', 'Rel link')
                 ])
             ],
-            'properties': OrderedDict([
-                ('datetime', '2020-10-28T13:05:10.473602Z'),
-                ('title', 'My Title'),
-                ('eo:gsd', [10, 30, 3.4])
-            ]),
-            'stac_extensions': [
-                'eo',
-                'proj',
-                'view',
-                'https://data.geo.admin.ch/stac/geoadmin-extension/1.0/schema.json'
-            ],
-            'stac_version': '0.9.0',
-            'type': 'Feature'
+            'assets': {
+                'my first asset': OrderedDict([
+                    ('title', ''),
+                    ('type', 'image/tiff; application=geotiff; profile=cloud-optimize'),
+                    (
+                        'href',
+                        'https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-1-2019-2056-kgrs-10.tiff'
+                    ),
+                    ('description', 'this an asset'),
+                    ('eo:gsd', 3.4),
+                    ('proj:epsq', 2056),
+                    ('geoadmin:variant', 'kgrs'),
+                    ('geoadmin:lang', 'fr'),
+                    ('checksum:multihash', '01205c3fd6978a7d0b051efaa4263a09')
+                ])
+            },
         }, python_native)
         # yapf: enable
 
