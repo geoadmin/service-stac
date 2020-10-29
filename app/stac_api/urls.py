@@ -8,7 +8,7 @@ from stac_api.views import ItemsList
 
 from . import views
 
-API_BASE = settings.API_BASE_PATH
+API_BASE = settings.API_BASE
 
 urlpatterns = [
     path(API_BASE, views.landing_page, name='landing-page'),

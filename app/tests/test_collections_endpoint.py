@@ -11,7 +11,7 @@ from stac_api.models import Provider
 from stac_api.models import get_default_stac_extensions
 from stac_api.serializers import CollectionSerializer
 
-API_BASE_PATH = settings.API_BASE_PATH
+API_BASE = settings.API_BASE
 
 
 class CollectionsEndpointTestCase(TestCase):  # pylint: disable = too-many-instance-attributes
@@ -170,7 +170,7 @@ class CollectionsEndpointTestCase(TestCase):  # pylint: disable = too-many-insta
         self.serializer = CollectionSerializer(self.collection1)
 
     def test_collections_endpoint(self):
-        response = self.client.get(f"/{API_BASE_PATH}collections/a_123/?format=json")
+        response = self.client.get(f"/{API_BASE}collections/a_123/?format=json")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
             response.data, self.serializer.data, msg="Returned data does not match expected data"
