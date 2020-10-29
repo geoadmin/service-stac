@@ -171,21 +171,6 @@ class CollectionSerializer(serializers.ModelSerializer):
         Update and return an existing `Collection` instance, given the validated data.
         """
 
-        instance.crs = validated_data.get('crs', instance.crs)
-        instance.created = validated_data.get('created', instance.created)
-        instance.updated = validated_data.get('updated', instance.updated)
-        instance.description = validated_data.get('description', instance.description)
-        instance.extent = validated_data.get('extent', instance.extent)
-        instance.id = validated_data.get('id', instance.id)
-        instance.item_type = validated_data.get('item_type', instance.item_type)
-        instance.keywords = validated_data.get('keywords', instance.keywords)
-        instance.license = validated_data.get('license', instance.license)
-        instance.links = validated_data.get('links', instance.links)
-        instance.providers = validated_data.get('providers', instance.providers)
-        instance.stac_extension = validated_data.get('stac_extension', instance.stac_extension)
-        instance.stac_version = validated_data.get('stac_version', instance.stac_version)
-        instance.title = validated_data.get('title', instance.title)
-
         instance.save()
         return instance
 

@@ -36,11 +36,11 @@ class Migration(migrations.Migration):
             name='summaries',
             field=models.JSONField(blank=True, null=True),
         ),
-       migrations.RemoveField(
+        migrations.RemoveField(
             model_name='collection',
             name='extent',
         ),
-       migrations.AddField(
+        migrations.AddField(
             model_name='collection',
             name='extent',
             field=models.JSONField(blank=True, null=True),
