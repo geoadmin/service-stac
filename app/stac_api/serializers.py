@@ -221,7 +221,7 @@ class AssetSerializer(serializers.ModelSerializer):
     eo_gsd = serializers.FloatField(source='eo_gsd')
     geoadmin_lang = serializers.CharField(source='geoadmin_lang', max_length=2)
     geoadmin_variant = serializers.CharField(source='geoadmin_variant', max_length=15)
-    proj_epsq = serializers.IntegerField(source='proj_epsq')
+    proj_epsg = serializers.IntegerField(source='proj_epsg')
     checksum_multihash = serializers.CharField(source='checksum_multihash', max_length=255)
 
     class Meta:
@@ -236,7 +236,7 @@ class AssetSerializer(serializers.ModelSerializer):
             'eo_gsd',
             'geoadmin_lang',
             'geoadmin_variant',
-            'proj_epsq',
+            'proj_epsg',
             'checksum_multihash',
         ]
 
@@ -244,7 +244,7 @@ class AssetSerializer(serializers.ModelSerializer):
         fields = super().get_fields()
         # This is a hack to allow fields with special characters
         fields['eo:gsd'] = fields.pop('eo_gsd')
-        fields['proj:epsq'] = fields.pop('proj_epsq')
+        fields['proj:epsg'] = fields.pop('proj_epsg')
         fields['geoadmin:variant'] = fields.pop('geoadmin_variant')
         fields['geoadmin:lang'] = fields.pop('geoadmin_lang')
         fields['checksum:multihash'] = fields.pop('checksum_multihash')

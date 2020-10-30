@@ -141,7 +141,7 @@ class SerializationTestCase(TestCase):
             eo_gsd=3.4,
             geoadmin_lang='fr',
             geoadmin_variant="kgrs",
-            proj_epsq=2056,
+            proj_epsg=2056,
             media_type="image/tiff; application=geotiff; profile=cloud-optimize",
             href=
             "https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-1-2019-2056-kgrs-10.tiff"
@@ -252,7 +252,7 @@ class SerializationTestCase(TestCase):
                     ),
                     ('description', 'this an asset'),
                     ('eo:gsd', 3.4),
-                    ('proj:epsq', 2056),
+                    ('proj:epsg', 2056),
                     ('geoadmin:variant', 'kgrs'),
                     ('geoadmin:lang', 'fr'),
                     ('checksum:multihash', '01205c3fd6978a7d0b051efaa4263a09')

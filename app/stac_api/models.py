@@ -62,6 +62,14 @@ def get_default_summaries_value():
     return dict(DEFAULT_SUMMARIES_VALUE)
 
 
+def float_in(flt, floats, **kwargs):
+    '''
+    This function is needed for comparing floats in order to check if a
+    given float is member of a list of floats.
+    '''
+    return np.any(np.isclose(flt, floats, **kwargs))
+
+
 class Keyword(models.Model):
     name = models.CharField(max_length=64)  # string
 
@@ -169,6 +177,88 @@ class Collection(models.Model):
     def __str__(self):
         return self.collection_name
 
+    def update_geoadmin_variants(self, asset_geoadmin_variant, asset_proj_epsg, asset_eo_gsd):
+        '''
+        updates the collection's summaries when assets are updated or raises
+        errors when this fails.
+        :param asset_geoadmin_value: asset's value for geoadmin_variant
+        :param asset_proj_epsg: asset's value for proj:epsg
+        :param asset_eo_gsd: asset's value for asset_eo_gsd
+        For all the given parameters this function checks, if the corresponding
+        parameters of the collection need to be updated. If so, they will be either
+        updated or an error will be raised, if updating fails.
+        '''
+
+        try:
+            if self.summaries["geoadmin:variant"] is None:
+
+                self.summaries["geoadmin:variant"] = [asset_geoadmin_variant]
+                self.save()
+
+            elif asset_geoadmin_variant not in self.summaries["geoadmin:variant"]:
+                self.summaries["geoadmin:variant"].append(asset_geoadmin_variant)
+                self.save()
+
+            if self.summaries["proj:epsg"] is None:
+                self.summaries["proj:epsg"] = [asset_proj_epsg]
+                self.save()
+
+            elif asset_proj_epsg not in self.summaries["proj:epsg"]:
+                self.summaries["proj:epsg"].append(asset_proj_epsg)
+                self.save()
+
+            if self.summaries["eo:gsd"] is None:
+                self.summaries["eo:gsd"] = [asset_eo_gsd]
+                self.save()
+
+            elif not float_in(asset_eo_gsd, self.summaries["eo:gsd"]):
+                self.feature.collection.summaries["eo:gsd"].append(asset_eo_gsd)
+                self.save()
+
+
+        except (KeyError, IndexError) as err:
+            logger.error("Error when updating collection's summaries values due to asset update: %s", err)
+            raise ValidationError("Error when updating collection's summaries values due to asset update.")
+
+
+    def update_extent(self, item_properties_datetime):
+        '''
+        updates the collection's temporal extent when item's are update.
+        :param item_properties_datetime: item's value for properties_datetime.
+        This function checks, if the corresponding parameter of the collection
+        needs to be updated. If so, it will be either updated or an error will
+        be raised, if updating fails.
+        '''
+        try:
+
+            if self.extent["temporal"]["interval"][0][0] is None:
+
+                self.extent["temporal"]["interval"][0][0] = item_properties_datetime
+                self.save()
+
+            elif item_properties_datetime < self.extent["temporal"]["interval"][0][0]:
+
+                self.extent["temporal"]["interval"][0][0] = item_properties_datetime
+                self.save()
+
+            elif self.extent["temporal"]["interval"][0][1] is None:
+
+                self.extent["temporal"]["interval"][0][1] = item_properties_datetime
+                self.save()
+
+            elif item_properties_datetime > self.extent["temporal"]["interval"][0][1]:
+
+                self.extent["temporal"]["interval"][0][1] = item_properties_datetime
+                self.save()
+
+        except (KeyError, IndexError) as err:
+
+            logger.error(
+                'Updating the collection extent due to item update failed: %s', err
+            )
+            raise ValidationError(_("Updating the collection extent due to item update failed."))
+
+
     def clean(self):
         # very simple validation, raises error when geoadmin_variant strings contain special
         # characters or umlaut.
@@ -176,13 +266,13 @@ class Collection(models.Model):
         try:
             for variant in self.summaries["geoadmin:variant"]:
                 if not bool(re.search('^[a-zA-Z0-9]*$', variant)):
-                    raise ValidationError(_('Property geoadmin:variant not correctly specified.'))
+                    raise ValidationError(_('Property geoadmin:variant not compatible with the naming conventions.'))
 
         except (KeyError, IndexError) as err:
             # we should only land here, if the default values for the extent are corrupted.
             # they can only be overriden by internal write processes.
-            logger.error('Error when validating summaries in collection: %s', err)
-            raise ValidationError('Invalid Summaries')
+            logger.error(_("Error when trying to access property geoadmin:variant from inside collection's clean function: %s", err))
+            raise ValidationError("Error when trying to access property geoadmin:variant from inside collection's clean function")
 
 
 class CollectionLink(Link):
@@ -225,40 +315,38 @@ class Item(models.Model):
     def __str__(self):
         return self.item_name
 
+
+    def update_properties_eo_gsd(self, asset_eo_gsd):
+        '''
+        updates the item's properties_eo_gsd when assets are updated or
+        raises errors when this fails
+        :param asset_eo_gsd: asset's value for asset_eo_gsd
+
+        This function checks, if the item's properties_eo_gds property
+        needs to be updated. If so, it will be either
+        updated or an error will be raised, if updating fails.
+        '''
+
+        try:
+            # check if eo:gsd on feature/item level needs updates
+            if self.properties_eo_gsd is None:
+                self.properties_eo_gsd = [asset_eo_gsd]
+                self.save()
+
+            elif not float_in(asset_eo_gsd, self.properties_eo_gsd):
+                self.properties_eo_gsd.append(asset_eo_gsd)
+                self.save()
+
+        except (KeyError, IndexError) as err:
+            logger.error("Error when updating item's properties_eo_gsd values due to asset update: %s", err)
+            raise ValidationError("Error when updating item's properties_eo_gsd values due to asset update.")
+
+
     def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
         # TODO: check if collection's bbox needs to be updated
         # --> this could probably best be done with GeoDjango? (@Tobias)
         # I leave this open for the moment.
-
-        try:
-
-            if self.collection.extent["temporal"]["interval"][0][0] is None:
-
-                self.collection.extent["temporal"]["interval"][0][0] = self.properties_datetime
-                self.collection.save()
-
-            elif self.properties_datetime < self.collection.extent["temporal"]["interval"][0][0]:
-
-                self.collection.extent["temporal"]["interval"][0][0] = self.properties_datetime
-                self.collection.save()
-
-            elif self.collection.extent["temporal"]["interval"][0][1] is None:
-
-                self.collection.extent["temporal"]["interval"][0][1] = self.properties_datetime
-                self.collection.save()
-
-            elif self.properties_datetime > self.collection.extent["temporal"]["interval"][0][1]:
-
-                self.collection.extent["temporal"]["interval"][0][1] = self.properties_datetime
-                self.collection.save()
-
-        except (KeyError, IndexError) as err:
-            # we should only land here, if the default values for the extent are corrupted.
-            # they can only be overriden by internal write processes.
-            logger.error(
-                'Updating the collection extent from within item save function failed: %s', err
-            )
-            raise ValidationError('Invalid Extent')
+        self.collection.update_extent(self.properties_datetime)
 
         super().save(force_insert, force_update, using, update_fields)
 
@@ -298,7 +386,7 @@ class Asset(models.Model):
     # array field of CharFields. Simple validation is done (e.g. no "Sonderzeichen"
     # in array)
     geoadmin_variant = models.CharField(max_length=15)
-    proj_epsq = models.IntegerField(null=True)
+    proj_epsg = models.IntegerField(null=True)
     title = models.CharField(max_length=255)
     media_type = models.CharField(max_length=200)
     href = models.URLField(max_length=255)
@@ -311,64 +399,17 @@ class Asset(models.Model):
         # characters or umlaut.
         try:
             if not bool(re.search('^[a-zA-Z0-9]*$', self.geoadmin_variant)):
-                raise ValidationError(_('Property geoadmin:variant not correctly specified.'))
+                raise ValidationError(_('Property geoadmin:variant not compatible with the naming conventions.'))
 
         except (KeyError, IndexError) as err:
-            logger.error('Error when validating summaries in assets: %s', err)
-            raise ValidationError('Invalid Summaries')
+            logger.error("Error when trying to access property geoadmin:variant from within asset's clean function: %s", err)
+            raise ValidationError("Error when trying to access property geoamin:variant from within asset's clean function")
 
     # alter save-function, so that the corresponding collection of the parent item of the asset
     # is saved, too.
     def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
-        self.collection = self.feature.collection
 
-        try:
-            # check if the collection's geoadmin_variant needs to be updated
-            if self.feature.collection.summaries["geoadmin:variant"] is None:
-
-                self.feature.collection.summaries["geoadmin:variant"] = [self.geoadmin_variant]
-                self.feature.collection.save()
-
-            elif self.geoadmin_variant not in self.feature.collection.summaries["geoadmin:variant"]:
-                self.feature.collection.summaries["geoadmin:variant"].append(self.geoadmin_variant)
-                self.feature.collection.save()
-
-            # proj_epsq (integer) is defined on collection level as well
-            # and eo_gsd (float) on item AND collection level as well.
-            # So we need to check if these properties need an update on parent
-            # and grandparent level.
-            if self.feature.collection.summaries["proj:epsg"] is None:
-                self.feature.collection.summaries["proj:epsg"] = [self.proj_epsq]
-                self.feature.collection.save()
-
-            elif self.proj_epsq not in self.feature.collection.summaries["proj:epsg"]:
-                self.feature.collection.summaries["proj:epsg"].append(self.proj_epsq)
-                self.feature.collection.save()
-
-            # for float-comparison:
-            def float_in(flt, floats, **kwargs):
-                return np.any(np.isclose(flt, floats, **kwargs))
-
-            # check if eo:gsd on collection level needs updates
-            if self.feature.collection.summaries["eo:gsd"] is None:
-                self.feature.collection.summaries["eo:gsd"] = [self.eo_gsd]
-                self.feature.collection.save()
-
-            elif not float_in(self.eo_gsd, self.feature.collection.summaries["eo:gsd"]):
-                self.feature.collection.summaries["eo:gsd"].append(self.eo_gsd)
-                self.feature.collection.save()
-
-            # check if eo:gsd on feature/item level needs updates
-            if self.feature.properties_eo_gsd is None:
-                self.feature.properties_eo_gsd = [self.eo_gsd]
-                self.feature.save()
-
-            elif not float_in(self.eo_gsd, self.feature.properties_eo_gsd):
-                self.feature.properties_eo_gsd.append(self.eo_gsd)
-                self.feature.save()
-
-        except (KeyError, IndexError) as err:
-            logger.error('Error when updating summaries from within asset save function: %s', err)
-            raise ValidationError('Error in asset save function.')
+        self.feature.collection.update_geoadmin_variants(self.geoadmin_variant, self.proj_epsg, self.eo_gsd)
+        self.feature.update_properties_eo_gsd(self.eo_gsd)
 
         super().save(force_insert, force_update, using, update_fields)
