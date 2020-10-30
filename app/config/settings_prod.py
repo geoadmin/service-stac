@@ -176,6 +176,10 @@ else:
 
 TEST_RUNNER = 'tests.runner.TestRunner'
 
-# set default page size for pagination in DEBUG mode
+# set default pagination configuration
+REST_FRAMEWORK = {
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination', 'PAGE_SIZE': 100
+}
+
 if DEBUG:
-    REST_FRAMEWORK['PAGE_SIZE'] = os.getenv(PAGE_SIZE, 2)
+    REST_FRAMEWORK['PAGE_SIZE'] = os.environ.get('PAGE_SIZE', 2)
