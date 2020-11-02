@@ -16,17 +16,21 @@ def create_collection():
         created='2020-10-28T13:05:10.473602Z',
         updated='2020-10-28T13:05:10.473602Z',
         description='This is a description',
-        start_date=None,
-        end_date=None,
-        extent=[200000, 100000, 200001, 100005],
+        extent={
+            "spatial": {
+                "bbox": [[None]]
+            }, "temporal": {
+                "interval": [[None, None]]
+            }
+        },
         collection_name='ch.swisstopo.pixelkarte-farbe-pk200.noscale',
         item_type='Feature',
         license='test',
         stac_extension=get_default_stac_extensions(),
         stac_version="0.9.0",
-        summaries_eo_gsd=[10.1, 20.3, 30.44],
-        summaries_proj=[1, 4, 22],
-        geoadmin_variant=['blubb', 'blabb', 'blibb'],
+        summaries={
+            "eo:gsd": None, "geoadmin:variant": None, "proj:epsg": None
+        },
         title='Test title'
     )
     collection.save()
@@ -74,7 +78,7 @@ def create_item(collection):
         collection=collection,
         item_name='item-for-test',
         properties_datetime='2020-10-28T13:05:10.473602Z',
-        properties_eo_gsd=[10, 30],
+        properties_eo_gsd=None,
         properties_title="My Title",
         stac_extensions=get_default_stac_extensions(),
         stac_version="0.9.0"
@@ -83,6 +87,7 @@ def create_item(collection):
     create_item_links(item)
     assets = create_assets(collection, item)
     item.save()
+    collection.save()
     return item, assets
 
 
@@ -129,7 +134,7 @@ def create_assets(collection, item):
         eo_gsd=3.4,
         geoadmin_lang='fr',
         geoadmin_variant="kgrs",
-        proj_epsq=2056,
+        proj_epsg=2056,
         media_type="image/tiff; application=geotiff; profile=cloud-optimize",
         href=
         "https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-1-2019-2056-kgrs-10.tiff"

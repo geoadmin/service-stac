@@ -87,7 +87,7 @@ class SerializationTestCase(TestCase):
             'properties': OrderedDict([
                 ('datetime', '2020-10-28T13:05:10.473602Z'),
                 ('title', 'My Title'),
-                ('eo:gsd', [10, 30, 3.4])
+                ('eo:gsd', [3.4])
             ]),
             'stac_extensions': [
                 'eo',
@@ -131,7 +131,7 @@ class SerializationTestCase(TestCase):
                     ),
                     ('description', 'this an asset'),
                     ('eo:gsd', 3.4),
-                    ('proj:epsq', 2056),
+                    ('proj:epsg', 2056),
                     ('geoadmin:variant', 'kgrs'),
                     ('geoadmin:lang', 'fr'),
                     ('checksum:multihash', '01205c3fd6978a7d0b051efaa4263a09')
@@ -174,7 +174,7 @@ class SerializationTestCase(TestCase):
                 ),
                 ('description', 'this an asset'),
                 ('eo:gsd', 3.4),
-                ('proj:epsq', 2056),
+                ('proj:epsg', 2056),
                 ('geoadmin:variant', 'kgrs'),
                 ('geoadmin:lang', 'fr'),
                 ('checksum:multihash', '01205c3fd6978a7d0b051efaa4263a09'),
