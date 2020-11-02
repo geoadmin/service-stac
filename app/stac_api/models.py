@@ -190,7 +190,6 @@ class Collection(models.Model):
         '''
         try:
             if self.summaries["geoadmin:variant"] is None:
-
                 self.summaries["geoadmin:variant"] = [asset_geoadmin_variant]
                 self.save()
 
@@ -215,8 +214,8 @@ class Collection(models.Model):
                 self.save()
 
         except (KeyError, IndexError) as err:
-            logger.error(_(
-                "Error when updating collection's summaries values due to asset update: %s"), err
+            logger.error(
+                "Error when updating collection's summaries values due to asset update: %s", err
                         )
             raise ValidationError(_(
                 "Error when updating collection's summaries values due to asset update."
@@ -233,28 +232,24 @@ class Collection(models.Model):
         try:
 
             if self.extent["temporal"]["interval"][0][0] is None:
-
                 self.extent["temporal"]["interval"][0][0] = item_properties_datetime
                 self.save()
 
             elif item_properties_datetime < self.extent["temporal"]["interval"][0][0]:
-
                 self.extent["temporal"]["interval"][0][0] = item_properties_datetime
                 self.save()
 
             elif self.extent["temporal"]["interval"][0][1] is None:
-
                 self.extent["temporal"]["interval"][0][1] = item_properties_datetime
                 self.save()
 
             elif item_properties_datetime > self.extent["temporal"]["interval"][0][1]:
-
                 self.extent["temporal"]["interval"][0][1] = item_properties_datetime
                 self.save()
 
         except (KeyError, IndexError) as err:
 
-            logger.error(_('Updating the collection extent due to item update failed: %s'), err)
+            logger.error('Updating the collection extent due to item update failed: %s', err)
             raise ValidationError(_("Updating the collection extent due to item update failed."))
 
     def clean(self):
@@ -264,14 +259,15 @@ class Collection(models.Model):
         try:
             for variant in self.summaries["geoadmin:variant"]:
                 if not bool(re.search('^[a-zA-Z0-9]*$', variant)):
+                    logger.error("Property geoadmin:variant not compatible with the naming conventions.")
                     raise ValidationError(_("Property geoadmin:variant not compatible with the" +
                                             "naming conventions."))
 
         except (KeyError, IndexError) as err:
             # we should only land here, if the default values for the extent are corrupted.
             # they can only be overriden by internal write processes.
-            logger.error(_("Error when trying to access property geoadmin:variant from inside " +
-                           "collection's clean function: %s"), err)
+            logger.error("Error when trying to access property geoadmin:variant from inside " +
+                           "collection's clean function: %s", err)
             raise ValidationError(_(
                 "Error when trying to access property geoadmin:variant from inside collection's " +
                 "clean function"
@@ -340,8 +336,8 @@ class Item(models.Model):
                 self.save()
 
         except (KeyError, IndexError) as err:
-            logger.error(_(
-                "Error when updating item's properties_eo_gsd values due to asset update: %s"), err
+            logger.error(
+                "Error when updating item's properties_eo_gsd values due to asset update: %s", err
                         )
             raise ValidationError(_(
                 "Error when updating item's properties_eo_gsd values due to asset update."
@@ -402,21 +398,11 @@ class Asset(models.Model):
     def clean(self):
         # very simple validation, raises error when geoadmin_variant strings contain special
         # characters or umlaut.
-        try:
-            if not bool(re.search('^[a-zA-Z0-9]*$', self.geoadmin_variant)):
-                raise ValidationError(_("Property geoadmin:variant not compatible with the " +
-                                        "naming conventions."))
-
-        except (KeyError, IndexError) as err:
-            logger.error(_(
-                "Error when trying to access property geoadmin:variant from within asset's " +
-                "clean function: %s"),
-                         err
-                        )
-            raise ValidationError(_(
-                "Error when trying to access property geoamin:variant from within asset's " +
-                "clean function"
-            ))
+        if not bool(re.search('^[a-zA-Z0-9]*$', self.geoadmin_variant)):
+            logger.error("Property geoadmin:variant not compatible with the " +
+            "naming conventions.")
+            raise ValidationError(_("Property geoadmin:variant not compatible with the " +
+                                    "naming conventions."))
 
     # alter save-function, so that the corresponding collection of the parent item of the asset
     # is saved, too.
