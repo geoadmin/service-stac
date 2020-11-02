@@ -249,27 +249,13 @@ class Collection(models.Model):
         # very simple validation, raises error when geoadmin_variant strings contain special
         # characters or umlaut.
 
-        try:
-            for variant in self.summaries["geoadmin:variant"]:
-                if not bool(re.search('^[a-zA-Z0-9]*$', variant)):
-                    logger.error(
-                        "Property geoadmin:variant not compatible with the naming conventions."
-                    )
-                    raise ValidationError(_("Property geoadmin:variant not compatible with the"
-                                            "naming conventions."))
-
-        except (KeyError, IndexError) as err:
-            # we should only land here, if the default values for the extent are corrupted.
-            # they can only be overriden by internal write processes.
-            logger.error(
-                "Error when trying to access property geoadmin:variant from inside "
-                "collection's clean function: %s",
-                err
-            )
-            raise ValidationError(_(
-                "Error when trying to access property geoadmin:variant from inside collection's "
-                "clean function"
-            ))
+        for variant in self.summaries["geoadmin:variant"]:
+            if not bool(re.search('^[a-zA-Z0-9]*$', variant)):
+                logger.error(
+                    "Property geoadmin:variant not compatible with the naming conventions."
+                )
+                raise ValidationError(_("Property geoadmin:variant not compatible with the"
+                                        "naming conventions."))
 
 
 class CollectionLink(Link):
@@ -324,23 +310,13 @@ class Item(models.Model):
         needs to be updated. If so, it will be either
         updated or an error will be raised, if updating fails.
         '''
-
-        try:
-            # check if eo:gsd on feature/item level needs updates
-            if self.properties_eo_gsd is None:
-                self.properties_eo_gsd = [asset_eo_gsd]
-                self.save()
-            elif not float_in(asset_eo_gsd, self.properties_eo_gsd):
-                self.properties_eo_gsd.append(asset_eo_gsd)
-                self.save()
-
-        except (KeyError, IndexError) as err:
-            logger.error(
-                "Error when updating item's properties_eo_gsd values due to asset update: %s", err
-            )
-            raise ValidationError(_(
-                "Error when updating item's properties_eo_gsd values due to asset update."
-            ))
+        # check if eo:gsd on feature/item level needs updates
+        if self.properties_eo_gsd is None:
+            self.properties_eo_gsd = [asset_eo_gsd]
+            self.save()
+        elif not float_in(asset_eo_gsd, self.properties_eo_gsd):
+            self.properties_eo_gsd.append(asset_eo_gsd)
+            self.save()
 
     def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
         # TODO: check if collection's bbox needs to be updated
