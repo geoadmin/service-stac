@@ -84,7 +84,7 @@ class CollectionList(generics.ListAPIView):
 
         data = {'collections': serializer.data}
 
-        logging.debug('GET list of collections', extra={"request": request, "response": data})
+        logger.debug('GET list of collections', extra={"request": request, "response": data})
 
         if page is not None:
             return self.get_paginated_response(data)
@@ -122,7 +122,7 @@ class ItemsList(generics.ListAPIView):
             'features': serializer.data
         }
 
-        logging.debug('GET list of items', extra={"request": request, "response": data})
+        logger.debug('GET list of items', extra={"request": request, "response": data})
 
         if page is not None:
             return self.get_paginated_response(data)
@@ -156,7 +156,7 @@ class AssetsList(generics.GenericAPIView):
 
         data = serializer.data
 
-        logging.debug('GET list of assets: %s', data, extra={"request": request, "response": data})
+        logger.debug('GET list of assets: %s', data, extra={"request": request, "response": data})
 
         if page is not None:
             return self.get_paginated_response(data)
