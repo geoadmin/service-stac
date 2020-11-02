@@ -13,8 +13,8 @@ def create_collection():
     '''
     collection = Collection.objects.create(
         crs=["http://www.opengis.net/def/crs/OGC/1.3/CRS84"],
-        created=datetime.now(),
-        updated=datetime.now(),
+        created='2020-10-28T13:05:10.473602Z',
+        updated='2020-10-28T13:05:10.473602Z',
         description='This is a description',
         extent={
             "spatial": {
@@ -27,10 +27,9 @@ def create_collection():
         item_type='Feature',
         license='test',
         stac_extension=get_default_stac_extensions(),
-        item_type='Feature',
         stac_version="0.9.0",
         summaries={
-            "eo:gsd": [None], "geoadmin:variant": [None], "proj:epsg": [None]
+            "eo:gsd": None, "geoadmin:variant": None, "proj:epsg": None
         },
         title='Test title'
     )
@@ -79,7 +78,7 @@ def create_item(collection):
         collection=collection,
         item_name='item-for-test',
         properties_datetime='2020-10-28T13:05:10.473602Z',
-        properties_eo_gsd=[10, 30],
+        properties_eo_gsd=None,
         properties_title="My Title",
         stac_extensions=get_default_stac_extensions(),
         stac_version="0.9.0"
@@ -88,6 +87,7 @@ def create_item(collection):
     create_item_links(item)
     assets = create_assets(collection, item)
     item.save()
+    collection.save()
     return item, assets
 
 
@@ -134,7 +134,7 @@ def create_assets(collection, item):
         eo_gsd=3.4,
         geoadmin_lang='fr',
         geoadmin_variant="kgrs",
-        proj_epsq=2056,
+        proj_epsg=2056,
         media_type="image/tiff; application=geotiff; profile=cloud-optimize",
         href=
         "https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-1-2019-2056-kgrs-10.tiff"

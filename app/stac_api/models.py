@@ -55,11 +55,11 @@ def get_default_stac_extensions():
 
 
 def get_default_extent_value():
-    return dict(DEFAULT_EXTENT_VALUE)
+    return DEFAULT_EXTENT_VALUE
 
 
 def get_default_summaries_value():
-    return dict(DEFAULT_SUMMARIES_VALUE)
+    return DEFAULT_SUMMARIES_VALUE
 
 
 def float_in(flt, floats, **kwargs):
@@ -146,11 +146,7 @@ class Collection(models.Model):
     # TODO: overwrite items save() function accordingly
     # suggestions of fields to be auto-populated:
     extent = models.JSONField(
-        blank=True,
-        null=True,
-        default=get_default_extent_value,
-        encoder=DjangoJSONEncoder,
-        editable=False
+        default=get_default_extent_value, encoder=DjangoJSONEncoder, editable=False
     )
     collection_name = models.CharField(unique=True, max_length=255)  # string
     # collection_name is what is simply only called "id" in here:
@@ -166,11 +162,7 @@ class Collection(models.Model):
     # "summaries" values will be updated on every update of an asset inside the
     # collection
     summaries = models.JSONField(
-        blank=True,
-        null=True,
-        default=get_default_summaries_value,
-        encoder=DjangoJSONEncoder,
-        editable=False
+        default=get_default_summaries_value, encoder=DjangoJSONEncoder, editable=False
     )
     title = models.CharField(blank=True, max_length=255)  # string
 
@@ -189,10 +181,16 @@ class Collection(models.Model):
         updated or an error will be raised, if updating fails.
         '''
         try:
+
+            logger.debug(
+                "updating geoadmin:variants, self.summaries['eo:gsd']=%s, asset_eo_gsd=%s",
+                self.summaries["geoadmin:variant"],
+                asset_eo_gsd
+            )
+
             if self.summaries["geoadmin:variant"] is None:
                 self.summaries["geoadmin:variant"] = [asset_geoadmin_variant]
                 self.save()
-
             elif asset_geoadmin_variant not in self.summaries["geoadmin:variant"]:
                 self.summaries["geoadmin:variant"].append(asset_geoadmin_variant)
                 self.save()
@@ -200,7 +198,6 @@ class Collection(models.Model):
             if self.summaries["proj:epsg"] is None:
                 self.summaries["proj:epsg"] = [asset_proj_epsg]
                 self.save()
-
             elif asset_proj_epsg not in self.summaries["proj:epsg"]:
                 self.summaries["proj:epsg"].append(asset_proj_epsg)
                 self.save()
@@ -208,7 +205,6 @@ class Collection(models.Model):
             if self.summaries["eo:gsd"] is None:
                 self.summaries["eo:gsd"] = [asset_eo_gsd]
                 self.save()
-
             elif not float_in(asset_eo_gsd, self.summaries["eo:gsd"]):
                 self.summaries["eo:gsd"].append(asset_eo_gsd)
                 self.save()
@@ -216,7 +212,7 @@ class Collection(models.Model):
         except (KeyError, IndexError) as err:
             logger.error(
                 "Error when updating collection's summaries values due to asset update: %s", err
-                        )
+            )
             raise ValidationError(_(
                 "Error when updating collection's summaries values due to asset update."
             ))
@@ -234,15 +230,12 @@ class Collection(models.Model):
             if self.extent["temporal"]["interval"][0][0] is None:
                 self.extent["temporal"]["interval"][0][0] = item_properties_datetime
                 self.save()
-
             elif item_properties_datetime < self.extent["temporal"]["interval"][0][0]:
                 self.extent["temporal"]["interval"][0][0] = item_properties_datetime
                 self.save()
-
             elif self.extent["temporal"]["interval"][0][1] is None:
                 self.extent["temporal"]["interval"][0][1] = item_properties_datetime
                 self.save()
-
             elif item_properties_datetime > self.extent["temporal"]["interval"][0][1]:
                 self.extent["temporal"]["interval"][0][1] = item_properties_datetime
                 self.save()
@@ -259,17 +252,22 @@ class Collection(models.Model):
         try:
             for variant in self.summaries["geoadmin:variant"]:
                 if not bool(re.search('^[a-zA-Z0-9]*$', variant)):
-                    logger.error("Property geoadmin:variant not compatible with the naming conventions.")
-                    raise ValidationError(_("Property geoadmin:variant not compatible with the" +
+                    logger.error(
+                        "Property geoadmin:variant not compatible with the naming conventions."
+                    )
+                    raise ValidationError(_("Property geoadmin:variant not compatible with the"
                                             "naming conventions."))
 
         except (KeyError, IndexError) as err:
             # we should only land here, if the default values for the extent are corrupted.
             # they can only be overriden by internal write processes.
-            logger.error("Error when trying to access property geoadmin:variant from inside " +
-                           "collection's clean function: %s", err)
+            logger.error(
+                "Error when trying to access property geoadmin:variant from inside "
+                "collection's clean function: %s",
+                err
+            )
             raise ValidationError(_(
-                "Error when trying to access property geoadmin:variant from inside collection's " +
+                "Error when trying to access property geoadmin:variant from inside collection's "
                 "clean function"
             ))
 
@@ -292,7 +290,9 @@ class Item(models.Model):
     # properties_eo_cloud_cover = models.FloatField(blank=True)
     # eo_gsd is defined on asset level and will be updated here on ever
     # update of an asset inside this item.
-    properties_eo_gsd = ArrayField(models.FloatField(), blank=True, null=True)
+    properties_eo_gsd = ArrayField(models.FloatField(), blank=True, null=True, editable=False)
+    # TODO: Not sure, if properties_eo_gsd really needs to be a list, or if it is
+    # just one single value per item.
     # properties_instruments = models.TextField(blank=True)
     # properties_license = models.TextField(blank=True)
     # properties_platform = models.TextField(blank=True)
@@ -330,7 +330,6 @@ class Item(models.Model):
             if self.properties_eo_gsd is None:
                 self.properties_eo_gsd = [asset_eo_gsd]
                 self.save()
-
             elif not float_in(asset_eo_gsd, self.properties_eo_gsd):
                 self.properties_eo_gsd.append(asset_eo_gsd)
                 self.save()
@@ -338,7 +337,7 @@ class Item(models.Model):
         except (KeyError, IndexError) as err:
             logger.error(
                 "Error when updating item's properties_eo_gsd values due to asset update: %s", err
-                        )
+            )
             raise ValidationError(_(
                 "Error when updating item's properties_eo_gsd values due to asset update."
             ))
@@ -399,9 +398,8 @@ class Asset(models.Model):
         # very simple validation, raises error when geoadmin_variant strings contain special
         # characters or umlaut.
         if not bool(re.search('^[a-zA-Z0-9]*$', self.geoadmin_variant)):
-            logger.error("Property geoadmin:variant not compatible with the " +
-            "naming conventions.")
-            raise ValidationError(_("Property geoadmin:variant not compatible with the " +
+            logger.error("Property geoadmin:variant not compatible with the naming conventions.")
+            raise ValidationError(_("Property geoadmin:variant not compatible with the "
                                     "naming conventions."))
 
     # alter save-function, so that the corresponding collection of the parent item of the asset
