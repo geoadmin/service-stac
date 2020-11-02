@@ -26,5 +26,5 @@ static/openapitransactional.yaml: $(OPENAPI) $(PARTS_TRANSACTIONAL)
 # from file:/// locations, but only from http:// locations
 .PHONY: serve-spec
 serve-spec: $(OPENAPI)
-	cd static && python3 -m http.server
+	cd static && python3 -m http.server 8090
 
