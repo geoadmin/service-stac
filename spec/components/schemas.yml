@@ -1,0 +1,1289 @@
+components:
+  schemas:
+    assetQuery:
+      additionalProperties:
+        $ref: '#/components/schemas/assetQueryProp'
+      description: |-
+        Define which properties of the asset to query and the operations to apply.
+
+        The following properties can be queried:
+        - `type`: query for assets with this specific media type
+        - `proj:epsg`: query for assets with this specific epsg
+        - `eo:gsd`: query for assets with this specific gsd
+        - `geoadmin:variant`: query for assets with this specific variant
+      example:
+        type:
+          eq: image/tiff
+      type: object
+    assetQueryFilter:
+      description: Allows users to query asset properties for specific values
+      properties:
+        assetQuery:
+          $ref: '#/components/schemas/assetQuery'
+      type: object
+    assetQueryProp:
+      anyOf:
+      - description: if the object doesn't contain any of the operators, it is equivalent to using the equals operator
+      - description: Match using an operator
+        properties:
+          contains:
+            description: |-
+              Find items with a property that contains the specified 
+              literal string, e.g., matches ".*<STRING>.*". 
+              A case-insensitive comparison must be performed.
+            type: string
+          endsWith:
+            description: Find items with a property that ends with the specified string. A case-insensitive comparison must be performed.
+            type: string
+          eq:
+            description: Find items with a property that is equal to the specified value. For strings, a case-insensitive comparison must be performed.
+            nullable: true
+            oneOf:
+            - type: string
+            - type: number
+            - type: boolean
+          in:
+            description: Find items with a property that equals at least one entry in the specified array. A case-insensitive comparison must be performed.
+            items:
+              oneOf:
+              - type: string
+              - type: number
+            type: array
+          startsWith:
+            description: Find items with a property that begins with the specified string. A case-insensitive comparison must be performed.
+            type: string
+        type: object
+      description: Apply query operations to a specific property
+    bbox:
+      description: |- 
+        Only features that have a geometry that intersects the bounding box are selected. 
+        The bounding box is provided as four or six numbers, depending on whether 
+        the coordinate reference system includes a vertical axis (elevation or depth): 
+        
+        * Lower left corner, coordinate axis 1 
+        * Lower left corner, coordinate axis 2 
+        * Lower left corner, coordinate axis 3 (optional) 
+        * Upper right corner, coordinate axis 1 
+        * Upper right corner, coordinate axis 2 
+        * Upper right corner, coordinate axis 3 (optional)
+        
+        The coordinate reference system of the values is WGS84 
+        longitude/latitude (http://www.opengis.net/def/crs/OGC/1.3/CRS84) unless 
+        a different coordinate reference system is specified in the parameter `bbox-crs`.
+        
+        For WGS84 longitude/latitude the values are in most cases the sequence 
+        of minimum longitude, minimum latitude, maximum longitude and maximum 
+        latitude. However, in cases where the box spans the antimeridian the 
+        first value (west-most box edge) is larger than the third value 
+        (east-most box edge).
+        
+        If a feature has multiple spatial geometry properties, it is the
+        decision of the server whether only a single spatial geometry property
+        is used to determine the extent or all relevant geometries.
+        
+        Example: The bounding box of the New Zealand Exclusive Economic Zone in
+        WGS 84 (from 160.6°E to 170°W and from 55.95°S to 25.89°S) would be
+        represented in JSON as `[160.6, -55.95, -170, -25.89]` and in a query as
+        `bbox=160.6,-55.95,-170,-25.89`."
+      example:
+      - -110
+      - 39.5
+      - -105
+      - 40.5
+      items:
+        type: number
+      maxItems: 6
+      minItems: 4
+      type: array
+    bboxFilter:
+      description: Only return items that intersect the provided bounding box.
+      properties:
+        bbox:
+          $ref: '#/components/schemas/bbox'
+      type: object
+    checksum:multihash:
+      example: 90e402107a7f2588a85362b9beea2a12d4514d45
+      pattern: ^[a-f0-9]+$
+      title: Multihash
+      type: string,
+    collection:
+      example:
+        created: "2020-07-14T12:30:00Z"
+        description: |-
+          Swiss Map Raster are a conversion of the map image into a digital form
+          with no direct bearing on the individual map elements.
+          
+          The information is structured only in colour layers. Swiss Map Raster pixel 
+          maps are ideal for finding background information for a broad variety of 
+          screen applications, web and mobile applications and services, as well as 
+          for geographic information systems. They can also be used as basic maps 
+          for a variety of purposes (digital printing, plots, offset printing, etc.).
+        extent:
+          spatial:
+            bbox:
+            - - 6.02260949059
+              - 45.7769477403
+              - 10.4427014502
+              - 47.8308275417
+          temporal:
+            interval:
+            - - "2012-01-01T00:00:00Z"
+              - "2020-12-31T23:59:59Z"
+        id: ch.swisstopo.pixelkarte-farbe-pk50.noscale
+        license: proprietary
+        links:
+        - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+          rel: self
+        - href: https://data.geo.admin.ch/api/stac/v0.9/
+          rel: root
+        - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items
+          rel: items
+        - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
+          rel: license
+          title: Licence for the free geodata of the Federal Office of Topography swisstopo
+        - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
+          rel: describedby
+        providers:
+        - name: Federal Office of Topography - swisstopo
+          roles:
+          - producer
+          - licensor
+          url: https://www.swisstopo.admin.ch
+        stac_extensions:
+        - proj
+        - eo
+        - https://data.geo.admin.ch/stac/geoadmin-extension/1.0/schema.json
+        stac_version: 0.9.0
+        summaries:
+          eo:gsd:
+          - 2.5
+          geoadmin:variant:
+          - - description: Grayscale combination with shading
+              name: kgrel
+            - description: Color combination without shading
+              name: komb
+            - description: Color combination with shading
+              name: krel
+          proj:epsg:
+          - 2056
+        title: National Map 1:50'000
+        updated: "2020-07-14T12:30:00Z"
+      properties:
+        crs:
+          default:
+          - http://www.opengis.net/def/crs/OGC/1.3/CRS84
+          description: the list of coordinate reference systems supported by the service
+          example:
+          - http://www.opengis.net/def/crs/OGC/1.3/CRS84
+          - http://www.opengis.net/def/crs/EPSG/0/4326
+          items:
+            type: string
+          type: array
+        description:
+          $ref: '#/components/schemas/description'
+          description: a description of the features in the collection
+          example: An address.
+          type: string
+        extent:
+          $ref: '#/components/schemas/extent'
+        id:
+          description: identifier of the collection used, for example, in URIs
+          example: address
+          type: string
+        itemType:
+          default: feature
+          description: indicator about the type of the items in the collection (the default value is 'feature').
+          type: string
+        keywords:
+          description: List of keywords describing the collection.
+          items:
+            type: string
+          type: array
+        license:
+          $ref: '#/components/schemas/license'
+        links:
+          example:
+          - href: http://data.example.com/buildings
+            rel: item
+          - href: http://example.com/concepts/buildings.html
+            rel: describedBy
+            type: text/html
+          items:
+            $ref: '#/components/schemas/link'
+          type: array
+        providers:
+          $ref: '#/components/schemas/providers'
+        stac_extensions:
+          $ref: '#/components/schemas/stac_extensions'
+        stac_version:
+          $ref: '#/components/schemas/stac_version'
+        summaries:
+          additionalProperties:
+            oneOf:
+            - items:
+                description: A value of any type.
+              title: Set of values
+              type: array
+            - description: |-
+                By default, only ranges with a minimum and a maximum value can
+                be specified. Ranges can be specified for ordinal values only,
+                which means they need to have a rank order. Therefore, ranges
+                can only be specified for numbers and some special types of
+                strings. Examples: grades (A to F), dates or times.
+                Implementors are free to add other derived statistical values
+                to the object, for example `mean` or `stddev`.
+              properties:
+                max:
+                  anyOf:
+                  - type: string
+                  - type: number
+                min:
+                  anyOf:
+                  - type: string
+                  - type: number
+              required:
+              - min
+              - max
+              title: Statistics
+              type: object
+          description: |-
+            Summaries are either a unique set of all available values *or*
+            statistics. Statistics by default only specify the range (minimum
+            and maximum values), but can optionally be accompanied by additional
+            statistical values. The range can specify the potential range of
+            values, but it is recommended to be as precise as possible. The set
+            of values must contain at least one element and it is strongly
+            recommended to list all values. It is recommended to list as many
+            properties as reasonable so that consumers get a full overview of
+            the Collection. Properties that are covered by the Collection
+            specification (e.g. `providers` and `license`) may not be repeated
+            in the summaries.
+          type: object
+        title:
+          description: human readable title of the collection
+          example: address
+          type: string
+      required:
+      - id
+      - links
+      - stac_version
+      - description
+      - license
+      - extent
+      type: object
+    collections:
+      properties:
+        collections:
+          items:
+            $ref: '#/components/schemas/collection'
+          type: array
+        links:
+          example:
+          - href: https://data.geo.admin.ch/api/stac/v0.9/collections
+            rel: self
+          - href: https://data.geo.admin.ch/api/stac/v0.9/collections?startindex=10
+            rel: next
+      required:
+      - links
+      - collections
+      type: object
+    collectionsArray:
+      description: |-
+        Array of Collection IDs to include in the search for items.
+        Only Items in one of the provided Collections will be searched.
+      items:
+        type: string
+      type: array
+    collectionsFilter:
+      description: Only returns the collections specified
+      properties:
+        collections:
+          $ref: '#/components/schemas/collectionsArray'
+      type: object
+    confClasses:
+      properties:
+        conformsTo:
+          items:
+            type: string
+          type: array
+      required:
+      - conformsTo
+      type: object
+    datetime:
+      description: |-
+        Either a date-time or an interval, open or closed. Date and time
+        expressions adhere to RFC 3339. Open intervals are expressed using
+        double-dots.
+
+        Examples:
+
+        * A date-time: "2018-02-12T23:20:50Z"
+        * A closed interval: "2018-02-12T00:00:00Z/2018-03-18T12:31:12Z"
+        * Open intervals: "2018-02-12T00:00:00Z/.." or "../2018-03-18T12:31:12Z"
+
+        Only features that have a temporal property that intersects the value of
+        `datetime` are selected.
+
+        If a feature has multiple temporal properties, it is the decision of the
+        server whether only a single temporal property is used to determine
+        the extent or all relevant temporal properties.
+      example: 2018-02-12T00:00:00Z/2018-03-18T12:31:12Z
+      type: string
+    datetimeFilter:
+      description: An object representing a date+time based filter.
+      properties:
+        datetime:
+          $ref: '#/components/schemas/datetime'
+      type: object
+    description:
+      description: |-
+        Detailed multi-line description to fully explain the catalog or
+        collection.
+
+        [CommonMark 0.29](http://commonmark.org/) syntax MAY be used for rich
+        text representation.
+      type: string
+    eo:gsd:
+      description: "GSD is the nominal Ground Sample Distance for the data, as measured in \nmeters on the ground. There are many definitions of GSD. The value of \nthis attribute should be related to the spatial resolution at the sensor, \nrather than the pixel size of images after orthorectification, \npansharpening, or scaling. The GSD of a sensor can vary depending \non off-nadir and wavelength, so it is at the discretion of the \nimplementer to decide which value most accurately represents the GSD. \nFor example, Landsat8 optical and short-wave IR bands are all 30 meters, \nbut the panchromatic band is 15 meters. The eo:gsd should be 30 meters in \nthis case because that is nominal spatial resolution at the sensor. The \nPlanet PlanetScope Ortho Tile Product has an eo:gsd of 3.7 (or 4 if rounding), \neven though the pixel size of the images is 3.125. For example, one might \nchoose for WorldView-2 the Multispectral 20° off-nadir value of 2.07 and \nfor WorldView-3 the Multispectral 20° off-nadir value of 1.38."
+      example: 2.5
+      title: Ground Sample Distance
+      type: number
+    exception:
+      description: 'Information about the exception: an error code plus an optional description.'
+      properties:
+        code:
+          type: string
+        description:
+          type: string
+      required:
+      - code
+      type: object
+    extent:
+      description: |-
+        The extent of the features in the collection. In the Core only spatial and temporal
+        extents are specified. Extensions may add additional members to represent other
+        extents, for example, thermal or pressure ranges.
+      properties:
+        spatial:
+          description: The spatial extent of the features in the collection.
+          properties:
+            bbox:
+              description: |-
+                One or more bounding boxes that describe the spatial extent of the dataset.
+                In the Core only a single bounding box is supported. Extensions may support
+                additional areas. If multiple areas are provided, the union of the bounding
+                boxes describes the spatial extent.
+              items:
+                description: |-
+                  Each bounding box is provided as four or six numbers, depending on
+                  whether the coordinate reference system includes a vertical axis
+                  (height or depth):
+
+                  * Lower left corner, coordinate axis 1
+                  * Lower left corner, coordinate axis 2
+                  * Minimum value, coordinate axis 3 (optional)
+                  * Upper right corner, coordinate axis 1
+                  * Upper right corner, coordinate axis 2
+                  * Maximum value, coordinate axis 3 (optional)
+
+                  The coordinate reference system of the values is WGS 84 longitude/latitude
+                  (http://www.opengis.net/def/crs/OGC/1.3/CRS84) unless a different coordinate
+                  reference system is specified in `crs`.
+
+                  For WGS 84 longitude/latitude the values are in most cases the sequence of
+                  minimum longitude, minimum latitude, maximum longitude and maximum latitude.
+                  However, in cases where the box spans the antimeridian the first value
+                  (west-most box edge) is larger than the third value (east-most box edge).
+
+                  If the vertical axis is included, the third and the sixth number are
+                  the bottom and the top of the 3-dimensional bounding box.
+
+                  If a feature has multiple spatial geometry properties, it is the decision of the
+                  server whether only a single spatial geometry property is used to determine
+                  the extent or all relevant geometries.
+                example:
+                - -180
+                - -90
+                - 180
+                - 90
+                items:
+                  type: number
+                maxItems: 6
+                minItems: 4
+                type: array
+              minItems: 1
+              type: array
+            crs:
+              default: http://www.opengis.net/def/crs/OGC/1.3/CRS84
+              description: |-
+                Coordinate reference system of the coordinates in the spatial extent
+                (property `bbox`). The default reference system is WGS 84 longitude/latitude.
+                In the Core this is the only supported coordinate reference system.
+                Extensions may support additional coordinate reference systems and add
+                additional enum values.
+              enum:
+              - http://www.opengis.net/def/crs/OGC/1.3/CRS84
+              type: string
+          required:
+          - bbox
+          type: object
+        temporal:
+          description: The temporal extent of the features in the collection.
+          properties:
+            interval:
+              description: |-
+                One or more time intervals that describe the temporal extent of the dataset.
+                The value `null` is supported and indicates an open time intervall.
+                In the Core only a single time interval is supported. Extensions may support
+                multiple intervals. If multiple intervals are provided, the union of the
+                intervals describes the temporal extent.
+              items:
+                description: |-
+                  Begin and end times of the time interval. The timestamps
+                  are in the coordinate reference system specified in `trs`. By default
+                  this is the Gregorian calendar.
+                example:
+                - "2011-11-11T12:22:11Z"
+                - null
+                items:
+                  format: date-time
+                  nullable: true
+                  type: string
+                maxItems: 2
+                minItems: 2
+                type: array
+              minItems: 1
+              type: array
+            trs:
+              default: http://www.opengis.net/def/uom/ISO-8601/0/Gregorian
+              description: |-
+                Coordinate reference system of the coordinates in the temporal extent
+                (property `interval`). The default reference system is the Gregorian calendar.
+                In the Core this is the only supported temporal reference system.
+                Extensions may support additional temporal reference systems and add
+                additional enum values.
+              enum:
+              - http://www.opengis.net/def/uom/ISO-8601/0/Gregorian
+              type: string
+          required:
+          - interval
+          type: object
+      required:
+      - spatial
+      - temporal
+      type: object
+    # featureCollectionGeoJSON:
+    #   properties:
+    #     features:
+    #       items:
+    #         $ref: '#/components/schemas/item'
+    #         type: array
+    #     links:
+    #       example:
+    #       - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items
+    #         rel: self
+    #       - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items?startindex=10
+    #         rel: next
+    #     numberMatched:
+    #       example: 256
+    #     numberReturned:
+    #       example: 10
+    #     timeStamp:
+    #       example: "2020-07-15T12:30:00Z"
+    #     type:
+    #       enum:
+    #       - FeatureCollection
+    #       type: string
+    #   required:
+    #   - type
+    #   - features
+    #   type: object
+    # featureGeoJSON:
+    #   # example:
+    #   #   assets:
+    #   #     smr50-263-2016-2056-kgrs-2.5.tiff:
+    #   #       checksum:multihash: 90e402107a7f2588a85362b9beea2a12d4514d45
+    #   #       created: "2020-07-14T12:30:00Z"
+    #   #       eo:gsd: 2.5
+    #   #       geoadmin:variant: kgrs
+    #   #       href: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr50-263-2016-2056-kgrs-2.5.tiff
+    #   #       proj:epsg: "2056"
+    #   #       type: image/tiff; application=geotiff
+    #   #       updated: "2020-07-14T12:30:00Z"
+    #   #     smr50-263-2016-2056-komb-2.5.tiff:
+    #   #       checksum:multihash: 90d402107a7f2588a85362b9beea2a12d4514d45
+    #   #       created: "2020-07-14T12:30:00Z"
+    #   #       eo:gsd: 2.5
+    #   #       geoadmin:variant: komb
+    #   #       href: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr50-263-2016-2056-komb-2.5.tiff
+    #   #       proj:epsg: "2056"
+    #   #       type: image/tiff; application=geotiff
+    #   #       updated: "2020-07-14T12:30:00Z"
+    #   #     smr50-263-2016-2056-krel-2.5.tiff:
+    #   #       checksum:multihash: 90f402107a7f2588a85362b9beea2a12d4514d45
+    #   #       created: "2020-07-14T12:30:00Z"
+    #   #       eo:gsd: 2.5
+    #   #       geoadmin:variant: krel
+    #   #       href: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr50-263-2016-2056-krel-2.5.tiff
+    #   #       proj:epsg: "2056"
+    #   #       type: image/tiff; application=geotiff
+    #   #       updated: "2020-07-14T12:30:00Z"
+    #   #   bbox:
+    #   #   - 7.242974548172171
+    #   #   - 46.357085154660915
+    #   #   - 7.699524647567326
+    #   #   - 46.57310580640624
+    #   #   collection: ch.swisstopo.pixelkarte-farbe-pk50.noscale
+    #   #   geometry:
+    #   #     coordinates:
+    #   #     - - - 7.242974548172171
+    #   #         - 46.57310580640624
+    #   #       - - 7.243756483316452
+    #   #         - 46.35721185723752
+    #   #       - - 7.698490766144817
+    #   #         - 46.357085154660915
+    #   #       - - 7.699524647567326
+    #   #         - 46.57297861624267
+    #   #       - - 7.242974548172171
+    #   #         - 46.57310580640624
+    #   #     type: Polygon
+    #   #   id: smr50-263-2016
+    #   #   links:
+    #   #   - href: https://data.geo.admin.ch/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr50-263-2016
+    #   #     rel: self
+    #   #   - href: https://data.geo.admin.ch/api/stac/v0.9/
+    #   #     rel: root
+    #   #   - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+    #   #     rel: collection
+    #   #   properties:
+    #   #     created: "2020-07-14T12:30:00Z"
+    #   #     datetime: "2016-07-14T12:30:00Z"
+    #   #     updated: "2020-07-14T12:30:00Z"
+    #   #   stac_extensions:
+    #   #   - proj
+    #   #   - eo
+    #   #   - checksum
+    #   #   - https://data.geo.admin.ch/stac/geoadmin-extension/1.0/schema.json
+    #   #   stac_version: 0.9.0
+    #   #   type: Feature
+    #   properties:
+    #     geometry:
+    #       $ref: '#/components/schemas/geometryGeoJSON'
+    #     id:
+    #       oneOf:
+    #       - type: string
+    #       - type: integer
+    #     links:
+    #       items:
+    #         $ref: '#/components/schemas/link'
+    #       type: array
+    #     properties:
+    #       nullable: true
+    #       type: object
+    #     type:
+    #       enum:
+    #       - Feature
+    #       type: string
+    #   required:
+    #   - type
+    #   - geometry
+    #   - properties
+    #   type: object
+    geoadmin:lang:
+      enum:
+      - de
+      - it
+      - fr
+      - rm
+      - en
+      title: Product language
+      type: string
+    geoadmin:variant:
+      example: komb
+      title: Product variants
+      type: string
+    geometryGeoJSON:
+      oneOf:
+      - $ref: '#/components/schemas/pointGeoJSON'
+      - $ref: '#/components/schemas/multipointGeoJSON'
+      - $ref: '#/components/schemas/linestringGeoJSON'
+      - $ref: '#/components/schemas/multilinestringGeoJSON'
+      - $ref: '#/components/schemas/polygonGeoJSON'
+      - $ref: '#/components/schemas/multipolygonGeoJSON'
+      - $ref: '#/components/schemas/geometrycollectionGeoJSON'
+    geometrycollectionGeoJSON:
+      properties:
+        geometries:
+          items:
+            $ref: '#/components/schemas/geometryGeoJSON'
+          type: array
+        type:
+          enum:
+          - GeometryCollection
+          type: string
+      required:
+      - type
+      - geometries
+      type: object
+    ids:
+      description: |-
+        Array of Item ids to return. All other filter parameters that further
+        restrict the number of search results are ignored
+      items:
+        type: string
+      type: array
+    idsFilter:
+      description: Only returns items that match the array of given ids
+      properties:
+        ids:
+          $ref: '#/components/schemas/ids'
+      type: object
+    intersectsFilter:
+      description: Only returns items that intersect with the provided polygon.
+      properties:
+        intersects:
+          $ref: https://geojson.org/schema/Geometry.json
+      type: object
+    item:
+      description: A GeoJSON Feature augmented with foreign members that contain values relevant to a STAC entity
+      # example:
+      #   assets:
+      #     smr50-263-2016-2056-kgrs-2.5.tiff:
+      #       checksum:multihash: 90e402107a7f2588a85362b9beea2a12d4514d45
+      #       created: "2020-07-14T12:30:00Z"
+      #       eo:gsd: 2.5
+      #       geoadmin:variant: kgrs
+      #       href: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr50-263-2016-2056-kgrs-2.5.tiff
+      #       proj:epsg: "2056"
+      #       type: image/tiff; application=geotiff
+      #       updated: "2020-07-14T12:30:00Z"
+      #     smr50-263-2016-2056-komb-2.5.tiff:
+      #       checksum:multihash: 90d402107a7f2588a85362b9beea2a12d4514d45
+      #       created: "2020-07-14T12:30:00Z"
+      #       eo:gsd: 2.5
+      #       geoadmin:variant: komb
+      #       href: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr50-263-2016-2056-komb-2.5.tiff
+      #       proj:epsg: "2056"
+      #       type: image/tiff; application=geotiff
+      #       updated: "2020-07-14T12:30:00Z"
+      #     smr50-263-2016-2056-krel-2.5.tiff:
+      #       checksum:multihash: 90f402107a7f2588a85362b9beea2a12d4514d45
+      #       created: "2020-07-14T12:30:00Z"
+      #       eo:gsd: 2.5
+      #       geoadmin:variant: krel
+      #       href: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr50-263-2016-2056-krel-2.5.tiff
+      #       proj:epsg: "2056"
+      #       type: image/tiff; application=geotiff
+      #       updated: "2020-07-14T12:30:00Z"
+      #   bbox:
+      #   - 7.242974548172171
+      #   - 46.357085154660915
+      #   - 7.699524647567326
+      #   - 46.57310580640624
+      #   collection: ch.swisstopo.pixelkarte-farbe-pk50.noscale
+      #   geometry:
+      #     coordinates:
+      #     - - - 7.242974548172171
+      #         - 46.57310580640624
+      #       - - 7.243756483316452
+      #         - 46.35721185723752
+      #       - - 7.698490766144817
+      #         - 46.357085154660915
+      #       - - 7.699524647567326
+      #         - 46.57297861624267
+      #       - - 7.242974548172171
+      #         - 46.57310580640624
+      #     type: Polygon
+      #   id: smr50-263-2016
+      #   links:
+      #   - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr50-263-2016
+      #     rel: self
+      #   - href: https://data.geo.admin.ch/api/stac/v0.9/
+      #     rel: root
+      #   - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+      #     rel: collection
+      #   properties:
+      #     created: "2020-07-14T12:30:00Z"
+      #     datetime: "2016-07-14T12:30:00Z"
+      #     updated: "2020-07-14T12:30:00Z"
+      #   stac_extensions:
+      #   - proj
+      #   - eo
+      #   - checksum
+      #   - https://data.geo.admin.ch/stac/geoadmin-extension/1.0/schema.json
+      #   stac_version: 0.9.0
+      #   type: Feature
+      properties:
+        assets:
+          $ref: '#/components/schemas/itemAssets'
+        bbox:
+          $ref: '#/components/schemas/bbox'
+        geometry:
+          # we could use the 'original' schema, but it doesn't
+          # contain a useful example, hence we use our own
+          # schema with appropriate example
+          # $ref: https://geojson.org/schema/Geometry.json
+          $ref: '#/components/schemas/geometryGeoJSON'
+        id:
+          $ref: '#/components/schemas/itemId'
+        links:
+          items:
+            $ref: '#/components/schemas/link'
+          type: array
+          example:
+          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr50-263-2016
+            rel: self
+          - href: https://data.geo.admin.ch/api/stac/v0.9/
+            rel: root
+          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+            rel: collection
+        properties:
+          $ref: '#/components/schemas/itemProperties'
+        stac_extensions:
+          $ref: '#/components/schemas/stac_extensions'
+        stac_version:
+          $ref: '#/components/schemas/stac_version'
+        type:
+          $ref: '#/components/schemas/itemType'
+      required:
+      - stac_version
+      - id
+      - type
+      - geometry
+      - bbox
+      - links
+      - properties
+      - assets
+      type: object
+    itemAssets:
+      additionalProperties:
+        properties:
+          description:
+            description: |-
+              Multi-line description to explain the asset.
+
+              [CommonMark 0.29](http://commonmark.org/) syntax MAY be used for
+              rich text representation.
+            example: Small 256x256px PNG thumbnail for a preview.
+            type: string
+          href:
+            description: Link to the asset object
+            example: http://cool-sat.com/catalog/collections/cs/items/CS3-20160503_132130_04/thumb.png
+            format: url
+            type: string
+          roles:
+            description: Purposes of the asset
+            example:
+            - thumbnail
+            items:
+              type: string
+            type: array
+          title:
+            description: Displayed title
+            example: Thumbnail
+            type: string
+          type:
+            description: Media type of the asset
+            example: image/png
+            type: string
+          proj:epsg:
+            $ref: '#/components/schemas/proj:epsg'
+          geoadmin:variant:
+            $ref: '#/components/schemas/geoadmin:variant'
+          eo:gsd:
+            $ref: '#/components/schemas/eo:gsd'
+        required:
+        - href
+        type: object
+      type: object
+      example:
+        smr50-263-2016-2056-kgrs-2.5.tiff:
+          checksum:multihash: 90e402107a7f2588a85362b9beea2a12d4514d45
+          created: "2020-07-14T12:30:00Z"
+          eo:gsd: 2.5
+          geoadmin:variant: kgrs
+          href: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr50-263-2016-2056-kgrs-2.5.tiff
+          proj:epsg: 2056
+          type: image/tiff; application=geotiff
+          updated: "2020-07-14T12:30:00Z"
+        smr50-263-2016-2056-komb-2.5.tiff:
+          checksum:multihash: 90d402107a7f2588a85362b9beea2a12d4514d45
+          created: "2020-07-14T12:30:00Z"
+          eo:gsd: 2.5
+          geoadmin:variant: komb
+          href: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr50-263-2016-2056-komb-2.5.tiff
+          proj:epsg: "2056"
+          type: image/tiff; application=geotiff
+          updated: "2020-07-14T12:30:00Z"
+        smr50-263-2016-2056-krel-2.5.tiff:
+          checksum:multihash: 90f402107a7f2588a85362b9beea2a12d4514d45
+          created: "2020-07-14T12:30:00Z"
+          eo:gsd: 2.5
+          geoadmin:variant: krel
+          href: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr50-263-2016-2056-krel-2.5.tiff
+          proj:epsg: "2056"
+          type: image/tiff; application=geotiff
+          updated: "2020-07-14T12:30:00Z"
+    itemCollection:
+      description: A GeoJSON FeatureCollection augmented with foreign members that contain values relevant to a STAC entity
+      properties:
+        features:
+          items:
+            $ref: '#/components/schemas/item'
+          type: array
+        links:
+          $ref: '#/components/schemas/itemCollectionLinks'
+        type:
+          enum:
+          - FeatureCollection
+          type: string
+      required:
+      - features
+      - type
+      type: object
+    itemCollectionLinks:
+      description: An array of links. Can be used for pagination, e.g. by providing a link with the `next` relation type.
+      example:
+      - href: https://data.geo.admin.ch/api/stac/v0.9/search?startindex=10
+        rel: next
+      items:
+        $ref: '#/components/schemas/link'
+      type: array
+    itemId:
+      description: Provider identifier, a unique ID, potentially a link to a file.
+      example: path/to/example.tif
+      type: string
+    itemProperties:
+      additionalProperties:
+        description: Any additional properties added in via Item specification or extensions.
+      description: provides the core metatdata fields plus extensions
+      properties:
+        datetime:
+          $ref: '#/components/schemas/datetime'
+      required:
+      - datetime
+      type: object
+    itemType:
+      description: The GeoJSON type
+      enum:
+      - Feature
+      type: string
+    landingPage:
+      properties:
+        description:
+          example: Access to data about buildings in the city of Bonn via a Web API that conforms to the OGC API Features specification.
+          type: string
+        id:
+          type: string
+        links:
+          items:
+            $ref: '#/components/schemas/link'
+          type: array
+        stac_extensions:
+          $ref: '#/components/schemas/stac_extensions'
+        stac_version:
+          $ref: '#/components/schemas/stac_version'
+        title:
+          example: Buildings in Bonn
+          type: string
+      required:
+      - links
+      - stac_version
+      - id
+      - description
+      type: object
+    license:
+      description: |-
+        License(s) of the data as a SPDX
+        [License identifier](https://spdx.org/licenses/). Alternatively, use
+        `proprietary` if the license is not on the SPDX license list or
+        `various` if multiple licenses apply. In these two cases links to the
+        license texts SHOULD be added, see the `license` link relation type.
+
+        Non-SPDX licenses SHOULD add a link to the license text with the
+        `license` relation in the links section. The license text MUST NOT be
+        provided as a value of this field. If there is no public license URL
+        available, it is RECOMMENDED to host the license text and
+        link to it.
+      example: Apache-2.0
+      type: string
+    limit:
+      default: 10
+      description: The maximum number of results to return (page size). Defaults to 10
+      example: 20
+      maximum: 10000
+      minimum: 1
+      type: integer
+    limitFilter:
+      description: Only returns maximum number of results (page size)
+      properties:
+        limit:
+          $ref: '#/components/schemas/limit'
+      type: object
+    linestringGeoJSON:
+      properties:
+        coordinates:
+          items:
+            items:
+              type: number
+            minItems: 2
+            type: array
+          minItems: 2
+          type: array
+        type:
+          enum:
+          - LineString
+          type: string
+      required:
+      - type
+      - coordinates
+      type: object
+    link:
+      properties:
+        body:
+          description: For POST requests, the link can specify the HTTP body as a JSON object.
+          type: object
+        headers:
+          description: Object key values pairs they map to headers
+          example:
+            Accept: application/json
+          type: object
+        href:
+          example: http://data.example.com/buildings/123
+          format: url
+          type: string
+        hreflang:
+          example: en
+          type: string
+        length:
+          type: integer
+        merge:
+          default: false
+          description: |-
+            This is only valid when the server is responding to POST request.
+
+            If merge is true, the client is expected to merge the body value
+            into the current request body before following the link.
+            This avoids passing large post bodies back and forth when following
+            links, particularly for navigating pages through the `POST /search`
+            endpoint.
+
+            NOTE: To support form encoding it is expected that a client be able
+            to merge in the key value pairs specified as JSON
+            `{"next": "token"}` will become `&next=token`.
+          type: boolean
+        method:
+          default: GET
+          description: Specifies the HTTP method that the link expects
+          enum:
+          - GET
+          - POST
+          type: string
+        rel:
+          example: alternate
+          type: string
+        title:
+          example: Trierer Strasse 70, 53115 Bonn
+          type: string
+        type:
+          example: application/geo+json
+          type: string
+      required:
+      - href
+      - rel
+      title: Link
+      type: object
+    multilinestringGeoJSON:
+      properties:
+        coordinates:
+          items:
+            items:
+              items:
+                type: number
+              minItems: 2
+              type: array
+            minItems: 2
+            type: array
+          type: array
+        type:
+          enum:
+          - MultiLineString
+          type: string
+      required:
+      - type
+      - coordinates
+      type: object
+    multipointGeoJSON:
+      properties:
+        coordinates:
+          items:
+            items:
+              type: number
+            minItems: 2
+            type: array
+          type: array
+        type:
+          enum:
+          - MultiPoint
+          type: string
+      required:
+      - type
+      - coordinates
+      type: object
+    multipolygonGeoJSON:
+      properties:
+        coordinates:
+          items:
+            items:
+              items:
+                items:
+                  type: number
+                minItems: 2
+                type: array
+              minItems: 4
+              type: array
+            type: array
+          type: array
+        type:
+          enum:
+          - MultiPolygon
+          type: string
+      required:
+      - type
+      - coordinates
+      type: object
+    numberMatched:
+      description: |-
+        The number of features of the feature type that match the selection
+        parameters like `bbox`.
+      example: 127
+      minimum: 0
+      type: integer
+    numberReturned:
+      description: |-
+        The number of features in the feature collection.
+
+        A server may omit this information in a response, if the information
+        about the number of features is not known or difficult to compute.
+
+        If the value is provided, the value shall be identical to the number
+        of items in the "features" array.
+      example: 10
+      minimum: 0
+      type: integer
+    pointGeoJSON:
+      properties:
+        coordinates:
+          items:
+            type: number
+          minItems: 2
+          type: array
+        type:
+          enum:
+          - Point
+          type: string
+      required:
+      - type
+      - coordinates
+      type: object
+    polygonGeoJSON:
+      properties:
+        coordinates:
+          items:
+            items:
+              items:
+                type: number
+              minItems: 2
+              type: array
+            minItems: 4
+            type: array
+          type: array
+        type:
+          enum:
+          - Polygon
+          type: string
+      required:
+      - type
+      - coordinates
+      type: object
+      example:
+        coordinates:
+        - - - 7.242974548172171
+            - 46.57310580640624
+          - - 7.243756483316452
+            - 46.35721185723752
+          - - 7.698490766144817
+            - 46.357085154660915
+          - - 7.699524647567326
+            - 46.57297861624267
+          - - 7.242974548172171
+            - 46.57310580640624
+        type: Polygon
+    proj:epsg:
+      description: |-
+        A Coordinate Reference System (CRS) is the data reference system 
+        (sometimes called a 'projection') used by the asset data, and can 
+        usually be referenced using an EPSG code. If the asset data does not have a 
+        CRS, such as in the case of non-rectified imagery with Ground Control Points, 
+        proj:epsg should be set to null. It should also be set to null if a CRS exists, 
+        but for which there is no valid EPSG code.
+
+      example: 2056
+      title: EPSG code.
+      type:
+      - integer
+      - null
+    providers:
+      description: A list of providers, which may include all organizations capturing or processing the data or the hosting provider. Providers should be listed in chronological order with the most recent provider being the last element of the list.
+      items:
+        properties:
+          description:
+            description: |-
+              Multi-line description to add further provider information such as processing details for processors and producers, hosting details for hosts or basic contact information.
+
+              CommonMark 0.29 syntax MAY be used for rich text representation.
+            type: string
+          name:
+            description: The name of the organization or the individual.
+            type: string
+          roles:
+            description: |-
+              Roles of the provider.
+
+              The provider's role(s) can be one or more of the following
+              elements:
+
+              * licensor: The organization that is licensing the dataset under
+                the license specified in the collection's license field.
+              * producer: The producer of the data is the provider that
+                initially captured and processed the source data, e.g. ESA for
+                Sentinel-2 data.
+              * processor: A processor is any provider who processed data to a
+                derived product.
+              * host: The host is the actual provider offering the data on their
+                storage. There should be no more than one host, specified as last
+                element of the list.
+            items:
+              enum:
+              - producer
+              - licensor
+              - processor
+              - host
+              type: string
+            type: array
+          url:
+            description: Homepage on which the provider describes the dataset and publishes contact information.
+            format: url
+            type: string
+        required:
+        - name
+        title: Provider
+        type: object
+      type: array
+    query:
+      additionalProperties:
+        $ref: '#/components/schemas/queryProp'
+      description: Define which properties to query and the operatations to apply
+      example:
+        property:
+          eq: ""
+      type: object
+    queryFilter:
+      description: Allows users to query properties for specific values
+      properties:
+        query:
+          $ref: '#/components/schemas/query'
+      type: object
+    queryProp:
+      anyOf:
+      - description: if the object doesn't contain any of the operators, it is equivalent to using the equals operator
+      - description: Match using an operator
+        properties:
+          contains:
+            description: Find items with a property that contains the specified literal string, e.g., matches ".*<STRING>.*". A case-insensitive comparison must be performed.
+            type: string
+          endsWith:
+            description: Find items with a property that ends with the specified string. A case-insensitive comparison must be performed.
+            type: string
+          eq:
+            description: Find items with a property that is equal to the specified value. For strings, a case-insensitive comparison must be performed.
+            nullable: true
+            oneOf:
+            - type: string
+            - type: number
+            - type: boolean
+          gt:
+            description: Find items with a property value greater than the specified value.
+            oneOf:
+            - format: date-time
+              type: string
+            - type: number
+          gte:
+            description: Find items with a property value greater than or equal the specified value.
+            oneOf:
+            - format: date-time
+              type: string
+            - type: number
+          in:
+            description: Find items with a property that equals at least one entry in the specified array. A case-insensitive comparison must be performed.
+            items:
+              oneOf:
+              - type: string
+              - type: number
+            type: array
+          lt:
+            description: Find items with a property value less than the specified value.
+            oneOf:
+            - format: date-time
+              type: string
+            - type: number
+          lte:
+            description: Find items with a property value less than or equal the specified value.
+            oneOf:
+            - format: date-time
+              type: string
+            - type: number
+          neq:
+            description: Find items that *don't* contain the specified value. For strings, a case-insensitive comparison must be performed.
+            nullable: true
+            oneOf:
+            - type: string
+            - type: number
+            - type: boolean
+          startsWith:
+            description: Find items with a property that begins with the specified string. A case-insensitive comparison must be performed.
+            type: string
+        type: object
+      description: Apply query operations to a specific property
+    searchBody:
+      allOf:
+      - $ref: '#/components/schemas/assetQueryFilter'
+      - $ref: '#/components/schemas/queryFilter'
+      - $ref: '#/components/schemas/bboxFilter'
+      - $ref: '#/components/schemas/datetimeFilter'
+      - $ref: '#/components/schemas/intersectsFilter'
+      - $ref: '#/components/schemas/collectionsFilter'
+      - $ref: '#/components/schemas/idsFilter'
+      - $ref: '#/components/schemas/limitFilter'
+      description: The search criteria
+      type: object
+    stac_extensions:
+      items:
+        anyOf:
+        - format: uri
+          title: Reference to a JSON Schema
+          type: string
+        - title: Reference to a core extension
+          type: string
+      title: STAC extensions
+      type: array
+      uniqueItems: true
+    stac_version:
+      example: 0.9.0
+      title: STAC version
+      type: string
+    timeStamp:
+      description: This property indicates the time and date when the response was generated.
+      example: "2017-08-17T08:05:32Z"
+      format: date-time
+      type: string

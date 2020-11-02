@@ -129,6 +129,14 @@ test:
 	$(PYTHON) $(DJANGO_MANAGER) test --verbosity=2 $(TEST_DIR)
 
 
+###################
+# Specs
+.PHONY: specs
+specs:
+	cd spec && make static/openapi.yaml && make static/openapitransactional.yaml
+
+
+###################
 # Serve targets. Using these will run the application on your local machine. You can either serve with a wsgi front (like it would be within the container), or without.
 
 .PHONY: serve
@@ -139,6 +147,9 @@ serve:
 gunicornserve:
 	$(PYTHON) $(APP_SRC_DIR)/wsgi.py
 
+.PHONY: serve-spec
+serve-spec:
+	cd spec && make serve-spec
 
 ###################
 # Docker related functions.

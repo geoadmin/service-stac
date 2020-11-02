@@ -1,0 +1,18 @@
+openapi: 3.0.1
+info:
+  contact:
+    name: API Specification (based on STAC)
+    url: http://data.geo.admin.ch/api/stac/v0.9/
+  description: "This is an OpenAPI definition of the API to query and access federal geodata on \ndata.geo.admin.ch. The API is based on the core SpatioTemporal Asset Catalog API\nspecification [STAC](http://stacspec.org) and adds two extensions for extended \nsearching possibilities.\n\n\n**Note:** The API is _not_ productively accessible yet, this is a preliminary outlook of\nhow it will look like. Minor changes are possible and will be reflected in this document."
+  title: The SpatioTemporal Asset Catalog API for data.geo.admin.ch
+  version: 0.9.0
+servers:
+- description: Data.geo.admin.ch
+  url: http://data.geo.admin.ch/api/stac/v0.9
+tags:
+- description: essential characteristics of this API
+  name: Capabilities
+- description: access to data (features)
+  name: Data
+- description: Extension to OGC API - Features to support STAC metadata model and search API
+  name: STAC
