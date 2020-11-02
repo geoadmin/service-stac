@@ -29,7 +29,7 @@ class CollectionsEndpointTestCase(TestCase):
 
     def test_collections_endpoint(self):
         collection_name = self.collections[0].collection_name
-        response = self.client.get(f"/{API_BASE}collections?format=json")
+        response = self.client.get(f"/{API_BASE}collections")
         self.assertEqual(200, response.status_code)
         response_json = response.json()
         logger.debug('Serialized data:\n%s', pformat(self.serializer.data))
@@ -43,7 +43,7 @@ class CollectionsEndpointTestCase(TestCase):
 
     def test_single_collection_endpoint(self):
         collection_name = self.collections[0].collection_name
-        response = self.client.get(f"/{API_BASE}collections/{collection_name}?format=json")
+        response = self.client.get(f"/{API_BASE}collections/{collection_name}")
         self.assertEqual(response.status_code, 200)
         self.assertDictContainsSubset(
             self.serializer.data[0],

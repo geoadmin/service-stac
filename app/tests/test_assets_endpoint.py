@@ -31,7 +31,7 @@ class AssetsEndpointTestCase(TestCase):
         collection_name = self.collections[0].collection_name
         item_name = self.items[0][0].item_name
         response = self.client.get(
-            f"/{API_BASE}collections/{collection_name}/items/{item_name}/assets?format=json"
+            f"/{API_BASE}collections/{collection_name}/items/{item_name}/assets"
         )
         self.assertEqual(200, response.status_code)
         json_data = response.json()
@@ -44,7 +44,7 @@ class AssetsEndpointTestCase(TestCase):
             'links': [{
                 'rel': 'next',
                 'href':
-                    'http://testserver/api/stac/v0.9/collections/collection-1/items/item-1-1/assets?cursor=cD0y&format=json'
+                    'http://testserver/api/stac/v0.9/collections/collection-1/items/item-1-1/assets?cursor=cD0y'
             }]
         })
         logger.debug('Serialized data:\n%s', pformat(original_data))
@@ -57,8 +57,7 @@ class AssetsEndpointTestCase(TestCase):
         item_name = self.items[0][0].item_name
         asset_name = self.assets[0][0][0].asset_name
         response = self.client.get(
-            f"/{API_BASE}collections/{collection_name}/items/{item_name}"
-            f"/assets/{asset_name}?format=json"
+            f"/{API_BASE}collections/{collection_name}/items/{item_name}/assets/{asset_name}"
         )
         self.assertEqual(200, response.status_code)
         json_data = response.json()

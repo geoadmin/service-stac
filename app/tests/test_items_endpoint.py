@@ -29,7 +29,7 @@ class ItemsEndpointTestCase(TestCase):
 
     def test_items_endpoint(self):
         response = self.client.get(
-            f"/{API_BASE}collections/{self.collections[0].collection_name}/items?format=json"
+            f"/{API_BASE}collections/{self.collections[0].collection_name}/items"
         )
         self.assertEqual(200, response.status_code)
         json_data = response.json()
@@ -56,9 +56,7 @@ class ItemsEndpointTestCase(TestCase):
     def test_single_item_endpoint(self):
         collection_name = self.collections[0].collection_name
         item_name = self.items[0][0].item_name
-        response = self.client.get(
-            f"/{API_BASE}collections/{collection_name}/items/{item_name}?format=json"
-		)
+        response = self.client.get(f"/{API_BASE}collections/{collection_name}/items/{item_name}")
         self.assertEqual(200, response.status_code)
         json_data = response.json()
         logger.debug('Response (%s):\n%s', type(json_data), pformat(json_data))
