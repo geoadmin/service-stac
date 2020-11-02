@@ -25,8 +25,9 @@ class SerializationTestCase(TestCase):
         Prepare instances of keyword, link, provider and instance for testing.
         Adding the relationships among those by populating the ManyToMany fields
         '''
-        self.collection = db.create_collection()
-        self.item, self.assets = db.create_item(self.collection)
+        self.collection = db.create_collection('collection-1')
+        self.item = db.create_item(self.collection, 'item-1')
+        self.asset = db.create_asset(self.collection, self.item, 'asset-1')
 
     def test_collection_serialization(self):
 
@@ -44,7 +45,7 @@ class SerializationTestCase(TestCase):
         # back-translate into fully populated collection instance:
         serializer = CollectionSerializer(data=data)
 
-        self.assertEqual(serializer.is_valid(), True, msg='Serializer data not valid.')
+        self.assertEqual(True, serializer.is_valid(), msg='Serializer data not valid.')
         self.assertEqual(python_native, data, msg='Back-translated data not equal initial data.')
 
     def test_item_serialization(self):
@@ -69,8 +70,8 @@ class SerializationTestCase(TestCase):
 
         # yapf: disable
         self.assertDictContainsSubset({
-            'id': 'item-for-test',
-            'collection': 'ch.swisstopo.pixelkarte-farbe-pk200.noscale',
+            'id': 'item-1',
+            'collection': 'collection-1',
             'type': 'Feature',
             'stac_version': '0.9.0',
             'geometry': GeoJsonDict([
@@ -122,7 +123,7 @@ class SerializationTestCase(TestCase):
                 ])
             ],
             'assets': {
-                'my first asset': OrderedDict([
+                'asset-1': OrderedDict([
                     ('title', 'my-title'),
                     ('type', 'image/tiff; application=geotiff; profile=cloud-optimize'),
                     (
@@ -154,7 +155,7 @@ class SerializationTestCase(TestCase):
     def test_asset_serialization(self):
 
         # translate to Python native:
-        serializer = AssetSerializer(self.assets[0])
+        serializer = AssetSerializer(self.asset)
         python_native = serializer.data
 
         logger.debug('serialized fields:\n%s', pformat(serializer.fields))
@@ -189,6 +190,6 @@ class SerializationTestCase(TestCase):
         python_native_back = JSONParser().parse(stream)
 
         # back-translate into fully populated Item instance:
-        back_serializer = AssetSerializer(instance=self.assets[0], data=python_native_back)
+        back_serializer = AssetSerializer(instance=self.asset, data=python_native_back)
         back_serializer.is_valid(raise_exception=True)
         logger.debug('back validated data:\n%s', pformat(back_serializer.validated_data))
