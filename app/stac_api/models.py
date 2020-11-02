@@ -209,7 +209,7 @@ class Collection(models.Model):
                 self.summaries["eo:gsd"].append(asset_eo_gsd)
                 self.save()
 
-        except (KeyError, IndexError) as err:
+        except KeyError as err:
             logger.error(
                 "Error when updating collection's summaries values due to asset update: %s", err
             )
