@@ -29,7 +29,7 @@ def create_collection(name):
         stac_extension=get_default_stac_extensions(),
         stac_version="0.9.0",
         summaries={
-            "eo:gsd": None, "geoadmin:variant": None, "proj:epsg": None
+            "eo:gsd": [], "geoadmin:variant": [], "proj:epsg": []
         },
         title='Test title'
     )

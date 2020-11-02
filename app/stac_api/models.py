@@ -47,11 +47,11 @@ DEFAULT_STAC_EXTENSIONS = {
 
 DEFAULT_EXTENT_VALUE = {"spatial": {"bbox": [[None]]}, "temporal": {"interval": [[None, None]]}}
 
-DEFAULT_SUMMARIES_VALUE = {"eo:gsd": None, "geoadmin:variant": None, "proj:epsg": None}
+DEFAULT_SUMMARIES_VALUE = {"eo:gsd": [], "geoadmin:variant": [], "proj:epsg": []}
 
 
 def get_default_stac_extensions():
-    return list(dict(DEFAULT_STAC_EXTENSIONS).values())
+    return list(DEFAULT_STAC_EXTENSIONS.values())
 
 
 def get_default_extent_value():
@@ -182,30 +182,21 @@ class Collection(models.Model):
         '''
         try:
 
-            logger.debug(
-                "updating geoadmin:variants, self.summaries['eo:gsd']=%s, asset_eo_gsd=%s",
-                self.summaries["geoadmin:variant"],
-                asset_eo_gsd
-            )
+            # logger.debug(
+            #     "updating geoadmin:variants, self.summaries['eo:gsd']=%s, asset_eo_gsd=%s",
+            #     self.summaries["geoadmin:variant"],
+            #     asset_eo_gsd
+            # )
 
-            if self.summaries["geoadmin:variant"] is None:
-                self.summaries["geoadmin:variant"] = [asset_geoadmin_variant]
-                self.save()
-            elif asset_geoadmin_variant not in self.summaries["geoadmin:variant"]:
+            if asset_geoadmin_variant not in self.summaries["geoadmin:variant"]:
                 self.summaries["geoadmin:variant"].append(asset_geoadmin_variant)
                 self.save()
 
-            if self.summaries["proj:epsg"] is None:
-                self.summaries["proj:epsg"] = [asset_proj_epsg]
-                self.save()
-            elif asset_proj_epsg not in self.summaries["proj:epsg"]:
+            if asset_proj_epsg not in self.summaries["proj:epsg"]:
                 self.summaries["proj:epsg"].append(asset_proj_epsg)
                 self.save()
 
-            if self.summaries["eo:gsd"] is None:
-                self.summaries["eo:gsd"] = [asset_eo_gsd]
-                self.save()
-            elif not float_in(asset_eo_gsd, self.summaries["eo:gsd"]):
+            if not float_in(asset_eo_gsd, self.summaries["eo:gsd"]):
                 self.summaries["eo:gsd"].append(asset_eo_gsd)
                 self.save()
 
