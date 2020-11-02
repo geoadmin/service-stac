@@ -1,6 +1,7 @@
 import logging
 
 from rest_framework import serializers
+from rest_framework.utils.serializer_helpers import ReturnDict
 from rest_framework_gis import serializers as gis_serializers
 
 from stac_api.models import Asset
@@ -46,6 +47,11 @@ class DictSerializer(serializers.ListSerializer):
     def to_representation(self, data):
         objects = super().to_representation(data)
         return {obj.pop(self.key_identifier): obj for obj in objects}
+
+    @property
+    def data(self):
+        ret = super(serializers.ListSerializer, self).data
+        return ReturnDict(ret, serializer=self)
 
 
 class KeywordSerializer(serializers.ModelSerializer):
@@ -244,7 +250,7 @@ class AssetsDictSerializer(DictSerializer):
     key_identifier = 'asset_name'
 
 
-class AssetsItemSerializer(serializers.ModelSerializer):
+class AssetSerializer(serializers.ModelSerializer):
     type = serializers.CharField(source='media_type', max_length=200)
     eo_gsd = serializers.FloatField(source='eo_gsd')
     geoadmin_lang = serializers.CharField(source='geoadmin_lang', max_length=2)
@@ -305,4 +311,4 @@ class ItemSerializer(serializers.ModelSerializer):
     links = ItemLinkSerializer(many=True, read_only=True)
     type = serializers.ReadOnlyField(default='Feature')
     bbox = BboxSerializer(source='*', read_only=True)
-    assets = AssetsItemSerializer(many=True, read_only=True)
+    assets = AssetSerializer(many=True, read_only=True)

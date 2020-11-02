@@ -8,8 +8,10 @@ from django.shortcuts import get_object_or_404
 from rest_framework import generics
 from rest_framework.response import Response
 
+from stac_api.models import Asset
 from stac_api.models import Collection
 from stac_api.models import Item
+from stac_api.serializers import AssetSerializer
 from stac_api.serializers import CollectionSerializer
 from stac_api.serializers import ItemSerializer
 
@@ -135,5 +137,39 @@ class ItemDetail(generics.RetrieveAPIView):
     def get_object(self):
         item_name = self.kwargs.get(self.lookup_url_kwarg)
         queryset = self.get_queryset().filter(item_name=item_name)
+        obj = get_object_or_404(queryset)
+        return obj
+
+
+class AssetsList(generics.GenericAPIView):
+    serializer_class = AssetSerializer
+    queryset = Asset.objects.all()
+
+    def get(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+        else:
+            serializer = self.get_serializer(queryset, many=True)
+
+        data = serializer.data
+
+        logging.debug('GET list of assets: %s', data, extra={"request": request, "response": data})
+
+        if page is not None:
+            return self.get_paginated_response(data)
+        return Response(data)
+
+
+class AssetDetail(generics.RetrieveAPIView):
+    serializer_class = AssetSerializer
+    lookup_url_kwarg = "asset_name"
+    queryset = Asset.objects.all()
+
+    def get_object(self):
+        asset_name = self.kwargs.get(self.lookup_url_kwarg)
+        queryset = self.get_queryset().filter(asset_name=asset_name)
         obj = get_object_or_404(queryset)
         return obj
