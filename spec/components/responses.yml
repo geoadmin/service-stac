@@ -4,54 +4,76 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/collection'
-      description: |-
+            $ref: "#/components/schemas/collection"
+      description: >-
         Information about the feature collection with id `collectionId`.
+
 
         The response contains a link to the items in the collection
         (path `/collections/{collectionId}/items`, link relation `items`)
         as well as key information about the collection. This information
         includes:
 
-        * A local identifier for the collection that is unique for the dataset;
-        * A list of coordinate reference systems (CRS) in which geometries may be returned by the server. The first CRS is the default coordinate reference system (the default is always WGS 84 with axis order longitude/latitude);
-        * An optional title and description for the collection;
-        * An optional extent that can be used to provide an indication of the spatial and temporal extent of the collection - typically derived from the data;
-        * An optional indicator about the type of the items in the collection (the default value, if the indicator is not provided, is 'feature').
+
+        * A local identifier for the collection that is unique for the dataset
+
+        * A list of coordinate reference systems (CRS) in which geometries may be returned by the
+        server. The first CRS is the default coordinate reference system (the default is always
+        WGS 84 with axis order longitude/latitude)
+
+        * An optional title and description for the collection
+
+        * An optional extent that can be used to provide an indication of the spatial and temporal
+        extent of the collection - typically derived from the data
+
+        * An optional indicator about the type of the items in the collection (the default value,
+        if the indicator is not provided, is 'feature')
     Collections:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/collections'
-      description: |-
+            $ref: "#/components/schemas/collections"
+      description: >-
         The feature collections shared by this API.
+
 
         The dataset is organized as one or more feature collections. This resource
         provides information about and access to the collections.
+
 
         The response contains the list of collections. For each collection, a link
         to the items in the collection (path `/collections/{collectionId}/items`,
         link relation `items`) as well as key information about the collection.
         This information includes:
 
-        * A local identifier for the collection that is unique for the dataset;
-        * A list of coordinate reference systems (CRS) in which geometries may be returned by the server. The first CRS is the default coordinate reference system (the default is always WGS 84 with axis order longitude/latitude);
-        * An optional title and description for the collection;
-        * An optional extent that can be used to provide an indication of the spatial and temporal extent of the collection - typically derived from the data;
-        * An optional indicator about the type of the items in the collection (the default value, if the indicator is not provided, is 'feature').
+
+        * A local identifier for the collection that is unique for the dataset
+
+        * A list of coordinate reference systems (CRS) in which geometries may be returned by the
+        server. The first CRS is the default coordinate reference system (the default is always
+        WGS 84 with axis order longitude/latitude)
+
+        * An optional title and description for the collection
+
+        * An optional extent that can be used to provide an indication of the spatial and temporal
+        extent of the collection - typically derived from the data
+
+        * An optional indicator about the type of the items in the collection (the default value,
+        if the indicator is not provided, is 'feature').
     ConformanceDeclaration:
       content:
         application/json:
           example:
             conformsTo:
-            - http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/core
-            - http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/oas30
-            - http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/html
-            - http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/geojson
+              - http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/core
+              - http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/oas30
+              - http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/html
+              - http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/geojson
           schema:
-            $ref: '#/components/schemas/confClasses'
+            $ref: "#/components/schemas/confClasses"
       description: |-
         The URIs of all conformance classes supported by the server.
+
 
         To support "generic" clients that want to access multiple
         OGC API Features implementations - and not "just" a specific
@@ -61,17 +83,17 @@ components:
       content:
         application/geo+json:
           schema:
-            $ref: '#/components/schemas/item'
+            $ref: "#/components/schemas/item"
       description: |-
-        fetch the feature with id `featureId` in the feature collection
+        Fetch the feature with id `featureId` in the feature collection
         with id `collectionId`
     Features:
       content:
         application/geo+json:
           schema:
             # $ref: '#/components/schemas/featureCollectionGeoJSON'
-            $ref: '#/components/schemas/itemCollection'
-      description: |-
+            $ref: "#/components/schemas/itemCollection"
+      description: >-
         The response is a document consisting of features in the collection.
         The features included in the response are determined by the server
         based on the query parameters of the request. To support access to
@@ -79,12 +101,14 @@ components:
         paged access with links to the next page, if more features are selected
         that the page size.
 
+
         The `bbox` and `datetime` parameter can be used to select only a
         subset of the features in the collection (the features that are in the
         bounding box or time interval). The `bbox` parameter matches all features
         in the collection that are not associated with a location, too. The
         `datetime` parameter matches all features in the collection that are
         not associated with a time stamp or interval, too.
+
 
         The `limit` parameter may be used to control the subset of the
         selected features that should be returned in the response, the page size.
@@ -95,7 +119,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/exception'
+            $ref: "#/components/schemas/exception"
       description: A query parameter has an invalid value.
     LandingPage:
       content:
@@ -104,15 +128,15 @@ components:
             description: Catalog of Swiss Geodata Downloads
             id: ch
             links:
-            - href: http://data.geo.admin.ch/api/stac/v0.9/search
-              rel: search
-              title: Search across feature collections
-              type: application/json
+              - href: http://data.geo.admin.ch/api/stac/v0.9/search
+                rel: search
+                title: Search across feature collections
+                type: application/json
             stac_version: 0.9.0
             title: data.geo.admin.ch
           schema:
-            $ref: '#/components/schemas/landingPage'
-      description: |-
+            $ref: "#/components/schemas/landingPage"
+      description: >-
         The landing page provides links to the API definition
         (link relations `service-desc` and `service-doc`),
         the Conformance declaration (path `/conformance`,
@@ -125,5 +149,5 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/exception'
+            $ref: "#/components/schemas/exception"
       description: A server error occurred.

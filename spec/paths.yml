@@ -1,115 +1,120 @@
 paths:
   /:
     get:
-      description: |-
+      description: >-
         The landing page provides links to the API definition, the conformance
         statements and to the feature collections in this dataset.
       operationId: getLandingPage
       responses:
         "200":
-          $ref: '#/components/responses/LandingPage'
+          $ref: "#/components/responses/LandingPage"
         "500":
-          $ref: '#/components/responses/ServerError'
-      summary: landing page
+          $ref: "#/components/responses/ServerError"
+      summary: Landing page
       tags:
-      - Capabilities
+        - Capabilities
   /collections:
     get:
       operationId: getCollections
       responses:
         "200":
-          $ref: '#/components/responses/Collections'
+          $ref: "#/components/responses/Collections"
         "500":
-          $ref: '#/components/responses/ServerError'
-      summary: the feature collections in the dataset
+          $ref: "#/components/responses/ServerError"
+      summary: The feature collections in the dataset
       tags:
-      - Data
+        - Data
   /collections/{collectionId}:
     get:
       operationId: describeCollection
       parameters:
-      - $ref: '#/components/parameters/collectionId'
+        - $ref: "#/components/parameters/collectionId"
       responses:
         "200":
-          $ref: '#/components/responses/Collection'
+          $ref: "#/components/responses/Collection"
         "404":
-          $ref: '#/components/responses/NotFound'
+          $ref: "#/components/responses/NotFound"
         "500":
-          $ref: '#/components/responses/ServerError'
-      summary: describe the feature collection with id `collectionId`
+          $ref: "#/components/responses/ServerError"
+      summary: Describe the feature collection with id `collectionId`
       tags:
-      - Data
+        - Data
   /collections/{collectionId}/items:
     get:
-      description: |-
+      description: >-
         Fetch features of the feature collection with id `collectionId`.
+
 
         Every feature in a dataset belongs to a collection. A dataset may
         consist of multiple feature collections. A feature collection is often a
         collection of features of a similar type, based on a common schema.
 
+
         Use content negotiation to request HTML or GeoJSON.
       operationId: getFeatures
       parameters:
-      - $ref: '#/components/parameters/collectionId'
-      - $ref: '#/components/parameters/limit'
-      - $ref: '#/components/parameters/bbox'
-      - $ref: '#/components/parameters/datetime'
+        - $ref: "#/components/parameters/collectionId"
+        - $ref: "#/components/parameters/limit"
+        - $ref: "#/components/parameters/bbox"
+        - $ref: "#/components/parameters/datetime"
       responses:
         "200":
-          $ref: '#/components/responses/Features'
+          $ref: "#/components/responses/Features"
         "400":
-          $ref: '#/components/responses/InvalidParameter'
+          $ref: "#/components/responses/InvalidParameter"
         "404":
-          $ref: '#/components/responses/NotFound'
+          $ref: "#/components/responses/NotFound"
         "500":
-          $ref: '#/components/responses/ServerError'
-      summary: fetch features
+          $ref: "#/components/responses/ServerError"
+      summary: Fetch features
       tags:
-      - Data
+        - Data
   /collections/{collectionId}/items/{featureId}:
     get:
-      description: |-
+      description: >-
         Fetch the feature with id `featureId` in the feature collection
         with id `collectionId`.
+
 
         Use content negotiation to request HTML or GeoJSON.
       operationId: getFeature
       parameters:
-      - $ref: '#/components/parameters/collectionId'
-      - $ref: '#/components/parameters/featureId'
+        - $ref: "#/components/parameters/collectionId"
+        - $ref: "#/components/parameters/featureId"
       responses:
         "200":
-          $ref: '#/components/responses/Feature'
+          $ref: "#/components/responses/Feature"
         "404":
-          $ref: '#/components/responses/NotFound'
+          $ref: "#/components/responses/NotFound"
         "500":
-          $ref: '#/components/responses/ServerError'
-      summary: fetch a single feature
+          $ref: "#/components/responses/ServerError"
+      summary: Fetch a single feature
       tags:
-      - Data
+        - Data
   /conformance:
     get:
-      description: |-
+      description: >-
         A list of all conformance classes specified in a standard that the
         server conforms to.
       operationId: getConformanceDeclaration
       responses:
         "200":
-          $ref: '#/components/responses/ConformanceDeclaration'
+          $ref: "#/components/responses/ConformanceDeclaration"
         "500":
-          $ref: '#/components/responses/ServerError'
-      summary: information about specifications that this API conforms to
+          $ref: "#/components/responses/ServerError"
+      summary: Information about specifications that this API conforms to
       tags:
-      - Capabilities
+        - Capabilities
   /search:
     get:
-      description: |-
+      description: >-
         Retrieve Items matching filters. Intended as a shorthand API for simple
         queries.
 
+
         This method is optional, but you MUST implement `POST /search` if you
         want to implement this method.
+
 
         If this endpoint is implemented on a server, it is required to add a
         link referring to this endpoint with `rel` set to `search` to the
@@ -117,19 +122,19 @@ paths:
         may not be set explicitly in the link.
       operationId: getSearchSTAC
       parameters:
-      - $ref: '#/components/parameters/assetQuery'
-      - $ref: '#/components/parameters/query'
-      - $ref: '#/components/parameters/bbox'
-      - $ref: '#/components/parameters/datetime'
-      - $ref: '#/components/parameters/limit'
-      - $ref: '#/components/parameters/ids'
-      - $ref: '#/components/parameters/collectionsArray'
+        - $ref: "#/components/parameters/assetQuery"
+        - $ref: "#/components/parameters/query"
+        - $ref: "#/components/parameters/bbox"
+        - $ref: "#/components/parameters/datetime"
+        - $ref: "#/components/parameters/limit"
+        - $ref: "#/components/parameters/ids"
+        - $ref: "#/components/parameters/collectionsArray"
       responses:
         "200":
           content:
             application/geo+json:
               schema:
-                $ref: '#/components/schemas/itemCollection'
+                $ref: "#/components/schemas/itemCollection"
             text/html:
               schema:
                 type: string
@@ -138,18 +143,19 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/exception'
+                $ref: "#/components/schemas/exception"
             text/html:
               schema:
                 type: string
           description: An error occurred.
       summary: Search STAC items with simple filtering.
       tags:
-      - STAC
+        - STAC
     post:
-      description: |-
-        retrieve items matching filters. Intended as the standard, full-featured
+      description: >-
+        Retrieve items matching filters. Intended as the standard, full-featured
         query API.
+
 
         This method is mandatory to implement if `GET /search` is implemented.
         If this endpoint is implemented on a server, it is required to add a
@@ -160,13 +166,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/searchBody'
+              $ref: "#/components/schemas/searchBody"
       responses:
         "200":
           content:
             application/geo+json:
               schema:
-                $ref: '#/components/schemas/itemCollection'
+                $ref: "#/components/schemas/itemCollection"
             text/html:
               schema:
                 type: string
@@ -175,11 +181,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/exception'
+                $ref: "#/components/schemas/exception"
             text/html:
               schema:
                 type: string
           description: An error occurred.
       summary: Search STAC items with full-featured filtering.
       tags:
-      - STAC
+        - STAC
