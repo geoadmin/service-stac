@@ -112,3 +112,20 @@ class CollectionsEndpointTestCase(TestCase):
             },
             python_native,
         )
+
+    def test_collections_limit_query(self):
+        response = self.client.get(f"/{API_BASE}collections?limit=1")
+        self.assertEqual(200, response.status_code)
+        self.assertLessEqual(1, len(response.json()['collections']))
+
+        response = self.client.get(f"/{API_BASE}collections?limit=0")
+        self.assertEqual(400, response.status_code)
+
+        response = self.client.get(f"/{API_BASE}collections?limit=test")
+        self.assertEqual(400, response.status_code)
+
+        response = self.client.get(f"/{API_BASE}collections?limit=-1")
+        self.assertEqual(400, response.status_code)
+
+        response = self.client.get(f"/{API_BASE}collections?limit=1000")
+        self.assertEqual(400, response.status_code)

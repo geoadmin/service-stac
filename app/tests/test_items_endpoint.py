@@ -40,7 +40,7 @@ class ItemsEndpointTestCase(TestCase):
         self.assertListEqual([{
             'rel': 'next',
             'href':
-                'http://testserver/api/stac/v0.9/collections/collection-1/items?cursor=cD04Mg%3D%3D'
+                'http://testserver/api/stac/v0.9/collections/collection-1/items?cursor=cD05OA%3D%3D'
         }], json_data['links']) # yapf: disable
 
         # Check that the answer is equal to the initial data
