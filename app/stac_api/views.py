@@ -144,6 +144,13 @@ class ItemDetail(generics.RetrieveAPIView):
 class AssetsList(generics.GenericAPIView):
     serializer_class = AssetSerializer
     queryset = Asset.objects.all()
+    pagination_class = None
+
+    # def get_queryset(self):
+    #     # filter based on the url
+    #     return Asset.objects.filter(
+    #         collection=self.kwargs['collection_name'], feature=self.kwargs['item_name']
+    #     )
 
     def get(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())

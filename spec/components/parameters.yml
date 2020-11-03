@@ -166,26 +166,6 @@ components:
         minimum: 1
         type: integer
       style: form
-    assetsLimit:
-      description: >-
-        The optional limit parameter limits the number of assets that are presented in the response
-        document.
-
-
-        To retrieve the next items result, uses the `next` link from the response.
-
-
-        Minimum = 1. Maximum = 100. Default = 100.
-      explode: false
-      in: query
-      name: limit
-      required: false
-      schema:
-        default: 100
-        maximum: 100
-        minimum: 1
-        type: integer
-      style: form
     itemsLimit:
       description: >-
         The optional limit parameter limits the number of items that are presented in the response

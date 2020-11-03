@@ -167,25 +167,6 @@ components:
         minimum: 1
         type: integer
       style: form
-    assetsLimit:
-      description: >-
-        The optional limit parameter limits the number of assets that are presented in the response document.
-
-
-        To retrieve the next items result, uses the `next` link from the response.
-
-
-        Minimum = 1. Maximum = 100. Default = 100.
-      explode: false
-      in: query
-      name: limit
-      required: false
-      schema:
-        default: 100
-        maximum: 100
-        minimum: 1
-        type: integer
-      style: form
     limit:
       description: >-
         The optional limit parameter limits the number of results that are presented in the response document.
@@ -361,8 +342,6 @@ components:
     Assets:
       description: >-
         The response is a document consisting of all assets of the feature.
-
-        The `limit` parameter may be used to control the subset of the selected assets that should be returned in the response, the page size. Each page include links to support paging (link relation `next` and/or `previous`).
       content:
         application/json:
           schema:
@@ -2120,7 +2099,6 @@ paths:
       parameters:
         - $ref: "#/components/parameters/collectionId"
         - $ref: "#/components/parameters/featureId"
-        - $ref: "#/components/parameters/assetsLimit"
       responses:
         "200":
           $ref: "#/components/responses/Assets"
