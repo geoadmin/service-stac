@@ -180,4 +180,8 @@ else:
 TEST_RUNNER = 'tests.runner.TestRunner'
 
 # set default pagination configuration
-REST_FRAMEWORK = {'DEFAULT_PAGINATION_CLASS': 'stac_api.apps.CursorPagination', 'PAGE_SIZE': 100}
+REST_FRAMEWORK = {
+    'DEFAULT_PAGINATION_CLASS': 'stac_api.apps.CursorPagination',
+    'PAGE_SIZE': 100,
+    'PAGE_SIZE_LIMIT': 100
+}
