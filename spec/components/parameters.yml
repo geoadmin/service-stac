@@ -121,7 +121,27 @@ components:
       required: false
       schema:
         $ref: "#/components/schemas/ids"
-    limit:
+    collectionsLimit:
+      description: >-
+        The optional limit parameter limits the number of collections that are presented in the response
+        document.
+
+
+        To retrieve the next collections result, uses the `next` link from the response.
+
+
+        Minimum = 1. Maximum = 100. Default = 100.
+      explode: false
+      in: query
+      name: limit
+      required: false
+      schema:
+        default: 100
+        maximum: 100
+        minimum: 1
+        type: integer
+      style: form
+    itemsLimit:
       description: >-
         The optional limit parameter limits the number of items that are presented in the response
         document.
@@ -132,14 +152,82 @@ components:
         counted.
 
 
-        Minimum = 1. Maximum = 10000. Default = 10.
+        To retrieve the next items result, uses the `next` link from the response.
+
+
+        Minimum = 1. Maximum = 100. Default = 100.
       explode: false
       in: query
       name: limit
       required: false
       schema:
-        default: 10
-        maximum: 10000
+        default: 100
+        maximum: 100
+        minimum: 1
+        type: integer
+      style: form
+    assetsLimit:
+      description: >-
+        The optional limit parameter limits the number of assets that are presented in the response
+        document.
+
+
+        To retrieve the next items result, uses the `next` link from the response.
+
+
+        Minimum = 1. Maximum = 100. Default = 100.
+      explode: false
+      in: query
+      name: limit
+      required: false
+      schema:
+        default: 100
+        maximum: 100
+        minimum: 1
+        type: integer
+      style: form
+    itemsLimit:
+      description: >-
+        The optional limit parameter limits the number of items that are presented in the response
+        document.
+
+
+        Only items are counted that are on the first level of the collection in the response
+        document. Nested objects contained within the explicitly requested items shall not be
+        counted.
+
+
+        To retrieve the next items result, uses the `next` link from the response.
+
+
+        Minimum = 1. Maximum = 100. Default = 100.
+      explode: false
+      in: query
+      name: limit
+      required: false
+      schema:
+        default: 100
+        maximum: 100
+        minimum: 1
+        type: integer
+      style: form
+    limit:
+      description: >-
+        The optional limit parameter limits the number of results that are presented in the response
+        document.
+
+
+        To retrieve the next result, uses the `next` link from the response.
+
+
+        Minimum = 1. Maximum = 100. Default = 100.
+      explode: false
+      in: query
+      name: limit
+      required: false
+      schema:
+        default: 100
+        maximum: 100
         minimum: 1
         type: integer
       style: form

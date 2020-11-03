@@ -16,6 +16,8 @@ paths:
   /collections:
     get:
       operationId: getCollections
+      parameters:
+        - $ref: "#/components/parameters/collectionsLimit"
       responses:
         "200":
           $ref: "#/components/responses/Collections"
@@ -54,7 +56,7 @@ paths:
       operationId: getFeatures
       parameters:
         - $ref: "#/components/parameters/collectionId"
-        - $ref: "#/components/parameters/limit"
+        - $ref: "#/components/parameters/itemsLimit"
         - $ref: "#/components/parameters/bbox"
         - $ref: "#/components/parameters/datetime"
       responses:
