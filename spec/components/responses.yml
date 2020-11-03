@@ -60,6 +60,11 @@ components:
 
         * An optional indicator about the type of the items in the collection (the default value,
         if the indicator is not provided, is 'feature').
+
+        The `limit` parameter may be used to control the subset of the
+        selected collections that should be returned in the response, the page size.
+        Each page include links to support paging (link relation `next` and/or
+        `previous`).
     ConformanceDeclaration:
       content:
         application/json:
@@ -112,9 +117,8 @@ components:
 
         The `limit` parameter may be used to control the subset of the
         selected features that should be returned in the response, the page size.
-        Each page may include information about the number of selected and
-        returned features (`numberMatched` and `numberReturned`) as well as
-        links to support paging (link relation `next`).
+        Each page include links to support paging (link relation `next` and/or
+        `previous`).
     InvalidParameter:
       content:
         application/json:

@@ -281,6 +281,8 @@ components:
         * An optional extent that can be used to provide an indication of the spatial and temporal extent of the collection - typically derived from the data
 
         * An optional indicator about the type of the items in the collection (the default value, if the indicator is not provided, is 'feature').
+
+        The `limit` parameter may be used to control the subset of the selected collections that should be returned in the response, the page size. Each page include links to support paging (link relation `next` and/or `previous`).
     ConformanceDeclaration:
       content:
         application/json:
@@ -320,7 +322,7 @@ components:
         The `bbox` and `datetime` parameter can be used to select only a subset of the features in the collection (the features that are in the bounding box or time interval). The `bbox` parameter matches all features in the collection that are not associated with a location, too. The `datetime` parameter matches all features in the collection that are not associated with a time stamp or interval, too.
 
 
-        The `limit` parameter may be used to control the subset of the selected features that should be returned in the response, the page size. Each page may include information about the number of selected and returned features (`numberMatched` and `numberReturned`) as well as links to support paging (link relation `next`).
+        The `limit` parameter may be used to control the subset of the selected features that should be returned in the response, the page size. Each page include links to support paging (link relation `next` and/or `previous`).
     InvalidParameter:
       content:
         application/json:
@@ -359,6 +361,8 @@ components:
     Assets:
       description: >-
         The response is a document consisting of all assets of the feature.
+
+        The `limit` parameter may be used to control the subset of the selected assets that should be returned in the response, the page size. Each page include links to support paging (link relation `next` and/or `previous`).
       content:
         application/json:
           schema:
