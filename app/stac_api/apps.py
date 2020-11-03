@@ -41,11 +41,8 @@ class CursorPagination(pagination.CursorPagination):
         # Overwrite the default implementation about the page size as this one
         # don't validate the query parameter, its simply correct it if it is not valid
         # here we want to return a 400 BAD REQUEST when the provided page size is invalid.
-        try:
-            integer_string = request.query_params[self.page_size_query_param]
-        except KeyError:
-            # when not limit is provided then uses the default page_size
-            return self.page_size
+
+        integer_string = request.query_params.get(self.page_size_query_param, self.page_size)
 
         try:
             page_size = int(integer_string)
