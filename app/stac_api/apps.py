@@ -3,10 +3,14 @@ from gettext import gettext as _
 
 from django.apps import AppConfig
 from django.conf import settings
+from django.core.exceptions import PermissionDenied
+from django.http import Http404
 
+from rest_framework import exceptions
 from rest_framework import pagination
-from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
+from rest_framework.response import Response
+from rest_framework.views import exception_handler
 
 logger = logging.getLogger(__name__)
 
@@ -64,3 +68,41 @@ class CursorPagination(pagination.CursorPagination):
             )
 
         return page_size
+
+
+def custom_exception_handler(exc, context):
+    # Call REST framework's default exception handler first,
+    # to get the standard error response.
+    response = exception_handler(exc, context)
+
+    if isinstance(exc, Http404):
+        exc = exceptions.NotFound()
+    elif isinstance(exc, PermissionDenied):
+        exc = exceptions.PermissionDenied()
+
+    if isinstance(exc, exceptions.APIException):
+        status_code = exc.status_code
+        description = exc.detail
+        if isinstance(description, (list)):
+            # Some APIException, like for instance the ValidationError wrap the detail into a list
+            # because the STAC API spec wants a string as description we join the list together here
+            description = '\n'.join(description)
+    elif settings.DEBUG and not settings.DEBUG_PROPAGATE_API_EXCEPTIONS:
+        # Other exceptions are left to Django to handle in DEBUG mode, this allow django
+        # to set a nice HTML output with backtrace when DEBUG_PROPAGATE_EXCEPTIONS is false
+        # With DEBUG_PROPAGATE_API_EXCEPTIONS with can disable this behavior for testing purpose
+        return None
+    else:
+        # Make sure to use a JSON output for other exceptions in production
+        description = str(exc)
+        status_code = 500
+
+    data = {"code": status_code, "description": description}
+
+    if response is not None:
+        # Overwrite the response data
+        response.data = data
+    else:
+        response = Response(data, status=status_code)
+
+    return response

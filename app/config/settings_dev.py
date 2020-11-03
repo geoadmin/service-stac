@@ -36,3 +36,7 @@ STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
 
 if DEBUG:
     REST_FRAMEWORK['PAGE_SIZE'] = os.environ.get('PAGE_SIZE', 2)
+
+    DEBUG_PROPAGATE_API_EXCEPTIONS = bool(
+        strtobool(os.getenv('DEBUG_PROPAGATE_API_EXCEPTIONS', 'False'))
+    )

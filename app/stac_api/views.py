@@ -180,3 +180,11 @@ class AssetDetail(generics.RetrieveAPIView):
         queryset = self.get_queryset().filter(asset_name=asset_name)
         obj = get_object_or_404(queryset)
         return obj
+
+
+class TestHttp500(AssetDetail):
+
+    def get(self, request, *args, **kwargs):
+        logger.debug('Test request that raises an exception')
+
+        raise AttributeError('test exception')
