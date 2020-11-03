@@ -84,7 +84,7 @@ class CollectionList(generics.ListAPIView):
 
         data = {'collections': serializer.data}
 
-        logging.debug('GET list of collections', extra={"request": request, "response": data})
+        logger.debug('GET list of collections', extra={"request": request, "response": data})
 
         if page is not None:
             return self.get_paginated_response(data)
@@ -122,7 +122,7 @@ class ItemsList(generics.ListAPIView):
             'features': serializer.data
         }
 
-        logging.debug('GET list of items', extra={"request": request, "response": data})
+        logger.debug('GET list of items', extra={"request": request, "response": data})
 
         if page is not None:
             return self.get_paginated_response(data)
@@ -144,6 +144,13 @@ class ItemDetail(generics.RetrieveAPIView):
 class AssetsList(generics.GenericAPIView):
     serializer_class = AssetSerializer
     queryset = Asset.objects.all()
+    pagination_class = None
+
+    # def get_queryset(self):
+    #     # filter based on the url
+    #     return Asset.objects.filter(
+    #         collection=self.kwargs['collection_name'], feature=self.kwargs['item_name']
+    #     )
 
     def get(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
@@ -156,7 +163,7 @@ class AssetsList(generics.GenericAPIView):
 
         data = serializer.data
 
-        logging.debug('GET list of assets: %s', data, extra={"request": request, "response": data})
+        logger.debug('GET list of assets: %s', data, extra={"request": request, "response": data})
 
         if page is not None:
             return self.get_paginated_response(data)

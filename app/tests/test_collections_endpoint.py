@@ -1,4 +1,5 @@
 import logging
+from pprint import pformat
 
 from django.conf import settings
 from django.test import Client
@@ -19,114 +20,112 @@ class CollectionsEndpointTestCase(TestCase):
 
     def setUp(self):
         self.client = Client()
-        self.collection = db.create_collection()
-        self.item, self.assets = db.create_item(self.collection)
+        self.collections, self.items, self.assets = db.create_dummy_db_content(4, 4, 4)
 
         # transate to Python native:
-        self.serializer = CollectionSerializer(self.collection)
+        self.serializer = CollectionSerializer(self.collections, many=True)
+
+        self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_collections_endpoint(self):
-        collection_name = self.collection.collection_name
-        response = self.client.get(f"/{API_BASE}collections?format=json")
+        collection_name = self.collections[0].collection_name
+        response = self.client.get(f"/{API_BASE}collections")
+        self.assertEqual(200, response.status_code)
+        response_json = response.json()
+        logger.debug('Serialized data:\n%s', pformat(self.serializer.data))
+        logger.debug('Response:\n%s', pformat(response_json))
+        self.assertListEqual(
+            self.serializer.data[:2],
+            response_json['collections'],
+            msg="Returned data does not match expected data"
+        )
+        self.assertListEqual(['rel', 'href'], list(response_json['links'][0].keys()))
+
+    def test_single_collection_endpoint(self):
+        collection_name = self.collections[0].collection_name
+        response = self.client.get(f"/{API_BASE}collections/{collection_name}")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            response.json()['collections'][0],
-            self.serializer.data,
+        self.assertDictContainsSubset(
+            self.serializer.data[0],
+            response.data,
             msg="Returned data does not match expected data"
         )
 
-    def test_single_collection_endpoint(self):
-        collection_name = self.collection.collection_name
-        response = self.client.get(f"/{API_BASE}collections/{collection_name}?format=json")
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            response.data, self.serializer.data, msg="Returned data does not match expected data"
-        )
-
     def test_updating_collection(self):
-        '''
-        Test, if the collection's summaries and extend were correctly updated
-        when new item and asset are added to the collection
-        '''
+        # Test, if the collection's summaries and extend were correctly updated
+        # when new item and asset are added to the collection
+
         # translate to Python native:
-        serializer = CollectionSerializer(self.collection)
+        serializer = CollectionSerializer(self.collections[0])
         python_native = serializer.data
 
         # translate to JSON:
         json_string = JSONRenderer().render(python_native, renderer_context={'indent': 2})
         logger.debug('json string (test_updating_collection): %s', json_string.decode("utf-8"))
 
-        # yapf: disable
         # not using the created and updated fields here, as those obviously cannot be overwritten
         # inside database.py but are always set automatically.
-        self.assertDictContainsSubset({
-            "stac_version": "0.9.0",
-            "stac_extension": [
-                "eo",
-                "proj",
-                "view",
-                "https://data.geo.admin.ch/stac/geoadmin-extension/1.0/schema.json"
-            ],
-            "id": "ch.swisstopo.pixelkarte-farbe-pk200.noscale",
-            "title": "Test title",
-            "description": "This is a description",
-            "summaries": {
-                "eo:gsd": [
-                3.4
+        self.assertDictContainsSubset(
+            {
+                "stac_version": "0.9.0",
+                "stac_extension": [
+                    "eo",
+                    "proj",
+                    "view",
+                    "https://data.geo.admin.ch/stac/geoadmin-extension/1.0/schema.json"
                 ],
-                "geoadmin:variant": [
-                "kgrs"
-                ],
-                "proj:epsg": [
-                2056
-                ]
-            },
-            "extent": {
-                "spatial": {
-                "bbox": [
-                    [
-                    None
-                    ]
-                ]
+                "id": "collection-1",
+                "title": "Test title",
+                "description": "This is a description",
+                "summaries": {
+                    "eo:gsd": [3.4],
+                    "geoadmin:variant": ["kgrs"],
+                    "proj:epsg": [2056],
                 },
-                "temporal": {
-                "interval": [
-                    [
-                    "2020-10-28T13:05:10.473602Z",
-                    "2020-10-28T13:05:10.473602Z"
-                    ]
-                ]
-                }
-            },
-            "providers": [
-                {
-                "name": "provider1",
-                "roles": [
-                    "licensor"
-                ],
-                "url": "http://www.google.com",
-                "description": "description"
-                }
-            ],
-            "license": "test",
-            "links": [
-                {
-                "href": "http://www.google.com",
-                "rel": "rel",
-                "link_type": "root",
-                "title": "Test title"
-                }
-            ],
-            "keywords": [
-                {
-                "name": "test1"
+                "extent": {
+                    "spatial": {
+                        "bbox": [[None]]
+                    },
+                    "temporal": {
+                        "interval": [["2020-10-28T13:05:10.473602Z", "2020-10-28T13:05:10.473602Z"]]
+                    }
                 },
-                {
-                "name": "test2"
-                }
-            ],
-            "crs": [
-                "http://www.opengis.net/def/crs/OGC/1.3/CRS84"
-            ]
-            }, python_native)
-        # yapf: enable
+                "providers": [{
+                    "name": "provider1",
+                    "roles": ["licensor"],
+                    "url": "http://www.google.com",
+                    "description": "description"
+                }],
+                "license": "test",
+                "links": [{
+                    "href": "http://www.google.com",
+                    "rel": "rel",
+                    "link_type": "root",
+                    "title": "Test title"
+                }],
+                "keywords": [{
+                    "name": "test1"
+                }, {
+                    "name": "test2"
+                }],
+                "crs": ["http://www.opengis.net/def/crs/OGC/1.3/CRS84"]
+            },
+            python_native,
+        )
+
+    def test_collections_limit_query(self):
+        response = self.client.get(f"/{API_BASE}collections?limit=1")
+        self.assertEqual(200, response.status_code)
+        self.assertLessEqual(1, len(response.json()['collections']))
+
+        response = self.client.get(f"/{API_BASE}collections?limit=0")
+        self.assertEqual(400, response.status_code)
+
+        response = self.client.get(f"/{API_BASE}collections?limit=test")
+        self.assertEqual(400, response.status_code)
+
+        response = self.client.get(f"/{API_BASE}collections?limit=-1")
+        self.assertEqual(400, response.status_code)
+
+        response = self.client.get(f"/{API_BASE}collections?limit=1000")
+        self.assertEqual(400, response.status_code)

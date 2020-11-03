@@ -131,9 +131,9 @@ test:
 
 ###################
 # Specs
-.PHONY: specs
-specs:
-	cd spec && make static/openapi.yaml && make static/openapitransactional.yaml
+.PHONY: build-specs
+build-specs:
+	cd spec && make build-specs
 
 
 ###################

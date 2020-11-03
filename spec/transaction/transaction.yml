@@ -1,47 +1,47 @@
 openapi: 3.0.1
 paths:
-  '/collections':
+  "/collections":
     post:
       tags:
         - Data Management
-      summary: |-
-        create a new collection
+      summary: >-
+        Create a new collection
       operationId: createCollection
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/collection'
+              $ref: "#/components/schemas/collection"
       responses:
-        '201':
-          $ref: '#/components/responses/Collection'
-  '/collections/{collectionId}':
+        "201":
+          $ref: "#/components/responses/Collection"
+  "/collections/{collectionId}":
     put:
       tags:
         - Data Management
-      summary: |-
-        update an existing collection with Id `collectionId` with a complete collection definition
+      summary: >-
+        Update an existing collection with Id `collectionId` with a complete collection definition
       operationId: updateCollection
       parameters:
-        - $ref: '#/components/parameters/collectionId'
+        - $ref: "#/components/parameters/collectionId"
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/collection'
+              $ref: "#/components/schemas/collection"
       responses:
-        '200':
-          $ref: '#/components/responses/Collection'
-        '403':
-          $ref: '#/components/responses/PermissionDenied'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/ServerError'
+        "200":
+          $ref: "#/components/responses/Collection"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
     # patch:
     #   tags:
     #     - Data Management
-    #   summary: |-
+    #   summary: >-
     #     update a part of the collection with id `collectionId`
     #   operationId: partialUpdateCollection
     #   parameters:
@@ -60,22 +60,22 @@ paths:
     #       $ref: '#/components/responses/NotFound'
     #     '500':
     #       $ref: '#/components/responses/ServerError'
-  '/collections/{collectionId}/items':
+  "/collections/{collectionId}/items":
     post:
-      summary: add a new item to a collection
-      description: create a new item in a specific collection
+      summary: Add a new item to a collection
+      description: Create a new item in a specific collection
       operationId: postFeature
       tags:
         - Data Management
       parameters:
-        - $ref: '#/components/parameters/collectionId'
+        - $ref: "#/components/parameters/collectionId"
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/metaItem'
+              $ref: "#/components/schemas/metaItem"
       responses:
-        '201':
+        "201":
           description: Status of the create request.
           headers:
             Location:
@@ -94,20 +94,20 @@ paths:
             text/html:
               schema:
                 type: string
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '5XX':
-          $ref: '#/components/responses/InternalServerError'
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "5XX":
+          $ref: "#/components/responses/InternalServerError"
         default:
           description: An error occurred.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/exception'
+                $ref: "#/components/schemas/exception"
             text/html:
               schema:
                 type: string
-  '/collections/{collectionId}/items/{featureId}':
+  "/collections/{collectionId}/items/{featureId}":
     # get:
     #   responses:
     #     '200':
@@ -117,7 +117,7 @@ paths:
     #             type: string
     #           description: A string to ensure the item has not been modified
     put:
-      summary: update an existing feature by Id with a complete item definition
+      summary: Update an existing feature by Id with a complete item definition
       description: >-
         Use this method to update an existing feature. Requires the entire
         GeoJSON  description be submitted.
@@ -125,16 +125,16 @@ paths:
       tags:
         - Data Management
       parameters:
-        - $ref: '#/components/parameters/collectionId'
-        - $ref: '#/components/parameters/featureId'
-        - $ref: '#/components/parameters/IfMatch'
+        - $ref: "#/components/parameters/collectionId"
+        - $ref: "#/components/parameters/featureId"
+        - $ref: "#/components/parameters/IfMatch"
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/metaItem'
+              $ref: "#/components/schemas/metaItem"
       responses:
-        '200':
+        "200":
           description: Status of the update request.
           headers:
             ETag:
@@ -148,42 +148,42 @@ paths:
             application/json:
               schema:
                 type: string
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '412':
-          $ref: '#/components/responses/PreconditionFailed'
-        '5XX':
-          $ref: '#/components/responses/InternalServerError'
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "5XX":
+          $ref: "#/components/responses/InternalServerError"
         default:
           description: An error occurred.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/exception'
+                $ref: "#/components/schemas/exception"
             text/html:
               schema:
                 type: string
     patch:
-      summary: update an existing feature by Id with a partial item definition
+      summary: Update an existing feature by Id with a partial item definition
       description: >-
         Use this method to update an existing feature. Requires a GeoJSON
-        fragement (containing the fields to be updated) be submitted.
+        fragment (containing the fields to be updated) be submitted.
       operationId: patchFeature
       tags:
         - Data Management
       parameters:
-        - $ref: '#/components/parameters/collectionId'
-        - $ref: '#/components/parameters/featureId'
-        - $ref: '#/components/parameters/IfMatchOptional'
+        - $ref: "#/components/parameters/collectionId"
+        - $ref: "#/components/parameters/featureId"
+        - $ref: "#/components/parameters/IfMatchOptional"
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/partialItem'
+              $ref: "#/components/schemas/partialItem"
       responses:
-        '200':
+        "200":
           description: Status of the update request.
           headers:
             ETag:
@@ -197,79 +197,81 @@ paths:
             application/json:
               schema:
                 type: string
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '5XX':
-          $ref: '#/components/responses/InternalServerError'
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "5XX":
+          $ref: "#/components/responses/InternalServerError"
         default:
           description: An error occurred.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/exception'
+                $ref: "#/components/schemas/exception"
             text/html:
               schema:
                 type: string
     delete:
-      summary: delete an existing feature by Id
+      summary: Delete an existing feature by Id
       description: Use this method to delete an existing feature.
       operationId: deleteFeature
       tags:
         - Data Management
       parameters:
-        - $ref: '#/components/parameters/collectionId'
-        - $ref: '#/components/parameters/featureId'
-        - $ref: '#/components/parameters/IfMatch'
+        - $ref: "#/components/parameters/collectionId"
+        - $ref: "#/components/parameters/featureId"
+        - $ref: "#/components/parameters/IfMatch"
       responses:
-        '204':
+        "204":
           description: Status of the delete request.
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '5XX':
-          $ref: '#/components/responses/InternalServerError'
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "5XX":
+          $ref: "#/components/responses/InternalServerError"
         default:
           description: An error occurred.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/exception'
+                $ref: "#/components/schemas/exception"
             text/html:
               schema:
                 type: string
-  '/collections/{collectionId}/items/{featureId}/assets':
+  "/collections/{collectionId}/items/{featureId}/assets":
     get:
-      description: |-
+      description: >-
         Fetch assets of the item with id `featureId`.
 
         Every asset belongs to an item.
       operationId: getAssets
       parameters:
-      - $ref: '#/components/parameters/collectionId'
-      - $ref: '#/components/parameters/featureId'
+        - $ref: "#/components/parameters/collectionId"
+        - $ref: "#/components/parameters/featureId"
       responses:
         "200":
-          $ref: '#/components/responses/Assets'
+          $ref: "#/components/responses/Assets"
         "400":
-          $ref: '#/components/responses/InvalidParameter'
+          $ref: "#/components/responses/InvalidParameter"
         "404":
-          $ref: '#/components/responses/NotFound'
+          $ref: "#/components/responses/NotFound"
         "500":
-          $ref: '#/components/responses/ServerError'
-      summary: fetch all assets for a feature
+          $ref: "#/components/responses/ServerError"
+      summary: Fetch all assets for a feature
       tags:
         - Data
     post:
-      summary: add a new asset to a feature
-      description: |-
+      summary: Add a new asset to a feature
+      description: >-
         Create a new asset for a specific feature.
 
+
         When creating a new asset for a feature, the metadata of
-        the asset along with a temporary url of the asset itself is 
+        the asset along with a temporary url of the asset itself is
         posted to the API.
+
 
         The service is taking care of copying the asset from the temporary
         location to correct one.
@@ -277,15 +279,15 @@ paths:
       tags:
         - Data Management
       parameters:
-        - $ref: '#/components/parameters/collectionId'
-        - $ref: '#/components/parameters/featureId'
+        - $ref: "#/components/parameters/collectionId"
+        - $ref: "#/components/parameters/featureId"
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/itemAssetWrite'
+              $ref: "#/components/schemas/itemAssetWrite"
       responses:
-        '202':
+        "202":
           description: Accepted create request
           headers:
             Location:
@@ -304,46 +306,46 @@ paths:
             text/html:
               schema:
                 type: string
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '5XX':
-          $ref: '#/components/responses/InternalServerError'
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "5XX":
+          $ref: "#/components/responses/InternalServerError"
         default:
           description: An error occurred.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/exception'
+                $ref: "#/components/schemas/exception"
             text/html:
               schema:
                 type: string
-  '/collections/{collectionId}/items/{featureId}/assets/{assetId}':
+  "/collections/{collectionId}/items/{featureId}/assets/{assetId}":
     get:
-      description: |-
+      description: >-
         Fetch the asset with id `assetId` of the feature with id `featureId`
         in the feature collection with id `collectionId`.
       operationId: getAsset
       parameters:
-      - $ref: '#/components/parameters/collectionId'
-      - $ref: '#/components/parameters/featureId'
-      - $ref: '#/components/parameters/assetId'
+        - $ref: "#/components/parameters/collectionId"
+        - $ref: "#/components/parameters/featureId"
+        - $ref: "#/components/parameters/assetId"
       responses:
         "200":
-          $ref: '#/components/responses/Asset'
+          $ref: "#/components/responses/Asset"
           # headers:
           #   ETag:
           #     description: A string to ensure the asset has not been modified
           #     schema:
           #       type: string
         "404":
-          $ref: '#/components/responses/NotFound'
+          $ref: "#/components/responses/NotFound"
         "500":
-          $ref: '#/components/responses/ServerError'
-      summary: fetch a single asset
+          $ref: "#/components/responses/ServerError"
+      summary: Fetch a single asset
       tags:
-      - Data
+        - Data
     put:
-      summary: update an existing asset by Id with a complete asset definition
+      summary: Update an existing asset by Id with a complete asset definition
       description: >-
         Use this method to update an existing asset. Requires the entire
         GeoJSON  description be submitted.
@@ -351,17 +353,17 @@ paths:
       tags:
         - Data Management
       parameters:
-        - $ref: '#/components/parameters/collectionId'
-        - $ref: '#/components/parameters/featureId'
-        - $ref: '#/components/parameters/assetId'
-        - $ref: '#/components/parameters/IfMatch'
+        - $ref: "#/components/parameters/collectionId"
+        - $ref: "#/components/parameters/featureId"
+        - $ref: "#/components/parameters/assetId"
+        - $ref: "#/components/parameters/IfMatch"
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/itemAssetWrite'
+              $ref: "#/components/schemas/itemAssetWrite"
       responses:
-        '200':
+        "200":
           description: Status of the update request.
           headers:
             ETag:
@@ -375,25 +377,25 @@ paths:
             application/json:
               schema:
                 type: string
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
         # '412':
         #   $ref: '#/components/responses/PreconditionFailed'
-        '5XX':
-          $ref: '#/components/responses/InternalServerError'
+        "5XX":
+          $ref: "#/components/responses/InternalServerError"
         default:
           description: An error occurred.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/exception'
+                $ref: "#/components/schemas/exception"
             text/html:
               schema:
                 type: string
     patch:
-      summary: update an existing asset by Id with a partial asset definition
+      summary: Update an existing asset by Id with a partial asset definition
       description: >-
         Use this method to update an existing asset. Requires a GeoJSON
         fragment (containing the fields to be updated) be submitted.
@@ -401,17 +403,17 @@ paths:
       tags:
         - Data Management
       parameters:
-        - $ref: '#/components/parameters/collectionId'
-        - $ref: '#/components/parameters/featureId'
-        - $ref: '#/components/parameters/assetId'
-        - $ref: '#/components/parameters/IfMatchOptional'
+        - $ref: "#/components/parameters/collectionId"
+        - $ref: "#/components/parameters/featureId"
+        - $ref: "#/components/parameters/assetId"
+        - $ref: "#/components/parameters/IfMatchOptional"
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/partialAsset'
+              $ref: "#/components/schemas/partialAsset"
       responses:
-        '200':
+        "200":
           description: Status of the update request.
           headers:
             ETag:
@@ -425,47 +427,47 @@ paths:
             application/json:
               schema:
                 type: string
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '5XX':
-          $ref: '#/components/responses/InternalServerError'
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "5XX":
+          $ref: "#/components/responses/InternalServerError"
         default:
           description: An error occurred.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/exception'
+                $ref: "#/components/schemas/exception"
             text/html:
               schema:
                 type: string
     delete:
-      summary: delete an existing asset by Id
+      summary: Delete an existing asset by Id
       description: Use this method to delete an existing asset.
       operationId: deleteAsset
       tags:
         - Data Management
       parameters:
-        - $ref: '#/components/parameters/collectionId'
-        - $ref: '#/components/parameters/featureId'
-        - $ref: '#/components/parameters/assetId'
-        - $ref: '#/components/parameters/IfMatch'
+        - $ref: "#/components/parameters/collectionId"
+        - $ref: "#/components/parameters/featureId"
+        - $ref: "#/components/parameters/assetId"
+        - $ref: "#/components/parameters/IfMatch"
       responses:
-        '204':
+        "204":
           description: Status of the delete request.
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '5XX':
-          $ref: '#/components/responses/InternalServerError'
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "5XX":
+          $ref: "#/components/responses/InternalServerError"
         default:
           description: An error occurred.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/exception'
+                $ref: "#/components/schemas/exception"
             text/html:
               schema:
                 type: string
@@ -474,7 +476,7 @@ components:
     assetId:
       name: assetId
       in: path
-      description: local identifier of a asset
+      description: Local identifier of a asset
       required: true
       schema:
         type: string
@@ -497,62 +499,62 @@ components:
   schemas:
     description:
       type: string
-      description: |-
+      description: >-
         Detailed multi-line description to fully explain the object (collection,
         item, asset, ...).
 
         [CommonMark 0.29](http://commonmark.org/) syntax MAY be used for rich
-        text representation. 
+        text representation.
     assetId:
       type: string
       pattern: ^[a-z0-9.-_]+$
       title: asset id
-      description: |-
+      description: >-
         The asset id uniquely identifies the asset for an item
+
 
         **Note**: `assetId` must be unique for the item. The media-type
         can be part of the `assetId`, so it's perfectly ok to have one asset
         with id `smr50-263-2016-2056-kgrs-2.5.tiff` and another one with id
         `smr50-263-2016-2056-kgrs-2.5.png`
-      example:
-        smr50-263-2016-2056-kgrs-2.5.tiff
+      example: smr50-263-2016-2056-kgrs-2.5.tiff
     itemAssets:
       type: object
       additionalProperties:
-        $ref: '#/components/schemas/itemAsset'
+        $ref: "#/components/schemas/itemAsset"
     itemBase:
       type: object
       required:
-        - 'checksum:multihash'
+        - "checksum:multihash"
       properties:
         title:
-          $ref: '#/components/schemas/title'
+          $ref: "#/components/schemas/title"
         description:
-          $ref: '#/components/schemas/description'
+          $ref: "#/components/schemas/description"
         type:
-          $ref: '#/components/schemas/type'
+          $ref: "#/components/schemas/type"
         # roles:
         #   $ref: '#/components/schemas/roles'
-        'geoadmin:variant':
-          $ref: '#/components/schemas/geoadmin:variant'
-        'geoadmin:lang':
-          $ref: '#/components/schemas/geoadmin:lang'
-        'checksum:multihash':
-          $ref: '#/components/schemas/checksum:multihash'
-        'proj:epsg':
-          $ref: '#/components/schemas/proj:epsg'
-        'eo:gsd':
-          $ref: '#/components/schemas/eo:gsd'
+        "geoadmin:variant":
+          $ref: "#/components/schemas/geoadmin:variant"
+        "geoadmin:lang":
+          $ref: "#/components/schemas/geoadmin:lang"
+        "checksum:multihash":
+          $ref: "#/components/schemas/checksum:multihash"
+        "proj:epsg":
+          $ref: "#/components/schemas/proj:epsg"
+        "eo:gsd":
+          $ref: "#/components/schemas/eo:gsd"
     # overwrites the STAC definition of itemAsset
     itemAsset:
       allOf:
-        - $ref: '#/components/schemas/itemBase'
+        - $ref: "#/components/schemas/itemBase"
         - type: object
           required:
             - href
           properties:
             href:
-              $ref: '#/components/schemas/href'
+              $ref: "#/components/schemas/href"
           # example:
           #   smr50-263-2016-2056-kgrs-2.5-tiff:
           #     href: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr50-263-2016-2056-kgrs-2.5.tiff
@@ -566,15 +568,15 @@ components:
           #     updated: 2020-07-14T12:30:00Z
     itemAssetWrite:
       allOf:
-        - $ref: '#/components/schemas/itemBase'
+        - $ref: "#/components/schemas/itemBase"
         - type: object
           required:
             - copyFromHref
           properties:
             id:
-              $ref: '#/components/schemas/assetId'
+              $ref: "#/components/schemas/assetId"
             copyFromHref:
-              $ref: '#/components/schemas/copyFromHref'
+              $ref: "#/components/schemas/copyFromHref"
           # example:
           #   smr50-263-2016-2056-kgrs-2.5.tiff:
           #     id: smr50-263-2016-2056-kgrs-2.5
@@ -590,8 +592,9 @@ components:
     copyFromHref:
       type: string
       format: url
-      description: |-
+      description: >-
         Link to the temporary location of the asset object.
+
 
         The service will move the asset from this temporary location to the correct one under
         `data.geo.admin.ch`. If the temporary location is under `https://data.geo.admin.ch/tmp`
@@ -606,15 +609,16 @@ components:
         http://data.geo.admin.ch/ch.swisstopo.swissimage/collections/cs/items/CS3-20160503_132130_04/thumb.png
     partialAsset:
       allOf:
-        - $ref: '#/components/schemas/itemBase'
+        - $ref: "#/components/schemas/itemBase"
         - type: object
           properties:
             copyFromHref:
-              $ref: '#/components/schemas/copyFromHref'
+              $ref: "#/components/schemas/copyFromHref"
           example:
             description: The new description of the asset
     metaItem:
-      description:  A GeoJSON Feature augmented with foreign members that contain values relevant to a STAC entity
+      description: >-
+        A GeoJSON Feature augmented with foreign members that contain values relevant to a STAC entity
       type: object
       required:
         - stac_version
@@ -627,29 +631,29 @@ components:
         - assets
       properties:
         stac_version:
-          $ref: '#/components/schemas/stac_version'
+          $ref: "#/components/schemas/stac_version"
         stac_extensions:
-          $ref: '#/components/schemas/stac_extensions'
+          $ref: "#/components/schemas/stac_extensions"
         id:
-          $ref: '#/components/schemas/itemId'
+          $ref: "#/components/schemas/itemId"
         bbox:
-          $ref: '#/components/schemas/bbox'
+          $ref: "#/components/schemas/bbox"
         geometry:
-          $ref: 'https://geojson.org/schema/Geometry.json'
+          $ref: "https://geojson.org/schema/Geometry.json"
         type:
-          $ref: '#/components/schemas/itemType'
+          $ref: "#/components/schemas/itemType"
         properties:
-          $ref: '#/components/schemas/itemProperties'
+          $ref: "#/components/schemas/itemProperties"
         links:
           type: array
           items:
-            $ref: '#/components/schemas/link'
+            $ref: "#/components/schemas/link"
       example:
         stac_version: 0.9.0
         stac_extensions:
           - eo
           - view
-          - 'https://example.com/cs-extension/1.0/schema.json'
+          - "https://example.com/cs-extension/1.0/schema.json"
         type: Feature
         id: CS3-20160503_132131_05
         bbox:
@@ -671,7 +675,7 @@ components:
               - - -122.308150179
                 - 37.488035566
         properties:
-          datetime: '2016-05-03T13:22:30.040Z'
+          datetime: "2016-05-03T13:22:30.040Z"
           title: A CS3 item
           license: PDDL-1.0
           providers:
@@ -679,26 +683,26 @@ components:
               roles:
                 - producer
                 - licensor
-              url: 'https://cool-sat.com/'
-          'view:sun_azimuth': 168.7
-          'eo:cloud_cover': 0.12
-          'view:off_nadir': 1.4
-          'platform': coolsat2
-          'instruments':
+              url: "https://cool-sat.com/"
+          "view:sun_azimuth": 168.7
+          "eo:cloud_cover": 0.12
+          "view:off_nadir": 1.4
+          "platform": coolsat2
+          "instruments":
             - cool_sensor_v1
-          'eo:bands': []
-          'view:sun_elevation': 33.4
-          'eo:gsd': 0.512
+          "eo:bands": []
+          "view:sun_elevation": 33.4
+          "eo:gsd": 0.512
         collection: CS3
         links:
           - rel: self
-            href: 'http://cool-sat.com/collections/CS3/items/20160503_132130_04'
+            href: "http://cool-sat.com/collections/CS3/items/20160503_132130_04"
           - rel: root
-            href: 'http://cool-sat.com/collections'
+            href: "http://cool-sat.com/collections"
           - rel: parent
-            href: 'http://cool-sat.com/collections/CS3'
+            href: "http://cool-sat.com/collections/CS3"
           - rel: collection
-            href: 'http://cool-sat.com/collections/CS3'
+            href: "http://cool-sat.com/collections/CS3"
         # assets:
         #   analytic:
         #     href: 'http://cool-sat.com/static-catalog/CS3/20160503_132130_04/analytic.tif'
@@ -710,23 +714,23 @@ components:
       type: object
       properties:
         stac_version:
-          $ref: '#/components/schemas/stac_version'
+          $ref: "#/components/schemas/stac_version"
         stac_extensions:
-          $ref: '#/components/schemas/stac_extensions'
+          $ref: "#/components/schemas/stac_extensions"
         id:
-          $ref: '#/components/schemas/itemId'
+          $ref: "#/components/schemas/itemId"
         bbox:
-          $ref: '#/components/schemas/bbox'
+          $ref: "#/components/schemas/bbox"
         geometry:
-          $ref: 'https://geojson.org/schema/Geometry.json'
+          $ref: "https://geojson.org/schema/Geometry.json"
         type:
-          $ref: '#/components/schemas/itemType'
+          $ref: "#/components/schemas/itemType"
         properties:
-          $ref: '#/components/schemas/partialItemProperties'
+          $ref: "#/components/schemas/partialItemProperties"
         links:
           type: array
           items:
-            $ref: '#/components/schemas/link'
+            $ref: "#/components/schemas/link"
       example:
         datetime: "2016-05-03T13:22:30.040Z"
         # assets:
@@ -735,25 +739,25 @@ components:
         #     href: http://cool-sat.com/catalog/collections/cs/items/CS3-201605XX_132130_04/analytic-1.tif
     partialItemProperties:
       type: object
-      description: allows for partial collections of metadata fields
+      description: Allows for partial collections of metadata fields
       additionalProperties: true
       properties:
         datetime:
-          $ref: '#/components/schemas/datetime'
+          $ref: "#/components/schemas/datetime"
     partialCollection:
       type: object
-      description: allows for a set of partial metadata fields for a collection
+      description: Allows for a set of partial metadata fields for a collection
       properties:
         id:
-          description: identifier of the collection used, for example, in URIs
+          description: Identifier of the collection used, for example, in URIs
           type: string
           example: address
         title:
-          description: human readable title of the collection
+          description: Human readable title of the collection
           type: string
           example: address
         description:
-          description: a description of the features in the collection
+          description: A description of the features in the collection
           type: string
           example: An address.
         links:
@@ -769,11 +773,12 @@ components:
         extent:
           $ref: "#/components/schemas/extent"
         itemType:
-          description: indicator about the type of the items in the collection (the default value is 'feature').
+          description: >-
+            Indicator about the type of the items in the collection (the default value is 'feature').
           type: string
           default: feature
         crs:
-          description: the list of coordinate reference systems supported by the service
+          description: The list of coordinate reference systems supported by the service
           type: array
           items:
             type: string
@@ -801,49 +806,51 @@ components:
       example: image/png
   responses:
     Assets:
-      description: |-
+      description: >-
         The response is a document consisting of all assets of the feature.
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/itemAssets'
+            $ref: "#/components/schemas/itemAssets"
     Asset:
-      description: |-
+      description: >-
         The response is a document consisting of one asset of the feature.
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/itemAsset'
+            $ref: "#/components/schemas/itemAsset"
     NotFound:
       description: The specified resource was not found
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/exception'
+            $ref: "#/components/schemas/exception"
     BadRequest:
       description: The request was malformed or semantically invalid
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/exception'
+            $ref: "#/components/schemas/exception"
     PermissionDenied:
       description: No Permission for this request
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/exception'
+            $ref: "#/components/schemas/exception"
     PreconditionFailed:
       description: Some condition specified by the request could not be met in the server
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/exception'
+            $ref: "#/components/schemas/exception"
     InternalServerError:
-      description: The request was syntactically and semantically valid, but an error occurred while trying to act upon it
+      description: >-
+        The request was syntactically and semantically valid, but an error occurred while trying
+        to act upon it
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/exception'
+            $ref: "#/components/schemas/exception"
 # Note: this is defined as an overwrite in 'overwrites', since defining it here would violate
 # the alphabetical order of the tags ending up in openapi.yaml, see https://speccy.io/rules/1-rulesets#openapi-tags-alphabetical
 # tags:

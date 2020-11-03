@@ -33,3 +33,6 @@ DEBUG_TOOLBAR_CONFIG = {'SHOW_TOOLBAR_CALLBACK': 'middleware.debug_toolbar.check
 
 # use the default staticfiles mechanism
 STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+
+if DEBUG:
+    REST_FRAMEWORK['PAGE_SIZE'] = os.environ.get('PAGE_SIZE', 2)
