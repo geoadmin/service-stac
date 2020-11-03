@@ -8,6 +8,8 @@ from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ValidationError
 from django.core.serializers.json import DjangoJSONEncoder
 from django.utils.translation import gettext_lazy as _
+from datetime import datetime
+
 
 # pylint: disable=fixme
 # TODO remove this pylint disable once this is done
@@ -230,13 +232,15 @@ class Collection(models.Model):
             if self.extent["temporal"]["interval"][0][0] is None:
                 self.extent["temporal"]["interval"][0][0] = item_properties_datetime
                 self.save()
-            elif item_properties_datetime < self.extent["temporal"]["interval"][0][0]:
+            elif item_properties_datetime.replace(tzinfo=None) < datetime.strptime(
+                    self.extent["temporal"]["interval"][0][0], '%Y-%m-%dT%H:%M:%SZ'):
                 self.extent["temporal"]["interval"][0][0] = item_properties_datetime
                 self.save()
             elif self.extent["temporal"]["interval"][0][1] is None:
                 self.extent["temporal"]["interval"][0][1] = item_properties_datetime
                 self.save()
-            elif item_properties_datetime > self.extent["temporal"]["interval"][0][1]:
+            elif item_properties_datetime.replace(tzinfo=None) > datetime.strptime(
+                    self.extent["temporal"]["interval"][0][1], '%Y-%m-%dT%H:%M:%SZ'):
                 self.extent["temporal"]["interval"][0][1] = item_properties_datetime
                 self.save()
 
@@ -248,14 +252,14 @@ class Collection(models.Model):
     def clean(self):
         # very simple validation, raises error when geoadmin_variant strings contain special
         # characters or umlaut.
-
-        for variant in self.summaries["geoadmin:variant"]:
-            if not bool(re.search('^[a-zA-Z0-9]*$', variant)):
-                logger.error(
-                    "Property geoadmin:variant not compatible with the naming conventions."
-                )
-                raise ValidationError(_("Property geoadmin:variant not compatible with the"
-                                        "naming conventions."))
+        if self.summaries["geoadmin:variant"]: # TODO: quick and dirty fix
+            for variant in self.summaries["geoadmin:variant"]:
+                if not bool(re.search('^[a-zA-Z0-9]*$', variant)):
+                    logger.error(
+                        "Property geoadmin:variant not compatible with the naming conventions."
+                    )
+                    raise ValidationError(_("Property geoadmin:variant not compatible with the"
+                                            "naming conventions."))
 
 
 class CollectionLink(Link):
