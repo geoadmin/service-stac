@@ -1,10 +1,10 @@
 import logging
-from gettext import gettext as _
 
 from django.apps import AppConfig
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
 from django.http import Http404
+from django.utils.translation import gettext_lazy as _
 
 from rest_framework import exceptions
 from rest_framework import pagination
