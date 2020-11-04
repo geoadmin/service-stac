@@ -41,9 +41,6 @@ SECRET_KEY = '%5+eq2851!d7qi^sze(nv2g#kt8v$7)4ck3cq*e!5c2rx%13p+'
 DEBUG = bool(strtobool(os.getenv('DEBUG', 'False')))
 
 ALLOWED_HOSTS = []
-if DEBUG:
-    # When the debug flag is set allow local host
-    ALLOWED_HOSTS = ['localhost', '127.0.0.1', '[::1]']
 ALLOWED_HOSTS += os.getenv('ALLOWED_HOSTS', '').split(',')
 
 # Application definition
@@ -183,5 +180,14 @@ TEST_RUNNER = 'tests.runner.TestRunner'
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'stac_api.apps.CursorPagination',
     'PAGE_SIZE': 100,
-    'PAGE_SIZE_LIMIT': 100
+    'PAGE_SIZE_LIMIT': 100,
+    'EXCEPTION_HANDLER': 'stac_api.apps.custom_exception_handler'
 }
+
+# Exception handling
+
+# When DEBUG is true the uncaught exceptions are handle by django a returns a detail exception
+# backtrace as HTML, we can force to give a JSON message as in prod by settings this variable,
+# this is usefull for unittest when we want to test exception handling. This settings can be set
+# via environment variable in settings_dev.py when DEBUG=True
+DEBUG_PROPAGATE_API_EXCEPTIONS = False
