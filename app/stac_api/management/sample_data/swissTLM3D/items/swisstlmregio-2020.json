@@ -1,0 +1,88 @@
+{
+  "stac_version": "0.9.0",
+  "stac_extensions": [
+    "proj",
+    "checksum"
+  ],
+  "id": "swisstlmregio-2020",
+  "properties": {
+    "datetime": "2019-10-23",
+	"created": "2020-10-22T12:30:00Z",
+    "updated": "2020-10-22T12:30:00Z"
+  },
+  "collection": "ch.swisstopo.swisstlmregio",
+  "bbox": [
+		  5.685114,
+		  45.534903,
+		  10.747775,
+		  47.982586
+  ],
+  "geometry": {
+    "coordinates": [
+      [
+        [
+          5.685114,
+		  45.534903
+        ],
+        [
+		  5.685114,
+		  47.982586
+        ],
+        [
+		  10.747775,
+		  47.982586
+        ],
+        [
+		  10.747775,
+		  45.534903
+        ],
+        [
+		  5.685114,
+		  45.534903
+        ]
+      ]
+    ],
+    "type": "Polygon"
+  },  
+  "links": [
+    {
+      "href": "https://data.geo.admin.ch/collections/ch.swisstopo.swisstlmregio/items/swisstlmregio-2020",
+      "rel": "self"
+    },
+    {
+      "href": "https://data.geo.admin.ch/api/stac/v0.9/",
+      "rel": "root"
+    },
+    {
+      "href": "https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.swisstlmregio",
+      "rel": "collection"
+    }
+  ],
+  "type": "Feature",
+  "assets": {
+    "swisstlmregio-2020.xtf": {
+      "checksum:multihash": "90e402107a7f2588a85362b9beea2a12d4514d45",
+      "created": "2020-10-22T12:30:00Z",
+      "href": "https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/swisstlmregio-2020.xtf.zip",
+      "proj:epsg": "2056",
+      "type": "application/x.interlis+zip; version=2.3",
+      "updated": "2020-10-22T12:30:00Z"
+    },
+    "swisstlmregio-2020.shp": {
+      "checksum:multihash": "4473e588b35568687564de38ed134d0b",
+      "created": "2020-10-22T12:30:00Z",
+      "href": "https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/swisstlmregio-2020.shp.zip",
+      "proj:epsg": "2056",
+      "type": "application/x.shapefile+zip",
+      "updated": "2020-10-22T12:30:00Z"
+    },
+    "swisstlmregio-2020.fgdb": {
+      "checksum:multihash": "01205c3fd6978a7d0b051efaa4263a09",
+      "created": "2020-10-22T12:30:00Z",
+      "href": "https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk200.noscale/swisstlmregio-2020.fgdb.zip",
+      "proj:epsg": "2056",
+      "type": "application/x.filegdb+zip",
+      "updated": "2020-10-22T12:30:00Z"
+    }
+  }
+}

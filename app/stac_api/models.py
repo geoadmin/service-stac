@@ -74,7 +74,7 @@ class Keyword(models.Model):
 
 class Link(models.Model):
     href = models.URLField()
-    rel = models.CharField(max_length=30)
+    rel = models.CharField(max_length=30, unique=True)
     # added link_ to the fieldname, as "type" is reserved
     link_type = models.CharField(blank=True, max_length=150)
     title = models.CharField(blank=True, max_length=255)
