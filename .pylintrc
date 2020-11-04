@@ -70,6 +70,7 @@ disable=missing-docstring,
     bad-continuation,   # bad-continuation doesn't comply with yapf, so lets
                         # yapf correct indentation continuation issue
     useless-object-inheritance,
+    no-self-use,        # method signature often defined by django
 
 
 # Enable the message, report, category or checker with the given id(s). You can

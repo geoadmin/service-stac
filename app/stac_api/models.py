@@ -119,9 +119,6 @@ class Provider(models.Model):
 
 
 class Collection(models.Model):
-    crs = ArrayField(
-        models.URLField(default="http://www.opengis.net/def/crs/OGC/1.3/CRS84")
-    )  # [string]
     created = models.DateTimeField(auto_now_add=True)  # datetime
     updated = models.DateTimeField(auto_now=True)  # datetime
     description = models.TextField()  # string  / intentionally TextField and
@@ -155,10 +152,7 @@ class Collection(models.Model):
     keywords = models.ManyToManyField(Keyword)
     license = models.CharField(max_length=30)  # string
     providers = models.ManyToManyField(Provider)
-    stac_extension = ArrayField(
-        models.CharField(max_length=255), default=get_default_stac_extensions, editable=False
-    )
-    stac_version = models.CharField(max_length=10)  # string
+
     # "summaries" values will be updated on every update of an asset inside the
     # collection
     summaries = models.JSONField(
@@ -275,18 +269,10 @@ class Item(models.Model):
     # properties_platform = models.TextField(blank=True)
     # properties_providers = models.ManyToManyField(Provider)
     properties_title = models.CharField(blank=True, max_length=255)
+
     # properties_view_off_nadir = models.FloatField(blank=True)
     # properties_view_sun_azimuth = models.FloatField(blank=True)
     # properties_view_elevation = models.FloatField(blank=True)
-
-    # after discussion with Chris and Tobias:
-    # stac_extension will be populated with default values that are set to be
-    # non-editable for the moment. Could be changed, should the need arise.
-    stac_extensions = ArrayField(
-        models.CharField(max_length=255), default=get_default_stac_extensions, editable=False
-    )
-
-    stac_version = models.CharField(blank=False, max_length=10)
 
     def __str__(self):
         return self.item_name

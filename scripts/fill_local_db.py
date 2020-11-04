@@ -94,8 +94,6 @@ collection1 = Collection(
     collection_name='my collection',
     item_type='Feature',
     license='test',
-    stac_extension=get_default_stac_extensions(),
-    stac_version="0.9.0",
     summaries = {
     "eo:gsd": [10,20],
     "geoadmin:variant": ["kgrel", "komb", "krel"],
@@ -142,8 +140,6 @@ collection2 = Collection(
     collection_name='b_123',
     item_type='Feature',
     license='test',
-    stac_extension=get_default_stac_extensions(),
-    stac_version="0.9.0",
     summaries = {
     "eo:gsd": [10,20],
     "geoadmin:variant": ["kgrel", "komb", "krel"],
@@ -187,8 +183,6 @@ collection3 = Collection(
     collection_name='c_123',
     item_type='Feature',
     license='test',
-    stac_extension=get_default_stac_extensions(),
-    stac_version="0.9.0",
     summaries = {
     "eo:gsd": [10,20],
     "geoadmin:variant": ["kgrel", "komb", "krel"],

@@ -5,14 +5,12 @@ from stac_api.models import Item
 from stac_api.models import ItemLink
 from stac_api.models import Keyword
 from stac_api.models import Provider
-from stac_api.models import get_default_stac_extensions
 
 
 def create_collection(name):
     '''Create a dummy collection db object for testing
     '''
     collection = Collection.objects.create(
-        crs=["http://www.opengis.net/def/crs/OGC/1.3/CRS84"],
         created='2020-10-28T13:05:10.473602Z',
         updated='2020-10-28T13:05:10.473602Z',
         description='This is a description',
@@ -26,8 +24,6 @@ def create_collection(name):
         collection_name=name,
         item_type='Feature',
         license='test',
-        stac_extension=get_default_stac_extensions(),
-        stac_version="0.9.0",
         summaries={
             "eo:gsd": [], "geoadmin:variant": [], "proj:epsg": []
         },
@@ -80,8 +76,6 @@ def create_item(collection, name):
         properties_datetime='2020-10-28T13:05:10.473602Z',
         properties_eo_gsd=None,
         properties_title="My Title",
-        stac_extensions=get_default_stac_extensions(),
-        stac_version="0.9.0"
     )
     item.save()
     create_item_links(item)
