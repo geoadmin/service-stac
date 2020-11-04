@@ -7,43 +7,43 @@
   "id": "swisstlmregio-2020",
   "properties": {
     "datetime": "2019-10-23",
-	"created": "2020-10-22T12:30:00Z",
+    "created": "2020-10-22T12:30:00Z",
     "updated": "2020-10-22T12:30:00Z"
   },
   "collection": "ch.swisstopo.swisstlmregio",
   "bbox": [
-		  5.685114,
-		  45.534903,
-		  10.747775,
-		  47.982586
+    5.685114,
+    45.534903,
+    10.747775,
+    47.982586
   ],
   "geometry": {
     "coordinates": [
       [
         [
           5.685114,
-		  45.534903
+          45.534903
         ],
         [
-		  5.685114,
-		  47.982586
+          5.685114,
+          47.982586
         ],
         [
-		  10.747775,
-		  47.982586
+          10.747775,
+          47.982586
         ],
         [
-		  10.747775,
-		  45.534903
+          10.747775,
+          45.534903
         ],
         [
-		  5.685114,
-		  45.534903
+          5.685114,
+          45.534903
         ]
       ]
     ],
     "type": "Polygon"
-  },  
+  },
   "links": [
     {
       "href": "https://data.geo.admin.ch/collections/ch.swisstopo.swisstlmregio/items/swisstlmregio-2020",

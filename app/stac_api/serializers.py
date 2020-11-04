@@ -142,7 +142,8 @@ class CollectionSerializer(serializers.ModelSerializer):
             'updated',
             'links',
             'keywords',
-            'crs'
+            'crs',
+            'itemType'
         ]
         # crs and keywords not in sample data, but in specs..
 
@@ -160,6 +161,7 @@ class CollectionSerializer(serializers.ModelSerializer):
     stac_extensions = serializers.SerializerMethodField()
     stac_version = serializers.SerializerMethodField()
     title = serializers.CharField(allow_blank=True, max_length=255)  # string
+    itemType = serializers.ReadOnlyField(default="Feature")
 
     def get_crs(self, obj):
         return ["http://www.opengis.net/def/crs/OGC/1.3/CRS84"]

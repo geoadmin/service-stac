@@ -1,7 +1,11 @@
 import os
 import logging
 import json
+import pprint
 
+from django.contrib.gis.geos import GEOSGeometry
+
+from stac_api.models import Asset
 from stac_api.models import Collection
 from stac_api.models import CollectionLink
 from stac_api.models import Item
@@ -9,11 +13,12 @@ from stac_api.models import ItemLink
 from stac_api.models import Keyword
 from stac_api.models import Provider
 from django.core.management.base import BaseCommand
+from django.conf import settings
 
 # from django.core.management.base import CommandError
 
 # path definiton relative to the directory that contains manage.py
-DATADIR = './stac_api/management/sample_data/'
+DATADIR = settings.BASE_DIR / 'app/stac_api/management/sample_data/'
 logger = logging.getLogger(__name__)
 
 
@@ -25,14 +30,14 @@ def create_link(links):
     # allenfalls nicht vorhanden sind und das auch ok ist, weil sie optional sind.
     for l in links:
         link = CollectionLink.objects.get_or_create(
-        collection=collection, defaults={
-        "href": link["href"],
-        "rel": link["rel"],
-        "link_type": link["type"],
-        "title"= link["title"],
-        }
-    )
-    link.save()
+            collection=collection, defaults={
+            "href": link["href"],
+            "rel": link["rel"],
+            "link_type": link["type"],
+            "title": link["title"],
+            }
+        )
+        link.save()
 
     return True # wie bei import_collection, im Fehlerfall False)
 
@@ -46,75 +51,115 @@ def create_keyword():
 
 def import_collection(collection_dir):
     collection_json = os.path.join(collection_dir, "collection.json")
-    if os.path.exists(collection_json):
-        with open(collection_json) as collection_file:
-            collection_data = json.load(collection_file)
-
-            print(collection_data["crs"])
-
-            # fist we care about the required properties
-            collection = Collection.objects.get_or_create(
-                collection_name=collection_data["id"], defaults={
-                "description": collection_data["description"],
-                "collection_name": collection_data["id"],
-                "license": collection_data["license"],
-                "stac_version": collection_data["stac_version"],
-                }
-                )
-
-            collection.save()
-
-            create_links(collection_data["links")
+    with open(collection_json) as collection_file:
+        collection_data = json.load(collection_file)
+        collection = parse_collection(collection_data)
+    return collection
 
 
-            # now the optional properties
-            if "crs" in collection_data:
-                collection.crs=["http://www.opengis.net/def/crs/OGC/1.3/CRS84"]
+def parse_collection(collection_data):
+    pprint.pprint(collection_data)
+    print(type(collection_data))
 
-            if "itemType" in collection_data:
-                collection.item_type = collection_data["itemType"]
+    # fist we care about the required properties
+    collection, created = Collection.objects.get_or_create(
+        collection_name=collection_data["id"], defaults={
+            "description": collection_data["description"],
+            "collection_name": collection_data["id"],
+            "license": collection_data["license"]
+        }
+    )
 
-            if "keywords" in collection_data:
+    # if "itemType" in collection_data:
+    #     collection.item_type = collection_data["itemType"]
 
-            if "provider" in collection_data:
+    # if "keywords" in collection_data:
 
-            if "stac_extensions" in collection_data:
-                collection.stac_extension=collection_data["stac_extensions"]
+    # if "provider" in collection_data:
 
-            if "title" in collection_data:
-                collection.title=collection_data["title"]
+    collection.title = collection_data.get("title", None)
 
-            collection.save()
+    collection.save()
 
-        return True
-    else:
-        return False
+    # create_links(collection_data["links"))
+    return collection
 
 
-def import_item(item):
-    return
+def import_item(item_path):
+    with open(item_path) as item_file:
+        item_data = json.load(item_file)
+        item = parse_item(item_data)
+    return item
+
+
+def parse_item(item_data):
+    pprint.pprint(item_data)
+    collection = Collection.objects.get(
+        collection_name=item_data["collection"])
+    item, created = Item.objects.get_or_create(
+        item_name=item_data["id"], 
+        collection=collection,
+        defaults={
+            # Note that GEOSGeometry needs a json string, not a dict
+            "geometry": GEOSGeometry(json.dumps(item_data["geometry"])),
+            "properties_datetime": item_data["properties"]["datetime"]
+        }
+    )
+    for asset_name, asset_data in item_data["assets"].items():
+        parse_asset(item, asset_name, asset_data)
+
+
+def parse_asset(item, asset_name, asset_data):
+    pprint.pprint(asset_data)
+    asset, created = Asset.objects.get_or_create(
+        item=item,
+        collection=item.collection,
+        asset_name=asset_name,
+        defaults={
+            "checksum_multihash": asset_data["checksum:multihash"],
+            "eo_gsd": asset_data.get("eo:gsd", None),
+            "proj_epsg": asset_data.get("proj:epsg", None),
+            "href": asset_data['href'],
+            "media_type": asset_data["type"],
+            "geoadmin_lang": asset_data.get("geoadmin:lang", None),
+            "geoadmin_variant": asset_data.get("geoadmin:variant", None),
+        }
+    )
 
 
 class Command(BaseCommand):
-    help = 'Populates the local test database with sample data'
+    help = """Populates the local test database with sample data
+    
+    The sample data has to be located in stac_api/management/sample_data and
+    structured as follows
+    <collection_name>/
+       |- items/
+            |- <item1_name>.json
+            |- <item2_name>.json
+       |- collection.json
+    """
 
     def handle(self, *args, **options):
 
         # loop over the collection directories inside sample_data
-        for collection in os.scandir(DATADIR):
+        for collection_dir in os.scandir(DATADIR):
 
-            if collection.is_dir():
-                logger.debug('Current collection: %s', collection)
-                success = import_collection(collection)
+            if collection_dir.is_dir():
+                logger.debug('Trying to import collection dir: %s', collection_dir)
+                try:
+                    collection = import_collection(collection_dir)
+                except FileNotFoundError as e:
+                    logger.error(e)
+                    continue
 
-                if success:
-                    # loop over all the items inside the current collection folder
-                    for item in os.scandir(os.path.join(collection, "items")):
-                        if item.is_file():
-                            logger.debug('Current item: %s, in collection: %s', item, collection)
-                            import_item(item)
-                else:
-                    print("Current collection %s is not defined (no JSON file found).", collection)
-                    logger.debug(
-                        "Current collection %s is not defined (no JSON file found).", collection
-                    )
+
+                # loop over all the items inside the current collection folder
+                for item in os.scandir(os.path.join(collection_dir, "items")):
+                    if item.is_file():
+                        logger.debug('Trying to import item: %s, in collection: %s', item, collection)
+                        import_item(item)
+                # else:
+                #     print("Current collection %s is not defined (no JSON file found).", collection)
+                #     logger.debug(
+                #         "Current collection %s is not defined (no JSON file found).", collection
+                    # )
