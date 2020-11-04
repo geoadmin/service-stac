@@ -264,7 +264,7 @@ class CollectionLink(Link):
 class Item(models.Model):
     collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
     # geometry = models.MultiPolygonField(default=BBOX_CH_MULTIPOLYGON, dim=3, srid=2056)
-    geometry = models.PolygonField(default=BBOX_CH, dim=2, srid=2056)
+    geometry = models.PolygonField(default=BBOX_CH, srid=2056)
     item_name = models.CharField(unique=True, blank=False, max_length=255)
 
     # after discussion with Chris and Tobias: for the moment only support
