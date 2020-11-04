@@ -107,6 +107,10 @@ class ItemsList(generics.ListAPIView):
     serializer_class = ItemSerializer
     queryset = Item.objects.all()
 
+    def get_queryset(self):
+        # filter based on the url
+        return Item.objects.filter(collection__collection_name=self.kwargs['collection_name'])
+
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
 
@@ -146,11 +150,12 @@ class AssetsList(generics.GenericAPIView):
     queryset = Asset.objects.all()
     pagination_class = None
 
-    # def get_queryset(self):
-    #     # filter based on the url
-    #     return Asset.objects.filter(
-    #         collection=self.kwargs['collection_name'], feature=self.kwargs['item_name']
-    #     )
+    def get_queryset(self):
+        # filter based on the url
+        return Asset.objects.filter(
+            collection__collection_name=self.kwargs['collection_name'],
+            feature__item_name=self.kwargs['item_name']
+        )
 
     def get(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
