@@ -27,11 +27,11 @@ BBOX_CH_MULTIPOLYGON = (
 BBOX_CH = (
     'SRID=2056;'
     'POLYGON(('
-    '2317000 913000 0,'
-    '3057000 913000 0,'
-    '3057000 1413000 0,'
-    '2317000 1413000 0,'
-    '2317000 913000 0))'
+    '2317000 913000,'
+    '3057000 913000,'
+    '3057000 1413000,'
+    '2317000 1413000,'
+    '2317000 913000))'
 )
 
 # I allowed myself to make excessive use of comments below, as this is still work in progress.
