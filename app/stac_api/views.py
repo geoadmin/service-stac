@@ -152,10 +152,7 @@ class AssetsList(generics.GenericAPIView):
 
     def get_queryset(self):
         # filter based on the url
-        return Asset.objects.filter(
-            collection__collection_name=self.kwargs['collection_name'],
-            feature__item_name=self.kwargs['item_name']
-        )
+        return Asset.objects.filter(feature__item_name=self.kwargs['item_name'])
 
     def get(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
