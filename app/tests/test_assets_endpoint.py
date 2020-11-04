@@ -34,16 +34,16 @@ class AssetsEndpointTestCase(TestCase):
             f"/{API_BASE}collections/{collection_name}/items/{item_name}/assets"
         )
         self.assertEqual(200, response.status_code)
-        # json_data = response.json()
-        # logger.debug('Response (%s):\n%s', type(json_data), pformat(json_data))
+        json_data = response.json()
+        logger.debug('Response (%s):\n%s', type(json_data), pformat(json_data))
 
-        # # Check that the answer is equal to the initial data
-        # serializer = AssetSerializer(self.assets[0][0], many=True)
-        # original_data = to_dict(serializer.data)
-        # logger.debug('Serialized data:\n%s', pformat(original_data))
-        # self.assertDictEqual(
-        #     original_data, json_data, msg="Returned data does not match expected data"
-        # )
+        # Check that the answer is equal to the initial data
+        serializer = AssetSerializer(self.assets[0][0], many=True)
+        original_data = to_dict(serializer.data)
+        logger.debug('Serialized data:\n%s', pformat(original_data))
+        self.assertDictEqual(
+            original_data, json_data, msg="Returned data does not match expected data"
+        )
 
     def test_single_asset_endpoint(self):
         collection_name = self.collections[0].collection_name
