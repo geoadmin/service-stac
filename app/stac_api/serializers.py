@@ -11,6 +11,7 @@ from stac_api.models import Item
 from stac_api.models import ItemLink
 from stac_api.models import Keyword
 from stac_api.models import Provider
+from stac_api.models import get_default_stac_extensions
 
 logger = logging.getLogger(__name__)
 
@@ -129,7 +130,7 @@ class CollectionSerializer(serializers.ModelSerializer):
         model = Collection
         fields = [
             'stac_version',
-            'stac_extension',
+            'stac_extensions',
             'id',
             'title',
             'description',
@@ -145,7 +146,7 @@ class CollectionSerializer(serializers.ModelSerializer):
         ]
         # crs and keywords not in sample data, but in specs..
 
-    crs = serializers.ListField(child=serializers.URLField(required=False))
+    crs = serializers.SerializerMethodField()
     created = serializers.DateTimeField(required=True)  # datetime
     updated = serializers.DateTimeField(required=True)  # datetime
     description = serializers.CharField(required=True)  # string
@@ -156,9 +157,18 @@ class CollectionSerializer(serializers.ModelSerializer):
     license = serializers.CharField(max_length=30)  # string
     links = CollectionLinkSerializer(many=True, read_only=True)
     providers = ProviderSerializer(many=True)
-    stac_extension = serializers.ListField(child=serializers.CharField(max_length=255),)
-    stac_version = serializers.CharField(max_length=10)  # string
+    stac_extensions = serializers.SerializerMethodField()
+    stac_version = serializers.SerializerMethodField()
     title = serializers.CharField(allow_blank=True, max_length=255)  # string
+
+    def get_crs(self, obj):
+        return ["http://www.opengis.net/def/crs/OGC/1.3/CRS84"]
+
+    def get_stac_extensions(self, obj):
+        return get_default_stac_extensions()
+
+    def get_stac_version(self, obj):
+        return "0.9.0"
 
     def create(self, validated_data):
         """
@@ -278,3 +288,11 @@ class ItemSerializer(serializers.ModelSerializer):
     type = serializers.ReadOnlyField(default='Feature')
     bbox = BboxSerializer(source='*', read_only=True)
     assets = AssetSerializer(many=True, read_only=True)
+    stac_extensions = serializers.SerializerMethodField()
+    stac_version = serializers.SerializerMethodField()
+
+    def get_stac_extensions(self, obj):
+        return get_default_stac_extensions()
+
+    def get_stac_version(self, obj):
+        return "0.9.0"

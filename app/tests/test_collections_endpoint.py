@@ -68,7 +68,7 @@ class CollectionsEndpointTestCase(TestCase):
         self.assertDictContainsSubset(
             {
                 "stac_version": "0.9.0",
-                "stac_extension": [
+                "stac_extensions": [
                     "eo",
                     "proj",
                     "view",

@@ -37,11 +37,16 @@ class ItemsEndpointTestCase(TestCase):
 
         # Check that pagination is present
         self.assertTrue('links' in json_data, msg="'links' missing from repsonce")
-        self.assertListEqual([{
-            'rel': 'next',
-            'href':
-                'http://testserver/api/stac/v0.9/collections/collection-1/items?cursor=cD05OA%3D%3D'
-        }], json_data['links']) # yapf: disable
+        self.assertListEqual(['href', 'rel'],
+                             sorted(json_data['links'][0].keys()),
+                             msg='Pagination links key missing')
+        self.assertEqual('next', json_data['links'][0]['rel'])
+        self.assertTrue(isinstance(json_data['links'][0]['href'], str), msg='href is not a string')
+        self.assertTrue(
+            json_data['links'][0]['href'].
+            startswith('http://testserver/api/stac/v0.9/collections/collection-1/items?cursor='),
+            msg='Invalid href string'
+        )
 
         # Check that the answer is equal to the initial data
         serializer = ItemSerializer(self.items[0][0])
