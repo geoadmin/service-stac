@@ -15,7 +15,7 @@ from django.utils.translation import gettext_lazy as _
 logger = logging.getLogger(__name__)
 
 # st_geometry bbox ch as default
-BBOX_CH = (
+BBOX_CH_MULTIPOLYGON = (
     'SRID=2056;'
     'MULTIPOLYGON((('
     '2317000 913000 0,'
@@ -23,6 +23,15 @@ BBOX_CH = (
     '3057000 1413000 0,'
     '2317000 1413000 0,'
     '2317000 913000 0)))'
+)
+BBOX_CH = (
+    'SRID=2056;'
+    'POLYGON(('
+    '2317000 913000 0,'
+    '3057000 913000 0,'
+    '3057000 1413000 0,'
+    '2317000 1413000 0,'
+    '2317000 913000 0))'
 )
 
 # I allowed myself to make excessive use of comments below, as this is still work in progress.
@@ -210,25 +219,28 @@ class Collection(models.Model):
         needs to be updated. If so, it will be either updated or an error will
         be raised, if updating fails.
         '''
-        try:
+        # Note: the following is commented out since it's causing errors
+        # https://jira.swisstopo.ch/browse/BGDIINF_SB-1404
+        # try:
 
-            if self.extent["temporal"]["interval"][0][0] is None:
-                self.extent["temporal"]["interval"][0][0] = item_properties_datetime
-                self.save()
-            elif item_properties_datetime < self.extent["temporal"]["interval"][0][0]:
-                self.extent["temporal"]["interval"][0][0] = item_properties_datetime
-                self.save()
-            elif self.extent["temporal"]["interval"][0][1] is None:
-                self.extent["temporal"]["interval"][0][1] = item_properties_datetime
-                self.save()
-            elif item_properties_datetime > self.extent["temporal"]["interval"][0][1]:
-                self.extent["temporal"]["interval"][0][1] = item_properties_datetime
-                self.save()
+        #     if self.extent["temporal"]["interval"][0][0] is None:
+        #         self.extent["temporal"]["interval"][0][0] = item_properties_datetime
+        #         self.save()
+        #     elif item_properties_datetime < self.extent["temporal"]["interval"][0][0]:
+        #         self.extent["temporal"]["interval"][0][0] = item_properties_datetime
+        #         self.save()
+        #     elif self.extent["temporal"]["interval"][0][1] is None:
+        #         self.extent["temporal"]["interval"][0][1] = item_properties_datetime
+        #         self.save()
+        #     elif item_properties_datetime > self.extent["temporal"]["interval"][0][1]:
+        #         self.extent["temporal"]["interval"][0][1] = item_properties_datetime
+        #         self.save()
 
-        except (KeyError, IndexError) as err:
+        # except (KeyError, IndexError) as err:
 
-            logger.error('Updating the collection extent due to item update failed: %s', err)
-            raise ValidationError(_("Updating the collection extent due to item update failed."))
+        #     logger.error('Updating the collection extent due to item update failed: %s', err)
+        #     raise ValidationError(_("Updating the collection extent due to item update failed."))
+        pass  # pylint: disable=unnecessary-pass
 
     def clean(self):
         # very simple validation, raises error when geoadmin_variant strings contain special
@@ -251,7 +263,8 @@ class CollectionLink(Link):
 
 class Item(models.Model):
     collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
-    geometry = models.MultiPolygonField(default=BBOX_CH, dim=3, srid=2056)
+    # geometry = models.MultiPolygonField(default=BBOX_CH_MULTIPOLYGON, dim=3, srid=2056)
+    geometry = models.PolygonField(default=BBOX_CH, dim=3, srid=2056)
     item_name = models.CharField(unique=True, blank=False, max_length=255)
 
     # after discussion with Chris and Tobias: for the moment only support
