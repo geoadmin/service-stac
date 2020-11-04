@@ -1,7 +1,5 @@
 import logging
 import re
-from datetime import datetime
-from datetime import timezone
 
 import numpy as np
 
@@ -212,7 +210,7 @@ class Collection(models.Model):
                 "Error when updating collection's summaries values due to asset update."
             ))
 
-    def update_temporal_extent(self, item_properties_datetime):
+    def update_temporal_extent(self, item_properties_start_datetime, item_properties_end_datetime):
         '''
         updates the collection's temporal extent when item's are update.
         :param item_properties_datetime: item's value for properties_datetime.
@@ -221,37 +219,23 @@ class Collection(models.Model):
         be raised, if updating fails.
         '''
 
-        if isinstance(item_properties_datetime, str):
-            item_properties_datetime = datetime.strptime(
-                item_properties_datetime, '%Y-%m-%dT%H:%M:%SZ'
-            ).replace(tzinfo=timezone.utc)
-
-        try:
-
-            if self.cache_start_datetime is None:
-                self.cache_start_datetime = item_properties_datetime
-                self.save()
-            elif item_properties_datetime < self.cache_start_datetime:
-                self.cache_start_datetime = item_properties_datetime
-                self.save()
-            elif self.cache_end_datetime is None:
-                self.cache_end_datetime = item_properties_datetime
-                self.save()
-            elif item_properties_datetime > self.cache_end_datetime:
-                self.cache_end_datetime = item_properties_datetime
-                self.save()
-
-            # TODO: Delete-case is yet to be implemented!
-
-        except (KeyError, IndexError) as err:
-
-            logger.error('Updating the collection extent due to item update failed: %s', err)
-            raise ValidationError(_("Updating the collection extent due to item update failed."))
+        if self.cache_start_datetime is None:
+            self.cache_start_datetime = item_properties_start_datetime
+            self.save()
+        elif item_properties_start_datetime < self.cache_start_datetime:
+            self.cache_start_datetime = item_properties_start_datetime
+            self.save()
+        elif self.cache_end_datetime is None:
+            self.cache_end_datetime = item_properties_end_datetime
+            self.save()
+        elif item_properties_end_datetime > self.cache_end_datetime:
+            self.cache_end_datetime = item_properties_end_datetime
+            self.save()
 
     def update_bbox_extent(self, action, item_geom, item_id):
         '''
         updates the collection's spatial extent when an item is updated.
-        :param action: eighter up (insert, update) or rm (delete)
+        :param action: either up (insert, update) or rm (delete)
         :param geometry: the geometry of the item
         :param item_id the id of the item being treated
         This function generates a new extent regarding all the items with the same
@@ -275,7 +259,7 @@ class Collection(models.Model):
             # is the new bbox larger than (and covering) the existing
             if Polygon.from_bbox(GEOSGeometry(item_geom).extent).covers(self.extent_geometry):
                 self.extent_geometry = Polygon.from_bbox(GEOSGeometry(item_geom).extent)
-            # we need to iterat trough the items
+            # we need to iterate trough the items
             else:
                 qs = Item.objects.filter(collection_id=self.pk).exclude(id=item_id)
                 union_geometry = GEOSGeometry(item_geom)
@@ -325,14 +309,14 @@ class Item(models.Model):
 
     # after discussion with Chris and Tobias: for the moment only support
     # proterties: datetime, eo_gsd and title (the rest is hence commented out)
-    properties_datetime = models.DateTimeField()
+    properties_datetime = models.DateTimeField(blank=True, null=True)
+    properties_start_datetime = models.DateTimeField(blank=True, null=True)
+    properties_end_datetime = models.DateTimeField(blank=True, null=True)
     # properties_eo_bands = model.TextFields(blank=True)  # ? [string]?
     # properties_eo_cloud_cover = models.FloatField(blank=True)
     # eo_gsd is defined on asset level and will be updated here on ever
     # update of an asset inside this item.
     properties_eo_gsd = ArrayField(models.FloatField(), blank=True, null=True, editable=False)
-    # TODO: Not sure, if properties_eo_gsd really needs to be a list, or if it is
-    # just one single value per item.
     # properties_instruments = models.TextField(blank=True)
     # properties_license = models.TextField(blank=True)
     # properties_platform = models.TextField(blank=True)
@@ -345,6 +329,48 @@ class Item(models.Model):
 
     def __str__(self):
         return self.item_name
+
+    def clean(self):
+        self.validate_datetime_properties()
+
+    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
+        # Make sure that the properties datetime are valid before updating the temporal extent
+        # This is needed because save() is called during the Item.object.create() function without
+        # calling clean() ! and our validation is done within clean() method.
+        self.validate_datetime_properties()
+        if self.properties_datetime is not None:
+            self.collection.update_temporal_extent(
+                self.properties_datetime, self.properties_datetime
+            )
+        else:
+            self.collection.update_temporal_extent(
+                self.properties_start_datetime, self.properties_end_datetime
+            )
+        self.collection.update_bbox_extent('up', self.geometry, self.pk)
+        super().save(force_insert, force_update, using, update_fields)
+
+    def delete(self, using=None, keep_parents=False):
+        # TODO: also implement the delete case of temporal extent
+        self.collection.update_bbox_extent('rm', self.geometry, self.pk)
+        super().delete()
+
+    def validate_datetime_properties(self):
+        if self.properties_datetime is not None:
+            if self.properties_start_datetime is not None \
+                or self.properties_end_datetime is not None:
+                message = 'Cannot provide together property datetime with datetime range ' \
+                    '(start_datetime, end_datetime)'
+                logger.error(message)
+                raise ValidationError(_(message))
+        else:
+            if self.properties_end_datetime is None:
+                message = "Property end_datetime can't be null when no property datetime is given"
+                logger.error(message)
+                raise ValidationError(_(message))
+            if self.properties_start_datetime is None:
+                message = "Property start_datetime can't be null when no property datetime is given"
+                logger.error(message)
+                raise ValidationError(_(message))
 
     def update_properties_eo_gsd(self, asset_eo_gsd):
         '''
@@ -363,21 +389,6 @@ class Item(models.Model):
         elif not float_in(asset_eo_gsd, self.properties_eo_gsd):
             self.properties_eo_gsd.append(asset_eo_gsd)
             self.save()
-
-    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
-        # TODO: check if collection's bbox needs to be updated
-        # --> this could probably best be done with GeoDjango? (@Tobias)
-        # I leave this open for the moment.
-        self.collection.update_temporal_extent(self.properties_datetime)
-        # TODO: also implement the delete case!
-
-        self.collection.update_bbox_extent('up', self.geometry, self.pk)
-
-        super().save(force_insert, force_update, using, update_fields)
-
-    def delete(self, using=None, keep_parents=False):
-        self.collection.update_bbox_extent('rm', self.geometry, self.pk)
-        super().delete()
 
 
 class ItemLink(Link):

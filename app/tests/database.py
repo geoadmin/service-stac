@@ -1,3 +1,5 @@
+from dateutil.parser import isoparse
+
 from stac_api.models import Asset
 from stac_api.models import Collection
 from stac_api.models import CollectionLink
@@ -11,8 +13,8 @@ def create_collection(name):
     '''Create a dummy collection db object for testing
     '''
     collection = Collection.objects.create(
-        created='2020-10-28T13:05:10Z',
-        updated='2020-10-28T13:05:10Z',
+        created=isoparse('2020-10-28T13:05:10Z'),
+        updated=isoparse('2020-10-28T13:05:10Z'),
         description='This is a description',
         collection_name=name,
         license='test',
@@ -65,7 +67,7 @@ def create_item(collection, name):
     item = Item.objects.create(
         collection=collection,
         item_name=name,
-        properties_datetime='2020-10-28T13:05:10Z',
+        properties_datetime=isoparse('2020-10-28T13:05:10Z'),
         properties_eo_gsd=None,
         properties_title="My Title",
     )

@@ -6,14 +6,14 @@ from django.core.management.base import BaseCommand
 
 from stac_api.sample_data import importer
 
-# path definiton relative to the directory that contains manage.py
+# path definition relative to the directory that contains manage.py
 DATADIR = settings.BASE_DIR / 'app/stac_api/sample_data/'
 logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
     help = """Populates the local test database with sample data
-    
+
     The sample data has to be located in stac_api/management/sample_data and
     structured as follows
     <collection_name>/

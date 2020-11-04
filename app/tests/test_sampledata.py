@@ -1,3 +1,4 @@
+# pylint: skip-file
 import json
 import logging
 from unittest import skip
@@ -19,9 +20,9 @@ class SampleDataTestCase(TestCase):
     def setUp(self):
         self.client = Client()
 
-        self.collection = importer.import_collection(DATADIR / 'swissTLM3D/')
-        with open(DATADIR / 'swissTLM3D/collection.json') as fd:
-            self.collection_dict = json.load(fd)
+        # self.collection = importer.import_collection(DATADIR / 'swissTLM3D/')
+        # with open(DATADIR / 'swissTLM3D/collection.json') as fd:
+        #     self.collection_dict = json.load(fd)
 
         self.maxDiff = None  # pylint: disable=invalid-name
 
