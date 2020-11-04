@@ -24,19 +24,24 @@ class ItemsEndpointTestCase(TestCase):
 
     def setUp(self):
         self.client = Client()
-        self.collections, self.items, self.assets = db.create_dummy_db_content(4, 4, 4)
+        self.nb_collections = 4
+        self.nb_items_per_collection = 4
+        self.nb_assets_per_item = 4
+        self.collections, self.items, self.assets = db.create_dummy_db_content(
+            self.nb_collections, self.nb_items_per_collection, self.nb_assets_per_item
+        )
         self.maxDiff = None  # pylint: disable=invalid-name
 
-    def test_items_endpoint(self):
+    def test_items_endpoint_with_paging(self):
         response = self.client.get(
-            f"/{API_BASE}collections/{self.collections[0].collection_name}/items"
+            f"/{API_BASE}collections/{self.collections[0].collection_name}/items?limit=1"
         )
         self.assertEqual(200, response.status_code)
         json_data = response.json()
         logger.debug('Response (%s):\n%s', type(json_data), pformat(json_data))
 
         # Check that pagination is present
-        self.assertTrue('links' in json_data, msg="'links' missing from repsonce")
+        self.assertTrue('links' in json_data, msg="'links' missing from response")
         self.assertListEqual(['href', 'rel'],
                              sorted(json_data['links'][0].keys()),
                              msg='Pagination links key missing')
@@ -57,6 +62,25 @@ class ItemsEndpointTestCase(TestCase):
             json_data['features'][0],
             msg="Returned data does not match expected data"
         )
+
+    def test_items_endpoints_filtering(self):
+        # here we set the limit to the number of items in DB plus one to make
+        # sure that the items filtering based on the collection name from uri works
+        response = self.client.get(
+            f"/{API_BASE}collections/{self.collections[0].collection_name}/items?"
+            f"limit={self.nb_items_per_collection+1}"
+        )
+        self.assertEqual(200, response.status_code)
+        json_data = response.json()
+        logger.debug('Response (%s):\n%s', type(json_data), pformat(json_data))
+
+        self.assertEqual(
+            self.nb_items_per_collection, len(json_data['features']), msg="Too many items found"
+        )
+
+        # Check that pagination is present response
+        self.assertTrue('links' in json_data, msg="'links' missing from response")
+        self.assertListEqual([], json_data['links'], msg="should not have pagination")
 
     def test_single_item_endpoint(self):
         collection_name = self.collections[0].collection_name
