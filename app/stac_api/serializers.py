@@ -146,7 +146,7 @@ class ExtentSpatialSerializer(serializers.Serializer):
     bbox = serializers.ListField(child=serializers.ListField(child=serializers.FloatField(required=False)), required=False)
 
     def to_representation(self, value):
-        bbox = {"bbox": [[value.bbox]]}
+        bbox = {"bbox": [[value.bbox]]} # probably one pair of brackets too much here?
         return bbox
 
 
