@@ -1014,16 +1014,30 @@ components:
       example: smr200-200-4-2019
       type: string
     itemProperties:
-      description: Provides the core metadata fields plus extensions
+      description: >-
+        Provides the core metadata fields plus extensions
+
+
+        The item's data timing information can be specified either with
+
+        * One datetime value in the field `datetime`
+
+        * A datetime range with a `start_datetime` and an `end_datetime`
+
+
+        One of the two is required
       properties:
         created:
           $ref: "#/components/schemas/created"
         datetime:
           $ref: "#/components/schemas/datetime"
+        start_datetime:
+          $ref: "#/components/schemas/datetime"
+        end_datetime:
+          $ref: "#/components/schemas/datetime"
         updated:
           $ref: "#/components/schemas/updated"
       required:
-      - datetime
       - created
       - updated
       type: object
