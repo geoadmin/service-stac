@@ -146,7 +146,12 @@ class Collection(models.Model):
     end_date = models.DateTimeField(editable=False, null=True, blank=True)
     # the bbox field below has no meaning yet and was only introduced for testing
     # while working on the temporal extent.
-    bbox = ArrayField(ArrayField(models.FloatField(null=True, blank=True), null=True, blank=True), null=True, blank=True, editable=False)
+    bbox = ArrayField(
+        ArrayField(models.FloatField(null=True, blank=True), null=True, blank=True),
+        null=True,
+        blank=True,
+        editable=False
+    )
     collection_name = models.CharField(unique=True, max_length=255)  # string
     # collection_name is what is simply only called "id" in here:
     # http://ltboc.infra.bgdi.ch/static/products/data.geo.admin.ch/apitransactional.html#operation/createCollection
@@ -205,7 +210,7 @@ class Collection(models.Model):
                 "Error when updating collection's summaries values due to asset update."
             ))
 
-    def update_extent(self, item_properties_datetime):
+    def update_temporal_extent(self, item_properties_datetime):
         '''
         updates the collection's temporal extent when item's are update.
         :param item_properties_datetime: item's value for properties_datetime.
@@ -213,28 +218,26 @@ class Collection(models.Model):
         needs to be updated. If so, it will be either updated or an error will
         be raised, if updating fails.
         '''
-        # Note: the following is commented out since it's causing errors
-        # https://jira.swisstopo.ch/browse/BGDIINF_SB-1404
-        # try:
+        try:
 
-        #     if self.extent["temporal"]["interval"][0][0] is None:
-        #         self.extent["temporal"]["interval"][0][0] = item_properties_datetime
-        #         self.save()
-        #     elif item_properties_datetime < self.extent["temporal"]["interval"][0][0]:
-        #         self.extent["temporal"]["interval"][0][0] = item_properties_datetime
-        #         self.save()
-        #     elif self.extent["temporal"]["interval"][0][1] is None:
-        #         self.extent["temporal"]["interval"][0][1] = item_properties_datetime
-        #         self.save()
-        #     elif item_properties_datetime > self.extent["temporal"]["interval"][0][1]:
-        #         self.extent["temporal"]["interval"][0][1] = item_properties_datetime
-        #         self.save()
+            if self.start_date is None:
+                self.start_date = item_properties_datetime
+                self.save()
+            elif item_properties_datetime < self.start_date:
+                self.start_date = item_properties_datetime
+                self.save()
+            elif self.end_date is None:
+                self.end_date = item_properties_datetime
+                self.save()
+            elif item_properties_datetime > self.end_date:
+                self.end_date = item_properties_datetime
+                self.save()
+            # TODO: Delete-case!
 
-        # except (KeyError, IndexError) as err:
+        except (KeyError, IndexError) as err:
 
-        #     logger.error('Updating the collection extent due to item update failed: %s', err)
-        #     raise ValidationError(_("Updating the collection extent due to item update failed."))
-        pass  # pylint: disable=unnecessary-pass
+            logger.error('Updating the collection extent due to item update failed: %s', err)
+            raise ValidationError(_("Updating the collection extent due to item update failed."))
 
     def update_bbox_extent(self, action, item_geom, item_id):
         '''
@@ -255,7 +258,8 @@ class Collection(models.Model):
             # there is already a geometry in the collection a union of the geometries
             else:
                 self.extent_geometry = Polygon.from_bbox(
-                    GEOSGeometry(self.extent_geometry).union(GEOSGeometry(item_geom)).extent)
+                    GEOSGeometry(self.extent_geometry).union(GEOSGeometry(item_geom)).extent
+                )
 
         # update
         if action == 'up' and item_id:
@@ -279,8 +283,6 @@ class Collection(models.Model):
             self.extent_geometry = Polygon.from_bbox(union_geometry.extent)
 
         self.save()
-
-
 
     def clean(self):
         # very simple validation, raises error when geoadmin_variant strings contain special
@@ -354,7 +356,10 @@ class Item(models.Model):
             self.save()
 
     def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
-        self.collection.update_extent(self.properties_datetime)
+        # TODO: check if collection's bbox needs to be updated
+        # --> this could probably best be done with GeoDjango? (@Tobias)
+        # I leave this open for the moment.
+        self.collection.update_temporal_extent(self.properties_datetime)
 
         self.collection.update_bbox_extent('up', self.geometry, self.pk)
 
