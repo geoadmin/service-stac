@@ -3,7 +3,6 @@ import re
 from datetime import datetime
 from datetime import timezone
 
-
 import numpy as np
 
 from django.contrib.gis.db import models
@@ -221,12 +220,13 @@ class Collection(models.Model):
         needs to be updated. If so, it will be either updated or an error will
         be raised, if updating fails.
         '''
-        if isinstance(item_properties_datetime,str):
+        if isinstance(item_properties_datetime, str):
             # TODO: this is quite hackish and is only meant to serve as a quick test
             # working on a nicer solution.
-            item_properties_datetime = datetime.strptime(item_properties_datetime + "T00:00:00Z", '%Y-%m-%dT%H:%M:%SZ')
+            item_properties_datetime = datetime.strptime(
+                item_properties_datetime + "T00:00:00Z", '%Y-%m-%dT%H:%M:%SZ'
+            )
             item_properties_datetime = item_properties_datetime.replace(tzinfo=timezone.utc)
-
 
         try:
 
@@ -369,7 +369,6 @@ class Item(models.Model):
         # TODO: check if collection's bbox needs to be updated
         # --> this could probably best be done with GeoDjango? (@Tobias)
         # I leave this open for the moment.
-        print("***********", self.properties_datetime, type(self.properties_datetime))
         self.collection.update_temporal_extent(self.properties_datetime)
 
         self.collection.update_bbox_extent('up', self.geometry, self.pk)

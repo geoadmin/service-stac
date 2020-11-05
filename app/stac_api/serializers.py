@@ -1,5 +1,5 @@
-from collections import OrderedDict
 import logging
+from collections import OrderedDict
 
 from rest_framework import serializers
 from rest_framework.utils.serializer_helpers import ReturnDict
@@ -23,6 +23,7 @@ class NonNullModelSerializer(serializers.ModelSerializer):
     Best practice is to not include (optional) fields whose
     value is None.
     """
+
     def to_representation(self, instance):
         ret = super().to_representation(instance)
         ret = OrderedDict(filter(lambda x: x[1] is not None, ret.items()))
@@ -136,24 +137,25 @@ class ExtentTemporalSerializer(serializers.Serializer):
     end_date = serializers.DateTimeField()
 
     def to_representation(self, value):
-        temporal_extent= {"interval": [[value.start_date, value.end_date]]}
+        temporal_extent = {"interval": [[value.start_date, value.end_date]]}
         return temporal_extent
 
 
 class ExtentSpatialSerializer(serializers.Serializer):
     # This field is completely meaningless currently and is only created
     # for testing (while working on the temporal extent)
-    bbox = serializers.ListField(child=serializers.ListField(child=serializers.FloatField(required=False)), required=False)
+    bbox = serializers.ListField(
+        child=serializers.ListField(child=serializers.FloatField(required=False)), required=False
+    )
 
     def to_representation(self, value):
-        bbox = {"bbox": [[value.bbox]]} # probably one pair of brackets too much here?
+        bbox = {"bbox": [[value.bbox]]}  # probably one pair of brackets too much here?
         return bbox
 
 
 class ExtentSerializer(serializers.Serializer):
-    spatial =  ExtentSpatialSerializer(source="*")
+    spatial = ExtentSpatialSerializer(source="*")
     temporal = ExtentTemporalSerializer(source="*")
-
 
 
 class CollectionLinkSerializer(NonNullModelSerializer):
