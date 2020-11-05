@@ -76,8 +76,8 @@ class Link(models.Model):
     href = models.URLField()
     rel = models.CharField(max_length=30)
     # added link_ to the fieldname, as "type" is reserved
-    link_type = models.CharField(blank=True, max_length=150)
-    title = models.CharField(blank=True, max_length=255)
+    link_type = models.CharField(blank=True, null=True, max_length=150)
+    title = models.CharField(blank=True, null=True, max_length=255)
 
     class Meta:
         abstract = True
@@ -143,7 +143,7 @@ class Collection(models.Model):
     collection_name = models.CharField(unique=True, max_length=255)  # string
     # collection_name is what is simply only called "id" in here:
     # http://ltboc.infra.bgdi.ch/static/products/data.geo.admin.ch/apitransactional.html#operation/createCollection
-    item_type = models.CharField(default="Feature", max_length=20)  # string
+
     keywords = models.ManyToManyField(Keyword)
     license = models.CharField(max_length=30)  # string
     providers = models.ManyToManyField(Provider)
@@ -177,15 +177,16 @@ class Collection(models.Model):
             #     asset_eo_gsd
             # )
 
-            if asset_geoadmin_variant not in self.summaries["geoadmin:variant"]:
+            if asset_geoadmin_variant and \
+               asset_geoadmin_variant not in self.summaries["geoadmin:variant"]:
                 self.summaries["geoadmin:variant"].append(asset_geoadmin_variant)
                 self.save()
 
-            if asset_proj_epsg not in self.summaries["proj:epsg"]:
+            if asset_proj_epsg and asset_proj_epsg not in self.summaries["proj:epsg"]:
                 self.summaries["proj:epsg"].append(asset_proj_epsg)
                 self.save()
 
-            if not float_in(asset_eo_gsd, self.summaries["eo:gsd"]):
+            if asset_eo_gsd and not float_in(asset_eo_gsd, self.summaries["eo:gsd"]):
                 self.summaries["eo:gsd"].append(asset_eo_gsd)
                 self.save()
 
@@ -246,11 +247,17 @@ class CollectionLink(Link):
         Collection, related_name='links', related_query_name='link', on_delete=models.CASCADE
     )
 
+    class Meta:
+        unique_together = (('rel', 'collection'),)
+
 
 class Item(models.Model):
     collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
     geometry = models.PolygonField(default=BBOX_CH, srid=4326)
     item_name = models.CharField(unique=True, blank=False, max_length=255)
+
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
 
     # after discussion with Chris and Tobias: for the moment only support
     # proterties: datetime, eo_gsd and title (the rest is hence commented out)
@@ -309,19 +316,18 @@ class ItemLink(Link):
 
 
 class Asset(models.Model):
-    feature = models.ForeignKey(
+    # using BigIntegerField as primary_key to deal with the expected large number of assets.
+    id = models.BigAutoField(primary_key=True)
+    item = models.ForeignKey(
         Item, related_name='assets', related_query_name='asset', on_delete=models.CASCADE
     )
     collection = models.ForeignKey(Collection, on_delete=models.CASCADE, blank=True, editable=False)
-    id = models.BigAutoField(primary_key=True)
-
-    # using BigIntegerField as primary_key to deal with the expected large number of assets.
 
     # using "_name" instead of "_id", as "_id" has a default meaning in django
     asset_name = models.CharField(unique=True, blank=False, max_length=255)
     checksum_multihash = models.CharField(blank=False, max_length=255)
     description = models.TextField()
-    eo_gsd = models.FloatField()
+    eo_gsd = models.FloatField(null=True)
 
     class Language(models.TextChoices):
         # pylint: disable=invalid-name
@@ -332,15 +338,20 @@ class Asset(models.Model):
         ENGLISH = 'en', _('English')
         NONE = '', _('')
 
-    geoadmin_lang = models.CharField(max_length=2, choices=Language.choices, default=Language.NONE)
+    geoadmin_lang = models.CharField(
+        max_length=2, choices=Language.choices, default=Language.NONE, null=True
+    )
     # after discussion with Chris and Tobias: geoadmin_variant will be an
     # array field of CharFields. Simple validation is done (e.g. no "Sonderzeichen"
     # in array)
-    geoadmin_variant = models.CharField(max_length=15)
+    geoadmin_variant = models.CharField(max_length=15, null=True, blank=True)
     proj_epsg = models.IntegerField(null=True)
     title = models.CharField(max_length=255)
     media_type = models.CharField(max_length=200)
     href = models.URLField(max_length=255)
+
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.asset_name
@@ -357,9 +368,10 @@ class Asset(models.Model):
     # is saved, too.
     def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
 
-        self.feature.collection.update_geoadmin_variants(
+        self.item.collection.update_geoadmin_variants(
             self.geoadmin_variant, self.proj_epsg, self.eo_gsd
         )
-        self.feature.update_properties_eo_gsd(self.eo_gsd)
+        if self.eo_gsd:
+            self.item.update_properties_eo_gsd(self.eo_gsd)
 
         super().save(force_insert, force_update, using, update_fields)

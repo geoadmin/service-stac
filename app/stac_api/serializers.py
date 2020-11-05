@@ -1,4 +1,5 @@
 import logging
+from collections import OrderedDict
 
 from rest_framework import serializers
 from rest_framework.utils.serializer_helpers import ReturnDict
@@ -14,6 +15,19 @@ from stac_api.models import Provider
 from stac_api.models import get_default_stac_extensions
 
 logger = logging.getLogger(__name__)
+
+
+class NonNullModelSerializer(serializers.ModelSerializer):
+    """Filter fields with null value
+
+    Best practice is to not include (optional) fields whose
+    value is None.
+    """
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        ret = OrderedDict(filter(lambda x: x[1] is not None, ret.items()))
+        return ret
 
 
 class DictSerializer(serializers.ListSerializer):
@@ -55,7 +69,7 @@ class DictSerializer(serializers.ListSerializer):
         return ReturnDict(ret, serializer=self)
 
 
-class KeywordSerializer(serializers.ModelSerializer):
+class KeywordSerializer(NonNullModelSerializer):
 
     name = serializers.CharField(max_length=64)
 
@@ -82,7 +96,7 @@ class KeywordSerializer(serializers.ModelSerializer):
         return instance
 
 
-class ProviderSerializer(serializers.ModelSerializer):
+class ProviderSerializer(NonNullModelSerializer):
 
     name = serializers.CharField(allow_blank=False, max_length=200)  # string
     description = serializers.CharField()  # string
@@ -117,14 +131,14 @@ class ProviderSerializer(serializers.ModelSerializer):
         return instance
 
 
-class CollectionLinkSerializer(serializers.ModelSerializer):
+class CollectionLinkSerializer(NonNullModelSerializer):
 
     class Meta:
         model = CollectionLink
         fields = ['href', 'rel', 'link_type', 'title']
 
 
-class CollectionSerializer(serializers.ModelSerializer):
+class CollectionSerializer(NonNullModelSerializer):
 
     class Meta:
         model = Collection
@@ -142,7 +156,8 @@ class CollectionSerializer(serializers.ModelSerializer):
             'updated',
             'links',
             'keywords',
-            'crs'
+            'crs',
+            'itemType'
         ]
         # crs and keywords not in sample data, but in specs..
 
@@ -160,6 +175,7 @@ class CollectionSerializer(serializers.ModelSerializer):
     stac_extensions = serializers.SerializerMethodField()
     stac_version = serializers.SerializerMethodField()
     title = serializers.CharField(allow_blank=True, max_length=255)  # string
+    itemType = serializers.ReadOnlyField(default="Feature")  # pylint: disable=invalid-name
 
     def get_crs(self, obj):
         return ["http://www.opengis.net/def/crs/OGC/1.3/CRS84"]
@@ -185,7 +201,7 @@ class CollectionSerializer(serializers.ModelSerializer):
         return instance
 
 
-class ItemLinkSerializer(serializers.ModelSerializer):
+class ItemLinkSerializer(NonNullModelSerializer):
 
     class Meta:
         model = ItemLink
@@ -226,7 +242,7 @@ class AssetsDictSerializer(DictSerializer):
     key_identifier = 'asset_name'
 
 
-class AssetSerializer(serializers.ModelSerializer):
+class AssetSerializer(NonNullModelSerializer):
     type = serializers.CharField(source='media_type', max_length=200)
     eo_gsd = serializers.FloatField(source='eo_gsd')
     geoadmin_lang = serializers.CharField(source='geoadmin_lang', max_length=2)
@@ -262,7 +278,7 @@ class AssetSerializer(serializers.ModelSerializer):
         return fields
 
 
-class ItemSerializer(serializers.ModelSerializer):
+class ItemSerializer(NonNullModelSerializer):
 
     class Meta:
         model = Item

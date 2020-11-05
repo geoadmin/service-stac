@@ -22,7 +22,6 @@ def create_collection(name):
             }
         },
         collection_name=name,
-        item_type='Feature',
         license='test',
         summaries={
             "eo:gsd": [], "geoadmin:variant": [], "proj:epsg": []
@@ -119,7 +118,7 @@ def create_item_links(item):
 def create_asset(collection, item, asset_name):
     asset = Asset.objects.create(
         collection=collection,
-        feature=item,
+        item=item,
         title='my-title',
         asset_name=asset_name,
         checksum_multihash="01205c3fd6978a7d0b051efaa4263a09",
