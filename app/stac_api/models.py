@@ -4,6 +4,7 @@ import re
 import numpy as np
 
 from django.contrib.gis.db import models
+from django.contrib.gis.geos import Polygon
 from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ValidationError
 from django.core.serializers.json import DjangoJSONEncoder
@@ -14,28 +15,13 @@ from django.utils.translation import gettext_lazy as _
 
 logger = logging.getLogger(__name__)
 
-# st_geometry bbox ch as default
-BBOX_CH_MULTIPOLYGON = (
-    'SRID=2056;'
-    'MULTIPOLYGON((('
-    '2317000 913000 0,'
-    '3057000 913000 0,'
-    '3057000 1413000 0,'
-    '2317000 1413000 0,'
-    '2317000 913000 0)))'
-)
-BBOX_CH = (
-    'SRID=2056;'
-    'POLYGON(('
-    '2317000 913000,'
-    '3057000 913000,'
-    '3057000 1413000,'
-    '2317000 1413000,'
-    '2317000 913000))'
-)
-
-# I allowed myself to make excessive use of comments below, as this is still work in progress.
-# all the comments can be deleted later on
+# We use the WGS84 bounding box as defined here:
+# https://epsg.io/2056
+_BBOX_CH = Polygon.from_bbox((5.96, 45.82, 10.49, 47.81))
+_BBOX_CH.srid = 4326
+# equal to
+# 'SRID=4326;POLYGON ((5.96 45.82, 5.96 47.81, 10.49 47.81, 10.49 45.82, 5.96 45.82))'
+BBOX_CH = str(_BBOX_CH)
 
 # after discussion with Chris and Tobias:
 # stac_extension will be populated with default values that are set to be
@@ -263,8 +249,7 @@ class CollectionLink(Link):
 
 class Item(models.Model):
     collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
-    # geometry = models.MultiPolygonField(default=BBOX_CH_MULTIPOLYGON, dim=3, srid=2056)
-    geometry = models.PolygonField(default=BBOX_CH, srid=2056)
+    geometry = models.PolygonField(default=BBOX_CH, srid=4326)
     item_name = models.CharField(unique=True, blank=False, max_length=255)
 
     # after discussion with Chris and Tobias: for the moment only support

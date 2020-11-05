@@ -14,7 +14,7 @@ def convert_multipolygons_to_polygons(apps, schema_editor):
     Item = apps.get_model('stac_api', 'Item')
     for item in Item.objects.all():
         wkt = wkt_w(dim=2).write(item.geometry_old.convex_hull).decode()
-        item.geometry = GEOSGeometry(wkt, srid=2056)
+        item.geometry = GEOSGeometry(wkt, srid=2056).transform(4326, clone=True)
         item.save()
 
 

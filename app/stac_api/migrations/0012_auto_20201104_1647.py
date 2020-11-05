@@ -25,8 +25,8 @@ class Migration(migrations.Migration):
             name='geometry',
             field=django.contrib.gis.db.models.fields.PolygonField(
                 default=
-                'SRID=2056;POLYGON((2317000 913000,3057000 913000,3057000 1413000,2317000 1413000,2317000 913000))',
-                srid=2056
+                'SRID=4326;POLYGON ((5.96 45.82, 5.96 47.81, 10.49 47.81, 10.49 45.82, 5.96 45.82))',
+                srid=4326
             ),
         ),
     ]
