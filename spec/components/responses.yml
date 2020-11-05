@@ -75,7 +75,7 @@ components:
               - http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/geojson
           schema:
             $ref: "#/components/schemas/confClasses"
-      description: |-
+      description: >-
         The URIs of all conformance classes supported by the server.
 
 
@@ -88,7 +88,7 @@ components:
         application/geo+json:
           schema:
             $ref: "#/components/schemas/item"
-      description: |-
+      description: >-
         Fetch the feature with id `featureId` in the feature collection
         with id `collectionId`
     Features:
