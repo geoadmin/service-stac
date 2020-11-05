@@ -67,7 +67,6 @@ provider3.save()
 # create collection instances for testing
 collection1 = Collection(
     id=1,
-    crs=['http://www.google.com'],
     created=datetime.now(),
     updated=datetime.now(),
     description='test',
@@ -113,7 +112,6 @@ collection1.save()
 # create collection instance for testing
 collection2 = Collection(
     id=2,
-    crs=['http://www.google.com'],
     created=datetime.now(),
     updated=datetime.now(),
     description='test',
@@ -156,7 +154,6 @@ collection2.providers.add(provider1, provider3)
 # create collection instance for testing
 collection3 = Collection(
     id=3,
-    crs=['http://www.google.com'],
     created=datetime.now(),
     updated=datetime.now(),
     description='test',
