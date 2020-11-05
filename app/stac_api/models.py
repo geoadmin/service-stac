@@ -220,13 +220,11 @@ class Collection(models.Model):
         needs to be updated. If so, it will be either updated or an error will
         be raised, if updating fails.
         '''
+
         if isinstance(item_properties_datetime, str):
-            # TODO: this is quite hackish and is only meant to serve as a quick test
-            # working on a nicer solution.
             item_properties_datetime = datetime.strptime(
-                item_properties_datetime + "T00:00:00Z", '%Y-%m-%dT%H:%M:%SZ'
-            )
-            item_properties_datetime = item_properties_datetime.replace(tzinfo=timezone.utc)
+                item_properties_datetime, '%Y-%m-%dT%H:%M:%SZ'
+            ).replace(tzinfo=timezone.utc)
 
         try:
 

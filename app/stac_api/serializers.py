@@ -133,8 +133,8 @@ class ProviderSerializer(NonNullModelSerializer):
 
 class ExtentTemporalSerializer(serializers.Serializer):
     # pylint: disable=abstract-method
-    start_date = serializers.DateTimeField()
-    end_date = serializers.DateTimeField()
+    start_date = serializers.DateTimeField(format='%Y-%m-%dT%H:%M:%SZ')
+    end_date = serializers.DateTimeField(format='%Y-%m-%dT%H:%M:%SZ')
 
     def to_representation(self, value):
         temporal_extent = {"interval": [[value.start_date, value.end_date]]}
@@ -189,8 +189,8 @@ class CollectionSerializer(NonNullModelSerializer):
         # crs and keywords not in sample data, but in specs..
 
     crs = serializers.SerializerMethodField()
-    created = serializers.DateTimeField(required=True)  # datetime
-    updated = serializers.DateTimeField(required=True)  # datetime
+    created = serializers.DateTimeField(required=True, format='%Y-%m-%dT%H:%M:%SZ')  # datetime
+    updated = serializers.DateTimeField(required=True, format='%Y-%m-%dT%H:%M:%SZ')  # datetime
     description = serializers.CharField(required=True)  # string
     extent = ExtentSerializer(read_only=True, source="*")
     summaries = serializers.JSONField(read_only=True)
@@ -239,7 +239,9 @@ class ItemsPropertiesSerializer(serializers.Serializer):
     # pylint: disable=abstract-method
     # ItemsPropertiesSerializer is a nested serializer and don't directly create/write instances
     # therefore we don't need to implement the super method create() and update()
-    datetime = serializers.DateTimeField(required=True, source='properties_datetime')
+    datetime = serializers.DateTimeField(
+        required=True, source='properties_datetime', format='%Y-%m-%dT%H:%M:%SZ'
+    )
     eo_gsd = serializers.ListField(required=True, source='properties_eo_gsd')
     title = serializers.CharField(required=True, source='properties_title', max_length=255)
 
