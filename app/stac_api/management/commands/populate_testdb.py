@@ -1,9 +1,10 @@
 import logging
 import os
 
-from stac_api.sample_data import importer
-from django.core.management.base import BaseCommand
 from django.conf import settings
+from django.core.management.base import BaseCommand
+
+from stac_api.sample_data import importer
 
 # from django.core.management.base import CommandError
 

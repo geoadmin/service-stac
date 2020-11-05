@@ -177,7 +177,8 @@ class Collection(models.Model):
             #     asset_eo_gsd
             # )
 
-            if asset_geoadmin_variant and asset_geoadmin_variant not in self.summaries["geoadmin:variant"]:
+            if asset_geoadmin_variant and \
+               asset_geoadmin_variant not in self.summaries["geoadmin:variant"]:
                 self.summaries["geoadmin:variant"].append(asset_geoadmin_variant)
                 self.save()
 
@@ -247,7 +248,7 @@ class CollectionLink(Link):
     )
 
     class Meta:
-        unique_together = (('rel','collection'),)
+        unique_together = (('rel', 'collection'),)
 
 
 class Item(models.Model):
@@ -337,7 +338,9 @@ class Asset(models.Model):
         ENGLISH = 'en', _('English')
         NONE = '', _('')
 
-    geoadmin_lang = models.CharField(max_length=2, choices=Language.choices, default=Language.NONE, null=True)
+    geoadmin_lang = models.CharField(
+        max_length=2, choices=Language.choices, default=Language.NONE, null=True
+    )
     # after discussion with Chris and Tobias: geoadmin_variant will be an
     # array field of CharFields. Simple validation is done (e.g. no "Sonderzeichen"
     # in array)

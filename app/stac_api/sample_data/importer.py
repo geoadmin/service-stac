@@ -1,9 +1,14 @@
-import os
-import logging
+# pylint: skip-file
+# TODO: remove and properly lint
+
 import json
+import logging
+import os
 import pprint
 
+from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry
+from django.core.management.base import BaseCommand
 
 from stac_api.models import Asset
 from stac_api.models import Collection
@@ -12,8 +17,6 @@ from stac_api.models import Item
 from stac_api.models import ItemLink
 from stac_api.models import Keyword
 from stac_api.models import Provider
-from django.core.management.base import BaseCommand
-from django.conf import settings
 
 # from django.core.management.base import CommandError
 
@@ -59,10 +62,8 @@ def import_collection(collection_dir):
     ```
     """
 
-
     if collection_dir.is_dir() and collection_dir.name != '__pycache__':
-        logger.debug('Trying to import collection dir: %s',
-                    collection_dir)
+        logger.debug('Trying to import collection dir: %s', collection_dir)
         collection_json = os.path.join(collection_dir, "collection.json")
         with open(collection_json) as collection_file:
             collection_data = json.load(collection_file)
@@ -75,8 +76,7 @@ def import_collection(collection_dir):
         # loop over all the items inside the current collection folder
         for item in os.scandir(os.path.join(collection_dir, "items")):
             if item.is_file():
-                logger.debug(
-                    'Trying to import item: %s, in collection: %s', item, collection)
+                logger.debug('Trying to import item: %s, in collection: %s', item, collection)
                 import_item(item)
 
         return collection
@@ -122,8 +122,7 @@ def import_item(item_path):
 
 def parse_item(item_data):
     # pprint.pprint(item_data)
-    collection = Collection.objects.get(
-        collection_name=item_data["collection"])
+    collection = Collection.objects.get(collection_name=item_data["collection"])
     item, created = Item.objects.get_or_create(
         item_name=item_data["id"],
         collection=collection,
@@ -153,4 +152,3 @@ def parse_asset(item, asset_name, asset_data):
             "geoadmin_variant": asset_data.get("geoadmin:variant", None),
         }
     )
-

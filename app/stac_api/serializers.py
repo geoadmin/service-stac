@@ -1,5 +1,5 @@
-from collections import OrderedDict
 import logging
+from collections import OrderedDict
 
 from rest_framework import serializers
 from rest_framework.utils.serializer_helpers import ReturnDict
@@ -23,11 +23,11 @@ class NonNullModelSerializer(serializers.ModelSerializer):
     Best practice is to not include (optional) fields whose
     value is None.
     """
+
     def to_representation(self, instance):
         ret = super().to_representation(instance)
         ret = OrderedDict(filter(lambda x: x[1] is not None, ret.items()))
         return ret
-
 
 
 class DictSerializer(serializers.ListSerializer):
@@ -175,7 +175,7 @@ class CollectionSerializer(NonNullModelSerializer):
     stac_extensions = serializers.SerializerMethodField()
     stac_version = serializers.SerializerMethodField()
     title = serializers.CharField(allow_blank=True, max_length=255)  # string
-    itemType = serializers.ReadOnlyField(default="Feature")
+    itemType = serializers.ReadOnlyField(default="Feature")  # pylint: disable=invalid-name
 
     def get_crs(self, obj):
         return ["http://www.opengis.net/def/crs/OGC/1.3/CRS84"]
