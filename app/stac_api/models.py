@@ -139,9 +139,14 @@ class Collection(models.Model):
     # furthermore GeoDjango and its functionality will be used for that.
     # TODO: overwrite items save() function accordingly
     # suggestions of fields to be auto-populated:
-    extent = models.JSONField(
-        default=get_default_extent_value, encoder=DjangoJSONEncoder, editable=False
-    )
+    # extent = models.JSONField(
+    #    default=get_default_extent_value, encoder=DjangoJSONEncoder, editable=False
+    # )
+    start_date = models.DateTimeField(editable=False, null=True, blank=True)
+    end_date = models.DateTimeField(editable=False, null=True, blank=True)
+    # the bbox field below has no meaning yet and was only introduced for testing
+    # while working on the temporal extent.
+    bbox = ArrayField(ArrayField(models.FloatField(null=True, blank=True), null=True, blank=True), null=True, blank=True, editable=False)
     collection_name = models.CharField(unique=True, max_length=255)  # string
     # collection_name is what is simply only called "id" in here:
     # http://ltboc.infra.bgdi.ch/static/products/data.geo.admin.ch/apitransactional.html#operation/createCollection

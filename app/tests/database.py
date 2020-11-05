@@ -14,13 +14,13 @@ def create_collection(name):
         created='2020-10-28T13:05:10.473602Z',
         updated='2020-10-28T13:05:10.473602Z',
         description='This is a description',
-        extent={
-            "spatial": {
-                "bbox": [[None]]
-            }, "temporal": {
-                "interval": [[None, None]]
-            }
-        },
+        # extent={
+        #     "spatial": {
+        #         "bbox": [[None]]
+        #     }, "temporal": {
+        #         "interval": [[None, None]]
+        #     }
+        # },
         collection_name=name,
         license='test',
         summaries={
