@@ -34,7 +34,7 @@ components:
         - description: Match using an operator
           properties:
             contains:
-              description: |-
+              description: >-
                 Find items with a property that contains the specified
                 literal string, e.g., matches ".*<STRING>.*".
                 A case-insensitive comparison must be performed.
@@ -134,68 +134,6 @@ components:
       format: date-time
       readOnly: true
     collection:
-      # example:
-      #   created: "2020-07-14T12:30:00Z"
-      #   description: >-
-      #     Swiss Map Raster are a conversion of the map image into a digital form
-      #     with no direct bearing on the individual map elements.
-
-
-      #     The information is structured only in colour layers. Swiss Map Raster pixel
-      #     maps are ideal for finding background information for a broad variety of
-      #     screen applications, web and mobile applications and services, as well as
-      #     for geographic information systems. They can also be used as basic maps
-      #     for a variety of purposes (digital printing, plots, offset printing, etc.).
-      #   extent:
-      #     spatial:
-      #       bbox:
-      #         - - 6.02260949059
-      #           - 45.7769477403
-      #           - 10.4427014502
-      #           - 47.8308275417
-      #     temporal:
-      #       interval:
-      #         - - "2012-01-01T00:00:00Z"
-      #           - "2020-12-31T23:59:59Z"
-      #   id: ch.swisstopo.pixelkarte-farbe-pk50.noscale
-      #   license: proprietary
-      #   links:
-      #     - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
-      #       rel: self
-      #     - href: https://data.geo.admin.ch/api/stac/v0.9/
-      #       rel: root
-      #     - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items
-      #       rel: items
-      #     - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
-      #       rel: license
-      #       title: Licence for the free geodata of the Federal Office of Topography swisstopo
-      #     - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
-      #       rel: describedby
-      #   providers:
-      #     - name: Federal Office of Topography - swisstopo
-      #       roles:
-      #         - producer
-      #         - licensor
-      #       url: https://www.swisstopo.admin.ch
-      #   stac_extensions:
-      #     - proj
-      #     - eo
-      #     - https://data.geo.admin.ch/stac/geoadmin-extension/1.0/schema.json
-      #   stac_version: 0.9.0
-      #   summaries:
-      #     eo:gsd:
-      #       - 2.5
-      #     geoadmin:variant:
-      #       - - description: Grayscale combination with shading
-      #           name: kgrel
-      #         - description: Color combination without shading
-      #           name: komb
-      #         - description: Color combination with shading
-      #           name: krel
-      #     proj:epsg:
-      #       - 2056
-      #   title: National Map 1:50'000
-      #   updated: "2020-07-14T12:30:00Z"
       properties:
         crs:
           default:
@@ -209,10 +147,9 @@ components:
         description:
           $ref: "#/components/schemas/description"
           description: A description of the features in the collection
-          example: |-
+          example: >-
             Swiss Map Raster are a conversion of the map image into a digital form
             with no direct bearing on the individual map elements.
-
 
             The information is structured only in colour layers. Swiss Map Raster pixel
             maps are ideal for finding background information for a broad variety of
@@ -503,123 +440,6 @@ components:
         - temporal
       type: object
       readOnly: true
-    # featureCollectionGeoJSON:
-    #   properties:
-    #     features:
-    #       items:
-    #         $ref: '#/components/schemas/item'
-    #         type: array
-    #     links:
-    #       example:
-    #       - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items
-    #         rel: self
-    #       - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items?startindex=10
-    #         rel: next
-    #     numberMatched:
-    #       example: 256
-    #     numberReturned:
-    #       example: 10
-    #     timeStamp:
-    #       example: "2020-07-15T12:30:00Z"
-    #     type:
-    #       enum:
-    #       - FeatureCollection
-    #       type: string
-    #   required:
-    #   - type
-    #   - features
-    #   type: object
-    # featureGeoJSON:
-    #   # example:
-    #   #   assets:
-    #   #     smr50-263-2016-2056-kgrs-2.5.tiff:
-    #   #       checksum:multihash: 90e402107a7f2588a85362b9beea2a12d4514d45
-    #   #       created: "2020-07-14T12:30:00Z"
-    #   #       eo:gsd: 2.5
-    #   #       geoadmin:variant: kgrs
-    #   #       href: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr50-263-2016-2056-kgrs-2.5.tiff
-    #   #       proj:epsg: "2056"
-    #   #       type: image/tiff; application=geotiff
-    #   #       updated: "2020-07-14T12:30:00Z"
-    #   #     smr50-263-2016-2056-komb-2.5.tiff:
-    #   #       checksum:multihash: 90d402107a7f2588a85362b9beea2a12d4514d45
-    #   #       created: "2020-07-14T12:30:00Z"
-    #   #       eo:gsd: 2.5
-    #   #       geoadmin:variant: komb
-    #   #       href: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr50-263-2016-2056-komb-2.5.tiff
-    #   #       proj:epsg: "2056"
-    #   #       type: image/tiff; application=geotiff
-    #   #       updated: "2020-07-14T12:30:00Z"
-    #   #     smr50-263-2016-2056-krel-2.5.tiff:
-    #   #       checksum:multihash: 90f402107a7f2588a85362b9beea2a12d4514d45
-    #   #       created: "2020-07-14T12:30:00Z"
-    #   #       eo:gsd: 2.5
-    #   #       geoadmin:variant: krel
-    #   #       href: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr50-263-2016-2056-krel-2.5.tiff
-    #   #       proj:epsg: "2056"
-    #   #       type: image/tiff; application=geotiff
-    #   #       updated: "2020-07-14T12:30:00Z"
-    #   #   bbox:
-    #   #   - 7.242974548172171
-    #   #   - 46.357085154660915
-    #   #   - 7.699524647567326
-    #   #   - 46.57310580640624
-    #   #   collection: ch.swisstopo.pixelkarte-farbe-pk50.noscale
-    #   #   geometry:
-    #   #     coordinates:
-    #   #     - - - 7.242974548172171
-    #   #         - 46.57310580640624
-    #   #       - - 7.243756483316452
-    #   #         - 46.35721185723752
-    #   #       - - 7.698490766144817
-    #   #         - 46.357085154660915
-    #   #       - - 7.699524647567326
-    #   #         - 46.57297861624267
-    #   #       - - 7.242974548172171
-    #   #         - 46.57310580640624
-    #   #     type: Polygon
-    #   #   id: smr50-263-2016
-    #   #   links:
-    #   #   - href: https://data.geo.admin.ch/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr50-263-2016
-    #   #     rel: self
-    #   #   - href: https://data.geo.admin.ch/api/stac/v0.9/
-    #   #     rel: root
-    #   #   - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
-    #   #     rel: collection
-    #   #   properties:
-    #   #     created: "2020-07-14T12:30:00Z"
-    #   #     datetime: "2016-07-14T12:30:00Z"
-    #   #     updated: "2020-07-14T12:30:00Z"
-    #   #   stac_extensions:
-    #   #   - proj
-    #   #   - eo
-    #   #   - checksum
-    #   #   - https://data.geo.admin.ch/stac/geoadmin-extension/1.0/schema.json
-    #   #   stac_version: 0.9.0
-    #   #   type: Feature
-    #   properties:
-    #     geometry:
-    #       $ref: '#/components/schemas/geometryGeoJSON'
-    #     id:
-    #       oneOf:
-    #       - type: string
-    #       - type: integer
-    #     links:
-    #       items:
-    #         $ref: '#/components/schemas/link'
-    #       type: array
-    #     properties:
-    #       nullable: true
-    #       type: object
-    #     type:
-    #       enum:
-    #       - Feature
-    #       type: string
-    #   required:
-    #   - type
-    #   - geometry
-    #   - properties
-    #   type: object
     geoadmin:lang:
       enum:
         - de
@@ -679,73 +499,6 @@ components:
       description: >-
         A GeoJSON Feature augmented with foreign members that contain values relevant to a
         STAC entity
-      # example:
-      #   assets:
-      #     smr50-263-2016-2056-kgrs-2.5.tiff:
-      #       checksum:multihash: 90e402107a7f2588a85362b9beea2a12d4514d45
-      #       created: "2020-07-14T12:30:00Z"
-      #       eo:gsd: 2.5
-      #       geoadmin:variant: kgrs
-      #       href: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr50-263-2016-2056-kgrs-2.5.tiff
-      #       proj:epsg: "2056"
-      #       type: image/tiff; application=geotiff
-      #       updated: "2020-07-14T12:30:00Z"
-      #     smr50-263-2016-2056-komb-2.5.tiff:
-      #       checksum:multihash: 90d402107a7f2588a85362b9beea2a12d4514d45
-      #       created: "2020-07-14T12:30:00Z"
-      #       eo:gsd: 2.5
-      #       geoadmin:variant: komb
-      #       href: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr50-263-2016-2056-komb-2.5.tiff
-      #       proj:epsg: "2056"
-      #       type: image/tiff; application=geotiff
-      #       updated: "2020-07-14T12:30:00Z"
-      #     smr50-263-2016-2056-krel-2.5.tiff:
-      #       checksum:multihash: 90f402107a7f2588a85362b9beea2a12d4514d45
-      #       created: "2020-07-14T12:30:00Z"
-      #       eo:gsd: 2.5
-      #       geoadmin:variant: krel
-      #       href: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr50-263-2016-2056-krel-2.5.tiff
-      #       proj:epsg: "2056"
-      #       type: image/tiff; application=geotiff
-      #       updated: "2020-07-14T12:30:00Z"
-      #   bbox:
-      #   - 7.242974548172171
-      #   - 46.357085154660915
-      #   - 7.699524647567326
-      #   - 46.57310580640624
-      #   collection: ch.swisstopo.pixelkarte-farbe-pk50.noscale
-      #   geometry:
-      #     coordinates:
-      #     - - - 7.242974548172171
-      #         - 46.57310580640624
-      #       - - 7.243756483316452
-      #         - 46.35721185723752
-      #       - - 7.698490766144817
-      #         - 46.357085154660915
-      #       - - 7.699524647567326
-      #         - 46.57297861624267
-      #       - - 7.242974548172171
-      #         - 46.57310580640624
-      #     type: Polygon
-      #   id: smr50-263-2016
-      #   links:
-      #   - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr50-263-2016
-      #     rel: self
-      #   - href: https://data.geo.admin.ch/api/stac/v0.9/
-      #     rel: root
-      #   - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
-      #     rel: collection
-      #   properties:
-      #     created: "2020-07-14T12:30:00Z"
-      #     datetime: "2016-07-14T12:30:00Z"
-      #     updated: "2020-07-14T12:30:00Z"
-      #   stac_extensions:
-      #   - proj
-      #   - eo
-      #   - checksum
-      #   - https://data.geo.admin.ch/stac/geoadmin-extension/1.0/schema.json
-      #   stac_version: 0.9.0
-      #   type: Feature
       properties:
         assets:
           $ref: "#/components/schemas/itemAssets"
