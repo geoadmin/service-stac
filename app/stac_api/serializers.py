@@ -1,3 +1,4 @@
+from collections import OrderedDict
 import logging
 
 from rest_framework import serializers
@@ -14,6 +15,19 @@ from stac_api.models import Provider
 from stac_api.models import get_default_stac_extensions
 
 logger = logging.getLogger(__name__)
+
+
+class NonNullModelSerializer(serializers.ModelSerializer):
+    """Filter fields with null value
+
+    Best practice is to not include (optional) fields whose
+    value is None.
+    """
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        ret = OrderedDict(filter(lambda x: x[1] is not None, ret.items()))
+        return ret
+
 
 
 class DictSerializer(serializers.ListSerializer):
@@ -55,7 +69,7 @@ class DictSerializer(serializers.ListSerializer):
         return ReturnDict(ret, serializer=self)
 
 
-class KeywordSerializer(serializers.ModelSerializer):
+class KeywordSerializer(NonNullModelSerializer):
 
     name = serializers.CharField(max_length=64)
 
@@ -82,7 +96,7 @@ class KeywordSerializer(serializers.ModelSerializer):
         return instance
 
 
-class ProviderSerializer(serializers.ModelSerializer):
+class ProviderSerializer(NonNullModelSerializer):
 
     name = serializers.CharField(allow_blank=False, max_length=200)  # string
     description = serializers.CharField()  # string
@@ -117,14 +131,14 @@ class ProviderSerializer(serializers.ModelSerializer):
         return instance
 
 
-class CollectionLinkSerializer(serializers.ModelSerializer):
+class CollectionLinkSerializer(NonNullModelSerializer):
 
     class Meta:
         model = CollectionLink
         fields = ['href', 'rel', 'link_type', 'title']
 
 
-class CollectionSerializer(serializers.ModelSerializer):
+class CollectionSerializer(NonNullModelSerializer):
 
     class Meta:
         model = Collection
@@ -187,7 +201,7 @@ class CollectionSerializer(serializers.ModelSerializer):
         return instance
 
 
-class ItemLinkSerializer(serializers.ModelSerializer):
+class ItemLinkSerializer(NonNullModelSerializer):
 
     class Meta:
         model = ItemLink
@@ -228,7 +242,7 @@ class AssetsDictSerializer(DictSerializer):
     key_identifier = 'asset_name'
 
 
-class AssetSerializer(serializers.ModelSerializer):
+class AssetSerializer(NonNullModelSerializer):
     type = serializers.CharField(source='media_type', max_length=200)
     eo_gsd = serializers.FloatField(source='eo_gsd')
     geoadmin_lang = serializers.CharField(source='geoadmin_lang', max_length=2)
@@ -264,7 +278,7 @@ class AssetSerializer(serializers.ModelSerializer):
         return fields
 
 
-class ItemSerializer(serializers.ModelSerializer):
+class ItemSerializer(NonNullModelSerializer):
 
     class Meta:
         model = Item

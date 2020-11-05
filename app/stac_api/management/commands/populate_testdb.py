@@ -25,23 +25,19 @@ logger = logging.getLogger(__name__)
 def create_provider():
     pass
 
-def create_link(links):
+def create_collection_link(collection, link):
     # Hier noch Fehler abfangen Index und Key, darauf achten, dass einige Properties
     # allenfalls nicht vorhanden sind und das auch ok ist, weil sie optional sind.
-    for l in links:
-        link = CollectionLink.objects.get_or_create(
-            collection=collection, defaults={
-            "href": link["href"],
-            "rel": link["rel"],
-            "link_type": link["type"],
-            "title": link["title"],
-            }
-        )
-        link.save()
-
-    return True # wie bei import_collection, im Fehlerfall False)
-
-
+    link, created = CollectionLink.objects.get_or_create(
+        collection=collection,
+        rel=link["rel"],
+        defaults={
+        "href": link["href"],
+        "link_type": link.get("type", None),
+        "title": link.get("title", None),
+        }
+    )
+    link.save()
 
 
 def create_keyword():
@@ -81,7 +77,9 @@ def parse_collection(collection_data):
 
     collection.save()
 
-    # create_links(collection_data["links"))
+    for link in collection_data.get("links", []):
+        create_collection_link(collection, link)
+
     return collection
 
 
@@ -163,3 +161,8 @@ class Command(BaseCommand):
                 #     logger.debug(
                 #         "Current collection %s is not defined (no JSON file found).", collection
                     # )
+
+
+
+                # value = {k: second_dict[k] for k, _ in set(
+                #     second_dict.items()) - set(first_dict.items())}

@@ -74,10 +74,10 @@ class Keyword(models.Model):
 
 class Link(models.Model):
     href = models.URLField()
-    rel = models.CharField(max_length=30, unique=True)
+    rel = models.CharField(max_length=30)
     # added link_ to the fieldname, as "type" is reserved
-    link_type = models.CharField(blank=True, max_length=150)
-    title = models.CharField(blank=True, max_length=255)
+    link_type = models.CharField(blank=True, null=True, max_length=150)
+    title = models.CharField(blank=True, null=True, max_length=255)
 
     class Meta:
         abstract = True
@@ -245,6 +245,9 @@ class CollectionLink(Link):
     collection = models.ForeignKey(
         Collection, related_name='links', related_query_name='link', on_delete=models.CASCADE
     )
+
+    class Meta:
+        unique_together = (('rel','collection'),)
 
 
 class Item(models.Model):

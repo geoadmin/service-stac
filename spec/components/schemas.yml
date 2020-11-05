@@ -1083,6 +1083,7 @@ components:
           example: Trierer Strasse 70, 53115 Bonn
           type: string
         type:
+          description: The media type of the link target
           example: application/geo+json
           type: string
       required:
