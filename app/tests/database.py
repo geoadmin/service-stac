@@ -22,7 +22,6 @@ def create_collection(name):
             }
         },
         collection_name=name,
-        item_type='Feature',
         license='test',
         summaries={
             "eo:gsd": [], "geoadmin:variant": [], "proj:epsg": []
