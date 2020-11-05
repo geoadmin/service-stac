@@ -27,7 +27,7 @@
     "temporal": {
       "interval": [
         [
-          "2019",
+          "2019-01-01T00:00:00Z",
           null
         ]
       ]
@@ -44,8 +44,6 @@
     }
   ],  
   "license": "proprietary",
-  "created": "2020-10-22T12:30:00Z",
-  "updated": "2020-10-22T12:30:00Z",
   "links": [
     {
       "href": "https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk200.noscale",
