@@ -5,6 +5,7 @@ import numpy as np
 
 from django.contrib.gis.db import models
 from django.contrib.gis.geos import Polygon
+from django.contrib.gis.geos import GEOSGeometry
 from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ValidationError
 from django.core.serializers.json import DjangoJSONEncoder
@@ -117,6 +118,7 @@ class Collection(models.Model):
     created = models.DateTimeField(auto_now_add=True)  # datetime
     updated = models.DateTimeField(auto_now=True)  # datetime
     description = models.TextField()  # string  / intentionally TextField and
+    extent_geometry = models.PolygonField(default=None, srid=4326, editable=True, null=True)
     # not CharField to provide more space for the text.
     # TODO: ""description" is required in radiantearth spec, not required in our spec
     # temporal extent will be auto-populated on every item update inside this collection:
@@ -229,6 +231,52 @@ class Collection(models.Model):
         #     raise ValidationError(_("Updating the collection extent due to item update failed."))
         pass  # pylint: disable=unnecessary-pass
 
+    def update_bbox_extent(self, action, item_geom, item_id):
+        '''
+        updates the collection's spatial extent when an item is updated.
+        :param action: eighter up (insert, update) or rm (delete)
+        :param geometry: the geometry of the item
+        :param item_id the id of the item being treated
+        This function generates a new extent regarding all the items with the same
+        collection foreign key. If there is no spatial bbox yet, the one of the geometry of the
+        item is being used.
+        '''
+
+        # insert (as item_id is None)
+        if action == 'up' and item_id is None:
+            # the first item of this collection
+            if self.extent_geometry is None:
+                self.extent_geometry = Polygon.from_bbox(GEOSGeometry(item_geom).extent)
+            # there is already a geometry in the collection a union of the geometries
+            else:
+                self.extent_geometry = Polygon.from_bbox(
+                    GEOSGeometry(self.extent_geometry).union(GEOSGeometry(item_geom)).extent)
+
+        # update
+        if action == 'up' and item_id:
+            # is the new bbox larger than (and covering) the existing
+            if Polygon.from_bbox(GEOSGeometry(item_geom).extent).covers(self.extent_geometry):
+                self.extent_geometry = Polygon.from_bbox(GEOSGeometry(item_geom).extent)
+            # we need to iterat trough the items
+            else:
+                qs = Item.objects.filter(collection_id=self.pk).exclude(id=item_id)
+                union_geometry = GEOSGeometry(item_geom)
+                for item in qs:
+                    union_geometry = union_geometry.union(item.geometry)
+                self.extent_geometry = Polygon.from_bbox(union_geometry.extent)
+
+        # delete, we need to iterate trough the items
+        if action == 'rm':
+            qs = Item.objects.filter(collection_id=self.pk).exclude(id=item_id)
+            union_geometry = GEOSGeometry('Multipolygon EMPTY')
+            for item in qs:
+                union_geometry = union_geometry.union(item.geometry)
+            self.extent_geometry = Polygon.from_bbox(union_geometry.extent)
+
+        self.save()
+
+
+
     def clean(self):
         # very simple validation, raises error when geoadmin_variant strings contain special
         # characters or umlaut.
@@ -301,12 +349,15 @@ class Item(models.Model):
             self.save()
 
     def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
-        # TODO: check if collection's bbox needs to be updated
-        # --> this could probably best be done with GeoDjango? (@Tobias)
-        # I leave this open for the moment.
         self.collection.update_extent(self.properties_datetime)
 
+        self.collection.update_bbox_extent('up', self.geometry, self.pk)
+
         super().save(force_insert, force_update, using, update_fields)
+
+    def delete(self, using=None, keep_parents=False):
+        self.collection.update_bbox_extent('rm', self.geometry, self.pk)
+        super().delete()
 
 
 class ItemLink(Link):
