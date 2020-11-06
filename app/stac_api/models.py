@@ -144,8 +144,8 @@ class Collection(models.Model):
     # extent = models.JSONField(
     #    default=get_default_extent_value, encoder=DjangoJSONEncoder, editable=False
     # )
-    start_date = models.DateTimeField(editable=False, null=True, blank=True)
-    end_date = models.DateTimeField(editable=False, null=True, blank=True)
+    cache_start_datetime = models.DateTimeField(editable=False, null=True, blank=True)
+    cache_end_datetime = models.DateTimeField(editable=False, null=True, blank=True)
     # the bbox field below has no meaning yet and was only introduced for testing
     # while working on the temporal extent.
     bbox = ArrayField(
@@ -228,19 +228,20 @@ class Collection(models.Model):
 
         try:
 
-            if self.start_date is None:
-                self.start_date = item_properties_datetime
+            if self.cache_start_datetime is None:
+                self.cache_start_datetime = item_properties_datetime
                 self.save()
-            elif item_properties_datetime < self.start_date:
-                self.start_date = item_properties_datetime
+            elif item_properties_datetime < self.cache_start_datetime:
+                self.cache_start_datetime = item_properties_datetime
                 self.save()
-            elif self.end_date is None:
-                self.end_date = item_properties_datetime
+            elif self.cache_end_datetime is None:
+                self.cache_end_datetime = item_properties_datetime
                 self.save()
-            elif item_properties_datetime > self.end_date:
-                self.end_date = item_properties_datetime
+            elif item_properties_datetime > self.cache_end_datetime:
+                self.cache_end_datetime = item_properties_datetime
                 self.save()
-            # TODO: Delete-case!
+
+            # TODO: Delete-case is yet to be implemented!
 
         except (KeyError, IndexError) as err:
 
@@ -368,6 +369,7 @@ class Item(models.Model):
         # --> this could probably best be done with GeoDjango? (@Tobias)
         # I leave this open for the moment.
         self.collection.update_temporal_extent(self.properties_datetime)
+        # TODO: also implement the delete case!
 
         self.collection.update_bbox_extent('up', self.geometry, self.pk)
 
