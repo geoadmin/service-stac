@@ -1,4 +1,7 @@
+import json
 from dateutil.parser import isoparse
+
+from django.contrib.gis.geos import GEOSGeometry
 
 from stac_api.models import Asset
 from stac_api.models import Collection
@@ -64,13 +67,27 @@ def create_item(collection, name):
     '''Create a dummy item db object for testing
     '''
     # create item instance for testing
+    # yapf: disable
     item = Item.objects.create(
         collection=collection,
         item_name=name,
         properties_datetime=isoparse('2020-10-28T13:05:10Z'),
         properties_eo_gsd=None,
         properties_title="My Title",
+        geometry=GEOSGeometry(
+            json.dumps({
+                "coordinates": [[
+                        [5.644711, 46.775054],
+                        [5.602408, 48.014995],
+                        [5.602408, 48.014995],
+                        [5.602408, 48.014995],
+                        [5.644711, 46.775054]
+                ]],
+                "type": "Polygon",
+            })
+        )
     )
+    # yapf: enable
     item.save()
     create_item_links(item)
     item.save()

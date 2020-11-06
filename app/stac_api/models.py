@@ -118,7 +118,8 @@ class Collection(models.Model):
     created = models.DateTimeField(auto_now_add=True)  # datetime
     updated = models.DateTimeField(auto_now=True)  # datetime
     description = models.TextField()  # string  / intentionally TextField and
-    extent_geometry = models.PolygonField(default=None, srid=4326, editable=True, null=True)
+    extent_geometry = models.PolygonField(
+        default=None, srid=4326, editable=False, blank=True, null=True)
     # not CharField to provide more space for the text.
     # TODO: ""description" is required in radiantearth spec, not required in our spec
     # temporal extent will be auto-populated on every item update inside this collection:
@@ -144,14 +145,6 @@ class Collection(models.Model):
     # )
     cache_start_datetime = models.DateTimeField(editable=False, null=True, blank=True)
     cache_end_datetime = models.DateTimeField(editable=False, null=True, blank=True)
-    # the bbox field below has no meaning yet and was only introduced for testing
-    # while working on the temporal extent.
-    bbox = ArrayField(
-        ArrayField(models.FloatField(null=True, blank=True), null=True, blank=True),
-        null=True,
-        blank=True,
-        editable=False
-    )
     collection_name = models.CharField(unique=True, max_length=255)  # string
     # collection_name is what is simply only called "id" in here:
     # http://ltboc.infra.bgdi.ch/static/products/data.geo.admin.ch/apitransactional.html#operation/createCollection
