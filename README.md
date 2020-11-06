@@ -192,7 +192,8 @@ With the following commands it is possible to get a proper state of the database
 ./manage.py reset_db
 ./manage.py migrate
 ```
-**Note:** of course the migrations folder has to be clean (_according to the git checkout_)
+**Warning:** ```reset_db``` a destructive command and will delete all structure and content of the database.
+
 ### Linting and formatting your work
 
 In order to have a consistent code style the code should be formatted using `yapf`. Also to avoid syntax errors and non
