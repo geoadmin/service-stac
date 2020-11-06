@@ -6,7 +6,6 @@ from django.core.management.base import BaseCommand
 
 from stac_api.sample_data import importer
 
-
 # path definiton relative to the directory that contains manage.py
 DATADIR = settings.BASE_DIR / 'app/stac_api/sample_data/'
 logger = logging.getLogger(__name__)

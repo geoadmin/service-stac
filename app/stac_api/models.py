@@ -6,8 +6,8 @@ from datetime import timezone
 import numpy as np
 
 from django.contrib.gis.db import models
-from django.contrib.gis.geos import Polygon
 from django.contrib.gis.geos import GEOSGeometry
+from django.contrib.gis.geos import Polygon
 from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ValidationError
 from django.core.serializers.json import DjangoJSONEncoder

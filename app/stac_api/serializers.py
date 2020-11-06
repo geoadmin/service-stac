@@ -136,24 +136,33 @@ class ExtentTemporalSerializer(serializers.Serializer):
     start_date = serializers.DateTimeField(format='%Y-%m-%dT%H:%M:%SZ')
     end_date = serializers.DateTimeField(format='%Y-%m-%dT%H:%M:%SZ')
 
-    def to_representation(self, value):
-        temporal_extent = {"interval": [[value.start_date, value.end_date]]}
-        return temporal_extent
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        ret["temporal_extent"] = {
+            "interval": [[
+                instance.start_date.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                instance.end_date.strftime('%Y-%m-%dT%H:%M:%SZ')
+            ]]
+        }
+        return ret["temporal_extent"]
 
 
 class ExtentSpatialSerializer(serializers.Serializer):
+    # pylint: disable=abstract-method
     # This field is completely meaningless currently and is only created
     # for testing (while working on the temporal extent)
     bbox = serializers.ListField(
         child=serializers.ListField(child=serializers.FloatField(required=False)), required=False
     )
 
-    def to_representation(self, value):
-        bbox = {"bbox": [[value.bbox]]}  # probably one pair of brackets too much here?
-        return bbox
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        ret["bbox"] = {"bbox": [[instance.bbox]]}  # probably one pair of brackets too much here?
+        return ret["bbox"]
 
 
 class ExtentSerializer(serializers.Serializer):
+    # pylint: disable=abstract-method
     spatial = ExtentSpatialSerializer(source="*")
     temporal = ExtentTemporalSerializer(source="*")
 
