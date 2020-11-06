@@ -4,8 +4,10 @@ from datetime import timezone
 
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
+from django.utils.translation import gettext_lazy as _
 
 from rest_framework import generics
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from stac_api.models import Asset
@@ -16,6 +18,41 @@ from stac_api.serializers import CollectionSerializer
 from stac_api.serializers import ItemSerializer
 
 logger = logging.getLogger(__name__)
+
+
+def parse_datetime_query(date_time):
+    '''Parse the datetime query as specified in the api-spec.md.
+
+    Returns one of the following
+        datetime, None
+        datetime, '..'
+        '..', datetime
+        datetime, datetime
+    '''
+    start, sep, end = date_time.partition('/')
+    try:
+        if start != '..':
+            start = datetime.fromisoformat(start.replace('Z', '+00:00'))
+        if end and end != '..':
+            end = datetime.fromisoformat(end.replace('Z', '+00:00'))
+    except ValueError as error:
+        logger.error(
+            'Invalid datetime query parameter "%s", must be isoformat; %s', date_time, error
+        )
+        raise ValidationError(_('Invalid datetime query parameter, must be isoformat'))
+
+    if end == '':
+        end = None
+
+    if start == '..' and (end is None or end == '..'):
+        logger.error(
+            'Invalid datetime query parameter "%s"; '
+            'cannot start with open range when no end range is defined',
+            date_time
+        )
+        raise ValidationError(_('Invalid datetime query parameter, '
+                                'cannot start with open range when no end range is defined'))
+    return start, end
 
 
 def landing_page(request):
@@ -109,7 +146,26 @@ class ItemsList(generics.ListAPIView):
 
     def get_queryset(self):
         # filter based on the url
-        return Item.objects.filter(collection__collection_name=self.kwargs['collection_name'])
+        queryset = Item.objects.filter(collection__collection_name=self.kwargs['collection_name'])
+
+        bbox = self.request.query_params.get('bbox', None)
+        date_time = self.request.query_params.get('datetime', None)
+
+        if bbox:
+            raise NotImplementedError('bbox query parameter not yet implemented')
+
+        if date_time:
+            queryset = self.filter_by_datetime(queryset, date_time)
+
+        return queryset
+
+    def filter_by_datetime(self, queryset, date_time):
+        start, end = parse_datetime_query(date_time)
+
+        if end is not None:
+            raise ValidationError(_('Time range query not yet supported'))
+
+        return queryset.filter(properties_datetime=start)
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())

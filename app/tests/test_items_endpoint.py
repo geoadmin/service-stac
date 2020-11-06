@@ -1,4 +1,6 @@
 import logging
+from datetime import datetime
+from datetime import timezone
 from json import dumps
 from json import loads
 from pprint import pformat
@@ -7,6 +9,7 @@ from django.conf import settings
 from django.test import Client
 from django.test import TestCase
 
+from stac_api.models import Item
 from stac_api.serializers import ItemSerializer
 
 import tests.database as db
@@ -97,3 +100,28 @@ class ItemsEndpointTestCase(TestCase):
         self.assertDictEqual(
             original_data, json_data, msg="Returned data does not match expected data"
         )
+
+    def test_items_endpoint_datetime_query(self):
+        now = datetime.utcnow().replace(tzinfo=timezone.utc)
+        item = Item.objects.create(
+            collection=self.collections[0],
+            item_name='item-now',
+            properties_datetime=now,
+            properties_eo_gsd=None,
+            properties_title="My Title",
+        )
+        db.create_item_links(item)
+        item.save()
+        self.collections[0].save()
+
+        response = self.client.get(
+            f"/{API_BASE}collections/{self.collections[0].collection_name}/items"
+            f"?datetime={now.isoformat().replace('+00:00', 'Z')}&limit=10"
+        )
+        json_data = response.json()
+        self.assertEqual(
+            200,
+            response.status_code,
+            msg=f"{json_data['description'] if 'description' in json_data else ''}"
+        )
+        self.assertEqual(1, len(json_data['features']), msg="More than one item found")
