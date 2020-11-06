@@ -11,16 +11,9 @@ def create_collection(name):
     '''Create a dummy collection db object for testing
     '''
     collection = Collection.objects.create(
-        created='2020-10-28T13:05:10.473602Z',
-        updated='2020-10-28T13:05:10.473602Z',
+        created='2020-10-28T13:05:10Z',
+        updated='2020-10-28T13:05:10Z',
         description='This is a description',
-        extent={
-            "spatial": {
-                "bbox": [[None]]
-            }, "temporal": {
-                "interval": [[None, None]]
-            }
-        },
         collection_name=name,
         license='test',
         summaries={
@@ -72,7 +65,7 @@ def create_item(collection, name):
     item = Item.objects.create(
         collection=collection,
         item_name=name,
-        properties_datetime='2020-10-28T13:05:10.473602Z',
+        properties_datetime='2020-10-28T13:05:10Z',
         properties_eo_gsd=None,
         properties_title="My Title",
     )

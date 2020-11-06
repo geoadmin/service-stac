@@ -1,11 +1,13 @@
 import logging
 import re
+from datetime import datetime
+from datetime import timezone
 
 import numpy as np
 
 from django.contrib.gis.db import models
-from django.contrib.gis.geos import Polygon
 from django.contrib.gis.geos import GEOSGeometry
+from django.contrib.gis.geos import Polygon
 from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ValidationError
 from django.core.serializers.json import DjangoJSONEncoder
@@ -139,8 +141,18 @@ class Collection(models.Model):
     # furthermore GeoDjango and its functionality will be used for that.
     # TODO: overwrite items save() function accordingly
     # suggestions of fields to be auto-populated:
-    extent = models.JSONField(
-        default=get_default_extent_value, encoder=DjangoJSONEncoder, editable=False
+    # extent = models.JSONField(
+    #    default=get_default_extent_value, encoder=DjangoJSONEncoder, editable=False
+    # )
+    cache_start_datetime = models.DateTimeField(editable=False, null=True, blank=True)
+    cache_end_datetime = models.DateTimeField(editable=False, null=True, blank=True)
+    # the bbox field below has no meaning yet and was only introduced for testing
+    # while working on the temporal extent.
+    bbox = ArrayField(
+        ArrayField(models.FloatField(null=True, blank=True), null=True, blank=True),
+        null=True,
+        blank=True,
+        editable=False
     )
     collection_name = models.CharField(unique=True, max_length=255)  # string
     # collection_name is what is simply only called "id" in here:
@@ -200,7 +212,7 @@ class Collection(models.Model):
                 "Error when updating collection's summaries values due to asset update."
             ))
 
-    def update_extent(self, item_properties_datetime):
+    def update_temporal_extent(self, item_properties_datetime):
         '''
         updates the collection's temporal extent when item's are update.
         :param item_properties_datetime: item's value for properties_datetime.
@@ -208,28 +220,33 @@ class Collection(models.Model):
         needs to be updated. If so, it will be either updated or an error will
         be raised, if updating fails.
         '''
-        # Note: the following is commented out since it's causing errors
-        # https://jira.swisstopo.ch/browse/BGDIINF_SB-1404
-        # try:
 
-        #     if self.extent["temporal"]["interval"][0][0] is None:
-        #         self.extent["temporal"]["interval"][0][0] = item_properties_datetime
-        #         self.save()
-        #     elif item_properties_datetime < self.extent["temporal"]["interval"][0][0]:
-        #         self.extent["temporal"]["interval"][0][0] = item_properties_datetime
-        #         self.save()
-        #     elif self.extent["temporal"]["interval"][0][1] is None:
-        #         self.extent["temporal"]["interval"][0][1] = item_properties_datetime
-        #         self.save()
-        #     elif item_properties_datetime > self.extent["temporal"]["interval"][0][1]:
-        #         self.extent["temporal"]["interval"][0][1] = item_properties_datetime
-        #         self.save()
+        if isinstance(item_properties_datetime, str):
+            item_properties_datetime = datetime.strptime(
+                item_properties_datetime, '%Y-%m-%dT%H:%M:%SZ'
+            ).replace(tzinfo=timezone.utc)
 
-        # except (KeyError, IndexError) as err:
+        try:
 
-        #     logger.error('Updating the collection extent due to item update failed: %s', err)
-        #     raise ValidationError(_("Updating the collection extent due to item update failed."))
-        pass  # pylint: disable=unnecessary-pass
+            if self.cache_start_datetime is None:
+                self.cache_start_datetime = item_properties_datetime
+                self.save()
+            elif item_properties_datetime < self.cache_start_datetime:
+                self.cache_start_datetime = item_properties_datetime
+                self.save()
+            elif self.cache_end_datetime is None:
+                self.cache_end_datetime = item_properties_datetime
+                self.save()
+            elif item_properties_datetime > self.cache_end_datetime:
+                self.cache_end_datetime = item_properties_datetime
+                self.save()
+
+            # TODO: Delete-case is yet to be implemented!
+
+        except (KeyError, IndexError) as err:
+
+            logger.error('Updating the collection extent due to item update failed: %s', err)
+            raise ValidationError(_("Updating the collection extent due to item update failed."))
 
     def update_bbox_extent(self, action, item_geom, item_id):
         '''
@@ -250,7 +267,8 @@ class Collection(models.Model):
             # there is already a geometry in the collection a union of the geometries
             else:
                 self.extent_geometry = Polygon.from_bbox(
-                    GEOSGeometry(self.extent_geometry).union(GEOSGeometry(item_geom)).extent)
+                    GEOSGeometry(self.extent_geometry).union(GEOSGeometry(item_geom)).extent
+                )
 
         # update
         if action == 'up' and item_id:
@@ -274,8 +292,6 @@ class Collection(models.Model):
             self.extent_geometry = Polygon.from_bbox(union_geometry.extent)
 
         self.save()
-
-
 
     def clean(self):
         # very simple validation, raises error when geoadmin_variant strings contain special
@@ -349,7 +365,11 @@ class Item(models.Model):
             self.save()
 
     def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
-        self.collection.update_extent(self.properties_datetime)
+        # TODO: check if collection's bbox needs to be updated
+        # --> this could probably best be done with GeoDjango? (@Tobias)
+        # I leave this open for the moment.
+        self.collection.update_temporal_extent(self.properties_datetime)
+        # TODO: also implement the delete case!
 
         self.collection.update_bbox_extent('up', self.geometry, self.pk)
 

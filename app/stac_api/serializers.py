@@ -131,6 +131,48 @@ class ProviderSerializer(NonNullModelSerializer):
         return instance
 
 
+class ExtentTemporalSerializer(serializers.Serializer):
+    # pylint: disable=abstract-method
+    cache_start_datetime = serializers.DateTimeField(format='%Y-%m-%dT%H:%M:%SZ')
+    cache_end_datetime = serializers.DateTimeField(format='%Y-%m-%dT%H:%M:%SZ')
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+
+        start = instance.cache_start_datetime
+        end = instance.cache_end_datetime
+
+        if start is not None:
+            start = start.strftime('%Y-%m-%dT%H:%M:%SZ')
+
+        if end is not None:
+            end = end.strftime('%Y-%m-%dT%H:%M:%SZ')
+
+        ret["temporal_extent"] = {"interval": [[start, end]]}
+
+        return ret["temporal_extent"]
+
+
+class ExtentSpatialSerializer(serializers.Serializer):
+    # pylint: disable=abstract-method
+    # This field is completely meaningless currently and is only created
+    # for testing (while working on the temporal extent)
+    bbox = serializers.ListField(
+        child=serializers.ListField(child=serializers.FloatField(required=False)), required=False
+    )
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        ret["bbox"] = {"bbox": [[instance.bbox]]}  # probably one pair of brackets too much here?
+        return ret["bbox"]
+
+
+class ExtentSerializer(serializers.Serializer):
+    # pylint: disable=abstract-method
+    spatial = ExtentSpatialSerializer(source="*")
+    temporal = ExtentTemporalSerializer(source="*")
+
+
 class CollectionLinkSerializer(NonNullModelSerializer):
 
     class Meta:
@@ -162,10 +204,10 @@ class CollectionSerializer(NonNullModelSerializer):
         # crs and keywords not in sample data, but in specs..
 
     crs = serializers.SerializerMethodField()
-    created = serializers.DateTimeField(required=True)  # datetime
-    updated = serializers.DateTimeField(required=True)  # datetime
+    created = serializers.DateTimeField(required=True, format='%Y-%m-%dT%H:%M:%SZ')  # datetime
+    updated = serializers.DateTimeField(required=True, format='%Y-%m-%dT%H:%M:%SZ')  # datetime
     description = serializers.CharField(required=True)  # string
-    extent = serializers.JSONField(read_only=True)
+    extent = ExtentSerializer(read_only=True, source="*")
     summaries = serializers.JSONField(read_only=True)
     id = serializers.CharField(max_length=255, source="collection_name")  # string
     keywords = KeywordSerializer(many=True, read_only=True)
@@ -212,7 +254,9 @@ class ItemsPropertiesSerializer(serializers.Serializer):
     # pylint: disable=abstract-method
     # ItemsPropertiesSerializer is a nested serializer and don't directly create/write instances
     # therefore we don't need to implement the super method create() and update()
-    datetime = serializers.DateTimeField(required=True, source='properties_datetime')
+    datetime = serializers.DateTimeField(
+        required=True, source='properties_datetime', format='%Y-%m-%dT%H:%M:%SZ'
+    )
     eo_gsd = serializers.ListField(required=True, source='properties_eo_gsd')
     title = serializers.CharField(required=True, source='properties_title', max_length=255)
 

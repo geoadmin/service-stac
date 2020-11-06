@@ -1,6 +1,5 @@
 import logging
 from pprint import pformat
-from unittest import skip
 
 from django.conf import settings
 from django.test import Client
@@ -52,7 +51,6 @@ class CollectionsEndpointTestCase(TestCase):
             msg="Returned data does not match expected data"
         )
 
-    @skip("skipping due to bug https://jira.swisstopo.ch/browse/BGDIINF_SB-1404")
     def test_updating_collection(self):
         # Test, if the collection's summaries and extend were correctly updated
         # when new item and asset are added to the collection
@@ -89,7 +87,7 @@ class CollectionsEndpointTestCase(TestCase):
                         "bbox": [[None]]
                     },
                     "temporal": {
-                        "interval": [["2020-10-28T13:05:10.473602Z", "2020-10-28T13:05:10.473602Z"]]
+                        "interval": [["2020-10-28T13:05:10Z", "2020-10-28T13:05:10Z"]]
                     }
                 },
                 "providers": [{
