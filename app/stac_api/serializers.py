@@ -138,12 +138,18 @@ class ExtentTemporalSerializer(serializers.Serializer):
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)
-        ret["temporal_extent"] = {
-            "interval": [[
-                instance.start_date.strftime('%Y-%m-%dT%H:%M:%SZ'),
-                instance.end_date.strftime('%Y-%m-%dT%H:%M:%SZ')
-            ]]
-        }
+
+        start = instance.start_date
+        end = instance.end_date
+
+        if start is not None:
+            start = start.strftime('%Y-%m-%dT%H:%M:%SZ')
+
+        if end is not None:
+            end = end.strftime('%Y-%m-%dT%H:%M:%SZ')
+
+        ret["temporal_extent"] = {"interval": [[start, end]]}
+
         return ret["temporal_extent"]
 
 
