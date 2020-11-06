@@ -167,6 +167,24 @@ With the following command of the Django shell a specific state of the database 
 .manage.py migrate stac_api 0003_auto_20201022_1346
 ```
 
+**How to create a clean PR with a singe migration script?**
+
+Under a clean PR, we mean that only one migration script comes along a PR.
+This can be obtained with the following steps (_only if more than one migration script exist for this PR_):
+```bash
+# 1. migrate back to the state before the PR
+./manage.py migrate stac_api 0016_auto_20201022_1346
+
+# 2. remove the migration scripts that have to be put together
+cd stac_api/migrations && rm 0017_har.py 0018_toto.py 0019_final.py
+./manage.py makemigrations
+
+# 3. add the generated migration script to git
+git add stac_api/migrations 0017_the_new_one.py
+``` 
+**NOTE:** When going back to a certain migration step, you have to pay attention, that this also involves deleting fields, that have not been added yet.
+Which, of course, involves that its content will be purged as well.
+
 **How to get a working database when migrations scripts screw up?**
 
 With the following commands it is possible to get a proper state of the database:
