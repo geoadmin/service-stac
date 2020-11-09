@@ -333,7 +333,9 @@ class Item(models.Model):
     def clean(self):
         self.validate_datetime_properties()
 
-    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
+    def save(self, *args, **kwargs):  # pylint: disable=signature-differs
+        # It is important to use `*args, **kwargs` in signature because django might add dynamically
+        # parameters
         # Make sure that the properties datetime are valid before updating the temporal extent
         # This is needed because save() is called during the Item.object.create() function without
         # calling clean() ! and our validation is done within clean() method.
@@ -347,12 +349,14 @@ class Item(models.Model):
                 self.properties_start_datetime, self.properties_end_datetime
             )
         self.collection.update_bbox_extent('up', self.geometry, self.pk)
-        super().save(force_insert, force_update, using, update_fields)
+        super().save(*args, **kwargs)
 
-    def delete(self, using=None, keep_parents=False):
+    def delete(self, *args, **kwargs):  # pylint: disable=signature-differs
+        # It is important to use `*args, **kwargs` in signature because django might add dynamically
+        # parameters
         # TODO: also implement the delete case of temporal extent
         self.collection.update_bbox_extent('rm', self.geometry, self.pk)
-        super().delete()
+        super().delete(*args, **kwargs)
 
     def validate_datetime_properties(self):
         if self.properties_datetime is not None:
@@ -448,12 +452,11 @@ class Asset(models.Model):
 
     # alter save-function, so that the corresponding collection of the parent item of the asset
     # is saved, too.
-    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
-
+    def save(self, *args, **kwargs):  # pylint: disable=signature-differs
         self.item.collection.update_geoadmin_variants(
             self.geoadmin_variant, self.proj_epsg, self.eo_gsd
         )
         if self.eo_gsd:
             self.item.update_properties_eo_gsd(self.eo_gsd)
 
-        super().save(force_insert, force_update, using, update_fields)
+        super().save(*args, **kwargs)
