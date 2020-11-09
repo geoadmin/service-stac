@@ -258,9 +258,9 @@ class ItemsPropertiesSerializer(serializers.Serializer):
     # pylint: disable=abstract-method
     # ItemsPropertiesSerializer is a nested serializer and don't directly create/write instances
     # therefore we don't need to implement the super method create() and update()
-    datetime = serializers.DateTimeField(
-        required=True, source='properties_datetime', format='%Y-%m-%dT%H:%M:%SZ'
-    )
+    datetime = serializers.DateTimeField(source='properties_datetime', allow_null=True)
+    start_datetime = serializers.DateTimeField(source='properties_start_datetime', allow_null=True)
+    end_datetime = serializers.DateTimeField(source='properties_end_datetime', allow_null=True)
     eo_gsd = serializers.ListField(required=True, source='properties_eo_gsd')
     title = serializers.CharField(required=True, source='properties_title', max_length=255)
 

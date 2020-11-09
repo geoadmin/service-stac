@@ -1,6 +1,8 @@
 import io
 import logging
 from collections import OrderedDict
+from datetime import datetime
+from datetime import timedelta
 from pprint import pformat
 
 from django.test import TestCase
@@ -9,9 +11,12 @@ from rest_framework.parsers import JSONParser
 from rest_framework.renderers import JSONRenderer
 from rest_framework_gis.fields import GeoJsonDict
 
+from stac_api.models import Item
 from stac_api.serializers import AssetSerializer
 from stac_api.serializers import CollectionSerializer
 from stac_api.serializers import ItemSerializer
+from stac_api.utils import utc_aware
+from stac_api.utils import isoformat
 
 import tests.database as db
 
@@ -28,6 +33,7 @@ class SerializationTestCase(TestCase):
         self.collection = db.create_collection('collection-1')
         self.item = db.create_item(self.collection, 'item-1')
         self.asset = db.create_asset(self.collection, self.item, 'asset-1')
+        self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_collection_serialization(self):
 
@@ -43,7 +49,11 @@ class SerializationTestCase(TestCase):
         # back-translate into fully populated collection instance:
         serializer = CollectionSerializer(data=data)
         self.assertEqual(True, serializer.is_valid(), msg='Serializer data not valid.')
-        # self.assertEqual(python_native, data, msg='Back-translated data not equal initial data.')
+        # self.assertDictEqual(
+        #     python_native,
+        #     serializer.validated_data,
+        #     msg='Back-translated data not equal initial data.'
+        # )
 
     def test_item_serialization(self):
 
@@ -67,58 +77,6 @@ class SerializationTestCase(TestCase):
 
         # yapf: disable
         expected = {
-            'id': 'item-1',
-            'collection': 'collection-1',
-            'type': 'Feature',
-            'stac_version': '0.9.0',
-            'geometry': GeoJsonDict([
-                ('type', 'MultiPolygon'),
-                ('coordinates', [[[
-                    [2317000.0, 913000.0, 0.0],
-                    [3057000.0, 913000.0, 0.0],
-                    [3057000.0, 1413000.0, 0.0],
-                    [2317000.0, 1413000.0, 0.0],
-                    [2317000.0, 913000.0, 0.0]
-                ]]])
-            ]),
-            'bbox': (2317000.0, 913000.0, 3057000.0, 1413000.0),
-            'properties': OrderedDict([
-                ('datetime', '2020-10-28T13:05:10.473602Z'),
-                ('title', 'My Title'),
-                ('eo:gsd', [3.4])
-            ]),
-            'stac_extensions': [
-                'eo',
-                'proj',
-                'view',
-                'https://data.geo.admin.ch/stac/geoadmin-extension/1.0/schema.json'
-            ],
-            'links': [
-                OrderedDict([
-                    (
-                        'href',
-                        'https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale'
-                    ),
-                    ('rel', 'rel'),
-                    ('link_type', 'rel'),
-                    ('title', 'Rel link')
-                ]),
-                OrderedDict([
-                    (
-                        'href',
-                        'https://data.geo.admin.ch/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr50-263-2016'
-                    ),
-                    ('rel', 'self'),
-                    ('link_type', 'self'),
-                    ('title', 'Self link')
-                ]),
-                OrderedDict([
-                    ('href', 'https://data.geo.admin.ch/api/stac/v0.9/'),
-                    ('rel', 'root'),
-                    ('link_type', 'root'),
-                    ('title', 'Root link')
-                ])
-            ],
             'assets': {
                 'asset-1': OrderedDict([
                     ('title', 'my-title'),
@@ -132,24 +90,187 @@ class SerializationTestCase(TestCase):
                     ('proj:epsg', 2056),
                     ('geoadmin:variant', 'kgrs'),
                     ('geoadmin:lang', 'fr'),
-                    ('checksum:multihash', '01205c3fd6978a7d0b051efaa4263a09')
+                    ('checksum:multihash', '01205c3fd6978a7d0b051efaa4263a09'),
                 ])
             },
+            'bbox': (5.602408, 46.775054, 5.644711, 48.014995),
+            'collection': 'collection-1',
+            'geometry': GeoJsonDict([
+                ('type', 'Polygon'),
+                (
+                    'coordinates',
+                    [[
+                        [5.644711, 46.775054],
+                        [5.602408, 48.014995],
+                        [5.602408, 48.014995],
+                        [5.602408, 48.014995],
+                        [5.644711, 46.775054],
+                    ]]
+                ),
+            ]),
+            'id': 'item-1',
+            'links': [
+                OrderedDict([
+                    ('href', 'https://data.geo.admin.ch/api/stac/v0.9/'),
+                    ('rel', 'root'),
+                    ('link_type', 'root'),
+                    ('title', 'Root link'),
+                ]),
+                OrderedDict([
+                    (
+                        'href',
+                        'https://data.geo.admin.ch/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr50-263-2016'
+                    ),
+                    ('rel', 'self'),
+                    ('link_type', 'self'),
+                    ('title', 'Self link'),
+                ]),
+                OrderedDict([
+                    (
+                        'href',
+                        'https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale'
+                    ),
+                    ('rel', 'rel'),
+                    ('link_type', 'rel'),
+                    ('title', 'Rel link'),
+                ])
+            ],
+            'properties': OrderedDict([
+                ('datetime', '2020-10-28T13:05:10Z'),
+                ('start_datetime', None),
+                ('end_datetime', None),
+                ('title', 'My Title'),
+                ('eo:gsd', [3.4]),
+            ]),
+            'stac_extensions': [
+                'eo',
+                'proj',
+                'view',
+                'https://data.geo.admin.ch/stac/geoadmin-extension/1.0/schema.json'
+            ],
+            'stac_version': '0.9.0',
+            'type': 'Feature'
         }
         # yapf: enable
-        # Note: temporarily disabled by boc, will be fixed in the next PR
-        # self.assertDictEqual(expected, python_native)
+        self.assertDictEqual(expected, python_native)
 
         # Make sure that back translation is possible and valid, though the write is not yet
         # implemented.
         # back-translate to Python native:
-        # stream = io.BytesIO(json_string)
-        # python_native_back = JSONParser().parse(stream)
+        stream = io.BytesIO(json_string)
+        python_native_back = JSONParser().parse(stream)
 
-        # # back-translate into fully populated Item instance:
-        # back_serializer = ItemSerializer(data=python_native_back)
-        # back_serializer.is_valid(raise_exception=True)
-        # logger.debug('back validated data:\n%s', pformat(back_serializer.validated_data))
+        # back-translate into fully populated Item instance:
+        back_serializer = ItemSerializer(data=python_native_back)
+        back_serializer.is_valid(raise_exception=True)
+        logger.debug('back validated data:\n%s', pformat(back_serializer.validated_data))
+
+    def test_item_serialization_datetime_range(self):
+        now = utc_aware(datetime.utcnow())
+        yesterday = now - timedelta(days=1)
+        item_range = Item.objects.create(
+            collection=self.collection,
+            item_name='item-range',
+            properties_start_datetime=yesterday,
+            properties_end_datetime=now,
+            properties_eo_gsd=[10],
+            properties_title="My Title",
+        )
+        db.create_item_links(item_range)
+        item_range.save()
+
+        # translate to Python native:
+        serializer = ItemSerializer(item_range)
+        python_native = serializer.data
+
+        logger.debug('serialized fields:\n%s', pformat(serializer.fields))
+        logger.debug('python native:\n%s', pformat(python_native))
+
+        # translate to JSON:
+        json_string = JSONRenderer().render(python_native, renderer_context={'indent': 2})
+        logger.debug('json string: %s', json_string.decode("utf-8"))
+
+        self.assertSetEqual(
+            set(['stac_version', 'id', 'bbox', 'geometry', 'type', 'properties', 'links',
+                 'assets']).difference(python_native.keys()),
+            set(),
+            msg="These required fields by the STAC API spec are missing"
+        )
+
+        # yapf: disable
+        expected = {
+            'assets': {},
+            'bbox': (5.96, 45.82, 10.49, 47.81),
+            'collection': 'collection-1',
+            'geometry': GeoJsonDict([
+                ('type', 'Polygon'),
+                (
+                    'coordinates',
+                    [[
+                        [5.96, 45.82],
+                        [5.96, 47.81],
+                        [10.49, 47.81],
+                        [10.49, 45.82],
+                        [5.96, 45.82],
+                    ]]
+                ),
+            ]),
+            'id': 'item-range',
+            'links': [
+                OrderedDict([
+                    ('href', 'https://data.geo.admin.ch/api/stac/v0.9/'),
+                    ('rel', 'root'),
+                    ('link_type', 'root'),
+                    ('title', 'Root link'),
+                ]),
+                OrderedDict([
+                    (
+                        'href',
+                        'https://data.geo.admin.ch/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr50-263-2016'
+                    ),
+                    ('rel', 'self'),
+                    ('link_type', 'self'),
+                    ('title', 'Self link'),
+                ]),
+                OrderedDict([
+                    (
+                        'href',
+                        'https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale'
+                    ),
+                    ('rel', 'rel'),
+                    ('link_type', 'rel'),
+                    ('title', 'Rel link'),
+                ])
+            ],
+            'properties': OrderedDict([
+                ('datetime', None),
+                ('start_datetime', isoformat(yesterday)),
+                ('end_datetime', isoformat(now)),
+                ('title', 'My Title'),
+                ('eo:gsd', [10]),
+            ]),
+            'stac_extensions': [
+                'eo',
+                'proj',
+                'view',
+                'https://data.geo.admin.ch/stac/geoadmin-extension/1.0/schema.json'
+            ],
+            'stac_version': '0.9.0',
+            'type': 'Feature'
+        }
+        # yapf: enable
+        self.assertDictEqual(expected, python_native)
+
+        # Make sure that back translation is possible and valid, though the write is not yet
+        # implemented.
+        # back-translate to Python native:
+        stream = io.BytesIO(json_string)
+        python_native_back = JSONParser().parse(stream)
+
+        # back-translate into fully populated Item instance:
+        back_serializer = ItemSerializer(data=python_native_back)
+        back_serializer.is_valid(raise_exception=True)
+        logger.debug('back validated data:\n%s', pformat(back_serializer.validated_data))
 
     def test_asset_serialization(self):
 
