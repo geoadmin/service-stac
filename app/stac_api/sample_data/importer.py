@@ -130,10 +130,13 @@ def get_property_datetime(item_data, key):
 
 def parse_item(item_data):
     collection = Collection.objects.get(collection_name=item_data["collection"])
+    geometry = GEOSGeometry(json.dumps(item_data["geometry"]))
+    if not geometry.valid:
+        raise ValueError(f'Invalid geometry in item {item_data["id"]}: {geometry.valid_reason}')
     item, created = Item.objects.get_or_create(
         item_name=item_data["id"],
         collection=collection,
-        geometry=GEOSGeometry(json.dumps(item_data["geometry"])),
+        geometry=geometry,
         defaults={
             'properties_datetime': get_property_datetime(item_data, 'datetime'),
             'properties_start_datetime': get_property_datetime(item_data, 'start_datetime'),
