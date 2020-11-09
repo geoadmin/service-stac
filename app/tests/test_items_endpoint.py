@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from datetime import timezone
+from datetime import timedelta
 from json import dumps
 from json import loads
 from pprint import pformat
@@ -11,6 +11,8 @@ from django.test import TestCase
 
 from stac_api.models import Item
 from stac_api.serializers import ItemSerializer
+from stac_api.utils import isoformat
+from stac_api.utils import utc_aware
 
 import tests.database as db
 
@@ -23,25 +25,45 @@ def to_dict(input_ordered_dict):
     return loads(dumps(input_ordered_dict))
 
 
+def get_description(data):
+    return f"{data['description'] if 'description' in data else ''}"
+
+
 class ItemsEndpointTestCase(TestCase):
 
     def setUp(self):
         self.client = Client()
-        self.nb_collections = 4
-        self.nb_items_per_collection = 4
-        self.nb_assets_per_item = 4
-        self.collections, self.items, self.assets = db.create_dummy_db_content(
-            self.nb_collections, self.nb_items_per_collection, self.nb_assets_per_item
+        self.collections, self.items, self.assets = db.create_dummy_db_content(4, 4, 4)
+        self.now = utc_aware(datetime.utcnow())
+        self.yesterday = self.now - timedelta(days=1)
+        item_yesterday = Item.objects.create(
+            collection=self.collections[0],
+            item_name='item-yesterday',
+            properties_datetime=self.yesterday,
+            properties_eo_gsd=None,
+            properties_title="My Title",
         )
+        db.create_item_links(item_yesterday)
+        item_yesterday.save()
+        item_now = Item.objects.create(
+            collection=self.collections[0],
+            item_name='item-now',
+            properties_datetime=self.now,
+            properties_eo_gsd=None,
+            properties_title="My Title",
+        )
+        db.create_item_links(item_now)
+        item_now.save()
+        self.collections[0].save()
         self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_items_endpoint_with_paging(self):
         response = self.client.get(
             f"/{API_BASE}collections/{self.collections[0].collection_name}/items?limit=1"
         )
-        self.assertEqual(200, response.status_code)
         json_data = response.json()
         logger.debug('Response (%s):\n%s', type(json_data), pformat(json_data))
+        self.assertEqual(200, response.status_code, msg=get_description(json_data))
 
         # Check that pagination is present
         self.assertTrue('links' in json_data, msg="'links' missing from response")
@@ -71,15 +93,13 @@ class ItemsEndpointTestCase(TestCase):
         # sure that the items filtering based on the collection name from uri works
         response = self.client.get(
             f"/{API_BASE}collections/{self.collections[0].collection_name}/items?"
-            f"limit={self.nb_items_per_collection+1}"
+            f"limit=100"
         )
-        self.assertEqual(200, response.status_code)
         json_data = response.json()
         logger.debug('Response (%s):\n%s', type(json_data), pformat(json_data))
+        self.assertEqual(200, response.status_code, msg=get_description(json_data))
 
-        self.assertEqual(
-            self.nb_items_per_collection, len(json_data['features']), msg="Too many items found"
-        )
+        self.assertEqual(6, len(json_data['features']), msg="Too many items found")
 
         # Check that pagination is present response
         self.assertTrue('links' in json_data, msg="'links' missing from response")
@@ -89,9 +109,9 @@ class ItemsEndpointTestCase(TestCase):
         collection_name = self.collections[0].collection_name
         item_name = self.items[0][0].item_name
         response = self.client.get(f"/{API_BASE}collections/{collection_name}/items/{item_name}")
-        self.assertEqual(200, response.status_code)
         json_data = response.json()
         logger.debug('Response (%s):\n%s', type(json_data), pformat(json_data))
+        self.assertEqual(200, response.status_code, msg=get_description(json_data))
 
         # Check that the answer is equal to the initial data
         serializer = ItemSerializer(self.items[0][0])
@@ -102,26 +122,86 @@ class ItemsEndpointTestCase(TestCase):
         )
 
     def test_items_endpoint_datetime_query(self):
-        now = datetime.utcnow().replace(tzinfo=timezone.utc)
-        item = Item.objects.create(
-            collection=self.collections[0],
-            item_name='item-now',
-            properties_datetime=now,
-            properties_eo_gsd=None,
-            properties_title="My Title",
-        )
-        db.create_item_links(item)
-        item.save()
-        self.collections[0].save()
-
         response = self.client.get(
             f"/{API_BASE}collections/{self.collections[0].collection_name}/items"
-            f"?datetime={now.isoformat().replace('+00:00', 'Z')}&limit=10"
+            f"?datetime={isoformat(self.now)}&limit=10"
         )
         json_data = response.json()
-        self.assertEqual(
-            200,
-            response.status_code,
-            msg=f"{json_data['description'] if 'description' in json_data else ''}"
-        )
+        self.assertEqual(200, response.status_code, msg=get_description(json_data))
         self.assertEqual(1, len(json_data['features']), msg="More than one item found")
+        self.assertEqual('item-now', json_data['features'][0]['id'])
+
+    def test_items_endpoint_datetime_range_query(self):
+        response = self.client.get(
+            f"/{API_BASE}collections/{self.collections[0].collection_name}/items"
+            f"?datetime={isoformat(self.yesterday)}/{isoformat(self.now)}&limit=100"
+        )
+        json_data = response.json()
+        self.assertEqual(200, response.status_code, msg=get_description(json_data))
+        self.assertEqual(2, len(json_data['features']), msg="More than one item found")
+        self.assertEqual('item-yesterday', json_data['features'][0]['id'])
+        self.assertEqual('item-now', json_data['features'][1]['id'])
+
+    def test_items_endpoint_datetime_open_end_range_query(self):
+        # test open end query
+        response = self.client.get(
+            f"/{API_BASE}collections/{self.collections[0].collection_name}/items"
+            f"?datetime={isoformat(self.yesterday)}/..&limit=100"
+        )
+        json_data = response.json()
+        self.assertEqual(200, response.status_code, msg=get_description(json_data))
+        self.assertEqual(2, len(json_data['features']), msg="More than one item found")
+        self.assertEqual('item-yesterday', json_data['features'][0]['id'])
+        self.assertEqual('item-now', json_data['features'][1]['id'])
+
+    def test_items_endpoint_datetime_open_start_range_query(self):
+        # test open start query
+        response = self.client.get(
+            f"/{API_BASE}collections/{self.collections[0].collection_name}/items"
+            f"?datetime=../{isoformat(self.yesterday)}&limit=100"
+        )
+        json_data = response.json()
+        self.assertEqual(200, response.status_code, msg=get_description(json_data))
+        self.assertEqual(5, len(json_data['features']), msg="More than one item found")
+        self.assertEqual('item-yesterday', json_data['features'][-1]['id'])
+
+    def test_items_endpoint_datetime_invalid_range_query(self):
+        # test open start and end query
+        response = self.client.get(
+            f"/{API_BASE}collections/{self.collections[0].collection_name}/items"
+            f"?datetime=../..&limit=100"
+        )
+        json_data = response.json()
+        self.assertEqual(400, response.status_code, msg=get_description(json_data))
+
+        # invalid datetime
+        response = self.client.get(
+            f"/{API_BASE}collections/{self.collections[0].collection_name}/items"
+            f"?datetime=2019&limit=100"
+        )
+        json_data = response.json()
+        self.assertEqual(400, response.status_code, msg=get_description(json_data))
+
+        # invalid start
+        response = self.client.get(
+            f"/{API_BASE}collections/{self.collections[0].collection_name}/items"
+            f"?datetime=2019/..&limit=100"
+        )
+        json_data = response.json()
+        self.assertEqual(400, response.status_code, msg=get_description(json_data))
+
+        # invalid end
+        response = self.client.get(
+            f"/{API_BASE}collections/{self.collections[0].collection_name}/items"
+            f"?datetime=../2019&limit=100"
+        )
+        json_data = response.json()
+        self.assertEqual(400, response.status_code, msg=get_description(json_data))
+
+        # invalid start and end
+        response = self.client.get(
+            f"/{API_BASE}collections/{self.collections[0].collection_name}/items"
+            f"?datetime=2019/2019&limit=100"
+        )
+        json_data = response.json()
+        self.assertEqual(400, response.status_code, msg=get_description(json_data))

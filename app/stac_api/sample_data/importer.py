@@ -20,7 +20,7 @@ from stac_api.models import Provider
 
 # from django.core.management.base import CommandError
 
-# path definiton relative to the directory that contains manage.py
+# path definition relative to the directory that contains manage.py
 DATADIR = settings.BASE_DIR / 'app/stac_api/management/sample_data/'
 logger = logging.getLogger(__name__)
 

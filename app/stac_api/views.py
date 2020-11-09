@@ -1,6 +1,5 @@
 import logging
 from datetime import datetime
-from datetime import timezone
 
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
@@ -16,6 +15,7 @@ from stac_api.models import Item
 from stac_api.serializers import AssetSerializer
 from stac_api.serializers import CollectionSerializer
 from stac_api.serializers import ItemSerializer
+from stac_api.utils import utc_aware
 
 logger = logging.getLogger(__name__)
 
@@ -163,9 +163,28 @@ class ItemsList(generics.ListAPIView):
         start, end = parse_datetime_query(date_time)
 
         if end is not None:
-            raise ValidationError(_('Time range query not yet supported'))
+            return self.filter_by_datetime_range(queryset, start, end)
 
         return queryset.filter(properties_datetime=start)
+
+    def filter_by_datetime_range(self, queryset, start_datetime, end_datetime):
+        if start_datetime == '..':
+            # open start range
+            queryset1 = queryset.filter(properties_datetime__lte=end_datetime)
+            queryset2 = queryset.filter(properties_end_datetime__lte=end_datetime)
+            return queryset1.union(queryset2)
+        if end_datetime == '..':
+            # open end range
+            queryset1 = queryset.filter(properties_datetime__gte=start_datetime)
+            queryset2 = queryset.filter(properties_end_datetime__gte=start_datetime)
+            return queryset1.union(queryset2)
+        # else fixed range
+        queryset1 = queryset.filter(properties_datetime__range=(start_datetime, end_datetime))
+        queryset2 = queryset.filter(
+            properties_start_datetime__gte=start_datetime,
+            properties_end_datetime__lte=end_datetime
+        )
+        return queryset1.union(queryset2)
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
@@ -178,7 +197,7 @@ class ItemsList(generics.ListAPIView):
 
         data = {
             'type': 'FeatureCollection',
-            'timeStamp': datetime.utcnow().replace(tzinfo=timezone.utc),
+            'timeStamp': utc_aware(datetime.utcnow()),
             'features': serializer.data
         }
 
