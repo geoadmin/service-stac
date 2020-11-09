@@ -141,6 +141,59 @@ DISABLE_LOGGING=1 ./manage.py shell
 
 **NOTE:** the environment variable can also be set in the `.venv.local` file.
 
+#### Migrate DB with Django shell
+With the Django shell ist is possible to migrate the state of the database according to the code base. Please consider following principles:
+
+In general, the code base to setup the according state of the database ist stored here:
+```bash
+stac_api/migrations/
+├── 0001_initial.py
+├── 0002_auto_20201016_1423.py
+├── 0003_auto_20201022_1346.py
+├── 0004_auto_20201028.py
+```
+Please make sure, that per PR only one migrations script gets generated (_if possible_). 
+
+**How to generate a db migrations script?**
+1. First of all this will only happen, when a model has changed
+2. Following command will generate a new migration script:
+   ```bash
+   ./manage.py makemigrations
+   ```
+**How to put the database to the state of a previous code base?**
+
+With the following command of the Django shell a specific state of the database can be achieved:
+```bash
+.manage.py migrate stac_api 0003_auto_20201022_1346
+```
+
+**How to create a clean PR with a singe migration script?**
+
+Under a clean PR, we mean that only one migration script comes along a PR.
+This can be obtained with the following steps (_only if more than one migration script exist for this PR_):
+```bash
+# 1. migrate back to the state before the PR
+./manage.py migrate stac_api 0016_auto_20201022_1346
+
+# 2. remove the migration scripts that have to be put together
+cd stac_api/migrations && rm 0017_har.py 0018_toto.py 0019_final.py
+./manage.py makemigrations
+
+# 3. add the generated migration script to git
+git add stac_api/migrations 0017_the_new_one.py
+``` 
+**NOTE:** When going back to a certain migration step, you have to pay attention, that this also involves deleting fields, that have not been added yet.
+Which, of course, involves that its content will be purged as well.
+
+**How to get a working database when migrations scripts screw up?**
+
+With the following commands it is possible to get a proper state of the database:
+```bash
+./manage.py reset_db
+./manage.py migrate
+```
+**Warning:** ```reset_db``` a destructive command and will delete all structure and content of the database.
+
 ### Linting and formatting your work
 
 In order to have a consistent code style the code should be formatted using `yapf`. Also to avoid syntax errors and non
