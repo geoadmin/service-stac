@@ -15,6 +15,7 @@ from stac_api.models import ItemLink
 from stac_api.models import Keyword
 from stac_api.models import Provider
 from stac_api.models import get_default_stac_extensions
+from stac_api.utils import isoformat
 
 logger = logging.getLogger(__name__)
 
@@ -135,8 +136,8 @@ class ProviderSerializer(NonNullModelSerializer):
 
 class ExtentTemporalSerializer(serializers.Serializer):
     # pylint: disable=abstract-method
-    cache_start_datetime = serializers.DateTimeField(format='%Y-%m-%dT%H:%M:%SZ')
-    cache_end_datetime = serializers.DateTimeField(format='%Y-%m-%dT%H:%M:%SZ')
+    cache_start_datetime = serializers.DateTimeField()
+    cache_end_datetime = serializers.DateTimeField()
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)
@@ -145,10 +146,10 @@ class ExtentTemporalSerializer(serializers.Serializer):
         end = instance.cache_end_datetime
 
         if start is not None:
-            start = start.strftime('%Y-%m-%dT%H:%M:%SZ')
+            start = isoformat(start)
 
         if end is not None:
-            end = end.strftime('%Y-%m-%dT%H:%M:%SZ')
+            end = isoformat(end)
 
         ret["temporal_extent"] = {"interval": [[start, end]]}
 
@@ -208,8 +209,8 @@ class CollectionSerializer(NonNullModelSerializer):
         # crs and keywords not in sample data, but in specs..
 
     crs = serializers.SerializerMethodField()
-    created = serializers.DateTimeField(required=True, format='%Y-%m-%dT%H:%M:%SZ')  # datetime
-    updated = serializers.DateTimeField(required=True, format='%Y-%m-%dT%H:%M:%SZ')  # datetime
+    created = serializers.DateTimeField(required=True)  # datetime
+    updated = serializers.DateTimeField(required=True)  # datetime
     description = serializers.CharField(required=True)  # string
     extent = ExtentSerializer(read_only=True, source="*")
     summaries = serializers.JSONField(read_only=True)
