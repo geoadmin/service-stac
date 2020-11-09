@@ -6,6 +6,7 @@ import numpy as np
 from django.contrib.gis.db import models
 from django.contrib.gis.geos import GEOSGeometry
 from django.contrib.gis.geos import Polygon
+from django.contrib.gis.geos.error import GEOSException
 from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ValidationError
 from django.core.serializers.json import DjangoJSONEncoder
@@ -119,7 +120,8 @@ class Collection(models.Model):
     updated = models.DateTimeField(auto_now=True)  # datetime
     description = models.TextField()  # string  / intentionally TextField and
     extent_geometry = models.PolygonField(
-        default=None, srid=4326, editable=False, blank=True, null=True)
+        default=None, srid=4326, editable=False, blank=True, null=True
+    )
     # not CharField to provide more space for the text.
     # TODO: ""description" is required in radiantearth spec, not required in our spec
     # temporal extent will be auto-populated on every item update inside this collection:
@@ -225,7 +227,7 @@ class Collection(models.Model):
             self.cache_end_datetime = item_properties_end_datetime
             self.save()
 
-    def update_bbox_extent(self, action, item_geom, item_id):
+    def update_bbox_extent(self, action, item_geom, item_id, item_name):
         '''
         updates the collection's spatial extent when an item is updated.
         :param action: either up (insert, update) or rm (delete)
@@ -236,37 +238,50 @@ class Collection(models.Model):
         item is being used.
         '''
 
-        # insert (as item_id is None)
-        if action == 'up' and item_id is None:
-            # the first item of this collection
-            if self.extent_geometry is None:
-                self.extent_geometry = Polygon.from_bbox(GEOSGeometry(item_geom).extent)
-            # there is already a geometry in the collection a union of the geometries
-            else:
-                self.extent_geometry = Polygon.from_bbox(
-                    GEOSGeometry(self.extent_geometry).union(GEOSGeometry(item_geom)).extent
-                )
+        try:
+            # insert (as item_id is None)
+            if action == 'up' and item_id is None:
+                # the first item of this collection
+                if self.extent_geometry is None:
+                    self.extent_geometry = Polygon.from_bbox(GEOSGeometry(item_geom).extent)
+                # there is already a geometry in the collection a union of the geometries
+                else:
+                    self.extent_geometry = Polygon.from_bbox(
+                        GEOSGeometry(self.extent_geometry).union(GEOSGeometry(item_geom)).extent
+                    )
 
-        # update
-        if action == 'up' and item_id:
-            # is the new bbox larger than (and covering) the existing
-            if Polygon.from_bbox(GEOSGeometry(item_geom).extent).covers(self.extent_geometry):
-                self.extent_geometry = Polygon.from_bbox(GEOSGeometry(item_geom).extent)
-            # we need to iterate trough the items
-            else:
+            # update
+            if action == 'up' and item_id:
+                # is the new bbox larger than (and covering) the existing
+                if Polygon.from_bbox(GEOSGeometry(item_geom).extent).covers(self.extent_geometry):
+                    self.extent_geometry = Polygon.from_bbox(GEOSGeometry(item_geom).extent)
+                # we need to iterate trough the items
+                else:
+                    qs = Item.objects.filter(collection_id=self.pk).exclude(id=item_id)
+                    union_geometry = GEOSGeometry(item_geom)
+                    for item in qs:
+                        union_geometry = union_geometry.union(item.geometry)
+                    self.extent_geometry = Polygon.from_bbox(union_geometry.extent)
+
+            # delete, we need to iterate trough the items
+            if action == 'rm':
                 qs = Item.objects.filter(collection_id=self.pk).exclude(id=item_id)
-                union_geometry = GEOSGeometry(item_geom)
+                union_geometry = GEOSGeometry('Multipolygon EMPTY')
                 for item in qs:
                     union_geometry = union_geometry.union(item.geometry)
                 self.extent_geometry = Polygon.from_bbox(union_geometry.extent)
-
-        # delete, we need to iterate trough the items
-        if action == 'rm':
-            qs = Item.objects.filter(collection_id=self.pk).exclude(id=item_id)
-            union_geometry = GEOSGeometry('Multipolygon EMPTY')
-            for item in qs:
-                union_geometry = union_geometry.union(item.geometry)
-            self.extent_geometry = Polygon.from_bbox(union_geometry.extent)
+        except GEOSException as error:
+            logger.error(
+                'Failed to update spatial extend in collection %s with item %s action=%s: %s',
+                self.collection_name,
+                item_name,
+                action,
+                error
+            )
+            raise GEOSException(
+                f'Failed to update spatial extend in colletion {self.collection_name} with item '
+                f'{item_name}: {error}'
+            )
 
         self.save()
 
@@ -341,14 +356,14 @@ class Item(models.Model):
             self.collection.update_temporal_extent(
                 self.properties_start_datetime, self.properties_end_datetime
             )
-        self.collection.update_bbox_extent('up', self.geometry, self.pk)
+        self.collection.update_bbox_extent('up', self.geometry, self.pk, self.item_name)
         super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):  # pylint: disable=signature-differs
         # It is important to use `*args, **kwargs` in signature because django might add dynamically
         # parameters
         # TODO: also implement the delete case of temporal extent
-        self.collection.update_bbox_extent('rm', self.geometry, self.pk)
+        self.collection.update_bbox_extent('rm', self.geometry, self.pk, self.item_name)
         super().delete(*args, **kwargs)
 
     def validate_datetime_properties(self):
