@@ -137,8 +137,6 @@ class SerializationTestCase(TestCase):
             ],
             'properties': OrderedDict([
                 ('datetime', '2020-10-28T13:05:10Z'),
-                ('start_datetime', None),
-                ('end_datetime', None),
                 ('title', 'My Title'),
                 ('eo:gsd', [3.4]),
             ]),
@@ -243,7 +241,6 @@ class SerializationTestCase(TestCase):
                 ])
             ],
             'properties': OrderedDict([
-                ('datetime', None),
                 ('start_datetime', isoformat(yesterday)),
                 ('end_datetime', isoformat(now)),
                 ('title', 'My Title'),

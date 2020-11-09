@@ -28,9 +28,22 @@ class NonNullModelSerializer(serializers.ModelSerializer):
     """
 
     def to_representation(self, instance):
-        ret = super().to_representation(instance)
-        ret = OrderedDict(filter(lambda x: x[1] is not None, ret.items()))
-        return ret
+        obj = super().to_representation(instance)
+        return self._filter_null(obj)
+
+    @classmethod
+    def _filter_null(cls, obj):
+        filtered_obj = {}
+        if isinstance(obj, OrderedDict):
+            filtered_obj = OrderedDict()
+        for key, value in obj.items():
+            if isinstance(value, dict):
+                filtered_obj[key] = cls._filter_null(value)
+            elif isinstance(value, list) and len(value) > 0:
+                filtered_obj[key] = value
+            elif value is not None:
+                filtered_obj[key] = value
+        return filtered_obj
 
 
 class DictSerializer(serializers.ListSerializer):
@@ -259,9 +272,15 @@ class ItemsPropertiesSerializer(serializers.Serializer):
     # pylint: disable=abstract-method
     # ItemsPropertiesSerializer is a nested serializer and don't directly create/write instances
     # therefore we don't need to implement the super method create() and update()
-    datetime = serializers.DateTimeField(source='properties_datetime', allow_null=True)
-    start_datetime = serializers.DateTimeField(source='properties_start_datetime', allow_null=True)
-    end_datetime = serializers.DateTimeField(source='properties_end_datetime', allow_null=True)
+    datetime = serializers.DateTimeField(
+        source='properties_datetime', allow_null=True, required=False
+    )
+    start_datetime = serializers.DateTimeField(
+        source='properties_start_datetime', allow_null=True, required=False
+    )
+    end_datetime = serializers.DateTimeField(
+        source='properties_end_datetime', allow_null=True, required=False
+    )
     eo_gsd = serializers.ListField(required=True, source='properties_eo_gsd')
     title = serializers.CharField(required=True, source='properties_title', max_length=255)
 
