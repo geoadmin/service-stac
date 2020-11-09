@@ -1,6 +1,8 @@
 import logging
 from collections import OrderedDict
 
+from django.contrib.gis.geos import GEOSGeometry
+
 from rest_framework import serializers
 from rest_framework.utils.serializer_helpers import ReturnDict
 from rest_framework_gis import serializers as gis_serializers
@@ -155,15 +157,17 @@ class ExtentTemporalSerializer(serializers.Serializer):
 
 class ExtentSpatialSerializer(serializers.Serializer):
     # pylint: disable=abstract-method
-    # This field is completely meaningless currently and is only created
-    # for testing (while working on the temporal extent)
-    bbox = serializers.ListField(
-        child=serializers.ListField(child=serializers.FloatField(required=False)), required=False
-    )
+    extent_geometry = gis_serializers.GeometryField
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)
-        ret["bbox"] = {"bbox": [[instance.bbox]]}  # probably one pair of brackets too much here?
+        # handle empty field
+        if instance.extent_geometry is None:
+            ret["bbox"] = {"bbox": [[]]}
+        else:
+            bbox = GEOSGeometry(instance.extent_geometry).extent
+            bbox = list(bbox)
+            ret["bbox"] = {"bbox": [bbox]}
         return ret["bbox"]
 
 
