@@ -89,11 +89,11 @@ class Link(models.Model):
 
 
 class Provider(models.Model):
-    name = models.CharField(blank=False, max_length=200)  # string
-    description = models.TextField()  # string
-    roles = ArrayField(models.CharField(max_length=9))  # [string]
+    name = models.CharField(blank=False, max_length=200)
+    description = models.TextField(blank=True, null=True)
+    roles = ArrayField(models.CharField(max_length=9))
     # possible roles are licensor, producer, processor or host. Probably it might sense
-    url = models.URLField()  # string
+    url = models.URLField()
 
     def __str__(self):
         return self.name
@@ -151,7 +151,7 @@ class Collection(models.Model):
     # collection_name is what is simply only called "id" in here:
     # http://ltboc.infra.bgdi.ch/static/products/data.geo.admin.ch/apitransactional.html#operation/createCollection
 
-    keywords = models.ManyToManyField(Keyword)
+    keywords = models.ManyToManyField(Keyword, blank=True)
     license = models.CharField(max_length=30)  # string
     providers = models.ManyToManyField(Provider)
 

@@ -12,6 +12,7 @@ from stac_api.models import Asset
 from stac_api.models import Collection
 from stac_api.models import CollectionLink
 from stac_api.models import Item
+from stac_api.models import Provider
 
 # path definition relative to the directory that contains manage.py
 DATADIR = settings.BASE_DIR / 'app/stac_api/management/sample_data/'
@@ -19,7 +20,17 @@ logger = logging.getLogger(__name__)
 
 
 def create_provider(collection, provider_data):
-    pass
+    logger.debug('Create provider %s', provider_data['name'])
+    provider, created = Provider.objects.get_or_create(
+        name=provider_data['name'],
+        defaults={
+            "description": provider_data.get('description', None),
+            "url": provider_data.get('url', None),
+            "roles": provider_data.get('roles', [])
+        }
+    )
+    provider.save()
+    return provider
 
 
 def create_collection_link(collection, link_data):
@@ -33,10 +44,11 @@ def create_collection_link(collection, link_data):
         }
     )
     link.save()
+    return link
 
 
 def create_keyword(collection, keyword_data):
-    pass
+    raise NotImplementedError()
 
 
 def import_collection(collection_dir):
@@ -85,11 +97,13 @@ def parse_collection(collection_data):
 
     # Create keywords
     for keyword_data in collection_data.get("keywords", []):
-        create_keyword(collection, keyword_data)
+        keyword = create_keyword(collection, keyword_data)
+        collection.keywords.add(keyword)
 
     # Create providers
     for provider_data in collection_data.get("providers", []):
-        create_provider(collection, provider_data)
+        provider = create_provider(collection, provider_data)
+        collection.providers.add(provider)
 
     collection.title = collection_data.get("title", None)
 
