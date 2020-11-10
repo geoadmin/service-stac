@@ -64,7 +64,7 @@
       "checksum:multihash": "90e402107a7f2588a85362b9beea2a12d4514d45",
       "created": "2020-10-22T12:30:00Z",
       "href": "https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/swisstlmregio-2020.xtf.zip",
-      "proj:epsg": "2056",
+      "proj:epsg": 2056,
       "type": "application/x.interlis+zip; version=2.3",
       "updated": "2020-10-22T12:30:00Z"
     },
@@ -72,7 +72,7 @@
       "checksum:multihash": "4473e588b35568687564de38ed134d0b",
       "created": "2020-10-22T12:30:00Z",
       "href": "https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/swisstlmregio-2020.shp.zip",
-      "proj:epsg": "2056",
+      "proj:epsg": 2056,
       "type": "application/x.shapefile+zip",
       "updated": "2020-10-22T12:30:00Z"
     },
@@ -80,7 +80,7 @@
       "checksum:multihash": "01205c3fd6978a7d0b051efaa4263a09",
       "created": "2020-10-22T12:30:00Z",
       "href": "https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk200.noscale/swisstlmregio-2020.fgdb.zip",
-      "proj:epsg": "2056",
+      "proj:epsg": 2056,
       "type": "application/x.filegdb+zip",
       "updated": "2020-10-22T12:30:00Z"
     }

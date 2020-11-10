@@ -18,6 +18,8 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='collection',
             name='extent_geometry',
-            field=django.contrib.gis.db.models.fields.PolygonField(blank=True, default=None, editable=False, null=True, srid=4326),
+            field=django.contrib.gis.db.models.fields.PolygonField(
+                blank=True, default=None, editable=False, null=True, srid=4326
+            ),
         ),
     ]

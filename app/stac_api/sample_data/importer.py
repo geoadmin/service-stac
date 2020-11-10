@@ -1,24 +1,18 @@
-# pylint: skip-file
-# TODO: remove and properly lint
-
+import glob
 import json
 import logging
 import os
-import pprint
+
+from dateutil.parser import isoparse
 
 from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry
-from django.core.management.base import BaseCommand
 
 from stac_api.models import Asset
 from stac_api.models import Collection
 from stac_api.models import CollectionLink
 from stac_api.models import Item
-from stac_api.models import ItemLink
-from stac_api.models import Keyword
 from stac_api.models import Provider
-
-# from django.core.management.base import CommandError
 
 # path definition relative to the directory that contains manage.py
 DATADIR = settings.BASE_DIR / 'app/stac_api/management/sample_data/'
@@ -26,10 +20,17 @@ logger = logging.getLogger(__name__)
 
 
 def create_provider(collection, provider_data):
-    # provider, created = Provider.objects.get_or_create(
-
-    # )
-    pass
+    logger.debug('Create provider %s', provider_data['name'])
+    provider, created = Provider.objects.get_or_create(
+        name=provider_data['name'],
+        defaults={
+            "description": provider_data.get('description', None),
+            "url": provider_data.get('url', None),
+            "roles": provider_data.get('roles', [])
+        }
+    )
+    provider.save()
+    return provider
 
 
 def create_collection_link(collection, link_data):
@@ -43,10 +44,11 @@ def create_collection_link(collection, link_data):
         }
     )
     link.save()
+    return link
 
 
-def create_keyword():
-    pass
+def create_keyword(collection, keyword_data):
+    raise NotImplementedError()
 
 
 def import_collection(collection_dir):
@@ -62,46 +64,46 @@ def import_collection(collection_dir):
     ```
     """
 
-    if collection_dir.is_dir() and collection_dir.name != '__pycache__':
-        logger.debug('Trying to import collection dir: %s', collection_dir)
-        collection_json = os.path.join(collection_dir, "collection.json")
-        with open(collection_json) as collection_file:
-            collection_data = json.load(collection_file)
-        try:
-            collection = parse_collection(collection_data)
-        except FileNotFoundError as e:
-            logger.error(e)
-            raise
+    if not collection_dir.is_dir():
+        raise ValueError(f'Input is not a directory: {collection_dir}')
+    logger.debug('Trying to import collection dir: %s', collection_dir)
+    collection_json = os.path.join(collection_dir, "collection.json")
+    with open(collection_json) as collection_file:
+        collection_data = json.load(collection_file)
+    try:
+        collection = parse_collection(collection_data)
+    except FileNotFoundError as error:
+        logger.error(error)
+        raise
 
-        # loop over all the items inside the current collection folder
-        for item in os.scandir(os.path.join(collection_dir, "items")):
-            if item.is_file():
-                logger.debug('Trying to import item: %s, in collection: %s', item, collection)
-                import_item(item)
+    # loop over all the items inside the current collection folder
+    for item in glob.iglob(os.path.join(collection_dir, "items", "*.json")):
+        logger.debug('Trying to import item: %s, in collection: %s', item, collection)
+        import_item(item)
 
-        return collection
+    return collection
 
 
 def parse_collection(collection_data):
-    # pprint.pprint(collection_data)
-
     # fist we care about the required properties
     collection, created = Collection.objects.get_or_create(
-        collection_name=collection_data["id"], defaults={
+        collection_name=collection_data["id"],
+        defaults={
             "description": collection_data["description"],
             "collection_name": collection_data["id"],
             "license": collection_data["license"]
-        }
+        },
     )
 
-    # if "itemType" in collection_data:
-    #     collection.item_type = collection_data["itemType"]
+    # Create keywords
+    for keyword_data in collection_data.get("keywords", []):
+        keyword = create_keyword(collection, keyword_data)
+        collection.keywords.add(keyword)
 
-    # if "keywords" in collection_data:
-
-    # if "provider" in collection_data:
+    # Create providers
     for provider_data in collection_data.get("providers", []):
-        create_provider(collection, provider_data)
+        provider = create_provider(collection, provider_data)
+        collection.providers.add(provider)
 
     collection.title = collection_data.get("title", None)
 
@@ -117,27 +119,45 @@ def import_item(item_path):
     with open(item_path) as item_file:
         item_data = json.load(item_file)
         item = parse_item(item_data)
-    return item
+        return item
+
+
+def get_property_datetime(item_data, key):
+    if key in item_data['properties']:
+        return isoparse(item_data['properties'][key])
+    return None
 
 
 def parse_item(item_data):
-    # pprint.pprint(item_data)
     collection = Collection.objects.get(collection_name=item_data["collection"])
+    geometry = GEOSGeometry(json.dumps(item_data["geometry"]))
+    if not geometry.valid:
+        raise ValueError(f'Invalid geometry in item {item_data["id"]}: {geometry.valid_reason}')
     item, created = Item.objects.get_or_create(
         item_name=item_data["id"],
         collection=collection,
+        geometry=geometry,
         defaults={
-            # Note that GEOSGeometry needs a json string, not a dict
-            "geometry": GEOSGeometry(json.dumps(item_data["geometry"])),
-            "properties_datetime": item_data["properties"]["datetime"]
+            'properties_datetime': get_property_datetime(item_data, 'datetime'),
+            'properties_start_datetime': get_property_datetime(item_data, 'start_datetime'),
+            'properties_end_datetime': get_property_datetime(item_data, 'end_datetime'),
         }
     )
+
+    if 'title' in item_data['properties']:
+        item.title = item_data['properties']['title']
+
+    if 'eo:gsd' in item_data['properties']:
+        item.properties_eo_gsd = item_data['properties']['eo:gsd']
+
+    item.save()
+
     for asset_name, asset_data in item_data["assets"].items():
         parse_asset(item, asset_name, asset_data)
+    return item
 
 
 def parse_asset(item, asset_name, asset_data):
-    # pprint.pprint(asset_data)
     asset, created = Asset.objects.get_or_create(
         item=item,
         collection=item.collection,
@@ -152,3 +172,4 @@ def parse_asset(item, asset_name, asset_data):
             "geoadmin_variant": asset_data.get("geoadmin:variant", None),
         }
     )
+    return asset

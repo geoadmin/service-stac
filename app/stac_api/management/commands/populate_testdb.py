@@ -27,5 +27,8 @@ class Command(BaseCommand):
 
         # loop over the collection directories inside sample_data
         for collection_dir in os.scandir(DATADIR):
-
-            importer.import_collection(collection_dir)
+            if collection_dir.is_dir() and not collection_dir.name.startswith('_'):
+                logger.info('Import collection %s', collection_dir.name)
+                importer.import_collection(collection_dir)
+            else:
+                logger.debug('Ignore file %s', collection_dir.name)
