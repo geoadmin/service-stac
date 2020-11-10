@@ -5,22 +5,31 @@
     "eo",
     "https://data.geo.admin.ch/stac/v0.9/geoadmin-extension/1.0/schema.json"
   ],
-  "id": "ch.swisstopo.pixelkarte-farbe-pk200.noscale",  
-  "title": "National Map 1:200'000",  
-  "description": "The National Map 1:200,000 is a topographic map giving an overview of Switzerland. The map perimeter is divided into four individual sheets (sheet 1-4). The map content is updated periodically in a four-year cycle. The National Map 1:200,000 is published in analogue format as a printed map and in digital format as a Swiss Map Raster. The printed map is available folded and unfolded. The Swiss Map Raster is the digital National Map 1:200,000 and is delivered as a georeferenced TIF file (raster format). The map content is separated into individual colour layers with no direct bearing on the individual map elements. The pixel maps are available as a colour combination corresponding to fixed swisstopo standards (254 dpi and 508 dpi) or separated as colour layers (binary file 508 dpi). They can be ordered as an individual sheet or as any individually defined section of the map series.",  
+  "id": "ch.swisstopo.pixelkarte-farbe-pk200.noscale",
+  "title": "National Map 1:200'000",
+  "description": "The National Map 1:200,000 is a topographic map giving an overview of Switzerland. The map perimeter is divided into four individual sheets (sheet 1-4). The map content is updated periodically in a four-year cycle. The National Map 1:200,000 is published in analogue format as a printed map and in digital format as a Swiss Map Raster. The printed map is available folded and unfolded. The Swiss Map Raster is the digital National Map 1:200,000 and is delivered as a georeferenced TIF file (raster format). The map content is separated into individual colour layers with no direct bearing on the individual map elements. The pixel maps are available as a colour combination corresponding to fixed swisstopo standards (254 dpi and 508 dpi) or separated as colour layers (binary file 508 dpi). They can be ordered as an individual sheet or as any individually defined section of the map series.",
   "summaries": {
-    "eo:gsd": [10,20],
-    "geoadmin:variant": ["kgrel", "komb", "krel"],
-    "proj:epsg": [2056]
+    "eo:gsd": [
+      10,
+      20
+    ],
+    "geoadmin:variant": [
+      "kgrs",
+      "komb",
+      "krel"
+    ],
+    "proj:epsg": [
+      2056
+    ]
   },
   "extent": {
     "spatial": {
       "bbox": [
         [
-		  5.685114,
-		  45.534903,
-		  10.747775,
-		  47.982586
+          5.685114,
+          45.534903,
+          10.747775,
+          47.982586
         ]
       ]
     },
@@ -42,7 +51,7 @@
       ],
       "url": "https://www.swisstopo.admin.ch"
     }
-  ],  
+  ],
   "license": "proprietary",
   "links": [
     {
