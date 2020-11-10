@@ -28,22 +28,22 @@ class NonNullModelSerializer(serializers.ModelSerializer):
     """
 
     def to_representation(self, instance):
-        obj = super().to_representation(instance)
-        return self._filter_null(obj)
 
-    @classmethod
-    def _filter_null(cls, obj):
-        filtered_obj = {}
-        if isinstance(obj, OrderedDict):
-            filtered_obj = OrderedDict()
-        for key, value in obj.items():
-            if isinstance(value, dict):
-                filtered_obj[key] = cls._filter_null(value)
-            elif isinstance(value, list) and len(value) > 0:
-                filtered_obj[key] = value
-            elif value is not None:
-                filtered_obj[key] = value
-        return filtered_obj
+        def filter_null(obj):
+            filtered_obj = {}
+            if isinstance(obj, OrderedDict):
+                filtered_obj = OrderedDict()
+            for key, value in obj.items():
+                if isinstance(value, dict):
+                    filtered_obj[key] = filter_null(value)
+                elif isinstance(value, list) and len(value) > 0:
+                    filtered_obj[key] = value
+                elif value is not None:
+                    filtered_obj[key] = value
+            return filtered_obj
+
+        obj = super().to_representation(instance)
+        return filter_null(obj)
 
 
 class DictSerializer(serializers.ListSerializer):
