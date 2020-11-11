@@ -26,6 +26,7 @@ def create_collection(name):
         },
         title='Test title'
     )
+    collection.full_clean()
     collection.save()
 
     # create provider instance for testing
@@ -35,17 +36,19 @@ def create_collection(name):
         roles=['licensor'],
         url='http://www.google.com'
     )
+    provider.full_clean()
     provider.save()
     collection.providers.add(provider)
 
-    # Create link
+    # Create a dummy link
     link = CollectionLink.objects.create(
         collection=collection,
         href='http://www.google.com',
-        rel='rel',
-        link_type='root',
-        title='Test title'
+        rel='dummy',
+        link_type='dummy',
+        title='Dummy link'
     )
+    link.full_clean()
     link.save()
     collection.save()
     provider.save()
@@ -78,6 +81,7 @@ def create_item(collection, name):
         )
     )
     # yapf: enable
+    item.full_clean()
     item.save()
     create_item_links(item)
     item.save()
@@ -87,34 +91,17 @@ def create_item(collection, name):
 
 def create_item_links(item):
     # create links instances for testing
-    link_root = ItemLink.objects.create(
+    link = ItemLink.objects.create(
         item=item,
-        href="https://data.geo.admin.ch/api/stac/v0.9/",
-        rel='root',
-        link_type='root',
-        title='Root link'
+        href="https://example.com",
+        rel='dummy',
+        link_type='dummy',
+        title='Dummy link',
     )
-    link_self = ItemLink.objects.create(
-        item=item,
-        href=
-        "https://data.geo.admin.ch/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr50-263-2016",
-        rel='self',
-        link_type='self',
-        title='Self link'
-    )
-    link_rel = ItemLink.objects.create(
-        item=item,
-        href=
-        "https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale",
-        rel='rel',
-        link_type='rel',
-        title='Rel link'
-    )
-    link_root.save()
-    link_self.save()
-    link_rel.save()
+    link.full_clean()
+    link.save()
     item.save()
-    return [link_root, link_self, link_rel]
+    return [link]
 
 
 def create_asset(collection, item, asset_name):
@@ -133,6 +120,7 @@ def create_asset(collection, item, asset_name):
         href=
         "https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-1-2019-2056-kgrs-10.tiff"
     )
+    asset.full_clean()
     asset.save()
     item.save()
     collection.save()

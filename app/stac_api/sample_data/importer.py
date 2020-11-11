@@ -29,6 +29,7 @@ def create_provider(collection, provider_data):
             "roles": provider_data.get('roles', [])
         }
     )
+    provider.full_clean()
     provider.save()
     return provider
 
@@ -43,6 +44,7 @@ def create_collection_link(collection, link_data):
             "title": link_data.get("title", None),
         }
     )
+    link.full_clean()
     link.save()
     return link
 
@@ -97,7 +99,7 @@ def parse_collection(collection_data):
         collection.providers.add(provider)
 
     collection.title = collection_data.get("title", None)
-
+    collection.full_clean()
     collection.save()
 
     for link in collection_data.get("links", []):
@@ -140,7 +142,7 @@ def parse_item(item_data):
 
     if 'title' in item_data['properties']:
         item.title = item_data['properties']['title']
-
+    item.full_clean()
     item.save()
 
     for asset_name, asset_data in item_data["assets"].items():

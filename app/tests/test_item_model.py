@@ -25,6 +25,7 @@ class ItemsModelTestCase(TestCase):
             item_name='item-1',
             properties_datetime=utc_aware(datetime.utcnow())
         )
+        item.full_clean()
         item.save()
         self.assertEqual('item-1', item.item_name)
 

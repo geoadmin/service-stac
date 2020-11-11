@@ -10,6 +10,7 @@ from django.test import TestCase
 from stac_api.serializers import AssetSerializer
 
 import tests.database as db
+from tests import get_http_error_description
 
 logger = logging.getLogger(__name__)
 
@@ -33,12 +34,14 @@ class AssetsEndpointTestCase(TestCase):
         response = self.client.get(
             f"/{API_BASE}collections/{collection_name}/items/{item_name}/assets"
         )
-        self.assertEqual(200, response.status_code)
         json_data = response.json()
+        self.assertEqual(200, response.status_code, msg=get_http_error_description(json_data))
         logger.debug('Response (%s):\n%s', type(json_data), pformat(json_data))
 
         # Check that the answer is equal to the initial data
-        serializer = AssetSerializer(self.assets[0][0], many=True)
+        serializer = AssetSerializer(
+            self.assets[0][0], many=True, context={'request': response.request}
+        )
         original_data = to_dict(serializer.data)
         logger.debug('Serialized data:\n%s', pformat(original_data))
         self.assertDictEqual(
@@ -52,12 +55,12 @@ class AssetsEndpointTestCase(TestCase):
         response = self.client.get(
             f"/{API_BASE}collections/{collection_name}/items/{item_name}/assets/{asset_name}"
         )
-        self.assertEqual(200, response.status_code)
         json_data = response.json()
+        self.assertEqual(200, response.status_code, msg=get_http_error_description(json_data))
         logger.debug('Response (%s):\n%s', type(json_data), pformat(json_data))
 
         # Check that the answer is equal to the initial data
-        serializer = AssetSerializer(self.assets[0][0][0])
+        serializer = AssetSerializer(self.assets[0][0][0], context={'request': response.request})
         original_data = to_dict(serializer.data)
         logger.debug('Serialized data:\n%s', pformat(original_data))
         self.assertDictEqual(
