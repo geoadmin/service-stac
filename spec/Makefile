@@ -19,10 +19,10 @@ OPENAPI_TRANSACTIONAL = static/openapitransactional.yaml
 # AWS_ACCOUNT = swisstopo-3d
 
 $(OPENAPI): $(PARTS)
-	docker run --rm -v ${PWD}:/workdir mikefarah/yq yq merge -x $(PARTS) > $@
+	docker run --rm -v ${PWD}:/workdir mikefarah/yq:3.3.0 yq merge -x $(PARTS) > $@
 
 $(OPENAPI_TRANSACTIONAL): $(OPENAPI) $(PARTS_TRANSACTIONAL)
-	docker run --rm -v ${PWD}:/workdir mikefarah/yq yq merge -x $(OPENAPI) $(PARTS_TRANSACTIONAL) > $@
+	docker run --rm -v ${PWD}:/workdir mikefarah/yq:3.3.0 yq merge -x $(OPENAPI) $(PARTS_TRANSACTIONAL) > $@
 
 
 .PHONY: build-specs

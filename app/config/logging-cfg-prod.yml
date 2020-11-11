@@ -36,6 +36,7 @@ filters:
     exclude_keys:
       - request.headers.Authorization
       - request.headers.Proxy-Authorization
+      - request.headers.Cookie
 
 formatters:
   standard:

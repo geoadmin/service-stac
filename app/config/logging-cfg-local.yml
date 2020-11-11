@@ -69,7 +69,7 @@ formatters:
 handlers:
   console:
     class: logging.StreamHandler
-    formatter: json
+    formatter: standard
     stream: ext://sys.stdout
     filters:
       - application
