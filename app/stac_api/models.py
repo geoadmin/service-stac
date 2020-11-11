@@ -232,7 +232,10 @@ class Collection(models.Model):
 
         try:
             # insert (as item_id is None)
-            if action == 'up' and item_id is None:
+            if action == 'insert':
+                logger.debug('Updating collections extent_geometry'
+                             ' as a item has been inserted'
+                             )
                 # the first item of this collection
                 if self.extent_geometry is None:
                     self.extent_geometry = Polygon.from_bbox(GEOSGeometry(item_geom).extent)
@@ -243,12 +246,16 @@ class Collection(models.Model):
                     )
 
             # update
-            if action == 'up' and item_id:
+            if action == 'update':
+                logger.debug('Updating collections extent_geometry'
+                              ' as a item geometry has been updated')
                 # is the new bbox larger than (and covering) the existing
                 if Polygon.from_bbox(GEOSGeometry(item_geom).extent).covers(self.extent_geometry):
                     self.extent_geometry = Polygon.from_bbox(GEOSGeometry(item_geom).extent)
                 # we need to iterate trough the items
                 else:
+                    logger.warning('Looping over all items of collection %s,'
+                                   'to update extent_geometry, this may take a while', self.pk)
                     qs = Item.objects.filter(collection_id=self.pk).exclude(id=item_id)
                     union_geometry = GEOSGeometry(item_geom)
                     for item in qs:
@@ -257,6 +264,11 @@ class Collection(models.Model):
 
             # delete, we need to iterate trough the items
             if action == 'rm':
+                logger.debug('Updating collections extent_geometry'
+                             ' as a item has been deleted'
+                             )
+                logger.warning('Looping over all items of collection %s,'
+                               'to update extent_geometry, this may take a while', self.pk)
                 qs = Item.objects.filter(collection_id=self.pk).exclude(id=item_id)
                 union_geometry = GEOSGeometry('Multipolygon EMPTY')
                 for item in qs:
@@ -327,6 +339,15 @@ class Item(models.Model):
     # properties_view_sun_azimuth = models.FloatField(blank=True)
     # properties_view_elevation = models.FloatField(blank=True)
 
+    # getting the original geometry helps that the bbox of the collection is only
+    # when the geometry has changed (during update)
+    # https://stackoverflow.com/questions/1355150/when-saving-how-can-you-check-if-a-field-has-changed
+    _original_geometry = None
+
+    def __init__(self, *args, **kwargs):
+        super(Item, self).__init__(*args, **kwargs)
+        self._original_geometry = self.geometry
+
     def __str__(self):
         return self.item_name
 
@@ -348,8 +369,14 @@ class Item(models.Model):
             self.collection.update_temporal_extent(
                 self.properties_start_datetime, self.properties_end_datetime
             )
-        self.collection.update_bbox_extent('up', self.geometry, self.pk, self.item_name)
+        # adding a new item means update the bbox of the collection
+        if self.pk is None:
+            self.collection.update_bbox_extent('insert', self.geometry, self.pk, self.item_name)
+        # update the bbox of the collection only when the geometry of the item has changed
+        elif self.geometry != self._original_geometry:
+            self.collection.update_bbox_extent('update', self.geometry, self.pk, self.item_name)
         super().save(*args, **kwargs)
+        self._original_geometry = self.geometry
 
     def delete(self, *args, **kwargs):  # pylint: disable=signature-differs
         # It is important to use `*args, **kwargs` in signature because django might add dynamically
