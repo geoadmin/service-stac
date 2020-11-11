@@ -67,13 +67,6 @@ def float_in(flt, floats, **kwargs):
     return np.any(np.isclose(flt, floats, **kwargs))
 
 
-class Keyword(models.Model):
-    name = models.CharField(max_length=64)  # string
-
-    def __str__(self):
-        return self.name
-
-
 class Link(models.Model):
     href = models.URLField()
     rel = models.CharField(max_length=30)
@@ -151,7 +144,6 @@ class Collection(models.Model):
     # collection_name is what is simply only called "id" in here:
     # http://ltboc.infra.bgdi.ch/static/products/data.geo.admin.ch/apitransactional.html#operation/createCollection
 
-    keywords = models.ManyToManyField(Keyword, blank=True)
     license = models.CharField(max_length=30)  # string
     providers = models.ManyToManyField(Provider)
 

@@ -12,7 +12,6 @@ from stac_api.models import Collection
 from stac_api.models import CollectionLink
 from stac_api.models import Item
 from stac_api.models import ItemLink
-from stac_api.models import Keyword
 from stac_api.models import Provider
 from stac_api.models import get_default_stac_extensions
 from stac_api.utils import isoformat
@@ -83,33 +82,6 @@ class DictSerializer(serializers.ListSerializer):
     def data(self):
         ret = super(serializers.ListSerializer, self).data
         return ReturnDict(ret, serializer=self)
-
-
-class KeywordSerializer(NonNullModelSerializer):
-
-    name = serializers.CharField(max_length=64)
-
-    class Meta:
-        model = Keyword
-        fields = ['name']
-
-    def create(self, validated_data):
-        """
-        Create and return a new `Keyword` instance, given the validated data.
-        """
-        logger.debug('Create Keyword', extra={'validated_data': validated_data})
-        return Collection.objects.create(**validated_data)
-
-    def update(self, instance, validated_data):
-        """
-        Update and return an existing `Keyword` instance, given the validated data.
-        """
-        instance.name = validated_data.get('name', instance.name)
-
-        logger.debug('Update Keyword %s', instance.name, extra={'validated_data': validated_data})
-
-        instance.save()
-        return instance
 
 
 class ProviderSerializer(NonNullModelSerializer):
@@ -228,7 +200,6 @@ class CollectionSerializer(NonNullModelSerializer):
     extent = ExtentSerializer(read_only=True, source="*")
     summaries = serializers.JSONField(read_only=True)
     id = serializers.CharField(max_length=255, source="collection_name")  # string
-    keywords = KeywordSerializer(many=True, read_only=True)
     license = serializers.CharField(max_length=30)  # string
     links = CollectionLinkSerializer(many=True, read_only=True)
     providers = ProviderSerializer(many=True)
