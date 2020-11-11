@@ -14,7 +14,5 @@ class Migration(migrations.Migration):
             model_name='collection',
             name='keywords',
         ),
-        migrations.DeleteModel(
-            name='Keyword',
-        ),
+        migrations.DeleteModel(name='Keyword',),
     ]
