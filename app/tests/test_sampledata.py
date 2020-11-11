@@ -51,7 +51,7 @@ class SampleDataTestCase(TestCase):
                 type(payload[key]),
                 msg=f'{parent_path}: key {key} type does not match'
             )
-            if key in ['stac_extensions', 'spatial', 'temporal']:
+            if key in ['stac_extensions', 'spatial', 'temporal', 'created', 'updated']:
                 # remove this if when all parts are fully implemented.
                 # See BGDIINF_SB-1410, BGDIINF_SB-1427 and BGDIINF_SB-1429
                 logger.warning('%s: Ignore key %s check', parent_path, key)
