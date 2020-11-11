@@ -187,11 +187,10 @@ class CollectionSerializer(NonNullModelSerializer):
             'created',
             'updated',
             'links',
-            'keywords',
             'crs',
             'itemType'
         ]
-        # crs and keywords not in sample data, but in specs..
+        # crs not in sample data, but in specs..
 
     crs = serializers.SerializerMethodField()
     created = serializers.DateTimeField(required=True)  # datetime

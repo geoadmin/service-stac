@@ -47,10 +47,6 @@ def create_collection_link(collection, link_data):
     return link
 
 
-def create_keyword(collection, keyword_data):
-    raise NotImplementedError()
-
-
 def import_collection(collection_dir):
     """Import a whole collection folder
 
@@ -94,11 +90,6 @@ def parse_collection(collection_data):
             "license": collection_data["license"]
         },
     )
-
-    # Create keywords
-    for keyword_data in collection_data.get("keywords", []):
-        keyword = create_keyword(collection, keyword_data)
-        collection.keywords.add(keyword)
 
     # Create providers
     for provider_data in collection_data.get("providers", []):
