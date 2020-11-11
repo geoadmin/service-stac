@@ -101,6 +101,9 @@ def parse_collection(collection_data):
     collection.save()
 
     for link in collection_data.get("links", []):
+        if link['rel'] in ['self', 'root', 'parent', 'items', 'collection']:
+            logger.info('Ignore collection auto link rel=%s href=%s', link['rel'], link['href'])
+            continue
         create_collection_link(collection, link)
 
     return collection

@@ -1,6 +1,8 @@
 import logging
+from collections import OrderedDict
 from datetime import datetime
 
+from django.conf import settings
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext_lazy as _
@@ -120,7 +122,23 @@ class CollectionList(generics.ListAPIView):
         else:
             serializer = self.get_serializer(queryset, many=True)
 
-        data = {'collections': serializer.data}
+        data = {
+            'collections': serializer.data,
+            'links': [
+                OrderedDict([
+                    ('rel', 'self'),
+                    ('href', request.build_absolute_uri()),
+                ]),
+                OrderedDict([
+                    ('rel', 'root'),
+                    ('href', request.build_absolute_uri(f'/{settings.API_BASE}')),
+                ]),
+                OrderedDict([
+                    ('rel', 'parent'),
+                    ('href', request.build_absolute_uri('.')),
+                ])
+            ]
+        }
 
         logger.debug('GET list of collections', extra={"request": request, "response": data})
 
@@ -216,7 +234,21 @@ class ItemsList(generics.ListAPIView):
         data = {
             'type': 'FeatureCollection',
             'timeStamp': utc_aware(datetime.utcnow()),
-            'features': serializer.data
+            'features': serializer.data,
+            'links': [
+                OrderedDict([
+                    ('rel', 'self'),
+                    ('href', request.build_absolute_uri()),
+                ]),
+                OrderedDict([
+                    ('rel', 'root'),
+                    ('href', request.build_absolute_uri(f'/{settings.API_BASE}')),
+                ]),
+                OrderedDict([
+                    ('rel', 'parent'),
+                    ('href', request.build_absolute_uri('.').rstrip('/')),
+                ])
+            ]
         }
 
         logger.debug('GET list of items', extra={"request": request, "response": data})

@@ -1,6 +1,7 @@
 import logging
 from collections import OrderedDict
 
+from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry
 
 from rest_framework import serializers
@@ -230,6 +231,35 @@ class CollectionSerializer(NonNullModelSerializer):
         instance.save()
         return instance
 
+    def to_representation(self, instance):
+        name = instance.collection_name
+        api_base = settings.API_BASE
+        request = self.context.get("request")
+        representation = super().to_representation(instance)
+        # Add auto links
+        # We use OrderedDict, although it is not necessary, because the default serializer/model for
+        # links already uses OrderedDict, this way we keep consistency between auto link and user
+        # link
+        representation['links'][:0] = [
+            OrderedDict([
+                ('rel', 'self'),
+                ('href', request.build_absolute_uri(f'/{api_base}collections/{name}')),
+            ]),
+            OrderedDict([
+                ('rel', 'root'),
+                ('href', request.build_absolute_uri(f'/{api_base}')),
+            ]),
+            OrderedDict([
+                ('rel', 'parent'),
+                ('href', request.build_absolute_uri(f'/{api_base}collections')),
+            ]),
+            OrderedDict([
+                ('rel', 'items'),
+                ('href', request.build_absolute_uri(f'/{api_base}collections/{name}/items')),
+            ])
+        ]
+        return representation
+
 
 class ItemLinkSerializer(NonNullModelSerializer):
 
@@ -350,3 +380,36 @@ class ItemSerializer(NonNullModelSerializer):
 
     def get_stac_version(self, obj):
         return "0.9.0"
+
+    def to_representation(self, instance):
+        collection = instance.collection.collection_name
+        name = instance.item_name
+        api = settings.API_BASE
+        request = self.context.get("request")
+        representation = super().to_representation(instance)
+        # Add auto links
+        # We use OrderedDict, although it is not necessary, because the default serializer/model for
+        # links already uses OrderedDict, this way we keep consistency between auto link and user
+        # link
+        representation['links'][:0] = [
+            OrderedDict([
+                ('rel', 'self'),
+                (
+                    'href',
+                    request.build_absolute_uri(f'/{api}collections/{collection}/items/{name}')
+                ),
+            ]),
+            OrderedDict([
+                ('rel', 'root'),
+                ('href', request.build_absolute_uri(f'/{api}')),
+            ]),
+            OrderedDict([
+                ('rel', 'parent'),
+                ('href', request.build_absolute_uri(f'/{api}collections/{collection}/items')),
+            ]),
+            OrderedDict([
+                ('rel', 'collection'),
+                ('href', request.build_absolute_uri(f'/{api}collections/{collection}')),
+            ])
+        ]
+        return representation
