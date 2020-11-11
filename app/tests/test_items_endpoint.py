@@ -54,6 +54,16 @@ class ItemsEndpointTestCase(TestCase):
         )
         db.create_item_links(item_now)
         item_now.save()
+        item_range = Item.objects.create(
+            collection=self.collections[0],
+            item_name='item-range',
+            properties_start_datetime=self.yesterday,
+            properties_end_datetime=self.now,
+            properties_eo_gsd=None,
+            properties_title="My Title",
+        )
+        db.create_item_links(item_range)
+        item_range.save()
         self.collections[0].save()
         self.maxDiff = None  # pylint: disable=invalid-name
 
@@ -99,7 +109,7 @@ class ItemsEndpointTestCase(TestCase):
         logger.debug('Response (%s):\n%s', type(json_data), pformat(json_data))
         self.assertEqual(200, response.status_code, msg=get_description(json_data))
 
-        self.assertEqual(6, len(json_data['features']), msg="Too many items found")
+        self.assertEqual(7, len(json_data['features']), msg="Too many items found")
 
         # Check that pagination is present response
         self.assertTrue('links' in json_data, msg="'links' missing from response")
@@ -138,7 +148,7 @@ class ItemsEndpointTestCase(TestCase):
         )
         json_data = response.json()
         self.assertEqual(200, response.status_code, msg=get_description(json_data))
-        self.assertEqual(2, len(json_data['features']), msg="More than one item found")
+        self.assertEqual(3, len(json_data['features']), msg="More than one item found")
         self.assertEqual('item-yesterday', json_data['features'][0]['id'])
         self.assertEqual('item-now', json_data['features'][1]['id'])
 
@@ -150,7 +160,7 @@ class ItemsEndpointTestCase(TestCase):
         )
         json_data = response.json()
         self.assertEqual(200, response.status_code, msg=get_description(json_data))
-        self.assertEqual(2, len(json_data['features']), msg="More than one item found")
+        self.assertEqual(3, len(json_data['features']), msg="More than one item found")
         self.assertEqual('item-yesterday', json_data['features'][0]['id'])
         self.assertEqual('item-now', json_data['features'][1]['id'])
 

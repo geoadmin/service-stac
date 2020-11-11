@@ -15,6 +15,7 @@ from stac_api.models import ItemLink
 from stac_api.models import Keyword
 from stac_api.models import Provider
 from stac_api.models import get_default_stac_extensions
+from stac_api.utils import isoformat
 
 logger = logging.getLogger(__name__)
 
@@ -27,9 +28,22 @@ class NonNullModelSerializer(serializers.ModelSerializer):
     """
 
     def to_representation(self, instance):
-        ret = super().to_representation(instance)
-        ret = OrderedDict(filter(lambda x: x[1] is not None, ret.items()))
-        return ret
+
+        def filter_null(obj):
+            filtered_obj = {}
+            if isinstance(obj, OrderedDict):
+                filtered_obj = OrderedDict()
+            for key, value in obj.items():
+                if isinstance(value, dict):
+                    filtered_obj[key] = filter_null(value)
+                elif isinstance(value, list) and len(value) > 0:
+                    filtered_obj[key] = value
+                elif value is not None:
+                    filtered_obj[key] = value
+            return filtered_obj
+
+        obj = super().to_representation(instance)
+        return filter_null(obj)
 
 
 class DictSerializer(serializers.ListSerializer):
@@ -135,8 +149,8 @@ class ProviderSerializer(NonNullModelSerializer):
 
 class ExtentTemporalSerializer(serializers.Serializer):
     # pylint: disable=abstract-method
-    cache_start_datetime = serializers.DateTimeField(format='%Y-%m-%dT%H:%M:%SZ')
-    cache_end_datetime = serializers.DateTimeField(format='%Y-%m-%dT%H:%M:%SZ')
+    cache_start_datetime = serializers.DateTimeField()
+    cache_end_datetime = serializers.DateTimeField()
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)
@@ -145,10 +159,10 @@ class ExtentTemporalSerializer(serializers.Serializer):
         end = instance.cache_end_datetime
 
         if start is not None:
-            start = start.strftime('%Y-%m-%dT%H:%M:%SZ')
+            start = isoformat(start)
 
         if end is not None:
-            end = end.strftime('%Y-%m-%dT%H:%M:%SZ')
+            end = isoformat(end)
 
         ret["temporal_extent"] = {"interval": [[start, end]]}
 
@@ -208,8 +222,8 @@ class CollectionSerializer(NonNullModelSerializer):
         # crs and keywords not in sample data, but in specs..
 
     crs = serializers.SerializerMethodField()
-    created = serializers.DateTimeField(required=True, format='%Y-%m-%dT%H:%M:%SZ')  # datetime
-    updated = serializers.DateTimeField(required=True, format='%Y-%m-%dT%H:%M:%SZ')  # datetime
+    created = serializers.DateTimeField(required=True)  # datetime
+    updated = serializers.DateTimeField(required=True)  # datetime
     description = serializers.CharField(required=True)  # string
     extent = ExtentSerializer(read_only=True, source="*")
     summaries = serializers.JSONField(read_only=True)
@@ -259,7 +273,13 @@ class ItemsPropertiesSerializer(serializers.Serializer):
     # ItemsPropertiesSerializer is a nested serializer and don't directly create/write instances
     # therefore we don't need to implement the super method create() and update()
     datetime = serializers.DateTimeField(
-        required=True, source='properties_datetime', format='%Y-%m-%dT%H:%M:%SZ'
+        source='properties_datetime', allow_null=True, required=False
+    )
+    start_datetime = serializers.DateTimeField(
+        source='properties_start_datetime', allow_null=True, required=False
+    )
+    end_datetime = serializers.DateTimeField(
+        source='properties_end_datetime', allow_null=True, required=False
     )
     eo_gsd = serializers.ListField(required=True, source='properties_eo_gsd')
     title = serializers.CharField(required=True, source='properties_title', max_length=255)
