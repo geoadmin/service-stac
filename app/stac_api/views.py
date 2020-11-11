@@ -4,6 +4,7 @@ from datetime import datetime
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext_lazy as _
+from django.contrib.gis.geos import Polygon
 
 from rest_framework import generics
 from rest_framework.exceptions import ValidationError
@@ -152,12 +153,29 @@ class ItemsList(generics.ListAPIView):
         date_time = self.request.query_params.get('datetime', None)
 
         if bbox:
-            raise NotImplementedError('bbox query parameter not yet implemented')
+            queryset = self.filter_by_bbox(queryset, bbox)
 
         if date_time:
             queryset = self.filter_by_datetime(queryset, date_time)
 
         return queryset
+
+    def filter_by_bbox(self, queryset, bbox):
+        try:
+            logger.debug('Item query parameter bbox = %s', bbox)
+            query_bbox_polygon = Polygon.from_bbox(bbox.split(','))
+        except ValueError as error:
+            logger.error(
+                'Invalid bbox parameter: '
+                'Could not transform bbox "%s" to a polygon; %s'
+                'f.ex. bbox=5.96, 45.82, 10.49, 47.81',
+                bbox, error
+            )
+            raise ValidationError(_('Invalid bbox query parameter, '
+                                    ' has to contain 4 values. f.ex. bbox=5.96,45.82,10.49,47.81'))
+
+        return queryset.filter(geometry__intersects=query_bbox_polygon)
+
 
     def filter_by_datetime(self, queryset, date_time):
         start, end = parse_datetime_query(date_time)

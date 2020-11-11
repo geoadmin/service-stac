@@ -175,6 +175,7 @@ class ItemsEndpointTestCase(TestCase):
         self.assertEqual(5, len(json_data['features']), msg="More than one item found")
         self.assertEqual('item-yesterday', json_data['features'][-1]['id'])
 
+
     def test_items_endpoint_datetime_invalid_range_query(self):
         # test open start and end query
         response = self.client.get(
@@ -212,6 +213,35 @@ class ItemsEndpointTestCase(TestCase):
         response = self.client.get(
             f"/{API_BASE}collections/{self.collections[0].collection_name}/items"
             f"?datetime=2019/2019&limit=100"
+        )
+        json_data = response.json()
+        self.assertEqual(400, response.status_code, msg=get_description(json_data))
+
+
+    def test_items_endpoint_bbox_valid_query(self):
+        # test bbox
+        response = self.client.get(
+            f"/{API_BASE}collections/{self.collections[0].collection_name}/items"
+            f"?bbox=5.96,45.82,10.49,47.81&limit=100"
+        )
+        json_data = response.json()
+        self.assertEqual(200, response.status_code, msg=get_description(json_data))
+        self.assertEqual(3, len(json_data['features']), msg="More than one item found")
+        self.assertEqual([5.96, 45.82, 10.49, 47.81], json_data['features'][0]['bbox'])
+
+
+    def test_items_endpoint_bbox_invalid_query(self):
+        # test invalid bbox
+        response = self.client.get(
+            f"/{API_BASE}collections/{self.collections[0].collection_name}/items"
+            f"?bbox=5.96,45.82,10.49,47.81,screw;&limit=100"
+        )
+        json_data = response.json()
+        self.assertEqual(400, response.status_code, msg=get_description(json_data))
+
+        response = self.client.get(
+            f"/{API_BASE}collections/{self.collections[0].collection_name}/items"
+            f"?bbox=5.96,45.82,10.49,47.81,42,42&limit=100"
         )
         json_data = response.json()
         self.assertEqual(400, response.status_code, msg=get_description(json_data))

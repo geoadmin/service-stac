@@ -40,21 +40,16 @@ components:
     bbox:
       description: >-
         Only features that have a geometry that intersects the bounding box are selected.
-        The bounding box is provided as four or six numbers, depending on whether
-        the coordinate reference system includes a vertical axis (height or depth):
+        The bounding box is provided as four numbers:
 
 
         * Lower left corner, coordinate axis 1
 
         * Lower left corner, coordinate axis 2
 
-        * Minimum value, coordinate axis 3 (optional)
-
         * Upper right corner, coordinate axis 1
 
         * Upper right corner, coordinate axis 2
-
-        * Maximum value, coordinate axis 3 (optional)
 
 
         The coordinate reference system of the values is WGS 84 longitude/latitude
@@ -68,10 +63,6 @@ components:
         box edge) is larger than the third value (east-most box edge).
 
 
-        If the vertical axis is included, the third and the sixth number are the bottom
-        and the top of the 3-dimensional bounding box.
-
-
         If a feature has multiple spatial geometry properties, it is the decision
         of the server whether only a single spatial geometry property is used to determine
         the extent or all relevant geometries.
@@ -82,7 +73,7 @@ components:
       schema:
         items:
           type: number
-        maxItems: 6
+        maxItems: 4
         minItems: 4
         type: array
       style: form
@@ -509,8 +500,7 @@ components:
     bbox:
       description: >-
         Only features that have a geometry that intersects the bounding box are selected.
-        The bounding box is provided as four or six numbers, depending on whether
-        the coordinate reference system includes a vertical axis (elevation or depth):
+        The bounding box is provided as four numbers:
 
 
         * Lower left corner, coordinate axis 1
@@ -537,14 +527,14 @@ components:
         of the server whether only a single spatial geometry property is used to determine
         the extent or all relevant geometries.
 
-        Example: The bounding box of the New Zealand Exclusive Economic Zone in WGS
-        84 (from 160.6°E to 170°W and from 55.95°S to 25.89°S) would be represented
-        in JSON as `[160.6, -55.95, -170, -25.89]` and in a query as `bbox=160.6,-55.95,-170,-25.89`."
+        Example: The bounding box of Switzerland in WGS 84 (from 5.96°E to 10.49°E
+        and from 45.82°N to 47.81°N) would be represented in JSON as `[5.96, 45.82,
+        10.49, 47.81]` and in a query as `bbox=5.96, 45.82, 10.49, 47.81`."
       example:
-      - -110
-      - 39.5
-      - -105
-      - 40.5
+      - 5.96
+      - 45.82
+      - 10.49
+      - 47.81
       items:
         type: number
       maxItems: 4
