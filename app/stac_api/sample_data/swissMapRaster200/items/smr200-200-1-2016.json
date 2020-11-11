@@ -1,98 +1,98 @@
 {
-	"stac_version": "0.9.0",
-	"stac_extensions": [
-		"proj",
-		"eo",
-		"checksum",
-		"https://data.geo.admin.ch/stac/geoadmin-extension/1.0/schema.json"
-	],
-	"id": "smr200-200-1-2016",
-	"properties": {
-		"datetime": "2016-12-31T00:00:00Z",
-		"created": "2020-10-22T12:30:00Z",
-		"updated": "2020-10-22T12:30:00Z",
-		"eo:gsd": 10,
-		"eo:bands": []
-	},
-	"collection": "ch.swisstopo.pixelkarte-farbe-pk200.noscale",
-	"bbox": [
-		5.602407647225925,
-		46.775053769032677,
-		8.175889890047533,
-		48.02711914887954
-	],
-	"geometry": {
-		"coordinates": [
-			[
-				[
-					5.602407647225925,
-					48.01499501585063
-				],
-				[
-					8.175889890047533,
-					48.02711914887954
-				],
-				[
-					8.158929420648244,
-					46.78690091679339
-				],
-				[
-					5.644711296534027,
-					46.775053769032677
-				],
-				[
-					5.602407647225925,
-					48.01499501585063
-				]
-			]
-		],
-		"type": "Polygon"
-	},
-	"links": [
-		{
-			"href": "https://data.geo.admin.ch/collections/ch.swisstopo.pixelkarte-farbe-pk200.noscale/items/smr200-200-1-2016",
-			"rel": "self"
-		},
-		{
-			"href": "https://data.geo.admin.ch/api/stac/v0.9/",
-			"rel": "root"
-		},
-		{
-			"href": "https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk200.noscale",
-			"rel": "collection"
-		}
-	],
-	"type": "Feature",
-	"assets": {
-		"smr200-200-1-2016-2056-kgrs-10.tiff": {
-			"checksum:multihash": "90e402107a7f2588a85362b9beea2a12d4514d45",
-			"created": "2020-10-22T12:30:00Z",
-			"eo:gsd": 10,
-			"geoadmin:variant": "kgrs",
-			"href": "https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk200.noscale/smr200-200-1-2016/smr200-200-1-2016-2056-kgrs-10.tiff",
-			"proj:epsg": 2056,
-			"type": "image/tiff; application=geotiff; profile=cloud-optimized",
-			"updated": "2020-10-22T12:30:00Z"
-		},
-		"smr200-200-1-2016-2056-komb-10.tiff": {
-			"checksum:multihash": "4473e588b35568687564de38ed134d0b",
-			"created": "2020-10-22T12:30:00Z",
-			"eo:gsd": 10,
-			"geoadmin:variant": "komb",
-			"href": "https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk200.noscale/smr200-200-1-2016/smr200-200-1-2016-2056-komb-10.tiff",
-			"proj:epsg": 2056,
-			"type": "image/tiff; application=geotiff; profile=cloud-optimized",
-			"updated": "2020-10-22T12:30:00Z"
-		},
-		"smr200-200-1-2016-2056-krel-20.tiff": {
-			"checksum:multihash": "01205c3fd6978a7d0b051efaa4263a09",
-			"created": "2020-10-22T12:30:00Z",
-			"eo:gsd": 20,
-			"geoadmin:variant": "krel",
-			"href": "https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk200.noscale/smr200-200-1-2016/smr200-200-1-2016-2056-krel-20.tiff",
-			"proj:epsg": 2056,
-			"type": "image/tiff; application=geotiff; profile=cloud-optimized",
-			"updated": "2020-10-22T12:30:00Z"
-		}
-	}
+  "stac_version": "0.9.0",
+  "stac_extensions": [
+    "proj",
+    "eo",
+    "checksum",
+    "https://data.geo.admin.ch/stac/geoadmin-extension/1.0/schema.json"
+  ],
+  "id": "smr200-200-1-2016",
+  "properties": {
+    "datetime": "2016-12-31T00:00:00Z",
+    "created": "2020-10-22T12:30:00Z",
+    "updated": "2020-10-22T12:30:00Z",
+    "eo:gsd": 10,
+    "eo:bands": []
+  },
+  "collection": "ch.swisstopo.pixelkarte-farbe-pk200.noscale",
+  "bbox": [
+    5.602407647225925,
+    46.775053769032677,
+    8.175889890047533,
+    48.02711914887954
+  ],
+  "geometry": {
+    "coordinates": [
+      [
+        [
+          5.602407647225925,
+          48.01499501585063
+        ],
+        [
+          8.175889890047533,
+          48.02711914887954
+        ],
+        [
+          8.158929420648244,
+          46.78690091679339
+        ],
+        [
+          5.644711296534027,
+          46.775053769032677
+        ],
+        [
+          5.602407647225925,
+          48.01499501585063
+        ]
+      ]
+    ],
+    "type": "Polygon"
+  },
+  "links": [
+    {
+      "href": "https://data.geo.admin.ch/collections/ch.swisstopo.pixelkarte-farbe-pk200.noscale/items/smr200-200-1-2016",
+      "rel": "self"
+    },
+    {
+      "href": "https://data.geo.admin.ch/api/stac/v0.9/",
+      "rel": "root"
+    },
+    {
+      "href": "https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk200.noscale",
+      "rel": "collection"
+    }
+  ],
+  "type": "Feature",
+  "assets": {
+    "smr200-200-1-2016-2056-kgrs-10.tiff": {
+      "checksum:multihash": "90e402107a7f2588a85362b9beea2a12d4514d45",
+      "created": "2020-10-22T12:30:00Z",
+      "eo:gsd": 10,
+      "geoadmin:variant": "kgrs",
+      "href": "https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk200.noscale/smr200-200-1-2016/smr200-200-1-2016-2056-kgrs-10.tiff",
+      "proj:epsg": 2056,
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "updated": "2020-10-22T12:30:00Z"
+    },
+    "smr200-200-1-2016-2056-komb-10.tiff": {
+      "checksum:multihash": "4473e588b35568687564de38ed134d0b",
+      "created": "2020-10-22T12:30:00Z",
+      "eo:gsd": 10,
+      "geoadmin:variant": "komb",
+      "href": "https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk200.noscale/smr200-200-1-2016/smr200-200-1-2016-2056-komb-10.tiff",
+      "proj:epsg": 2056,
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "updated": "2020-10-22T12:30:00Z"
+    },
+    "smr200-200-1-2016-2056-krel-20.tiff": {
+      "checksum:multihash": "01205c3fd6978a7d0b051efaa4263a09",
+      "created": "2020-10-22T12:30:00Z",
+      "eo:gsd": 20,
+      "geoadmin:variant": "krel",
+      "href": "https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk200.noscale/smr200-200-1-2016/smr200-200-1-2016-2056-krel-20.tiff",
+      "proj:epsg": 2056,
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "updated": "2020-10-22T12:30:00Z"
+    }
+  }
 }

@@ -1,65 +1,70 @@
 {
-	"stac_version": "0.9.0",
-	"stac_extensions": [
-		"proj"
-	],
-	"id": "ch.swisstopo.swisstlmregio",
-	"title": "swissTLMRegio",
-	"description": "swissTLMRegio is a 2D landscape model, which represents the natural and man-made features of the landscape in vector format. With its high generalisation grade it is a reference dataset for applications requiring a regional or national overview. swissTLMRegio describes about 950 000 objects with their location, shape and neighbourhood connections (topology) as well as the object type and further attributes. swissTLMRegiois composed of 6 thematic topics. Each topic contains one or more feature classes: Transportation, Hydrography, Landcover, Buildings, Miscellaneous, Names..",
-	"summaries": {
-		"proj:epsg": [2056]
-	},
-	"extent": {
-		"spatial": {
-			"bbox": [
-				[
-					5.327213305905472,
-					45.30427347827474,
-					11.403439825339375,
-					48.19113734655604
-				]
-			]
-		},
-		"temporal": {
-			"interval": [
-				[
-					"2020-10-18T00:00:00Z",
-					"2020-10-18T00:00:00Z"
-				]
-			]
-		}
-	},
-	"providers": [{
-		"name": "Federal Office of Topography - swisstopo",
-		"roles": [
-			"producer",
-			"licensor"
-		],
-		"url": "https://www.swisstopo.admin.ch"
-	}],
-	"license": "proprietary",
-	"created": "2020-10-22T12:30:00Z",
-	"updated": "2020-10-22T12:30:00Z",
-	"links": [{
-			"href": "https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.swisstlmregio",
-			"rel": "self"
-		},
-		{
-			"href": "https://data.geo.admin.ch/api/stac/v0.9/",
-			"rel": "root"
-		},
-		{
-			"href": "https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.swisstlmregio/items",
-			"rel": "items"
-		},
-		{
-			"href": "https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html",
-			"rel": "license",
-			"title": "Licence for the free geodata of the Federal Office of Topography swisstopo"
-		},
-		{
-			"href": "https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/2a190233-498a-46c4-91ca-509a97d797a2",
-			"rel": "describedby"
-		}
-	]
+  "stac_version": "0.9.0",
+  "stac_extensions": [
+    "proj"
+  ],
+  "id": "ch.swisstopo.swisstlmregio",
+  "title": "swissTLMRegio",
+  "description": "swissTLMRegio is a 2D landscape model, which represents the natural and man-made features of the landscape in vector format. With its high generalisation grade it is a reference dataset for applications requiring a regional or national overview. swissTLMRegio describes about 950 000 objects with their location, shape and neighbourhood connections (topology) as well as the object type and further attributes. swissTLMRegiois composed of 6 thematic topics. Each topic contains one or more feature classes: Transportation, Hydrography, Landcover, Buildings, Miscellaneous, Names..",
+  "summaries": {
+    "proj:epsg": [
+      2056
+    ]
+  },
+  "extent": {
+    "spatial": {
+      "bbox": [
+        [
+          5.327213305905472,
+          45.30427347827474,
+          11.403439825339375,
+          48.19113734655604
+        ]
+      ]
+    },
+    "temporal": {
+      "interval": [
+        [
+          "2020-10-18T00:00:00Z",
+          "2020-10-18T00:00:00Z"
+        ]
+      ]
+    }
+  },
+  "providers": [
+    {
+      "name": "Federal Office of Topography - swisstopo",
+      "roles": [
+        "producer",
+        "licensor"
+      ],
+      "url": "https://www.swisstopo.admin.ch"
+    }
+  ],
+  "license": "proprietary",
+  "created": "2020-10-22T12:30:00Z",
+  "updated": "2020-10-22T12:30:00Z",
+  "links": [
+    {
+      "href": "https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.swisstlmregio",
+      "rel": "self"
+    },
+    {
+      "href": "https://data.geo.admin.ch/api/stac/v0.9/",
+      "rel": "root"
+    },
+    {
+      "href": "https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.swisstlmregio/items",
+      "rel": "items"
+    },
+    {
+      "href": "https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html",
+      "rel": "license",
+      "title": "Licence for the free geodata of the Federal Office of Topography swisstopo"
+    },
+    {
+      "href": "https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/2a190233-498a-46c4-91ca-509a97d797a2",
+      "rel": "describedby"
+    }
+  ]
 }
