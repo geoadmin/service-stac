@@ -48,7 +48,8 @@
 		],
 		"type": "Polygon"
 	},
-	"links": [{
+	"links": [
+		{
 			"href": "https://data.geo.admin.ch/collections/ch.swisstopo.pixelkarte-farbe-pk200.noscale/items/smr200-200-4-2016",
 			"rel": "self"
 		},
@@ -69,7 +70,7 @@
 			"eo:gsd": 10,
 			"geoadmin:variant": "kgrs",
 			"href": "https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk200.noscale/smr200-200-4-2016/smr200-200-4-2016-2056-kgrs-10.tiff",
-			"proj:epsg": "2056",
+			"proj:epsg": 2056,
 			"type": "image/tiff; application=geotiff; profile=cloud-optimized",
 			"updated": "2020-10-22T12:30:00Z"
 		},
@@ -79,7 +80,7 @@
 			"eo:gsd": 10,
 			"geoadmin:variant": "komb",
 			"href": "https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk200.noscale/smr200-200-4-2016/smr200-200-4-2016-2056-komb-10.tiff",
-			"proj:epsg": "2056",
+			"proj:epsg": 2056,
 			"type": "image/tiff; application=geotiff; profile=cloud-optimized",
 			"updated": "2020-10-22T12:30:00Z"
 		},
@@ -89,7 +90,7 @@
 			"eo:gsd": 20,
 			"geoadmin:variant": "krel",
 			"href": "https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk200.noscale/smr200-200-4-2016/smr200-200-4-2016-2056-krel-20.tiff",
-			"proj:epsg": "2056",
+			"proj:epsg": 2056,
 			"type": "image/tiff; application=geotiff; profile=cloud-optimized",
 			"updated": "2020-10-22T12:30:00Z"
 		}
