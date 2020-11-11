@@ -2,6 +2,9 @@ import logging
 import os
 import time
 
+from django.http import HttpResponse
+from django.http import JsonResponse
+
 logger = logging.getLogger(__name__)
 
 
@@ -37,17 +40,24 @@ def request_response_logging_middleware(get_response):
 
         response = get_response(request)
 
+        extra = {
+            "request": request,
+            "response": {
+                "code": response.status_code,
+                "headers": dict(response.items())
+            },
+            "duration": time.time() - start
+        }
+
+        # Not all response types have a 'content' attribute,
+        # HttpResponse and JSONResponse sure have
+        # (e.g. WhiteNoiseFileResponse doesn't)
+        if isinstance(response, (HttpResponse, JsonResponse)):
+            extra["response"]["content"] = str(response.content)[:200]
+
         logger.info(
             "request-response",
-            extra={
-                "request": request,
-                "response": {
-                    "code": response.status_code,
-                    "content": str(response.content)[:200],
-                    "headers": dict(response.items())
-                },
-                "duration": time.time() - start
-            }
+            extra=extra
         )
         # Code to be executed for each request/response after
         # the view is called.
