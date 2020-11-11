@@ -22,19 +22,8 @@ from rest_framework.parsers import JSONParser
 from stac_api.models import *
 from stac_api.serializers import CollectionSerializer
 from stac_api.serializers import CollectionSerializer
-from stac_api.serializers import KeywordSerializer
 from stac_api.serializers import LinkSerializer
 from stac_api.serializers import ProviderSerializer
-
-# create keyword instances for testing
-keyword1 = Keyword(name='test1')
-keyword1.save()
-
-keyword2 = Keyword(name='test2')
-keyword2.save()
-
-keyword3 = Keyword(name='test3')
-keyword3.save()
 
 # create link instances for testing
 
@@ -105,7 +94,6 @@ collection1.save()
 
 # populate the ManyToMany relation fields
 collection1.links.add(link_root)
-collection1.keywords.add(keyword1, keyword3)
 collection1.providers.add(provider1, provider2)
 collection1.save()
 
@@ -148,7 +136,6 @@ collection2 = Collection(
 collection2.save()
 # populate the ManyToMany relation fields
 collection2.links.add(link_root)
-collection2.keywords.add(keyword2, keyword3)
 collection2.providers.add(provider1, provider3)
 
 # create collection instance for testing
@@ -190,13 +177,9 @@ collection3 = Collection(
 collection3.save()
 # populate the ManyToMany relation fields
 collection3.links.add(link_root)
-collection3.keywords.add(keyword2, keyword3)
 collection3.providers.add(provider1, provider3)
 collection3.save()
 
-keyword1.save()
-keyword2.save()
-keyword3.save()
 provider1.save()
 provider2.save()
 provider3.save()

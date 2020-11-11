@@ -112,11 +112,6 @@ class CollectionsEndpointTestCase(TestCase):
                     "link_type": "root",
                     "title": "Test title"
                 }],
-                "keywords": [{
-                    "name": "test1"
-                }, {
-                    "name": "test2"
-                }],
                 "crs": ["http://www.opengis.net/def/crs/OGC/1.3/CRS84"]
             },
             python_native,

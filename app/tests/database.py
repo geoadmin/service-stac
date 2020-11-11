@@ -9,7 +9,6 @@ from stac_api.models import Collection
 from stac_api.models import CollectionLink
 from stac_api.models import Item
 from stac_api.models import ItemLink
-from stac_api.models import Keyword
 from stac_api.models import Provider
 
 
@@ -28,14 +27,6 @@ def create_collection(name):
         title='Test title'
     )
     collection.save()
-
-    # create keyword instance for testing
-    keyword1 = Keyword.objects.create(name='test1')
-    keyword1.save()
-    collection.keywords.add(keyword1)
-    keyword2 = Keyword.objects.create(name='test2')
-    keyword2.save()
-    collection.keywords.add(keyword2)
 
     # create provider instance for testing
     provider = Provider.objects.create(
@@ -57,8 +48,6 @@ def create_collection(name):
     )
     link.save()
     collection.save()
-    keyword1.save()
-    keyword2.save()
     provider.save()
 
     return collection
