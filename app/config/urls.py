@@ -18,9 +18,12 @@ from django.contrib import admin
 from django.urls import include
 from django.urls import path
 
+API_BASE = settings.API_BASE
+
 urlpatterns = [
     path('', include('stac_api.urls')),
     path('admin/', admin.site.urls),
+    path(f"{API_BASE}admin/", admin.site.urls),
 ]
 
 if settings.DEBUG:
