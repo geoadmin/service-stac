@@ -119,7 +119,7 @@ class Provider(models.Model):
     roles = ArrayField(models.CharField(max_length=9), help_text=_(
         "Comma-separated list of roles. Possible values are {}".format(
             ', '.join(allowed_roles)))
-    )
+                      )
     url = models.URLField()
 
     class Meta:
@@ -238,26 +238,224 @@ class Collection(models.Model):
                 "Error when updating collection's summaries values due to asset update."
             ))
 
-    def update_temporal_extent(self, item_properties_start_datetime, item_properties_end_datetime):
+    def update_temporal_extent(
+        self,
+        action,
+        old_start_datetime,
+        new_start_datetime,
+        old_end_datetime,
+        new_end_datetime,
+        item_id
+    ):
         '''
-        updates the collection's temporal extent when item's are update.
-        :param item_properties_datetime: item's value for properties_datetime.
-        This function checks, if the corresponding parameter of the collection
-        needs to be updated. If so, it will be either updated or an error will
-        be raised, if updating fails.
+        updates the collection's temporal extent when item's are updated. This
+        function will only be called, if the item's properties start_ or end_
+        datetime or the properties_datetime have changed (at least one of them).
+        :param action: either up (insert, update) or rm (delete)
+        :param old_start_datetime: item's old value for properties_start_datetime
+        :param new_start_datetime: item's updated value for properties_start_datetime
+        :param old_end_datetime: item's old value for properties_end_datetime
+        :param new_end_datetime: item's updated value for properties_end_datetime
+        :param item_id the id of the item being treated
+        If the calling item has no range defined (i.e. no properties.start_datetime
+        and no properties.end_datetime, but a properties.datetime only), this
+        function will be called using the item's properties.datetime both for the
+        start_ and the end_datetime as well.
+        If updating the collection's temporal extent fails, an error will be raised.
         '''
 
-        if self.cache_start_datetime is None:
-            self.cache_start_datetime = item_properties_start_datetime
+        # INSERT (as item_id is None)
+        if action == "up" and item_id is None:
+            if self.cache_start_datetime is None:
+                # first item in collection, as cache_start_datetime is None:
+                self.cache_start_datetime = new_start_datetime
+            elif self.cache_start_datetime > new_start_datetime:
+                # new item starts earlier that current collection range starts
+                self.cache_start_datetime = new_start_datetime
+
+            if self.cache_end_datetime is None:
+                #first item in collection, as cache_start_datetime is None
+                self.cache_end_datetime = new_end_datetime
+            elif self.cache_end_datetime < new_end_datetime:
+                # new item starts after current collection's range ends
+                self.cache_end_datetime = new_end_datetime
+
             self.save()
-        elif item_properties_start_datetime < self.cache_start_datetime:
-            self.cache_start_datetime = item_properties_start_datetime
+
+        # UPDATE
+        elif action == "up" and item_id:
+
+            if old_start_datetime != new_start_datetime:
+                # start_datetime was updated
+                if old_start_datetime == self.cache_start_datetime:
+                    # item's old start_datetime was defining left bound of the temporal
+                    # extent interval of collection before update
+                    if new_start_datetime < old_start_datetime:
+                        # item's start_datetime was shifted to the left (earlier)
+                        self.cache_start_datetime = new_start_datetime
+                    else:
+                        # item's start_datetime was shifted to the right (later)
+                        # but was defining the left bound of the temporal extent
+                        # of the collection before
+                        # --> hence the new start_datetime of the collection
+                        # needs to be determinded:
+
+                        # get all items but the one to that is beeing updated:
+                        qs = Item.objects.filter(collection_id=self.pk).exclude(id=item_id)
+                        # get earliest start_datetime or none, in case none exists
+                        # this should be the case, if the item that is currently
+                        # beeing updated is the only item in the collection or
+                        # no item has a range defined (no start_ and end_datetimes)
+                        # but all do only have properties.datetimes defined.
+                        if qs.filter(properties_start_datetime__isnull=False):
+                            earliest_start_datetime = qs.filter(
+                                properties_start_datetime__isnull=False
+                            ).earliest('properties_start_datetime').properties_start_datetime
+                        else:
+                            earliest_start_datetime = None
+
+                        # get earliest datetime, or none in case none exists
+                        # this should be the case, if the item that is currently
+                        # beeing updated is the only item in the collection or
+                        # no item has properties.datetime defined but all do have
+                        # only ranged (start_ and end_datetimes defined)
+                        if qs.filter(properties_datetime__isnull=False):
+                            earliest_datetime = qs.filter(
+                                properties_datetime__isnull=False
+                            ).earliest('properties_datetime').properties_datetime
+                        else:
+                            earliest_datetime = None
+
+                        if earliest_start_datetime is None and earliest_datetime is None:
+                            # currently updated item is the only one:
+                            self.cache_start_datetime = new_start_datetime
+                        elif earliest_start_datetime is not None:
+                            self.cache_start_datetime = earliest_start_datetime
+                        else:
+                            self.cache_start_datetime = earliest_datetime
+                elif new_start_datetime < self.cache_start_datetime:
+                    # item's start_datetime did not define the left bound of the
+                    # collection's temporal extent before update, which does not
+                    # matter anyways, as it defines the new left bound after update
+                    # and collection's start_datetime can be simply adjusted
+                    self.cache_start_datetime = new_start_datetime
+
+            if old_end_datetime != new_end_datetime:
+                # end_datetime was updated
+                if old_end_datetime == self.cache_end_datetime:
+                    # item's old end_datetime was defining the right bound of
+                    # the collection's temporal extent interval before update
+                    if new_end_datetime > old_end_datetime:
+                        # item's end_datetime was shifted to the right (later)
+                        self.cache_end_datetime = new_end_datetime
+                    else:
+                        # item's end_datetime was shifted to the left (earlier)
+                        # but was defining the right bound of the collection's
+                        # temporal extent.
+                        # --> hence the new end_datetime of the collection needs
+                        # to be determined
+
+                        # get all items but the one to that is beeing updated:
+                        qs = Item.objects.filter(collection_id=self.pk).exclude(id=item_id)
+                        # get latest end_datetime or none, in case none exists
+                        # this should be the case, if the item that is currently
+                        # beeing updated is the only item in the collection or
+                        # no item has a range defined (no start_ and end_datetimes)
+                        # but all do only have properties.datetimes defined.
+                        if qs.filter(properties_end_datetime__isnull=False):
+                            latest_end_datetime = qs.filter(
+                                properties_end_datetime__isnull=False
+                            ).latest('properties_end_datetime').properties_end_datetime
+                        else:
+                            latest_end_datetime = None
+
+                        # get latest datetime, or none in case none exists
+                        # this should be the case, if the item that is currently
+                        # beeing updated is the only item in the collection or
+                        # no item has properties.datetime defined but all do have
+                        # only ranged (start_ and end_datetimes defined)
+                        if qs.filter(properties_datetime__isnull=False):
+                            latest_datetime = qs.filter(
+                                properties_datetime__isnull=False
+                            ).latest('properties_datetime').properties_datetime
+                        else:
+                            latest_datetime = None
+
+                        if latest_end_datetime is None and latest_datetime is None:
+                            # currently updated item is the only one:
+                            self.cache_end_datetime = new_end_datetime
+                        elif latest_end_datetime is not None:
+                            self.cache_end_datetime = latest_end_datetime
+                        else:
+                            self.cache_end_datetime = latest_datetime
+                elif new_end_datetime > self.cache_start_datetime:
+                    # item's end_datetime did not define the right bound of
+                    # the collection's temporal extent before update, which
+                    # does not matter anyways, as it defines the right bound
+                    # after update and collection's end_date can be simply
+                    # adjusted
+                    self.cache_end_datetime = new_end_datetime
+
             self.save()
-        elif self.cache_end_datetime is None:
-            self.cache_end_datetime = item_properties_end_datetime
-            self.save()
-        elif item_properties_end_datetime > self.cache_end_datetime:
-            self.cache_end_datetime = item_properties_end_datetime
+
+        # delete, we need to iterate trough the items
+        elif action == 'rm':
+            # first set cache_start_ and cache_end_datetime to None, in case
+            # the currently deleted item is the only item of the collection
+            self.cache_start_datetime = None
+            self.cache_end_datetime = None
+
+            # get all items but the one to be deleted:
+            qs = Item.objects.filter(collection_id=self.pk).exclude(id=item_id)
+
+            # get earliest start_datetime or none, in case none exists
+            if qs.filter(properties_start_datetime__isnull=False):
+                earliest_start_datetime = qs.filter(
+                    properties_start_datetime__isnull=False
+                ).earliest('properties_start_datetime').properties_start_datetime
+            else:
+                earliest_start_datetime = None
+
+            # get latest end_datetime or none, in case none exists
+            if qs.filter(properties_end_datetime__isnull=False):
+                latest_end_datetime = qs.filter(
+                    properties_end_datetime__isnull=False
+                ).latest('properties_end_datetime').properties_end_datetime
+            else:
+                latest_end_datetime = None
+
+            # get earliest datetime, or none in case none exists
+            if qs.filter(properties_datetime__isnull=False):
+                earliest_datetime = qs.filter(properties_datetime__isnull=False
+                                             ).earliest('properties_datetime').properties_datetime
+            else:
+                earliest_datetime = None
+
+            # get latest datetime, or none in case none exists
+            if qs.filter(properties_datetime__isnull=False):
+                latest_datetime = qs.filter(properties_datetime__isnull=False
+                                           ).latest('properties_datetime').properties_datetime
+            else:
+                latest_datetime = None
+
+            # set collection's new start_datetime to the minimum of the earliests
+            # item's start_datetime or datetime
+            if earliest_start_datetime is not None and earliest_datetime is not None:
+                self.cache_start_datetime = min(earliest_start_datetime, earliest_datetime)
+            elif earliest_datetime is not None:
+                self.cache_start_datetime = earliest_datetime
+            else:
+                self.cache_start_datetime = earliest_start_datetime
+
+            # set collection's new end_datetime to the maximum of the latest
+            # item's end_datetime or datetime
+            if latest_end_datetime is not None and latest_datetime is not None:
+                self.cache_end_datetime = max(latest_end_datetime, latest_datetime)
+            elif latest_datetime is not None:
+                self.cache_end_datetime = latest_datetime
+            else:
+                self.cache_end_datetime = latest_end_datetime
+
             self.save()
 
     def update_bbox_extent(self, action, item_geom, item_id, item_name):
@@ -393,10 +591,16 @@ class Item(models.Model):
     # when the geometry has changed (during update)
     # https://stackoverflow.com/questions/1355150/when-saving-how-can-you-check-if-a-field-has-changed
     _original_geometry = None
+    __original_properties_start_datetime = None
+    __original_properties_end_datetime = None
+    __original_properties_datetime = None
 
     def __init__(self, *args, **kwargs):
         super(Item, self).__init__(*args, **kwargs)
         self._original_geometry = self.geometry
+        self.__original_properties_start_datetime = self.properties_start_datetime
+        self.__original_properties_end_datetime = self.properties_end_datetime
+        self.__original_properties_datetime = self.properties_datetime
 
     def __str__(self):
         return self.item_name
@@ -413,11 +617,21 @@ class Item(models.Model):
         self.validate_datetime_properties()
         if self.properties_datetime is not None:
             self.collection.update_temporal_extent(
-                self.properties_datetime, self.properties_datetime
+                'up',
+                self.__original_properties_datetime,
+                self.properties_datetime,
+                self.__original_properties_datetime,
+                self.properties_datetime,
+                self.pk
             )
         else:
             self.collection.update_temporal_extent(
-                self.properties_start_datetime, self.properties_end_datetime
+                'up',
+                self.__original_properties_start_datetime,
+                self.properties_start_datetime,
+                self.__original_properties_end_datetime,
+                self.properties_end_datetime,
+                self.pk
             )
 
         # adding a new item means updating the bbox of the collection
@@ -430,11 +644,32 @@ class Item(models.Model):
         super().save(*args, **kwargs)
 
         self._original_geometry = self.geometry
+        self.__original_properties_start_datetime = self.properties_start_datetime
+        self.__original_properties_end_datetime = self.properties_end_datetime
+        self.__original_properties_datetime = self.properties_datetime
 
     def delete(self, *args, **kwargs):  # pylint: disable=signature-differs
         # It is important to use `*args, **kwargs` in signature because django might add dynamically
         # parameters
-        # TODO: also implement the delete case of temporal extent
+        if self.properties_datetime is not None:
+            self.collection.update_temporal_extent(
+                'rm',
+                self.__original_properties_datetime,
+                self.properties_datetime,
+                self.__original_properties_datetime,
+                self.properties_datetime,
+                self.pk
+            )
+        else:
+            self.collection.update_temporal_extent(
+                'rm',
+                self.__original_properties_start_datetime,
+                self.properties_start_datetime,
+                self.__original_properties_end_datetime,
+                self.properties_end_datetime,
+                self.pk
+            )
+
         self.collection.update_bbox_extent('rm', self.geometry, self.pk, self.item_name)
         super().delete(*args, **kwargs)
 
