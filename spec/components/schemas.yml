@@ -173,17 +173,17 @@ components:
           $ref: "#/components/schemas/license"
         links:
           example:
-          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
-            rel: self
-          - href: https://data.geo.admin.ch/api/stac/v0.9/
-            rel: root
-          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items
-            rel: items
-          - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
-            rel: license
-            title: Licence for the free geodata of the Federal Office of Topography swisstopo
-          - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
-            rel: describedby
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+              rel: self
+            - href: https://data.geo.admin.ch/api/stac/v0.9/
+              rel: root
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items
+              rel: items
+            - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
+              rel: license
+              title: Licence for the free geodata of the Federal Office of Topography swisstopo
+            - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
+              rel: describedby
           items:
             $ref: "#/components/schemas/link"
           type: array
@@ -319,8 +319,10 @@ components:
     eo:gsd:
       description: >-
         GSD is the nominal Ground Sample Distance for the data, as measured in meters on the ground.
+
+
         There are many definitions of GSD. The value of this attribute should be related to the
-        spatial resolution at the sensor, rather than the pixel size of images after orthorectification,
+        spatial resolution at the sensor, rather than the pixel size of images after ortho-rectification,
         pansharpening, or scaling. The GSD of a sensor can vary depending on off-nadir and
         wavelength, so it is at the discretion of the implementer to decide which value most
         accurately represents the GSD. For example, Landsat8 optical and short-wave IR bands are
@@ -328,7 +330,18 @@ components:
         this case because that is nominal spatial resolution at the sensor. The Planet PlanetScope
         Ortho Tile Product has an eo:gsd of 3.7 (or 4 if rounding), even though the pixel size of
         the images is 3.125. For example, one might choose for WorldView-2 the Multispectral 20°
-        off-nadir value of 2.07 and for WorldView-3 the Multispectral 20° off-nadir value of 1.38."
+        off-nadir value of 2.07 and for WorldView-3 the Multispectral 20° off-nadir value of 1.38.
+
+
+        NOTE: the Feature property eo:gsd will be automatically updated with the highest resolution
+        of its assets
+      example: 2.5
+      title: Ground Sample Distance
+      type: number
+    item.eo:gsd:
+      description: >-
+        GSD is the nominal Ground Sample Distance for the data, as measured in meters on the ground.
+        It is defined at the Asset level and the item level reflect the highest resolution of its assets.
       example: 2.5
       title: Ground Sample Distance
       type: number
@@ -392,10 +405,10 @@ components:
                   server whether only a single spatial geometry property is used to determine
                   the extent or all relevant geometries.
                 example:
-                - 5.685114
-                - 45.534903
-                - 10.747775
-                - 47.982586
+                  - 5.685114
+                  - 45.534903
+                  - 10.747775
+                  - 47.982586
                 items:
                   type: number
                 maxItems: 6
@@ -659,7 +672,7 @@ components:
 
 
         The item's data timing information can be specified either with
-        
+
         * One datetime value in the field `datetime`
 
         * A datetime range with a `start_datetime` and an `end_datetime`
@@ -677,6 +690,8 @@ components:
           $ref: "#/components/schemas/datetime"
         updated:
           $ref: "#/components/schemas/updated"
+        "eo:gsd":
+          $ref: "#/components/schemas/item.eo:gsd"
       required:
         - created
         - updated
