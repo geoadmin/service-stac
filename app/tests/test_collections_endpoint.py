@@ -54,7 +54,7 @@ class CollectionsEndpointTestCase(TestCase):
         # mock the request for creations of links
         request = mock_request_from_response(self.factory, response)
 
-        # transate to Python native:
+        # translate to Python native:
         serializer = CollectionSerializer(self.collections, many=True, context={'request': request})
         self.assertDictContainsSubset(
             serializer.data[0], response.data, msg="Returned data does not match expected data"

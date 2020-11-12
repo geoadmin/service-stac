@@ -238,7 +238,7 @@ class Collection(models.Model):
                 "Error when updating collection's summaries values due to asset update."
             ))
 
-    def update_temporal_extent(
+    def update_temporal_extent( # pylint: disable=too-many-branches, too-many-statements)
         self,
         action,
         old_start_datetime,
@@ -398,7 +398,7 @@ class Collection(models.Model):
 
             self.save()
 
-        # delete, we need to iterate trough the items
+        # DELETE, we need to iterate trough the items
         elif action == 'rm':
             # first set cache_start_ and cache_end_datetime to None, in case
             # the currently deleted item is the only item of the collection
@@ -615,21 +615,56 @@ class Item(models.Model):
         # This is needed because save() is called during the Item.object.create() function without
         # calling clean() ! and our validation is done within clean() method.
         self.validate_datetime_properties()
+
         if self.properties_datetime is not None:
-            self.collection.update_temporal_extent(
-                'up',
-                self.__original_properties_datetime,
-                self.properties_datetime,
-                self.__original_properties_datetime,
-                self.properties_datetime,
-                self.pk
-            )
-        else:
+            if self.__original_properties_datetime is not None:
+                # This is the case, when the value of properties.datetime has been
+                # updated
+                self.collection.update_temporal_extent(
+                    'up',
+                    self.__original_properties_datetime,
+                    self.properties_datetime,
+                    self.__original_properties_datetime,
+                    self.properties_datetime,
+                    self.pk
+                )
+            elif self.__original_properties_datetime is None:
+                # This is the case, when the item was defined by a start_ and
+                # end_datetime before and has been changed to only have a single
+                # datetime property. In that case, we hand over the old
+                # start_ and end_datetime values to the update function, so
+                # that a loop over all items will only be done, if really
+                # necessary.
+                self.collection.update_temporal_extent(
+                    'up',
+                    self.__original_properties_start_datetime,
+                    self.properties_datetime,
+                    self.__original_properties_end_datetime,
+                    self.properties_datetime,
+                    self.pk
+                )
+
+        elif self.__original_properties_start_datetime is not None and \
+            self.__original_properties_end_datetime is not None:
+            # This is the case, if an items values for start_ and/or end_datetime
+            # were updated.
             self.collection.update_temporal_extent(
                 'up',
                 self.__original_properties_start_datetime,
                 self.properties_start_datetime,
                 self.__original_properties_end_datetime,
+                self.properties_end_datetime,
+                self.pk
+            )
+        else:
+            # This is the case, when an item was defined by a single datetime
+            # before and has been changed to contain a start_ and an
+            # end_datetime value now.
+            self.collection.update_temporal_extent(
+                'up',
+                self.__original_properties_datetime,
+                self.properties_start_datetime,
+                self.__original_properties_datetime,
                 self.properties_end_datetime,
                 self.pk
             )
