@@ -66,3 +66,6 @@ class AssetsEndpointTestCase(TestCase):
         self.assertDictEqual(
             original_data, json_data, msg="Returned data does not match expected data"
         )
+        # created and updated must exist and have a value
+        self.assertIsNotNone(json_data['created'], msg="The field created has to have a value")
+        self.assertIsNotNone(json_data['updated'], msg="The field updated has to have a value")

@@ -59,6 +59,11 @@ class CollectionsEndpointTestCase(TestCase):
         self.assertDictContainsSubset(
             serializer.data[0], response.data, msg="Returned data does not match expected data"
         )
+        # created and updated must exist and have a value
+        self.assertIsNotNone(response_json['created'], msg="The field created has to have a value")
+        self.assertIsNotNone(response_json['updated'], msg="The field updated has to have a value")
+
+
 
     def test_collections_limit_query(self):
         response = self.client.get(f"/{API_BASE}/collections?limit=1")
