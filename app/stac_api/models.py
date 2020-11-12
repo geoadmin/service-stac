@@ -67,10 +67,25 @@ def float_in(flt, floats, **kwargs):
     return np.any(np.isclose(flt, floats, **kwargs))
 
 
+
 def validate_link_rel(value):
     invalid_rel = ['self', 'root', 'parent', 'items', 'collection']
     if value in invalid_rel:
         raise ValidationError(_(f'Invalid rel attribute, must not be in {invalid_rel}'))
+
+def validate_valid_geometry(geometry):
+    '''
+    A validator function that ensures, that only valid
+    geometries are stored.
+    param: geometry
+    '''
+    geos_geometry = GEOSGeometry(geometry)
+    if not geos_geometry.valid:
+        message = "The geometry is not valid: %s" % geos_geometry.valid_reason
+        logger.error(message)
+        raise ValidationError(_(message))
+    return geometry
+
 
 
 class Link(models.Model):
@@ -119,7 +134,8 @@ class Collection(models.Model):
     updated = models.DateTimeField(auto_now=True)  # datetime
     description = models.TextField()  # string  / intentionally TextField and
     extent_geometry = models.PolygonField(
-        default=None, srid=4326, editable=False, blank=True, null=True
+        default=None, srid=4326, editable=False, blank=True, null=True,
+        validators=[validate_valid_geometry]
     )
     # not CharField to provide more space for the text.
     # TODO: ""description" is required in radiantearth spec, not required in our spec
@@ -326,7 +342,7 @@ class CollectionLink(Link):
 
 class Item(models.Model):
     collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
-    geometry = models.PolygonField(default=BBOX_CH, srid=4326)
+    geometry = models.PolygonField(default=BBOX_CH, srid=4326, validators=[validate_valid_geometry])
     item_name = models.CharField(unique=True, blank=False, max_length=255)
 
     created = models.DateTimeField(auto_now_add=True)
@@ -382,13 +398,16 @@ class Item(models.Model):
             self.collection.update_temporal_extent(
                 self.properties_start_datetime, self.properties_end_datetime
             )
-        # adding a new item means update the bbox of the collection
+
+        # adding a new item means updating the bbox of the collection
         if self.pk is None:
             self.collection.update_bbox_extent('insert', self.geometry, self.pk, self.item_name)
         # update the bbox of the collection only when the geometry of the item has changed
         elif self.geometry != self._original_geometry:
             self.collection.update_bbox_extent('update', self.geometry, self.pk, self.item_name)
+
         super().save(*args, **kwargs)
+
         self._original_geometry = self.geometry
 
     def delete(self, *args, **kwargs):  # pylint: disable=signature-differs
