@@ -9,7 +9,7 @@ root:
 
 loggers:
   django:
-    level: DEBUG
+    level: INFO
   django.utils.autoreload:
     level: INFO
   gunicorn.error:
