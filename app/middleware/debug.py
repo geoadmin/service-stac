@@ -43,8 +43,7 @@ def request_response_logging_middleware(get_response):
         extra = {
             "request": request,
             "response": {
-                "code": response.status_code,
-                "headers": dict(response.items())
+                "code": response.status_code, "headers": dict(response.items())
             },
             "duration": time.time() - start
         }
@@ -55,10 +54,7 @@ def request_response_logging_middleware(get_response):
         if isinstance(response, (HttpResponse, JsonResponse)):
             extra["response"]["content"] = str(response.content)[:200]
 
-        logger.info(
-            "request-response",
-            extra=extra
-        )
+        logger.info("request-response", extra=extra)
         # Code to be executed for each request/response after
         # the view is called.
 
