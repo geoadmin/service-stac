@@ -50,7 +50,7 @@
   },
   "links": [
     {
-      "href": "https://data.geo.admin.ch/collections/ch.swisstopo.pixelkarte-farbe-pk200.noscale/items/smr200-200-2-2016",
+      "href": "https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk200.noscale/items/smr200-200-2-2016",
       "rel": "self"
     },
     {

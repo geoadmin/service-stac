@@ -46,7 +46,7 @@
   },
   "links": [
     {
-      "href": "https://data.geo.admin.ch/collections/ch.swisstopo.swisstlmregio/items/swisstlmregio-2020",
+      "href": "https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.swisstlmregio/items/swisstlmregio-2020",
       "rel": "self"
     },
     {
