@@ -335,7 +335,7 @@ class Item(models.Model):
     # properties_eo_cloud_cover = models.FloatField(blank=True)
     # eo_gsd is defined on asset level and will be updated here on ever
     # update of an asset inside this item.
-    properties_eo_gsd = ArrayField(models.FloatField(), blank=True, null=True, editable=False)
+    properties_eo_gsd = models.FloatField(blank=True, null=True, editable=False)
     # properties_instruments = models.TextField(blank=True)
     # properties_license = models.TextField(blank=True)
     # properties_platform = models.TextField(blank=True)
@@ -410,22 +410,33 @@ class Item(models.Model):
                 logger.error(message)
                 raise ValidationError(_(message))
 
-    def update_properties_eo_gsd(self, asset_eo_gsd):
+    def update_properties_eo_gsd(self, asset, deleted=False):
         '''
         updates the item's properties_eo_gsd when assets are updated or
         raises errors when this fails
-        :param asset_eo_gsd: asset's value for asset_eo_gsd
+        :param asset: asset's that has been updated/added/deleted
+        :param deleted: asset has been deleted
 
         This function checks, if the item's properties_eo_gds property
         needs to be updated. If so, it will be either
         updated or an error will be raised, if updating fails.
         '''
         # check if eo:gsd on feature/item level needs updates
-        if self.properties_eo_gsd is None:
-            self.properties_eo_gsd = [asset_eo_gsd]
+        if deleted and self.properties_eo_gsd == asset.eo_gsd:
+            # querying all object in a save operation is for performance reason not a good idea
+            # but here because it first only occur during deleting asset which is a rare case
+            # and because we should not have too many assets within an item (a dozen),
+            # it is acceptable
+            assets = Asset.objects.filter(item__item_name=self.item_name).exclude(id=asset.id)
+            self.properties_eo_gsd = min([
+                asset.eo_gsd for asset in assets if asset.eo_gsd is not None
+            ])
             self.save()
-        elif not float_in(asset_eo_gsd, self.properties_eo_gsd):
-            self.properties_eo_gsd.append(asset_eo_gsd)
+        elif not deleted and self.properties_eo_gsd is None:
+            self.properties_eo_gsd = asset.eo_gsd
+            self.save()
+        elif not deleted and asset.eo_gsd < self.properties_eo_gsd:
+            self.properties_eo_gsd = asset.eo_gsd
             self.save()
 
 
@@ -490,7 +501,14 @@ class Asset(models.Model):
         self.item.collection.update_geoadmin_variants(
             self.geoadmin_variant, self.proj_epsg, self.eo_gsd
         )
-        if self.eo_gsd:
-            self.item.update_properties_eo_gsd(self.eo_gsd)
+        if self.eo_gsd is not None:
+            self.item.update_properties_eo_gsd(self)
 
         super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):  # pylint: disable=signature-differs
+        # It is important to use `*args, **kwargs` in signature because django might add dynamically
+        # parameters
+        if self.eo_gsd is not None:
+            self.item.update_properties_eo_gsd(self, deleted=True)
+        super().delete(*args, **kwargs)

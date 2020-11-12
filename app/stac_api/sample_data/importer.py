@@ -127,8 +127,8 @@ def parse_item(item_data):
     item, created = Item.objects.get_or_create(
         item_name=item_data["id"],
         collection=collection,
-        geometry=geometry,
         defaults={
+            'geometry': geometry,
             'properties_datetime': get_property_datetime(item_data, 'datetime'),
             'properties_start_datetime': get_property_datetime(item_data, 'start_datetime'),
             'properties_end_datetime': get_property_datetime(item_data, 'end_datetime'),
@@ -137,9 +137,6 @@ def parse_item(item_data):
 
     if 'title' in item_data['properties']:
         item.title = item_data['properties']['title']
-
-    if 'eo:gsd' in item_data['properties']:
-        item.properties_eo_gsd = item_data['properties']['eo:gsd']
 
     item.save()
 
