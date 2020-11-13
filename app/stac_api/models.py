@@ -233,9 +233,7 @@ class Collection(models.Model):
         try:
             # insert (as item_id is None)
             if action == 'insert':
-                logger.debug('Updating collections extent_geometry'
-                             ' as a item has been inserted'
-                             )
+                logger.debug('Updating collections extent_geometry' ' as a item has been inserted')
                 # the first item of this collection
                 if self.extent_geometry is None:
                     self.extent_geometry = Polygon.from_bbox(GEOSGeometry(item_geom).extent)
@@ -247,15 +245,20 @@ class Collection(models.Model):
 
             # update
             if action == 'update':
-                logger.debug('Updating collections extent_geometry'
-                              ' as a item geometry has been updated')
+                logger.debug(
+                    'Updating collections extent_geometry'
+                    ' as a item geometry has been updated'
+                )
                 # is the new bbox larger than (and covering) the existing
                 if Polygon.from_bbox(GEOSGeometry(item_geom).extent).covers(self.extent_geometry):
                     self.extent_geometry = Polygon.from_bbox(GEOSGeometry(item_geom).extent)
                 # we need to iterate trough the items
                 else:
-                    logger.warning('Looping over all items of collection %s,'
-                                   'to update extent_geometry, this may take a while', self.pk)
+                    logger.warning(
+                        'Looping over all items of collection %s,'
+                        'to update extent_geometry, this may take a while',
+                        self.pk
+                    )
                     qs = Item.objects.filter(collection_id=self.pk).exclude(id=item_id)
                     union_geometry = GEOSGeometry(item_geom)
                     for item in qs:
@@ -264,16 +267,20 @@ class Collection(models.Model):
 
             # delete, we need to iterate trough the items
             if action == 'rm':
-                logger.debug('Updating collections extent_geometry'
-                             ' as a item has been deleted'
-                             )
-                logger.warning('Looping over all items of collection %s,'
-                               'to update extent_geometry, this may take a while', self.pk)
+                logger.debug('Updating collections extent_geometry' ' as a item has been deleted')
+                logger.warning(
+                    'Looping over all items of collection %s,'
+                    'to update extent_geometry, this may take a while',
+                    self.pk
+                )
                 qs = Item.objects.filter(collection_id=self.pk).exclude(id=item_id)
                 union_geometry = GEOSGeometry('Multipolygon EMPTY')
-                for item in qs:
-                    union_geometry = union_geometry.union(item.geometry)
-                self.extent_geometry = Polygon.from_bbox(union_geometry.extent)
+                if bool(qs):
+                    for item in qs:
+                        union_geometry = union_geometry.union(item.geometry)
+                    self.extent_geometry = Polygon.from_bbox(union_geometry.extent)
+                else:
+                    self.extent_geometry = None
         except GEOSException as error:
             logger.error(
                 'Failed to update spatial extend in collection %s with item %s action=%s: %s',
