@@ -105,7 +105,7 @@ class CollectionsModelTestCase(TestCase):
         self.assertEqual(
             self.collection.cache_end_datetime,
             item_2nd_earliest_to_2nd_latest.properties_end_datetime,
-            "Updating temporal extent (cache_end_datetim) of collection "
+            "Updating temporal extent (cache_end_datetime) of collection "
             "based on range of collection's items failed."
         )
 

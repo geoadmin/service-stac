@@ -264,8 +264,8 @@ class Collection(models.Model):
         If updating the collection's temporal extent fails, an error will be raised.
         '''
 
-        # INSERT (as item_id is None)
-        if action == "up" and item_id is None:
+        def insert_new_item():
+            logger.debug('Inserting item %s in collection %s', item_id, self.collection_name)
             if self.cache_start_datetime is None:
                 # first item in collection, as cache_start_datetime is None:
                 self.cache_start_datetime = new_start_datetime
@@ -282,9 +282,8 @@ class Collection(models.Model):
 
             self.save()
 
-        # UPDATE
-        elif action == "up" and item_id:
-
+        def update_item():
+            logger.debug('Updating item %s in collection %s', item_id, self.collection_name)
             if old_start_datetime != new_start_datetime:
                 # start_datetime was updated
                 if old_start_datetime == self.cache_start_datetime:
@@ -299,8 +298,12 @@ class Collection(models.Model):
                         # of the collection before
                         # --> hence the new start_datetime of the collection
                         # needs to be determinded:
-
                         # get all items but the one to that is beeing updated:
+                        logger.warning(
+                            'Looping (twice) over all items of collection %s,'
+                            'to update temporal extent, this may take a while',
+                            self.collection_name
+                        )
                         qs = Item.objects.filter(collection_id=self.pk).exclude(id=item_id)
                         # get earliest start_datetime or none, in case none exists
                         # this should be the case, if the item that is currently
@@ -356,6 +359,11 @@ class Collection(models.Model):
                         # to be determined
 
                         # get all items but the one to that is beeing updated:
+                        logger.warning(
+                            'Looping (twice) over all items of collection %s,'
+                            'to update temporal extent, this may take a while',
+                            self.collection_name
+                        )
                         qs = Item.objects.filter(collection_id=self.pk).exclude(id=item_id)
                         # get latest end_datetime or none, in case none exists
                         # this should be the case, if the item that is currently
@@ -398,65 +406,104 @@ class Collection(models.Model):
 
             self.save()
 
-        # DELETE, we need to iterate trough the items
-        elif action == 'rm':
-            # first set cache_start_ and cache_end_datetime to None, in case
-            # the currently deleted item is the only item of the collection
-            self.cache_start_datetime = None
-            self.cache_end_datetime = None
+        def delete_item():
+            logger.debug('Deleting item %s from collection %s', item_id, self.collection_name)
 
-            # get all items but the one to be deleted:
-            qs = Item.objects.filter(collection_id=self.pk).exclude(id=item_id)
+            if old_start_datetime == self.cache_start_datetime or \
+                old_end_datetime == self.cache_end_datetime:
+                logger.warning(
+                    'Looping over all items of collection %s,'
+                    'to update temporal extent, this may take a while',
+                    self.collection_name
+                )
+                # get all items but the one to be deleted:
+                qs = Item.objects.filter(collection_id=self.pk).exclude(id=item_id)
 
-            # get earliest start_datetime or none, in case none exists
-            if qs.filter(properties_start_datetime__isnull=False):
-                earliest_start_datetime = qs.filter(
-                    properties_start_datetime__isnull=False
-                ).earliest('properties_start_datetime').properties_start_datetime
-            else:
-                earliest_start_datetime = None
+            if old_start_datetime == self.cache_start_datetime:
+                # item that is to be deleted defined left bound of collection's
+                # temporal extent
+                # first set cache_start_datetime to None, in case
+                # the currently deleted item is the only item of the collection
+                self.cache_start_datetime = None
 
-            # get latest end_datetime or none, in case none exists
-            if qs.filter(properties_end_datetime__isnull=False):
-                latest_end_datetime = qs.filter(
-                    properties_end_datetime__isnull=False
-                ).latest('properties_end_datetime').properties_end_datetime
-            else:
-                latest_end_datetime = None
+                logger.warning(
+                    'Looping (twice) over all items of collection %s,'
+                    'to update temporal extent, this may take a while',
+                    self.collection_name
+                )
 
-            # get earliest datetime, or none in case none exists
-            if qs.filter(properties_datetime__isnull=False):
-                earliest_datetime = qs.filter(properties_datetime__isnull=False
-                                             ).earliest('properties_datetime').properties_datetime
-            else:
-                earliest_datetime = None
+                # get earliest start_datetime or none, in case none exists
+                if qs.filter(properties_start_datetime__isnull=False):
+                    earliest_start_datetime = qs.filter(
+                        properties_start_datetime__isnull=False
+                    ).earliest('properties_start_datetime').properties_start_datetime
+                else:
+                    earliest_start_datetime = None
 
-            # get latest datetime, or none in case none exists
-            if qs.filter(properties_datetime__isnull=False):
-                latest_datetime = qs.filter(properties_datetime__isnull=False
-                                           ).latest('properties_datetime').properties_datetime
-            else:
-                latest_datetime = None
+                # get earliest datetime, or none in case none exists
+                if qs.filter(properties_datetime__isnull=False):
+                    earliest_datetime = qs.filter(
+                        properties_datetime__isnull=False
+                    ).earliest('properties_datetime').properties_datetime
+                else:
+                    earliest_datetime = None
 
-            # set collection's new start_datetime to the minimum of the earliests
-            # item's start_datetime or datetime
-            if earliest_start_datetime is not None and earliest_datetime is not None:
-                self.cache_start_datetime = min(earliest_start_datetime, earliest_datetime)
-            elif earliest_datetime is not None:
-                self.cache_start_datetime = earliest_datetime
-            else:
-                self.cache_start_datetime = earliest_start_datetime
+                # set collection's new start_datetime to the minimum of the earliest
+                # item's start_datetime or datetime
+                if earliest_start_datetime is not None and earliest_datetime is not None:
+                    self.cache_start_datetime = min(earliest_start_datetime, earliest_datetime)
+                elif earliest_datetime is not None:
+                    self.cache_start_datetime = earliest_datetime
+                else:
+                    self.cache_start_datetime = earliest_start_datetime
 
-            # set collection's new end_datetime to the maximum of the latest
-            # item's end_datetime or datetime
-            if latest_end_datetime is not None and latest_datetime is not None:
-                self.cache_end_datetime = max(latest_end_datetime, latest_datetime)
-            elif latest_datetime is not None:
-                self.cache_end_datetime = latest_datetime
-            else:
-                self.cache_end_datetime = latest_end_datetime
+            if old_end_datetime == self.cache_end_datetime:
+                # item that is to be deleted defined right bound of collection's
+                # temporal extent
+                # first set cache_end_datetime to None, in case
+                # the currently deleted item is the only item of the collection
+                self.cache_end_datetime = None
+
+                logger.warning(
+                    'Looping (twice) over all items of collection %s,'
+                    'to update temporal extent, this may take a while',
+                    self.collection_name
+                )
+                # get latest end_datetime or none, in case none exists
+                if qs.filter(properties_end_datetime__isnull=False):
+                    latest_end_datetime = qs.filter(
+                        properties_end_datetime__isnull=False
+                    ).latest('properties_end_datetime').properties_end_datetime
+                else:
+                    latest_end_datetime = None
+
+                # get latest datetime, or none in case none exists
+                if qs.filter(properties_datetime__isnull=False):
+                    latest_datetime = qs.filter(properties_datetime__isnull=False
+                                               ).latest('properties_datetime').properties_datetime
+                else:
+                    latest_datetime = None
+
+                # set collection's new end_datetime to the maximum of the latest
+                # item's end_datetime or datetime
+                if latest_end_datetime is not None and latest_datetime is not None:
+                    self.cache_end_datetime = max(latest_end_datetime, latest_datetime)
+                elif latest_datetime is not None:
+                    self.cache_end_datetime = latest_datetime
+                else:
+                    self.cache_end_datetime = latest_end_datetime
 
             self.save()
+
+        # INSERT (as item_id is None)
+        if action == "up" and item_id is None:
+            insert_new_item()
+        # UPDATE
+        elif action == "up" and item_id:
+            update_item()
+        # DELETE
+        elif action == 'rm':
+            delete_item()
 
     def update_bbox_extent(self, action, item_geom, item_id, item_name):
         '''
