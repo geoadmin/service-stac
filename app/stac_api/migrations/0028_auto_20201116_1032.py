@@ -8,7 +8,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('stac_api', '0026_data_remove_ro_links'),
+        ('stac_api', '0027_auto_20201116_1044'),
     ]
 
     operations = [
