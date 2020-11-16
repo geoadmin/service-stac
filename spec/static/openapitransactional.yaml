@@ -319,16 +319,16 @@ components:
         the conformance classes it implements and conforms to.
     Feature:
       content:
-        application/geo+json:
+        application/json:
           schema:
             $ref: "#/components/schemas/item"
       description: >-
         Fetch the feature with id `featureId` in the feature collection with id `collectionId`
     Features:
       content:
-        application/geo+json:
+        application/json:
           schema:
-            $ref: "#/components/schemas/itemCollection"
+            $ref: "#/components/schemas/items"
       description: >-
         The response is a document consisting of features in the collection. The features
         included in the response are determined by the server based on the query parameters
@@ -361,10 +361,26 @@ components:
             description: Catalog of Swiss Geodata Downloads
             id: ch
             links:
+            - href: http://data.geo.admin.ch/api/stac/v0.9/
+              rel: self
+              type: application/json
+              title: this document
+            - href: http://data.geo.admin.ch/api/stac/v0.9/api.html
+              rel: service-doc
+              type: text/html
+              title: the API documentation
+            - href: http://data.geo.admin.ch/api/stac/v0.9/conformance
+              rel: conformance
+              type: application/json
+              title: OGC API conformance classes implemented by this server
+            - href: http://data.geo.admin.ch/api/stac/v0.9/collections
+              rel: data
+              type: application/json
+              title: Information about the feature collections
             - href: http://data.geo.admin.ch/api/stac/v0.9/search
               rel: search
-              title: Search across feature collections
               type: application/json
+              title: Search across feature collections
             stac_version: 0.9.0
             title: data.geo.admin.ch
           schema:
@@ -570,11 +586,13 @@ components:
             type: string
           type: array
         description:
-          $ref: "#/components/schemas/description"
+          schema:
+            $ref: "#/components/schemas/description"
           description: A description of the features in the collection
           example: >-
             Swiss Map Raster are a conversion of the map image into a digital form
             with no direct bearing on the individual map elements.
+
 
             The information is structured only in colour layers. Swiss Map Raster
             pixel maps are ideal for finding background information for a broad variety
@@ -587,7 +605,7 @@ components:
           $ref: "#/components/schemas/extent"
         id:
           description: Identifier of the collection used, for example, in URIs
-          example: address
+          example: ch.swisstopo.pixelkarte-farbe-pk200.noscale
           type: string
         itemType:
           default: Feature
@@ -604,6 +622,8 @@ components:
             rel: self
           - href: https://data.geo.admin.ch/api/stac/v0.9/
             rel: root
+          - href: https://data.geo.admin.ch/api/stac/v0.9/collections
+            rel: parent
           - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items
             rel: items
           - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
@@ -615,7 +635,6 @@ components:
           items:
             $ref: "#/components/schemas/link"
           type: array
-          readOnly: true
         providers:
           $ref: "#/components/schemas/providers"
         stac_extensions:
@@ -692,11 +711,17 @@ components:
             $ref: "#/components/schemas/collection"
           type: array
         links:
+          items:
+            $ref: "#/components/schemas/link"
           example:
           - href: https://data.geo.admin.ch/api/stac/v0.9/collections
             rel: self
-          - href: https://data.geo.admin.ch/api/stac/v0.9/collections?startindex=10
+          - href: https://data.geo.admin.ch/api/stac/v0.9/
+            rel: root
+          - href: https://data.geo.admin.ch/api/stac/v0.9/collections?cursor=10ab
             rel: next
+          - href: https://data.geo.admin.ch/api/stac/v0.9/collections?cursor=10cd
+            rel: previous
       required:
       - links
       - collections
@@ -954,9 +979,10 @@ components:
             rel: self
           - href: https://data.geo.admin.ch/api/stac/v0.9/
             rel: root
+          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items
+            rel: parent
           - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
             rel: collection
-          readOnly: true
         properties:
           $ref: "#/components/schemas/itemProperties"
         stac_extensions:
@@ -976,6 +1002,38 @@ components:
       - links
       - properties
       - assets
+      type: object
+    items:
+      description: >-
+        A FeatureCollection augmented with foreign members that contain values relevant
+        to a STAC entity
+      properties:
+        features:
+          items:
+            $ref: "#/components/schemas/item"
+          type: array
+        links:
+          items:
+            $ref: "#/components/schemas/link"
+          type: array
+          example:
+          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items
+            rel: self
+          - href: https://data.geo.admin.ch/api/stac/v0.9/
+            rel: root
+          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+            rel: parent
+          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items?cursor=10ab
+            rel: next
+          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items?cursor=10acd
+            rel: previous
+        type:
+          enum:
+          - FeatureCollection
+          type: string
+      required:
+      - features
+      - type
       type: object
     itemAssets:
       additionalProperties:
@@ -1079,7 +1137,9 @@ components:
         An array of links. Can be used for pagination, e.g. by providing a link with
         the `next` relation type.
       example:
-      - href: https://data.geo.admin.ch/api/stac/v0.9/search?startindex=10
+      - href: https://data.geo.admin.ch/api/stac/v0.9/search
+        rel: self
+      - href: https://data.geo.admin.ch/api/stac/v0.9/search?cursor=10ab
         rel: next
       items:
         $ref: "#/components/schemas/link"
@@ -1237,7 +1297,13 @@ components:
           - POST
           type: string
         rel:
-          example: alternate
+          description: >-
+            Relationship between the current document and the linked document.
+
+
+            NOTE: the following relations are reserved and automatically generated:
+            `self`, `root`, `parent`, `items`, `collection`, `next`, `previous`
+          example: describedby
           type: string
         title:
           example: Trierer Strasse 70, 53115 Bonn
@@ -1760,17 +1826,14 @@ components:
           instruments:
           - cool_sensor_v1
           view:sun_elevation: 33.4
-          eo:gsd: 0.512
         collection: CS3
         links:
-        - rel: self
-          href: "http://cool-sat.com/collections/CS3/items/20160503_132130_04"
-        - rel: root
-          href: "http://cool-sat.com/collections"
-        - rel: parent
-          href: "http://cool-sat.com/collections/CS3"
-        - rel: collection
-          href: "http://cool-sat.com/collections/CS3"
+        - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
+          rel: license
+          title: Licence for the free geodata of the Federal Office of Topography
+            swisstopo
+        - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
+          rel: describedby
     partialItem:
       type: object
       properties:
@@ -1808,15 +1871,16 @@ components:
         id:
           description: Identifier of the collection used, for example, in URIs
           type: string
-          example: address
+          example: ch.swisstopo.pixelkarte-farbe-pk200.noscale
         title:
           description: Human readable title of the collection
           type: string
-          example: address
+          example: National Map 1:200'000
         description:
           description: A description of the features in the collection
           type: string
-          example: An address.
+          example: The National Map 1:200,000 is a topographic map giving an overview
+            of Switzerland.
         links:
           type: array
           items:
@@ -1901,6 +1965,27 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/collection"
+            example:
+              crs:
+              - http://www.opengis.net/def/crs/OGC/1.3/CRS84
+              description: The National Map 1:200,000 is a topographic map giving
+                an overview of Switzerland.
+              id: ch.swisstopo.pixelkarte-farbe-pk200.noscale
+              license: proprietary
+              links:
+              - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
+                rel: license
+                title: Licence for the free geodata of the Federal Office of Topography
+                  swisstopo
+              - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
+                rel: describedby
+              providers:
+              - name: Federal Office of Topography - swisstopo
+                roles:
+                - producer
+                - licensor
+                url: https://www.swisstopo.admin.ch
+              title: National Map 1:200'000
       responses:
         "201":
           $ref: "#/components/responses/Collection"
@@ -1933,6 +2018,27 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/collection"
+            example:
+              crs:
+              - http://www.opengis.net/def/crs/OGC/1.3/CRS84
+              description: The National Map 1:200,000 is a topographic map giving
+                an overview of Switzerland.
+              id: ch.swisstopo.pixelkarte-farbe-pk200.noscale
+              license: proprietary
+              links:
+              - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
+                rel: license
+                title: Licence for the free geodata of the Federal Office of Topography
+                  swisstopo
+              - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
+                rel: describedby
+              providers:
+              - name: Federal Office of Topography - swisstopo
+                roles:
+                - producer
+                - licensor
+                url: https://www.swisstopo.admin.ch
+              title: National Map 1:200'000
       responses:
         "200":
           $ref: "#/components/responses/Collection"

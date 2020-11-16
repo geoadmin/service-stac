@@ -12,6 +12,25 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/collection"
+            example:
+              crs:
+                - http://www.opengis.net/def/crs/OGC/1.3/CRS84
+              description: The National Map 1:200,000 is a topographic map giving an overview of Switzerland.
+              id: ch.swisstopo.pixelkarte-farbe-pk200.noscale
+              license: proprietary
+              links:
+                - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
+                  rel: license
+                  title: Licence for the free geodata of the Federal Office of Topography swisstopo
+                - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
+                  rel: describedby
+              providers:
+                - name: Federal Office of Topography - swisstopo
+                  roles:
+                    - producer
+                    - licensor
+                  url: https://www.swisstopo.admin.ch
+              title: National Map 1:200'000
       responses:
         "201":
           $ref: "#/components/responses/Collection"
@@ -29,6 +48,25 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/collection"
+            example:
+              crs:
+                - http://www.opengis.net/def/crs/OGC/1.3/CRS84
+              description: The National Map 1:200,000 is a topographic map giving an overview of Switzerland.
+              id: ch.swisstopo.pixelkarte-farbe-pk200.noscale
+              license: proprietary
+              links:
+                - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
+                  rel: license
+                  title: Licence for the free geodata of the Federal Office of Topography swisstopo
+                - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
+                  rel: describedby
+              providers:
+                - name: Federal Office of Topography - swisstopo
+                  roles:
+                    - producer
+                    - licensor
+                  url: https://www.swisstopo.admin.ch
+              title: National Map 1:200'000
       responses:
         "200":
           $ref: "#/components/responses/Collection"
@@ -693,14 +731,11 @@ components:
           "view:sun_elevation": 33.4
         collection: CS3
         links:
-          - rel: self
-            href: "http://cool-sat.com/collections/CS3/items/20160503_132130_04"
-          - rel: root
-            href: "http://cool-sat.com/collections"
-          - rel: parent
-            href: "http://cool-sat.com/collections/CS3"
-          - rel: collection
-            href: "http://cool-sat.com/collections/CS3"
+          - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
+            rel: license
+            title: Licence for the free geodata of the Federal Office of Topography swisstopo
+          - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
+            rel: describedby
         # assets:
         #   analytic:
         #     href: 'http://cool-sat.com/static-catalog/CS3/20160503_132130_04/analytic.tif'
@@ -749,15 +784,15 @@ components:
         id:
           description: Identifier of the collection used, for example, in URIs
           type: string
-          example: address
+          example: ch.swisstopo.pixelkarte-farbe-pk200.noscale
         title:
           description: Human readable title of the collection
           type: string
-          example: address
+          example: National Map 1:200'000
         description:
           description: A description of the features in the collection
           type: string
-          example: An address.
+          example: The National Map 1:200,000 is a topographic map giving an overview of Switzerland.
         links:
           type: array
           items:
@@ -802,6 +837,19 @@ components:
       type: string
       description: Media type of the asset
       example: image/png
+    # Overwrite the collection links examples
+    # collection:
+    #   properties:
+    #     links:
+    #       example:
+    #         - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
+    #           rel: license
+    #           title: Licence for the free geodata of the Federal Office of Topography swisstopo
+    #         - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
+    #           rel: describedby
+    #       items:
+    #         $ref: "#/components/schemas/link"
+    #       type: array
   responses:
     Assets:
       description: >-
