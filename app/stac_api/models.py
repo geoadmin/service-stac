@@ -67,9 +67,15 @@ def float_in(flt, floats, **kwargs):
     return np.any(np.isclose(flt, floats, **kwargs))
 
 
+def validate_link_rel(value):
+    invalid_rel = ['self', 'root', 'parent', 'items', 'collection']
+    if value in invalid_rel:
+        raise ValidationError(_(f'Invalid rel attribute, must not be in {invalid_rel}'))
+
+
 class Link(models.Model):
     href = models.URLField()
-    rel = models.CharField(max_length=30)
+    rel = models.CharField(max_length=30, validators=[validate_link_rel])
     # added link_ to the fieldname, as "type" is reserved
     link_type = models.CharField(blank=True, null=True, max_length=150)
     title = models.CharField(blank=True, null=True, max_length=255)

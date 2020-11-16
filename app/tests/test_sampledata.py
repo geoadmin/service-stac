@@ -1,14 +1,17 @@
 import json
 import logging
 import os
+import glob
 from pathlib import Path
 from pprint import pformat
 
 from django.conf import settings
 from django.test import Client
-from django.test import TestCase
 
 from stac_api.sample_data import importer
+
+from tests.utils import get_http_error_description
+from tests.base_test import StacBaseTestCase
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +19,7 @@ API_BASE = settings.API_BASE
 DATADIR = settings.BASE_DIR / 'app/stac_api/sample_data/'
 
 
-class SampleDataTestCase(TestCase):
+class SampleDataTestCase(StacBaseTestCase):
 
     def setUp(self):
         self.client = Client()
@@ -26,7 +29,9 @@ class SampleDataTestCase(TestCase):
     def test_samples(self):
         for collection_dir in os.scandir(DATADIR):
             if collection_dir.is_dir() and not collection_dir.name.startswith('_'):
-                with self.subTest(msg=collection_dir.name, collection_dir=collection_dir):
+                with self.subTest(
+                    msg=f'test sample {collection_dir.name}', collection_dir=collection_dir
+                ):
                     self._test_collection(Path(collection_dir.path))
 
     def _test_collection(self, collection_dir):
@@ -37,45 +42,33 @@ class SampleDataTestCase(TestCase):
 
         response = self.client.get(f"/{API_BASE}collections/{collection.collection_name}")
         payload = response.json()
-        logger.debug('Payload:\n%s', pformat(payload))
-        self.assertEqual(200, response.status_code)
+        logger.debug('Collection %s payload:\n%s', collection.collection_name, pformat(payload))
+        self.assertEqual(200, response.status_code, msg=get_http_error_description(payload))
 
-        self._test_dict('', collection_dict, payload)
+        # we ignore the created and updated attribute because they cannot match the one from the
+        # samples as they are automatically generated with the time of creation/update
+        self.check_stac_collection(collection_dict, payload, ignore=['created', 'updated'])
 
-    def _test_dict(self, parent_path, dct, payload):
-        for key, value in dct.items():
-            path = f'{parent_path}[{key}]'
-            self.assertIn(key, payload, msg=f'{parent_path}: Key {key} is not in payload')
-            self.assertEqual(
-                type(value),
-                type(payload[key]),
-                msg=f'{parent_path}: key {key} type does not match'
-            )
-            if key in ['stac_extensions', 'spatial', 'temporal', 'created', 'updated']:
-                # remove this if when all parts are fully implemented.
-                # See BGDIINF_SB-1410, BGDIINF_SB-1427 and BGDIINF_SB-1429
-                logger.warning('%s: Ignore key %s check', parent_path, key)
-                continue
-            if isinstance(value, dict):
-                self._test_dict(path, value, payload[key])
-            elif isinstance(value, list):
-                if key in ['geoadmin:variant']:
-                    self._test_list(path, sorted(value), sorted(payload[key]))
-                else:
-                    self._test_list(path, value, payload[key])
-            else:
-                self.assertEqual(
-                    value, payload[key], msg=f'{parent_path}: Key {key} is not equal in payload'
-                )
+        for item_file in glob.iglob(str(collection_dir / 'items' / '*.json')):
+            with self.subTest(
+                msg=f'test sample {collection_dir.name}/{os.path.basename(item_file)}',
+                item_file=item_file,
+                collection_name=collection.collection_name
+            ):
+                self._test_item(collection.collection_name, item_file)
 
-    def _test_list(self, parent_path, lst, payload):
-        for i, value in enumerate(lst):
-            path = f'{parent_path}[{i}]'
-            if isinstance(value, dict):
-                self._test_dict(path, value, payload[i])
-            elif isinstance(value, list):
-                self._test_list(path, value, payload[i])
-            else:
-                self.assertEqual(
-                    value, payload[i], msg=f'{parent_path}: List index {i} is not equal in payload'
-                )
+    def _test_item(self, collection_name, item_file):
+        with open(item_file) as fd:
+            item_dict = json.load(fd)
+
+        response = self.client.get(
+            f"/{API_BASE}collections/{collection_name}/items/{item_dict['id']}"
+        )
+        payload = response.json()
+        logger.debug('Item %s.%s payload:\n%s', collection_name, item_dict['id'], pformat(payload))
+        self.assertEqual(200, response.status_code, msg=get_http_error_description(payload))
+
+        # we ignore the created and updated attribute because they cannot match the one from the
+        # samples as they are automatically generated with the time of creation/update
+        # remove "eo:bands" from ignore once BGDIINF_SB-1435 is implemented
+        self.check_stac_item(item_dict, payload, ignore=['created', 'updated', 'eo:bands'])

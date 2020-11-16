@@ -190,7 +190,9 @@ signature-mutators=
 expected-line-ending-format=LF
 
 # Regexp for a line that is allowed to be longer than the limit.
-ignore-long-lines=^\s*(#\s*)?[<"']?https?://\S+[>"']?,?$
+# This regex match URL and allow them to be longer than the line limit. The regex only match lines
+# with only one URL (plus some characters that are required by python syntax, like '#', or quotes and trailing comma)
+ignore-long-lines=^\s*(#\s*)?f?[<"']?https?://\S+[>"']?,?$
 
 # Number of spaces of indent required inside a hanging or continued line.
 indent-after-paren=4
