@@ -112,6 +112,46 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/metaItem"
+            example:
+              type: Feature
+              id: CS3-20160503_132131_05
+              geometry:
+                type: Polygon
+                coordinates:
+                  - - - -122.308150179
+                      - 37.488035566
+                    - - -122.597502109
+                      - 37.538869539
+                    - - -122.576687533
+                      - 37.613537207
+                    - - -122.2880486
+                      - 37.562818007
+                    - - -122.308150179
+                      - 37.488035566
+              properties:
+                datetime: "2016-05-03T13:22:30.040Z"
+                title: A CS3 item
+                license: PDDL-1.0
+                providers:
+                  - name: CoolSat
+                    roles:
+                      - producer
+                      - licensor
+                    url: https://cool-sat.com/
+                view:sun_azimuth: 168.7
+                eo:cloud_cover: 0.12
+                view:off_nadir: 1.4
+                platform: coolsat2
+                instruments:
+                  - cool_sensor_v1
+                view:sun_elevation: 33.4
+              collection: CS3
+              links:
+                - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
+                  rel: license
+                  title: Licence for the free geodata of the Federal Office of Topography swisstopo
+                - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
+                  rel: describedby
       responses:
         "201":
           description: Status of the create request.
@@ -171,6 +211,46 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/metaItem"
+            example:
+              type: Feature
+              id: CS3-20160503_132131_05
+              geometry:
+                type: Polygon
+                coordinates:
+                  - - - -122.308150179
+                      - 37.488035566
+                    - - -122.597502109
+                      - 37.538869539
+                    - - -122.576687533
+                      - 37.613537207
+                    - - -122.2880486
+                      - 37.562818007
+                    - - -122.308150179
+                      - 37.488035566
+              properties:
+                datetime: "2016-05-03T13:22:30.040Z"
+                title: A CS3 item
+                license: PDDL-1.0
+                providers:
+                  - name: CoolSat
+                    roles:
+                      - producer
+                      - licensor
+                    url: https://cool-sat.com/
+                view:sun_azimuth: 168.7
+                eo:cloud_cover: 0.12
+                view:off_nadir: 1.4
+                platform: coolsat2
+                instruments:
+                  - cool_sensor_v1
+                view:sun_elevation: 33.4
+              collection: CS3
+              links:
+                - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
+                  rel: license
+                  title: Licence for the free geodata of the Federal Office of Topography swisstopo
+                - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
+                  rel: describedby
       responses:
         "200":
           description: Status of the update request.
