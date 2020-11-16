@@ -706,6 +706,7 @@ components:
       example: 2.5
       title: Ground Sample Distance
       type: number
+      readOnly: true
     exception:
       description: >-
         Information about the exception: an error code plus an optional description.
