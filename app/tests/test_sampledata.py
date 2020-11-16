@@ -1,7 +1,7 @@
+import glob
 import json
 import logging
 import os
-import glob
 from pathlib import Path
 from pprint import pformat
 
@@ -10,8 +10,8 @@ from django.test import Client
 
 from stac_api.sample_data import importer
 
-from tests.utils import get_http_error_description
 from tests.base_test import StacBaseTestCase
+from tests.utils import get_http_error_description
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ DATADIR = settings.BASE_DIR / 'app/stac_api/sample_data/'
 
 class SampleDataTestCase(StacBaseTestCase):
 
-    def setUp(self):
+    def setUp(self):  # pylint: disable=invalid-name
         self.client = Client()
 
         self.maxDiff = None  # pylint: disable=invalid-name

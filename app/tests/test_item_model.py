@@ -1,12 +1,13 @@
 import logging
-from datetime import datetime
 import random
+from datetime import datetime
 
+from django.contrib.gis.geos import GEOSGeometry
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 
-from stac_api.models import Item
 from stac_api.models import Asset
+from stac_api.models import Item
 from stac_api.utils import utc_aware
 
 import tests.database as db
@@ -127,3 +128,52 @@ class ItemsModelTestCase(TestCase):
         self.assertEqual(
             item.properties_eo_gsd, min(eo_gsd), msg='eo:gsd is not the min value from asset'
         )
+
+    def test_item_create_model_valid_geometry(self):
+        # a correct geometry should not pose any problems
+        item = Item(
+            collection=self.collection,
+            properties_datetime=utc_aware(datetime.utcnow()),
+            item_name='item-1',
+            geometry=GEOSGeometry(
+                'SRID=4326;POLYGON '
+                '((5.96 45.82, 5.96 47.81, 10.49 47.81, 10.49 45.82, 5.96 45.82))'
+            )
+        )
+        item.full_clean()
+
+    def test_item_create_model_invalid_geometry(self):
+        # a geometry with self-intersection should not be allowed
+        with self.assertRaises(ValidationError):
+            item = Item(
+                collection=self.collection,
+                properties_datetime=utc_aware(datetime.utcnow()),
+                item_name='item-1',
+                geometry=GEOSGeometry(
+                    'SRID=4326;POLYGON '
+                    '((5.96 45.82, 5.96 47.81, 10.49 45.82, 10.49 47.81, 5.96 45.82))'
+                )
+            )
+            item.full_clean()
+
+    def test_item_create_model_empty_geometry(self):
+        # empty geometry should not be allowed
+        with self.assertRaises(ValidationError):
+            item = Item(
+                collection=self.collection,
+                properties_datetime=utc_aware(datetime.utcnow()),
+                item_name='item-empty',
+                geometry=GEOSGeometry('POLYGON EMPTY')
+            )
+            item.full_clean()
+
+    def test_item_create_model_none_geometry(self):
+        # None geometry should not be allowed
+        with self.assertRaises(ValidationError):
+            item = Item(
+                collection=self.collection,
+                properties_datetime=utc_aware(datetime.utcnow()),
+                item_name='item-empty',
+                geometry=None
+            )
+            item.full_clean()

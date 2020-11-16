@@ -73,6 +73,24 @@ def validate_link_rel(value):
         raise ValidationError(_(f'Invalid rel attribute, must not be in {invalid_rel}'))
 
 
+def validate_geometry(geometry):
+    '''
+    A validator function that ensures, that only valid
+    geometries are stored.
+    param: geometry
+    '''
+    geos_geometry = GEOSGeometry(geometry)
+    if geos_geometry.empty:
+        message = "The geometry is empty: %s" % geos_geometry.wkt
+        logger.error(message)
+        raise ValidationError(_(message))
+    if not geos_geometry.valid:
+        message = "The geometry is not valid: %s" % geos_geometry.valid_reason
+        logger.error(message)
+        raise ValidationError(_(message))
+    return geometry
+
+
 class Link(models.Model):
     href = models.URLField()
     rel = models.CharField(max_length=30, validators=[validate_link_rel])
@@ -119,7 +137,12 @@ class Collection(models.Model):
     updated = models.DateTimeField(auto_now=True)  # datetime
     description = models.TextField()  # string  / intentionally TextField and
     extent_geometry = models.PolygonField(
-        default=None, srid=4326, editable=False, blank=True, null=True
+        default=None,
+        srid=4326,
+        editable=False,
+        blank=True,
+        null=True,
+        validators=[validate_geometry]
     )
     # not CharField to provide more space for the text.
     # TODO: ""description" is required in radiantearth spec, not required in our spec
@@ -280,7 +303,7 @@ class Collection(models.Model):
                     self.pk
                 )
                 qs = Item.objects.filter(collection_id=self.pk).exclude(id=item_id)
-                union_geometry = GEOSGeometry('Multipolygon EMPTY')
+                union_geometry = GEOSGeometry('Polygon EMPTY')
                 if bool(qs):
                     for item in qs:
                         union_geometry = union_geometry.union(item.geometry)
@@ -326,7 +349,9 @@ class CollectionLink(Link):
 
 class Item(models.Model):
     collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
-    geometry = models.PolygonField(default=BBOX_CH, srid=4326)
+    geometry = models.PolygonField(
+        null=False, blank=False, default=BBOX_CH, srid=4326, validators=[validate_geometry]
+    )
     item_name = models.CharField(unique=True, blank=False, max_length=255)
 
     created = models.DateTimeField(auto_now_add=True)
@@ -382,13 +407,16 @@ class Item(models.Model):
             self.collection.update_temporal_extent(
                 self.properties_start_datetime, self.properties_end_datetime
             )
-        # adding a new item means update the bbox of the collection
+
+        # adding a new item means updating the bbox of the collection
         if self.pk is None:
             self.collection.update_bbox_extent('insert', self.geometry, self.pk, self.item_name)
         # update the bbox of the collection only when the geometry of the item has changed
         elif self.geometry != self._original_geometry:
             self.collection.update_bbox_extent('update', self.geometry, self.pk, self.item_name)
+
         super().save(*args, **kwargs)
+
         self._original_geometry = self.geometry
 
     def delete(self, *args, **kwargs):  # pylint: disable=signature-differs
