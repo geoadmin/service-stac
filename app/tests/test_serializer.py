@@ -27,7 +27,7 @@ API_BASE = settings.API_BASE
 
 class SerializationTestCase(StacBaseTestCase):
 
-    def setUp(self):
+    def setUp(self):  # pylint: disable=invalid-name
         '''
         Prepare instances of keyword, link, provider and instance for testing.
         Adding the relationships among those by populating the ManyToMany fields
@@ -66,7 +66,7 @@ class SerializationTestCase(StacBaseTestCase):
             'extent':
                 OrderedDict([
                     ('spatial', {
-                        'bbox': [[5.602408, 46.775054, 5.644711, 48.014995]]
+                        'bbox': [[5.644711, 46.775054, 7.602408, 49.014995]]
                     }),
                     ('temporal', {
                         'interval': [['2020-10-28T13:05:10Z', '2020-10-28T13:05:10Z']]
@@ -177,7 +177,7 @@ class SerializationTestCase(StacBaseTestCase):
                         ('checksum:multihash', '01205c3fd6978a7d0b051efaa4263a09'),
                     ])
             },
-            'bbox': (5.602408, 46.775054, 5.644711, 48.014995),
+            'bbox': (5.644711, 46.775054, 7.602408, 49.014995),
             'collection': collection_name,
             'geometry':
                 OrderedDict([
@@ -186,10 +186,10 @@ class SerializationTestCase(StacBaseTestCase):
                         'coordinates',
                         [[
                             [5.644711, 46.775054],
-                            [5.602408, 48.014995],
-                            [5.602408, 48.014995],
-                            [5.602408, 48.014995],
-                            [5.644711, 46.775054],
+                            [5.644711, 48.014995],
+                            [6.602408, 48.014995],
+                            [7.602408, 49.014995],
+                            [5.644711, 46.775054]
                         ]],
                     ),
                 ]),

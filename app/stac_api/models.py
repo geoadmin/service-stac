@@ -67,25 +67,28 @@ def float_in(flt, floats, **kwargs):
     return np.any(np.isclose(flt, floats, **kwargs))
 
 
-
 def validate_link_rel(value):
     invalid_rel = ['self', 'root', 'parent', 'items', 'collection']
     if value in invalid_rel:
         raise ValidationError(_(f'Invalid rel attribute, must not be in {invalid_rel}'))
 
-def validate_valid_geometry(geometry):
+
+def validate_geometry(geometry):
     '''
     A validator function that ensures, that only valid
     geometries are stored.
     param: geometry
     '''
     geos_geometry = GEOSGeometry(geometry)
+    if geos_geometry.empty:
+        message = "The geometry is empty: %s" % geos_geometry.wkt
+        logger.error(message)
+        raise ValidationError(_(message))
     if not geos_geometry.valid:
         message = "The geometry is not valid: %s" % geos_geometry.valid_reason
         logger.error(message)
         raise ValidationError(_(message))
     return geometry
-
 
 
 class Link(models.Model):
@@ -134,8 +137,12 @@ class Collection(models.Model):
     updated = models.DateTimeField(auto_now=True)  # datetime
     description = models.TextField()  # string  / intentionally TextField and
     extent_geometry = models.PolygonField(
-        default=None, srid=4326, editable=False, blank=True, null=True,
-        validators=[validate_valid_geometry]
+        default=None,
+        srid=4326,
+        editable=False,
+        blank=True,
+        null=True,
+        validators=[validate_geometry]
     )
     # not CharField to provide more space for the text.
     # TODO: ""description" is required in radiantearth spec, not required in our spec
@@ -296,7 +303,7 @@ class Collection(models.Model):
                     self.pk
                 )
                 qs = Item.objects.filter(collection_id=self.pk).exclude(id=item_id)
-                union_geometry = GEOSGeometry('Multipolygon EMPTY')
+                union_geometry = GEOSGeometry('Polygon EMPTY')
                 if bool(qs):
                     for item in qs:
                         union_geometry = union_geometry.union(item.geometry)
@@ -342,7 +349,9 @@ class CollectionLink(Link):
 
 class Item(models.Model):
     collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
-    geometry = models.PolygonField(default=BBOX_CH, srid=4326, validators=[validate_valid_geometry])
+    geometry = models.PolygonField(
+        null=False, blank=False, default=BBOX_CH, srid=4326, validators=[validate_geometry]
+    )
     item_name = models.CharField(unique=True, blank=False, max_length=255)
 
     created = models.DateTimeField(auto_now_add=True)
