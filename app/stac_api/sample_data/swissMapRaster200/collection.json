@@ -26,18 +26,18 @@
     "spatial": {
       "bbox": [
         [
-          5.685114,
-          45.534903,
-          10.747775,
-          47.982586
+          5.602407647225925,
+          45.50393724771029,
+          10.747774424579303,
+          48.02711914887954
         ]
       ]
     },
     "temporal": {
       "interval": [
         [
-          "2019-01-01T00:00:00Z",
-          null
+          "2016-12-31T00:00:00Z",
+          "2016-12-31T00:00:00Z"
         ]
       ]
     }
@@ -53,6 +53,8 @@
     }
   ],
   "license": "proprietary",
+  "created": "2020-10-22T12:30:00Z",
+  "updated": "2020-10-22T12:30:00Z",
   "links": [
     {
       "href": "https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk200.noscale",

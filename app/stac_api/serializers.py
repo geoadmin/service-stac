@@ -251,14 +251,14 @@ class ItemsPropertiesSerializer(serializers.Serializer):
     end_datetime = serializers.DateTimeField(
         source='properties_end_datetime', allow_null=True, required=False
     )
-    eo_gsd = serializers.ListField(required=True, source='properties_eo_gsd')
+    eo_gsd = serializers.FloatField(source='properties_eo_gsd', allow_null=True, read_only=True)
     title = serializers.CharField(required=True, source='properties_title', max_length=255)
 
     def get_fields(self):
         fields = super().get_fields()
         # This is a hack to allow fields with special characters
         fields['eo:gsd'] = fields.pop('eo_gsd')
-        logger.debug('Updated fields name: %s', fields)
+        # logger.debug('Updated fields name: %s', fields)
         return fields
 
 
