@@ -20,7 +20,7 @@ from django.urls import path
 
 urlpatterns = [
     path('', include('stac_api.urls')),
-    path('admin/', admin.site.urls),
+    path('api/stac/admin/', admin.site.urls),
 ]
 
 if settings.DEBUG:
