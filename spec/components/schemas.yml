@@ -144,24 +144,25 @@ components:
             type: string
           type: array
         description:
-          $ref: "#/components/schemas/description"
+          schema:
+            $ref: "#/components/schemas/description"
           description: A description of the features in the collection
           example: >-
             Swiss Map Raster are a conversion of the map image into a digital form
             with no direct bearing on the individual map elements.
+
 
             The information is structured only in colour layers. Swiss Map Raster pixel
             maps are ideal for finding background information for a broad variety of
             screen applications, web and mobile applications and services, as well as
             for geographic information systems. They can also be used as basic maps
             for a variety of purposes (digital printing, plots, offset printing, etc.).
-
           type: string
         extent:
           $ref: "#/components/schemas/extent"
         id:
           description: Identifier of the collection used, for example, in URIs
-          example: address
+          example: ch.swisstopo.pixelkarte-farbe-pk200.noscale
           type: string
         itemType:
           default: Feature
@@ -177,6 +178,8 @@ components:
               rel: self
             - href: https://data.geo.admin.ch/api/stac/v0.9/
               rel: root
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections
+              rel: parent
             - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items
               rel: items
             - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
@@ -187,7 +190,6 @@ components:
           items:
             $ref: "#/components/schemas/link"
           type: array
-          readOnly: true
         providers:
           $ref: "#/components/schemas/providers"
         stac_extensions:
@@ -266,11 +268,17 @@ components:
             $ref: "#/components/schemas/collection"
           type: array
         links:
+          items:
+            $ref: "#/components/schemas/link"
           example:
             - href: https://data.geo.admin.ch/api/stac/v0.9/collections
               rel: self
-            - href: https://data.geo.admin.ch/api/stac/v0.9/collections?startindex=10
+            - href: https://data.geo.admin.ch/api/stac/v0.9/
+              rel: root
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections?cursor=10ab
               rel: next
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections?cursor=10cd
+              rel: previous
       required:
         - links
         - collections
@@ -534,9 +542,10 @@ components:
               rel: self
             - href: https://data.geo.admin.ch/api/stac/v0.9/
               rel: root
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items
+              rel: parent
             - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
               rel: collection
-          readOnly: true
         properties:
           $ref: "#/components/schemas/itemProperties"
         stac_extensions:
@@ -556,6 +565,38 @@ components:
         - links
         - properties
         - assets
+      type: object
+    items:
+      description: >-
+        A FeatureCollection augmented with foreign members that contain values relevant
+        to a STAC entity
+      properties:
+        features:
+          items:
+            $ref: "#/components/schemas/item"
+          type: array
+        links:
+          items:
+            $ref: "#/components/schemas/link"
+          type: array
+          example:
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items
+              rel: self
+            - href: https://data.geo.admin.ch/api/stac/v0.9/
+              rel: root
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+              rel: parent
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items?cursor=10ab
+              rel: next
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items?cursor=10acd
+              rel: previous
+        type:
+          enum:
+            - FeatureCollection
+          type: string
+      required:
+        - features
+        - type
       type: object
     itemAssets:
       additionalProperties:
@@ -658,7 +699,9 @@ components:
         An array of links. Can be used for pagination, e.g. by providing a link with the `next`
         relation type.
       example:
-        - href: https://data.geo.admin.ch/api/stac/v0.9/search?startindex=10
+        - href: https://data.geo.admin.ch/api/stac/v0.9/search
+          rel: self
+        - href: https://data.geo.admin.ch/api/stac/v0.9/search?cursor=10ab
           rel: next
       items:
         $ref: "#/components/schemas/link"
@@ -817,7 +860,13 @@ components:
             - POST
           type: string
         rel:
-          example: alternate
+          description: >-
+            Relationship between the current document and the linked document.
+
+
+            NOTE: the following relations are reserved and automatically generated:
+            `self`, `root`, `parent`, `items`, `collection`, `next`, `previous`
+          example: describedby
           type: string
         title:
           example: Trierer Strasse 70, 53115 Bonn
