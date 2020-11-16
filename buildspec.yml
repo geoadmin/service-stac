@@ -19,7 +19,7 @@ phases:
     commands:
       - echo "Installing necessary dependencies"
       - docker login -u ${CI_DOCKERHUB_USER} -p ${CI_DOCKERHUB_PASSWORD}
-      - apt-get update && apt-get install -y docker-compose python3-pip python3-venv
+      - apt-get update && apt-get install -y docker-compose python3-pip python3-venv gdal-bin
   pre_build:
     commands:
       - echo "export of the image tag for build and push purposes"
