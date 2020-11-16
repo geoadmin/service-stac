@@ -115,10 +115,13 @@ format:
 
 
 # make sure that the code conforms to the style guide
+# The DJANGO_SETTINGS module must be made available to pylint
+# to support e.g. string model referencec (see
+# https://github.com/PyCQA/pylint-django#usage)
 .PHONY: lint
 lint:
 	@echo "Run pylint..."
-	$(PYLINT) $(PYTHON_FILES)
+	DJANGO_SETTINGS_MODULE=config.settings $(PYLINT) $(PYTHON_FILES)
 
 
 # Running tests locally

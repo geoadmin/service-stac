@@ -87,37 +87,9 @@ class DictSerializer(serializers.ListSerializer):
 
 class ProviderSerializer(NonNullModelSerializer):
 
-    name = serializers.CharField(allow_blank=False, max_length=200)  # string
-    description = serializers.CharField()  # string
-    roles = serializers.ListField(child=serializers.CharField(max_length=9))  # [string]
-    url = serializers.URLField()  # string
-
     class Meta:
         model = Provider
         fields = ['name', 'roles', 'url', 'description']
-        # most likely not all fields necessary here, can be adapted
-
-    def create(self, validated_data):
-        """
-        Create and return a new `Provider` instance, given the validated data.
-        """
-        logger.debug('Create Provider', extra={'validated_data': validated_data})
-        return Collection.objects.create(**validated_data)
-
-    def update(self, instance, validated_data):
-        """
-        Update and return an existing `Provider` instance, given the validated data.
-        """
-
-        instance.name = validated_data.get('name', instance.name)
-        instance.description = validated_data.get('description', instance.description)
-        instance.roles = validated_data.get('roles', instance.roles)
-        instance.url = validated_data.get('url', instance.url)
-
-        logger.debug('Update Provider %s', instance.name, extra={'validated_data': validated_data})
-
-        instance.save()
-        return instance
 
 
 class ExtentTemporalSerializer(serializers.Serializer):
@@ -217,17 +189,50 @@ class CollectionSerializer(NonNullModelSerializer):
     def get_stac_version(self, obj):
         return "0.9.0"
 
+    def _update_or_create_providers(self, collection, providers_data):
+        provider_ids = []
+        for provider_data in providers_data:
+            provider = Provider.objects.get_or_create(
+                collection=collection,
+                name=providers_data["name"],
+                defaults={
+                    'description': provider_data['description'],
+                    'roles': provider_data['roles'],
+                    'url': provider_data['url']
+                }
+            )
+            provider_ids.append(provider.id)
+            # the duplicate here is necessary to update the values in
+            # case the object already exists
+            provider.description = provider_data.get('description', provider.description)
+            provider.roles = provider_data.get('roles', provider.roles)
+            provider.url = provider_data.get('url', provider.url)
+
+        # Delete providers that were not mentioned in the payload anymore
+        deleted = Provider.objects.filter(collection=collection).exclude(id__in=provider_ids
+                                                                        ).delete()
+        logger.info(
+            "deleted %d stale providers for collection %s",
+            deleted[0],
+            collection.collection_name,
+            extra={"collection": collection.collection_name}
+        )
+
     def create(self, validated_data):
         """
         Create and return a new `Collection` instance, given the validated data.
         """
-        return Collection.objects.create(**validated_data)
+        providers_data = validated_data.pop('providers', [])
+        collection = Collection.objects.create(**validated_data)
+        self._update_or_create_providers(collection=collection, providers_data=providers_data)
+        return collection
 
     def update(self, instance, validated_data):
         """
         Update and return an existing `Collection` instance, given the validated data.
         """
-
+        providers_data = validated_data.pop('providers', [])
+        self._update_or_create_providers(collection=instance, providers_data=providers_data)
         instance.save()
         return instance
 
