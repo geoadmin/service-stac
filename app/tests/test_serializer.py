@@ -19,7 +19,7 @@ from stac_api.utils import isoformat
 from stac_api.utils import utc_aware
 
 import tests.database as db
-from tests import StacBaseTestCase
+from tests.base_test import StacBaseTestCase
 
 logger = logging.getLogger(__name__)
 API_BASE = settings.API_BASE

@@ -10,8 +10,8 @@ from django.test import Client
 
 from stac_api.sample_data import importer
 
-from tests import get_http_error_description
-from tests import StacBaseTestCase
+from tests.utils import get_http_error_description
+from tests.base_test import StacBaseTestCase
 
 logger = logging.getLogger(__name__)
 

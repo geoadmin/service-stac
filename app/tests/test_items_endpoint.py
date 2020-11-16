@@ -17,8 +17,8 @@ from stac_api.utils import isoformat
 from stac_api.utils import utc_aware
 
 import tests.database as db
-from tests import get_http_error_description
-from tests import mock_request_from_response
+from tests.utils import get_http_error_description
+from tests.utils import mock_request_from_response
 
 logger = logging.getLogger(__name__)
 

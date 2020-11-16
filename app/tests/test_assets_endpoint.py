@@ -10,7 +10,7 @@ from django.test import TestCase
 from stac_api.serializers import AssetSerializer
 
 import tests.database as db
-from tests import get_http_error_description
+from tests.utils import get_http_error_description
 
 logger = logging.getLogger(__name__)
 

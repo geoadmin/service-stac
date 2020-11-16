@@ -10,8 +10,8 @@ from rest_framework.test import APIRequestFactory
 from stac_api.serializers import CollectionSerializer
 
 import tests.database as db
-from tests import get_http_error_description
-from tests import mock_request_from_response
+from tests.utils import get_http_error_description
+from tests.utils import mock_request_from_response
 
 logger = logging.getLogger(__name__)
 
