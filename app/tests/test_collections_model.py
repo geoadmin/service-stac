@@ -17,9 +17,13 @@ API_BASE = settings.API_BASE
 class CollectionsModelTestCase(TestCase):
 
     y100 = utc_aware(datetime.strptime('0100-01-01T00:00:00Z', '%Y-%m-%dT%H:%M:%SZ'))
-    y9000 = utc_aware(datetime.strptime('9000-01-01T00:00:00Z', '%Y-%m-%dT%H:%M:%SZ'))
+    y150 = utc_aware(datetime.strptime('0150-01-01T00:00:00Z', '%Y-%m-%dT%H:%M:%SZ'))
     y200 = utc_aware(datetime.strptime('0200-01-01T00:00:00Z', '%Y-%m-%dT%H:%M:%SZ'))
+    y250 = utc_aware(datetime.strptime('0250-01-01T00:00:00Z', '%Y-%m-%dT%H:%M:%SZ'))
     y8000 = utc_aware(datetime.strptime('8000-01-01T00:00:00Z', '%Y-%m-%dT%H:%M:%SZ'))
+    y8500 = utc_aware(datetime.strptime('8500-01-01T00:00:00Z', '%Y-%m-%dT%H:%M:%SZ'))
+    y9000 = utc_aware(datetime.strptime('9000-01-01T00:00:00Z', '%Y-%m-%dT%H:%M:%SZ'))
+    y9500 = utc_aware(datetime.strptime('9500-01-01T00:00:00Z', '%Y-%m-%dT%H:%M:%SZ'))
 
     def setUp(self):
         self.collection = db.create_collection('collection-1')
@@ -38,7 +42,7 @@ class CollectionsModelTestCase(TestCase):
         self.collection.save()
         return item
 
-    def add_single_datetime_items(self, datetime_val, name):
+    def add_single_datetime_item(self, datetime_val, name):
         item = Item.objects.create(
             collection=self.collection,
             item_name=name,
@@ -99,7 +103,7 @@ class CollectionsModelTestCase(TestCase):
         Tests, if the collection's temporal extent is updated correctly, when
         the bounds of the only item are updated separately.
         '''
-        y100_y9000 = self.add_range_item(self.y100, self.y9000, 'y200_y8000')
+        y100_y9000 = self.add_range_item(self.y100, self.y9000, 'y100_y9000')
 
         self.assertEqual(
             self.collection.cache_start_datetime,
@@ -132,6 +136,110 @@ class CollectionsModelTestCase(TestCase):
         self.assertEqual(
             self.collection.cache_end_datetime,
             y100_y9000.properties_end_datetime,
+            "Updating temporal extent (cache_end_datetime) of collection "
+            "after only item's end_datetime was updated failed."
+        )
+
+    def test_update_temporal_extent_update_range_bounds_defining_item(self):
+        '''
+        Tests, if the collection's temporal extent is updated correctly, when
+        the bounds of the item, that defines the collection's bounds are are
+        updated (first separately, then back again and then both at same time).
+        '''
+        y200_y8500 = self.add_range_item(self.y200, self.y8500, 'y200_8500')
+        y100_y9500 = self.add_range_item(self.y100, self.y9500, 'y100_y9500')
+
+        self.assertEqual(
+            self.collection.cache_start_datetime,
+            y100_y9500.properties_start_datetime,
+            "Updating temporal extent (cache_start_datetime) of collection "
+            "based on range of collection's oldest item failed."
+        )
+        self.assertEqual(
+            self.collection.cache_end_datetime,
+            y100_y9500.properties_end_datetime,
+            "Updating temporal extent (cache_end_datetime) of collection "
+            "based on range of collection's latest item failed."
+        )
+
+        y100_y9500.properties_start_datetime = self.y150
+        y100_y9500.save()
+        self.collection.refresh_from_db()
+
+        self.assertEqual(
+            self.collection.cache_start_datetime,
+            y100_y9500.properties_start_datetime,
+            "Updating temporal extent (cache_start_datetime) of collection "
+            "after item that defined the start_datetime was updated failed."
+        )
+
+        y100_y9500.properties_end_datetime = self.y9000
+        y100_y9500.save()
+        self.collection.refresh_from_db()
+
+        self.assertEqual(
+            self.collection.cache_end_datetime,
+            y100_y9500.properties_end_datetime,
+            "Updating temporal extent (cache_end_datetime) of collection "
+            "after only item's end_datetime was updated failed."
+        )
+
+        y100_y9500.properties_start_datetime = self.y250
+        y100_y9500.save()
+        self.collection.refresh_from_db()
+
+        self.assertEqual(
+            self.collection.cache_start_datetime,
+            y200_y8500.properties_start_datetime,
+            "Updating temporal extent (cache_start_datetime) of collection "
+            "after item that defined the start_datetime was updated failed."
+        )
+
+        y100_y9500.properties_end_datetime = self.y8000
+        y100_y9500.save()
+        self.collection.refresh_from_db()
+
+        self.assertEqual(
+            self.collection.cache_end_datetime,
+            y200_y8500.properties_end_datetime,
+            "Updating temporal extent (cache_end_datetime) of collection "
+            "after only item's end_datetime was updated failed."
+        )
+
+        y100_y9500.properties_start_datetime = self.y100
+        y100_y9500.properties_end_datetime = self.y9500
+        y100_y9500.save()
+        self.collection.refresh_from_db()
+
+        self.assertEqual(
+            self.collection.cache_start_datetime,
+            y100_y9500.properties_start_datetime,
+            "Updating temporal extent (cache_start_datetime) of collection "
+            "after item that defined the start_datetime was updated failed."
+        )
+
+        self.assertEqual(
+            self.collection.cache_end_datetime,
+            y100_y9500.properties_end_datetime,
+            "Updating temporal extent (cache_end_datetime) of collection "
+            "after only item's end_datetime was updated failed."
+        )
+
+        y100_y9500.properties_start_datetime = self.y250
+        y100_y9500.properties_end_datetime = self.y8000
+        y100_y9500.save()
+        self.collection.refresh_from_db()
+
+        self.assertEqual(
+            self.collection.cache_start_datetime,
+            y200_y8500.properties_start_datetime,
+            "Updating temporal extent (cache_start_datetime) of collection "
+            "after item that defined the start_datetime was updated failed."
+        )
+
+        self.assertEqual(
+            self.collection.cache_end_datetime,
+            y200_y8500.properties_end_datetime,
             "Updating temporal extent (cache_end_datetime) of collection "
             "after only item's end_datetime was updated failed."
         )
@@ -287,7 +395,7 @@ class CollectionsModelTestCase(TestCase):
         temporal extent is updated correctly. Analogue for adding a third item
         with later end_datetime
         '''
-        y200 = self.add_single_datetime_items(self.y200, 'y200')
+        y200 = self.add_single_datetime_item(self.y200, 'y200')
 
         self.assertEqual(
             self.collection.cache_start_datetime,
@@ -303,7 +411,7 @@ class CollectionsModelTestCase(TestCase):
             "single item's datetime property failed."
         )
 
-        y100 = self.add_single_datetime_items(self.y100, 'y100')
+        y100 = self.add_single_datetime_item(self.y100, 'y100')
 
         self.assertEqual(
             self.collection.cache_start_datetime,
@@ -312,7 +420,7 @@ class CollectionsModelTestCase(TestCase):
             "a second item with singe datetime property failed."
         )
 
-        y8000 = self.add_single_datetime_items(self.y8000, 'y8000')
+        y8000 = self.add_single_datetime_item(self.y8000, 'y8000')
 
         self.assertEqual(
             self.collection.cache_end_datetime,
@@ -327,7 +435,7 @@ class CollectionsModelTestCase(TestCase):
         datetime value of the only existing item is updated.
         '''
 
-        y8000 = self.add_single_datetime_items(self.y8000, 'y8000')
+        y8000 = self.add_single_datetime_item(self.y8000, 'y8000')
         self.assertEqual(
             self.collection.cache_start_datetime,
             y8000.properties_datetime,
@@ -361,15 +469,85 @@ class CollectionsModelTestCase(TestCase):
             "of the only item was updated."
         )
 
-    def test_update_temporal_extent_deletion_datetime_item(self):
+    def test_update_temporal_extent_update_datetime_property_defining_item(self):
         '''
-        Two items with singel datetime values are added and one is deleted
-        afterwards. It is checked, if the collection's temporal extent is
-        updated correctly.
+        Test if the collection's temporal extent is updated correctly, when the
+        datetime value of the item is updated, that defines a bound of the
+        collection's temporal extent
+        .
         '''
-        y200 = self.add_single_datetime_items(self.y200, 'y200')
+        y100 = self.add_single_datetime_item(self.y200, 'y100')
+        y200 = self.add_single_datetime_item(self.y200, 'y200')
+        y8500 = self.add_single_datetime_item(self.y8500, 'y8500')
+        y9500 = self.add_single_datetime_item(self.y9500, 'y9500')
 
-        y100 = self.add_single_datetime_items(self.y100, 'y100')
+        self.assertEqual(
+            self.collection.cache_start_datetime,
+            y100.properties_datetime,
+            "Updating temporal extent (cache_start_datetime) based on the "
+            "oldest item's datetime."
+        )
+
+        self.assertEqual(
+            self.collection.cache_end_datetime,
+            y9500.properties_datetime,
+            "Updating temporal extent (cache_end_datetime) based on the "
+            "latest item's datetime."
+        )
+
+        y9500.properties_datetime = self.y9000
+        y9500.save()
+        self.collection.refresh_from_db()
+
+        self.assertEqual(
+            self.collection.cache_end_datetime,
+            y9500.properties_datetime,
+            "Updating temporal extent (cache_start_datetime) after datetime "
+            "of the latest item was updated."
+        )
+
+        y100.properties_datetime = self.y150
+        y100.save()
+        self.collection.refresh_from_db()
+
+        self.assertEqual(
+            self.collection.cache_start_datetime,
+            y100.properties_datetime,
+            "Updating temporal extent (cache_start_datetime) after datetime "
+            "of the oldest item was updated."
+        )
+
+        y9500.properties_datetime = self.y8000
+        y9500.save()
+        self.collection.refresh_from_db()
+
+        self.assertEqual(
+            self.collection.cache_end_datetime,
+            y8500.properties_datetime,
+            "Updating temporal extent (cache_end_datetime) after datetime "
+            "of the latest item was updated."
+        )
+
+        y100.properties_datetime = self.y250
+        y100.save()
+        self.collection.refresh_from_db()
+
+        self.assertEqual(
+            self.collection.cache_start_datetime,
+            y200.properties_datetime,
+            "Updating temporal extent (cache_start_datetime) after datetime "
+            "of the oldest item was updated."
+        )
+
+    def test_update_temporal_extent_deletion_older_datetime_item(self):
+        '''
+        Two items with single datetime values are added and the older one is
+        deleted afterwards. It is checked, if the collection's temporal
+        extent is updated correctly.
+        '''
+        y200 = self.add_single_datetime_item(self.y200, 'y200')
+
+        y100 = self.add_single_datetime_item(self.y100, 'y100')
 
         # now delete one item:
         Item.objects.get(pk=y100.pk).delete()
@@ -388,13 +566,40 @@ class CollectionsModelTestCase(TestCase):
             "2nd last item failed."
         )
 
+    def test_update_temporal_extent_deletion_younger_datetime_item(self):
+        '''
+        Two items with single datetime values are added and the younger one is
+        deleted afterwards. It is checked, if the collection's temporal
+        extent is updated correctly.
+        '''
+        y200 = self.add_single_datetime_item(self.y200, 'y200')
+
+        y100 = self.add_single_datetime_item(self.y100, 'y100')
+
+        # now delete one item:
+        Item.objects.get(pk=y200.pk).delete()
+        self.collection.refresh_from_db()
+
+        self.assertEqual(
+            self.collection.cache_start_datetime,
+            y100.properties_datetime,
+            "Updating temporal extent (cache_start_datetime) after deletion of "
+            "2nd last item failed."
+        )
+        self.assertEqual(
+            self.collection.cache_end_datetime,
+            y100.properties_datetime,
+            "Updating temporal extent (cache_end_datetime) after deletion of "
+            "2nd last item failed."
+        )
+
     def test_update_temporal_extent_deletion_last_datetime_item(self):
         '''
         An item is added to the collection and deleted again afterwards.
         After the deletion, it is checked, that the temporal
         extent of the collection is updated accordingly.
         '''
-        y200 = self.add_single_datetime_items(self.y200, 'y200')
+        y200 = self.add_single_datetime_item(self.y200, 'y200')
         Item.objects.get(pk=y200.pk).delete()
         self.collection.refresh_from_db()
 
@@ -418,7 +623,7 @@ class CollectionsModelTestCase(TestCase):
         to have start_ and end_datetimes instead. Update of the collection's
         temporal extent is checked.
         '''
-        y200 = self.add_single_datetime_items(self.y200, 'y200')
+        y200 = self.add_single_datetime_item(self.y200, 'y200')
         y200.properties_datetime = None
         y200.properties_start_datetime = self.y100
         y200.properties_end_datetime = self.y8000
@@ -444,8 +649,8 @@ class CollectionsModelTestCase(TestCase):
         Tests, if collection's temporal extent is updated correctly when
         mixing items with ranges and single datetime values.
         '''
-        y100 = self.add_single_datetime_items(self.y100, 'y100')
-        y9000 = self.add_single_datetime_items(self.y9000, 'y9000')
+        y100 = self.add_single_datetime_item(self.y100, 'y100')
+        y9000 = self.add_single_datetime_item(self.y9000, 'y9000')
 
         y200_y8000 = self.add_range_item(self.y200, self.y8000, 'y200_y8000')
 

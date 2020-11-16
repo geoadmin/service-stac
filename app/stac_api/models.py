@@ -301,37 +301,30 @@ class Collection(models.Model):
                     # but was defining the left bound of the temporal extent
                     # of the collection before
                     # --> hence the new start_datetime of the collection
-                    # needs to be determinded:
-                    # get earliest start_datetime or none, in case none exists.
-                    # This should be the case, if the item that is currently
-                    # being updated is the only item in the collection or
-                    # no item has a range defined (no start_ and end_datetimes)
-                    # but all do only have properties.datetimes defined.
+                    # needs to be determined:
+                    # set earliest start_datetime to min(earliest_start_datetime
+                    # of all items but the one currently updated and
+                    # new_start_datetime).
                     if bool(qs.filter(properties_start_datetime__isnull=False)):
-                        earliest_start_datetime = qs.filter(
-                            properties_start_datetime__isnull=False
-                        ).earliest('properties_start_datetime').properties_start_datetime
+                        earliest_start_datetime = min(
+                            new_start_datetime,
+                            qs.filter(
+                                properties_start_datetime__isnull=False
+                            ).earliest('properties_start_datetime').properties_start_datetime
+                        )
                     else:
-                        earliest_start_datetime = None
-                    # get earliest datetime, or none in case none exists.
-                    # This should be the case, if the item that is currently
-                    # being updated is the only item in the collection or
-                    # no item has properties.datetime defined but all do have
-                    # only ranged (start_ and end_datetimes defined)
+                        earliest_start_datetime = new_start_datetime
+                    # set earliest datetime to min(earliest_datetime of all items
+                    # bute the one currently updated and new_start_datetime)
                     if bool(qs.filter(properties_datetime__isnull=False)):
-                        earliest_datetime = qs.filter(
-                            properties_datetime__isnull=False
-                        ).earliest('properties_datetime').properties_datetime
+                        earliest_datetime = min(
+                            new_start_datetime,
+                            qs.filter(properties_datetime__isnull=False
+                                     ).earliest('properties_datetime').properties_datetime
+                        )
                     else:
-                        earliest_datetime = None
-
-                    if earliest_start_datetime is None and earliest_datetime is None:
-                        # currently updated item is the only one:
-                        self.cache_start_datetime = new_start_datetime
-                    elif earliest_start_datetime is not None:
-                        self.cache_start_datetime = earliest_start_datetime
-                    else:
-                        self.cache_start_datetime = earliest_datetime
+                        earliest_datetime = new_start_datetime
+                    self.cache_start_datetime = min(earliest_start_datetime, earliest_datetime)
             elif new_start_datetime < self.cache_start_datetime:
                 # item's start_datetime did not define the left bound of the
                 # collection's temporal extent before update, which does not
@@ -381,36 +374,27 @@ class Collection(models.Model):
                     # temporal extent.
                     # --> hence the new end_datetime of the collection needs
                     # to be determined:
-
-                    # get latest end_datetime or none, in case none exists
-                    # this should be the case, if the item that is currently
-                    # being updated is the only item in the collection or
-                    # no item has a range defined (no start_ and end_datetimes)
-                    # but all do only have properties.datetimes defined.
+                    # set latest end_datetime to max(new_end_datetime and
+                    # end_datetime of all items but the one currently updated).
                     if bool(qs.filter(properties_end_datetime__isnull=False)):
-                        latest_end_datetime = qs.filter(
-                            properties_end_datetime__isnull=False
-                        ).latest('properties_end_datetime').properties_end_datetime
+                        latest_end_datetime = max(
+                            new_end_datetime,
+                            qs.filter(properties_end_datetime__isnull=False
+                                     ).latest('properties_end_datetime').properties_end_datetime
+                        )
                     else:
-                        latest_end_datetime = None
-                    # get latest datetime, or none in case none exists
-                    # this should be the case, if the item that is currently
-                    # being updated is the only item in the collection or
-                    # no item has properties.datetime defined but all do have
-                    # only ranged (start_ and end_datetimes defined)
+                        latest_end_datetime = new_end_datetime
+                    # set latest datetime to max(new_end_datetime and
+                    # end end_datetime of all items but the one currently updated)
                     if bool(qs.filter(properties_datetime__isnull=False)):
-                        latest_datetime = qs.filter(
-                            properties_datetime__isnull=False
-                        ).latest('properties_datetime').properties_datetime
+                        latest_datetime = max(
+                            new_end_datetime,
+                            qs.filter(properties_datetime__isnull=False
+                                     ).latest('properties_datetime').properties_datetime
+                        )
                     else:
-                        latest_datetime = None
-                    if latest_end_datetime is None and latest_datetime is None:
-                        # currently updated item is the only one:
-                        self.cache_end_datetime = new_end_datetime
-                    elif latest_end_datetime is not None:
-                        self.cache_end_datetime = latest_end_datetime
-                    else:
-                        self.cache_end_datetime = latest_datetime
+                        latest_datetime = new_end_datetime
+                    self.cache_end_datetime = max(latest_end_datetime, latest_datetime)
             elif new_end_datetime > self.cache_end_datetime:
                 # item's end_datetime did not define the right bound of
                 # the collection's temporal extent before update, which
@@ -606,8 +590,8 @@ class Collection(models.Model):
                         qs
                     )
                 else:
-                    # Item has defined the left bound and defines the new
-                    # left bound again
+                    # Item probably has defined the left bound before update and
+                    # might define the new left bound again
                     self.update_item_start_datetime(
                         old_start_datetime,
                         new_start_datetime,
@@ -641,9 +625,8 @@ class Collection(models.Model):
                         qs
                     )
                 else:
-                    # item has not defined right bound of the collection's
-                    # temporal extent before update, but could define the new
-                    # bound after the update.
+                    # Item probably has defined the right bound before update and
+                    # might define the new right bound again
                     self.update_item_end_datetime(
                         old_start_datetime,
                         new_start_datetime,
