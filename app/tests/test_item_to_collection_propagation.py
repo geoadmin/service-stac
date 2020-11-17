@@ -36,11 +36,11 @@ class ItemsToCollectionTestCase(TestCase):
         self.assertEqual(self.collection.extent_geometry, self.item.geometry)
 
     def test_if_new_collection_has_extent(self):
-        # a new collection as no bbox yet
+        # a new collection has no bbox yet
         collection_no_bbox = db.create_collection('collection-no-bbox')
         self.assertIsNone(collection_no_bbox.extent_geometry)
 
-    def test_bigger_item(self):
+    def test_changing_bbox_with_bigger_item(self):
         # changing the size of the bbox of the collection
         self.assertEqual(self.collection.extent_geometry, self.item.geometry)
 
@@ -61,7 +61,7 @@ class ItemsToCollectionTestCase(TestCase):
         bigger_item.delete()
         self.assertEqual(self.collection.extent_geometry, self.item.geometry)
 
-    def test_smaller_item(self):
+    def test_changing_bbox_with_smaller_item(self):
         # changing the size of the bbox of the collection
         self.assertEqual(self.collection.extent_geometry, self.item.geometry)
         smaller_item = Item.objects.create(
@@ -80,7 +80,7 @@ class ItemsToCollectionTestCase(TestCase):
         smaller_item.delete()
         self.assertEqual(self.collection.extent_geometry, self.item.geometry)
 
-    def test_diagonal_item_update(self):
+    def test_changing_bbox_with_diagonal_update(self):
         # changing collection bbox by moving one of two geometries
         self.assertEqual(self.collection.extent_geometry, self.item.geometry)
         diagonal_item = Item.objects.create(
