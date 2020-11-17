@@ -115,9 +115,11 @@ class Provider(models.Model):
     name = models.CharField(blank=False, max_length=200)
     description = models.TextField(blank=True, null=True)
     # possible roles are licensor, producer, processor or host
+    allowed_roles = ['licensor', 'producer', 'processor', 'host']
     roles = ArrayField(models.CharField(max_length=9), help_text=_(
-        "Comma-separated list of roles. Possible values are 'licensor', "
-        "'producer', 'processor', 'host'"))
+        "Comma-separated list of roles. Possible values are {}".format(
+            ', '.join(allowed_roles)))
+    )
     url = models.URLField()
 
     class Meta:
@@ -134,7 +136,7 @@ class Provider(models.Model):
             raise ValidationError(_('Invalid role'))
         allowed_roles = ['licensor', 'producer', 'processor', 'host']
         for role in self.roles:
-            if role not in allowed_roles:
+            if role not in self.allowed_roles:
                 raise ValidationError(_('Invalid role'))
 
 
