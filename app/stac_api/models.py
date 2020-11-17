@@ -106,11 +106,24 @@ class Link(models.Model):
 
 
 class Provider(models.Model):
+    collection = models.ForeignKey(
+        'stac_api.Collection',
+        on_delete=models.CASCADE,
+        related_name='providers',
+        related_query_name='provider'
+    )
     name = models.CharField(blank=False, max_length=200)
     description = models.TextField(blank=True, null=True)
-    roles = ArrayField(models.CharField(max_length=9))
-    # possible roles are licensor, producer, processor or host. Probably it might sense
+    # possible roles are licensor, producer, processor or host
+    allowed_roles = ['licensor', 'producer', 'processor', 'host']
+    roles = ArrayField(models.CharField(max_length=9), help_text=_(
+        "Comma-separated list of roles. Possible values are {}".format(
+            ', '.join(allowed_roles)))
+    )
     url = models.URLField()
+
+    class Meta:
+        unique_together = (('collection', 'name'),)
 
     def __str__(self):
         return self.name
@@ -123,7 +136,7 @@ class Provider(models.Model):
             raise ValidationError(_('Invalid role'))
         allowed_roles = ['licensor', 'producer', 'processor', 'host']
         for role in self.roles:
-            if role not in allowed_roles:
+            if role not in self.allowed_roles:
                 raise ValidationError(_('Invalid role'))
 
 
@@ -174,7 +187,6 @@ class Collection(models.Model):
     # http://ltboc.infra.bgdi.ch/static/products/data.geo.admin.ch/apitransactional.html#operation/createCollection
 
     license = models.CharField(max_length=30)  # string
-    providers = models.ManyToManyField(Provider)
 
     # "summaries" values will be updated on every update of an asset inside the
     # collection

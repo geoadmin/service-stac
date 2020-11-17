@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 def create_provider(collection, provider_data):
     logger.debug('Create provider %s', provider_data['name'])
     provider, created = Provider.objects.get_or_create(
+        collection=collection,
         name=provider_data['name'],
         defaults={
             "description": provider_data.get('description', None),
@@ -96,7 +97,6 @@ def parse_collection(collection_data):
     # Create providers
     for provider_data in collection_data.get("providers", []):
         provider = create_provider(collection, provider_data)
-        collection.providers.add(provider)
 
     collection.title = collection_data.get("title", None)
     collection.full_clean()

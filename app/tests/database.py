@@ -31,6 +31,7 @@ def create_collection(name):
 
     # create provider instance for testing
     provider = Provider.objects.create(
+        collection=collection,
         name='provider1',
         description='description',
         roles=['licensor'],
