@@ -14,9 +14,6 @@ from django.utils.translation import gettext_lazy as _
 
 from stac_api.temporal_extent import update_temporal_extent
 
-# pylint: disable=fixme
-# TODO remove this pylint disable once this is done
-
 logger = logging.getLogger(__name__)
 
 # We use the WGS84 bounding box as defined here:
@@ -81,6 +78,7 @@ def validate_geoadmin_variant(variant):
 def validate_link_rel(value):
     invalid_rel = ['self', 'root', 'parent', 'items', 'collection']
     if value in invalid_rel:
+        logger.error("Link rel attribute %s is not allowed, it is a reserved attribute", value)
         raise ValidationError(_(f'Invalid rel attribute, must not be in {invalid_rel}'))
 
 
@@ -127,10 +125,12 @@ class Provider(models.Model):
     description = models.TextField(blank=True, null=True)
     # possible roles are licensor, producer, processor or host
     allowed_roles = ['licensor', 'producer', 'processor', 'host']
-    roles = ArrayField(models.CharField(max_length=9), help_text=_(
-        "Comma-separated list of roles. Possible values are {}".format(
-            ', '.join(allowed_roles)))
-                      )
+    roles = ArrayField(
+        models.CharField(max_length=9),
+        help_text=_("Comma-separated list of roles. Possible values are {}".format(
+            ', '.join(allowed_roles)
+        ))
+    )
     url = models.URLField()
 
     class Meta:
@@ -144,11 +144,12 @@ class Provider(models.Model):
             # Note this can happen from the admin page where we need to add the roles as comma
             # separated and not as a python list e.g.
             # `["licensor", "producer"]` => gives self.roles == None
-            raise ValidationError(_('Invalid role'))
-        allowed_roles = ['licensor', 'producer', 'processor', 'host']
+            logger.error('Invalid roles, at least one role needs to be provided')
+            raise ValidationError(_('Invalid roles, at least one role needs to be provided'))
         for role in self.roles:
             if role not in self.allowed_roles:
-                raise ValidationError(_('Invalid role'))
+                logger.error('Invalid role %s', role)
+                raise ValidationError(_('Invalid role, must be in %s' % (self.allowed_roles)))
 
 
 # For Collections and Items: No primary key will be defined, so that the auto-generated ones
@@ -168,29 +169,7 @@ class Collection(models.Model):
         null=True,
         validators=[validate_geometry]
     )
-    # not CharField to provide more space for the text.
-    # TODO: ""description" is required in radiantearth spec, not required in our spec
-    # temporal extent will be auto-populated on every item update inside this collection:
-    # start_date will be set to oldest date, end_date to most current date
-    # spatial extent (2D ord 3D):
-    # bbox: southwesterly most extent followed by all axes of the northeasterly
-    # most extent specified in Longitude/Latitude or Longitude/Latitude/Elevation
-    # based on WGS 84.
-    # Example that covers the whole Earth: [[-180.0, -90.0, 180.0, 90.0]].
-    # Example that covers the whole earth with a depth of 100 meters to a height
-    # of 150 meters: [[-180.0, -90.0, -100.0, 180.0, 90.0, 150.0]].
 
-    # after discussion with Chris and Tobias:
-    # bbox resp. spatial extent will be auto-generated on collection level everytime
-    # when an item inside the collection is updated.
-    # the bbox of the collection will be a an envelope ("Umhüllende") of all
-    # bboxes of the items inside the collection.
-    # furthermore GeoDjango and its functionality will be used for that.
-    # TODO: overwrite items save() function accordingly
-    # suggestions of fields to be auto-populated:
-    # extent = models.JSONField(
-    #    default=get_default_extent_value, encoder=DjangoJSONEncoder, editable=False
-    # )
     cache_start_datetime = models.DateTimeField(editable=False, null=True, blank=True)
     cache_end_datetime = models.DateTimeField(editable=False, null=True, blank=True)
     collection_name = models.CharField(unique=True, max_length=255)  # string
@@ -204,7 +183,7 @@ class Collection(models.Model):
     summaries = models.JSONField(
         default=get_default_summaries_value, encoder=DjangoJSONEncoder, editable=False
     )
-    title = models.CharField(blank=True, max_length=255)  # string
+    title = models.CharField(blank=True, max_length=255)
 
     def __str__(self):
         return self.collection_name
