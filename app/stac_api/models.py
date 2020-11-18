@@ -557,7 +557,6 @@ class Asset(models.Model):
     item = models.ForeignKey(
         Item, related_name='assets', related_query_name='asset', on_delete=models.CASCADE
     )
-    collection = models.ForeignKey(Collection, on_delete=models.CASCADE, blank=True, editable=False)
     # using "_name" instead of "_id", as "_id" has a default meaning in django
     asset_name = models.CharField(unique=True, blank=False, max_length=255)
     checksum_multihash = models.CharField(blank=False, max_length=255)
