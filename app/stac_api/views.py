@@ -304,7 +304,7 @@ class AssetDetail(generics.RetrieveAPIView):
 
     def get_object(self):
         asset_name = self.kwargs.get(self.lookup_url_kwarg)
-        queryset = self.get_queryset().filter(asset_name=asset_name)
+        queryset = self.get_queryset().filter(name=asset_name)
         obj = get_object_or_404(queryset)
         return obj
 

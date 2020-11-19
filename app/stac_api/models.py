@@ -554,10 +554,8 @@ class Asset(models.Model):
     item = models.ForeignKey(
         Item, related_name='assets', related_query_name='asset', on_delete=models.CASCADE
     )
-    # using "_name" instead of "_id", as "_id" has a default meaning in django
-    asset_name = models.CharField(
-        unique=True, blank=False, max_length=255, validators=[validate_name]
-    )
+    # using "name" instead of "id", as "id" has a default meaning in django
+    name = models.CharField(unique=True, blank=False, max_length=255, validators=[validate_name])
     checksum_multihash = models.CharField(blank=False, max_length=255)
     description = models.TextField()
     eo_gsd = models.FloatField(null=True)
@@ -586,7 +584,7 @@ class Asset(models.Model):
     updated = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return self.asset_name
+        return self.name
 
     # alter save-function, so that the corresponding collection of the parent item of the asset
     # is saved, too.

@@ -312,7 +312,7 @@ class BboxSerializer(gis_serializers.GeoFeatureModelSerializer):
 
 class AssetsDictSerializer(DictSerializer):
     # pylint: disable=abstract-method
-    key_identifier = 'asset_name'
+    key_identifier = 'name'
 
 
 class AssetSerializer(NonNullModelSerializer):
@@ -327,7 +327,7 @@ class AssetSerializer(NonNullModelSerializer):
         model = Asset
         list_serializer_class = AssetsDictSerializer
         fields = [
-            'asset_name',
+            'name',
             'title',
             'type',
             'href',

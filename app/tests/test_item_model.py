@@ -89,7 +89,7 @@ class ItemsModelTestCase(TestCase):
             asset = Asset.objects.create(
                 item=item,
                 title='my-title',
-                asset_name=f'asset-{i}',
+                name=f'asset-{i}',
                 checksum_multihash="01205c3fd6978a7d0b051efaa4263a09",
                 description="this an asset",
                 eo_gsd=eo_gsd[i],

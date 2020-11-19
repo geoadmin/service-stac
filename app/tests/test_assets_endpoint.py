@@ -51,7 +51,7 @@ class AssetsEndpointTestCase(TestCase):
     def test_single_asset_endpoint(self):
         collection_name = self.collections[0].name
         item_name = self.items[0][0].name
-        asset_name = self.assets[0][0][0].asset_name
+        asset_name = self.assets[0][0][0].name
         response = self.client.get(
             f"/{API_BASE}collections/{collection_name}/items/{item_name}/assets/{asset_name}"
         )

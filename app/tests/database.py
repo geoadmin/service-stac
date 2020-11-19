@@ -105,11 +105,11 @@ def create_item_links(item):
     return [link]
 
 
-def create_asset(item, asset_name):
+def create_asset(item, name):
     asset = Asset.objects.create(
         item=item,
         title='my-title',
-        asset_name=asset_name,
+        name=name,
         checksum_multihash="01205c3fd6978a7d0b051efaa4263a09",
         description="this an asset",
         eo_gsd=3.4,

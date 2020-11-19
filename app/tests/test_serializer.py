@@ -375,7 +375,7 @@ class SerializationTestCase(StacBaseTestCase):
     def test_asset_serialization(self):
         collection_name = self.collection.name
         item_name = self.item.name
-        asset_name = self.asset.asset_name
+        asset_name = self.asset.name
         # mock a request needed for the serialization of links
         request = self.factory.get(
             f'{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
@@ -393,7 +393,7 @@ class SerializationTestCase(StacBaseTestCase):
         logger.debug('json string: %s', json_string.decode("utf-8"))
 
         expected = {
-            'asset_name': asset_name,
+            'name': asset_name,
             'checksum:multihash': '01205c3fd6978a7d0b051efaa4263a09',
             'description': 'this an asset',
             'eo:gsd': 3.4,
