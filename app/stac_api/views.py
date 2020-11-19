@@ -98,8 +98,6 @@ def landing_page(request):
     }
     # yapf: enable
 
-    logger.debug('Landing page', extra={'request': request, 'response': data})
-
     return JsonResponse(data)
 
 
@@ -139,8 +137,6 @@ class CollectionList(generics.ListAPIView):
                 ])
             ]
         }
-
-        logger.debug('GET list of collections', extra={"request": request, "response": data})
 
         if page is not None:
             return self.get_paginated_response(data)
@@ -251,8 +247,6 @@ class ItemsList(generics.ListAPIView):
             ]
         }
 
-        logger.debug('GET list of items', extra={"request": request, "response": data})
-
         if page is not None:
             return self.get_paginated_response(data)
         return Response(data)
@@ -289,8 +283,6 @@ class AssetsList(generics.GenericAPIView):
             serializer = self.get_serializer(queryset, many=True)
 
         data = serializer.data
-
-        logger.debug('GET list of assets: %s', data, extra={"request": request, "response": data})
 
         if page is not None:
             return self.get_paginated_response(data)
