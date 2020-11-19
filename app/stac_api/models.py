@@ -168,8 +168,8 @@ class Provider(models.Model):
 
 
 class Collection(models.Model):
-    # using "_name" instead of "_id", as "_id" has a default meaning in django
-    collection_name = models.CharField(unique=True, max_length=255, validators=[validate_name])
+    # using "name" instead of "id", as "id" has a default meaning in django
+    name = models.CharField(unique=True, max_length=255, validators=[validate_name])
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
     description = models.TextField()
@@ -195,7 +195,7 @@ class Collection(models.Model):
     title = models.CharField(blank=True, max_length=255)
 
     def __str__(self):
-        return self.collection_name
+        return self.name
 
     def update_geoadmin_variants(self, asset_geoadmin_variant, asset_proj_epsg, asset_eo_gsd):
         '''
@@ -294,13 +294,13 @@ class Collection(models.Model):
         except GEOSException as error:
             logger.error(
                 'Failed to update spatial extend in collection %s with item %s action=%s: %s',
-                self.collection_name,
+                self.name,
                 item_name,
                 action,
                 error
             )
             raise GEOSException(
-                f'Failed to update spatial extend in colletion {self.collection_name} with item '
+                f'Failed to update spatial extend in colletion {self.name} with item '
                 f'{item_name}: {error}'
             )
 

@@ -40,9 +40,9 @@ class SampleDataTestCase(StacBaseTestCase):
         with open(collection_dir / 'collection.json') as fd:
             collection_dict = json.load(fd)
 
-        response = self.client.get(f"/{API_BASE}collections/{collection.collection_name}")
+        response = self.client.get(f"/{API_BASE}collections/{collection.name}")
         payload = response.json()
-        logger.debug('Collection %s payload:\n%s', collection.collection_name, pformat(payload))
+        logger.debug('Collection %s payload:\n%s', collection.name, pformat(payload))
         self.assertEqual(200, response.status_code, msg=get_http_error_description(payload))
 
         # we ignore the created and updated attribute because they cannot match the one from the
@@ -53,9 +53,9 @@ class SampleDataTestCase(StacBaseTestCase):
             with self.subTest(
                 msg=f'test sample {collection_dir.name}/{os.path.basename(item_file)}',
                 item_file=item_file,
-                collection_name=collection.collection_name
+                collection_name=collection.name
             ):
-                self._test_item(collection.collection_name, item_file)
+                self._test_item(collection.name, item_file)
 
     def _test_item(self, collection_name, item_file):
         with open(item_file) as fd:

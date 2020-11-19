@@ -171,7 +171,7 @@ class CollectionSerializer(NonNullModelSerializer):
     description = serializers.CharField(required=True)  # string
     extent = ExtentSerializer(read_only=True, source="*")
     summaries = serializers.JSONField(read_only=True)
-    id = serializers.CharField(max_length=255, source="collection_name")  # string
+    id = serializers.CharField(max_length=255, source="name")  # string
     license = serializers.CharField(max_length=30)  # string
     links = CollectionLinkSerializer(many=True, read_only=True)
     providers = ProviderSerializer(many=True)
@@ -214,8 +214,8 @@ class CollectionSerializer(NonNullModelSerializer):
         logger.info(
             "deleted %d stale providers for collection %s",
             deleted[0],
-            collection.collection_name,
-            extra={"collection": collection.collection_name}
+            collection.name,
+            extra={"collection": collection.name}
         )
 
     def create(self, validated_data):
@@ -237,7 +237,7 @@ class CollectionSerializer(NonNullModelSerializer):
         return instance
 
     def to_representation(self, instance):
-        name = instance.collection_name
+        name = instance.name
         api_base = settings.API_BASE
         request = self.context.get("request")
         representation = super().to_representation(instance)
@@ -387,7 +387,7 @@ class ItemSerializer(NonNullModelSerializer):
         return "0.9.0"
 
     def to_representation(self, instance):
-        collection = instance.collection.collection_name
+        collection = instance.collection.name
         name = instance.item_name
         api = settings.API_BASE
         request = self.context.get("request")

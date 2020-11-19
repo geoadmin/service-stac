@@ -46,7 +46,7 @@ class SerializationTestCase(StacBaseTestCase):
         self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_collection_serialization(self):
-        collection_name = self.collection.collection_name
+        collection_name = self.collection.name
         # mock a request needed for the serialization of links
         request = self.factory.get(f'{API_BASE}/collections/{collection_name}')
 
@@ -135,7 +135,7 @@ class SerializationTestCase(StacBaseTestCase):
         self.assertEqual(True, serializer.is_valid(), msg='Serializer data not valid.')
 
     def test_item_serialization(self):
-        collection_name = self.collection.collection_name
+        collection_name = self.collection.name
         item_name = self.item.item_name
 
         # mock a request needed for the serialization of links
@@ -267,7 +267,7 @@ class SerializationTestCase(StacBaseTestCase):
         item_range.full_clean()
         item_range.save()
 
-        collection_name = self.collection.collection_name
+        collection_name = self.collection.name
         item_name = item_range.item_name
 
         # mock a request needed for the serialization of links
@@ -373,7 +373,7 @@ class SerializationTestCase(StacBaseTestCase):
         logger.debug('back validated data:\n%s', pformat(back_serializer.validated_data))
 
     def test_asset_serialization(self):
-        collection_name = self.collection.collection_name
+        collection_name = self.collection.name
         item_name = self.item.item_name
         asset_name = self.asset.asset_name
         # mock a request needed for the serialization of links

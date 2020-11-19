@@ -19,7 +19,7 @@ def create_collection(name):
         created=isoparse('2020-10-28T13:05:10Z'),
         updated=isoparse('2020-10-28T13:05:10Z'),
         description='This is a description',
-        collection_name=name,
+        name=name,
         license='test',
         summaries={
             "eo:gsd": [], "geoadmin:variant": [], "proj:epsg": []

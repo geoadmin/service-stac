@@ -73,7 +73,7 @@ class ItemsEndpointTestCase(TestCase):
 
     def test_items_endpoint_with_paging(self):
         response = self.client.get(
-            f"/{API_BASE}collections/{self.collections[0].collection_name}/items?limit=1"
+            f"/{API_BASE}collections/{self.collections[0].name}/items?limit=1"
         )
         json_data = response.json()
         logger.debug('Response (%s):\n%s', type(json_data), pformat(json_data))
@@ -117,7 +117,7 @@ class ItemsEndpointTestCase(TestCase):
         # here we set the limit to the number of items in DB plus one to make
         # sure that the items filtering based on the collection name from uri works
         response = self.client.get(
-            f"/{API_BASE}collections/{self.collections[0].collection_name}/items?"
+            f"/{API_BASE}collections/{self.collections[0].name}/items?"
             f"limit=100"
         )
         json_data = response.json()
@@ -132,7 +132,7 @@ class ItemsEndpointTestCase(TestCase):
             self.assertNotIn(link['rel'], ['next', 'previous'], msg="should not have pagination")
 
     def test_single_item_endpoint(self):
-        collection_name = self.collections[0].collection_name
+        collection_name = self.collections[0].name
         item_name = self.items[0][0].item_name
         response = self.client.get(f"/{API_BASE}collections/{collection_name}/items/{item_name}")
         json_data = response.json()
@@ -152,7 +152,7 @@ class ItemsEndpointTestCase(TestCase):
 
     def test_items_endpoint_datetime_query(self):
         response = self.client.get(
-            f"/{API_BASE}collections/{self.collections[0].collection_name}/items"
+            f"/{API_BASE}collections/{self.collections[0].name}/items"
             f"?datetime={isoformat(self.now)}&limit=10"
         )
         json_data = response.json()
@@ -162,7 +162,7 @@ class ItemsEndpointTestCase(TestCase):
 
     def test_items_endpoint_datetime_range_query(self):
         response = self.client.get(
-            f"/{API_BASE}collections/{self.collections[0].collection_name}/items"
+            f"/{API_BASE}collections/{self.collections[0].name}/items"
             f"?datetime={isoformat(self.yesterday)}/{isoformat(self.now)}&limit=100"
         )
         json_data = response.json()
@@ -174,7 +174,7 @@ class ItemsEndpointTestCase(TestCase):
     def test_items_endpoint_datetime_open_end_range_query(self):
         # test open end query
         response = self.client.get(
-            f"/{API_BASE}collections/{self.collections[0].collection_name}/items"
+            f"/{API_BASE}collections/{self.collections[0].name}/items"
             f"?datetime={isoformat(self.yesterday)}/..&limit=100"
         )
         json_data = response.json()
@@ -186,7 +186,7 @@ class ItemsEndpointTestCase(TestCase):
     def test_items_endpoint_datetime_open_start_range_query(self):
         # test open start query
         response = self.client.get(
-            f"/{API_BASE}collections/{self.collections[0].collection_name}/items"
+            f"/{API_BASE}collections/{self.collections[0].name}/items"
             f"?datetime=../{isoformat(self.yesterday)}&limit=100"
         )
         json_data = response.json()
@@ -197,7 +197,7 @@ class ItemsEndpointTestCase(TestCase):
     def test_items_endpoint_datetime_invalid_range_query(self):
         # test open start and end query
         response = self.client.get(
-            f"/{API_BASE}collections/{self.collections[0].collection_name}/items"
+            f"/{API_BASE}collections/{self.collections[0].name}/items"
             f"?datetime=../..&limit=100"
         )
         json_data = response.json()
@@ -205,7 +205,7 @@ class ItemsEndpointTestCase(TestCase):
 
         # invalid datetime
         response = self.client.get(
-            f"/{API_BASE}collections/{self.collections[0].collection_name}/items"
+            f"/{API_BASE}collections/{self.collections[0].name}/items"
             f"?datetime=2019&limit=100"
         )
         json_data = response.json()
@@ -213,7 +213,7 @@ class ItemsEndpointTestCase(TestCase):
 
         # invalid start
         response = self.client.get(
-            f"/{API_BASE}collections/{self.collections[0].collection_name}/items"
+            f"/{API_BASE}collections/{self.collections[0].name}/items"
             f"?datetime=2019/..&limit=100"
         )
         json_data = response.json()
@@ -221,7 +221,7 @@ class ItemsEndpointTestCase(TestCase):
 
         # invalid end
         response = self.client.get(
-            f"/{API_BASE}collections/{self.collections[0].collection_name}/items"
+            f"/{API_BASE}collections/{self.collections[0].name}/items"
             f"?datetime=../2019&limit=100"
         )
         json_data = response.json()
@@ -229,7 +229,7 @@ class ItemsEndpointTestCase(TestCase):
 
         # invalid start and end
         response = self.client.get(
-            f"/{API_BASE}collections/{self.collections[0].collection_name}/items"
+            f"/{API_BASE}collections/{self.collections[0].name}/items"
             f"?datetime=2019/2019&limit=100"
         )
         json_data = response.json()
@@ -238,7 +238,7 @@ class ItemsEndpointTestCase(TestCase):
     def test_items_endpoint_bbox_valid_query(self):
         # test bbox
         response = self.client.get(
-            f"/{API_BASE}collections/{self.collections[0].collection_name}/items"
+            f"/{API_BASE}collections/{self.collections[0].name}/items"
             f"?bbox=5.96,45.82,10.49,47.81&limit=100"
         )
         json_data = response.json()
@@ -250,14 +250,14 @@ class ItemsEndpointTestCase(TestCase):
     def test_items_endpoint_bbox_invalid_query(self):
         # test invalid bbox
         response = self.client.get(
-            f"/{API_BASE}collections/{self.collections[0].collection_name}/items"
+            f"/{API_BASE}collections/{self.collections[0].name}/items"
             f"?bbox=5.96,45.82,10.49,47.81,screw;&limit=100"
         )
         json_data = response.json()
         self.assertEqual(400, response.status_code, msg=get_http_error_description(json_data))
 
         response = self.client.get(
-            f"/{API_BASE}collections/{self.collections[0].collection_name}/items"
+            f"/{API_BASE}collections/{self.collections[0].name}/items"
             f"?bbox=5.96,45.82,10.49,47.81,42,42&limit=100"
         )
         json_data = response.json()

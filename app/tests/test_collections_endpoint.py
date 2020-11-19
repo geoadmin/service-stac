@@ -46,7 +46,7 @@ class CollectionsEndpointTestCase(TestCase):
         self.assertListEqual(['rel', 'href'], list(response_json['links'][0].keys()))
 
     def test_single_collection_endpoint(self):
-        collection_name = self.collections[0].collection_name
+        collection_name = self.collections[0].name
         response = self.client.get(f"/{API_BASE}collections/{collection_name}")
         response_json = response.json()
         self.assertEqual(response.status_code, 200, msg=get_http_error_description(response_json))
