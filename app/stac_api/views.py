@@ -154,7 +154,7 @@ class CollectionDetail(generics.RetrieveAPIView):
 
     def get_object(self):
         collection_name = self.kwargs.get(self.lookup_url_kwarg)
-        queryset = self.get_queryset().filter(collection_name=collection_name)
+        queryset = self.get_queryset().filter(name=collection_name)
         obj = get_object_or_404(queryset)
         return obj
 
@@ -165,7 +165,7 @@ class ItemsList(generics.ListAPIView):
 
     def get_queryset(self):
         # filter based on the url
-        queryset = Item.objects.filter(collection__collection_name=self.kwargs['collection_name'])
+        queryset = Item.objects.filter(collection__name=self.kwargs['collection_name'])
 
         bbox = self.request.query_params.get('bbox', None)
         date_time = self.request.query_params.get('datetime', None)
@@ -265,7 +265,7 @@ class ItemDetail(generics.RetrieveAPIView):
 
     def get_object(self):
         item_name = self.kwargs.get(self.lookup_url_kwarg)
-        queryset = self.get_queryset().filter(item_name=item_name)
+        queryset = self.get_queryset().filter(name=item_name)
         obj = get_object_or_404(queryset)
         return obj
 
@@ -277,7 +277,7 @@ class AssetsList(generics.GenericAPIView):
 
     def get_queryset(self):
         # filter based on the url
-        return Asset.objects.filter(item__item_name=self.kwargs['item_name'])
+        return Asset.objects.filter(item__name=self.kwargs['item_name'])
 
     def get(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
@@ -304,7 +304,7 @@ class AssetDetail(generics.RetrieveAPIView):
 
     def get_object(self):
         asset_name = self.kwargs.get(self.lookup_url_kwarg)
-        queryset = self.get_queryset().filter(asset_name=asset_name)
+        queryset = self.get_queryset().filter(name=asset_name)
         obj = get_object_or_404(queryset)
         return obj
 

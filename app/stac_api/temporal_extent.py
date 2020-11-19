@@ -19,8 +19,8 @@ def update_temporal_extent_on_item_insert(
         item_id,
         new_start_datetime,
         new_end_datetime,
-        collection.collection_name,
-        extra={'collection_name': collection.collection_name}
+        collection.name,
+        extra={'collection_name': collection.name}
     )
     if collection.cache_start_datetime is None:
         # first item in collection, as cache_start_datetime is None:
@@ -64,12 +64,12 @@ def update_start_temporal_extent_on_item_update(
         "Updating start of item %s in collection %s (old start: %s, new start: %s, "
         "old end: %s, new end: %s) ",
         item_id,
-        collection.collection_name,
+        collection.name,
         old_start_datetime,
         new_start_datetime,
         old_end_datetime,
         new_end_datetime,
-        extra={'collection_name': collection.collection_name}
+        extra={'collection_name': collection.name}
     )
 
     if old_start_datetime == collection.cache_start_datetime:
@@ -141,12 +141,12 @@ def update_end_temporal_extent_on_item_update(
         "Updating end of item %s in collection %s (old start: %s, new start: %s, "
         "old end: %s, new end: %s) ",
         item_id,
-        collection.collection_name,
+        collection.name,
         old_start_datetime,
         new_start_datetime,
         old_end_datetime,
         new_end_datetime,
-        extra={'collection_name': collection.collection_name}
+        extra={'collection_name': collection.name}
     )
 
     if old_end_datetime == collection.cache_end_datetime:
@@ -217,8 +217,8 @@ def update_start_temporal_extent_on_item_delete(
     logger.debug(
         "Deleting item %s from collection %s and updating the collection's start date",
         item_id,
-        collection.collection_name,
-        extra={'collection_name': collection.collection_name}
+        collection.name,
+        extra={'collection_name': collection.name}
     )
 
     if old_start_datetime == collection.cache_start_datetime:
@@ -231,7 +231,7 @@ def update_start_temporal_extent_on_item_delete(
         logger.warning(
             'Looping (twice) over all items of collection %s,'
             'to update temporal extent, this may take a while',
-            collection.collection_name
+            collection.name
         )
 
         # get earliest start_datetime or none, in case none exists
@@ -285,8 +285,8 @@ def update_end_temporal_extent_on_item_delete(
     logger.debug(
         "Deleting item %s from collection %s and updating the collection's end date",
         item_id,
-        collection.collection_name,
-        extra={'collection_name': collection.collection_name}
+        collection.name,
+        extra={'collection_name': collection.name}
     )
 
     if old_end_datetime == collection.cache_end_datetime:
@@ -299,7 +299,7 @@ def update_end_temporal_extent_on_item_delete(
         logger.warning(
             'Looping (twice) over all items of collection %s,'
             'to update temporal extent, this may take a while',
-            collection.collection_name
+            collection.name
         )
         # get latest end_datetime or none, in case none exists
         if bool(qs.filter(properties_end_datetime__isnull=False)):
@@ -373,7 +373,7 @@ def update_temporal_extent(
                 logger.warning(
                     'Looping over all items of collection %s,'
                     'to update temporal extent, this may take a while',
-                    collection.collection_name
+                    collection.name
                 )
                 qs = item.__class__.objects.filter(collection_id=collection.pk).exclude(id=item_id)
                 update_start_temporal_extent_on_item_update(
@@ -409,7 +409,7 @@ def update_temporal_extent(
                     logger.warning(
                         'Looping over all items of collection %s,'
                         'to update temporal extent, this may take a while',
-                        collection.collection_name
+                        collection.name
                     )
                     qs = item.__class__.objects.filter(collection_id=collection.pk
                                                       ).exclude(id=item_id)
@@ -442,7 +442,7 @@ def update_temporal_extent(
             logger.warning(
                 'Looping over all items of collection %s,'
                 'to update temporal extent, this may take a while',
-                collection.collection_name
+                collection.name
             )
             # get all items but the one to be deleted:
             qs = item.__class__.objects.filter(collection_id=collection.pk).exclude(id=item_id)

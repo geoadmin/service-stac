@@ -19,7 +19,7 @@ def create_collection(name):
         created=isoparse('2020-10-28T13:05:10Z'),
         updated=isoparse('2020-10-28T13:05:10Z'),
         description='This is a description',
-        collection_name=name,
+        name=name,
         license='test',
         summaries={
             "eo:gsd": [], "geoadmin:variant": [], "proj:epsg": []
@@ -64,7 +64,7 @@ def create_item(collection, name):
     # yapf: disable
     item = Item.objects.create(
         collection=collection,
-        item_name=name,
+        name=name,
         properties_datetime=isoparse('2020-10-28T13:05:10Z'),
         properties_eo_gsd=None,
         properties_title="My Title",
@@ -105,11 +105,11 @@ def create_item_links(item):
     return [link]
 
 
-def create_asset(item, asset_name):
+def create_asset(item, name):
     asset = Asset.objects.create(
         item=item,
         title='my-title',
-        asset_name=asset_name,
+        name=name,
         checksum_multihash="01205c3fd6978a7d0b051efaa4263a09",
         description="this an asset",
         eo_gsd=3.4,

@@ -23,22 +23,22 @@ class ItemsModelTestCase(TestCase):
     def test_item_create_model(self):
         item = Item.objects.create(
             collection=self.collection,
-            item_name='item-1',
+            name='item-1',
             properties_datetime=utc_aware(datetime.utcnow())
         )
         item.full_clean()
         item.save()
-        self.assertEqual('item-1', item.item_name)
+        self.assertEqual('item-1', item.name)
 
     def test_item_create_model_invalid_datetime(self):
         with self.assertRaises(ValidationError, msg="no datetime is invalid"):
-            item = Item.objects.create(collection=self.collection, item_name='item-1')
+            item = Item.objects.create(collection=self.collection, name='item-1')
             item.clean()
 
         with self.assertRaises(ValidationError, msg="only start_datetime is invalid"):
             item = Item.objects.create(
                 collection=self.collection,
-                item_name='item-2',
+                name='item-2',
                 properties_start_datetime=utc_aware(datetime.utcnow())
             )
             item.clean()
@@ -46,7 +46,7 @@ class ItemsModelTestCase(TestCase):
         with self.assertRaises(ValidationError, msg="only end_datetime is invalid"):
             item = Item.objects.create(
                 collection=self.collection,
-                item_name='item-3',
+                name='item-3',
                 properties_end_datetime=utc_aware(datetime.utcnow())
             )
             item.clean()
@@ -54,7 +54,7 @@ class ItemsModelTestCase(TestCase):
         with self.assertRaises(ValidationError, msg="datetime is not allowed with start_datetime"):
             item = Item.objects.create(
                 collection=self.collection,
-                item_name='item-4',
+                name='item-4',
                 properties_datetime=utc_aware(datetime.utcnow()),
                 properties_start_datetime=utc_aware(datetime.utcnow()),
                 properties_end_datetime=utc_aware(datetime.utcnow())
@@ -63,17 +63,17 @@ class ItemsModelTestCase(TestCase):
 
         with self.assertRaises(ValidationError):
             item = Item.objects.create(
-                collection=self.collection, item_name='item-1', properties_datetime='asd'
+                collection=self.collection, name='item-1', properties_datetime='asd'
             )
 
         with self.assertRaises(ValidationError):
             item = Item.objects.create(
-                collection=self.collection, item_name='item-4', properties_start_datetime='asd'
+                collection=self.collection, name='item-4', properties_start_datetime='asd'
             )
 
         with self.assertRaises(ValidationError):
             item = Item.objects.create(
-                collection=self.collection, item_name='item-1', properties_end_datetime='asd'
+                collection=self.collection, name='item-1', properties_end_datetime='asd'
             )
 
     def test_item_property_eo_gsd(self):
@@ -89,7 +89,7 @@ class ItemsModelTestCase(TestCase):
             asset = Asset.objects.create(
                 item=item,
                 title='my-title',
-                asset_name=f'asset-{i}',
+                name=f'asset-{i}',
                 checksum_multihash="01205c3fd6978a7d0b051efaa4263a09",
                 description="this an asset",
                 eo_gsd=eo_gsd[i],
@@ -133,7 +133,7 @@ class ItemsModelTestCase(TestCase):
         item = Item(
             collection=self.collection,
             properties_datetime=utc_aware(datetime.utcnow()),
-            item_name='item-1',
+            name='item-1',
             geometry=GEOSGeometry(
                 'SRID=4326;POLYGON '
                 '((5.96 45.82, 5.96 47.81, 10.49 47.81, 10.49 45.82, 5.96 45.82))'
@@ -147,7 +147,7 @@ class ItemsModelTestCase(TestCase):
             item = Item(
                 collection=self.collection,
                 properties_datetime=utc_aware(datetime.utcnow()),
-                item_name='item-1',
+                name='item-1',
                 geometry=GEOSGeometry(
                     'SRID=4326;POLYGON '
                     '((5.96 45.82, 5.96 47.81, 10.49 45.82, 10.49 47.81, 5.96 45.82))'
@@ -161,7 +161,7 @@ class ItemsModelTestCase(TestCase):
             item = Item(
                 collection=self.collection,
                 properties_datetime=utc_aware(datetime.utcnow()),
-                item_name='item-empty',
+                name='item-empty',
                 geometry=GEOSGeometry('POLYGON EMPTY')
             )
             item.full_clean()
@@ -172,7 +172,7 @@ class ItemsModelTestCase(TestCase):
             item = Item(
                 collection=self.collection,
                 properties_datetime=utc_aware(datetime.utcnow()),
-                item_name='item-empty',
+                name='item-empty',
                 geometry=None
             )
             item.full_clean()

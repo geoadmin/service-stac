@@ -86,10 +86,9 @@ def import_collection(collection_dir):
 def parse_collection(collection_data):
     # fist we care about the required properties
     collection, created = Collection.objects.get_or_create(
-        collection_name=collection_data["id"],
+        name=collection_data["id"],
         defaults={
             "description": collection_data["description"],
-            "collection_name": collection_data["id"],
             "license": collection_data["license"]
         },
     )
@@ -125,12 +124,12 @@ def get_property_datetime(item_data, key):
 
 
 def parse_item(item_data):
-    collection = Collection.objects.get(collection_name=item_data["collection"])
+    collection = Collection.objects.get(name=item_data["collection"])
     geometry = GEOSGeometry(json.dumps(item_data["geometry"]))
     if not geometry.valid:
         raise ValueError(f'Invalid geometry in item {item_data["id"]}: {geometry.valid_reason}')
     item, created = Item.objects.get_or_create(
-        item_name=item_data["id"],
+        name=item_data["id"],
         collection=collection,
         defaults={
             'geometry': geometry,
@@ -153,7 +152,7 @@ def parse_item(item_data):
 def parse_asset(item, asset_name, asset_data):
     asset, created = Asset.objects.get_or_create(
         item=item,
-        asset_name=asset_name,
+        name=asset_name,
         defaults={
             "checksum_multihash": asset_data["checksum:multihash"],
             "eo_gsd": asset_data.get("eo:gsd", None),

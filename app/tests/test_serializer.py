@@ -46,7 +46,7 @@ class SerializationTestCase(StacBaseTestCase):
         self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_collection_serialization(self):
-        collection_name = self.collection.collection_name
+        collection_name = self.collection.name
         # mock a request needed for the serialization of links
         request = self.factory.get(f'{API_BASE}/collections/{collection_name}')
 
@@ -135,8 +135,8 @@ class SerializationTestCase(StacBaseTestCase):
         self.assertEqual(True, serializer.is_valid(), msg='Serializer data not valid.')
 
     def test_item_serialization(self):
-        collection_name = self.collection.collection_name
-        item_name = self.item.item_name
+        collection_name = self.collection.name
+        item_name = self.item.name
 
         # mock a request needed for the serialization of links
         request = self.factory.get(f'{API_BASE}/collections/{collection_name}/items/{item_name}')
@@ -257,7 +257,7 @@ class SerializationTestCase(StacBaseTestCase):
         yesterday = now - timedelta(days=1)
         item_range = Item.objects.create(
             collection=self.collection,
-            item_name='item-range',
+            name='item-range',
             properties_start_datetime=yesterday,
             properties_end_datetime=now,
             properties_eo_gsd=float(10),
@@ -267,8 +267,8 @@ class SerializationTestCase(StacBaseTestCase):
         item_range.full_clean()
         item_range.save()
 
-        collection_name = self.collection.collection_name
-        item_name = item_range.item_name
+        collection_name = self.collection.name
+        item_name = item_range.name
 
         # mock a request needed for the serialization of links
         request = self.factory.get(f'{API_BASE}/collections/{collection_name}/items/{item_name}')
@@ -373,9 +373,9 @@ class SerializationTestCase(StacBaseTestCase):
         logger.debug('back validated data:\n%s', pformat(back_serializer.validated_data))
 
     def test_asset_serialization(self):
-        collection_name = self.collection.collection_name
-        item_name = self.item.item_name
-        asset_name = self.asset.asset_name
+        collection_name = self.collection.name
+        item_name = self.item.name
+        asset_name = self.asset.name
         # mock a request needed for the serialization of links
         request = self.factory.get(
             f'{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
@@ -393,7 +393,7 @@ class SerializationTestCase(StacBaseTestCase):
         logger.debug('json string: %s', json_string.decode("utf-8"))
 
         expected = {
-            'asset_name': asset_name,
+            'name': asset_name,
             'checksum:multihash': '01205c3fd6978a7d0b051efaa4263a09',
             'description': 'this an asset',
             'eo:gsd': 3.4,
