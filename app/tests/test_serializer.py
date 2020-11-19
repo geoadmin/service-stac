@@ -136,7 +136,7 @@ class SerializationTestCase(StacBaseTestCase):
 
     def test_item_serialization(self):
         collection_name = self.collection.name
-        item_name = self.item.item_name
+        item_name = self.item.name
 
         # mock a request needed for the serialization of links
         request = self.factory.get(f'{API_BASE}/collections/{collection_name}/items/{item_name}')
@@ -257,7 +257,7 @@ class SerializationTestCase(StacBaseTestCase):
         yesterday = now - timedelta(days=1)
         item_range = Item.objects.create(
             collection=self.collection,
-            item_name='item-range',
+            name='item-range',
             properties_start_datetime=yesterday,
             properties_end_datetime=now,
             properties_eo_gsd=float(10),
@@ -268,7 +268,7 @@ class SerializationTestCase(StacBaseTestCase):
         item_range.save()
 
         collection_name = self.collection.name
-        item_name = item_range.item_name
+        item_name = item_range.name
 
         # mock a request needed for the serialization of links
         request = self.factory.get(f'{API_BASE}/collections/{collection_name}/items/{item_name}')
@@ -374,7 +374,7 @@ class SerializationTestCase(StacBaseTestCase):
 
     def test_asset_serialization(self):
         collection_name = self.collection.name
-        item_name = self.item.item_name
+        item_name = self.item.name
         asset_name = self.asset.asset_name
         # mock a request needed for the serialization of links
         request = self.factory.get(

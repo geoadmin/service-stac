@@ -329,9 +329,7 @@ class CollectionLink(Link):
 
 
 class Item(models.Model):
-    item_name = models.CharField(
-        unique=True, blank=False, max_length=255, validators=[validate_name]
-    )
+    name = models.CharField(unique=True, blank=False, max_length=255, validators=[validate_name])
     collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
     geometry = models.PolygonField(
         null=False, blank=False, default=BBOX_CH, srid=4326, validators=[validate_geometry]
@@ -374,7 +372,7 @@ class Item(models.Model):
         self.__original_properties_datetime = self.properties_datetime
 
     def __str__(self):
-        return self.item_name
+        return self.name
 
     def clean(self):
         self.validate_datetime_properties()
@@ -455,10 +453,10 @@ class Item(models.Model):
 
         # adding a new item means updating the bbox of the collection
         if self.pk is None:
-            self.collection.update_bbox_extent('insert', self.geometry, self.pk, self.item_name)
+            self.collection.update_bbox_extent('insert', self.geometry, self.pk, self.name)
         # update the bbox of the collection only when the geometry of the item has changed
         elif self.geometry != self._original_geometry:
-            self.collection.update_bbox_extent('update', self.geometry, self.pk, self.item_name)
+            self.collection.update_bbox_extent('update', self.geometry, self.pk, self.name)
 
         super().save(*args, **kwargs)
 
@@ -493,7 +491,7 @@ class Item(models.Model):
                 self.pk
             )
 
-        self.collection.update_bbox_extent('rm', self.geometry, self.pk, self.item_name)
+        self.collection.update_bbox_extent('rm', self.geometry, self.pk, self.name)
         super().delete(*args, **kwargs)
 
     def validate_datetime_properties(self):
@@ -531,7 +529,7 @@ class Item(models.Model):
             # but here because it first only occur during deleting asset which is a rare case
             # and because we should not have too many assets within an item (a dozen),
             # it is acceptable
-            assets = Asset.objects.filter(item__item_name=self.item_name).exclude(id=asset.id)
+            assets = Asset.objects.filter(item__name=self.name).exclude(id=asset.id)
             self.properties_eo_gsd = min([
                 asset.eo_gsd for asset in assets if asset.eo_gsd is not None
             ])

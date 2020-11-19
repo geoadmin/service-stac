@@ -64,7 +64,7 @@ def create_item(collection, name):
     # yapf: disable
     item = Item.objects.create(
         collection=collection,
-        item_name=name,
+        name=name,
         properties_datetime=isoparse('2020-10-28T13:05:10Z'),
         properties_eo_gsd=None,
         properties_title="My Title",

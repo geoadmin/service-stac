@@ -39,7 +39,7 @@ class ItemsEndpointTestCase(TestCase):
         self.yesterday = self.now - timedelta(days=1)
         item_yesterday = Item.objects.create(
             collection=self.collections[0],
-            item_name='item-yesterday',
+            name='item-yesterday',
             properties_datetime=self.yesterday,
             properties_eo_gsd=None,
             properties_title="My Title",
@@ -49,7 +49,7 @@ class ItemsEndpointTestCase(TestCase):
         item_yesterday.save()
         item_now = Item.objects.create(
             collection=self.collections[0],
-            item_name='item-now',
+            name='item-now',
             properties_datetime=self.now,
             properties_eo_gsd=None,
             properties_title="My Title",
@@ -59,7 +59,7 @@ class ItemsEndpointTestCase(TestCase):
         item_now.save()
         item_range = Item.objects.create(
             collection=self.collections[0],
-            item_name='item-range',
+            name='item-range',
             properties_start_datetime=self.yesterday,
             properties_end_datetime=self.now,
             properties_eo_gsd=None,
@@ -133,7 +133,7 @@ class ItemsEndpointTestCase(TestCase):
 
     def test_single_item_endpoint(self):
         collection_name = self.collections[0].name
-        item_name = self.items[0][0].item_name
+        item_name = self.items[0][0].name
         response = self.client.get(f"/{API_BASE}collections/{collection_name}/items/{item_name}")
         json_data = response.json()
         logger.debug('Response (%s):\n%s', type(json_data), pformat(json_data))

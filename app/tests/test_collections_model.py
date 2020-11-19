@@ -31,7 +31,7 @@ class CollectionsModelTestCase(TestCase):
     def add_range_item(self, start, end, name):
         item = Item.objects.create(
             collection=self.collection,
-            item_name=name,
+            name=name,
             properties_start_datetime=start,
             properties_end_datetime=end,
             properties_eo_gsd=None,
@@ -46,7 +46,7 @@ class CollectionsModelTestCase(TestCase):
     def add_single_datetime_item(self, datetime_val, name):
         item = Item.objects.create(
             collection=self.collection,
-            item_name=name,
+            name=name,
             properties_datetime=datetime_val,
             properties_eo_gsd=None,
             properties_title="My Title",

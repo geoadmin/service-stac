@@ -129,7 +129,7 @@ def parse_item(item_data):
     if not geometry.valid:
         raise ValueError(f'Invalid geometry in item {item_data["id"]}: {geometry.valid_reason}')
     item, created = Item.objects.get_or_create(
-        item_name=item_data["id"],
+        name=item_data["id"],
         collection=collection,
         defaults={
             'geometry': geometry,

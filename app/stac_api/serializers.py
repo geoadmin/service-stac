@@ -369,7 +369,7 @@ class ItemSerializer(NonNullModelSerializer):
         ]
 
     collection = serializers.StringRelatedField()
-    id = serializers.CharField(source='item_name', required=True, max_length=255)
+    id = serializers.CharField(source='name', required=True, max_length=255)
     properties = ItemsPropertiesSerializer(source='*')
     geometry = gis_serializers.GeometryField()
     # read only fields
@@ -388,7 +388,7 @@ class ItemSerializer(NonNullModelSerializer):
 
     def to_representation(self, instance):
         collection = instance.collection.name
-        name = instance.item_name
+        name = instance.name
         api = settings.API_BASE
         request = self.context.get("request")
         representation = super().to_representation(instance)
