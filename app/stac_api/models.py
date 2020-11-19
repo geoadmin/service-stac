@@ -66,6 +66,16 @@ def float_in(flt, floats, **kwargs):
     return np.any(np.isclose(flt, floats, **kwargs))
 
 
+def validate_name(name):
+    '''Validate name used in URL
+    '''
+    if not re.match(r'^[0-9a-z-_.]+$', name):
+        logger.error('Invalid name %s, only the following characters are allowed: 0-9a-z-_.', name)
+        raise ValidationError(
+            _('Invalid name, only the following characters are allowed: 0-9a-z-_.')
+        )
+
+
 def validate_geoadmin_variant(variant):
     '''Validate geoadmin:variant, it should not have special characters'''
     if not re.match('^[a-zA-Z0-9]+$', variant):
@@ -158,9 +168,11 @@ class Provider(models.Model):
 
 
 class Collection(models.Model):
-    created = models.DateTimeField(auto_now_add=True)  # datetime
-    updated = models.DateTimeField(auto_now=True)  # datetime
-    description = models.TextField()  # string  / intentionally TextField and
+    # using "_name" instead of "_id", as "_id" has a default meaning in django
+    collection_name = models.CharField(unique=True, max_length=255, validators=[validate_name])
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
+    description = models.TextField()
     extent_geometry = models.PolygonField(
         default=None,
         srid=4326,
@@ -172,9 +184,6 @@ class Collection(models.Model):
 
     cache_start_datetime = models.DateTimeField(editable=False, null=True, blank=True)
     cache_end_datetime = models.DateTimeField(editable=False, null=True, blank=True)
-    collection_name = models.CharField(unique=True, max_length=255)  # string
-    # collection_name is what is simply only called "id" in here:
-    # http://ltboc.infra.bgdi.ch/static/products/data.geo.admin.ch/apitransactional.html#operation/createCollection
 
     license = models.CharField(max_length=30)  # string
 
@@ -320,11 +329,13 @@ class CollectionLink(Link):
 
 
 class Item(models.Model):
+    item_name = models.CharField(
+        unique=True, blank=False, max_length=255, validators=[validate_name]
+    )
     collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
     geometry = models.PolygonField(
         null=False, blank=False, default=BBOX_CH, srid=4326, validators=[validate_geometry]
     )
-    item_name = models.CharField(unique=True, blank=False, max_length=255)
 
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
@@ -546,7 +557,9 @@ class Asset(models.Model):
         Item, related_name='assets', related_query_name='asset', on_delete=models.CASCADE
     )
     # using "_name" instead of "_id", as "_id" has a default meaning in django
-    asset_name = models.CharField(unique=True, blank=False, max_length=255)
+    asset_name = models.CharField(
+        unique=True, blank=False, max_length=255, validators=[validate_name]
+    )
     checksum_multihash = models.CharField(blank=False, max_length=255)
     description = models.TextField()
     eo_gsd = models.FloatField(null=True)
