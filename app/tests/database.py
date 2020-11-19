@@ -105,9 +105,8 @@ def create_item_links(item):
     return [link]
 
 
-def create_asset(collection, item, asset_name):
+def create_asset(item, asset_name):
     asset = Asset.objects.create(
-        collection=collection,
         item=item,
         title='my-title',
         asset_name=asset_name,
@@ -124,7 +123,6 @@ def create_asset(collection, item, asset_name):
     asset.full_clean()
     asset.save()
     item.save()
-    collection.save()
     return asset
 
 
@@ -142,7 +140,7 @@ def create_dummy_db_content(nb_collections, nb_items, nb_assets):
             items[i].append(item)
             assets[i].append([])
             for k in range(nb_assets):
-                asset = create_asset(collection, item, f'asset-{i+1}-{j+1}-{k+1}')
+                asset = create_asset(item, f'asset-{i+1}-{j+1}-{k+1}')
                 assets[i][j].append(asset)
 
     return collections, items, assets

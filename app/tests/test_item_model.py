@@ -87,7 +87,6 @@ class ItemsModelTestCase(TestCase):
         for i in range(random.randrange(5, 10)):
             eo_gsd.append(round(random.uniform(1, 50), 3))
             asset = Asset.objects.create(
-                collection=self.collection,
                 item=item,
                 title='my-title',
                 asset_name=f'asset-{i}',

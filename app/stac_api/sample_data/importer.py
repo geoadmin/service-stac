@@ -153,7 +153,6 @@ def parse_item(item_data):
 def parse_asset(item, asset_name, asset_data):
     asset, created = Asset.objects.get_or_create(
         item=item,
-        collection=item.collection,
         asset_name=asset_name,
         defaults={
             "checksum_multihash": asset_data["checksum:multihash"],

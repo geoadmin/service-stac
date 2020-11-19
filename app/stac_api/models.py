@@ -69,6 +69,15 @@ def float_in(flt, floats, **kwargs):
     return np.any(np.isclose(flt, floats, **kwargs))
 
 
+def validate_geoadmin_variant(variant):
+    '''Validate geoadmin:variant, it should not have special characters'''
+    if not re.match('^[a-zA-Z0-9]+$', variant):
+        logger.error(
+            "Invalid geoadmin:variant property %s, special characters not allowed", variant
+        )
+        raise ValidationError(_("Invalid geoadmin:variant, special characters not allowed"))
+
+
 def validate_link_rel(value):
     invalid_rel = ['self', 'root', 'parent', 'items', 'collection']
     if value in invalid_rel:
@@ -557,7 +566,6 @@ class Asset(models.Model):
     item = models.ForeignKey(
         Item, related_name='assets', related_query_name='asset', on_delete=models.CASCADE
     )
-    collection = models.ForeignKey(Collection, on_delete=models.CASCADE, blank=True, editable=False)
     # using "_name" instead of "_id", as "_id" has a default meaning in django
     asset_name = models.CharField(unique=True, blank=False, max_length=255)
     checksum_multihash = models.CharField(blank=False, max_length=255)
@@ -576,10 +584,9 @@ class Asset(models.Model):
     geoadmin_lang = models.CharField(
         max_length=2, choices=Language.choices, default=Language.NONE, null=True
     )
-    # after discussion with Chris and Tobias: geoadmin_variant will be an
-    # array field of CharFields. Simple validation is done (e.g. no "Sonderzeichen"
-    # in array)
-    geoadmin_variant = models.CharField(max_length=15, null=True, blank=True)
+    geoadmin_variant = models.CharField(
+        max_length=15, null=True, blank=True, validators=[validate_geoadmin_variant]
+    )
     proj_epsg = models.IntegerField(null=True)
     title = models.CharField(max_length=255)
     media_type = models.CharField(max_length=200)
@@ -590,14 +597,6 @@ class Asset(models.Model):
 
     def __str__(self):
         return self.asset_name
-
-    def clean(self):
-        # very simple validation, raises error when geoadmin_variant strings contain special
-        # characters or umlaut.
-        if not bool(re.search('^[a-zA-Z0-9]*$', self.geoadmin_variant)):
-            logger.error("Property geoadmin:variant not compatible with the naming conventions.")
-            raise ValidationError(_("Property geoadmin:variant not compatible with the "
-                                    "naming conventions."))
 
     # alter save-function, so that the corresponding collection of the parent item of the asset
     # is saved, too.

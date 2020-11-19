@@ -40,7 +40,7 @@ class SerializationTestCase(StacBaseTestCase):
         self.item = db.create_item(self.collection, 'item-1')
         self.item.full_clean()
         self.item.save()
-        self.asset = db.create_asset(self.collection, self.item, 'asset-1')
+        self.asset = db.create_asset(self.item, 'asset-1')
         self.asset.full_clean()
         self.asset.save()
         self.maxDiff = None  # pylint: disable=invalid-name
@@ -189,7 +189,7 @@ class SerializationTestCase(StacBaseTestCase):
                             [5.644711, 48.014995],
                             [6.602408, 48.014995],
                             [7.602408, 49.014995],
-                            [5.644711, 46.775054]
+                            [5.644711, 46.775054],
                         ]],
                     ),
                 ]),
