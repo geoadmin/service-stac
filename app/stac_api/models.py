@@ -12,6 +12,8 @@ from django.core.exceptions import ValidationError
 from django.core.serializers.json import DjangoJSONEncoder
 from django.utils.translation import gettext_lazy as _
 
+from stac_api.temporal_extent import update_temporal_extent
+
 # pylint: disable=fixme
 # TODO remove this pylint disable once this is done
 
@@ -119,7 +121,7 @@ class Provider(models.Model):
     roles = ArrayField(models.CharField(max_length=9), help_text=_(
         "Comma-separated list of roles. Possible values are {}".format(
             ', '.join(allowed_roles)))
-    )
+                      )
     url = models.URLField()
 
     class Meta:
@@ -210,13 +212,6 @@ class Collection(models.Model):
         updated or an error will be raised, if updating fails.
         '''
         try:
-
-            # logger.debug(
-            #     "updating geoadmin:variants, self.summaries['eo:gsd']=%s, asset_eo_gsd=%s",
-            #     self.summaries["geoadmin:variant"],
-            #     asset_eo_gsd
-            # )
-
             if asset_geoadmin_variant and \
                asset_geoadmin_variant not in self.summaries["geoadmin:variant"]:
                 self.summaries["geoadmin:variant"].append(asset_geoadmin_variant)
@@ -238,28 +233,6 @@ class Collection(models.Model):
                 "Error when updating collection's summaries values due to asset update."
             ))
 
-    def update_temporal_extent(self, item_properties_start_datetime, item_properties_end_datetime):
-        '''
-        updates the collection's temporal extent when item's are update.
-        :param item_properties_datetime: item's value for properties_datetime.
-        This function checks, if the corresponding parameter of the collection
-        needs to be updated. If so, it will be either updated or an error will
-        be raised, if updating fails.
-        '''
-
-        if self.cache_start_datetime is None:
-            self.cache_start_datetime = item_properties_start_datetime
-            self.save()
-        elif item_properties_start_datetime < self.cache_start_datetime:
-            self.cache_start_datetime = item_properties_start_datetime
-            self.save()
-        elif self.cache_end_datetime is None:
-            self.cache_end_datetime = item_properties_end_datetime
-            self.save()
-        elif item_properties_end_datetime > self.cache_end_datetime:
-            self.cache_end_datetime = item_properties_end_datetime
-            self.save()
-
     def update_bbox_extent(self, action, item_geom, item_id, item_name):
         '''
         updates the collection's spatial extent when an item is updated.
@@ -270,7 +243,6 @@ class Collection(models.Model):
         collection foreign key. If there is no spatial bbox yet, the one of the geometry of the
         item is being used.
         '''
-
         try:
             # insert (as item_id is None)
             if action == 'insert':
@@ -368,7 +340,6 @@ class Item(models.Model):
 
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
-
     # after discussion with Chris and Tobias: for the moment only support
     # proterties: datetime, eo_gsd and title (the rest is hence commented out)
     properties_datetime = models.DateTimeField(blank=True, null=True)
@@ -384,7 +355,6 @@ class Item(models.Model):
     # properties_platform = models.TextField(blank=True)
     # properties_providers = models.ManyToManyField(Provider)
     properties_title = models.CharField(blank=True, max_length=255)
-
     # properties_view_off_nadir = models.FloatField(blank=True)
     # properties_view_sun_azimuth = models.FloatField(blank=True)
     # properties_view_elevation = models.FloatField(blank=True)
@@ -393,10 +363,16 @@ class Item(models.Model):
     # when the geometry has changed (during update)
     # https://stackoverflow.com/questions/1355150/when-saving-how-can-you-check-if-a-field-has-changed
     _original_geometry = None
+    __original_properties_start_datetime = None
+    __original_properties_end_datetime = None
+    __original_properties_datetime = None
 
     def __init__(self, *args, **kwargs):
         super(Item, self).__init__(*args, **kwargs)
         self._original_geometry = self.geometry
+        self.__original_properties_start_datetime = self.properties_start_datetime
+        self.__original_properties_end_datetime = self.properties_end_datetime
+        self.__original_properties_datetime = self.properties_datetime
 
     def __str__(self):
         return self.item_name
@@ -411,13 +387,71 @@ class Item(models.Model):
         # This is needed because save() is called during the Item.object.create() function without
         # calling clean() ! and our validation is done within clean() method.
         self.validate_datetime_properties()
+
+        if self.pk is None:
+            action = "insert"
+        else:
+            action = "update"
+
         if self.properties_datetime is not None:
-            self.collection.update_temporal_extent(
-                self.properties_datetime, self.properties_datetime
+            if self.__original_properties_datetime is not None:
+                # This is the case, when the value of properties.datetime has been
+                # updated
+                update_temporal_extent(
+                    self,
+                    self.collection,
+                    action,
+                    self.__original_properties_datetime,
+                    self.properties_datetime,
+                    self.__original_properties_datetime,
+                    self.properties_datetime,
+                    self.pk
+                )
+            else:
+                # This is the case, when the item was defined by a start_ and
+                # end_datetime before and has been changed to only have a single
+                # datetime property. In that case, we hand over the old
+                # start_ and end_datetime values to the update function, so
+                # that a loop over all items will only be done, if really
+                # necessary.
+
+                update_temporal_extent(
+                    self,
+                    self.collection,
+                    action,
+                    self.__original_properties_start_datetime,
+                    self.properties_datetime,
+                    self.__original_properties_end_datetime,
+                    self.properties_datetime,
+                    self.pk
+                )
+        elif self.__original_properties_start_datetime is not None and \
+            self.__original_properties_end_datetime is not None:
+            # This is the case, if an items values for start_ and/or end_datetime
+            # were updated.
+            update_temporal_extent(
+                self,
+                self.collection,
+                action,
+                self.__original_properties_start_datetime,
+                self.properties_start_datetime,
+                self.__original_properties_end_datetime,
+                self.properties_end_datetime,
+                self.pk
             )
         else:
-            self.collection.update_temporal_extent(
-                self.properties_start_datetime, self.properties_end_datetime
+            # This is the case, when an item was defined by a single datetime
+            # before and has been changed to contain a start_ and an
+            # end_datetime value now.
+            update_temporal_extent(
+                self,
+                self.collection,
+                action,
+                self.__original_properties_datetime,
+                self.properties_start_datetime,
+                self.__original_properties_datetime,
+                self.properties_end_datetime,
+                self.pk
             )
 
         # adding a new item means updating the bbox of the collection
@@ -430,11 +464,36 @@ class Item(models.Model):
         super().save(*args, **kwargs)
 
         self._original_geometry = self.geometry
+        self.__original_properties_start_datetime = self.properties_start_datetime
+        self.__original_properties_end_datetime = self.properties_end_datetime
+        self.__original_properties_datetime = self.properties_datetime
 
     def delete(self, *args, **kwargs):  # pylint: disable=signature-differs
         # It is important to use `*args, **kwargs` in signature because django might add dynamically
         # parameters
-        # TODO: also implement the delete case of temporal extent
+        if self.properties_datetime is not None:
+            update_temporal_extent(
+                self,
+                self.collection,
+                'remove',
+                self.__original_properties_datetime,
+                self.properties_datetime,
+                self.__original_properties_datetime,
+                self.properties_datetime,
+                self.pk
+            )
+        else:
+            update_temporal_extent(
+                self,
+                self.collection,
+                'remove',
+                self.__original_properties_start_datetime,
+                self.properties_start_datetime,
+                self.__original_properties_end_datetime,
+                self.properties_end_datetime,
+                self.pk
+            )
+
         self.collection.update_bbox_extent('rm', self.geometry, self.pk, self.item_name)
         super().delete(*args, **kwargs)
 
@@ -499,7 +558,6 @@ class Asset(models.Model):
         Item, related_name='assets', related_query_name='asset', on_delete=models.CASCADE
     )
     collection = models.ForeignKey(Collection, on_delete=models.CASCADE, blank=True, editable=False)
-
     # using "_name" instead of "_id", as "_id" has a default meaning in django
     asset_name = models.CharField(unique=True, blank=False, max_length=255)
     checksum_multihash = models.CharField(blank=False, max_length=255)
