@@ -1,44 +1,46 @@
 #!/bin/bash
-set - e
-set - u
+set -e
+set -u
 
+MY_DIR=$(dirname "$(readlink -f "$0")")
 # The following variables are used from ENV which
 # is populated by summon with the following command
 # summon -p `which summon-gopass` -D APP_ENV=int scripts/setup_rds_db.sh
 # where the environment is set by the APP_ENV variable
-# DB_NAME
-# DB_USER
-# DB_PW
-# DB_HOST
-# DB_PORT
-# RDS_SUPERUSER
-
-# The PGPASSWORD ENV Variable is set to suppress
-# psql PW prompt
-# Its value is taken from RDS_SUPERUSER_PW which is set
-# by summon as well
-PGPASSWORD=${RDS_SUPERUSER_PW}
 
 # create db
-SQL_DB="$(envsubst < scripts/sql/create_db.sql)"
+SQL_CREATE_DB="$(envsubst < scripts/sql/create_db.sql)"
 
 # create user
-SQL_USER="$(envsubst < scripts/sql/create_user.sql)"
+SQL_CREATE_USER="$(envsubst < scripts/sql/create_user.sql)"
 
 create_user(){
     echo "create user"
-    echo ${SQL_USER}
-    # Note: RDS_SUPERUSER password is taken from env variable
-    # PGPASSWORD set above (env variable RDS_SUPERUSER_PW)
-    echo "-qAt -X -U ${RDS_SUPERUSER} -h ${DB_HOST} -p ${DB_PORT} -d template1 -c ${SQL_USER}"
+    PGPASSWORD=${DB_SUPER_PW} psql -qAt -X -U ${DB_SUPER_USER} -h ${DB_HOST} -p ${DB_PORT} -d template1 -c "${SQL_CREATE_USER}"
 }
 
 create_db(){
     echo "create db"
-    echo ${SQL_DB}
-    echo "-qAt -X -U ${RDS_SUPERUSER} -h ${DB_HOST} -p ${DB_PORT} -d template1 -c ${SQL_DB}"
+    if [ "$(PGPASSWORD=${DB_SUPER_PW} psql -U ${DB_SUPER_USER} -h ${DB_HOST} -p ${DB_PORT} -d template1 -tAc "SELECT 1 FROM pg_database WHERE datname='${DB_NAME}'" )" = '1' ]; then
+      echo "db ${DB_NAME} already exists"
+    else
+      PGPASSWORD=${DB_SUPER_PW} psql -qAt -X -U ${DB_SUPER_USER} -h ${DB_HOST} -p ${DB_PORT} -d template1 -c "${SQL_CREATE_DB}"
+    fi
 }
 
+grant_privileges(){
+    echo "grant privileges"
+    PGPASSWORD=${DB_SUPER_PW} psql -qAt -X -U ${DB_SUPER_USER} -h ${DB_HOST} -p ${DB_PORT} -d ${DB_NAME} -c "GRANT ALL PRIVILEGES ON DATABASE ${DB_NAME} to ${DB_USER}";
+}
+
+setup_postgis(){
+    echo "setup postgis"
+    PGPASSWORD=${DB_SUPER_PW} psql -qAt -X -U ${DB_SUPER_USER} -h ${DB_HOST} -p ${DB_PORT} -d ${DB_NAME} -f "${MY_DIR}/sql/install_postgis.sql"
+}
+
+echo "[$(date +"%F %T")] start"
 create_user
 create_db
-#setup_postgis
+setup_postgis
+grant_privileges
+echo "[$(date +"%F %T")] end"
