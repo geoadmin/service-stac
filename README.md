@@ -230,7 +230,7 @@ service-stac-dev:
 ## Initial Setup up the RDS database and the user
 
 Right now the initial setup on the RDS database for the stagings _dev_, _int_ and _prod_ can be obtained
-with the helper script `scripts/setup_rds_db.sh`. The credetials come from `gopass`. To
+with the helper script `scripts/setup_rds_db.sh`. The credentials come from `gopass`. To
 setup the RDS database on int, run following command:
 
 ```bash
