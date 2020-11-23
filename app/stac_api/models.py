@@ -47,7 +47,7 @@ DEFAULT_SUMMARIES_VALUE = {"eo:gsd": [], "geoadmin:variant": [], "proj:epsg": []
 
 
 def get_default_stac_extensions(is_collection=False):
-    if is_collection:
+    if is_collection: # pylint: disable=no-else-return
         return list()
     else:
         return list(DEFAULT_STAC_EXTENSIONS.values())
