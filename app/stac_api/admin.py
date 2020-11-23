@@ -9,10 +9,7 @@ from .models import Item
 from .models import ItemLink
 from .models import Provider
 
-admin.site.register(Item)
 admin.site.register(Asset)
-admin.site.register(CollectionLink)
-admin.site.register(ItemLink)
 
 
 class ProviderInline(admin.TabularInline):
@@ -27,8 +24,21 @@ class ProviderInline(admin.TabularInline):
     }
 
 
+class CollectionLinkInline(admin.TabularInline):
+    model = CollectionLink
+    extra = 0
+
+
 @admin.register(Collection)
 class CollectionAdmin(admin.ModelAdmin):
-    inlines = [
-        ProviderInline,
-    ]
+    inlines = [ProviderInline, CollectionLinkInline]
+
+
+class ItemLinkInline(admin.TabularInline):
+    model = ItemLink
+    extra = 0
+
+
+@admin.register(Item)
+class ItemAdmin(admin.ModelAdmin):
+    inlines = [ItemLinkInline]
