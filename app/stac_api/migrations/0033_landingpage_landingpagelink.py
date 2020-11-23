@@ -10,7 +10,7 @@ import stac_api.models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('stac_api', '0031_auto_20201119_0927'),
+        ('stac_api', '0032_auto_20201123_1157'),
     ]
 
     operations = [
