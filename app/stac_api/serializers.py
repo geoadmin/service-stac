@@ -126,13 +126,13 @@ class LandingPageSerializer(serializers.ModelSerializer):
             ]),
             OrderedDict([
                 ("rel", "service-doc"),
-                ("href", request.build_absolute_uri(f"/{api_base}api.html")),
+                ("href", request.build_absolute_uri(f"/{api_base}/static/api.html")),
                 ("type", "text/html"),
                 ("title", "The API documentation"),
             ]),
             OrderedDict([
                 ("rel", "service-desc"),
-                ("href", request.build_absolute_uri(f"/{api_base}openapi.yaml")),
+                ("href", request.build_absolute_uri(f"/{api_base}/static/openapi.yaml")),
                 ("type", "application/vnd.oai.openapi+yaml;version=3.0"),
                 ("title", "The OPENAPI description of the service"),
             ]),
@@ -143,7 +143,7 @@ class LandingPageSerializer(serializers.ModelSerializer):
                 ("title", "OGC API conformance classes implemented by this server"),
             ]),
             OrderedDict([
-                ('rel', 'collections'),
+                ('rel', 'data'),
                 ('href', request.build_absolute_uri(f'/{api_base}collections')),
                 ("type", "application/json"),
                 ("title", "Information about the feature collections"),
