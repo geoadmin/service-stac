@@ -12,6 +12,7 @@ from rest_framework.renderers import JSONRenderer
 from rest_framework.test import APIRequestFactory
 
 from stac_api.models import Item
+from stac_api.serializers import STAC_VERSION
 from stac_api.serializers import AssetSerializer
 from stac_api.serializers import CollectionSerializer
 from stac_api.serializers import ItemSerializer
@@ -116,7 +117,7 @@ class SerializationTestCase(StacBaseTestCase):
                 'view',
                 'https://data.geo.admin.ch/stac/geoadmin-extension/1.0/schema.json'
             ],
-            'stac_version': '0.9.0',
+            'stac_version': STAC_VERSION,
             'summaries': {
                 'eo:gsd': [3.4],
                 'geoadmin:variant': ['kgrs'],
@@ -236,7 +237,7 @@ class SerializationTestCase(StacBaseTestCase):
                 'view',
                 'https://data.geo.admin.ch/stac/geoadmin-extension/1.0/schema.json'
             ],
-            'stac_version': '0.9.0',
+            'stac_version': STAC_VERSION,
             'type': 'Feature'
         }
         self.check_stac_item(expected, python_native)
@@ -356,7 +357,7 @@ class SerializationTestCase(StacBaseTestCase):
                 'view',
                 'https://data.geo.admin.ch/stac/geoadmin-extension/1.0/schema.json'
             ],
-            'stac_version': '0.9.0',
+            'stac_version': STAC_VERSION,
             'type': 'Feature'
         }
         self.check_stac_item(expected, python_native)

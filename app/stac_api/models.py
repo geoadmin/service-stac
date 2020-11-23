@@ -12,6 +12,8 @@ from django.core.exceptions import ValidationError
 from django.core.serializers.json import DjangoJSONEncoder
 from django.utils.translation import gettext_lazy as _
 
+from solo.models import SingletonModel
+
 from stac_api.temporal_extent import update_temporal_extent
 
 logger = logging.getLogger(__name__)
@@ -88,7 +90,17 @@ def validate_geoadmin_variant(variant):
 
 
 def validate_link_rel(value):
-    invalid_rel = ['self', 'root', 'parent', 'items', 'collection']
+    invalid_rel = [
+        'self',
+        'root',
+        'parent',
+        'items',
+        'collection',
+        'service-desc',
+        'service-doc',
+        'search',
+        'conformance'
+    ]
     if value in invalid_rel:
         logger.error("Link rel attribute %s is not allowed, it is a reserved attribute", value)
         raise ValidationError(_(f'Invalid rel attribute, must not be in {invalid_rel}'))
@@ -124,6 +136,32 @@ class Link(models.Model):
 
     def __str__(self):
         return '%s: %s' % (self.rel, self.href)
+
+
+class LandingPage(SingletonModel):
+    # using "name" instead of "id", as "id" has a default meaning in django
+    name = models.CharField(
+        'id', unique=True, max_length=255, validators=[validate_name], default='ch'
+    )
+    title = models.CharField(max_length=255, default='data.geo.admin.ch')
+    description = models.TextField(
+        default='Data Catalog of the Swiss Federal Spatial Data Infrastructure'
+    )
+
+    def __str__(self):
+        return "STAC Landing Page"
+
+    class Meta:
+        verbose_name = "STAC Landing Page"
+
+
+class LandingPageLink(Link):
+    landing_page = models.ForeignKey(
+        LandingPage, related_name='links', related_query_name='link', on_delete=models.CASCADE
+    )
+
+    class Meta:
+        unique_together = (('rel', 'landing_page'))
 
 
 class Provider(models.Model):
