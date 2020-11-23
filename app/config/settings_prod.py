@@ -31,11 +31,8 @@ if APP_ENV.lower() == 'local':
     os.environ['APP_ENV'] = 'local'
     load_dotenv(BASE_DIR / f'.env.{APP_ENV}')
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/3.1/howto/deployment/checklist/
-
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = '%5+eq2851!d7qi^sze(nv2g#kt8v$7)4ck3cq*e!5c2rx%13p+'
+SECRET_KEY = os.getenv('SECRET_KEY', None)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = bool(strtobool(os.getenv('DEBUG', 'False')))

@@ -12,6 +12,15 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 
 from .settings_prod import *  # pylint: disable=wildcard-import, unused-wildcard-import
 
+# Quick-start development settings - unsuitable for production
+# See https://docs.djangoproject.com/en/3.1/howto/deployment/checklist/
+
+# SECURITY WARNING: keep the secret key used in production secret!
+# NOTE: this key here if for development convenience and should not be used
+# on deployment.
+if SECRET_KEY is None:
+    SECRET_KEY = '%5+eq2851!d7qi^sze(nv2g#kt8v$7)4ck3cq*e!5c2rx%13p+'
+
 ALLOWED_HOSTS = ['*']
 
 # django-extensions
