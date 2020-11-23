@@ -171,7 +171,7 @@ class Provider(models.Model):
 
 class Collection(models.Model):
     # using "name" instead of "id", as "id" has a default meaning in django
-    name = models.CharField(unique=True, max_length=255, validators=[validate_name])
+    name = models.CharField('id', unique=True, max_length=255, validators=[validate_name])
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
     description = models.TextField()
@@ -331,7 +331,9 @@ class CollectionLink(Link):
 
 
 class Item(models.Model):
-    name = models.CharField(unique=True, blank=False, max_length=255, validators=[validate_name])
+    name = models.CharField(
+        'id', unique=True, blank=False, max_length=255, validators=[validate_name]
+    )
     collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
     geometry = models.PolygonField(
         null=False, blank=False, default=BBOX_CH, srid=4326, validators=[validate_geometry]
@@ -557,7 +559,9 @@ class Asset(models.Model):
         Item, related_name='assets', related_query_name='asset', on_delete=models.CASCADE
     )
     # using "name" instead of "id", as "id" has a default meaning in django
-    name = models.CharField(unique=True, blank=False, max_length=255, validators=[validate_name])
+    name = models.CharField(
+        'id', unique=True, blank=False, max_length=255, validators=[validate_name]
+    )
     checksum_multihash = models.CharField(blank=False, max_length=255)
     description = models.TextField()
     eo_gsd = models.FloatField(null=True)

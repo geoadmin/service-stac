@@ -42,3 +42,19 @@ class ItemLinkInline(admin.TabularInline):
 @admin.register(Item)
 class ItemAdmin(admin.ModelAdmin):
     inlines = [ItemLinkInline]
+    fieldsets = (
+        (None, {
+            'fields': ('name', 'collection', 'geometry')
+        }),
+        (
+            'Properties',
+            {
+                'fields': (
+                    'properties_datetime',
+                    'properties_start_datetime',
+                    'properties_end_datetime',
+                    'properties_title'
+                )
+            }
+        ),
+    )
