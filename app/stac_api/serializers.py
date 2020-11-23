@@ -143,7 +143,7 @@ class LandingPageSerializer(serializers.ModelSerializer):
                 ("title", "OGC API conformance classes implemented by this server"),
             ]),
             OrderedDict([
-                ('rel', 'collection'),
+                ('rel', 'collections'),
                 ('href', request.build_absolute_uri(f'/{api_base}collections')),
                 ("type", "application/json"),
                 ("title", "Information about the feature collections"),

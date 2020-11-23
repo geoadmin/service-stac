@@ -144,7 +144,7 @@ components:
                 type: application/json
                 title: OGC API conformance classes implemented by this server
               - href: http://data.geo.admin.ch/api/stac/v0.9/collections
-                rel: data
+                rel: collections
                 type: application/json
                 title: Information about the feature collections
               - href: http://data.geo.admin.ch/api/stac/v0.9/search
