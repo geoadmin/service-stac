@@ -46,7 +46,9 @@ DEFAULT_EXTENT_VALUE = {"spatial": {"bbox": [[None]]}, "temporal": {"interval": 
 DEFAULT_SUMMARIES_VALUE = {"eo:gsd": [], "geoadmin:variant": [], "proj:epsg": []}
 
 
-def get_default_stac_extensions():
+def get_default_stac_extensions(is_collection=False):
+    if is_collection:
+        return list()
     return list(DEFAULT_STAC_EXTENSIONS.values())
 
 
