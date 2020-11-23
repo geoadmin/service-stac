@@ -184,7 +184,7 @@ class CollectionSerializer(NonNullModelSerializer):
         return ["http://www.opengis.net/def/crs/OGC/1.3/CRS84"]
 
     def get_stac_extensions(self, obj):
-        return get_default_stac_extensions()
+        return get_default_stac_extensions(True)
 
     def get_stac_version(self, obj):
         return "0.9.0"

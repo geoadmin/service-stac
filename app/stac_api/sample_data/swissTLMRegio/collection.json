@@ -1,8 +1,6 @@
 {
   "stac_version": "0.9.0",
-  "stac_extensions": [
-    "proj"
-  ],
+  "stac_extensions": [],
   "id": "ch.swisstopo.swisstlmregio",
   "title": "swissTLMRegio",
   "description": "swissTLMRegio is a 2D landscape model, which represents the natural and man-made features of the landscape in vector format. With its high generalisation grade it is a reference dataset for applications requiring a regional or national overview. swissTLMRegio describes about 950 000 objects with their location, shape and neighbourhood connections (topology) as well as the object type and further attributes. swissTLMRegiois composed of 6 thematic topics. Each topic contains one or more feature classes: Transportation, Hydrography, Landcover, Buildings, Miscellaneous, Names..",
