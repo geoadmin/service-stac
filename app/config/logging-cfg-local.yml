@@ -9,7 +9,7 @@ root:
 
 loggers:
   django:
-    level: WARNING
+    level: INFO
   django.utils.autoreload:
     level: INFO
   gunicorn.error:
@@ -46,7 +46,10 @@ filters:
 
 formatters:
   standard:
-    format: "[%(asctime)s] %(levelname)-8s - %(name)-26s : %(message)s"
+    (): logging_utilities.formatters.extra_formatter.ExtraFormatter
+    format: "[%(utc_isotime)s] %(levelname)-8s - %(name)-26s : %(message)s"
+    extra_fmt: " - extra:\n%s"
+    extra_pretty_print: True
   json:
     (): logging_utilities.formatters.json_formatter.JsonFormatter
     add_always_extra: True
