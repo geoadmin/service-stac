@@ -784,22 +784,9 @@ components:
         though the pixel size of the images is 3.125. For example, one might choose
         for WorldView-2 the Multispectral 20° off-nadir value of 2.07 and for WorldView-3
         the Multispectral 20° off-nadir value of 1.38.
-
-
-        NOTE: the Feature property eo:gsd will be automatically updated with the highest
-        resolution of its assets
       example: 2.5
       title: Ground Sample Distance
       type: number
-    item.eo:gsd:
-      description: >-
-        GSD is the nominal Ground Sample Distance for the data, as measured in meters
-        on the ground. It is defined at the Asset level and the item level reflect
-        the highest resolution of its assets.
-      example: 2.5
-      title: Ground Sample Distance
-      type: number
-      readOnly: true
     exception:
       description: >-
         Information about the exception: an error code plus an optional description.
@@ -1169,8 +1156,6 @@ components:
           $ref: "#/components/schemas/datetime"
         updated:
           $ref: "#/components/schemas/updated"
-        eo:gsd:
-          $ref: "#/components/schemas/item.eo:gsd"
       required:
       - created
       - updated
