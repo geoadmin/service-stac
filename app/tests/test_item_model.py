@@ -1,12 +1,10 @@
 import logging
-import random
 from datetime import datetime
 
 from django.contrib.gis.geos import GEOSGeometry
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 
-from stac_api.models import Asset
 from stac_api.models import Item
 from stac_api.utils import utc_aware
 
@@ -75,58 +73,6 @@ class ItemsModelTestCase(TestCase):
             item = Item.objects.create(
                 collection=self.collection, name='item-1', properties_end_datetime='asd'
             )
-
-    # def test_item_property_eo_gsd(self):
-    #     item = db.create_item(self.collection, 'item-1')
-    #     item.full_clean()
-    #     item.save()
-    #     self.assertIsNone(item.properties_eo_gsd, msg='Initial property eo:gsd should be none')
-
-    #     eo_gsd = []
-    #     assets = []
-    #     for i in range(random.randrange(5, 10)):
-    #         eo_gsd.append(round(random.uniform(1, 50), 3))
-    #         asset = Asset.objects.create(
-    #             item=item,
-    #             title='my-title',
-    #             name=f'asset-{i}',
-    #             checksum_multihash="01205c3fd6978a7d0b051efaa4263a09",
-    #             description="this an asset",
-    #             eo_gsd=eo_gsd[i],
-    #             geoadmin_lang='fr',
-    #             geoadmin_variant="kgrs",
-    #             proj_epsg=2056,
-    #             media_type="image/tiff; application=geotiff; profile=cloud-optimize",
-    #             href=
-    #             "https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-1-2019-2056-kgrs-10.tiff"
-    #         )
-    #         asset.full_clean()
-    #         asset.save()
-    #         assets.append(asset)
-    #     logger.debug('List of eo:gsd: %s, min %d', eo_gsd, min(eo_gsd))
-    #     self.assertEqual(
-    #         item.properties_eo_gsd, min(eo_gsd), msg='eo:gsd is not the min value from asset'
-    #     )
-
-    #     # remove last element
-    #     deleted = assets[-1].delete()
-    #     eo_gsd.pop()
-    #     logger.debug('Deleted asset: %s', deleted)
-    #     logger.debug('Remove last eo:gsd: %s, min %d', eo_gsd, min(eo_gsd))
-    #     self.assertEqual(
-    #         item.properties_eo_gsd, min(eo_gsd), msg='eo:gsd is not the min value from asset'
-    #     )
-
-    #     # remove smallest element
-    #     i = eo_gsd.index(min(eo_gsd))
-    #     smallest = eo_gsd.pop(i)
-    #     asset = assets.pop(i)
-    #     deleted = asset.delete()
-    #     logger.debug('Deleted asset: %s', deleted)
-    #     logger.debug('Removed smallest eo:gsd %d: %s, min %d', smallest, eo_gsd, min(eo_gsd))
-    #     self.assertEqual(
-    #         item.properties_eo_gsd, min(eo_gsd), msg='eo:gsd is not the min value from asset'
-    #     )
 
     def test_item_create_model_valid_geometry(self):
         # a correct geometry should not pose any problems

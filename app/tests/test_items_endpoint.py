@@ -42,7 +42,6 @@ class ItemsEndpointTestCase(TestCase):
             collection=self.collections[0],
             name='item-yesterday',
             properties_datetime=self.yesterday,
-            # properties_eo_gsd=None,
             properties_title="My Title",
         )
         db.create_item_links(item_yesterday)
@@ -52,7 +51,6 @@ class ItemsEndpointTestCase(TestCase):
             collection=self.collections[0],
             name='item-now',
             properties_datetime=self.now,
-            # properties_eo_gsd=None,
             properties_title="My Title",
         )
         db.create_item_links(item_now)
@@ -63,7 +61,6 @@ class ItemsEndpointTestCase(TestCase):
             name='item-range',
             properties_start_datetime=self.yesterday,
             properties_end_datetime=self.now,
-            # properties_eo_gsd=None,
             properties_title="My Title",
         )
         db.create_item_links(item_range)

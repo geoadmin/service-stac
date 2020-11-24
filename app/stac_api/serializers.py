@@ -447,13 +447,6 @@ class ItemsPropertiesSerializer(serializers.Serializer):
         required=False, allow_blank=True, source='properties_title', max_length=255
     )
 
-    # def get_fields(self):
-    #     fields = super().get_fields()
-    #     # This is a hack to allow fields with special characters
-    #     # fields['eo:gsd'] = fields.pop('eo_gsd')
-    #     # logger.debug('Updated fields name: %s', fields)
-    #     return fields
-
 
 class BboxSerializer(gis_serializers.GeoFeatureModelSerializer):
 
