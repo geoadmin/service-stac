@@ -44,7 +44,6 @@ class CollectionsModelTestCase(TestCase):
             collection=self.collection,
             name=name,
             properties_datetime=datetime_val,
-            # properties_eo_gsd=None,
             properties_title="My Title",
         )
         db.create_item_links(item)
