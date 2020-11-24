@@ -41,7 +41,8 @@ COPY ./wait-for-it.sh /app/
 RUN echo "from .settings_dev import *" > /app/config/settings.py \
     && chown geoadmin:geoadmin /app/config/settings.py
 
-RUN ./manage.py collectstatic --noinput
+# NOTE: uses a dummy secret_key to avoid django raising settings error
+RUN SECRET_KEY=dummy ./manage.py collectstatic --noinput
 
 USER geoadmin
 
@@ -59,8 +60,8 @@ FROM base as production
 RUN echo "from .settings_prod import *" > /app/config/settings.py \
     && chown geoadmin:geoadmin /app/config/settings.py
 
-# Collect static files
-RUN ./manage.py collectstatic --noinput
+# Collect static files, uses a dummy secret_key to avoid django raising settings error
+RUN SECRET_KEY=dummy ./manage.py collectstatic --noinput
 
 # production container must not run as root
 USER geoadmin
