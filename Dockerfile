@@ -1,4 +1,4 @@
-#############################################
+###########################################################
 # Base container with all necessary deps
 # Buster slim python 3.7 base image.
 FROM python:3.7-slim-buster as base
@@ -25,9 +25,9 @@ WORKDIR /app
 COPY --chown=geoadmin:geoadmin ./app /app/
 COPY --chown=geoadmin:geoadmin ./spec /spec/
 
-#############################################
-# Container to perform tests/management tasks
-FROM base as test
+###########################################################
+# Container to perform tests/management/dev tasks
+FROM base as debug
 
 RUN cd /tmp && \
     pipenv install --system --deploy --ignore-pipfile --dev
@@ -52,7 +52,7 @@ EXPOSE $HTTP_PORT
 ENTRYPOINT ["python3"]
 
 
-#############################################
+###########################################################
 # Container to use in production
 FROM base as production
 

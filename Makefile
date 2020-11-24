@@ -20,8 +20,8 @@ SETTINGS_TIMESTAMP = $(TIMESTAMPS)/.settins.timestamp
 DOCKER_BUILD_TIMESTAMP = $(TIMESTAMPS)/.docker-test.timestamp
 
 # Docker variables
-DOCKER_IMG_LOCAL_TAG = swisstopo/$(SERVICE_NAME):latest
-DOCKER_IMG_LOCAL_TAG_TEST = swisstopo/$(SERVICE_NAME):latest-dev
+DOCKER_IMG_LOCAL_TAG = swisstopo/$(SERVICE_NAME):$(USER).latest
+DOCKER_IMG_LOCAL_TAG_TEST = swisstopo/$(SERVICE_NAME):$(USER).latest-dev
 
 # Find all python files that are not inside a hidden directory (directory starting with .)
 PYTHON_FILES := $(shell find $(APP_SRC_DIR) -type f -name "*.py" -print)
@@ -54,23 +54,23 @@ help:
 	@echo
 	@echo "Possible targets:"
 	@echo -e " \033[1mLOCAL DEVELOPMENT TARGETS\033[0m "
-	@echo "- setup              Create the python virtual environment and install requirements"
-	@echo "- ci                 Create the python virtual environment and install requirements based on the Pipfile.lock"
+	@echo "- setup                    Create the python virtual environment and install requirements"
+	@echo "- ci                       Create the python virtual environment and install requirements based on the Pipfile.lock"
 	@echo -e " \033[1mFORMATING, LINTING AND TESTING TOOLS TARGETS\033[0m "
-	@echo "- format             Format the python source code"
-	@echo "- lint               Lint the python source code"
-	@echo "- test               Run the tests"
+	@echo "- format                   Format the python source code"
+	@echo "- lint                     Lint the python source code"
+	@echo "- test                     Run the tests"
 	@echo -e " \033[1mLOCAL SERVER TARGETS\033[0m "
-	@echo "- serve              Run the project using the django debug server. Port can be set by Env variable HTTP_PORT i(default: 8000)"
-	@echo "- gunicornserve      Run the project using the gunicorn WSGI server. Port can be set by Env variable HTTP_PORT (default: 8000)"
+	@echo "- serve                    Run the project using the django debug server. Port can be set by Env variable HTTP_PORT i(default: 8000)"
+	@echo "- gunicornserve            Run the project using the gunicorn WSGI server. Port can be set by Env variable HTTP_PORT (default: 8000)"
 	@echo -e " \033[1mDOCKER TARGETS\033[0m "
-	@echo "- dockerbuild-(test|prod) Build the project locally (with tag := $(DOCKER_IMG_LOCAL_TAG))"
-	@echo "- dockerrun          Run the test container with default manage.py command 'runserver'. Note: ENV is populated from '.env.local'"
-	@echo "                     Other cmds can be invoked with 'make dockerrun CMD'."
-	@echo -e "                     \e[1mNote:\e[0m This will connect to your host Postgres DB. If you wanna test with a containerized DB, run 'docker-compose up'"
+	@echo "- dockerbuild-(debug|prod) Build the project locally (with tag := $(DOCKER_IMG_LOCAL_TAG))"
+	@echo "- dockerrun                Run the test container with default manage.py command 'runserver'. Note: ENV is populated from '.env.local'"
+	@echo "                           Other cmds can be invoked with 'make dockerrun CMD'."
+	@echo -e "                           \e[1mNote:\e[0m This will connect to your host Postgres DB. If you wanna test with a containerized DB, run 'docker-compose up'"
 	@echo -e " \033[1mCLEANING TARGETS\033[0m "
-	@echo "- clean              Clean genereated files"
-	@echo "- clean_venv         Clean python venv"
+	@echo "- clean                    Clean genereated files"
+	@echo "- clean_venv               Clean python venv"
 	@echo -e " \033[1mDJANGO TARGETS\033[0m "
 	@echo -e " invoke django targets such as \033[1mserve, test, migrate, ...\033[0m  directly by calling app/manage.py COMMAND. Useful COMMANDS"
 	@echo -e " > \033[1mhint:\033[0m source .venv/bin/activate to use the virualenv corresponding to this application before using app/manage.py"
@@ -159,17 +159,17 @@ serve-spec:
 # Note: the timestamp magic is ommitted here on purpose, we rely on docker's
 # change detection mgmt
 
-.PHONY: dockerbuild-test
-dockerbuild-test:
-	docker build -t $(DOCKER_IMG_LOCAL_TAG_TEST) --target test .
+.PHONY: dockerbuild-debug
+dockerbuild-debug:
+	docker build -t $(DOCKER_IMG_LOCAL_TAG_TEST) --target debug .
 
 .PHONY: dockerbuild-prod
 dockerbuild-prod:
 	docker build -t $(DOCKER_IMG_LOCAL_TAG) --target production .
 
 .PHONY: dockerrun
-dockerrun: dockerbuild-test
-	@echo "starting docker test container with populating ENV from .env.local"
+dockerrun: dockerbuild-debug
+	@echo "starting docker debug container with populating ENV from .env.local"
 	docker run -it --rm --env-file .env.local --net=host $(DOCKER_IMG_LOCAL_TAG_TEST) ./manage.py runserver
 
 

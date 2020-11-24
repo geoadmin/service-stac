@@ -23,7 +23,8 @@ phases:
   pre_build:
     commands:
       - echo "export of the image tag for build and push purposes"
-      # Reading git branch (the utility in the deploy script is unable to read it automatically on CodeBuild)
+      # Reading git branch (the utility in the deploy script is unable to read it automatically
+      # on CodeBuild)
       # see https://stackoverflow.com/questions/47657423/get-github-git-branch-for-aws-codebuild
       - export GITHUB_BRANCH="$(git symbolic-ref HEAD --short 2>/dev/null)"
       - |-
@@ -47,15 +48,15 @@ phases:
       - export DOCKER_IMG_TAG_LATEST_DEV=${DOCKER_IMG_TAG_BASE}.latest-dev
       # Starting dev build for testing
       - echo "starting test build on $(date)"
-      - echo "Building docker image with tags ${DOCKER_IMG_TAG_HASH} and ${DOCKER_IMG_TAG_LATEST_DEV}"
-      - docker build -t ${DOCKER_IMG_TAG_HASH} -t ${DOCKER_IMG_TAG_LATEST_DEV} --target test .
+      - echo "Building docker debug image with tags ${DOCKER_IMG_TAG_HASH} and ${DOCKER_IMG_TAG_LATEST_DEV}"
+      - docker build -t ${DOCKER_IMG_TAG_HASH} -t ${DOCKER_IMG_TAG_LATEST_DEV} --target debug .
       # Running tests
       # Note: the app container will 'exit 0' once tests are completed, we need to
       # stop the db as well then
       - docker-compose up --abort-on-container-exit
       # Starting prod build
       - echo "starting production build on $(date)"
-      - echo "Building docker image with tags ${DOCKER_IMG_TAG_HASH} and ${DOCKER_IMG_TAG_LATEST}"
+      - echo "Building docker production image with tags ${DOCKER_IMG_TAG_HASH} and ${DOCKER_IMG_TAG_LATEST}"
       - docker build -t ${DOCKER_IMG_TAG_HASH} -t ${DOCKER_IMG_TAG_LATEST} --target production .
 
   post_build:
@@ -65,6 +66,8 @@ phases:
         if [ "${GITHUB_BRANCH}" = "master" ]; then
           docker push ${DOCKER_IMG_TAG_HASH}
         elif [ "${GITHUB_BRANCH}" = "develop" ]; then
+          echo "Push production image ${DOCKER_IMG_TAG_LATEST}"
           docker push ${DOCKER_IMG_TAG_LATEST}
+          echo "Push debug image ${DOCKER_IMG_TAG_LATEST_DEV}"
           docker push ${DOCKER_IMG_TAG_LATEST_DEV}
         fi

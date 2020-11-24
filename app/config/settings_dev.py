@@ -12,6 +12,9 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 
 from .settings_prod import *  # pylint: disable=wildcard-import, unused-wildcard-import
 
+# SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = bool(strtobool(os.getenv('DEBUG', 'False')))
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.1/howto/deployment/checklist/
 
