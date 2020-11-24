@@ -32,7 +32,7 @@ phases:
           GITHUB_BRANCH="$(git branch -a --contains HEAD | sed -n 2p | awk '{ printf $1 }')";
           export GITHUB_BRANCH=${GITHUB_BRANCH#remotes/origin/};
         fi
-      - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      - export COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
       - export IMAGE_TAG="${GITHUB_BRANCH}.${COMMIT_HASH}"
       - echo "GITHUB_BRANCH=${GITHUB_BRANCH} COMMIT_HASH=${COMMIT_HASH} IMAGE_TAG=${IMAGE_TAG}"
       - echo "creating a clean environment"
@@ -47,9 +47,14 @@ phases:
       - export DOCKER_IMG_TAG_LATEST=${DOCKER_IMG_TAG_BASE}.latest
       - export DOCKER_IMG_TAG_LATEST_DEV=${DOCKER_IMG_TAG_BASE}.latest-dev
       # Starting dev build for testing
-      - echo "starting test build on $(date)"
+      - echo "starting debug build on $(date)"
       - echo "Building docker debug image with tags ${DOCKER_IMG_TAG_HASH} and ${DOCKER_IMG_TAG_LATEST_DEV}"
-      - docker build -t ${DOCKER_IMG_TAG_HASH} -t ${DOCKER_IMG_TAG_LATEST_DEV} --target debug .
+      - >
+        docker build
+        --build-arg GIT_HASH="${COMMIT_HASH}"
+        --build-arg GIT_BRANCH="${GITHUB_BRANCH}"
+        --build-arg AUTHOR="CI"
+        -t ${DOCKER_IMG_TAG_HASH} -t ${DOCKER_IMG_TAG_LATEST_DEV} --target debug .
       # Running tests
       # Note: the app container will 'exit 0' once tests are completed, we need to
       # stop the db as well then
@@ -57,7 +62,12 @@ phases:
       # Starting prod build
       - echo "starting production build on $(date)"
       - echo "Building docker production image with tags ${DOCKER_IMG_TAG_HASH} and ${DOCKER_IMG_TAG_LATEST}"
-      - docker build -t ${DOCKER_IMG_TAG_HASH} -t ${DOCKER_IMG_TAG_LATEST} --target production .
+      - >
+        docker build
+        --build-arg GIT_HASH="${COMMIT_HASH}"
+        --build-arg GIT_BRANCH="${GITHUB_BRANCH}"
+        --build-arg AUTHOR="CI"
+        -t ${DOCKER_IMG_TAG_HASH} -t ${DOCKER_IMG_TAG_LATEST} --target production .
 
   post_build:
     commands:

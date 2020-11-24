@@ -44,6 +44,10 @@ PYLINT := $(PIPENV_RUN) pylint
 # that don't use it like for CodeBuild env
 SUMMON ?= summon --up -p gopass -e service-stac-$(ENV)
 
+GIT_HASH := `git rev-parse HEAD`
+GIT_BRANCH := `git symbolic-ref HEAD --short 2>/dev/null`
+GIT_DIRTY := `git status --porcelain`
+AUTHOR := $(USER)
 
 all: help
 
@@ -161,11 +165,19 @@ serve-spec:
 
 .PHONY: dockerbuild-debug
 dockerbuild-debug:
-	docker build -t $(DOCKER_IMG_LOCAL_TAG_TEST) --target debug .
+	docker build \
+		--build-arg GIT_HASH="$(GIT_HASH)" \
+		--build-arg GIT_BRANCH="$(GIT_BRANCH)" \
+		--build-arg GIT_DIRTY="$(GIT_DIRTY)" \
+		--build-arg AUTHOR="$(AUTHOR)" -t $(DOCKER_IMG_LOCAL_TAG_TEST) --target debug .
 
 .PHONY: dockerbuild-prod
 dockerbuild-prod:
-	docker build -t $(DOCKER_IMG_LOCAL_TAG) --target production .
+	docker build \
+		--build-arg GIT_HASH="$(GIT_HASH)" \
+		--build-arg GIT_BRANCH="$(GIT_BRANCH)" \
+		--build-arg GIT_DIRTY="$(GIT_DIRTY)" \
+		--build-arg AUTHOR="$(AUTHOR)" -t $(DOCKER_IMG_LOCAL_TAG) --target production .
 
 .PHONY: dockerrun
 dockerrun: dockerbuild-debug
