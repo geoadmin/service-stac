@@ -2,14 +2,28 @@ from django.contrib import admin
 from django.db import models
 from django.forms import Textarea
 
+from solo.admin import SingletonModelAdmin
+
 from .models import Asset
 from .models import Collection
 from .models import CollectionLink
 from .models import Item
 from .models import ItemLink
+from .models import LandingPage
+from .models import LandingPageLink
 from .models import Provider
 
 admin.site.register(Asset)
+
+
+class LandingPageLinkInline(admin.TabularInline):
+    model = LandingPageLink
+    extra = 0
+
+
+@admin.register(LandingPage)
+class LandingPageAdmin(SingletonModelAdmin):
+    inlines = [LandingPageLinkInline]
 
 
 class ProviderInline(admin.TabularInline):

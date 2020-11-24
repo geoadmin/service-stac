@@ -135,7 +135,7 @@ components:
                 rel: self
                 type: application/json
                 title: this document
-              - href: http://data.geo.admin.ch/api/stac/v0.9/api.html
+              - href: http://data.geo.admin.ch/api/stac/v0.9/static/api.html
                 rel: service-doc
                 type: text/html
                 title: the API documentation

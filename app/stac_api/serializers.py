@@ -13,11 +13,15 @@ from stac_api.models import Collection
 from stac_api.models import CollectionLink
 from stac_api.models import Item
 from stac_api.models import ItemLink
+from stac_api.models import LandingPage
+from stac_api.models import LandingPageLink
 from stac_api.models import Provider
 from stac_api.models import get_default_stac_extensions
 from stac_api.utils import isoformat
 
 logger = logging.getLogger(__name__)
+
+STAC_VERSION = "0.9.0"
 
 
 class NonNullModelSerializer(serializers.ModelSerializer):
@@ -83,6 +87,75 @@ class DictSerializer(serializers.ListSerializer):
     def data(self):
         ret = super(serializers.ListSerializer, self).data
         return ReturnDict(ret, serializer=self)
+
+
+class LandingPageLinkSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = LandingPageLink
+        fields = ['href', 'rel', 'link_type', 'title']
+
+
+class LandingPageSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = LandingPage
+        fields = ['id', 'title', 'description', 'links', 'stac_version']
+
+    id = serializers.CharField(max_length=255, source="name")
+    links = LandingPageLinkSerializer(many=True, read_only=True)
+    stac_version = serializers.SerializerMethodField()
+
+    def get_stac_version(self, obj):
+        return STAC_VERSION
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        api_base = settings.API_BASE
+        request = self.context.get("request")
+        # Add auto links
+        # We use OrderedDict, although it is not necessary, because the default serializer/model for
+        # links already uses OrderedDict, this way we keep consistency between auto link and user
+        # link
+        representation['links'][:0] = [
+            OrderedDict([
+                ('rel', 'self'),
+                ('href', request.build_absolute_uri(f'/{api_base}')),
+                ("type", "application/json"),
+                ("title", "This document"),
+            ]),
+            OrderedDict([
+                ("rel", "service-doc"),
+                ("href", request.build_absolute_uri(f"/{api_base}/static/api.html")),
+                ("type", "text/html"),
+                ("title", "The API documentation"),
+            ]),
+            OrderedDict([
+                ("rel", "service-desc"),
+                ("href", request.build_absolute_uri(f"/{api_base}/static/openapi.yaml")),
+                ("type", "application/vnd.oai.openapi+yaml;version=3.0"),
+                ("title", "The OPENAPI description of the service"),
+            ]),
+            OrderedDict([
+                ("rel", "conformance"),
+                ("href", request.build_absolute_uri(f'/{api_base}conformance')),
+                ("type", "application/json"),
+                ("title", "OGC API conformance classes implemented by this server"),
+            ]),
+            OrderedDict([
+                ('rel', 'data'),
+                ('href', request.build_absolute_uri(f'/{api_base}collections')),
+                ("type", "application/json"),
+                ("title", "Information about the feature collections"),
+            ]),
+            OrderedDict([
+                ("href", request.build_absolute_uri(f"/{api_base}search")),
+                ("rel", "search"),
+                ("type", "application/json"),
+                ("title", "Search across feature collections"),
+            ]),
+        ]
+        return representation
 
 
 class ProviderSerializer(NonNullModelSerializer):
@@ -187,7 +260,7 @@ class CollectionSerializer(NonNullModelSerializer):
         return get_default_stac_extensions(True)
 
     def get_stac_version(self, obj):
-        return "0.9.0"
+        return STAC_VERSION
 
     def _update_or_create_providers(self, collection, providers_data):
         provider_ids = []
@@ -384,7 +457,7 @@ class ItemSerializer(NonNullModelSerializer):
         return get_default_stac_extensions()
 
     def get_stac_version(self, obj):
-        return "0.9.0"
+        return STAC_VERSION
 
     def to_representation(self, instance):
         collection = instance.collection.name

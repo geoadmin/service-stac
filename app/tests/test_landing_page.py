@@ -1,6 +1,8 @@
 from django.test import Client
 from django.test import TestCase
 
+from stac_api.serializers import STAC_VERSION
+
 from config.settings import API_BASE
 
 
@@ -20,7 +22,7 @@ class IndexTestCase(TestCase):
             msg="missing required attribute in json answer"
         )
         self.assertEqual(response.json()['id'], 'ch')
-        self.assertEqual(response.json()['stac_version'], '0.9.0')
+        self.assertEqual(response.json()['stac_version'], STAC_VERSION)
         for link in response.json()['links']:
             required_keys = ['href', 'rel']
             self.assertEqual(
