@@ -409,7 +409,7 @@ class SerializationTestCase(StacBaseTestCase):
                 OrderedDict([
                     ('datetime', '2020-10-28T13:05:10Z'),
                     ('title', 'My Title'),
-                    ('eo:gsd', 3.4),
+                    # ('eo:gsd', 3.4),
                 ]),
             'stac_extensions': [
                 'eo',
@@ -441,7 +441,7 @@ class SerializationTestCase(StacBaseTestCase):
             name='item-range',
             properties_start_datetime=yesterday,
             properties_end_datetime=now,
-            properties_eo_gsd=float(10),
+            # properties_eo_gsd=float(10),
             properties_title="My Title",
         )
         db.create_item_links(item_range)
@@ -529,7 +529,7 @@ class SerializationTestCase(StacBaseTestCase):
                     ('start_datetime', isoformat(yesterday)),
                     ('end_datetime', isoformat(now)),
                     ('title', 'My Title'),
-                    ('eo:gsd', float(10)),
+                    # ('eo:gsd', float(10)),
                 ]),
             'stac_extensions': [
                 'eo',

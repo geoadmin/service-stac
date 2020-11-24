@@ -287,7 +287,7 @@ class CollectionSerializer(NonNullModelSerializer):
         return ["http://www.opengis.net/def/crs/OGC/1.3/CRS84"]
 
     def get_stac_extensions(self, obj):
-        return get_default_stac_extensions(True)
+        return get_default_stac_extensions()
 
     def get_stac_version(self, obj):
         return STAC_VERSION
@@ -443,17 +443,16 @@ class ItemsPropertiesSerializer(serializers.Serializer):
     end_datetime = serializers.DateTimeField(
         source='properties_end_datetime', allow_null=True, required=False
     )
-    eo_gsd = serializers.FloatField(source='properties_eo_gsd', allow_null=True, read_only=True)
     title = serializers.CharField(
         required=False, allow_blank=True, source='properties_title', max_length=255
     )
 
-    def get_fields(self):
-        fields = super().get_fields()
-        # This is a hack to allow fields with special characters
-        fields['eo:gsd'] = fields.pop('eo_gsd')
-        # logger.debug('Updated fields name: %s', fields)
-        return fields
+    # def get_fields(self):
+    #     fields = super().get_fields()
+    #     # This is a hack to allow fields with special characters
+    #     # fields['eo:gsd'] = fields.pop('eo_gsd')
+    #     # logger.debug('Updated fields name: %s', fields)
+    #     return fields
 
 
 class BboxSerializer(gis_serializers.GeoFeatureModelSerializer):
