@@ -40,6 +40,9 @@ DEBUG = False
 ALLOWED_HOSTS = []
 ALLOWED_HOSTS += os.getenv('ALLOWED_HOSTS', '').split(',')
 
+#https://docs.djangoproject.com/en/dev/ref/settings/#append-slash
+APPEND_SLASH = True  # default setting
+
 # Application definition
 
 INSTALLED_APPS = [

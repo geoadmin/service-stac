@@ -16,25 +16,25 @@ API_BASE = settings.API_BASE
 urlpatterns = [
     path(f'{API_BASE}/', LandingPageDetail.as_view(), name='landing-page'),
     path('checker/', views.checker, name='checker'),
-    path(f"{API_BASE}/collections", CollectionList.as_view(), name='collection-list'),
+    path(f"{API_BASE}/collections/", CollectionList.as_view(), name='collection-list'),
     path(
-        f"{API_BASE}/collections/<collection_name>",
+        f"{API_BASE}/collections/<collection_name>/",
         CollectionDetail.as_view(),
         name='collection-detail'
     ),
-    path(f"{API_BASE}/collections/<collection_name>/items", ItemsList.as_view(), name='items-list'),
+    path(f"{API_BASE}/collections/<collection_name>/items/", ItemsList.as_view(), name='items-list'),
     path(
-        f"{API_BASE}/collections/<collection_name>/items/<item_name>",
+        f"{API_BASE}/collections/<collection_name>/items/<item_name>/",
         ItemDetail.as_view(),
         name='item-detail'
     ),
     path(
-        f"{API_BASE}/collections/<collection_name>/items/<item_name>/assets",
+        f"{API_BASE}/collections/<collection_name>/items/<item_name>/assets/",
         AssetsList.as_view(),
         name='assets-list'
     ),
     path(
-        f"{API_BASE}/collections/<collection_name>/items/<item_name>/assets/<asset_name>",
+        f"{API_BASE}/collections/<collection_name>/items/<item_name>/assets/<asset_name>/",
         AssetDetail.as_view(),
         name='asset-detail'
     ),
