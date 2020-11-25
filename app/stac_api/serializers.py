@@ -24,6 +24,12 @@ logger = logging.getLogger(__name__)
 STAC_VERSION = "0.9.0"
 
 
+def create_or_update_str(created):
+    if created:
+        return 'create'
+    return 'update'
+
+
 class NonNullModelSerializer(serializers.ModelSerializer):
     """Filter fields with null value
 
@@ -213,7 +219,9 @@ class CollectionLinkSerializer(NonNullModelSerializer):
 
     class Meta:
         model = CollectionLink
-        fields = ['href', 'rel', 'link_type', 'title']
+        fields = ['href', 'rel', 'title', 'type']
+
+    type = serializers.CharField(required=False, max_length=255, source="link_type")
 
 
 class CollectionSerializer(NonNullModelSerializer):
@@ -238,19 +246,16 @@ class CollectionSerializer(NonNullModelSerializer):
         ]
         # crs not in sample data, but in specs..
 
-    crs = serializers.SerializerMethodField()
+    crs = serializers.SerializerMethodField(read_only=True)
     created = serializers.DateTimeField(read_only=True)
     updated = serializers.DateTimeField(read_only=True)
-    description = serializers.CharField(required=True)  # string
     extent = ExtentSerializer(read_only=True, source="*")
     summaries = serializers.JSONField(read_only=True)
-    id = serializers.CharField(max_length=255, source="name")  # string
-    license = serializers.CharField(max_length=30)  # string
-    links = CollectionLinkSerializer(many=True, read_only=True)
-    providers = ProviderSerializer(many=True)
-    stac_extensions = serializers.SerializerMethodField()
-    stac_version = serializers.SerializerMethodField()
-    title = serializers.CharField(allow_blank=True, max_length=255)  # string
+    id = serializers.CharField(required=True, max_length=255, source="name")
+    links = CollectionLinkSerializer(required=False, many=True)
+    providers = ProviderSerializer(required=False, many=True)
+    stac_extensions = serializers.SerializerMethodField(read_only=True)
+    stac_version = serializers.SerializerMethodField(read_only=True)
     itemType = serializers.ReadOnlyField(default="Feature")  # pylint: disable=invalid-name
 
     def get_crs(self, obj):
@@ -262,17 +267,57 @@ class CollectionSerializer(NonNullModelSerializer):
     def get_stac_version(self, obj):
         return STAC_VERSION
 
+    def _update_or_create_links(self, collection, links_data):
+        links_ids = []
+        for link_data in links_data:
+            link, created = CollectionLink.objects.get_or_create(
+                collection=collection,
+                rel=link_data["rel"],
+                defaults={
+                    'href': link_data.get('href', None),
+                    'link_type': link_data.get('link_type', None),
+                    'title': link_data.get('title', None)
+                }
+            )
+            logger.debug(
+                '%s link %s', create_or_update_str(created), link.href, extra={"link": link_data}
+            )
+            links_ids.append(link.id)
+            # the duplicate here is necessary to update the values in
+            # case the object already exists
+            link.link_type = link_data.get('link_type', link.link_type)
+            link.title = link_data.get('title', link.title)
+            link.href = link_data.get('href', link.rel)
+            link.full_clean()
+            link.save()
+
+        # Delete link that were not mentioned in the payload anymore
+        deleted = CollectionLink.objects.filter(collection=collection).exclude(id__in=links_ids
+                                                                              ).delete()
+        logger.info(
+            "deleted %d stale links for collection %s",
+            deleted[0],
+            collection.name,
+            extra={"collection": collection.name}
+        )
+
     def _update_or_create_providers(self, collection, providers_data):
         provider_ids = []
         for provider_data in providers_data:
-            provider = Provider.objects.get_or_create(
+            provider, created = Provider.objects.get_or_create(
                 collection=collection,
-                name=providers_data["name"],
+                name=provider_data["name"],
                 defaults={
-                    'description': provider_data['description'],
-                    'roles': provider_data['roles'],
-                    'url': provider_data['url']
+                    'description': provider_data.get('description', None),
+                    'roles': provider_data.get('roles', None),
+                    'url': provider_data.get('url', None)
                 }
+            )
+            logger.debug(
+                '%s provider %s',
+                create_or_update_str(created),
+                provider.name,
+                extra={"provider": provider_data}
             )
             provider_ids.append(provider.id)
             # the duplicate here is necessary to update the values in
@@ -280,6 +325,8 @@ class CollectionSerializer(NonNullModelSerializer):
             provider.description = provider_data.get('description', provider.description)
             provider.roles = provider_data.get('roles', provider.roles)
             provider.url = provider_data.get('url', provider.url)
+            provider.full_clean()
+            provider.save()
 
         # Delete providers that were not mentioned in the payload anymore
         deleted = Provider.objects.filter(collection=collection).exclude(id__in=provider_ids
@@ -296,8 +343,10 @@ class CollectionSerializer(NonNullModelSerializer):
         Create and return a new `Collection` instance, given the validated data.
         """
         providers_data = validated_data.pop('providers', [])
+        links_data = validated_data.pop('links', [])
         collection = Collection.objects.create(**validated_data)
         self._update_or_create_providers(collection=collection, providers_data=providers_data)
+        self._update_or_create_links(collection=collection, links_data=links_data)
         return collection
 
     def update(self, instance, validated_data):
@@ -305,9 +354,10 @@ class CollectionSerializer(NonNullModelSerializer):
         Update and return an existing `Collection` instance, given the validated data.
         """
         providers_data = validated_data.pop('providers', [])
+        links_data = validated_data.pop('links', [])
         self._update_or_create_providers(collection=instance, providers_data=providers_data)
-        instance.save()
-        return instance
+        self._update_or_create_links(collection=instance, links_data=links_data)
+        return super().update(instance, validated_data)
 
     def to_representation(self, instance):
         name = instance.name
@@ -343,7 +393,9 @@ class ItemLinkSerializer(NonNullModelSerializer):
 
     class Meta:
         model = ItemLink
-        fields = ['href', 'rel', 'link_type', 'title']
+        fields = ['href', 'rel', 'title', 'type']
+
+    type = serializers.CharField(required=False, max_length=255, source="link_type")
 
 
 class ItemsPropertiesSerializer(serializers.Serializer):
