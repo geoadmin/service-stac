@@ -25,9 +25,21 @@ WORKDIR /app
 COPY --chown=geoadmin:geoadmin ./app /app/
 COPY --chown=geoadmin:geoadmin ./spec /spec/
 
+ARG GIT_HASH=unknown
+ARG GIT_BRANCH=unknown
+ARG GIT_DIRTY=""
+ARG AUTHOR=unknonw
+ARG TARGET=
+LABEL git.hash=$GIT_HASH
+LABEL git.branch=$GIT_BRANCH
+LABEL git.dirty="$GIT_DIRTY"
+LABEL author=$AUTHOR
+
 ###########################################################
 # Container to perform tests/management/dev tasks
 FROM base as debug
+
+LABEL target=debug
 
 RUN cd /tmp && \
     pipenv install --system --deploy --ignore-pipfile --dev
@@ -55,6 +67,8 @@ ENTRYPOINT ["python3"]
 ###########################################################
 # Container to use in production
 FROM base as production
+
+LABEL target=production
 
 # on prod, settings.py just import settings_prod
 RUN echo "from .settings_prod import *" > /app/config/settings.py \
