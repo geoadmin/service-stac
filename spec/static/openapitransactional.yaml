@@ -880,25 +880,22 @@ components:
           properties:
             interval:
               description: >-
-                One or more time intervals that describe the temporal extent of the
-                dataset. The value `null` is supported and indicates an open time
-                interval. In the Core only a single time interval is supported. Extensions
-                may support multiple intervals. If multiple intervals are provided,
-                the union of the intervals describes the temporal extent.
+                One time interval that describe the temporal extent of the dataset.
               items:
                 description: >-
                   Begin and end times of the time interval.
                 example:
                 - "2019-01-01T00:00:00Z"
-                - null
+                - "2019-01-02T00:00:00Z"
                 items:
                   format: date-time
-                  nullable: true
+                  nullable: false
                   type: string
                 maxItems: 2
                 minItems: 2
                 type: array
               minItems: 1
+              maxItems: 1
               type: array
           required:
           - interval
