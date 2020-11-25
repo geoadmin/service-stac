@@ -239,8 +239,8 @@ class CollectionSerializer(NonNullModelSerializer):
         # crs not in sample data, but in specs..
 
     crs = serializers.SerializerMethodField()
-    created = serializers.DateTimeField(required=True)  # datetime
-    updated = serializers.DateTimeField(required=True)  # datetime
+    created = serializers.DateTimeField(read_only=True)
+    updated = serializers.DateTimeField(read_only=True)
     description = serializers.CharField(required=True)  # string
     extent = ExtentSerializer(read_only=True, source="*")
     summaries = serializers.JSONField(read_only=True)
@@ -395,6 +395,8 @@ class AssetSerializer(NonNullModelSerializer):
     geoadmin_variant = serializers.CharField(source='geoadmin_variant', max_length=15)
     proj_epsg = serializers.IntegerField(source='proj_epsg')
     checksum_multihash = serializers.CharField(source='checksum_multihash', max_length=255)
+    created = serializers.DateTimeField(read_only=True)
+    updated = serializers.DateTimeField(read_only=True)
 
     class Meta:
         model = Asset
@@ -410,6 +412,8 @@ class AssetSerializer(NonNullModelSerializer):
             'geoadmin_variant',
             'proj_epsg',
             'checksum_multihash',
+            'created',
+            'updated'
         ]
 
     def get_fields(self):
@@ -439,6 +443,8 @@ class ItemSerializer(NonNullModelSerializer):
             'stac_extensions',
             'links',
             'assets',
+            'created',
+            'updated',
         ]
 
     collection = serializers.StringRelatedField()
@@ -452,6 +458,8 @@ class ItemSerializer(NonNullModelSerializer):
     assets = AssetSerializer(many=True, read_only=True)
     stac_extensions = serializers.SerializerMethodField()
     stac_version = serializers.SerializerMethodField()
+    created = serializers.DateTimeField(read_only=True)
+    updated = serializers.DateTimeField(read_only=True)
 
     def get_stac_extensions(self, obj):
         return get_default_stac_extensions()

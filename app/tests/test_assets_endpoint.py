@@ -8,6 +8,7 @@ from django.test import Client
 from django.test import TestCase
 
 from stac_api.serializers import AssetSerializer
+from stac_api.utils import fromisoformat
 
 import tests.database as db
 from tests.utils import get_http_error_description
@@ -66,3 +67,8 @@ class AssetsEndpointTestCase(TestCase):
         self.assertDictEqual(
             original_data, json_data, msg="Returned data does not match expected data"
         )
+        # created and updated must exist and be a valid date
+        date_fields = ['created', 'updated']
+        for date_field in date_fields:
+            self.assertTrue(fromisoformat(json_data[date_field]),
+                            msg=f"The field {date_field} has an invalid date")
