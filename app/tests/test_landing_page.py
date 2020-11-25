@@ -12,7 +12,7 @@ class IndexTestCase(TestCase):
         self.client = Client()
 
     def test_landing_page(self):
-        response = self.client.get(f"/{API_BASE}")
+        response = self.client.get(f"/{API_BASE}/")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         required_keys = ['description', 'id', 'stac_version', 'links']

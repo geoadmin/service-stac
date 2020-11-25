@@ -96,7 +96,7 @@ class CollectionList(generics.ListAPIView):
                 ]),
                 OrderedDict([
                     ('rel', 'root'),
-                    ('href', request.build_absolute_uri(f'/{settings.API_BASE}')),
+                    ('href', request.build_absolute_uri(f'/{settings.API_BASE}/')),
                 ]),
                 OrderedDict([
                     ('rel', 'parent'),
@@ -205,7 +205,7 @@ class ItemsList(generics.ListAPIView):
                 ]),
                 OrderedDict([
                     ('rel', 'root'),
-                    ('href', request.build_absolute_uri(f'/{settings.API_BASE}')),
+                    ('href', request.build_absolute_uri(f'/{settings.API_BASE}/')),
                 ]),
                 OrderedDict([
                     ('rel', 'parent'),

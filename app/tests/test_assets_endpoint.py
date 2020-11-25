@@ -32,7 +32,7 @@ class AssetsEndpointTestCase(TestCase):
         collection_name = self.collections[0].name
         item_name = self.items[0][0].name
         response = self.client.get(
-            f"/{API_BASE}collections/{collection_name}/items/{item_name}/assets"
+            f"/{API_BASE}/collections/{collection_name}/items/{item_name}/assets"
         )
         json_data = response.json()
         self.assertEqual(200, response.status_code, msg=get_http_error_description(json_data))
@@ -53,7 +53,7 @@ class AssetsEndpointTestCase(TestCase):
         item_name = self.items[0][0].name
         asset_name = self.assets[0][0][0].name
         response = self.client.get(
-            f"/{API_BASE}collections/{collection_name}/items/{item_name}/assets/{asset_name}"
+            f"/{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}"
         )
         json_data = response.json()
         self.assertEqual(200, response.status_code, msg=get_http_error_description(json_data))

@@ -120,7 +120,7 @@ class LandingPageSerializer(serializers.ModelSerializer):
         representation['links'][:0] = [
             OrderedDict([
                 ('rel', 'self'),
-                ('href', request.build_absolute_uri(f'/{api_base}')),
+                ('href', request.build_absolute_uri(f'/{api_base}/')),
                 ("type", "application/json"),
                 ("title", "This document"),
             ]),
@@ -138,18 +138,18 @@ class LandingPageSerializer(serializers.ModelSerializer):
             ]),
             OrderedDict([
                 ("rel", "conformance"),
-                ("href", request.build_absolute_uri(f'/{api_base}conformance')),
+                ("href", request.build_absolute_uri(f'/{api_base}/conformance')),
                 ("type", "application/json"),
                 ("title", "OGC API conformance classes implemented by this server"),
             ]),
             OrderedDict([
                 ('rel', 'data'),
-                ('href', request.build_absolute_uri(f'/{api_base}collections')),
+                ('href', request.build_absolute_uri(f'/{api_base}/collections')),
                 ("type", "application/json"),
                 ("title", "Information about the feature collections"),
             ]),
             OrderedDict([
-                ("href", request.build_absolute_uri(f"/{api_base}search")),
+                ("href", request.build_absolute_uri(f"/{api_base}/search")),
                 ("rel", "search"),
                 ("type", "application/json"),
                 ("title", "Search across feature collections"),
@@ -321,19 +321,19 @@ class CollectionSerializer(NonNullModelSerializer):
         representation['links'][:0] = [
             OrderedDict([
                 ('rel', 'self'),
-                ('href', request.build_absolute_uri(f'/{api_base}collections/{name}')),
+                ('href', request.build_absolute_uri(f'/{api_base}/collections/{name}')),
             ]),
             OrderedDict([
                 ('rel', 'root'),
-                ('href', request.build_absolute_uri(f'/{api_base}')),
+                ('href', request.build_absolute_uri(f'/{api_base}/')),
             ]),
             OrderedDict([
                 ('rel', 'parent'),
-                ('href', request.build_absolute_uri(f'/{api_base}collections')),
+                ('href', request.build_absolute_uri(f'/{api_base}/collections')),
             ]),
             OrderedDict([
                 ('rel', 'items'),
-                ('href', request.build_absolute_uri(f'/{api_base}collections/{name}/items')),
+                ('href', request.build_absolute_uri(f'/{api_base}/collections/{name}/items')),
             ])
         ]
         return representation
@@ -474,20 +474,20 @@ class ItemSerializer(NonNullModelSerializer):
                 ('rel', 'self'),
                 (
                     'href',
-                    request.build_absolute_uri(f'/{api}collections/{collection}/items/{name}')
+                    request.build_absolute_uri(f'/{api}/collections/{collection}/items/{name}')
                 ),
             ]),
             OrderedDict([
                 ('rel', 'root'),
-                ('href', request.build_absolute_uri(f'/{api}')),
+                ('href', request.build_absolute_uri(f'/{api}/')),
             ]),
             OrderedDict([
                 ('rel', 'parent'),
-                ('href', request.build_absolute_uri(f'/{api}collections/{collection}/items')),
+                ('href', request.build_absolute_uri(f'/{api}/collections/{collection}/items')),
             ]),
             OrderedDict([
                 ('rel', 'collection'),
-                ('href', request.build_absolute_uri(f'/{api}collections/{collection}')),
+                ('href', request.build_absolute_uri(f'/{api}/collections/{collection}')),
             ])
         ]
         return representation
