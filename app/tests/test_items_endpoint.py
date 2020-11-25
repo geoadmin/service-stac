@@ -15,6 +15,7 @@ from stac_api.models import Item
 from stac_api.serializers import ItemSerializer
 from stac_api.utils import isoformat
 from stac_api.utils import utc_aware
+from stac_api.utils import fromisoformat
 
 import tests.database as db
 from tests.utils import get_http_error_description
@@ -149,9 +150,11 @@ class ItemsEndpointTestCase(TestCase):
         self.assertDictEqual(
             original_data, json_data, msg="Returned data does not match expected data"
         )
-        # created and updated must exist and have a value
-        self.assertIsNotNone(json_data['created'], msg="The field created has to have a value")
-        self.assertIsNotNone(json_data['updated'], msg="The field updated has to have a value")
+        # created and updated must exist and be a valid date
+        date_fields = ['created', 'updated']
+        for date_field in date_fields:
+            self.assertTrue(fromisoformat(json_data[date_field]),
+                            msg=f"The field {date_field} has an invalid date")
 
     def test_items_endpoint_datetime_query(self):
         response = self.client.get(

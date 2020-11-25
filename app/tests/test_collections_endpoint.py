@@ -8,10 +8,12 @@ from django.test import TestCase
 from rest_framework.test import APIRequestFactory
 
 from stac_api.serializers import CollectionSerializer
+from stac_api.utils import fromisoformat
 
 import tests.database as db
 from tests.utils import get_http_error_description
 from tests.utils import mock_request_from_response
+
 
 logger = logging.getLogger(__name__)
 
@@ -59,11 +61,11 @@ class CollectionsEndpointTestCase(TestCase):
         self.assertDictContainsSubset(
             serializer.data[0], response.data, msg="Returned data does not match expected data"
         )
-        # created and updated must exist and have a value
-        self.assertIsNotNone(response_json['created'], msg="The field created has to have a value")
-        self.assertIsNotNone(response_json['updated'], msg="The field updated has to have a value")
-
-
+        # created and updated must exist and be a valid date
+        date_fields = ['created', 'updated']
+        for date_field in date_fields:
+            self.assertTrue(fromisoformat(response_json[date_field]),
+                        msg=f"The field {date_field} has an invalid date")
 
     def test_collections_limit_query(self):
         response = self.client.get(f"/{API_BASE}/collections?limit=1")
