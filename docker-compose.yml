@@ -10,8 +10,8 @@ services:
   app:
     build:
       context: .
-      target: test
-    image: swisstopo/service-stac:latest-dev
+      target: debug
+    image: swisstopo/service-stac:ci.latest-dev
     # spinning up postgis container takes some time, app needs to wait
     # for it to be ready before connecting
     # see: https://docs.docker.com/compose/startup-order/

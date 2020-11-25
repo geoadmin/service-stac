@@ -35,7 +35,7 @@ if APP_ENV.lower() == 'local':
 SECRET_KEY = os.getenv('SECRET_KEY', None)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = bool(strtobool(os.getenv('DEBUG', 'False')))
+DEBUG = False
 
 ALLOWED_HOSTS = []
 ALLOWED_HOSTS += os.getenv('ALLOWED_HOSTS', '').split(',')
