@@ -1,6 +1,8 @@
-from django.contrib import admin
+from django.conf import settings
 from django.db import models
 from django.forms import Textarea
+from django.contrib.gis import admin
+from django.contrib.staticfiles import finders
 
 from solo.admin import SingletonModelAdmin
 
@@ -14,7 +16,6 @@ from .models import LandingPageLink
 from .models import Provider
 
 admin.site.register(Asset)
-
 
 class LandingPageLinkInline(admin.TabularInline):
     model = LandingPageLink
@@ -45,6 +46,11 @@ class CollectionLinkInline(admin.TabularInline):
 
 @admin.register(Collection)
 class CollectionAdmin(admin.ModelAdmin):
+    readonly_fields = ['cache_start_datetime',
+                       'cache_end_datetime',
+                       'summaries',
+                       'extent_geometry'
+                       ]
     inlines = [ProviderInline, CollectionLinkInline]
 
 
@@ -54,7 +60,7 @@ class ItemLinkInline(admin.TabularInline):
 
 
 @admin.register(Item)
-class ItemAdmin(admin.ModelAdmin):
+class ItemAdmin(admin.GeoModelAdmin):
     inlines = [ItemLinkInline]
     fieldsets = (
         (None, {
@@ -72,3 +78,10 @@ class ItemAdmin(admin.ModelAdmin):
             }
         ),
     )
+    # customisation of the geometry field
+    map_template = finders.find('admin/ol_swisstopo.html')  # custom swisstopo
+    if settings.APP_ENV == 'local':
+        wms_layer = 'ch.swisstopo.pixelkarte-farbe-pk1000.noscale'
+        wms_url = 'https://wms.geo.admin.ch/'
+    else:
+        wms_layer = 'ch.swisstopo.pixelkarte-farbe'
