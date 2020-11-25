@@ -6,6 +6,7 @@ from django.contrib.gis.geos import GEOSGeometry
 
 from rest_framework import serializers
 from rest_framework.utils.serializer_helpers import ReturnDict
+from rest_framework.validators import UniqueValidator
 from rest_framework_gis import serializers as gis_serializers
 
 from stac_api.models import Asset
@@ -17,6 +18,8 @@ from stac_api.models import LandingPage
 from stac_api.models import LandingPageLink
 from stac_api.models import Provider
 from stac_api.models import get_default_stac_extensions
+from stac_api.models import validate_geoadmin_variant
+from stac_api.models import validate_name
 from stac_api.utils import isoformat
 
 logger = logging.getLogger(__name__)
@@ -108,7 +111,14 @@ class LandingPageSerializer(serializers.ModelSerializer):
         model = LandingPage
         fields = ['id', 'title', 'description', 'links', 'stac_version']
 
-    id = serializers.CharField(max_length=255, source="name")
+    # NOTE: when explicitely declaring fields, we need to had the validation as for the field
+    # in model !
+    id = serializers.CharField(
+        max_length=255,
+        source="name",
+        validators=[validate_name, UniqueValidator(queryset=LandingPage.objects.all())]
+    )
+    # Read only fields
     links = LandingPageLinkSerializer(many=True, read_only=True)
     stac_version = serializers.SerializerMethodField()
 
@@ -195,7 +205,7 @@ class ExtentTemporalSerializer(serializers.Serializer):
 
 class ExtentSpatialSerializer(serializers.Serializer):
     # pylint: disable=abstract-method
-    extent_geometry = gis_serializers.GeometryField
+    extent_geometry = gis_serializers.GeometryField()
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)
@@ -221,7 +231,11 @@ class CollectionLinkSerializer(NonNullModelSerializer):
         model = CollectionLink
         fields = ['href', 'rel', 'title', 'type']
 
-    type = serializers.CharField(required=False, max_length=255, source="link_type")
+    # NOTE: when explicitely declaring fields, we need to had the validation as for the field
+    # in model !
+    type = serializers.CharField(
+        required=False, allow_blank=True, max_length=150, source="link_type"
+    )
 
 
 class CollectionSerializer(NonNullModelSerializer):
@@ -246,14 +260,22 @@ class CollectionSerializer(NonNullModelSerializer):
         ]
         # crs not in sample data, but in specs..
 
+    # NOTE: when explicitely declaring fields, we need to had the validation as for the field
+    # in model !
+    id = serializers.CharField(
+        required=True,
+        max_length=255,
+        source="name",
+        validators=[validate_name, UniqueValidator(queryset=Collection.objects.all())]
+    )
+    links = CollectionLinkSerializer(required=False, many=True)
+    providers = ProviderSerializer(required=False, many=True)
+    # read only fields
     crs = serializers.SerializerMethodField(read_only=True)
     created = serializers.DateTimeField(read_only=True)
     updated = serializers.DateTimeField(read_only=True)
     extent = ExtentSerializer(read_only=True, source="*")
     summaries = serializers.JSONField(read_only=True)
-    id = serializers.CharField(required=True, max_length=255, source="name")
-    links = CollectionLinkSerializer(required=False, many=True)
-    providers = ProviderSerializer(required=False, many=True)
     stac_extensions = serializers.SerializerMethodField(read_only=True)
     stac_version = serializers.SerializerMethodField(read_only=True)
     itemType = serializers.ReadOnlyField(default="Feature")  # pylint: disable=invalid-name
@@ -395,13 +417,20 @@ class ItemLinkSerializer(NonNullModelSerializer):
         model = ItemLink
         fields = ['href', 'rel', 'title', 'type']
 
-    type = serializers.CharField(required=False, max_length=255, source="link_type")
+    # NOTE: when explicitely declaring fields, we need to had the validation as for the field
+    # in model !
+    type = serializers.CharField(
+        required=False, allow_blank=True, max_length=255, source="link_type"
+    )
 
 
 class ItemsPropertiesSerializer(serializers.Serializer):
     # pylint: disable=abstract-method
     # ItemsPropertiesSerializer is a nested serializer and don't directly create/write instances
     # therefore we don't need to implement the super method create() and update()
+
+    # NOTE: when explicitely declaring fields, we need to had the validation as for the field
+    # in model !
     datetime = serializers.DateTimeField(
         source='properties_datetime', allow_null=True, required=False
     )
@@ -412,7 +441,9 @@ class ItemsPropertiesSerializer(serializers.Serializer):
         source='properties_end_datetime', allow_null=True, required=False
     )
     eo_gsd = serializers.FloatField(source='properties_eo_gsd', allow_null=True, read_only=True)
-    title = serializers.CharField(required=True, source='properties_title', max_length=255)
+    title = serializers.CharField(
+        required=False, allow_blank=True, source='properties_title', max_length=255
+    )
 
     def get_fields(self):
         fields = super().get_fields()
@@ -441,14 +472,6 @@ class AssetsDictSerializer(DictSerializer):
 
 
 class AssetSerializer(NonNullModelSerializer):
-    type = serializers.CharField(source='media_type', max_length=200)
-    eo_gsd = serializers.FloatField(source='eo_gsd')
-    geoadmin_lang = serializers.CharField(source='geoadmin_lang', max_length=2)
-    geoadmin_variant = serializers.CharField(source='geoadmin_variant', max_length=15)
-    proj_epsg = serializers.IntegerField(source='proj_epsg')
-    checksum_multihash = serializers.CharField(source='checksum_multihash', max_length=255)
-    created = serializers.DateTimeField(read_only=True)
-    updated = serializers.DateTimeField(read_only=True)
 
     class Meta:
         model = Asset
@@ -468,6 +491,27 @@ class AssetSerializer(NonNullModelSerializer):
             'updated'
         ]
 
+    # NOTE: when explicitely declaring fields, we need to had the validation as for the field
+    # in model !
+    type = serializers.CharField(source='media_type', max_length=200)
+    # Here we need to explicitely define these fields with the source, because they are renamed
+    # in the get_fields() method
+    eo_gsd = serializers.FloatField(source='eo_gsd', required=False, allow_null=True)
+    geoadmin_lang = serializers.ChoiceField(
+        source='geoadmin_lang', choices=['de', 'fr', 'it', 'rm', 'en']
+    )
+    geoadmin_variant = serializers.CharField(
+        source='geoadmin_variant',
+        max_length=15,
+        allow_null=True,
+        validators=[validate_geoadmin_variant]
+    )
+    proj_epsg = serializers.IntegerField(source='proj_epsg', allow_null=True)
+    checksum_multihash = serializers.CharField(source='checksum_multihash', max_length=255)
+    # read only fields
+    created = serializers.DateTimeField(read_only=True)
+    updated = serializers.DateTimeField(read_only=True)
+
     def get_fields(self):
         fields = super().get_fields()
         # This is a hack to allow fields with special characters
@@ -476,7 +520,6 @@ class AssetSerializer(NonNullModelSerializer):
         fields['geoadmin:variant'] = fields.pop('geoadmin_variant')
         fields['geoadmin:lang'] = fields.pop('geoadmin_lang')
         fields['checksum:multihash'] = fields.pop('checksum_multihash')
-        logger.debug('Updated fields name: %s', fields)
         return fields
 
 
@@ -499,8 +542,15 @@ class ItemSerializer(NonNullModelSerializer):
             'updated',
         ]
 
+    # NOTE: when explicitely declaring fields, we need to had the validation as for the field
+    # in model !
     collection = serializers.StringRelatedField()
-    id = serializers.CharField(source='name', required=True, max_length=255)
+    id = serializers.CharField(
+        source='name',
+        required=True,
+        max_length=255,
+        validators=[validate_name, UniqueValidator(queryset=Collection.objects.all())]
+    )
     properties = ItemsPropertiesSerializer(source='*')
     geometry = gis_serializers.GeometryField()
     # read only fields
