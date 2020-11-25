@@ -27,7 +27,7 @@ class CollectionsEndpointTestCase(TestCase):
         self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_collections_endpoint(self):
-        response = self.client.get(f"/{API_BASE}collections")
+        response = self.client.get(f"/{API_BASE}/collections")
         response_json = response.json()
         self.assertEqual(200, response.status_code, msg=get_http_error_description(response_json))
 
@@ -47,7 +47,7 @@ class CollectionsEndpointTestCase(TestCase):
 
     def test_single_collection_endpoint(self):
         collection_name = self.collections[0].name
-        response = self.client.get(f"/{API_BASE}collections/{collection_name}")
+        response = self.client.get(f"/{API_BASE}/collections/{collection_name}")
         response_json = response.json()
         self.assertEqual(response.status_code, 200, msg=get_http_error_description(response_json))
 
@@ -61,18 +61,18 @@ class CollectionsEndpointTestCase(TestCase):
         )
 
     def test_collections_limit_query(self):
-        response = self.client.get(f"/{API_BASE}collections?limit=1")
+        response = self.client.get(f"/{API_BASE}/collections?limit=1")
         self.assertEqual(200, response.status_code)
         self.assertLessEqual(1, len(response.json()['collections']))
 
-        response = self.client.get(f"/{API_BASE}collections?limit=0")
+        response = self.client.get(f"/{API_BASE}/collections?limit=0")
         self.assertEqual(400, response.status_code)
 
-        response = self.client.get(f"/{API_BASE}collections?limit=test")
+        response = self.client.get(f"/{API_BASE}/collections?limit=test")
         self.assertEqual(400, response.status_code)
 
-        response = self.client.get(f"/{API_BASE}collections?limit=-1")
+        response = self.client.get(f"/{API_BASE}/collections?limit=-1")
         self.assertEqual(400, response.status_code)
 
-        response = self.client.get(f"/{API_BASE}collections?limit=1000")
+        response = self.client.get(f"/{API_BASE}/collections?limit=1000")
         self.assertEqual(400, response.status_code)

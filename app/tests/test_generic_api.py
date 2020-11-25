@@ -12,25 +12,25 @@ API_BASE = settings.API_BASE
 class ApiGenericTestCase(APITestCase):
 
     def test_limit_query(self):
-        response = self.client.get(f"/{API_BASE}collections?limit=0")
+        response = self.client.get(f"/{API_BASE}/collections?limit=0")
         self.assertEqual(400, response.status_code)
 
-        response = self.client.get(f"/{API_BASE}collections?limit=test")
+        response = self.client.get(f"/{API_BASE}/collections?limit=test")
         self.assertEqual(400, response.status_code)
 
-        response = self.client.get(f"/{API_BASE}collections?limit=-1")
+        response = self.client.get(f"/{API_BASE}/collections?limit=-1")
         self.assertEqual(400, response.status_code)
 
-        response = self.client.get(f"/{API_BASE}collections?limit=1000")
+        response = self.client.get(f"/{API_BASE}/collections?limit=1000")
         self.assertEqual(400, response.status_code)
 
     def test_http_error_invalid_query_param(self):
-        response = self.client.get(f"/{API_BASE}collections?limit=0")
+        response = self.client.get(f"/{API_BASE}/collections?limit=0")
         self.assertEqual(400, response.status_code)
         self._check_http_error_msg(response.json())
 
     def test_http_error_collection_not_found(self):
-        response = self.client.get(f"/{API_BASE}collections/not-found")
+        response = self.client.get(f"/{API_BASE}/collections/not-found")
         self.assertEqual(404, response.status_code)
         self._check_http_error_msg(response.json())
 

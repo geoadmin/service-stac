@@ -1,7 +1,6 @@
 import logging
 from datetime import datetime
 
-from django.conf import settings
 from django.test import TestCase
 
 from stac_api.models import Item
@@ -10,8 +9,6 @@ from stac_api.utils import utc_aware
 import tests.database as db
 
 logger = logging.getLogger(__name__)
-
-API_BASE = settings.API_BASE
 
 
 class CollectionsModelTestCase(TestCase):
