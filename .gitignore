@@ -62,9 +62,6 @@ nose2-junit.xml
 *.sublime-*
 *.code*
 
-# summon
-secrets.yml
-
 # Makefile
 .timestamps
 

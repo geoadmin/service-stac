@@ -227,6 +227,20 @@ service-stac-dev:
 
 -->
 
+## Initial Setup up the RDS database and the user
+
+Right now the initial setup on the RDS database for the stagings _dev_, _int_ and _prod_ can be obtained
+with the helper script `scripts/setup_rds_db.sh`. The credentials come from `gopass`. To
+setup the RDS database on int, run following command:
+
+```bash
+    summon -p `which summon-gopass` -D APP_ENV=int scripts/setup_rds_db.sh
+```
+
+**Note:** The script won't delete the existing database.
+
+
+
 ## Deploying the project and continuous integration
 
 When creating a PR, terraform should run a codebuild job to test and build automatically your PR as a tagged container. This container will only be pushed to dockerhub when the PR is accepted and merged.
