@@ -111,7 +111,7 @@ class LandingPageSerializer(serializers.ModelSerializer):
         model = LandingPage
         fields = ['id', 'title', 'description', 'links', 'stac_version']
 
-    # NOTE: when explicitely declaring fields, we need to had the validation as for the field
+    # NOTE: when explicitely declaring fields, we need to add the validation as for the field
     # in model !
     id = serializers.CharField(
         max_length=255,
@@ -231,7 +231,7 @@ class CollectionLinkSerializer(NonNullModelSerializer):
         model = CollectionLink
         fields = ['href', 'rel', 'title', 'type']
 
-    # NOTE: when explicitely declaring fields, we need to had the validation as for the field
+    # NOTE: when explicitely declaring fields, we need to add the validation as for the field
     # in model !
     type = serializers.CharField(
         required=False, allow_blank=True, max_length=150, source="link_type"
@@ -260,7 +260,7 @@ class CollectionSerializer(NonNullModelSerializer):
         ]
         # crs not in sample data, but in specs..
 
-    # NOTE: when explicitely declaring fields, we need to had the validation as for the field
+    # NOTE: when explicitely declaring fields, we need to add the validation as for the field
     # in model !
     id = serializers.CharField(
         required=True,
@@ -268,6 +268,9 @@ class CollectionSerializer(NonNullModelSerializer):
         source="name",
         validators=[validate_name, UniqueValidator(queryset=Collection.objects.all())]
     )
+    # Also links are required in the spec, the main links (self, root, items) are automatically
+    # generated hence here it is set to required=False which allows to add optional links that
+    # are not generated
     links = CollectionLinkSerializer(required=False, many=True)
     providers = ProviderSerializer(required=False, many=True)
     # read only fields
@@ -417,7 +420,7 @@ class ItemLinkSerializer(NonNullModelSerializer):
         model = ItemLink
         fields = ['href', 'rel', 'title', 'type']
 
-    # NOTE: when explicitely declaring fields, we need to had the validation as for the field
+    # NOTE: when explicitely declaring fields, we need to add the validation as for the field
     # in model !
     type = serializers.CharField(
         required=False, allow_blank=True, max_length=255, source="link_type"
@@ -429,7 +432,7 @@ class ItemsPropertiesSerializer(serializers.Serializer):
     # ItemsPropertiesSerializer is a nested serializer and don't directly create/write instances
     # therefore we don't need to implement the super method create() and update()
 
-    # NOTE: when explicitely declaring fields, we need to had the validation as for the field
+    # NOTE: when explicitely declaring fields, we need to add the validation as for the field
     # in model !
     datetime = serializers.DateTimeField(
         source='properties_datetime', allow_null=True, required=False
@@ -491,14 +494,17 @@ class AssetSerializer(NonNullModelSerializer):
             'updated'
         ]
 
-    # NOTE: when explicitely declaring fields, we need to had the validation as for the field
+    # NOTE: when explicitely declaring fields, we need to add the validation as for the field
     # in model !
     type = serializers.CharField(source='media_type', max_length=200)
     # Here we need to explicitely define these fields with the source, because they are renamed
     # in the get_fields() method
     eo_gsd = serializers.FloatField(source='eo_gsd', required=False, allow_null=True)
     geoadmin_lang = serializers.ChoiceField(
-        source='geoadmin_lang', choices=['de', 'fr', 'it', 'rm', 'en']
+        source='geoadmin_lang',
+        choices=['de', 'fr', 'it', 'rm', 'en'],
+        required=False,
+        allow_blank=True
     )
     geoadmin_variant = serializers.CharField(
         source='geoadmin_variant',
@@ -542,7 +548,7 @@ class ItemSerializer(NonNullModelSerializer):
             'updated',
         ]
 
-    # NOTE: when explicitely declaring fields, we need to had the validation as for the field
+    # NOTE: when explicitely declaring fields, we need to add the validation as for the field
     # in model !
     collection = serializers.StringRelatedField()
     id = serializers.CharField(
