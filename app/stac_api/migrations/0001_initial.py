@@ -50,7 +50,7 @@ class Migration(migrations.Migration):
                     'stac_extension',
                     django.contrib.postgres.fields.ArrayField(
                         base_field=models.CharField(max_length=255),
-                        default=stac_api.models.get_default_stac_extensions,
+                        default=list,
                         editable=False,
                         size=None
                     )
@@ -163,7 +163,7 @@ class Migration(migrations.Migration):
                     'stac_extension',
                     django.contrib.postgres.fields.ArrayField(
                         base_field=models.CharField(max_length=255),
-                        default=stac_api.models.get_default_stac_extensions,
+                        default=list,
                         editable=False,
                         size=None
                     )

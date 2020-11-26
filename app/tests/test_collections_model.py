@@ -31,7 +31,6 @@ class CollectionsModelTestCase(TestCase):
             name=name,
             properties_start_datetime=start,
             properties_end_datetime=end,
-            properties_eo_gsd=None,
             properties_title="My title",
         )
         db.create_item_links(item)
@@ -45,7 +44,6 @@ class CollectionsModelTestCase(TestCase):
             collection=self.collection,
             name=name,
             properties_datetime=datetime_val,
-            properties_eo_gsd=None,
             properties_title="My Title",
         )
         db.create_item_links(item)

@@ -1,8 +1,8 @@
 from django.conf import settings
-from django.db import models
-from django.forms import Textarea
 from django.contrib.gis import admin
 from django.contrib.staticfiles import finders
+from django.db import models
+from django.forms import Textarea
 
 from solo.admin import SingletonModelAdmin
 
@@ -16,6 +16,7 @@ from .models import LandingPageLink
 from .models import Provider
 
 admin.site.register(Asset)
+
 
 class LandingPageLinkInline(admin.TabularInline):
     model = LandingPageLink
@@ -46,11 +47,7 @@ class CollectionLinkInline(admin.TabularInline):
 
 @admin.register(Collection)
 class CollectionAdmin(admin.ModelAdmin):
-    readonly_fields = ['cache_start_datetime',
-                       'cache_end_datetime',
-                       'summaries',
-                       'extent_geometry'
-                       ]
+    readonly_fields = ['cache_start_datetime', 'cache_end_datetime', 'summaries', 'extent_geometry']
     inlines = [ProviderInline, CollectionLinkInline]
 
 

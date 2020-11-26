@@ -66,7 +66,6 @@ def create_item(collection, name):
         collection=collection,
         name=name,
         properties_datetime=isoparse('2020-10-28T13:05:10Z'),
-        properties_eo_gsd=None,
         properties_title="My Title",
         geometry=GEOSGeometry(
             json.dumps({
