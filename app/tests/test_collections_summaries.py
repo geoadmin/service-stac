@@ -14,14 +14,8 @@ logger = logging.getLogger(__name__)
 
 class CollectionsSummariesTestCase(TestCase):
 
-    y100 = utc_aware(datetime.strptime('0100-01-01T00:00:00Z', '%Y-%m-%dT%H:%M:%SZ'))
-    y150 = utc_aware(datetime.strptime('0150-01-01T00:00:00Z', '%Y-%m-%dT%H:%M:%SZ'))
     y200 = utc_aware(datetime.strptime('0200-01-01T00:00:00Z', '%Y-%m-%dT%H:%M:%SZ'))
-    y250 = utc_aware(datetime.strptime('0250-01-01T00:00:00Z', '%Y-%m-%dT%H:%M:%SZ'))
     y8000 = utc_aware(datetime.strptime('8000-01-01T00:00:00Z', '%Y-%m-%dT%H:%M:%SZ'))
-    y8500 = utc_aware(datetime.strptime('8500-01-01T00:00:00Z', '%Y-%m-%dT%H:%M:%SZ'))
-    y9000 = utc_aware(datetime.strptime('9000-01-01T00:00:00Z', '%Y-%m-%dT%H:%M:%SZ'))
-    y9500 = utc_aware(datetime.strptime('9500-01-01T00:00:00Z', '%Y-%m-%dT%H:%M:%SZ'))
 
     def setUp(self):
         self.collection = db.create_collection('collection-1')
