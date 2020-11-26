@@ -1,0 +1,73 @@
+version: 1
+disable_existing_loggers: False # this allow to get logger at module level
+
+root:
+  handlers:
+    - console
+  level: DEBUG
+  propagate: True
+
+loggers:
+  django:
+    level: DEBUG
+  django.utils.autoreload:
+    level: INFO
+  gunicorn.error:
+    level: DEBUG
+    handlers:
+      - console
+  gunicorn.access:
+    level: DEBUG
+    handlers:
+      - console
+
+filters:
+  application:
+    (): logging_utilities.filters.ConstAttribute
+    application: service-stac
+  isotime:
+    (): logging_utilities.filters.TimeAttribute
+    isotime: False
+    utc_isotime: True
+  django:
+    (): logging_utilities.filters.django_request.JsonDjangoRequest
+    include_keys:
+      - request.path
+      - request.method
+      - request.headers
+    exclude_keys:
+      - request.headers.Authorization
+      - request.headers.Proxy-Authorization
+      - request.headers.Cookie
+
+formatters:
+  standard:
+    format: "[%(asctime)s] %(levelname)-8s - %(name)-26s : %(message)s"
+  json:
+    (): logging_utilities.formatters.json_formatter.JsonFormatter
+    add_always_extra: True
+    filter_attributes:
+      - application
+      - utc_isotime
+    remove_empty: True
+    fmt:
+      time: utc_isotime
+      level: levelname
+      app: application
+      logger: name
+      module: module
+      function: funcName
+      process: process
+      thread: thread
+      exc_info: exc_info
+      message: message
+
+handlers:
+  console:
+    class: logging.StreamHandler
+    formatter: json
+    stream: ext://sys.stdout
+    filters:
+      - application
+      - isotime
+      - django

@@ -1,0 +1,83 @@
+version: 0.2
+
+env:
+  variables:
+    IMAGE_BASE_NAME: "swisstopo/service-stac"
+    SHELL: /bin/bash
+    AWS_DEFAULT_REGION: eu-central-1
+    USER: "aws_code_build"
+    ENV: "dev"
+    PIPENV_NOSPIN: 1
+  parameter-store:
+    CI_DOCKERHUB_USER: "/dockerhub/user"
+    CI_DOCKERHUB_PASSWORD: "/dockerhub/password"
+
+phases:
+  install:
+    runtime-versions:
+      docker: 18
+    commands:
+      - echo "Installing necessary dependencies"
+      - docker login -u ${CI_DOCKERHUB_USER} -p ${CI_DOCKERHUB_PASSWORD}
+      - apt-get update && apt-get install -y docker-compose python3-pip python3-venv gdal-bin
+  pre_build:
+    commands:
+      - echo "export of the image tag for build and push purposes"
+      # Reading git branch (the utility in the deploy script is unable to read it automatically
+      # on CodeBuild)
+      # see https://stackoverflow.com/questions/47657423/get-github-git-branch-for-aws-codebuild
+      - export GITHUB_BRANCH="$(git symbolic-ref HEAD --short 2>/dev/null)"
+      - |-
+        if [ "${GITHUB_BRANCH}" = "" ] ; then
+          GITHUB_BRANCH="$(git branch -a --contains HEAD | sed -n 2p | awk '{ printf $1 }')";
+          export GITHUB_BRANCH=${GITHUB_BRANCH#remotes/origin/};
+        fi
+      - export COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      - export IMAGE_TAG="${GITHUB_BRANCH}.${COMMIT_HASH}"
+      - echo "GITHUB_BRANCH=${GITHUB_BRANCH} COMMIT_HASH=${COMMIT_HASH} IMAGE_TAG=${IMAGE_TAG}"
+      - echo "creating a clean environment"
+      - make ci
+      - echo "linting code"
+      - make lint
+
+  build:
+    commands:
+      - export DOCKER_IMG_TAG_BASE=${IMAGE_BASE_NAME}:${GITHUB_BRANCH}
+      - export DOCKER_IMG_TAG_HASH=${DOCKER_IMG_TAG_BASE}.${COMMIT_HASH}
+      - export DOCKER_IMG_TAG_LATEST=${DOCKER_IMG_TAG_BASE}.latest
+      - export DOCKER_IMG_TAG_LATEST_DEV=${DOCKER_IMG_TAG_BASE}.latest-dev
+      # Starting dev build for testing
+      - echo "starting debug build on $(date)"
+      - echo "Building docker debug image with tags ${DOCKER_IMG_TAG_HASH} and ${DOCKER_IMG_TAG_LATEST_DEV}"
+      - >
+        docker build
+        --build-arg GIT_HASH="${COMMIT_HASH}"
+        --build-arg GIT_BRANCH="${GITHUB_BRANCH}"
+        --build-arg AUTHOR="CI"
+        -t ${DOCKER_IMG_TAG_HASH} -t ${DOCKER_IMG_TAG_LATEST_DEV} --target debug .
+      # Running tests
+      # Note: the app container will 'exit 0' once tests are completed, we need to
+      # stop the db as well then
+      - docker-compose up --abort-on-container-exit
+      # Starting prod build
+      - echo "starting production build on $(date)"
+      - echo "Building docker production image with tags ${DOCKER_IMG_TAG_HASH} and ${DOCKER_IMG_TAG_LATEST}"
+      - >
+        docker build
+        --build-arg GIT_HASH="${COMMIT_HASH}"
+        --build-arg GIT_BRANCH="${GITHUB_BRANCH}"
+        --build-arg AUTHOR="CI"
+        -t ${DOCKER_IMG_TAG_HASH} -t ${DOCKER_IMG_TAG_LATEST} --target production .
+
+  post_build:
+    commands:
+      # Only push image to dockerhub for merge to develop and master
+      - |
+        if [ "${GITHUB_BRANCH}" = "master" ]; then
+          docker push ${DOCKER_IMG_TAG_HASH}
+        elif [ "${GITHUB_BRANCH}" = "develop" ]; then
+          echo "Push production image ${DOCKER_IMG_TAG_LATEST}"
+          docker push ${DOCKER_IMG_TAG_LATEST}
+          echo "Push debug image ${DOCKER_IMG_TAG_LATEST_DEV}"
+          docker push ${DOCKER_IMG_TAG_LATEST_DEV}
+        fi
