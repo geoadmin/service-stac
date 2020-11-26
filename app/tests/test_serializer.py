@@ -7,6 +7,7 @@ from pprint import pformat
 
 from django.conf import settings
 
+from rest_framework.exceptions import ValidationError
 from rest_framework.parsers import JSONParser
 from rest_framework.renderers import JSONRenderer
 from rest_framework.test import APIRequestFactory
@@ -99,7 +100,7 @@ class SerializationTestCase(StacBaseTestCase):
                 OrderedDict([
                     ('href', 'http://www.google.com'),
                     ('rel', 'dummy'),
-                    ('link_type', 'dummy'),
+                    ('type', 'dummy'),
                     ('title', 'Dummy link'),
                 ])
             ],
@@ -128,12 +129,191 @@ class SerializationTestCase(StacBaseTestCase):
         }
         self.check_stac_collection(expected, python_native)
 
-        # back-transate to Python native:
-        stream = io.BytesIO(content)
-        data = JSONParser().parse(stream)
-        # back-translate into fully populated collection instance:
-        serializer = CollectionSerializer(data=data, context={'request': request})
-        self.assertEqual(True, serializer.is_valid(), msg='Serializer data not valid.')
+    def test_collection_deserialization_create_only_required(self):
+        data = OrderedDict([
+            ("id", "test"),
+            ("description", "This is a description for testing"),
+            ("license", "proprietary"),
+        ])
+
+        # translate to Python native:
+        serializer = CollectionSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        collection = serializer.save()
+
+        # serialize the object and test it against the one above
+        # mock a request needed for the serialization of links
+        request = self.factory.get(f'{API_BASE}/collections/{collection.name}')
+        serializer = CollectionSerializer(collection, context={'request': request})
+        python_native = serializer.data
+        self.check_stac_collection(data, python_native)
+
+    def test_collection_deserialization_create_full(self):
+        data = OrderedDict([
+            ("id", "test"),
+            ("description", "This is a description for testing"),
+            ("license", "proprietary"),
+            ("title", "My title"),
+            (
+                "providers",
+                [
+                    OrderedDict([
+                        ("name", "my-provider"),
+                        ("description", "My provider description"),
+                        ("roles", ["licensor"]),
+                        ("url", "http://www.example.com"),
+                    ])
+                ]
+            ),
+            (
+                "links",
+                [
+                    OrderedDict([
+                        ('href', 'http://www.example.com'),
+                        ('rel', 'example'),
+                        ('title', 'This is an example link'),
+                        ('type', 'example-type'),
+                    ])
+                ]
+            ),
+        ])
+
+        # translate to Python native:
+        serializer = CollectionSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        collection = serializer.save()
+
+        # serialize the object and test it against the one above
+        # mock a request needed for the serialization of links
+        request = self.factory.get(f'{API_BASE}/collections/{collection.name}')
+        serializer = CollectionSerializer(collection, context={'request': request})
+        python_native = serializer.data
+        self.check_stac_collection(data, python_native)
+
+    def test_collection_deserialization_create_provider_link_required(self):
+        data = OrderedDict([
+            ("id", "test"),
+            ("description", "This is a description for testing"),
+            ("license", "proprietary"),
+            ("title", "My title"),
+            ("providers", [OrderedDict([("name", "my-provider")])]),
+            ("links", [OrderedDict([('href', 'http://www.example.com'), ('rel', 'example')])]),
+        ])
+
+        # translate to Python native:
+        serializer = CollectionSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        collection = serializer.save()
+
+        # serialize the object and test it against the one above
+        # mock a request needed for the serialization of links
+        request = self.factory.get(f'{API_BASE}/collections/{collection.name}')
+        serializer = CollectionSerializer(collection, context={'request': request})
+        python_native = serializer.data
+        self.check_stac_collection(data, python_native)
+
+    def test_collection_deserialization_update_provider_link_required(self):
+        data = OrderedDict([
+            ("id", "test"),
+            ("description", "This is a description for testing"),
+            ("license", "proprietary"),
+            ("title", "My title"),
+            ("providers", [OrderedDict([("name", "my-provider")])]),
+            ("links", [OrderedDict([('href', 'http://www.example.com'), ('rel', 'example')])]),
+        ])
+
+        # translate to Python native:
+        serializer = CollectionSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        collection = serializer.save()
+
+        # Update some data
+        data['description'] = 'New description'
+        data['title'] = 'New Title'
+        data['license'] = 'New license'
+        data['providers'][0]['url'] = 'http://www.example.com'
+        data['providers'][0]['roles'] = ['licensor']
+        data['links'][0]['type'] = 'example'
+        serializer = CollectionSerializer(collection, data=data)
+        serializer.is_valid(raise_exception=True)
+        collection = serializer.save()
+
+        # serialize the object and test it against the one above
+        # mock a request needed for the serialization of links
+        request = self.factory.get(f'{API_BASE}/collections/{collection.name}')
+        serializer = CollectionSerializer(collection, context={'request': request})
+        python_native = serializer.data
+        self.check_stac_collection(data, python_native)
+
+    def test_collection_deserialization_update_remove_add_provider_link(self):
+        data = OrderedDict([
+            ("id", "test"),
+            ("description", "This is a description for testing"),
+            ("license", "proprietary"),
+            ("title", "My title"),
+            ("providers", [OrderedDict([("name", "my-provider")])]),
+            ("links", [OrderedDict([('href', 'http://www.example.com'), ('rel', 'example')])]),
+        ])
+
+        # translate to Python native:
+        serializer = CollectionSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        collection = serializer.save()
+
+        # Remove and and new provider and link
+        data['providers'][0]['name'] = 'new-provider'
+        data['providers'][0]['url'] = 'http://www.example.com'
+        data['providers'][0]['roles'] = ['licensor']
+        data['links'][0] = OrderedDict([('href', 'http://www.new-example.com'),
+                                        ('rel', 'new-example')])
+        serializer = CollectionSerializer(collection, data=data)
+        serializer.is_valid(raise_exception=True)
+        collection = serializer.save()
+
+        # serialize the object and test it against the one above
+        # mock a request needed for the serialization of links
+        request = self.factory.get(f'{API_BASE}/collections/{collection.name}')
+        serializer = CollectionSerializer(collection, context={'request': request})
+        python_native = serializer.data
+        self.check_stac_collection(data, python_native)
+
+    def test_collection_deserialization_invalid_data(self):
+        data = OrderedDict([
+            ("id", "test/invalid name"),
+            ("description", "This is a description for testing"),
+            ("license", "proprietary"),
+        ])
+
+        # translate to Python native:
+        serializer = CollectionSerializer(data=data)
+        with self.assertRaises(ValidationError):
+            serializer.is_valid(raise_exception=True)
+
+    def test_collection_deserialization_invalid_link(self):
+        data = OrderedDict([
+            ("id", "test"),
+            ("description", "This is a description for testing"),
+            ("license", "proprietary"),
+            ("links", [OrderedDict([('href', 'www.example.com'), ('rel', 'example')])]),
+        ])
+
+        # translate to Python native:
+        serializer = CollectionSerializer(data=data)
+        with self.assertRaises(ValidationError):
+            serializer.is_valid(raise_exception=True)
+
+    def test_collection_deserialization_invalid_provider(self):
+        data = OrderedDict([
+            ("id", "test"),
+            ("description", "This is a description for testing"),
+            ("license", "proprietary"),
+            ("providers", [OrderedDict([("name", "my-provider"), ('roles', ['invalid-role'])])]),
+        ])
+
+        # translate to Python native:
+        serializer = CollectionSerializer(data=data)
+        with self.assertRaises(ValidationError):
+            serializer.is_valid(raise_exception=True)
 
     def test_item_serialization(self):
         collection_name = self.collection.name
@@ -221,7 +401,7 @@ class SerializationTestCase(StacBaseTestCase):
                 OrderedDict([
                     ('href', 'https://example.com'),
                     ('rel', 'dummy'),
-                    ('link_type', 'dummy'),
+                    ('type', 'dummy'),
                     ('title', 'Dummy link'),
                 ])
             ],
@@ -340,7 +520,7 @@ class SerializationTestCase(StacBaseTestCase):
                 OrderedDict([
                     ('href', 'https://example.com'),
                     ('rel', 'dummy'),
-                    ('link_type', 'dummy'),
+                    ('type', 'dummy'),
                     ('title', 'Dummy link'),
                 ])
             ],

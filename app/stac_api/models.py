@@ -179,9 +179,11 @@ class Provider(models.Model):
         models.CharField(max_length=9),
         help_text=_("Comma-separated list of roles. Possible values are {}".format(
             ', '.join(allowed_roles)
-        ))
+        )),
+        blank=True,
+        null=True,
     )
-    url = models.URLField()
+    url = models.URLField(blank=True, null=True)
 
     class Meta:
         unique_together = (('collection', 'name'),)
@@ -191,11 +193,7 @@ class Provider(models.Model):
 
     def clean(self):
         if self.roles is None:
-            # Note this can happen from the admin page where we need to add the roles as comma
-            # separated and not as a python list e.g.
-            # `["licensor", "producer"]` => gives self.roles == None
-            logger.error('Invalid roles, at least one role needs to be provided')
-            raise ValidationError(_('Invalid roles, at least one role needs to be provided'))
+            return
         for role in self.roles:
             if role not in self.allowed_roles:
                 logger.error('Invalid role %s', role)
