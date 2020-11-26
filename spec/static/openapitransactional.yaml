@@ -696,6 +696,10 @@ components:
           description: Human readable title of the collection
           example: National Map 1:200'000
           type: string
+        created:
+          $ref: "#/components/schemas/created"
+        updated:
+          $ref: "#/components/schemas/updated"
       required:
       - id
       - links
@@ -703,6 +707,8 @@ components:
       - description
       - license
       - extent
+      - created
+      - updated
       type: object
     collections:
       properties:
@@ -1156,6 +1162,10 @@ components:
           $ref: "#/components/schemas/datetime"
         updated:
           $ref: "#/components/schemas/updated"
+        title:
+          description: Human readable title of the Feature
+          example: Feature title
+          type: string
       required:
       - created
       - updated
@@ -1668,6 +1678,8 @@ components:
       type: object
       required:
       - "checksum:multihash"
+      - created
+      - updated
       properties:
         title:
           $ref: "#/components/schemas/title"
@@ -1685,6 +1697,10 @@ components:
           $ref: "#/components/schemas/proj:epsg"
         eo:gsd:
           $ref: "#/components/schemas/eo:gsd"
+        created:
+          $ref: "#/components/schemas/created"
+        updated:
+          $ref: "#/components/schemas/updated"
     itemAsset:
       allOf:
       - $ref: "#/components/schemas/itemBase"

@@ -644,6 +644,8 @@ components:
       type: object
       required:
         - "checksum:multihash"
+        - created
+        - updated
       properties:
         title:
           $ref: "#/components/schemas/title"
@@ -663,6 +665,10 @@ components:
           $ref: "#/components/schemas/proj:epsg"
         "eo:gsd":
           $ref: "#/components/schemas/eo:gsd"
+        created:
+          $ref: "#/components/schemas/created"
+        updated:
+          $ref: "#/components/schemas/updated"
     # overwrites the STAC definition of itemAsset
     itemAsset:
       allOf:
