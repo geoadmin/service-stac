@@ -530,15 +530,15 @@ class Asset(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
 
-    __original_eo_gsd = None
-    __original_geoadmin_variant = None
-    __original_proj_epsg = None
+    _original_eo_gsd = None
+    _original_geoadmin_variant = None
+    _original_proj_epsg = None
 
     def __init__(self, *args, **kwargs):
         super(Asset, self).__init__(*args, **kwargs)
-        self.__original_eo_gsd = self.eo_gsd
-        self.__original_geoadmin_variant = self.geoadmin_variant
-        self.__original_proj_epsg = self.proj_epsg
+        self._original_eo_gsd = self.eo_gsd
+        self._original_geoadmin_variant = self.geoadmin_variant
+        self._original_proj_epsg = self.proj_epsg
 
     def __str__(self):
         return self.name
@@ -547,13 +547,13 @@ class Asset(models.Model):
     # is saved, too.
     def save(self, *args, **kwargs):  # pylint: disable=signature-differs
         old_values = [
-            self.__original_eo_gsd, self.__original_geoadmin_variant, self.__original_proj_epsg
+            self._original_eo_gsd, self._original_geoadmin_variant, self._original_proj_epsg
         ]
         update_summaries(self.item.collection, self, deleted=False, old_values=old_values)
         super().save(*args, **kwargs)
-        self.__original_eo_gsd = self.eo_gsd
-        self.__original_geoadmin_variant = self.geoadmin_variant
-        self.__original_proj_epsg = self.proj_epsg
+        self._original_eo_gsd = self.eo_gsd
+        self._original_geoadmin_variant = self.geoadmin_variant
+        self._original_proj_epsg = self.proj_epsg
 
     def delete(self, *args, **kwargs):  # pylint: disable=signature-differs
         # It is important to use `*args, **kwargs` in signature because django might add dynamically
