@@ -1,8 +1,6 @@
 import logging
 import re
 
-import numpy as np
-
 from django.contrib.gis.db import models
 from django.contrib.gis.geos import GEOSGeometry
 from django.contrib.gis.geos import Polygon
@@ -14,6 +12,7 @@ from django.utils.translation import gettext_lazy as _
 
 from solo.models import SingletonModel
 
+from stac_api.collection_summaries import update_summaries
 from stac_api.temporal_extent import update_temporal_extent
 
 logger = logging.getLogger(__name__)
@@ -37,14 +36,6 @@ def get_default_extent_value():
 
 def get_default_summaries_value():
     return DEFAULT_SUMMARIES_VALUE
-
-
-def float_in(flt, floats, **kwargs):
-    '''
-    This function is needed for comparing floats in order to check if a
-    given float is member of a list of floats.
-    '''
-    return np.any(np.isclose(flt, floats, **kwargs))
 
 
 def validate_name(name):
@@ -212,39 +203,6 @@ class Collection(models.Model):
     def __str__(self):
         return self.name
 
-    def update_summaries(self, asset_geoadmin_variant, asset_proj_epsg, asset_eo_gsd):
-        '''
-        updates the collection's summaries when assets are updated or raises
-        errors when this fails.
-        :param asset_geoadmin_value: asset's value for geoadmin_variant
-        :param asset_proj_epsg: asset's value for proj:epsg
-        :param asset_eo_gsd: asset's value for asset_eo_gsd
-        For all the given parameters this function checks, if the corresponding
-        parameters of the collection need to be updated. If so, they will be either
-        updated or an error will be raised, if updating fails.
-        '''
-        try:
-            if asset_geoadmin_variant and \
-               asset_geoadmin_variant not in self.summaries["geoadmin:variant"]:
-                self.summaries["geoadmin:variant"].append(asset_geoadmin_variant)
-                self.save()
-
-            if asset_proj_epsg and asset_proj_epsg not in self.summaries["proj:epsg"]:
-                self.summaries["proj:epsg"].append(asset_proj_epsg)
-                self.save()
-
-            if asset_eo_gsd and not float_in(asset_eo_gsd, self.summaries["eo:gsd"]):
-                self.summaries["eo:gsd"].append(asset_eo_gsd)
-                self.save()
-
-        except KeyError as err:
-            logger.error(
-                "Error when updating collection's summaries values due to asset update: %s", err
-            )
-            raise ValidationError(_(
-                "Error when updating collection's summaries values due to asset update."
-            ))
-
     def update_bbox_extent(self, action, item_geom, item_id, item_name):
         '''
         updates the collection's spatial extent when an item is updated.
@@ -376,16 +334,16 @@ class Item(models.Model):
     # when the geometry has changed (during update)
     # https://stackoverflow.com/questions/1355150/when-saving-how-can-you-check-if-a-field-has-changed
     _original_geometry = None
-    __original_properties_start_datetime = None
-    __original_properties_end_datetime = None
-    __original_properties_datetime = None
+    _original_properties_start_datetime = None
+    _original_properties_end_datetime = None
+    _original_properties_datetime = None
 
     def __init__(self, *args, **kwargs):
         super(Item, self).__init__(*args, **kwargs)
         self._original_geometry = self.geometry
-        self.__original_properties_start_datetime = self.properties_start_datetime
-        self.__original_properties_end_datetime = self.properties_end_datetime
-        self.__original_properties_datetime = self.properties_datetime
+        self._original_properties_start_datetime = self.properties_start_datetime
+        self._original_properties_end_datetime = self.properties_end_datetime
+        self._original_properties_datetime = self.properties_datetime
 
     def __str__(self):
         return self.name
@@ -407,16 +365,16 @@ class Item(models.Model):
             action = "update"
 
         if self.properties_datetime is not None:
-            if self.__original_properties_datetime is not None:
+            if self._original_properties_datetime is not None:
                 # This is the case, when the value of properties.datetime has been
                 # updated
                 update_temporal_extent(
                     self,
                     self.collection,
                     action,
-                    self.__original_properties_datetime,
+                    self._original_properties_datetime,
                     self.properties_datetime,
-                    self.__original_properties_datetime,
+                    self._original_properties_datetime,
                     self.properties_datetime,
                     self.pk
                 )
@@ -432,23 +390,23 @@ class Item(models.Model):
                     self,
                     self.collection,
                     action,
-                    self.__original_properties_start_datetime,
+                    self._original_properties_start_datetime,
                     self.properties_datetime,
-                    self.__original_properties_end_datetime,
+                    self._original_properties_end_datetime,
                     self.properties_datetime,
                     self.pk
                 )
-        elif self.__original_properties_start_datetime is not None and \
-            self.__original_properties_end_datetime is not None:
+        elif self._original_properties_start_datetime is not None and \
+            self._original_properties_end_datetime is not None:
             # This is the case, if an items values for start_ and/or end_datetime
             # were updated.
             update_temporal_extent(
                 self,
                 self.collection,
                 action,
-                self.__original_properties_start_datetime,
+                self._original_properties_start_datetime,
                 self.properties_start_datetime,
-                self.__original_properties_end_datetime,
+                self._original_properties_end_datetime,
                 self.properties_end_datetime,
                 self.pk
             )
@@ -460,9 +418,9 @@ class Item(models.Model):
                 self,
                 self.collection,
                 action,
-                self.__original_properties_datetime,
+                self._original_properties_datetime,
                 self.properties_start_datetime,
-                self.__original_properties_datetime,
+                self._original_properties_datetime,
                 self.properties_end_datetime,
                 self.pk
             )
@@ -477,9 +435,9 @@ class Item(models.Model):
         super().save(*args, **kwargs)
 
         self._original_geometry = self.geometry
-        self.__original_properties_start_datetime = self.properties_start_datetime
-        self.__original_properties_end_datetime = self.properties_end_datetime
-        self.__original_properties_datetime = self.properties_datetime
+        self._original_properties_start_datetime = self.properties_start_datetime
+        self._original_properties_end_datetime = self.properties_end_datetime
+        self._original_properties_datetime = self.properties_datetime
 
     def delete(self, *args, **kwargs):  # pylint: disable=signature-differs
         # It is important to use `*args, **kwargs` in signature because django might add dynamically
@@ -489,9 +447,9 @@ class Item(models.Model):
                 self,
                 self.collection,
                 'remove',
-                self.__original_properties_datetime,
+                self._original_properties_datetime,
                 self.properties_datetime,
-                self.__original_properties_datetime,
+                self._original_properties_datetime,
                 self.properties_datetime,
                 self.pk
             )
@@ -500,9 +458,9 @@ class Item(models.Model):
                 self,
                 self.collection,
                 'remove',
-                self.__original_properties_start_datetime,
+                self._original_properties_start_datetime,
                 self.properties_start_datetime,
-                self.__original_properties_end_datetime,
+                self._original_properties_end_datetime,
                 self.properties_end_datetime,
                 self.pk
             )
@@ -572,12 +530,33 @@ class Asset(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
 
+    __original_eo_gsd = None
+    __original_geoadmin_variant = None
+    __original_proj_epsg = None
+
+    def __init__(self, *args, **kwargs):
+        super(Asset, self).__init__(*args, **kwargs)
+        self.__original_eo_gsd = self.eo_gsd
+        self.__original_geoadmin_variant = self.geoadmin_variant
+        self.__original_proj_epsg = self.proj_epsg
+
     def __str__(self):
         return self.name
 
     # alter save-function, so that the corresponding collection of the parent item of the asset
     # is saved, too.
     def save(self, *args, **kwargs):  # pylint: disable=signature-differs
-        self.item.collection.update_summaries(self.geoadmin_variant, self.proj_epsg, self.eo_gsd)
-
+        old_values = [
+            self.__original_eo_gsd, self.__original_geoadmin_variant, self.__original_proj_epsg
+        ]
+        update_summaries(self.item.collection, self, deleted=False, old_values=old_values)
         super().save(*args, **kwargs)
+        self.__original_eo_gsd = self.eo_gsd
+        self.__original_geoadmin_variant = self.geoadmin_variant
+        self.__original_proj_epsg = self.proj_epsg
+
+    def delete(self, *args, **kwargs):  # pylint: disable=signature-differs
+        # It is important to use `*args, **kwargs` in signature because django might add dynamically
+        # parameters
+        update_summaries(self.item.collection, self, deleted=True, old_values=None)
+        super().delete(*args, **kwargs)
