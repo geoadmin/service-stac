@@ -17,7 +17,6 @@ from stac_api.models import ItemLink
 from stac_api.models import LandingPage
 from stac_api.models import LandingPageLink
 from stac_api.models import Provider
-from stac_api.models import get_default_stac_extensions
 from stac_api.models import validate_geoadmin_variant
 from stac_api.models import validate_name
 from stac_api.utils import isoformat
@@ -287,7 +286,7 @@ class CollectionSerializer(NonNullModelSerializer):
         return ["http://www.opengis.net/def/crs/OGC/1.3/CRS84"]
 
     def get_stac_extensions(self, obj):
-        return get_default_stac_extensions()
+        return list()
 
     def get_stac_version(self, obj):
         return STAC_VERSION
@@ -562,7 +561,7 @@ class ItemSerializer(NonNullModelSerializer):
     updated = serializers.DateTimeField(read_only=True)
 
     def get_stac_extensions(self, obj):
-        return get_default_stac_extensions()
+        return list()
 
     def get_stac_version(self, obj):
         return STAC_VERSION

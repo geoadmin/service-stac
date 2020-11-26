@@ -26,23 +26,9 @@ _BBOX_CH.srid = 4326
 # 'SRID=4326;POLYGON ((5.96 45.82, 5.96 47.81, 10.49 47.81, 10.49 45.82, 5.96 45.82))'
 BBOX_CH = str(_BBOX_CH)
 
-# after discussion with Chris and Tobias:
-# stac_extension will be populated with default values that are set to be
-# non-editable for the moment. Could be changed, should the need arise.
-# The following - a bit complicated approach - hopefully serves to solve the
-# error:
-# <begin Quote>
-# "*ArrayField default should be a callable instead of an
-# instance so that it's not shared between all field instances.
-# HINT: Use a callable instead, e.g., use `list` instead of `[]`.""
-# <end quote>
 DEFAULT_EXTENT_VALUE = {"spatial": {"bbox": [[None]]}, "temporal": {"interval": [[None, None]]}}
 
 DEFAULT_SUMMARIES_VALUE = {"eo:gsd": [], "geoadmin:variant": [], "proj:epsg": []}
-
-
-def get_default_stac_extensions():
-    return list()
 
 
 def get_default_extent_value():
