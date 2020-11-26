@@ -41,7 +41,7 @@ geometry_json = OrderedDict([
 ])
 
 
-class SerializationTestCase(StacBaseTestCase):
+class CollectionSerializationTestCase(StacBaseTestCase):
 
     def setUp(self):  # pylint: disable=invalid-name
         '''
@@ -328,6 +328,27 @@ class SerializationTestCase(StacBaseTestCase):
         serializer = CollectionSerializer(data=data)
         with self.assertRaises(ValidationError):
             serializer.is_valid(raise_exception=True)
+
+
+class ItemSerializationTestCase(StacBaseTestCase):
+
+    def setUp(self):  # pylint: disable=invalid-name
+        '''
+        Prepare instances of keyword, link, provider and instance for testing.
+        Adding the relationships among those by populating the ManyToMany fields
+        '''
+        self.factory = APIRequestFactory()
+        self.collection_created = utc_aware(datetime.utcnow())
+        self.collection = db.create_collection('collection-1')
+        self.collection.full_clean()
+        self.collection.save()
+        self.item = db.create_item(self.collection, 'item-1')
+        self.item.full_clean()
+        self.item.save()
+        self.asset = db.create_asset(self.item, 'asset-1')
+        self.asset.full_clean()
+        self.asset.save()
+        self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_item_serialization(self):
         collection_name = self.collection.name
@@ -745,6 +766,27 @@ class SerializationTestCase(StacBaseTestCase):
         serializer = ItemSerializer(data=data)
         with self.assertRaises(ValidationError):
             serializer.is_valid(raise_exception=True)
+
+
+class AssetSerializationTestCase(StacBaseTestCase):
+
+    def setUp(self):  # pylint: disable=invalid-name
+        '''
+        Prepare instances of keyword, link, provider and instance for testing.
+        Adding the relationships among those by populating the ManyToMany fields
+        '''
+        self.factory = APIRequestFactory()
+        self.collection_created = utc_aware(datetime.utcnow())
+        self.collection = db.create_collection('collection-1')
+        self.collection.full_clean()
+        self.collection.save()
+        self.item = db.create_item(self.collection, 'item-1')
+        self.item.full_clean()
+        self.item.save()
+        self.asset = db.create_asset(self.item, 'asset-1')
+        self.asset.full_clean()
+        self.asset.save()
+        self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_asset_serialization(self):
         collection_name = self.collection.name
