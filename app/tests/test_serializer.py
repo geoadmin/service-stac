@@ -800,6 +800,9 @@ class AssetSerializationTestCase(StacBaseTestCase):
         # translate to Python native:
         serializer = AssetSerializer(self.asset, context={'request': request})
         python_native = serializer.data
+        # hack to deal with the item property, as it is "write_only", it will not appear
+        # in the mocked request's data. So we manually add it here:
+        python_native["item"]=item_name
 
         logger.debug('serialized fields:\n%s', pformat(serializer.fields))
         logger.debug('python native:\n%s', pformat(python_native))
@@ -868,4 +871,6 @@ class AssetSerializationTestCase(StacBaseTestCase):
         serializer = AssetSerializer(asset, context={'request': request})
         python_native = serializer.data
 
-        self.check_stac_asset(data, python_native, ignore="id")
+        # ignoring item below, as it is a "write_only" field in the asset's serializer.
+        # it will not be present in the mocked request's data.
+        self.check_stac_asset(data, python_native, ignore="item")
