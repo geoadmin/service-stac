@@ -1,74 +1,74 @@
 components:
   schemas:
-    assetQuery:
-      additionalProperties:
-        $ref: "#/components/schemas/assetQueryProp"
-      description: >-
-        Define which properties of the asset to query and the operations to apply.
-
-
-        The following properties can be queried:
-
-        - `type`: query for assets with this specific media type
-
-        - `proj:epsg`: query for assets with this specific epsg
-
-        - `eo:gsd`: query for assets with this specific gsd
-
-        - `geoadmin:variant`: query for assets with this specific variant
-      example:
-        type:
-          eq: image/tiff
-      type: object
-    assetQueryFilter:
-      description: Allows users to query asset properties for specific values
-      properties:
-        assetQuery:
-          $ref: "#/components/schemas/assetQuery"
-      type: object
-    assetQueryProp:
-      anyOf:
-        - description: >-
-            If the object doesn't contain any of the operators, it is equivalent to using the
-            equals operator
-        - description: Match using an operator
-          properties:
-            contains:
-              description: >-
-                Find items with a property that contains the specified
-                literal string, e.g., matches ".*<STRING>.*".
-                A case-insensitive comparison must be performed.
-              type: string
-            endsWith:
-              description: >-
-                Find items with a property that ends with the specified string. A case-insensitive
-                comparison must be performed.
-              type: string
-            eq:
-              description: >-
-                Find items with a property that is equal to the specified value. For strings, a
-                case-insensitive comparison must be performed.
-              nullable: true
-              oneOf:
-                - type: string
-                - type: number
-                - type: boolean
-            in:
-              description: >-
-                Find items with a property that equals at least one entry in the specified array.
-                A case-insensitive comparison must be performed.
-              items:
-                oneOf:
-                  - type: string
-                  - type: number
-              type: array
-            startsWith:
-              description: >-
-                Find items with a property that begins with the specified string. A case-insensitive
-                comparison must be performed.
-              type: string
-          type: object
-      description: Apply query operations to a specific property
+    #assetQuery:
+    #  additionalProperties:
+    #    $ref: "#/components/schemas/assetQueryProp"
+    #  description: >-
+    #    Define which properties of the asset to query and the operations to apply.
+    #
+    #
+    #    The following properties can be queried:
+    #
+    #    - `type`: query for assets with this specific media type
+    #
+    #    - `proj:epsg`: query for assets with this specific epsg
+    #
+    #    - `eo:gsd`: query for assets with this specific gsd
+    #
+    #    - `geoadmin:variant`: query for assets with this specific variant
+    #  example:
+    #    type:
+    #      eq: image/tiff
+    #  type: object
+    #assetQueryFilter:
+    #  description: Allows users to query asset properties for specific values
+    #  properties:
+    #    assetQuery:
+    #      $ref: "#/components/schemas/assetQuery"
+    #  type: object
+    #assetQueryProp:
+    #  anyOf:
+    #    - description: >-
+    #        If the object doesn't contain any of the operators, it is equivalent to using the
+    #        equals operator
+    #    - description: Match using an operator
+    #      properties:
+    #        contains:
+    #          description: >-
+    #            Find items with a property that contains the specified
+    #            literal string, e.g., matches ".*<STRING>.*".
+    #            A case-insensitive comparison must be performed.
+    #          type: string
+    #        endsWith:
+    #          description: >-
+    #            Find items with a property that ends with the specified string. A case-insensitive
+    #            comparison must be performed.
+    #          type: string
+    #        eq:
+    #          description: >-
+    #            Find items with a property that is equal to the specified value. For strings, a
+    #            case-insensitive comparison must be performed.
+    #          nullable: true
+    #          oneOf:
+    #            - type: string
+    #            - type: number
+    #            - type: boolean
+    #        in:
+    #          description: >-
+    #            Find items with a property that equals at least one entry in the specified array.
+    #            A case-insensitive comparison must be performed.
+    #          items:
+    #            oneOf:
+    #              - type: string
+    #              - type: number
+    #          type: array
+    #        startsWith:
+    #          description: >-
+    #            Find items with a property that begins with the specified string. A case-insensitive
+    #            comparison must be performed.
+    #          type: string
+    #      type: object
+    #  description: Apply query operations to a specific property
     bbox:
       description: >-
         Only features that have a geometry that intersects the bounding box are selected.
@@ -1168,7 +1168,7 @@ components:
       description: Apply query operations to a specific property
     searchBody:
       allOf:
-        - $ref: "#/components/schemas/assetQueryFilter"
+        #- $ref: "#/components/schemas/assetQueryFilter"
         - $ref: "#/components/schemas/queryFilter"
         - $ref: "#/components/schemas/bboxFilter"
         - $ref: "#/components/schemas/datetimeFilter"
