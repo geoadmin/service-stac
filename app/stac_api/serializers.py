@@ -523,7 +523,9 @@ class AssetSerializer(NonNullModelSerializer):
 
     # NOTE: when explicitely declaring fields, we need to add the validation as for the field
     # in model !
-    item = serializers.SlugRelatedField(slug_field='name', queryset=Item.objects.all())
+    item = serializers.SlugRelatedField(
+        slug_field='name', write_only=True, queryset=Item.objects.all()
+    )
     id = serializers.CharField(
         source='name',
         required=True,
