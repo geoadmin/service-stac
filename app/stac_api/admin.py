@@ -5,14 +5,15 @@ from django.forms import Textarea
 
 from solo.admin import SingletonModelAdmin
 
-from .models import Asset
-from .models import Collection
-from .models import CollectionLink
-from .models import Item
-from .models import ItemLink
-from .models import LandingPage
-from .models import LandingPageLink
-from .models import Provider
+from stac_api.models import Asset
+from stac_api.models import Collection
+from stac_api.models import CollectionLink
+from stac_api.models import ConformancePage
+from stac_api.models import Item
+from stac_api.models import ItemLink
+from stac_api.models import LandingPage
+from stac_api.models import LandingPageLink
+from stac_api.models import Provider
 
 admin.site.register(Asset)
 
@@ -25,6 +26,12 @@ class LandingPageLinkInline(admin.TabularInline):
 @admin.register(LandingPage)
 class LandingPageAdmin(SingletonModelAdmin):
     inlines = [LandingPageLinkInline]
+
+
+@admin.register(ConformancePage)
+class ConformancePageAdmin(SingletonModelAdmin):
+    model = ConformancePage
+    extra = 0
 
 
 class ProviderInline(admin.TabularInline):

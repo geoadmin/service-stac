@@ -92,6 +92,20 @@ def validate_geometry(geometry):
     return geometry
 
 
+def set_default_links():
+    '''
+    A helper function of the class Conformance Page
+    to make it possible to define the default values as a callable
+    :return: a list of urls
+    '''
+    default_links = (
+        'http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/core',
+        'http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/oas30',
+        'http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/geojson'
+    )
+    return default_links
+
+
 class Link(models.Model):
     href = models.URLField()
     rel = models.CharField(max_length=30, validators=[validate_link_rel])
@@ -130,6 +144,22 @@ class LandingPageLink(Link):
 
     class Meta:
         unique_together = (('rel', 'landing_page'))
+
+
+class ConformancePage(SingletonModel):
+    conforms_to = ArrayField(
+        models.URLField(
+            blank=True,
+            null=True
+        ),
+        default=set_default_links,
+        help_text=_("Comma-separated list of URLs for the value conformsTo"))
+
+    def __str__(self):
+        return "Conformance Page"
+
+    class Meta:
+        verbose_name = "STAC Conformance Page"
 
 
 class Provider(models.Model):
