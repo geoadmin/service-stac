@@ -528,7 +528,8 @@ class AssetSerializer(NonNullModelSerializer):
         source='name',
         required=True,
         max_length=255,
-        validators=[validate_name, UniqueValidator(queryset=Asset.objects.all())])
+        validators=[validate_name, UniqueValidator(queryset=Asset.objects.all())]
+    )
     type = serializers.CharField(source='media_type', max_length=200)
     # Here we need to explicitely define these fields with the source, because they are renamed
     # in the get_fields() method
@@ -568,7 +569,6 @@ class AssetSerializer(NonNullModelSerializer):
     def update(self, instance, validated_data):
         instance.save()
         return instance
-
 
 
 class ItemSerializer(NonNullModelSerializer):
