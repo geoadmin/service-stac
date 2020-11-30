@@ -135,7 +135,7 @@ class DictSerializer(serializers.ListSerializer):
 
     # pylint: disable=abstract-method
 
-    key_identifier = 'name'
+    key_identifier = 'id'
 
     def to_representation(self, data):
         objects = super().to_representation(data)
@@ -497,7 +497,7 @@ class BboxSerializer(gis_serializers.GeoFeatureModelSerializer):
 
 class AssetsDictSerializer(DictSerializer):
     # pylint: disable=abstract-method
-    key_identifier = 'name'
+    key_identifier = 'id'
 
 
 class AssetSerializer(NonNullModelSerializer):
@@ -506,7 +506,8 @@ class AssetSerializer(NonNullModelSerializer):
         model = Asset
         list_serializer_class = AssetsDictSerializer
         fields = [
-            'name',
+            'id',
+            'item',
             'title',
             'type',
             'href',
@@ -522,6 +523,12 @@ class AssetSerializer(NonNullModelSerializer):
 
     # NOTE: when explicitely declaring fields, we need to add the validation as for the field
     # in model !
+    item = serializers.SlugRelatedField(slug_field='name', queryset=Item.objects.all())
+    id = serializers.CharField(
+        source='name',
+        required=True,
+        max_length=255,
+        validators=[validate_name, UniqueValidator(queryset=Asset.objects.all())])
     type = serializers.CharField(source='media_type', max_length=200)
     # Here we need to explicitely define these fields with the source, because they are renamed
     # in the get_fields() method
@@ -553,6 +560,15 @@ class AssetSerializer(NonNullModelSerializer):
         fields['geoadmin:lang'] = fields.pop('geoadmin_lang')
         fields['checksum:multihash'] = fields.pop('checksum_multihash')
         return fields
+
+    def create(self, validated_data):
+        asset = Asset.objects.create(**validated_data)
+        return asset
+
+    def update(self, instance, validated_data):
+        instance.save()
+        return instance
+
 
 
 class ItemSerializer(NonNullModelSerializer):
