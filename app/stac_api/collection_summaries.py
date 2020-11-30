@@ -28,21 +28,19 @@ def update_summaries_on_asset_delete(collection, asset):
     '''
 
     try:
-        asset_qs = asset.__class__.objects.filter(item__collection_id=collection.pk
-                                                 ).exclude(id=asset.id)
-        if bool(asset_qs):
+        assets = type(asset).objects.filter(item__collection_id=collection.pk).exclude(id=asset.id)
+        if bool(assets):
 
-            if not asset_qs.filter(geoadmin_variant=asset.geoadmin_variant).exists():
+            if not assets.filter(geoadmin_variant=asset.geoadmin_variant).exists():
                 collection.summaries["geoadmin:variant"].remove(asset.geoadmin_variant)
-                collection.summaries["geoadmin:variant"].sort()
                 collection.save()
 
-            if not asset_qs.filter(proj_epsg=asset.proj_epsg).exists():
+            if not assets.filter(proj_epsg=asset.proj_epsg).exists():
                 collection.summaries["proj:epsg"].remove(asset.proj_epsg)
                 collection.summaries["proj:epsg"].sort()
                 collection.save()
 
-            if not asset_qs.filter(eo_gsd=asset.eo_gsd).exists():
+            if not assets.filter(eo_gsd=asset.eo_gsd).exists():
                 collection.summaries["eo:gsd"].remove(asset.eo_gsd)
                 collection.summaries["eo:gsd"].sort()
                 collection.save()
@@ -55,12 +53,9 @@ def update_summaries_on_asset_delete(collection, asset):
             collection.save()
 
     except KeyError as err:
-        logger.error(
+        logger.debug(
             "Error when updating collection's summaries values due to asset deletion: %s", err
         )
-        raise ValidationError(_(
-            "Error when updating collection's summaries values due to asset deletion."
-        ))
 
 
 def update_summaries_on_asset_insert(collection, asset):
@@ -118,22 +113,24 @@ def update_summaries_on_asset_update(collection, asset, old_values):
     original_geoadmin_variant = old_values[1]
     original_proj_epsg = old_values[2]
 
-    asset_qs = None
+    assets = None
 
     try:
 
         if original_geoadmin_variant != asset.geoadmin_variant:
 
-            if asset.geoadmin_variant and \
-            asset.geoadmin_variant not in collection.summaries["geoadmin:variant"]:
+            if (
+                asset.geoadmin_variant and
+                asset.geoadmin_variant not in collection.summaries["geoadmin:variant"]
+            ):
                 collection.summaries["geoadmin:variant"].append(asset.geoadmin_variant)
 
             # check if the asset's original value is still present in other
             # assets and can remain in the summaries or has to be deleted:
-            asset_qs = asset.__class__.objects.filter(item__collection_id=collection.pk
-                                                     ).exclude(id=asset.id)
-            if not bool(asset_qs) or \
-                not asset_qs.filter(geoadmin_variant=original_geoadmin_variant).exists():
+            assets = type(asset).objects.filter(item__collection_id=collection.pk
+                                               ).exclude(id=asset.id)
+            if not bool(assets) or \
+                not assets.filter(geoadmin_variant=original_geoadmin_variant).exists():
                 collection.summaries["geoadmin:variant"].remove(original_geoadmin_variant)
 
             collection.summaries["geoadmin:variant"].sort()
@@ -145,12 +142,12 @@ def update_summaries_on_asset_update(collection, asset, old_values):
                 asset.proj_epsg not in collection.summaries["proj:epsg"]:
                 collection.summaries["proj:epsg"].append(asset.proj_epsg)
 
-            if asset_qs is None:
-                asset_qs = asset.__class__.objects.filter(item__collection_id=collection.pk
-                                                         ).exclude(id=asset.id)
+            if assets is None:
+                assets = type(asset).objects.filter(item__collection_id=collection.pk
+                                                   ).exclude(id=asset.id)
 
-            if not bool(asset_qs) or \
-                not asset_qs.filter(proj_epsg=original_proj_epsg).exists():
+            if not bool(assets) or \
+                not assets.filter(proj_epsg=original_proj_epsg).exists():
                 collection.summaries["proj:epsg"].remove(original_proj_epsg)
 
             collection.summaries["proj:epsg"].sort()
@@ -161,12 +158,12 @@ def update_summaries_on_asset_update(collection, asset, old_values):
             if asset.eo_gsd and not float_in(asset.eo_gsd, collection.summaries["eo:gsd"]):
                 collection.summaries["eo:gsd"].append(asset.eo_gsd)
 
-            if asset_qs is None:
-                asset_qs = asset.__class__.objects.filter(item__collection_id=collection.pk
-                                                         ).exclude(id=asset.id)
+            if assets is None:
+                assets = type(asset).objects.filter(item__collection_id=collection.pk
+                                                   ).exclude(id=asset.id)
 
-            if not bool(asset_qs) or  \
-                not asset_qs.filter(eo_gsd=original_eo_gsd).exists():
+            if not bool(assets) or  \
+                not assets.filter(eo_gsd=original_eo_gsd).exists():
                 collection.summaries["eo:gsd"].remove(original_eo_gsd)
 
             collection.summaries["eo:gsd"].sort()
