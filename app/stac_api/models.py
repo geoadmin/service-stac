@@ -548,8 +548,8 @@ class Asset(models.Model):
         'id', unique=True, blank=False, max_length=255, validators=[validate_name]
     )
     checksum_multihash = models.CharField(blank=False, max_length=255)
-    description = models.TextField()
-    eo_gsd = models.FloatField(null=True)
+    description = models.TextField(blank=True)
+    eo_gsd = models.FloatField(null=True, blank=True)
 
     class Language(models.TextChoices):
         # pylint: disable=invalid-name
@@ -561,15 +561,15 @@ class Asset(models.Model):
         NONE = '', _('')
 
     geoadmin_lang = models.CharField(
-        max_length=2, choices=Language.choices, default=Language.NONE, null=True
+        max_length=2, choices=Language.choices, default=Language.NONE, blank=True
     )
     geoadmin_variant = models.CharField(
-        max_length=15, null=True, blank=True, validators=[validate_geoadmin_variant]
+        max_length=15, blank=True, validators=[validate_geoadmin_variant]
     )
-    proj_epsg = models.IntegerField(null=True)
-    title = models.CharField(max_length=255)
-    media_type = models.CharField(max_length=200)
-    href = models.URLField(max_length=255)
+    proj_epsg = models.IntegerField(null=True, blank=True)
+    title = models.CharField(max_length=255, blank=True)
+    media_type = models.CharField(max_length=200, blank=False)
+    href = models.URLField(max_length=255, blank=False)
 
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
