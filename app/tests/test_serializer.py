@@ -802,7 +802,7 @@ class AssetSerializationTestCase(StacBaseTestCase):
         python_native = serializer.data
         # hack to deal with the item property, as it is "write_only", it will not appear
         # in the mocked request's data. So we manually add it here:
-        python_native["item"]=item_name
+        python_native["item"] = item_name
 
         logger.debug('serialized fields:\n%s', pformat(serializer.fields))
         logger.debug('python native:\n%s', pformat(python_native))
