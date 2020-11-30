@@ -26,8 +26,22 @@ from tests.base_test import StacBaseTestCase
 logger = logging.getLogger(__name__)
 API_BASE = settings.API_BASE
 
+geometry_json = OrderedDict([
+    (
+        "coordinates",
+        [[
+            [5.644711, 46.775054],
+            [5.644711, 48.014995],
+            [6.602408, 48.014995],
+            [7.602408, 49.014995],
+            [5.644711, 46.775054],
+        ]]
+    ),
+    ("type", "Polygon"),
+])
 
-class SerializationTestCase(StacBaseTestCase):
+
+class CollectionSerializationTestCase(StacBaseTestCase):
 
     def setUp(self):  # pylint: disable=invalid-name
         '''
@@ -315,6 +329,27 @@ class SerializationTestCase(StacBaseTestCase):
         with self.assertRaises(ValidationError):
             serializer.is_valid(raise_exception=True)
 
+
+class ItemSerializationTestCase(StacBaseTestCase):
+
+    def setUp(self):  # pylint: disable=invalid-name
+        '''
+        Prepare instances of keyword, link, provider and instance for testing.
+        Adding the relationships among those by populating the ManyToMany fields
+        '''
+        self.factory = APIRequestFactory()
+        self.collection_created = utc_aware(datetime.utcnow())
+        self.collection = db.create_collection('collection-1')
+        self.collection.full_clean()
+        self.collection.save()
+        self.item = db.create_item(self.collection, 'item-1')
+        self.item.full_clean()
+        self.item.save()
+        self.asset = db.create_asset(self.item, 'asset-1')
+        self.asset.full_clean()
+        self.asset.save()
+        self.maxDiff = None  # pylint: disable=invalid-name
+
     def test_item_serialization(self):
         collection_name = self.collection.name
         item_name = self.item.name
@@ -420,17 +455,6 @@ class SerializationTestCase(StacBaseTestCase):
             'type': 'Feature'
         }
         self.check_stac_item(expected, python_native)
-
-        # Make sure that back translation is possible and valid, though the write is not yet
-        # implemented.
-        # back-translate to Python native:
-        stream = io.BytesIO(json_string)
-        python_native_back = JSONParser().parse(stream)
-
-        # back-translate into fully populated Item instance:
-        back_serializer = ItemSerializer(data=python_native_back)
-        back_serializer.is_valid(raise_exception=True)
-        logger.debug('back validated data:\n%s', pformat(back_serializer.validated_data))
 
     def test_item_serialization_datetime_range(self):
         now = utc_aware(datetime.utcnow())
@@ -539,16 +563,230 @@ class SerializationTestCase(StacBaseTestCase):
         }
         self.check_stac_item(expected, python_native)
 
-        # Make sure that back translation is possible and valid, though the write is not yet
-        # implemented.
-        # back-translate to Python native:
-        stream = io.BytesIO(json_string)
-        python_native_back = JSONParser().parse(stream)
+    def test_item_deserialization_create_only_required(self):
+        data = OrderedDict([
+            ("collection", self.collection.name),
+            ("id", "test"),
+            ("geometry", geometry_json),
+            ("properties", OrderedDict([("datetime", isoformat(utc_aware(datetime.utcnow())))])),
+        ])
 
-        # back-translate into fully populated Item instance:
-        back_serializer = ItemSerializer(data=python_native_back)
-        back_serializer.is_valid(raise_exception=True)
-        logger.debug('back validated data:\n%s', pformat(back_serializer.validated_data))
+        # translate to Python native:
+        serializer = ItemSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        item = serializer.save()
+
+        # serialize the object and test it against the one above
+        # mock a request needed for the serialization of links
+        request = self.factory.get(
+            f'{API_BASE}/collections/{self.collection.name}/items/{item.name}'
+        )
+        serializer = ItemSerializer(item, context={'request': request})
+        python_native = serializer.data
+        self.check_stac_item(data, python_native)
+
+    def test_item_deserialization_create_only_required_2(self):
+        data = OrderedDict([
+            ("collection", self.collection.name),
+            ("id", "test"),
+            ("geometry", geometry_json),
+            (
+                "properties",
+                OrderedDict([
+                    ("start_datetime", isoformat(utc_aware(datetime.utcnow()))),
+                    ("end_datetime", isoformat(utc_aware(datetime.utcnow()))),
+                ])
+            ),
+        ])
+
+        # translate to Python native:
+        serializer = ItemSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        item = serializer.save()
+
+        # serialize the object and test it against the one above
+        # mock a request needed for the serialization of links
+        request = self.factory.get(
+            f'{API_BASE}/collections/{self.collection.name}/items/{item.name}'
+        )
+        serializer = ItemSerializer(item, context={'request': request})
+        python_native = serializer.data
+        self.check_stac_item(data, python_native)
+
+    def test_item_deserialization_create_full(self):
+        data = OrderedDict([
+            ("collection", self.collection.name),
+            ("id", "test"),
+            ("geometry", geometry_json),
+            (
+                "properties",
+                OrderedDict([
+                    ("start_datetime", isoformat(utc_aware(datetime.utcnow()))),
+                    ("end_datetime", isoformat(utc_aware(datetime.utcnow()))),
+                    ("title", "This is a title"),
+                ])
+            ),
+            ("links", [OrderedDict([('href', 'http://www.example.com'), ('rel', 'example')])]),
+        ])
+
+        # translate to Python native:
+        serializer = ItemSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        item = serializer.save()
+
+        # serialize the object and test it against the one above
+        # mock a request needed for the serialization of links
+        request = self.factory.get(
+            f'{API_BASE}/collections/{self.collection.name}/items/{item.name}'
+        )
+        serializer = ItemSerializer(item, context={'request': request})
+        python_native = serializer.data
+        self.check_stac_item(data, python_native)
+
+    def test_item_deserialization_update_link_required(self):
+        data = OrderedDict([
+            ("collection", self.collection.name),
+            ("id", "test"),
+            ("geometry", geometry_json),
+            (
+                "properties",
+                OrderedDict([
+                    ("start_datetime", isoformat(utc_aware(datetime.utcnow()))),
+                    ("end_datetime", isoformat(utc_aware(datetime.utcnow()))),
+                    ("title", "This is a title"),
+                ])
+            ),
+            ("links", [OrderedDict([('href', 'http://www.example.com'), ('rel', 'example')])]),
+        ])
+
+        # translate to Python native:
+        serializer = ItemSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        item = serializer.save()
+
+        # Update some data
+        data['properties']['title'] = 'New Title'
+        data['geometry']['coordinates'] = [[[5.602407647225925, 48.01499501585063],
+                                            [8.175889890047533, 48.02711914887954],
+                                            [8.158929420648244, 46.78690091679339],
+                                            [5.644711296534027, 46.775053769032677],
+                                            [5.602407647225925, 48.01499501585063]]]
+        data['properties']['end_datetime'] = isoformat(utc_aware(datetime.utcnow()))
+        data['links'][0]['type'] = 'example'
+        serializer = ItemSerializer(item, data=data)
+        serializer.is_valid(raise_exception=True)
+        collection = serializer.save()
+
+        # serialize the object and test it against the one above
+        # mock a request needed for the serialization of links
+        request = self.factory.get(
+            f'{API_BASE}/collections/{self.collection.name}/items/{item.name}'
+        )
+        serializer = ItemSerializer(item, context={'request': request})
+        python_native = serializer.data
+        self.check_stac_item(data, python_native)
+
+    def test_item_deserialization_update_remove_link_update_datetime(self):
+        data = OrderedDict([
+            ("collection", self.collection.name),
+            ("id", "test"),
+            ("geometry", geometry_json),
+            (
+                "properties",
+                OrderedDict([
+                    ("start_datetime", isoformat(utc_aware(datetime.utcnow()))),
+                    ("end_datetime", isoformat(utc_aware(datetime.utcnow()))),
+                    ("title", "This is a title"),
+                ])
+            ),
+            ("links", [OrderedDict([('href', 'http://www.example.com'), ('rel', 'example')])]),
+        ])
+
+        # translate to Python native:
+        serializer = ItemSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        item = serializer.save()
+
+        # Update some data
+        data['properties']['datetime'] = isoformat(utc_aware(datetime.utcnow()))
+        # To remove a property we have to set it to None otherwise the property
+        # is left unchanged
+        data['properties']['start_datetime'] = None
+        data['properties']['end_datetime'] = None
+        del data['links']
+        serializer = ItemSerializer(item, data=data)
+        serializer.is_valid(raise_exception=True)
+        collection = serializer.save()
+
+        # serialize the object and test it against the one above
+        # mock a request needed for the serialization of links
+        request = self.factory.get(
+            f'{API_BASE}/collections/{self.collection.name}/items/{item.name}'
+        )
+        serializer = ItemSerializer(item, context={'request': request})
+        python_native = serializer.data
+        # remove the properties that have been previously set to know for removal
+        del data['properties']['start_datetime']
+        del data['properties']['end_datetime']
+        self.check_stac_item(data, python_native)
+
+    def test_item_deserialization_missing_required(self):
+        data = OrderedDict([
+            ("collection", self.collection.name),
+            ("id", "test"),
+        ])
+
+        # translate to Python native:
+        serializer = ItemSerializer(data=data)
+        with self.assertRaises(ValidationError):
+            serializer.is_valid(raise_exception=True)
+
+    def test_item_deserialization_invalid_data(self):
+        data = OrderedDict([
+            ("collection", self.collection.name),
+            ("id", "test/invalid name"),
+            ("geometry", geometry_json),
+            ("properties", OrderedDict([("datetime", 'test')])),
+        ])
+
+        # translate to Python native:
+        serializer = ItemSerializer(data=data)
+        with self.assertRaises(ValidationError):
+            serializer.is_valid(raise_exception=True)
+
+    def test_item_deserialization_invalid_link(self):
+        data = OrderedDict([
+            ("collection", self.collection.name),
+            ("id", "test/invalid name"),
+            ("geometry", geometry_json),
+            ("links", [OrderedDict([('href', 'www.example.com'), ('rel', 'example')])]),
+        ])
+
+        # translate to Python native:
+        serializer = ItemSerializer(data=data)
+        with self.assertRaises(ValidationError):
+            serializer.is_valid(raise_exception=True)
+
+
+class AssetSerializationTestCase(StacBaseTestCase):
+
+    def setUp(self):  # pylint: disable=invalid-name
+        '''
+        Prepare instances of keyword, link, provider and instance for testing.
+        Adding the relationships among those by populating the ManyToMany fields
+        '''
+        self.factory = APIRequestFactory()
+        self.collection_created = utc_aware(datetime.utcnow())
+        self.collection = db.create_collection('collection-1')
+        self.collection.full_clean()
+        self.collection.save()
+        self.item = db.create_item(self.collection, 'item-1')
+        self.item.full_clean()
+        self.item.save()
+        self.asset = db.create_asset(self.item, 'asset-1')
+        self.asset.full_clean()
+        self.asset.save()
+        self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_asset_serialization(self):
         collection_name = self.collection.name

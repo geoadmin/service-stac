@@ -32,6 +32,55 @@ def create_or_update_str(created):
     return 'update'
 
 
+def update_or_create_links(model, instance, instance_type, links_data):
+    '''Update or create links for a model
+
+    Update the given links list within a model instance or create them when they don't exists yet.
+    Args:
+        model: model class on which to update/create links (Collection or Item)
+        instance: model instance on which to update/create links
+        instance_type: (str) instance type name string to use for filtering ('collection' or 'item')
+        links_data: list of links dictionary to add/update
+    '''
+    links_ids = []
+    for link_data in links_data:
+        link, created = model.objects.get_or_create(
+            **{instance_type: instance},
+            rel=link_data["rel"],
+            defaults={
+                'href': link_data.get('href', None),
+                'link_type': link_data.get('link_type', None),
+                'title': link_data.get('title', None)
+            }
+        )
+        logger.debug(
+            '%s link %s',
+            create_or_update_str(created),
+            link.href,
+            extra={
+                instance_type: instance.name, "link": link_data
+            }
+        )
+        links_ids.append(link.id)
+        # the duplicate here is necessary to update the values in
+        # case the object already exists
+        link.link_type = link_data.get('link_type', link.link_type)
+        link.title = link_data.get('title', link.title)
+        link.href = link_data.get('href', link.rel)
+        link.full_clean()
+        link.save()
+
+    # Delete link that were not mentioned in the payload anymore
+    deleted = model.objects.filter(**{instance_type: instance},).exclude(id__in=links_ids).delete()
+    logger.info(
+        "deleted %d stale links for %s %s",
+        deleted[0],
+        instance_type,
+        instance.name,
+        extra={instance_type: instance}
+    )
+
+
 class NonNullModelSerializer(serializers.ModelSerializer):
     """Filter fields with null value
 
@@ -291,40 +340,6 @@ class CollectionSerializer(NonNullModelSerializer):
     def get_stac_version(self, obj):
         return STAC_VERSION
 
-    def _update_or_create_links(self, collection, links_data):
-        links_ids = []
-        for link_data in links_data:
-            link, created = CollectionLink.objects.get_or_create(
-                collection=collection,
-                rel=link_data["rel"],
-                defaults={
-                    'href': link_data.get('href', None),
-                    'link_type': link_data.get('link_type', None),
-                    'title': link_data.get('title', None)
-                }
-            )
-            logger.debug(
-                '%s link %s', create_or_update_str(created), link.href, extra={"link": link_data}
-            )
-            links_ids.append(link.id)
-            # the duplicate here is necessary to update the values in
-            # case the object already exists
-            link.link_type = link_data.get('link_type', link.link_type)
-            link.title = link_data.get('title', link.title)
-            link.href = link_data.get('href', link.rel)
-            link.full_clean()
-            link.save()
-
-        # Delete link that were not mentioned in the payload anymore
-        deleted = CollectionLink.objects.filter(collection=collection).exclude(id__in=links_ids
-                                                                              ).delete()
-        logger.info(
-            "deleted %d stale links for collection %s",
-            deleted[0],
-            collection.name,
-            extra={"collection": collection.name}
-        )
-
     def _update_or_create_providers(self, collection, providers_data):
         provider_ids = []
         for provider_data in providers_data:
@@ -370,7 +385,12 @@ class CollectionSerializer(NonNullModelSerializer):
         links_data = validated_data.pop('links', [])
         collection = Collection.objects.create(**validated_data)
         self._update_or_create_providers(collection=collection, providers_data=providers_data)
-        self._update_or_create_links(collection=collection, links_data=links_data)
+        update_or_create_links(
+            instance_type="collection",
+            model=CollectionLink,
+            instance=collection,
+            links_data=links_data
+        )
         return collection
 
     def update(self, instance, validated_data):
@@ -380,7 +400,12 @@ class CollectionSerializer(NonNullModelSerializer):
         providers_data = validated_data.pop('providers', [])
         links_data = validated_data.pop('links', [])
         self._update_or_create_providers(collection=instance, providers_data=providers_data)
-        self._update_or_create_links(collection=instance, links_data=links_data)
+        update_or_create_links(
+            instance_type="collection",
+            model=CollectionLink,
+            instance=instance,
+            links_data=links_data
+        )
         return super().update(instance, validated_data)
 
     def to_representation(self, instance):
@@ -443,8 +468,10 @@ class ItemsPropertiesSerializer(serializers.Serializer):
         source='properties_end_datetime', allow_null=True, required=False
     )
     title = serializers.CharField(
-        required=False, allow_blank=True, source='properties_title', max_length=255
+        source='properties_title', required=False, allow_blank=True, max_length=255
     )
+    created = serializers.DateTimeField(read_only=True)
+    updated = serializers.DateTimeField(read_only=True)
 
 
 class BboxSerializer(gis_serializers.GeoFeatureModelSerializer):
@@ -534,31 +561,27 @@ class ItemSerializer(NonNullModelSerializer):
             'properties',
             'stac_extensions',
             'links',
-            'assets',
-            'created',
-            'updated',
+            'assets'
         ]
 
     # NOTE: when explicitely declaring fields, we need to add the validation as for the field
     # in model !
-    collection = serializers.StringRelatedField()
+    collection = serializers.SlugRelatedField(slug_field='name', queryset=Collection.objects.all())
     id = serializers.CharField(
         source='name',
         required=True,
         max_length=255,
         validators=[validate_name, UniqueValidator(queryset=Collection.objects.all())]
     )
-    properties = ItemsPropertiesSerializer(source='*')
-    geometry = gis_serializers.GeometryField()
+    properties = ItemsPropertiesSerializer(source='*', required=True)
+    geometry = gis_serializers.GeometryField(required=True)
+    links = ItemLinkSerializer(required=False, many=True)
     # read only fields
-    links = ItemLinkSerializer(many=True, read_only=True)
     type = serializers.ReadOnlyField(default='Feature')
     bbox = BboxSerializer(source='*', read_only=True)
     assets = AssetSerializer(many=True, read_only=True)
     stac_extensions = serializers.SerializerMethodField()
     stac_version = serializers.SerializerMethodField()
-    created = serializers.DateTimeField(read_only=True)
-    updated = serializers.DateTimeField(read_only=True)
 
     def get_stac_extensions(self, obj):
         return list()
@@ -598,3 +621,18 @@ class ItemSerializer(NonNullModelSerializer):
             ])
         ]
         return representation
+
+    def create(self, validated_data):
+        links_data = validated_data.pop('links', [])
+        item = Item.objects.create(**validated_data)
+        update_or_create_links(
+            instance_type="item", model=ItemLink, instance=item, links_data=links_data
+        )
+        return item
+
+    def update(self, instance, validated_data):
+        links_data = validated_data.pop('links', [])
+        update_or_create_links(
+            instance_type="item", model=ItemLink, instance=instance, links_data=links_data
+        )
+        return super().update(instance, validated_data)

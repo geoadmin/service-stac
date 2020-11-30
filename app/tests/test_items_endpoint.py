@@ -151,7 +151,7 @@ class ItemsEndpointTestCase(TestCase):
         date_fields = ['created', 'updated']
         for date_field in date_fields:
             self.assertTrue(
-                fromisoformat(json_data[date_field]),
+                fromisoformat(json_data['properties'][date_field]),
                 msg=f"The field {date_field} has an invalid date"
             )
 
