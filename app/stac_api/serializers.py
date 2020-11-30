@@ -33,6 +33,15 @@ def create_or_update_str(created):
 
 
 def update_or_create_links(model, instance, instance_type, links_data):
+    '''Update or create links for a model
+
+    Update the given links list within a model instance or create them when they don't exists yet.
+    Args:
+        model: model class on which to update/create links (Collection or Item)
+        instance: model instance on which to update/create links
+        instance_type: (str) instance type name string to use for filtering ('collection' or 'item')
+        links_data: list of links dictionary to add/update
+    '''
     links_ids = []
     for link_data in links_data:
         link, created = model.objects.get_or_create(
