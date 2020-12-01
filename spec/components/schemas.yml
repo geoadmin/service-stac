@@ -1170,7 +1170,7 @@ components:
       description: Apply query operations to a specific property
     searchBody:
       allOf:
-        #- $ref: "#/components/schemas/assetQueryFilter"
+#        - $ref: "#/components/schemas/assetQueryFilter"
         - $ref: "#/components/schemas/queryFilter"
         - $ref: "#/components/schemas/bboxFilter"
         - $ref: "#/components/schemas/datetimeFilter"

@@ -922,10 +922,12 @@ components:
           updated:
             $ref: "#/components/schemas/created"
         required:
+        - "checksum:multihash"
         - href
         - type
         - created
         - updated
+        - id
         type: object
       type: object
       example:
@@ -1600,7 +1602,6 @@ paths:
         in the link.
       operationId: getSearchSTAC
       parameters:
-      #- $ref: "#/components/parameters/assetQuery"
       - $ref: "#/components/parameters/query"
       - $ref: "#/components/parameters/bbox"
       - $ref: "#/components/parameters/datetime"
