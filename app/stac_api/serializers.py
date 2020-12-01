@@ -532,21 +532,25 @@ class AssetSerializer(NonNullModelSerializer):
         max_length=255,
         validators=[validate_name, UniqueValidator(queryset=Asset.objects.all())]
     )
-    title = serializers.CharField(max_length=255, required=False)
-    type = serializers.CharField(source='media_type', max_length=200)
+    title = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    type = serializers.CharField(
+        source='media_type', max_length=200, required=False, allow_null=True, allow_blank=True
+    )
     # Here we need to explicitely define these fields with the source, because they are renamed
     # in the get_fields() method
-    description = serializers.CharField(max_length=255, required=False)
+    description = serializers.CharField(max_length=255, required=False, allow_blank=True)
     eo_gsd = serializers.FloatField(source='eo_gsd', required=False, allow_null=True)
     geoadmin_lang = serializers.ChoiceField(
         source='geoadmin_lang',
-        choices=['de', 'fr', 'it', 'rm', 'en'],
+        choices=['de', 'fr', 'it', 'rm', 'en', ''],
         required=False,
+        allow_null=True,
         allow_blank=True
     )
     geoadmin_variant = serializers.CharField(
         source='geoadmin_variant',
         max_length=15,
+        allow_blank=True,
         allow_null=True,
         required=False,
         validators=[validate_geoadmin_variant]
