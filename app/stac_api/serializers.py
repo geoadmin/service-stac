@@ -533,9 +533,7 @@ class AssetSerializer(NonNullModelSerializer):
         validators=[validate_name, UniqueValidator(queryset=Asset.objects.all())]
     )
     title = serializers.CharField(max_length=255, required=False, allow_blank=True)
-    type = serializers.CharField(
-        source='media_type', max_length=200, required=False, allow_null=True, allow_blank=True
-    )
+    type = serializers.CharField(source='media_type', max_length=200)
     # Here we need to explicitely define these fields with the source, because they are renamed
     # in the get_fields() method
     description = serializers.CharField(max_length=255, required=False, allow_blank=True)

@@ -568,7 +568,7 @@ class Asset(models.Model):
     )
     proj_epsg = models.IntegerField(null=True, blank=True)
     title = models.CharField(max_length=255, null=True, blank=True)
-    media_type = models.CharField(max_length=200, null=True, blank=True)
+    media_type = models.CharField(max_length=200)
     href = models.URLField(max_length=255, blank=False)
 
     created = models.DateTimeField(auto_now_add=True)
