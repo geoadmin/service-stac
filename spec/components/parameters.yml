@@ -1,14 +1,14 @@
 components:
   parameters:
-    assetQuery:
-      description: >-
-        Query for properties in assets (e.g. mediatype). Use the JSON form of the assetQueryFilter
-        used in POST.
-      in: query
-      name: assetQuery
-      required: false
-      schema:
-        type: string
+    #assetQuery:
+    #  description: >-
+    #    Query for properties in assets (e.g. mediatype). Use the JSON form of the assetQueryFilter
+    #    used in POST.
+    #  in: query
+    #  name: assetQuery
+    #  required: false
+    #  schema:
+    #    type: string
     bbox:
       description: >-
         Only features that have a geometry that intersects the bounding box are selected.
