@@ -375,7 +375,7 @@ def update_temporal_extent(
                     'to update temporal extent, this may take a while',
                     collection.name
                 )
-                qs = item.__class__.objects.filter(collection_id=collection.pk).exclude(id=item_id)
+                qs = type(item).objects.filter(collection_id=collection.pk).exclude(id=item_id)
                 update_start_temporal_extent_on_item_update(
                     collection,
                     old_start_datetime,
@@ -411,8 +411,7 @@ def update_temporal_extent(
                         'to update temporal extent, this may take a while',
                         collection.name
                     )
-                    qs = item.__class__.objects.filter(collection_id=collection.pk
-                                                      ).exclude(id=item_id)
+                    qs = type(item).objects.filter(collection_id=collection.pk).exclude(id=item_id)
 
                 update_end_temporal_extent_on_item_update(
                     collection,
@@ -445,7 +444,7 @@ def update_temporal_extent(
                 collection.name
             )
             # get all items but the one to be deleted:
-            qs = item.__class__.objects.filter(collection_id=collection.pk).exclude(id=item_id)
+            qs = type(item).objects.filter(collection_id=collection.pk).exclude(id=item_id)
             update_start_temporal_extent_on_item_delete(
                 collection,
                 old_start_datetime,
