@@ -1,4 +1,3 @@
-from django.conf import settings
 from django.contrib.gis import admin
 from django.contrib.staticfiles import finders
 from django.db import models
@@ -77,8 +76,5 @@ class ItemAdmin(admin.GeoModelAdmin):
     )
     # customisation of the geometry field
     map_template = finders.find('admin/ol_swisstopo.html')  # custom swisstopo
-    if settings.APP_ENV == 'local':
-        wms_layer = 'ch.swisstopo.pixelkarte-farbe-pk1000.noscale'
-        wms_url = 'https://wms.geo.admin.ch/'
-    else:
-        wms_layer = 'ch.swisstopo.pixelkarte-farbe'
+    wms_layer = 'ch.swisstopo.pixelkarte-farbe-pk1000.noscale'
+    wms_url = 'https://wms.geo.admin.ch/'

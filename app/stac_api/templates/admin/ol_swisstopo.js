@@ -113,44 +113,11 @@ OpenLayers.Projection.addTransform("EPSG:4326", "EPSG:3857", OpenLayers.Layer.Sp
     // The admin map for this geometry field.
     {% block map_creation %}
     {{ module }}.map = new OpenLayers.Map('{{ id }}_map', options);
-    // Base Layer
-
-     // Standard WMTS options for GeoAdmin...
-    if ('{{ wms_layer }}' == 'ch.swisstopo.pixelkarte-farbe') {
-            {{ module }}.layers.base = {% block base_wmts_layer %}new OpenLayers.Layer.WMTS(
-            {
-            name: 'Pixelkarte',
-            layer: 'ch.swisstopo.pixelkarte-farbe',
-            layername: 'ch.swisstopo.pixelkarte-farbe',
-            version: "1.0.0",
-            requestEncoding: "REST",
-            url: 'https://wmts6.geo.admin.ch/',
-            style: "default",
-            matrixSet: "4326",
-            formatSuffix: 'jpeg',
-            dimensions: ['TIME'],
-            params: {
-              'time': 'current' // You need this, 'default' won't work
-            },
-            projection: new OpenLayers.Projection('EPSG:4326'),
-            units: 'm',
-            format: 'image/jpeg',
-            buffer: 0,
-            opacity: 1.0,
-            displayInLayerSwitcher: false,
-            isBaseLayer: true,
-            maxExtent: new OpenLayers.Bounds(5.140242, 45.398181, 11.47757, 48.230651),
-            tileOrigin: OpenLayers.LonLat(5.140242, 45.398181)
-          });
-        {{ module }}.map.addLayer({{ module }}.layers.base);
-        {% endblock %}
-
-
-        } else {
+        // Base Layer
         {{ module }}.layers.base = {% block base_layer %}new OpenLayers.Layer.WMS("{{ wms_name }}", "{{ wms_url }}", {layers: '{{ wms_layer }}'{{ wms_options|safe }}})
                 {{ module }}.map.addLayer({{ module }}.layers.base);
         {% endblock %}
-    }
+
     {% endblock %}
     {% block extra_layers %}{% endblock %}
     {% if is_linestring %}OpenLayers.Feature.Vector.style["default"]["strokeWidth"] = 3; // Default too thin for linestrings. {% endif %}
