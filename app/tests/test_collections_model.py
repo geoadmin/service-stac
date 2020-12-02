@@ -64,15 +64,15 @@ class CollectionsModelTestCase(TestCase):
         # now the collections start_ and end_datetime should be same as
         # the ones of item earliest_to_latest:
         self.assertEqual(
-            self.collection.cache_start_datetime,
+            self.collection.extent_start_datetime,
             y200_y8000.properties_start_datetime,
-            "Updating temporal extent (cache_start_datetime) of collection "
+            "Updating temporal extent (extent_start_datetime) of collection "
             "based on range of collection's items failed."
         )
         self.assertEqual(
-            self.collection.cache_end_datetime,
+            self.collection.extent_end_datetime,
             y200_y8000.properties_end_datetime,
-            "Updating temporal extent (cache_end_datetime) of collection "
+            "Updating temporal extent (extent_end_datetime) of collection "
             "based on range of collection's items failed."
         )
 
@@ -82,15 +82,15 @@ class CollectionsModelTestCase(TestCase):
         y100_y9000 = self.add_range_item(self.y100, self.y9000, 'y100_y9000')
 
         self.assertEqual(
-            self.collection.cache_start_datetime,
+            self.collection.extent_start_datetime,
             y100_y9000.properties_start_datetime,
-            "Updating temporal extent (cache_start_datetime) of collection "
+            "Updating temporal extent (extent_start_datetime) of collection "
             "based on range of collection's items failed."
         )
         self.assertEqual(
-            self.collection.cache_end_datetime,
+            self.collection.extent_end_datetime,
             y100_y9000.properties_end_datetime,
-            "Updating temporal extent (cache_end_datetime) of collection "
+            "Updating temporal extent (extent_end_datetime) of collection "
             "based on range of collection's items failed."
         )
 
@@ -101,15 +101,15 @@ class CollectionsModelTestCase(TestCase):
         y100_y9000 = self.add_range_item(self.y100, self.y9000, 'y100_y9000')
 
         self.assertEqual(
-            self.collection.cache_start_datetime,
+            self.collection.extent_start_datetime,
             y100_y9000.properties_start_datetime,
-            "Updating temporal extent (cache_start_datetime) of collection "
+            "Updating temporal extent (extent_start_datetime) of collection "
             "based on range of collection's item failed."
         )
         self.assertEqual(
-            self.collection.cache_end_datetime,
+            self.collection.extent_end_datetime,
             y100_y9000.properties_end_datetime,
-            "Updating temporal extent (cache_end_datetime) of collection "
+            "Updating temporal extent (extent_end_datetime) of collection "
             "based on range of collection's item failed."
         )
 
@@ -119,9 +119,9 @@ class CollectionsModelTestCase(TestCase):
         self.collection.refresh_from_db()
 
         self.assertEqual(
-            self.collection.cache_start_datetime,
+            self.collection.extent_start_datetime,
             y100_y9000.properties_start_datetime,
-            "Updating temporal extent (cache_start_datetime) of collection "
+            "Updating temporal extent (extent_start_datetime) of collection "
             "after only item's start_datetime was updated failed."
         )
 
@@ -131,9 +131,9 @@ class CollectionsModelTestCase(TestCase):
         self.collection.refresh_from_db()
 
         self.assertEqual(
-            self.collection.cache_end_datetime,
+            self.collection.extent_end_datetime,
             y100_y9000.properties_end_datetime,
-            "Updating temporal extent (cache_end_datetime) of collection "
+            "Updating temporal extent (extent_end_datetime) of collection "
             "after only item's end_datetime was updated failed."
         )
 
@@ -146,15 +146,15 @@ class CollectionsModelTestCase(TestCase):
         y100_y9500 = self.add_range_item(self.y100, self.y9500, 'y100_y9500')
 
         self.assertEqual(
-            self.collection.cache_start_datetime,
+            self.collection.extent_start_datetime,
             y100_y9500.properties_start_datetime,
-            "Updating temporal extent (cache_start_datetime) of collection "
+            "Updating temporal extent (extent_start_datetime) of collection "
             "based on range of collection's oldest item failed."
         )
         self.assertEqual(
-            self.collection.cache_end_datetime,
+            self.collection.extent_end_datetime,
             y100_y9500.properties_end_datetime,
-            "Updating temporal extent (cache_end_datetime) of collection "
+            "Updating temporal extent (extent_end_datetime) of collection "
             "based on range of collection's latest item failed."
         )
 
@@ -164,9 +164,9 @@ class CollectionsModelTestCase(TestCase):
         self.collection.refresh_from_db()
 
         self.assertEqual(
-            self.collection.cache_start_datetime,
+            self.collection.extent_start_datetime,
             y100_y9500.properties_start_datetime,
-            "Updating temporal extent (cache_start_datetime) of collection "
+            "Updating temporal extent (extent_start_datetime) of collection "
             "after item that defined the start_datetime was updated failed."
         )
 
@@ -176,9 +176,9 @@ class CollectionsModelTestCase(TestCase):
         self.collection.refresh_from_db()
 
         self.assertEqual(
-            self.collection.cache_end_datetime,
+            self.collection.extent_end_datetime,
             y100_y9500.properties_end_datetime,
-            "Updating temporal extent (cache_end_datetime) of collection "
+            "Updating temporal extent (extent_end_datetime) of collection "
             "after only item's end_datetime was updated failed."
         )
 
@@ -188,9 +188,9 @@ class CollectionsModelTestCase(TestCase):
         self.collection.refresh_from_db()
 
         self.assertEqual(
-            self.collection.cache_start_datetime,
+            self.collection.extent_start_datetime,
             y200_y8500.properties_start_datetime,
-            "Updating temporal extent (cache_start_datetime) of collection "
+            "Updating temporal extent (extent_start_datetime) of collection "
             "after item that defined the start_datetime was updated failed."
         )
 
@@ -200,9 +200,9 @@ class CollectionsModelTestCase(TestCase):
         self.collection.refresh_from_db()
 
         self.assertEqual(
-            self.collection.cache_end_datetime,
+            self.collection.extent_end_datetime,
             y200_y8500.properties_end_datetime,
-            "Updating temporal extent (cache_end_datetime) of collection "
+            "Updating temporal extent (extent_end_datetime) of collection "
             "after only item's end_datetime was updated failed."
         )
 
@@ -213,16 +213,16 @@ class CollectionsModelTestCase(TestCase):
         self.collection.refresh_from_db()
 
         self.assertEqual(
-            self.collection.cache_start_datetime,
+            self.collection.extent_start_datetime,
             y100_y9500.properties_start_datetime,
-            "Updating temporal extent (cache_start_datetime) of collection "
+            "Updating temporal extent (extent_start_datetime) of collection "
             "after item that defined the start_datetime was updated failed."
         )
 
         self.assertEqual(
-            self.collection.cache_end_datetime,
+            self.collection.extent_end_datetime,
             y100_y9500.properties_end_datetime,
-            "Updating temporal extent (cache_end_datetime) of collection "
+            "Updating temporal extent (extent_end_datetime) of collection "
             "after only item's end_datetime was updated failed."
         )
 
@@ -233,16 +233,16 @@ class CollectionsModelTestCase(TestCase):
         self.collection.refresh_from_db()
 
         self.assertEqual(
-            self.collection.cache_start_datetime,
+            self.collection.extent_start_datetime,
             y200_y8500.properties_start_datetime,
-            "Updating temporal extent (cache_start_datetime) of collection "
+            "Updating temporal extent (extent_start_datetime) of collection "
             "after item that defined the start_datetime was updated failed."
         )
 
         self.assertEqual(
-            self.collection.cache_end_datetime,
+            self.collection.extent_end_datetime,
             y200_y8500.properties_end_datetime,
-            "Updating temporal extent (cache_end_datetime) of collection "
+            "Updating temporal extent (extent_end_datetime) of collection "
             "after only item's end_datetime was updated failed."
         )
 
@@ -258,15 +258,15 @@ class CollectionsModelTestCase(TestCase):
         y100_y9000 = self.add_range_item(self.y100, self.y9000, 'y100_y9000')
 
         self.assertEqual(
-            self.collection.cache_start_datetime,
+            self.collection.extent_start_datetime,
             y100_y9000.properties_start_datetime,
-            "Updating temporal extent (cache_start_datetime) of collection "
+            "Updating temporal extent (extent_start_datetime) of collection "
             "based on range of collection's items failed."
         )
         self.assertEqual(
-            self.collection.cache_end_datetime,
+            self.collection.extent_end_datetime,
             y100_y9000.properties_end_datetime,
-            "Updating temporal extent (cache_end_datetime) of collection "
+            "Updating temporal extent (extent_end_datetime) of collection "
             "based on range of collection's items failed."
         )
 
@@ -275,15 +275,15 @@ class CollectionsModelTestCase(TestCase):
         self.collection.refresh_from_db()
 
         self.assertEqual(
-            self.collection.cache_start_datetime,
+            self.collection.extent_start_datetime,
             y200_y8000.properties_start_datetime,
-            "Updating temporal extent (cache_start_datetime) after deletion of "
+            "Updating temporal extent (extent_start_datetime) after deletion of "
             "2nd last item failed."
         )
         self.assertEqual(
-            self.collection.cache_end_datetime,
+            self.collection.extent_end_datetime,
             y200_y8000.properties_end_datetime,
-            "Updating temporal extent (cache_end_datetime) after deletion of "
+            "Updating temporal extent (extent_end_datetime) after deletion of "
             "2nd last item failed."
         )
 
@@ -296,15 +296,15 @@ class CollectionsModelTestCase(TestCase):
         y200_y8000 = self.add_range_item(self.y200, self.y8000, 'y200_y8000')
 
         self.assertEqual(
-            self.collection.cache_start_datetime,
+            self.collection.extent_start_datetime,
             y200_y8000.properties_start_datetime,
-            "Updating temporal extent (cache_start_datetime) after deletion of "
+            "Updating temporal extent (extent_start_datetime) after deletion of "
             "2nd last item failed."
         )
         self.assertEqual(
-            self.collection.cache_end_datetime,
+            self.collection.extent_end_datetime,
             y200_y8000.properties_end_datetime,
-            "Updating temporal extent (cache_end_datetime) after deletion of "
+            "Updating temporal extent (extent_end_datetime) after deletion of "
             "2nd last item failed."
         )
 
@@ -313,16 +313,16 @@ class CollectionsModelTestCase(TestCase):
         self.collection.refresh_from_db()
 
         self.assertEqual(
-            self.collection.cache_start_datetime,
+            self.collection.extent_start_datetime,
             None,
-            "Updating temporal extent (cache_start_datetime) after deletion of last "
+            "Updating temporal extent (extent_start_datetime) after deletion of last "
             "item in collection failed."
         )
 
         self.assertEqual(
-            self.collection.cache_end_datetime,
+            self.collection.extent_end_datetime,
             None,
-            "Updating temporal extent (cache_end_datetime) after deletion of last "
+            "Updating temporal extent (extent_end_datetime) after deletion of last "
             "item in collection failed."
         )
 
@@ -354,16 +354,16 @@ class CollectionsModelTestCase(TestCase):
         self.collection.refresh_from_db()
 
         self.assertEqual(
-            self.collection.cache_start_datetime,
+            self.collection.extent_start_datetime,
             y200_y8000.properties_datetime,
-            "Updating temporal extent (cache_start_datetime) after updating "
+            "Updating temporal extent (extent_start_datetime) after updating "
             "item from start_ and end_datetime to single datetime value "
             "failed."
         )
         self.assertEqual(
-            self.collection.cache_end_datetime,
+            self.collection.extent_end_datetime,
             y100_y9000.properties_datetime,
-            "Updating temporal extent (cache_end_datetime) after updating "
+            "Updating temporal extent (extent_end_datetime) after updating "
             "item from start_ and end_datetime to single datetime value "
             "failed."
         )
@@ -375,15 +375,15 @@ class CollectionsModelTestCase(TestCase):
         self.collection.refresh_from_db()
 
         self.assertEqual(
-            self.collection.cache_start_datetime,
+            self.collection.extent_start_datetime,
             y100_y9000.properties_datetime,
-            "Updating temporal extent (cache_start_datetime) based on a "
+            "Updating temporal extent (extent_start_datetime) based on a "
             "single item's datetime property failed."
         )
         self.assertEqual(
-            self.collection.cache_end_datetime,
+            self.collection.extent_end_datetime,
             y100_y9000.properties_datetime,
-            "Updating temporal extent (cache_end_datetime) based on a "
+            "Updating temporal extent (extent_end_datetime) based on a "
             "single item's datetime property failed."
         )
 
@@ -397,34 +397,34 @@ class CollectionsModelTestCase(TestCase):
         y200 = self.add_single_datetime_item(self.y200, 'y200')
 
         self.assertEqual(
-            self.collection.cache_start_datetime,
+            self.collection.extent_start_datetime,
             y200.properties_datetime,
-            "Updating temporal extent (cache_start_datetime) based on a "
+            "Updating temporal extent (extent_start_datetime) based on a "
             "single item's datetime property failed."
         )
 
         self.assertEqual(
-            self.collection.cache_end_datetime,
+            self.collection.extent_end_datetime,
             y200.properties_datetime,
-            "Updating temporal extent (cache_end_datetime) based on a "
+            "Updating temporal extent (extent_end_datetime) based on a "
             "single item's datetime property failed."
         )
 
         y100 = self.add_single_datetime_item(self.y100, 'y100')
 
         self.assertEqual(
-            self.collection.cache_start_datetime,
+            self.collection.extent_start_datetime,
             y100.properties_datetime,
-            "Updating temporal extent (cache_start_datetime) after adding "
+            "Updating temporal extent (extent_start_datetime) after adding "
             "a second item with singe datetime property failed."
         )
 
         y8000 = self.add_single_datetime_item(self.y8000, 'y8000')
 
         self.assertEqual(
-            self.collection.cache_end_datetime,
+            self.collection.extent_end_datetime,
             y8000.properties_datetime,
-            "Updating temporal extent (cache_end_datetime) after adding "
+            "Updating temporal extent (extent_end_datetime) after adding "
             "a third item with singe datetime property failed."
         )
 
@@ -434,16 +434,16 @@ class CollectionsModelTestCase(TestCase):
 
         y8000 = self.add_single_datetime_item(self.y8000, 'y8000')
         self.assertEqual(
-            self.collection.cache_start_datetime,
+            self.collection.extent_start_datetime,
             y8000.properties_datetime,
-            "Updating temporal extent (cache_start_datetime) based on the "
+            "Updating temporal extent (extent_start_datetime) based on the "
             "only item's datetime."
         )
 
         self.assertEqual(
-            self.collection.cache_end_datetime,
+            self.collection.extent_end_datetime,
             y8000.properties_datetime,
-            "Updating temporal extent (cache_start_datetime) based on the "
+            "Updating temporal extent (extent_start_datetime) based on the "
             "only item's datetime."
         )
 
@@ -454,16 +454,16 @@ class CollectionsModelTestCase(TestCase):
         self.collection.refresh_from_db()
 
         self.assertEqual(
-            self.collection.cache_start_datetime,
+            self.collection.extent_start_datetime,
             y8000.properties_datetime,
-            "Updating temporal extent (cache_start_datetime) after datetime "
+            "Updating temporal extent (extent_start_datetime) after datetime "
             "of the only item was updated."
         )
 
         self.assertEqual(
-            self.collection.cache_end_datetime,
+            self.collection.extent_end_datetime,
             y8000.properties_datetime,
-            "Updating temporal extent (cache_start_datetime) after datetime "
+            "Updating temporal extent (extent_start_datetime) after datetime "
             "of the only item was updated."
         )
 
@@ -478,16 +478,16 @@ class CollectionsModelTestCase(TestCase):
         y9500 = self.add_single_datetime_item(self.y9500, 'y9500')
 
         self.assertEqual(
-            self.collection.cache_start_datetime,
+            self.collection.extent_start_datetime,
             y100.properties_datetime,
-            "Updating temporal extent (cache_start_datetime) based on the "
+            "Updating temporal extent (extent_start_datetime) based on the "
             "oldest item's datetime."
         )
 
         self.assertEqual(
-            self.collection.cache_end_datetime,
+            self.collection.extent_end_datetime,
             y9500.properties_datetime,
-            "Updating temporal extent (cache_end_datetime) based on the "
+            "Updating temporal extent (extent_end_datetime) based on the "
             "latest item's datetime."
         )
 
@@ -497,9 +497,9 @@ class CollectionsModelTestCase(TestCase):
         self.collection.refresh_from_db()
 
         self.assertEqual(
-            self.collection.cache_end_datetime,
+            self.collection.extent_end_datetime,
             y9500.properties_datetime,
-            "Updating temporal extent (cache_start_datetime) after datetime "
+            "Updating temporal extent (extent_start_datetime) after datetime "
             "of the latest item was updated."
         )
 
@@ -509,9 +509,9 @@ class CollectionsModelTestCase(TestCase):
         self.collection.refresh_from_db()
 
         self.assertEqual(
-            self.collection.cache_start_datetime,
+            self.collection.extent_start_datetime,
             y100.properties_datetime,
-            "Updating temporal extent (cache_start_datetime) after datetime "
+            "Updating temporal extent (extent_start_datetime) after datetime "
             "of the oldest item was updated."
         )
 
@@ -521,9 +521,9 @@ class CollectionsModelTestCase(TestCase):
         self.collection.refresh_from_db()
 
         self.assertEqual(
-            self.collection.cache_end_datetime,
+            self.collection.extent_end_datetime,
             y8500.properties_datetime,
-            "Updating temporal extent (cache_end_datetime) after datetime "
+            "Updating temporal extent (extent_end_datetime) after datetime "
             "of the latest item was updated."
         )
 
@@ -533,9 +533,9 @@ class CollectionsModelTestCase(TestCase):
         self.collection.refresh_from_db()
 
         self.assertEqual(
-            self.collection.cache_start_datetime,
+            self.collection.extent_start_datetime,
             y200.properties_datetime,
-            "Updating temporal extent (cache_start_datetime) after datetime "
+            "Updating temporal extent (extent_start_datetime) after datetime "
             "of the oldest item was updated."
         )
 
@@ -553,15 +553,15 @@ class CollectionsModelTestCase(TestCase):
         self.collection.refresh_from_db()
 
         self.assertEqual(
-            self.collection.cache_start_datetime,
+            self.collection.extent_start_datetime,
             y200.properties_datetime,
-            "Updating temporal extent (cache_start_datetime) after deletion of "
+            "Updating temporal extent (extent_start_datetime) after deletion of "
             "2nd last item failed."
         )
         self.assertEqual(
-            self.collection.cache_end_datetime,
+            self.collection.extent_end_datetime,
             y200.properties_datetime,
-            "Updating temporal extent (cache_end_datetime) after deletion of "
+            "Updating temporal extent (extent_end_datetime) after deletion of "
             "2nd last item failed."
         )
 
@@ -578,15 +578,15 @@ class CollectionsModelTestCase(TestCase):
         self.collection.refresh_from_db()
 
         self.assertEqual(
-            self.collection.cache_start_datetime,
+            self.collection.extent_start_datetime,
             y100.properties_datetime,
-            "Updating temporal extent (cache_start_datetime) after deletion of "
+            "Updating temporal extent (extent_start_datetime) after deletion of "
             "2nd last item failed."
         )
         self.assertEqual(
-            self.collection.cache_end_datetime,
+            self.collection.extent_end_datetime,
             y100.properties_datetime,
-            "Updating temporal extent (cache_end_datetime) after deletion of "
+            "Updating temporal extent (extent_end_datetime) after deletion of "
             "2nd last item failed."
         )
 
@@ -600,16 +600,16 @@ class CollectionsModelTestCase(TestCase):
         self.collection.refresh_from_db()
 
         self.assertEqual(
-            self.collection.cache_start_datetime,
+            self.collection.extent_start_datetime,
             None,
-            "Updating temporal extent (cache_start_datetime) after deletion of last "
+            "Updating temporal extent (extent_start_datetime) after deletion of last "
             "item in collection failed."
         )
 
         self.assertEqual(
-            self.collection.cache_end_datetime,
+            self.collection.extent_end_datetime,
             None,
-            "Updating temporal extent (cache_end_datetime) after deletion of last "
+            "Updating temporal extent (extent_end_datetime) after deletion of last "
             "item in collection failed."
         )
 
@@ -627,16 +627,16 @@ class CollectionsModelTestCase(TestCase):
         self.collection.refresh_from_db()
 
         self.assertEqual(
-            self.collection.cache_start_datetime,
+            self.collection.extent_start_datetime,
             self.y100,
-            "Updating temporal extent (cache_start_datetime) after updating "
+            "Updating temporal extent (extent_start_datetime) after updating "
             "item from single datetime to a range failed."
         )
 
         self.assertEqual(
-            self.collection.cache_end_datetime,
+            self.collection.extent_end_datetime,
             self.y8000,
-            "Updating temporal extent (cache_end_datetime) after updating "
+            "Updating temporal extent (extent_end_datetime) after updating "
             "item from single datetime to a range failed."
         )
 
@@ -649,16 +649,16 @@ class CollectionsModelTestCase(TestCase):
         y200_y8000 = self.add_range_item(self.y200, self.y8000, 'y200_y8000')
 
         self.assertEqual(
-            self.collection.cache_start_datetime,
+            self.collection.extent_start_datetime,
             y100.properties_datetime,
-            "Updating temporal extent (cache_start_datetime) based on mixed "
+            "Updating temporal extent (extent_start_datetime) based on mixed "
             "items failed."
         )
 
         self.assertEqual(
-            self.collection.cache_end_datetime,
+            self.collection.extent_end_datetime,
             y9000.properties_datetime,
-            "Updating temporal extent (cache_end_datetime) based on mixed "
+            "Updating temporal extent (extent_end_datetime) based on mixed "
             "items failed."
         )
 
@@ -671,31 +671,31 @@ class CollectionsModelTestCase(TestCase):
         self.collection.refresh_from_db()
 
         self.assertEqual(
-            self.collection.cache_start_datetime,
+            self.collection.extent_start_datetime,
             y100.properties_datetime,
-            "Updating temporal extent (cache_start_datetime) based on mixed "
+            "Updating temporal extent (extent_start_datetime) based on mixed "
             "items failed."
         )
 
         self.assertEqual(
-            self.collection.cache_end_datetime,
+            self.collection.extent_end_datetime,
             y9000.properties_datetime,
-            "Updating temporal extent (cache_end_datetime) based on mixed "
+            "Updating temporal extent (extent_end_datetime) based on mixed "
             "items failed."
         )
 
         y100_y9000 = self.add_range_item(self.y100, self.y9000, 'y100_y9000')
 
         self.assertEqual(
-            self.collection.cache_start_datetime,
+            self.collection.extent_start_datetime,
             y100_y9000.properties_start_datetime,
-            "Updating temporal extent (cache_start_datetime) based on mixed "
+            "Updating temporal extent (extent_start_datetime) based on mixed "
             "items failed."
         )
 
         self.assertEqual(
-            self.collection.cache_end_datetime,
+            self.collection.extent_end_datetime,
             y100_y9000.properties_end_datetime,
-            "Updating temporal extent (cache_end_datetime) based on mixed "
+            "Updating temporal extent (extent_end_datetime) based on mixed "
             "items failed."
         )

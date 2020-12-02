@@ -188,8 +188,8 @@ class Collection(models.Model):
         validators=[validate_geometry]
     )
 
-    cache_start_datetime = models.DateTimeField(editable=False, null=True, blank=True)
-    cache_end_datetime = models.DateTimeField(editable=False, null=True, blank=True)
+    extent_start_datetime = models.DateTimeField(editable=False, null=True, blank=True)
+    extent_end_datetime = models.DateTimeField(editable=False, null=True, blank=True)
 
     license = models.CharField(max_length=30)  # string
 

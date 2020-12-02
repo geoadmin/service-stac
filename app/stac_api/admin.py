@@ -46,7 +46,9 @@ class CollectionLinkInline(admin.TabularInline):
 
 @admin.register(Collection)
 class CollectionAdmin(admin.ModelAdmin):
-    readonly_fields = ['cache_start_datetime', 'cache_end_datetime', 'summaries', 'extent_geometry']
+    readonly_fields = [
+        'extent_start_datetime', 'extent_end_datetime', 'summaries', 'extent_geometry'
+    ]
     inlines = [ProviderInline, CollectionLinkInline]
 
 
