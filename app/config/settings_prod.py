@@ -39,6 +39,10 @@ SECRET_KEY = os.getenv('SECRET_KEY', None)
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
+# SECURITY: 
+# https://docs.djangoproject.com/en/dev/ref/settings/#secure-proxy-ssl-header
+SECURE_PROXY_SSL_HEADER = ('HTTP_CLOUDFRONT_FORWARDED_PROTO', 'https')
+
 ALLOWED_HOSTS = []
 ALLOWED_HOSTS += os.getenv('ALLOWED_HOSTS', '').split(',')
 
