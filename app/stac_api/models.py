@@ -330,20 +330,28 @@ class Item(models.Model):
     # properties_view_sun_azimuth = models.FloatField(blank=True)
     # properties_view_elevation = models.FloatField(blank=True)
 
-    # getting the original geometry helps that the bbox of the collection is only
-    # when the geometry has changed (during update)
-    # https://stackoverflow.com/questions/1355150/when-saving-how-can-you-check-if-a-field-has-changed
-    _original_geometry = None
-    _original_properties_start_datetime = None
-    _original_properties_end_datetime = None
-    _original_properties_datetime = None
+    # Keep original values of some fields to simplify the collection extent
+    # update.
+    _keep_original_fields = [
+        'geometry',
+        'properties_datetime',
+        'properties_start_datetime',
+        'properties_end_datetime',
+    ]
+    _original_values = {}
 
-    def __init__(self, *args, **kwargs):
-        super(Item, self).__init__(*args, **kwargs)
-        self._original_geometry = self.geometry
-        self._original_properties_start_datetime = self.properties_start_datetime
-        self._original_properties_end_datetime = self.properties_end_datetime
-        self._original_properties_datetime = self.properties_datetime
+    @classmethod
+    def from_db(cls, db, field_names, values):
+        instance = super().from_db(db, field_names, values)
+
+        # save original values for some fields, when model is loaded from database,
+        # in a separate attribute on the model
+        # See https://docs.djangoproject.com/en/3.1/ref/models/instances/#customizing-model-loading
+        instance._original_values = dict( # pylint: disable=protected-access
+            filter(lambda item: item[0] in cls._keep_original_fields, zip(field_names, values))
+        )
+
+        return instance
 
     def __str__(self):
         return self.name
@@ -365,16 +373,16 @@ class Item(models.Model):
             action = "update"
 
         if self.properties_datetime is not None:
-            if self._original_properties_datetime is not None:
+            if self._original_values.get('properties_datetime', None) is not None:
                 # This is the case, when the value of properties.datetime has been
                 # updated
                 update_temporal_extent(
                     self,
                     self.collection,
                     action,
-                    self._original_properties_datetime,
+                    self._original_values['properties_datetime'],
                     self.properties_datetime,
-                    self._original_properties_datetime,
+                    self._original_values['properties_datetime'],
                     self.properties_datetime,
                     self.pk
                 )
@@ -390,23 +398,25 @@ class Item(models.Model):
                     self,
                     self.collection,
                     action,
-                    self._original_properties_start_datetime,
+                    self._original_values.get('properties_start_datetime', None),
                     self.properties_datetime,
-                    self._original_properties_end_datetime,
+                    self._original_values.get('properties_end_datetime', None),
                     self.properties_datetime,
                     self.pk
                 )
-        elif self._original_properties_start_datetime is not None and \
-            self._original_properties_end_datetime is not None:
+        elif (
+            self._original_values.get('properties_start_datetime', None) is not None and
+            self._original_values.get('properties_end_datetime', None) is not None
+        ):
             # This is the case, if an items values for start_ and/or end_datetime
             # were updated.
             update_temporal_extent(
                 self,
                 self.collection,
                 action,
-                self._original_properties_start_datetime,
+                self._original_values['properties_start_datetime'],
                 self.properties_start_datetime,
-                self._original_properties_end_datetime,
+                self._original_values['properties_end_datetime'],
                 self.properties_end_datetime,
                 self.pk
             )
@@ -418,9 +428,9 @@ class Item(models.Model):
                 self,
                 self.collection,
                 action,
-                self._original_properties_datetime,
+                self._original_values.get('properties_datetime', None),
                 self.properties_start_datetime,
-                self._original_properties_datetime,
+                self._original_values.get('properties_datetime', None),
                 self.properties_end_datetime,
                 self.pk
             )
@@ -429,15 +439,13 @@ class Item(models.Model):
         if self.pk is None:
             self.collection.update_bbox_extent('insert', self.geometry, self.pk, self.name)
         # update the bbox of the collection only when the geometry of the item has changed
-        elif self.geometry != self._original_geometry:
+        elif self.geometry != self._original_values.get('geometry', None):
             self.collection.update_bbox_extent('update', self.geometry, self.pk, self.name)
 
         super().save(*args, **kwargs)
 
-        self._original_geometry = self.geometry
-        self._original_properties_start_datetime = self.properties_start_datetime
-        self._original_properties_end_datetime = self.properties_end_datetime
-        self._original_properties_datetime = self.properties_datetime
+        # update the original_values just in case save() is called again without reloading from db
+        self._original_values = {key: getattr(self, key) for key in self._keep_original_fields}
 
     def delete(self, *args, **kwargs):  # pylint: disable=signature-differs
         # It is important to use `*args, **kwargs` in signature because django might add dynamically
@@ -447,9 +455,9 @@ class Item(models.Model):
                 self,
                 self.collection,
                 'remove',
-                self._original_properties_datetime,
+                self._original_values.get('properties_datetime', None),
                 self.properties_datetime,
-                self._original_properties_datetime,
+                self._original_values.get('properties_datetime', None),
                 self.properties_datetime,
                 self.pk
             )
@@ -458,9 +466,9 @@ class Item(models.Model):
                 self,
                 self.collection,
                 'remove',
-                self._original_properties_start_datetime,
+                self._original_values.get('properties_start_datetime', None),
                 self.properties_start_datetime,
-                self._original_properties_end_datetime,
+                self._original_values.get('properties_end_datetime', None),
                 self.properties_end_datetime,
                 self.pk
             )
