@@ -21,7 +21,7 @@ DOCKER_BUILD_TIMESTAMP = $(TIMESTAMPS)/.docker-test.timestamp
 
 # Docker variables
 DOCKER_IMG_LOCAL_TAG = swisstopo/$(SERVICE_NAME):$(USER).latest
-DOCKER_IMG_LOCAL_TAG_TEST = swisstopo/$(SERVICE_NAME):$(USER).latest-dev
+DOCKER_IMG_LOCAL_TAG_DEV = swisstopo/$(SERVICE_NAME):$(USER).latest-dev
 
 # Find all python files that are not inside a hidden directory (directory starting with .)
 PYTHON_FILES := $(shell find $(APP_SRC_DIR) -type f -name "*.py" -print)
@@ -47,6 +47,7 @@ SUMMON ?= summon --up -p gopass -e service-stac-$(ENV)
 GIT_HASH := `git rev-parse HEAD`
 GIT_BRANCH := `git symbolic-ref HEAD --short 2>/dev/null`
 GIT_DIRTY := `git status --porcelain`
+GIT_TAG := `git describe --tags 2>/dev/null`
 AUTHOR := $(USER)
 
 all: help
@@ -169,7 +170,8 @@ dockerbuild-debug:
 		--build-arg GIT_HASH="$(GIT_HASH)" \
 		--build-arg GIT_BRANCH="$(GIT_BRANCH)" \
 		--build-arg GIT_DIRTY="$(GIT_DIRTY)" \
-		--build-arg AUTHOR="$(AUTHOR)" -t $(DOCKER_IMG_LOCAL_TAG_TEST) --target debug .
+		--build-arg VERSION="$(GIT_TAG)" \
+		--build-arg AUTHOR="$(AUTHOR)" -t $(DOCKER_IMG_LOCAL_TAG_DEV) --target debug .
 
 .PHONY: dockerbuild-prod
 dockerbuild-prod:
@@ -177,12 +179,13 @@ dockerbuild-prod:
 		--build-arg GIT_HASH="$(GIT_HASH)" \
 		--build-arg GIT_BRANCH="$(GIT_BRANCH)" \
 		--build-arg GIT_DIRTY="$(GIT_DIRTY)" \
+		--build-arg VERSION="$(GIT_TAG)" \
 		--build-arg AUTHOR="$(AUTHOR)" -t $(DOCKER_IMG_LOCAL_TAG) --target production .
 
 .PHONY: dockerrun
 dockerrun: dockerbuild-debug
 	@echo "starting docker debug container with populating ENV from .env.local"
-	docker run -it --rm --env-file .env.local --net=host $(DOCKER_IMG_LOCAL_TAG_TEST) ./manage.py runserver
+	docker run -it --rm --env-file .env.local --net=host $(DOCKER_IMG_LOCAL_TAG_DEV) ./manage.py runserver
 
 
 ###################

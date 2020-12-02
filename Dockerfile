@@ -29,11 +29,13 @@ ARG GIT_HASH=unknown
 ARG GIT_BRANCH=unknown
 ARG GIT_DIRTY=""
 ARG AUTHOR=unknonw
+ARG VERSION=unknown
 ARG TARGET=
 LABEL git.hash=$GIT_HASH
 LABEL git.branch=$GIT_BRANCH
 LABEL git.dirty="$GIT_DIRTY"
 LABEL author=$AUTHOR
+LABEL version=$VERSION
 
 ###########################################################
 # Container to perform tests/management/dev tasks
