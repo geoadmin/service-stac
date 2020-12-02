@@ -33,12 +33,7 @@ phases:
           export GITHUB_BRANCH=${GITHUB_BRANCH#remotes/origin/};
         fi
       - export COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
-      - GIT_TAG="$(git describe --tags 2>/dev/null)"
-      - |-
-        if [ "${GIT_TAG}" = "" ] ; then
-          GIT_TAG="undefined"
-        fi
-      - export GIT_TAG=${GIT_TAG}
+      - export GIT_TAG="$(git describe --tags || echo 'no version info')"
       - echo "GITHUB_BRANCH=${GITHUB_BRANCH} COMMIT_HASH=${COMMIT_HASH} GIT_TAG=${GIT_TAG}"
       - echo "creating a clean environment"
       - make ci

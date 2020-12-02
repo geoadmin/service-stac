@@ -4,7 +4,6 @@ on:
     branches:
       - master
       - develop
-      - feature_BGDIINF_SB-1497_versioning
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -12,6 +11,9 @@ jobs:
     - uses: actions/checkout@master
       with:
         fetch-depth: '10'
+    # Details and Docu
+    # https://github.com/anothrNick/github-tag-action
+    # https://github.com/geoadmin/doc-guidelines/blob/master/GIT_FLOW.md#versioning
     - name: Bump version and push tag
       uses: anothrNick/github-tag-action@1.33.0
       env:

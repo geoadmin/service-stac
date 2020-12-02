@@ -47,7 +47,7 @@ SUMMON ?= summon --up -p gopass -e service-stac-$(ENV)
 GIT_HASH := `git rev-parse HEAD`
 GIT_BRANCH := `git symbolic-ref HEAD --short 2>/dev/null`
 GIT_DIRTY := `git status --porcelain`
-GIT_TAG := `git describe --tags 2>/dev/null`
+GIT_TAG := `git describe --tags || echo "no version info"`
 AUTHOR := $(USER)
 
 all: help

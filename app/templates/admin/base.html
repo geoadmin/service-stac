@@ -1,0 +1,6 @@
+{% extends "admin/base.html" %}
+
+{% block userlinks %}
+    {{ block.super }}
+    / <strong> Version {{ SETTINGS_APP_VERSION }}</strong>
+{% endblock %}
