@@ -92,7 +92,7 @@ def validate_geometry(geometry):
     return geometry
 
 
-def set_default_links():
+def get_conformance_default_links():
     '''
     A helper function of the class Conformance Page
     to make it possible to define the default values as a callable
@@ -147,12 +147,12 @@ class LandingPageLink(Link):
 
 
 class ConformancePage(SingletonModel):
-    conforms_to = ArrayField(
+    conformsTo = ArrayField(  # pylint: disable=invalid-name
         models.URLField(
-            blank=True,
-            null=True
+            blank=False,
+            null=False
         ),
-        default=set_default_links,
+        default=get_conformance_default_links,
         help_text=_("Comma-separated list of URLs for the value conformsTo"))
 
     def __str__(self):

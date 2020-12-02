@@ -1,4 +1,5 @@
 from django.contrib.gis import admin
+from django.contrib.postgres.fields import ArrayField
 from django.contrib.staticfiles import finders
 from django.db import models
 from django.forms import Textarea
@@ -30,8 +31,13 @@ class LandingPageAdmin(SingletonModelAdmin):
 
 @admin.register(ConformancePage)
 class ConformancePageAdmin(SingletonModelAdmin):
-    model = ConformancePage
-    extra = 0
+    formfield_overrides = {
+        ArrayField: {
+            'widget': Textarea(attrs={
+                'rows': 10, 'cols': 60
+            })
+        },
+    }
 
 
 class ProviderInline(admin.TabularInline):

@@ -158,12 +158,7 @@ class ConformancePageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ConformancePage
-        fields = ['conforms_to']
-
-    def to_representation(self, instance):
-        representation = super().to_representation(instance)
-        representation['conformsTo'] = representation.pop('conforms_to')  # renaming key
-        return representation
+        fields = ['conformsTo']
 
 
 class LandingPageSerializer(serializers.ModelSerializer):
