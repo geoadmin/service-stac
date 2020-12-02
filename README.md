@@ -265,6 +265,7 @@ Each images contains the following metadata:
 - git.branch
 - git.hash
 - git.dirty
+- version
 
 These metadata can be seen directly on the dockerhub registry in the image layers or can be read with the following command
 

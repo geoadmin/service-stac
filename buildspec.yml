@@ -33,8 +33,13 @@ phases:
           export GITHUB_BRANCH=${GITHUB_BRANCH#remotes/origin/};
         fi
       - export COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
-      - export IMAGE_TAG="${GITHUB_BRANCH}.${COMMIT_HASH}"
-      - echo "GITHUB_BRANCH=${GITHUB_BRANCH} COMMIT_HASH=${COMMIT_HASH} IMAGE_TAG=${IMAGE_TAG}"
+      - GIT_TAG="$(git describe --tags 2>/dev/null)"
+      - |-
+        if [ "${GIT_TAG}" = "" ] ; then
+          GIT_TAG="undefined"
+        fi
+      - export GIT_TAG=${GIT_TAG}
+      - echo "GITHUB_BRANCH=${GITHUB_BRANCH} COMMIT_HASH=${COMMIT_HASH} GIT_TAG=${GIT_TAG}"
       - echo "creating a clean environment"
       - make ci
       - echo "linting code"
@@ -42,10 +47,16 @@ phases:
 
   build:
     commands:
-      - export DOCKER_IMG_TAG_BASE=${IMAGE_BASE_NAME}:${GITHUB_BRANCH}
-      - export DOCKER_IMG_TAG_HASH=${DOCKER_IMG_TAG_BASE}.${COMMIT_HASH}
-      - export DOCKER_IMG_TAG_LATEST=${DOCKER_IMG_TAG_BASE}.latest
-      - export DOCKER_IMG_TAG_LATEST_DEV=${DOCKER_IMG_TAG_BASE}.latest-dev
+      - |-
+        if [ "${GIT_TAG}" = "undefined" ] ; then
+          DOCKER_IMG_TAG=${IMAGE_BASE_NAME}:${GITHUB_BRANCH}.${COMMIT_HASH}
+        else
+          DOCKER_IMG_TAG=${IMAGE_BASE_NAME}:"${GIT_TAG}"
+        fi
+      - export DOCKER_IMG_TAG=${DOCKER_IMG_TAG}
+      - export DOCKER_IMG_TAG_DEV=${DOCKER_IMG_TAG_DEV}-dev
+      - export DOCKER_IMG_TAG_LATEST=${IMAGE_BASE_NAME}:${GITHUB_BRANCH}.latest
+      - export DOCKER_IMG_TAG_LATEST_DEV=${IMAGE_BASE_NAME}:${GITHUB_BRANCH}.latest-dev
       # Starting dev build for testing
       - echo "starting debug build on $(date)"
       - echo "Building docker debug image with tags ${DOCKER_IMG_TAG_HASH} and ${DOCKER_IMG_TAG_LATEST_DEV}"
@@ -54,7 +65,8 @@ phases:
         --build-arg GIT_HASH="${COMMIT_HASH}"
         --build-arg GIT_BRANCH="${GITHUB_BRANCH}"
         --build-arg AUTHOR="CI"
-        -t ${DOCKER_IMG_TAG_HASH} -t ${DOCKER_IMG_TAG_LATEST_DEV} --target debug .
+        --build-arg VERSION="${GIT_TAG}"
+        -t ${DOCKER_IMG_TAG} -t ${DOCKER_IMG_TAG_LATEST_DEV} --target debug .
       # Running tests
       # Note: the app container will 'exit 0' once tests are completed, we need to
       # stop the db as well then
@@ -67,15 +79,22 @@ phases:
         --build-arg GIT_HASH="${COMMIT_HASH}"
         --build-arg GIT_BRANCH="${GITHUB_BRANCH}"
         --build-arg AUTHOR="CI"
-        -t ${DOCKER_IMG_TAG_HASH} -t ${DOCKER_IMG_TAG_LATEST} --target production .
+        --build-arg VERSION="${GIT_TAG}"
+        -t ${DOCKER_IMG_TAG} -t ${DOCKER_IMG_TAG_LATEST} --target production .
 
   post_build:
     commands:
-      # Only push image to dockerhub for merge to develop and master
+      # Only push images built from develop and master to dockerhub
       - |
-        if [ "${GITHUB_BRANCH}" = "master" ]; then
-          docker push ${DOCKER_IMG_TAG_HASH}
-        elif [ "${GITHUB_BRANCH}" = "develop" ]; then
+        if [ "${GITHUB_BRANCH}" = "master" ] || [ "${GITHUB_BRANCH}" = "develop" ]; then
+          echo "Push production image ${DOCKER_IMG_TAG}"
+          docker push ${DOCKER_IMG_TAG}
+          echo "Push debug image ${DOCKER_IMG_TAG_DEV}"
+          docker push ${DOCKER_IMG_TAG_DEV}
+        fi
+      # For develop aditionally push images with '*latest*' tags
+      - |-
+        if [ "${GITHUB_BRANCH}" = "develop" ]; then
           echo "Push production image ${DOCKER_IMG_TAG_LATEST}"
           docker push ${DOCKER_IMG_TAG_LATEST}
           echo "Push debug image ${DOCKER_IMG_TAG_LATEST_DEV}"
