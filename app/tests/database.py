@@ -125,7 +125,7 @@ def create_asset(item, name):
     return asset
 
 
-def create_dummy_db_content(nb_collections, nb_items, nb_assets):
+def create_dummy_db_content(nb_collections, nb_items=0, nb_assets=0):
     collections = []
     items = []
     assets = []
