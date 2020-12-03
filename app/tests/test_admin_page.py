@@ -374,9 +374,6 @@ class AdminCollectionTestCase(AdminBaseTestCase):
             with_link=True,
             with_provider=True,
         )
-        # Currently due to a bug in the Item.__init__() which creates a stack overflow when
-        # deleting a collection with item ! the following code is comment out until the bug is
-        # fixed (see BGDIINF_SB-1500)
         item = self._create_item(collection, with_link=True)[0]
         asset = self._create_asset(item)[0]
 
@@ -388,7 +385,6 @@ class AdminCollectionTestCase(AdminBaseTestCase):
         # Status code for successful creation is 302, since in the admin UI
         # you're redirected to the list view after successful creation
         self.assertEqual(response.status_code, 302, msg="Admin page failed to remove collection")
-        # See comment above
         self.assertFalse(Asset.objects.filter(item=item).exists(), msg="Deleted asset still in DB")
         self.assertFalse(
             Item.objects.filter(collection=collection).exists(), msg="Deleted item still in DB"
@@ -518,6 +514,7 @@ class AdminItemTestCase(AdminBaseTestCase):
         self.client.login(username=self.username, password=self.password)
 
         item, data, link = self._create_item(self.collection, with_link=True)
+        asset = self._create_asset(item)[0]
 
         # remove item with links
         response = self.client.post(
@@ -527,6 +524,7 @@ class AdminItemTestCase(AdminBaseTestCase):
         # Status code for successful creation is 302, since in the admin UI
         # you're redirected to the list view after successful creation
         self.assertEqual(response.status_code, 302, msg="Admin page failed to remove item")
+        self.assertFalse(Asset.objects.filter(item=item).exists(), msg="Deleted asset still in DB")
         self.assertFalse(
             ItemLink.objects.filter(item=item, rel=data["links-0-rel"]).exists(),
             msg="Deleted link still in DB"

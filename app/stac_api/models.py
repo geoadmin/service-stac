@@ -301,6 +301,14 @@ class CollectionLink(Link):
         unique_together = (('rel', 'collection'),)
 
 
+ITEM_KEEP_ORIGINAL_FIELDS = [
+    'geometry',
+    'properties_datetime',
+    'properties_start_datetime',
+    'properties_end_datetime',
+]
+
+
 class Item(models.Model):
     name = models.CharField(
         'id', unique=True, blank=False, max_length=255, validators=[validate_name]
@@ -326,29 +334,24 @@ class Item(models.Model):
     # properties_platform = models.TextField(blank=True)
     # properties_providers = models.ManyToManyField(Provider)
     properties_title = models.CharField(blank=True, max_length=255)
+
     # properties_view_off_nadir = models.FloatField(blank=True)
     # properties_view_sun_azimuth = models.FloatField(blank=True)
     # properties_view_elevation = models.FloatField(blank=True)
 
-    # Keep original values of some fields to simplify the collection extent
-    # update.
-    _keep_original_fields = [
-        'geometry',
-        'properties_datetime',
-        'properties_start_datetime',
-        'properties_end_datetime',
-    ]
-    _original_values = {}
+    def __init__(self, *args, **kwargs):
+        self._original_values = {}
+        super().__init__(*args, **kwargs)
 
     @classmethod
     def from_db(cls, db, field_names, values):
         instance = super().from_db(db, field_names, values)
 
-        # save original values for some fields, when model is loaded from database,
-        # in a separate attribute on the model
+        # Save original values for some fields, when model is loaded from database,
+        # in a separate attribute on the model, this simplify the collection extent update.
         # See https://docs.djangoproject.com/en/3.1/ref/models/instances/#customizing-model-loading
         instance._original_values = dict( # pylint: disable=protected-access
-            filter(lambda item: item[0] in cls._keep_original_fields, zip(field_names, values))
+            filter(lambda item: item[0] in ITEM_KEEP_ORIGINAL_FIELDS, zip(field_names, values))
         )
 
         return instance
@@ -445,7 +448,7 @@ class Item(models.Model):
         super().save(*args, **kwargs)
 
         # update the original_values just in case save() is called again without reloading from db
-        self._original_values = {key: getattr(self, key) for key in self._keep_original_fields}
+        self._original_values = {key: getattr(self, key) for key in ITEM_KEEP_ORIGINAL_FIELDS}
 
     def delete(self, *args, **kwargs):  # pylint: disable=signature-differs
         # It is important to use `*args, **kwargs` in signature because django might add dynamically
@@ -501,6 +504,9 @@ class ItemLink(Link):
     )
 
 
+ASSET_KEEP_ORIGINAL_FIELDS = ["eo_gsd", "geoadmin_variant", "proj_epsg"]
+
+
 class Asset(models.Model):
     # using BigIntegerField as primary_key to deal with the expected large number of assets.
     id = models.BigAutoField(primary_key=True)
@@ -538,15 +544,22 @@ class Asset(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
 
-    _original_eo_gsd = None
-    _original_geoadmin_variant = None
-    _original_proj_epsg = None
-
     def __init__(self, *args, **kwargs):
-        super(Asset, self).__init__(*args, **kwargs)
-        self._original_eo_gsd = self.eo_gsd
-        self._original_geoadmin_variant = self.geoadmin_variant
-        self._original_proj_epsg = self.proj_epsg
+        self._original_values = {}
+        super().__init__(*args, **kwargs)
+
+    @classmethod
+    def from_db(cls, db, field_names, values):
+        instance = super().from_db(db, field_names, values)
+
+        # Save original values for some fields, when model is loaded from database,
+        # in a separate attribute on the model, this simplify the collection summaries update.
+        # See https://docs.djangoproject.com/en/3.1/ref/models/instances/#customizing-model-loading
+        instance._original_values = dict( # pylint: disable=protected-access
+            filter(lambda item: item[0] in ASSET_KEEP_ORIGINAL_FIELDS, zip(field_names, values))
+        )
+
+        return instance
 
     def __str__(self):
         return self.name
@@ -555,13 +568,13 @@ class Asset(models.Model):
     # is saved, too.
     def save(self, *args, **kwargs):  # pylint: disable=signature-differs
         old_values = [
-            self._original_eo_gsd, self._original_geoadmin_variant, self._original_proj_epsg
+            self._original_values.get(field, None) for field in ASSET_KEEP_ORIGINAL_FIELDS
         ]
         update_summaries(self.item.collection, self, deleted=False, old_values=old_values)
         super().save(*args, **kwargs)
-        self._original_eo_gsd = self.eo_gsd
-        self._original_geoadmin_variant = self.geoadmin_variant
-        self._original_proj_epsg = self.proj_epsg
+
+        # update the original_values just in case save() is called again without reloading from db
+        self._original_values = {key: getattr(self, key) for key in ASSET_KEEP_ORIGINAL_FIELDS}
 
     def delete(self, *args, **kwargs):  # pylint: disable=signature-differs
         # It is important to use `*args, **kwargs` in signature because django might add dynamically
