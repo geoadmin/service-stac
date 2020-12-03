@@ -22,19 +22,19 @@ def update_temporal_extent_on_item_insert(
         collection.name,
         extra={'collection_name': collection.name}
     )
-    if collection.cache_start_datetime is None:
-        # first item in collection, as cache_start_datetime is None:
-        collection.cache_start_datetime = new_start_datetime
-    elif collection.cache_start_datetime > new_start_datetime:
+    if collection.extent_start_datetime is None:
+        # first item in collection, as extent_start_datetime is None:
+        collection.extent_start_datetime = new_start_datetime
+    elif collection.extent_start_datetime > new_start_datetime:
         # new item starts earlier that current collection range starts
-        collection.cache_start_datetime = new_start_datetime
+        collection.extent_start_datetime = new_start_datetime
 
-    if collection.cache_end_datetime is None:
-        #first item in collection, as cache_start_datetime is None
-        collection.cache_end_datetime = new_end_datetime
-    elif collection.cache_end_datetime < new_end_datetime:
+    if collection.extent_end_datetime is None:
+        #first item in collection, as extent_start_datetime is None
+        collection.extent_end_datetime = new_end_datetime
+    elif collection.extent_end_datetime < new_end_datetime:
         # new item starts after current collection's range ends
-        collection.cache_end_datetime = new_end_datetime
+        collection.extent_end_datetime = new_end_datetime
 
     collection.save()
 
@@ -72,12 +72,12 @@ def update_start_temporal_extent_on_item_update(
         extra={'collection_name': collection.name}
     )
 
-    if old_start_datetime == collection.cache_start_datetime:
+    if old_start_datetime == collection.extent_start_datetime:
         # item's old start_datetime was defining left bound of the temporal
         # extent interval of collection before update
         if new_start_datetime < old_start_datetime:
             # item's start_datetime was shifted to the left (earlier)
-            collection.cache_start_datetime = new_start_datetime
+            collection.extent_start_datetime = new_start_datetime
         else:
             # item's start_datetime was shifted to the right (later)
             # but was defining the left bound of the temporal extent
@@ -105,13 +105,13 @@ def update_start_temporal_extent_on_item_update(
                 )
             else:
                 earliest_datetime = new_start_datetime
-            collection.cache_start_datetime = min(earliest_start_datetime, earliest_datetime)
-    elif new_start_datetime < collection.cache_start_datetime:
+            collection.extent_start_datetime = min(earliest_start_datetime, earliest_datetime)
+    elif new_start_datetime < collection.extent_start_datetime:
         # item's start_datetime did not define the left bound of the
         # collection's temporal extent before update, which does not
         # matter anyways, as it defines the new left bound after update
         # and collection's start_datetime can be simply adjusted
-        collection.cache_start_datetime = new_start_datetime
+        collection.extent_start_datetime = new_start_datetime
 
     collection.save()
 
@@ -149,12 +149,12 @@ def update_end_temporal_extent_on_item_update(
         extra={'collection_name': collection.name}
     )
 
-    if old_end_datetime == collection.cache_end_datetime:
+    if old_end_datetime == collection.extent_end_datetime:
         # item's old end_datetime was defining the right bound of
         # the collection's temporal extent interval before update
         if new_end_datetime > old_end_datetime:
             # item's end_datetime was shifted to the right (later)
-            collection.cache_end_datetime = new_end_datetime
+            collection.extent_end_datetime = new_end_datetime
         else:
             # item's end_datetime was shifted to the left (earlier)
             # but was defining the right bound of the collection's
@@ -181,14 +181,14 @@ def update_end_temporal_extent_on_item_update(
                 )
             else:
                 latest_datetime = new_end_datetime
-            collection.cache_end_datetime = max(latest_end_datetime, latest_datetime)
-    elif new_end_datetime > collection.cache_end_datetime:
+            collection.extent_end_datetime = max(latest_end_datetime, latest_datetime)
+    elif new_end_datetime > collection.extent_end_datetime:
         # item's end_datetime did not define the right bound of
         # the collection's temporal extent before update, which
         # does not matter anyways, as it defines the right bound
         # after update and collection's end_date can be simply
         # adjusted
-        collection.cache_end_datetime = new_end_datetime
+        collection.extent_end_datetime = new_end_datetime
 
     collection.save()
 
@@ -221,12 +221,12 @@ def update_start_temporal_extent_on_item_delete(
         extra={'collection_name': collection.name}
     )
 
-    if old_start_datetime == collection.cache_start_datetime:
+    if old_start_datetime == collection.extent_start_datetime:
         # item that is to be deleted defined left bound of collection's
         # temporal extent
-        # first set cache_start_datetime to None, in case
+        # first set extent_start_datetime to None, in case
         # the currently deleted item is the only item of the collection
-        collection.cache_start_datetime = None
+        collection.extent_start_datetime = None
 
         logger.warning(
             'Looping (twice) over all items of collection %s,'
@@ -252,11 +252,11 @@ def update_start_temporal_extent_on_item_delete(
         # set collection's new start_datetime to the minimum of the earliest
         # item's start_datetime or datetime
         if earliest_start_datetime is not None and earliest_datetime is not None:
-            collection.cache_start_datetime = min(earliest_start_datetime, earliest_datetime)
+            collection.extent_start_datetime = min(earliest_start_datetime, earliest_datetime)
         elif earliest_datetime is not None:
-            collection.cache_start_datetime = earliest_datetime
+            collection.extent_start_datetime = earliest_datetime
         else:
-            collection.cache_start_datetime = earliest_start_datetime
+            collection.extent_start_datetime = earliest_start_datetime
 
     collection.save()
 
@@ -289,12 +289,12 @@ def update_end_temporal_extent_on_item_delete(
         extra={'collection_name': collection.name}
     )
 
-    if old_end_datetime == collection.cache_end_datetime:
+    if old_end_datetime == collection.extent_end_datetime:
         # item that is to be deleted defined right bound of collection's
         # temporal extent
-        # first set cache_end_datetime to None, in case
+        # first set extent_end_datetime to None, in case
         # the currently deleted item is the only item of the collection
-        collection.cache_end_datetime = None
+        collection.extent_end_datetime = None
 
         logger.warning(
             'Looping (twice) over all items of collection %s,'
@@ -319,11 +319,11 @@ def update_end_temporal_extent_on_item_delete(
         # set collection's new end_datetime to the maximum of the latest
         # item's end_datetime or datetime
         if latest_end_datetime is not None and latest_datetime is not None:
-            collection.cache_end_datetime = max(latest_end_datetime, latest_datetime)
+            collection.extent_end_datetime = max(latest_end_datetime, latest_datetime)
         elif latest_datetime is not None:
-            collection.cache_end_datetime = latest_datetime
+            collection.extent_end_datetime = latest_datetime
         else:
-            collection.cache_end_datetime = latest_end_datetime
+            collection.extent_end_datetime = latest_end_datetime
 
     collection.save()
 
@@ -364,7 +364,7 @@ def update_temporal_extent(
     elif action == "update":
         qs = None
         if old_start_datetime != new_start_datetime:
-            if old_start_datetime == collection.cache_start_datetime and \
+            if old_start_datetime == collection.extent_start_datetime and \
                 new_start_datetime > old_start_datetime:
                 # item has defined the left and bound of the
                 # collection's temporal extent before the update.
@@ -375,7 +375,7 @@ def update_temporal_extent(
                     'to update temporal extent, this may take a while',
                     collection.name
                 )
-                qs = item.__class__.objects.filter(collection_id=collection.pk).exclude(id=item_id)
+                qs = type(item).objects.filter(collection_id=collection.pk).exclude(id=item_id)
                 update_start_temporal_extent_on_item_update(
                     collection,
                     old_start_datetime,
@@ -398,7 +398,7 @@ def update_temporal_extent(
                 )
 
         if old_end_datetime != new_end_datetime:
-            if old_end_datetime == collection.cache_end_datetime and \
+            if old_end_datetime == collection.extent_end_datetime and \
                 new_end_datetime < old_end_datetime:
                 # item has defined the right bound of the
                 # collection's temporal extent before the update.
@@ -411,8 +411,7 @@ def update_temporal_extent(
                         'to update temporal extent, this may take a while',
                         collection.name
                     )
-                    qs = item.__class__.objects.filter(collection_id=collection.pk
-                                                      ).exclude(id=item_id)
+                    qs = type(item).objects.filter(collection_id=collection.pk).exclude(id=item_id)
 
                 update_end_temporal_extent_on_item_update(
                     collection,
@@ -437,15 +436,15 @@ def update_temporal_extent(
 
     # DELETE
     elif action == 'remove':
-        if old_start_datetime == collection.cache_start_datetime or \
-            old_end_datetime == collection.cache_end_datetime:
+        if old_start_datetime == collection.extent_start_datetime or \
+            old_end_datetime == collection.extent_end_datetime:
             logger.warning(
                 'Looping over all items of collection %s,'
                 'to update temporal extent, this may take a while',
                 collection.name
             )
             # get all items but the one to be deleted:
-            qs = item.__class__.objects.filter(collection_id=collection.pk).exclude(id=item_id)
+            qs = type(item).objects.filter(collection_id=collection.pk).exclude(id=item_id)
             update_start_temporal_extent_on_item_delete(
                 collection,
                 old_start_datetime,

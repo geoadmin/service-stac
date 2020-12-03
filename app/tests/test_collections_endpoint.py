@@ -14,7 +14,6 @@ import tests.database as db
 from tests.utils import get_http_error_description
 from tests.utils import mock_request_from_response
 
-
 logger = logging.getLogger(__name__)
 
 API_BASE = settings.API_BASE
@@ -64,8 +63,10 @@ class CollectionsEndpointTestCase(TestCase):
         # created and updated must exist and be a valid date
         date_fields = ['created', 'updated']
         for date_field in date_fields:
-            self.assertTrue(fromisoformat(response_json[date_field]),
-                        msg=f"The field {date_field} has an invalid date")
+            self.assertTrue(
+                fromisoformat(response_json[date_field]),
+                msg=f"The field {date_field} has an invalid date"
+            )
 
     def test_collections_limit_query(self):
         response = self.client.get(f"/{API_BASE}/collections?limit=1")

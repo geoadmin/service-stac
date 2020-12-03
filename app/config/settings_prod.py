@@ -14,6 +14,8 @@ from pathlib import Path
 import yaml
 from dotenv import load_dotenv
 
+from .version import APP_VERSION  # pylint: disable=unused-import
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 print(f"BASE_DIR is {BASE_DIR}")
@@ -37,6 +39,10 @@ SECRET_KEY = os.getenv('SECRET_KEY', None)
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
+# SECURITY:
+# https://docs.djangoproject.com/en/dev/ref/settings/#secure-proxy-ssl-header
+SECURE_PROXY_SSL_HEADER = ('HTTP_CLOUDFRONT_FORWARDED_PROTO', 'https')
+
 ALLOWED_HOSTS = []
 ALLOWED_HOSTS += os.getenv('ALLOWED_HOSTS', '').split(',')
 
@@ -46,7 +52,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_gis',
     'stac_api.apps.StacApiConfig',
-    'django.contrib.admin',
+    'config.apps.StacAdminConfig',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -75,7 +81,7 @@ API_BASE = 'api/stac/v0.9'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'app/templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -83,6 +89,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'middleware.settings_context_processor.inject_settings_values',
             ],
         },
     },
@@ -144,10 +151,7 @@ USE_TZ = True
 STATIC_HOST = os.environ.get('DJANGO_STATIC_HOST', '')
 STATIC_URL = STATIC_HOST + '/api/stac/v0.9/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'var/www/stac_api/static_files')
-STATICFILES_DIRS = [
-    BASE_DIR / "spec/static",
-    BASE_DIR / "app/stac_api/templates"
-]
+STATICFILES_DIRS = [BASE_DIR / "spec/static", BASE_DIR / "app/stac_api/templates"]
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Logging

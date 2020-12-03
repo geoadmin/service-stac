@@ -25,20 +25,20 @@ class CursorPagination(pagination.CursorPagination):
     max_page_size = settings.REST_FRAMEWORK['PAGE_SIZE_LIMIT']
 
     def get_paginated_response(self, data):
-        links = {}
+        links = []
         next_page = self.get_next_link()
         previous_page = self.get_previous_link()
         if next_page is not None:
-            links.update({'rel': 'next', 'href': next_page})
+            links.append({'rel': 'next', 'href': next_page})
         if previous_page is not None:
-            links.update({'rel': 'previous', 'href': previous_page})
+            links.append({'rel': 'previous', 'href': previous_page})
 
         if 'links' not in data and not links:
             data.update({'links': []})
         elif 'links' not in data and links:
             data.update({'links': [links]})
         elif links:
-            data['links'].append(links)
+            data['links'] += links
         return Response(data)
 
     def get_page_size(self, request):

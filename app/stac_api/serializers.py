@@ -12,12 +12,12 @@ from rest_framework_gis import serializers as gis_serializers
 from stac_api.models import Asset
 from stac_api.models import Collection
 from stac_api.models import CollectionLink
+from stac_api.models import ConformancePage
 from stac_api.models import Item
 from stac_api.models import ItemLink
 from stac_api.models import LandingPage
 from stac_api.models import LandingPageLink
 from stac_api.models import Provider
-from stac_api.models import get_default_stac_extensions
 from stac_api.models import validate_geoadmin_variant
 from stac_api.models import validate_name
 from stac_api.utils import isoformat
@@ -31,6 +31,55 @@ def create_or_update_str(created):
     if created:
         return 'create'
     return 'update'
+
+
+def update_or_create_links(model, instance, instance_type, links_data):
+    '''Update or create links for a model
+
+    Update the given links list within a model instance or create them when they don't exists yet.
+    Args:
+        model: model class on which to update/create links (Collection or Item)
+        instance: model instance on which to update/create links
+        instance_type: (str) instance type name string to use for filtering ('collection' or 'item')
+        links_data: list of links dictionary to add/update
+    '''
+    links_ids = []
+    for link_data in links_data:
+        link, created = model.objects.get_or_create(
+            **{instance_type: instance},
+            rel=link_data["rel"],
+            defaults={
+                'href': link_data.get('href', None),
+                'link_type': link_data.get('link_type', None),
+                'title': link_data.get('title', None)
+            }
+        )
+        logger.debug(
+            '%s link %s',
+            create_or_update_str(created),
+            link.href,
+            extra={
+                instance_type: instance.name, "link": link_data
+            }
+        )
+        links_ids.append(link.id)
+        # the duplicate here is necessary to update the values in
+        # case the object already exists
+        link.link_type = link_data.get('link_type', link.link_type)
+        link.title = link_data.get('title', link.title)
+        link.href = link_data.get('href', link.rel)
+        link.full_clean()
+        link.save()
+
+    # Delete link that were not mentioned in the payload anymore
+    deleted = model.objects.filter(**{instance_type: instance},).exclude(id__in=links_ids).delete()
+    logger.info(
+        "deleted %d stale links for %s %s",
+        deleted[0],
+        instance_type,
+        instance.name,
+        extra={instance_type: instance}
+    )
 
 
 class NonNullModelSerializer(serializers.ModelSerializer):
@@ -86,7 +135,7 @@ class DictSerializer(serializers.ListSerializer):
 
     # pylint: disable=abstract-method
 
-    key_identifier = 'name'
+    key_identifier = 'id'
 
     def to_representation(self, data):
         objects = super().to_representation(data)
@@ -103,6 +152,13 @@ class LandingPageLinkSerializer(serializers.ModelSerializer):
     class Meta:
         model = LandingPageLink
         fields = ['href', 'rel', 'link_type', 'title']
+
+
+class ConformancePageSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ConformancePage
+        fields = ['conformsTo']
 
 
 class LandingPageSerializer(serializers.ModelSerializer):
@@ -183,14 +239,14 @@ class ProviderSerializer(NonNullModelSerializer):
 
 class ExtentTemporalSerializer(serializers.Serializer):
     # pylint: disable=abstract-method
-    cache_start_datetime = serializers.DateTimeField()
-    cache_end_datetime = serializers.DateTimeField()
+    extent_start_datetime = serializers.DateTimeField()
+    extent_end_datetime = serializers.DateTimeField()
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)
 
-        start = instance.cache_start_datetime
-        end = instance.cache_end_datetime
+        start = instance.extent_start_datetime
+        end = instance.extent_end_datetime
 
         if start is not None:
             start = isoformat(start)
@@ -287,44 +343,10 @@ class CollectionSerializer(NonNullModelSerializer):
         return ["http://www.opengis.net/def/crs/OGC/1.3/CRS84"]
 
     def get_stac_extensions(self, obj):
-        return get_default_stac_extensions(True)
+        return list()
 
     def get_stac_version(self, obj):
         return STAC_VERSION
-
-    def _update_or_create_links(self, collection, links_data):
-        links_ids = []
-        for link_data in links_data:
-            link, created = CollectionLink.objects.get_or_create(
-                collection=collection,
-                rel=link_data["rel"],
-                defaults={
-                    'href': link_data.get('href', None),
-                    'link_type': link_data.get('link_type', None),
-                    'title': link_data.get('title', None)
-                }
-            )
-            logger.debug(
-                '%s link %s', create_or_update_str(created), link.href, extra={"link": link_data}
-            )
-            links_ids.append(link.id)
-            # the duplicate here is necessary to update the values in
-            # case the object already exists
-            link.link_type = link_data.get('link_type', link.link_type)
-            link.title = link_data.get('title', link.title)
-            link.href = link_data.get('href', link.rel)
-            link.full_clean()
-            link.save()
-
-        # Delete link that were not mentioned in the payload anymore
-        deleted = CollectionLink.objects.filter(collection=collection).exclude(id__in=links_ids
-                                                                              ).delete()
-        logger.info(
-            "deleted %d stale links for collection %s",
-            deleted[0],
-            collection.name,
-            extra={"collection": collection.name}
-        )
 
     def _update_or_create_providers(self, collection, providers_data):
         provider_ids = []
@@ -371,7 +393,12 @@ class CollectionSerializer(NonNullModelSerializer):
         links_data = validated_data.pop('links', [])
         collection = Collection.objects.create(**validated_data)
         self._update_or_create_providers(collection=collection, providers_data=providers_data)
-        self._update_or_create_links(collection=collection, links_data=links_data)
+        update_or_create_links(
+            instance_type="collection",
+            model=CollectionLink,
+            instance=collection,
+            links_data=links_data
+        )
         return collection
 
     def update(self, instance, validated_data):
@@ -381,7 +408,12 @@ class CollectionSerializer(NonNullModelSerializer):
         providers_data = validated_data.pop('providers', [])
         links_data = validated_data.pop('links', [])
         self._update_or_create_providers(collection=instance, providers_data=providers_data)
-        self._update_or_create_links(collection=instance, links_data=links_data)
+        update_or_create_links(
+            instance_type="collection",
+            model=CollectionLink,
+            instance=instance,
+            links_data=links_data
+        )
         return super().update(instance, validated_data)
 
     def to_representation(self, instance):
@@ -443,17 +475,11 @@ class ItemsPropertiesSerializer(serializers.Serializer):
     end_datetime = serializers.DateTimeField(
         source='properties_end_datetime', allow_null=True, required=False
     )
-    eo_gsd = serializers.FloatField(source='properties_eo_gsd', allow_null=True, read_only=True)
     title = serializers.CharField(
-        required=False, allow_blank=True, source='properties_title', max_length=255
+        source='properties_title', required=False, allow_blank=True, max_length=255
     )
-
-    def get_fields(self):
-        fields = super().get_fields()
-        # This is a hack to allow fields with special characters
-        fields['eo:gsd'] = fields.pop('eo_gsd')
-        # logger.debug('Updated fields name: %s', fields)
-        return fields
+    created = serializers.DateTimeField(read_only=True)
+    updated = serializers.DateTimeField(read_only=True)
 
 
 class BboxSerializer(gis_serializers.GeoFeatureModelSerializer):
@@ -471,7 +497,7 @@ class BboxSerializer(gis_serializers.GeoFeatureModelSerializer):
 
 class AssetsDictSerializer(DictSerializer):
     # pylint: disable=abstract-method
-    key_identifier = 'name'
+    key_identifier = 'id'
 
 
 class AssetSerializer(NonNullModelSerializer):
@@ -480,7 +506,8 @@ class AssetSerializer(NonNullModelSerializer):
         model = Asset
         list_serializer_class = AssetsDictSerializer
         fields = [
-            'name',
+            'id',
+            'item',
             'title',
             'type',
             'href',
@@ -496,23 +523,34 @@ class AssetSerializer(NonNullModelSerializer):
 
     # NOTE: when explicitely declaring fields, we need to add the validation as for the field
     # in model !
+    item = serializers.SlugRelatedField(
+        slug_field='name', write_only=True, queryset=Item.objects.all()
+    )
+    id = serializers.CharField(
+        source='name',
+        max_length=255,
+        validators=[validate_name, UniqueValidator(queryset=Asset.objects.all())]
+    )
     type = serializers.CharField(source='media_type', max_length=200)
     # Here we need to explicitely define these fields with the source, because they are renamed
     # in the get_fields() method
     eo_gsd = serializers.FloatField(source='eo_gsd', required=False, allow_null=True)
     geoadmin_lang = serializers.ChoiceField(
         source='geoadmin_lang',
-        choices=['de', 'fr', 'it', 'rm', 'en'],
+        choices=Asset.Language.values,
         required=False,
+        allow_null=True,
         allow_blank=True
     )
     geoadmin_variant = serializers.CharField(
         source='geoadmin_variant',
         max_length=15,
+        allow_blank=True,
         allow_null=True,
+        required=False,
         validators=[validate_geoadmin_variant]
     )
-    proj_epsg = serializers.IntegerField(source='proj_epsg', allow_null=True)
+    proj_epsg = serializers.IntegerField(source='proj_epsg', allow_null=True, required=False)
     checksum_multihash = serializers.CharField(source='checksum_multihash', max_length=255)
     # read only fields
     created = serializers.DateTimeField(read_only=True)
@@ -543,34 +581,30 @@ class ItemSerializer(NonNullModelSerializer):
             'properties',
             'stac_extensions',
             'links',
-            'assets',
-            'created',
-            'updated',
+            'assets'
         ]
 
     # NOTE: when explicitely declaring fields, we need to add the validation as for the field
     # in model !
-    collection = serializers.StringRelatedField()
+    collection = serializers.SlugRelatedField(slug_field='name', queryset=Collection.objects.all())
     id = serializers.CharField(
         source='name',
         required=True,
         max_length=255,
         validators=[validate_name, UniqueValidator(queryset=Collection.objects.all())]
     )
-    properties = ItemsPropertiesSerializer(source='*')
-    geometry = gis_serializers.GeometryField()
+    properties = ItemsPropertiesSerializer(source='*', required=True)
+    geometry = gis_serializers.GeometryField(required=True)
+    links = ItemLinkSerializer(required=False, many=True)
     # read only fields
-    links = ItemLinkSerializer(many=True, read_only=True)
     type = serializers.ReadOnlyField(default='Feature')
     bbox = BboxSerializer(source='*', read_only=True)
     assets = AssetSerializer(many=True, read_only=True)
     stac_extensions = serializers.SerializerMethodField()
     stac_version = serializers.SerializerMethodField()
-    created = serializers.DateTimeField(read_only=True)
-    updated = serializers.DateTimeField(read_only=True)
 
     def get_stac_extensions(self, obj):
-        return get_default_stac_extensions()
+        return list()
 
     def get_stac_version(self, obj):
         return STAC_VERSION
@@ -607,3 +641,18 @@ class ItemSerializer(NonNullModelSerializer):
             ])
         ]
         return representation
+
+    def create(self, validated_data):
+        links_data = validated_data.pop('links', [])
+        item = Item.objects.create(**validated_data)
+        update_or_create_links(
+            instance_type="item", model=ItemLink, instance=item, links_data=links_data
+        )
+        return item
+
+    def update(self, instance, validated_data):
+        links_data = validated_data.pop('links', [])
+        update_or_create_links(
+            instance_type="item", model=ItemLink, instance=instance, links_data=links_data
+        )
+        return super().update(instance, validated_data)

@@ -14,10 +14,12 @@ from rest_framework.response import Response
 
 from stac_api.models import Asset
 from stac_api.models import Collection
+from stac_api.models import ConformancePage
 from stac_api.models import Item
 from stac_api.models import LandingPage
 from stac_api.serializers import AssetSerializer
 from stac_api.serializers import CollectionSerializer
+from stac_api.serializers import ConformancePageSerializer
 from stac_api.serializers import ItemSerializer
 from stac_api.serializers import LandingPageSerializer
 from stac_api.utils import utc_aware
@@ -66,6 +68,14 @@ class LandingPageDetail(generics.RetrieveAPIView):
 
     def get_object(self):
         return LandingPage.get_solo()
+
+
+class ConformancePageDetail(generics.RetrieveAPIView):
+    serializer_class = ConformancePageSerializer
+    queryset = ConformancePage.objects.all()
+
+    def get_object(self):
+        return ConformancePage.get_solo()
 
 
 def checker(request):

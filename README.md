@@ -18,6 +18,7 @@
   - [Using Django shell](#using-django-shell)
   - [Linting and formatting your work](#linting-and-formatting-your-work)
 - [Deploying the project and continuous integration](#deploying-the-project-and-continuous-integration)
+- [Docker](#docker)
 - [Deployment configuration](#deployment-configuration)
 
 ## Summary of the project
@@ -152,7 +153,7 @@ stac_api/migrations/
 ├── 0003_auto_20201022_1346.py
 ├── 0004_auto_20201028.py
 ```
-Please make sure, that per PR only one migrations script gets generated (_if possible_). 
+Please make sure, that per PR only one migrations script gets generated (_if possible_).
 
 **How to generate a db migrations script?**
 1. First of all this will only happen, when a model has changed
@@ -181,7 +182,7 @@ cd stac_api/migrations && rm 0017_har.py 0018_toto.py 0019_final.py
 
 # 3. add the generated migration script to git
 git add stac_api/migrations 0017_the_new_one.py
-``` 
+```
 **NOTE:** When going back to a certain migration step, you have to pay attention, that this also involves deleting fields, that have not been added yet.
 Which, of course, involves that its content will be purged as well.
 
@@ -240,12 +241,45 @@ setup the RDS database on int, run following command:
 **Note:** The script won't delete the existing database.
 
 
-
 ## Deploying the project and continuous integration
 
 When creating a PR, terraform should run a codebuild job to test and build automatically your PR as a tagged container. This container will only be pushed to dockerhub when the PR is accepted and merged.
 
 This service is to be deployed to the Kubernetes cluster once it is merged.
+
+## Docker
+
+The service is encapsulated in a Docker image. Images are pushed on the public [Dockerhub](https://hub.docker.com/r/swisstopo/service-stac/tags) registry. From each github PR that are merged into develop branch, two Docker images are built and pushed with the following tags:
+
+- develop.latest (prod image)
+- develop.latest-dev (dev image)
+
+From each github PR that are merged into master, one Docker image is built an pushed with the following tag:
+
+- master.GIT_HASH
+
+Each images contains the following metadata:
+
+- author
+- target
+- git.branch
+- git.hash
+- git.dirty
+- version
+
+These metadata can be seen directly on the dockerhub registry in the image layers or can be read with the following command
+
+```bash
+# NOTE: jq is only used for pretty printing the json output,
+# you can install it with `apt install jq` or simply enter the command without it
+docker image inspect --format='{{json .Config.Labels}}' swisstopo/service-stac:develop.latest-dev | jq
+```
+
+You can also check these metadata on a running container as follow
+
+```bash
+docker ps --format="table {{.ID}}\t{{.Image}}\t{{.Labels}}"d
+```
 
 ### Deployment configuration
 

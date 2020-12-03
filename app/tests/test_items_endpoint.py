@@ -13,9 +13,9 @@ from rest_framework.test import APIRequestFactory
 
 from stac_api.models import Item
 from stac_api.serializers import ItemSerializer
+from stac_api.utils import fromisoformat
 from stac_api.utils import isoformat
 from stac_api.utils import utc_aware
-from stac_api.utils import fromisoformat
 
 import tests.database as db
 from tests.utils import get_http_error_description
@@ -42,7 +42,6 @@ class ItemsEndpointTestCase(TestCase):
             collection=self.collections[0],
             name='item-yesterday',
             properties_datetime=self.yesterday,
-            properties_eo_gsd=None,
             properties_title="My Title",
         )
         db.create_item_links(item_yesterday)
@@ -52,7 +51,6 @@ class ItemsEndpointTestCase(TestCase):
             collection=self.collections[0],
             name='item-now',
             properties_datetime=self.now,
-            properties_eo_gsd=None,
             properties_title="My Title",
         )
         db.create_item_links(item_now)
@@ -63,7 +61,6 @@ class ItemsEndpointTestCase(TestCase):
             name='item-range',
             properties_start_datetime=self.yesterday,
             properties_end_datetime=self.now,
-            properties_eo_gsd=None,
             properties_title="My Title",
         )
         db.create_item_links(item_range)
@@ -153,8 +150,10 @@ class ItemsEndpointTestCase(TestCase):
         # created and updated must exist and be a valid date
         date_fields = ['created', 'updated']
         for date_field in date_fields:
-            self.assertTrue(fromisoformat(json_data[date_field]),
-                            msg=f"The field {date_field} has an invalid date")
+            self.assertTrue(
+                fromisoformat(json_data['properties'][date_field]),
+                msg=f"The field {date_field} has an invalid date"
+            )
 
     def test_items_endpoint_datetime_query(self):
         response = self.client.get(

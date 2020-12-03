@@ -20,10 +20,6 @@ loggers:
     level: DEBUG
     handlers:
       - console
-  default:
-    level: DEBUG
-    handlers:
-      - console
 
 filters:
   application:

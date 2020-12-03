@@ -1,8 +1,6 @@
 import logging
 import re
 
-import numpy as np
-
 from django.contrib.gis.db import models
 from django.contrib.gis.geos import GEOSGeometry
 from django.contrib.gis.geos import Polygon
@@ -14,6 +12,7 @@ from django.utils.translation import gettext_lazy as _
 
 from solo.models import SingletonModel
 
+from stac_api.collection_summaries import update_summaries
 from stac_api.temporal_extent import update_temporal_extent
 
 logger = logging.getLogger(__name__)
@@ -26,32 +25,9 @@ _BBOX_CH.srid = 4326
 # 'SRID=4326;POLYGON ((5.96 45.82, 5.96 47.81, 10.49 47.81, 10.49 45.82, 5.96 45.82))'
 BBOX_CH = str(_BBOX_CH)
 
-# after discussion with Chris and Tobias:
-# stac_extension will be populated with default values that are set to be
-# non-editable for the moment. Could be changed, should the need arise.
-# The following - a bit complicated approach - hopefully serves to solve the
-# error:
-# <begin Quote>
-# "*ArrayField default should be a callable instead of an
-# instance so that it's not shared between all field instances.
-# HINT: Use a callable instead, e.g., use `list` instead of `[]`.""
-# <end quote>
-DEFAULT_STAC_EXTENSIONS = {
-    "EO": "eo",
-    "PROJ": "proj",
-    "VIEW": "view",
-    "GEOADMIN-EXTENSION": "https://data.geo.admin.ch/stac/geoadmin-extension/1.0/schema.json"
-}
-
 DEFAULT_EXTENT_VALUE = {"spatial": {"bbox": [[None]]}, "temporal": {"interval": [[None, None]]}}
 
 DEFAULT_SUMMARIES_VALUE = {"eo:gsd": [], "geoadmin:variant": [], "proj:epsg": []}
-
-
-def get_default_stac_extensions(is_collection=False):
-    if is_collection:
-        return list()
-    return list(DEFAULT_STAC_EXTENSIONS.values())
 
 
 def get_default_extent_value():
@@ -60,14 +36,6 @@ def get_default_extent_value():
 
 def get_default_summaries_value():
     return DEFAULT_SUMMARIES_VALUE
-
-
-def float_in(flt, floats, **kwargs):
-    '''
-    This function is needed for comparing floats in order to check if a
-    given float is member of a list of floats.
-    '''
-    return np.any(np.isclose(flt, floats, **kwargs))
 
 
 def validate_name(name):
@@ -124,6 +92,20 @@ def validate_geometry(geometry):
     return geometry
 
 
+def get_conformance_default_links():
+    '''
+    A helper function of the class Conformance Page
+    to make it possible to define the default values as a callable
+    :return: a list of urls
+    '''
+    default_links = (
+        'http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/core',
+        'http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/oas30',
+        'http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/geojson'
+    )
+    return default_links
+
+
 class Link(models.Model):
     href = models.URLField()
     rel = models.CharField(max_length=30, validators=[validate_link_rel])
@@ -162,6 +144,22 @@ class LandingPageLink(Link):
 
     class Meta:
         unique_together = (('rel', 'landing_page'))
+
+
+class ConformancePage(SingletonModel):
+    conformsTo = ArrayField(  # pylint: disable=invalid-name
+        models.URLField(
+            blank=False,
+            null=False
+        ),
+        default=get_conformance_default_links,
+        help_text=_("Comma-separated list of URLs for the value conformsTo"))
+
+    def __str__(self):
+        return "Conformance Page"
+
+    class Meta:
+        verbose_name = "STAC Conformance Page"
 
 
 class Provider(models.Model):
@@ -220,8 +218,8 @@ class Collection(models.Model):
         validators=[validate_geometry]
     )
 
-    cache_start_datetime = models.DateTimeField(editable=False, null=True, blank=True)
-    cache_end_datetime = models.DateTimeField(editable=False, null=True, blank=True)
+    extent_start_datetime = models.DateTimeField(editable=False, null=True, blank=True)
+    extent_end_datetime = models.DateTimeField(editable=False, null=True, blank=True)
 
     license = models.CharField(max_length=30)  # string
 
@@ -234,39 +232,6 @@ class Collection(models.Model):
 
     def __str__(self):
         return self.name
-
-    def update_geoadmin_variants(self, asset_geoadmin_variant, asset_proj_epsg, asset_eo_gsd):
-        '''
-        updates the collection's summaries when assets are updated or raises
-        errors when this fails.
-        :param asset_geoadmin_value: asset's value for geoadmin_variant
-        :param asset_proj_epsg: asset's value for proj:epsg
-        :param asset_eo_gsd: asset's value for asset_eo_gsd
-        For all the given parameters this function checks, if the corresponding
-        parameters of the collection need to be updated. If so, they will be either
-        updated or an error will be raised, if updating fails.
-        '''
-        try:
-            if asset_geoadmin_variant and \
-               asset_geoadmin_variant not in self.summaries["geoadmin:variant"]:
-                self.summaries["geoadmin:variant"].append(asset_geoadmin_variant)
-                self.save()
-
-            if asset_proj_epsg and asset_proj_epsg not in self.summaries["proj:epsg"]:
-                self.summaries["proj:epsg"].append(asset_proj_epsg)
-                self.save()
-
-            if asset_eo_gsd and not float_in(asset_eo_gsd, self.summaries["eo:gsd"]):
-                self.summaries["eo:gsd"].append(asset_eo_gsd)
-                self.save()
-
-        except KeyError as err:
-            logger.error(
-                "Error when updating collection's summaries values due to asset update: %s", err
-            )
-            raise ValidationError(_(
-                "Error when updating collection's summaries values due to asset update."
-            ))
 
     def update_bbox_extent(self, action, item_geom, item_id, item_name):
         '''
@@ -366,6 +331,14 @@ class CollectionLink(Link):
         unique_together = (('rel', 'collection'),)
 
 
+ITEM_KEEP_ORIGINAL_FIELDS = [
+    'geometry',
+    'properties_datetime',
+    'properties_start_datetime',
+    'properties_end_datetime',
+]
+
+
 class Item(models.Model):
     name = models.CharField(
         'id', unique=True, blank=False, max_length=255, validators=[validate_name]
@@ -386,30 +359,32 @@ class Item(models.Model):
     # properties_eo_cloud_cover = models.FloatField(blank=True)
     # eo_gsd is defined on asset level and will be updated here on ever
     # update of an asset inside this item.
-    properties_eo_gsd = models.FloatField(blank=True, null=True, editable=False)
     # properties_instruments = models.TextField(blank=True)
     # properties_license = models.TextField(blank=True)
     # properties_platform = models.TextField(blank=True)
     # properties_providers = models.ManyToManyField(Provider)
     properties_title = models.CharField(blank=True, max_length=255)
+
     # properties_view_off_nadir = models.FloatField(blank=True)
     # properties_view_sun_azimuth = models.FloatField(blank=True)
     # properties_view_elevation = models.FloatField(blank=True)
 
-    # getting the original geometry helps that the bbox of the collection is only
-    # when the geometry has changed (during update)
-    # https://stackoverflow.com/questions/1355150/when-saving-how-can-you-check-if-a-field-has-changed
-    _original_geometry = None
-    __original_properties_start_datetime = None
-    __original_properties_end_datetime = None
-    __original_properties_datetime = None
-
     def __init__(self, *args, **kwargs):
-        super(Item, self).__init__(*args, **kwargs)
-        self._original_geometry = self.geometry
-        self.__original_properties_start_datetime = self.properties_start_datetime
-        self.__original_properties_end_datetime = self.properties_end_datetime
-        self.__original_properties_datetime = self.properties_datetime
+        self._original_values = {}
+        super().__init__(*args, **kwargs)
+
+    @classmethod
+    def from_db(cls, db, field_names, values):
+        instance = super().from_db(db, field_names, values)
+
+        # Save original values for some fields, when model is loaded from database,
+        # in a separate attribute on the model, this simplify the collection extent update.
+        # See https://docs.djangoproject.com/en/3.1/ref/models/instances/#customizing-model-loading
+        instance._original_values = dict( # pylint: disable=protected-access
+            filter(lambda item: item[0] in ITEM_KEEP_ORIGINAL_FIELDS, zip(field_names, values))
+        )
+
+        return instance
 
     def __str__(self):
         return self.name
@@ -431,16 +406,16 @@ class Item(models.Model):
             action = "update"
 
         if self.properties_datetime is not None:
-            if self.__original_properties_datetime is not None:
+            if self._original_values.get('properties_datetime', None) is not None:
                 # This is the case, when the value of properties.datetime has been
                 # updated
                 update_temporal_extent(
                     self,
                     self.collection,
                     action,
-                    self.__original_properties_datetime,
+                    self._original_values['properties_datetime'],
                     self.properties_datetime,
-                    self.__original_properties_datetime,
+                    self._original_values['properties_datetime'],
                     self.properties_datetime,
                     self.pk
                 )
@@ -456,23 +431,25 @@ class Item(models.Model):
                     self,
                     self.collection,
                     action,
-                    self.__original_properties_start_datetime,
+                    self._original_values.get('properties_start_datetime', None),
                     self.properties_datetime,
-                    self.__original_properties_end_datetime,
+                    self._original_values.get('properties_end_datetime', None),
                     self.properties_datetime,
                     self.pk
                 )
-        elif self.__original_properties_start_datetime is not None and \
-            self.__original_properties_end_datetime is not None:
+        elif (
+            self._original_values.get('properties_start_datetime', None) is not None and
+            self._original_values.get('properties_end_datetime', None) is not None
+        ):
             # This is the case, if an items values for start_ and/or end_datetime
             # were updated.
             update_temporal_extent(
                 self,
                 self.collection,
                 action,
-                self.__original_properties_start_datetime,
+                self._original_values['properties_start_datetime'],
                 self.properties_start_datetime,
-                self.__original_properties_end_datetime,
+                self._original_values['properties_end_datetime'],
                 self.properties_end_datetime,
                 self.pk
             )
@@ -484,9 +461,9 @@ class Item(models.Model):
                 self,
                 self.collection,
                 action,
-                self.__original_properties_datetime,
+                self._original_values.get('properties_datetime', None),
                 self.properties_start_datetime,
-                self.__original_properties_datetime,
+                self._original_values.get('properties_datetime', None),
                 self.properties_end_datetime,
                 self.pk
             )
@@ -495,15 +472,13 @@ class Item(models.Model):
         if self.pk is None:
             self.collection.update_bbox_extent('insert', self.geometry, self.pk, self.name)
         # update the bbox of the collection only when the geometry of the item has changed
-        elif self.geometry != self._original_geometry:
+        elif self.geometry != self._original_values.get('geometry', None):
             self.collection.update_bbox_extent('update', self.geometry, self.pk, self.name)
 
         super().save(*args, **kwargs)
 
-        self._original_geometry = self.geometry
-        self.__original_properties_start_datetime = self.properties_start_datetime
-        self.__original_properties_end_datetime = self.properties_end_datetime
-        self.__original_properties_datetime = self.properties_datetime
+        # update the original_values just in case save() is called again without reloading from db
+        self._original_values = {key: getattr(self, key) for key in ITEM_KEEP_ORIGINAL_FIELDS}
 
     def delete(self, *args, **kwargs):  # pylint: disable=signature-differs
         # It is important to use `*args, **kwargs` in signature because django might add dynamically
@@ -513,9 +488,9 @@ class Item(models.Model):
                 self,
                 self.collection,
                 'remove',
-                self.__original_properties_datetime,
+                self._original_values.get('properties_datetime', None),
                 self.properties_datetime,
-                self.__original_properties_datetime,
+                self._original_values.get('properties_datetime', None),
                 self.properties_datetime,
                 self.pk
             )
@@ -524,9 +499,9 @@ class Item(models.Model):
                 self,
                 self.collection,
                 'remove',
-                self.__original_properties_start_datetime,
+                self._original_values.get('properties_start_datetime', None),
                 self.properties_start_datetime,
-                self.__original_properties_end_datetime,
+                self._original_values.get('properties_end_datetime', None),
                 self.properties_end_datetime,
                 self.pk
             )
@@ -552,40 +527,14 @@ class Item(models.Model):
                 logger.error(message)
                 raise ValidationError(_(message))
 
-    def update_properties_eo_gsd(self, asset, deleted=False):
-        '''
-        updates the item's properties_eo_gsd when assets are updated or
-        raises errors when this fails
-        :param asset: asset's that has been updated/added/deleted
-        :param deleted: asset has been deleted
-
-        This function checks, if the item's properties_eo_gds property
-        needs to be updated. If so, it will be either
-        updated or an error will be raised, if updating fails.
-        '''
-        # check if eo:gsd on feature/item level needs updates
-        if deleted and self.properties_eo_gsd == asset.eo_gsd:
-            # querying all object in a save operation is for performance reason not a good idea
-            # but here because it first only occur during deleting asset which is a rare case
-            # and because we should not have too many assets within an item (a dozen),
-            # it is acceptable
-            assets = Asset.objects.filter(item__name=self.name).exclude(id=asset.id)
-            self.properties_eo_gsd = min([
-                asset.eo_gsd for asset in assets if asset.eo_gsd is not None
-            ])
-            self.save()
-        elif not deleted and self.properties_eo_gsd is None:
-            self.properties_eo_gsd = asset.eo_gsd
-            self.save()
-        elif not deleted and asset.eo_gsd < self.properties_eo_gsd:
-            self.properties_eo_gsd = asset.eo_gsd
-            self.save()
-
 
 class ItemLink(Link):
     item = models.ForeignKey(
         Item, related_name='links', related_query_name='link', on_delete=models.CASCADE
     )
+
+
+ASSET_KEEP_ORIGINAL_FIELDS = ["eo_gsd", "geoadmin_variant", "proj_epsg"]
 
 
 class Asset(models.Model):
@@ -595,12 +544,10 @@ class Asset(models.Model):
         Item, related_name='assets', related_query_name='asset', on_delete=models.CASCADE
     )
     # using "name" instead of "id", as "id" has a default meaning in django
-    name = models.CharField(
-        'id', unique=True, blank=False, max_length=255, validators=[validate_name]
-    )
-    checksum_multihash = models.CharField(blank=False, max_length=255)
-    description = models.TextField()
-    eo_gsd = models.FloatField(null=True)
+    name = models.CharField('id', unique=True, max_length=255, validators=[validate_name])
+    checksum_multihash = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
+    eo_gsd = models.FloatField(null=True, blank=True)
 
     class Language(models.TextChoices):
         # pylint: disable=invalid-name
@@ -612,18 +559,35 @@ class Asset(models.Model):
         NONE = '', _('')
 
     geoadmin_lang = models.CharField(
-        max_length=2, choices=Language.choices, default=Language.NONE, null=True
+        max_length=2, choices=Language.choices, default=Language.NONE, null=True, blank=True
     )
     geoadmin_variant = models.CharField(
         max_length=15, null=True, blank=True, validators=[validate_geoadmin_variant]
     )
-    proj_epsg = models.IntegerField(null=True)
-    title = models.CharField(max_length=255)
+    proj_epsg = models.IntegerField(null=True, blank=True)
+    title = models.CharField(max_length=255, null=True, blank=True)
     media_type = models.CharField(max_length=200)
     href = models.URLField(max_length=255)
 
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
+
+    def __init__(self, *args, **kwargs):
+        self._original_values = {}
+        super().__init__(*args, **kwargs)
+
+    @classmethod
+    def from_db(cls, db, field_names, values):
+        instance = super().from_db(db, field_names, values)
+
+        # Save original values for some fields, when model is loaded from database,
+        # in a separate attribute on the model, this simplify the collection summaries update.
+        # See https://docs.djangoproject.com/en/3.1/ref/models/instances/#customizing-model-loading
+        instance._original_values = dict( # pylint: disable=protected-access
+            filter(lambda item: item[0] in ASSET_KEEP_ORIGINAL_FIELDS, zip(field_names, values))
+        )
+
+        return instance
 
     def __str__(self):
         return self.name
@@ -631,17 +595,17 @@ class Asset(models.Model):
     # alter save-function, so that the corresponding collection of the parent item of the asset
     # is saved, too.
     def save(self, *args, **kwargs):  # pylint: disable=signature-differs
-        self.item.collection.update_geoadmin_variants(
-            self.geoadmin_variant, self.proj_epsg, self.eo_gsd
-        )
-        if self.eo_gsd is not None:
-            self.item.update_properties_eo_gsd(self)
-
+        old_values = [
+            self._original_values.get(field, None) for field in ASSET_KEEP_ORIGINAL_FIELDS
+        ]
+        update_summaries(self.item.collection, self, deleted=False, old_values=old_values)
         super().save(*args, **kwargs)
+
+        # update the original_values just in case save() is called again without reloading from db
+        self._original_values = {key: getattr(self, key) for key in ASSET_KEEP_ORIGINAL_FIELDS}
 
     def delete(self, *args, **kwargs):  # pylint: disable=signature-differs
         # It is important to use `*args, **kwargs` in signature because django might add dynamically
         # parameters
-        if self.eo_gsd is not None:
-            self.item.update_properties_eo_gsd(self, deleted=True)
+        update_summaries(self.item.collection, self, deleted=True, old_values=None)
         super().delete(*args, **kwargs)

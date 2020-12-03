@@ -66,7 +66,6 @@ def create_item(collection, name):
         collection=collection,
         name=name,
         properties_datetime=isoparse('2020-10-28T13:05:10Z'),
-        properties_eo_gsd=None,
         properties_title="My Title",
         geometry=GEOSGeometry(
             json.dumps({
@@ -126,7 +125,7 @@ def create_asset(item, name):
     return asset
 
 
-def create_dummy_db_content(nb_collections, nb_items, nb_assets):
+def create_dummy_db_content(nb_collections, nb_items=0, nb_assets=0):
     collections = []
     items = []
     assets = []
