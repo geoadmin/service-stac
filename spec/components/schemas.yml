@@ -632,10 +632,12 @@ components:
           updated:
             $ref: "#/components/schemas/created"
         required:
+          - "checksum:multihash"
           - href
           - type
           - created
           - updated
+          - id
         type: object
       type: object
       example:
@@ -1168,7 +1170,7 @@ components:
       description: Apply query operations to a specific property
     searchBody:
       allOf:
-        #- $ref: "#/components/schemas/assetQueryFilter"
+#        - $ref: "#/components/schemas/assetQueryFilter"
         - $ref: "#/components/schemas/queryFilter"
         - $ref: "#/components/schemas/bboxFilter"
         - $ref: "#/components/schemas/datetimeFilter"

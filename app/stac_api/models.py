@@ -544,12 +544,10 @@ class Asset(models.Model):
         Item, related_name='assets', related_query_name='asset', on_delete=models.CASCADE
     )
     # using "name" instead of "id", as "id" has a default meaning in django
-    name = models.CharField(
-        'id', unique=True, blank=False, max_length=255, validators=[validate_name]
-    )
-    checksum_multihash = models.CharField(blank=False, max_length=255)
-    description = models.TextField()
-    eo_gsd = models.FloatField(null=True)
+    name = models.CharField('id', unique=True, max_length=255, validators=[validate_name])
+    checksum_multihash = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
+    eo_gsd = models.FloatField(null=True, blank=True)
 
     class Language(models.TextChoices):
         # pylint: disable=invalid-name
@@ -561,13 +559,13 @@ class Asset(models.Model):
         NONE = '', _('')
 
     geoadmin_lang = models.CharField(
-        max_length=2, choices=Language.choices, default=Language.NONE, null=True
+        max_length=2, choices=Language.choices, default=Language.NONE, null=True, blank=True
     )
     geoadmin_variant = models.CharField(
         max_length=15, null=True, blank=True, validators=[validate_geoadmin_variant]
     )
-    proj_epsg = models.IntegerField(null=True)
-    title = models.CharField(max_length=255)
+    proj_epsg = models.IntegerField(null=True, blank=True)
+    title = models.CharField(max_length=255, null=True, blank=True)
     media_type = models.CharField(max_length=200)
     href = models.URLField(max_length=255)
 

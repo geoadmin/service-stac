@@ -809,7 +809,7 @@ class AssetSerializationTestCase(StacBaseTestCase):
         logger.debug('json string: %s', json_string.decode("utf-8"))
 
         expected = {
-            'name': asset_name,
+            'id': asset_name,
             'checksum:multihash': '01205c3fd6978a7d0b051efaa4263a09',
             'description': 'this an asset',
             'eo:gsd': 3.4,
@@ -828,6 +828,9 @@ class AssetSerializationTestCase(StacBaseTestCase):
         # back-translate to Python native:
         stream = io.BytesIO(json_string)
         python_native_back = JSONParser().parse(stream)
+        # hack to deal with the item property, as it is "write_only", it will not appear
+        # in the mocked request's data. So we manually add it here:
+        python_native_back["item"] = item_name
 
         # back-translate into fully populated Item instance:
         back_serializer = AssetSerializer(
@@ -835,3 +838,140 @@ class AssetSerializationTestCase(StacBaseTestCase):
         )
         back_serializer.is_valid(raise_exception=True)
         logger.debug('back validated data:\n%s', pformat(back_serializer.validated_data))
+
+    def test_asset_deserialization(self):
+        collection_name = self.collection.name
+        item_name = self.item.name
+        asset_name = self.asset.name
+        data = {
+            'id': "asset-2",
+            'item': self.item.name,
+            'checksum:multihash': '01205c3fd6978a7d0b051efaa4263a09',
+            'description': 'this an asset',
+            'eo:gsd': 3.4,
+            'geoadmin:lang': 'fr',
+            'geoadmin:variant': 'kgrs',
+            'href':
+                'https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-1-2019-2056-kgrs-10.tiff',
+            'proj:epsg': 2056,
+            'title': 'my-title',
+            'type': 'image/tiff; application=geotiff; profile=cloud-optimize'
+        }
+
+        # translate to Python native:
+        serializer = AssetSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        asset = serializer.save()
+
+        # serialize the object and test it against the one above
+        # mock a request needed for the serialization of links
+        request = self.factory.get(
+            f'{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset.name}'
+        )
+        serializer = AssetSerializer(asset, context={'request': request})
+        python_native = serializer.data
+
+        # ignoring item below, as it is a "write_only" field in the asset's serializer.
+        # it will not be present in the mocked request's data.
+        self.check_stac_asset(data, python_native, ignore="item")
+
+    def test_asset_deserialization_required_fields_only(self):
+        collection_name = self.collection.name
+        item_name = self.item.name
+        asset_name = self.asset.name
+        data = {
+            'id': "asset-2",
+            'item': self.item.name,
+            'checksum:multihash': '01205c3fd6978a7d0b051efaa4263a09',
+            'href':
+                'https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-1-2019-2056-kgrs-10.tiff',
+            'type': 'image/tiff; application=geotiff; profile=cloud-optimize'
+        }
+
+        # translate to Python native:
+        serializer = AssetSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        asset = serializer.save()
+
+        # serialize the object and test it against the one above
+        # mock a request needed for the serialization of links
+        request = self.factory.get(
+            f'{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset.name}'
+        )
+        serializer = AssetSerializer(asset, context={'request': request})
+        python_native = serializer.data
+
+        # ignoring item below, as it is a "write_only" field in the asset's serializer.
+        # it will not be present in the mocked request's data.
+        self.check_stac_asset(data, python_native, ignore="item")
+
+    def test_asset_deserialization_invalid_id(self):
+        collection_name = self.collection.name
+        item_name = self.item.name
+        asset_name = self.asset.name
+        data = {
+            'id': "test/invalid name",
+            'item': self.item.name,
+            'checksum:multihash': '01205c3fd6978a7d0b051efaa4263a09',
+            'description': 'this an asset',
+            'eo:gsd': 3.4,
+            'geoadmin:lang': 'fr',
+            'geoadmin:variant': 'kgrs',
+            'href':
+                'https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-1-2019-2056-kgrs-10.tiff',
+            'proj:epsg': 2056,
+            'title': 'my-title',
+            'type': 'image/tiff; application=geotiff; profile=cloud-optimize'
+        }
+
+        # translate to Python native:
+        serializer = ItemSerializer(data=data)
+        with self.assertRaises(ValidationError):
+            serializer.is_valid(raise_exception=True)
+
+    def test_asset_deserialization_invalid_proj_epsg(self):
+        collection_name = self.collection.name
+        item_name = self.item.name
+        asset_name = self.asset.name
+        data = {
+            'id': "asset-2",
+            'item': self.item.name,
+            'checksum:multihash': '01205c3fd6978a7d0b051efaa4263a09',
+            'description': 'this an asset',
+            'eo:gsd': 3.4,
+            'geoadmin:lang': 'fr',
+            'geoadmin:variant': 'kgrs',
+            'href':
+                'https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-1-2019-2056-kgrs-10.tiff',
+            'proj:epsg': 2056.1,
+            'title': 'my-title',
+            'type': 'image/tiff; application=geotiff; profile=cloud-optimize'
+        }
+
+        # translate to Python native:
+        serializer = ItemSerializer(data=data)
+        with self.assertRaises(ValidationError):
+            serializer.is_valid(raise_exception=True)
+
+    def test_asset_deserialization_missing_required_item(self):
+        collection_name = self.collection.name
+        item_name = self.item.name
+        asset_name = self.asset.name
+        data = {
+            'id': "asset-2",
+            'checksum:multihash': '01205c3fd6978a7d0b051efaa4263a09',
+            'description': 'this an asset',
+            'eo:gsd': 3.4,
+            'geoadmin:lang': 'fr',
+            'geoadmin:variant': 'kgrs',
+            'href':
+                'https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-1-2019-2056-kgrs-10.tiff',
+            'proj:epsg': 2056,
+            'title': 'my-title',
+            'type': 'image/tiff; application=geotiff; profile=cloud-optimize'
+        }
+
+        # translate to Python native:
+        serializer = ItemSerializer(data=data)
+        with self.assertRaises(ValidationError):
+            serializer.is_valid(raise_exception=True)

@@ -990,10 +990,12 @@ components:
           updated:
             $ref: "#/components/schemas/created"
         required:
+        - "checksum:multihash"
         - href
         - type
         - created
         - updated
+        - id
         type: object
         $ref: "#/components/schemas/itemAsset"
       type: object
@@ -1565,8 +1567,11 @@ components:
       type: object
       required:
       - "checksum:multihash"
+      - href
+      - type
       - created
       - updated
+      - id
       properties:
         title:
           $ref: "#/components/schemas/title"
@@ -2266,8 +2271,7 @@ paths:
         in the link.
       operationId: getSearchSTAC
       parameters:
-      - #- $ref: "#/components/parameters/assetQuery"
-        $ref: "#/components/parameters/query"
+      - $ref: "#/components/parameters/query"
       - $ref: "#/components/parameters/bbox"
       - $ref: "#/components/parameters/datetime"
       - $ref: "#/components/parameters/limit"

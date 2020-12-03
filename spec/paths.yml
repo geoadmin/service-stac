@@ -124,7 +124,7 @@ paths:
         may not be set explicitly in the link.
       operationId: getSearchSTAC
       parameters:
-        - $ref: "#/components/parameters/assetQuery"
+        # - $ref: "#/components/parameters/assetQuery"
         - $ref: "#/components/parameters/query"
         - $ref: "#/components/parameters/bbox"
         - $ref: "#/components/parameters/datetime"

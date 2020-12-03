@@ -135,7 +135,7 @@ class DictSerializer(serializers.ListSerializer):
 
     # pylint: disable=abstract-method
 
-    key_identifier = 'name'
+    key_identifier = 'id'
 
     def to_representation(self, data):
         objects = super().to_representation(data)
@@ -497,7 +497,7 @@ class BboxSerializer(gis_serializers.GeoFeatureModelSerializer):
 
 class AssetsDictSerializer(DictSerializer):
     # pylint: disable=abstract-method
-    key_identifier = 'name'
+    key_identifier = 'id'
 
 
 class AssetSerializer(NonNullModelSerializer):
@@ -506,7 +506,8 @@ class AssetSerializer(NonNullModelSerializer):
         model = Asset
         list_serializer_class = AssetsDictSerializer
         fields = [
-            'name',
+            'id',
+            'item',
             'title',
             'type',
             'href',
@@ -522,23 +523,34 @@ class AssetSerializer(NonNullModelSerializer):
 
     # NOTE: when explicitely declaring fields, we need to add the validation as for the field
     # in model !
+    item = serializers.SlugRelatedField(
+        slug_field='name', write_only=True, queryset=Item.objects.all()
+    )
+    id = serializers.CharField(
+        source='name',
+        max_length=255,
+        validators=[validate_name, UniqueValidator(queryset=Asset.objects.all())]
+    )
     type = serializers.CharField(source='media_type', max_length=200)
     # Here we need to explicitely define these fields with the source, because they are renamed
     # in the get_fields() method
     eo_gsd = serializers.FloatField(source='eo_gsd', required=False, allow_null=True)
     geoadmin_lang = serializers.ChoiceField(
         source='geoadmin_lang',
-        choices=['de', 'fr', 'it', 'rm', 'en'],
+        choices=Asset.Language.values,
         required=False,
+        allow_null=True,
         allow_blank=True
     )
     geoadmin_variant = serializers.CharField(
         source='geoadmin_variant',
         max_length=15,
+        allow_blank=True,
         allow_null=True,
+        required=False,
         validators=[validate_geoadmin_variant]
     )
-    proj_epsg = serializers.IntegerField(source='proj_epsg', allow_null=True)
+    proj_epsg = serializers.IntegerField(source='proj_epsg', allow_null=True, required=False)
     checksum_multihash = serializers.CharField(source='checksum_multihash', max_length=255)
     # read only fields
     created = serializers.DateTimeField(read_only=True)
