@@ -12,6 +12,7 @@ from rest_framework_gis import serializers as gis_serializers
 from stac_api.models import Asset
 from stac_api.models import Collection
 from stac_api.models import CollectionLink
+from stac_api.models import ConformancePage
 from stac_api.models import Item
 from stac_api.models import ItemLink
 from stac_api.models import LandingPage
@@ -151,6 +152,13 @@ class LandingPageLinkSerializer(serializers.ModelSerializer):
     class Meta:
         model = LandingPageLink
         fields = ['href', 'rel', 'link_type', 'title']
+
+
+class ConformancePageSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ConformancePage
+        fields = ['conformsTo']
 
 
 class LandingPageSerializer(serializers.ModelSerializer):
