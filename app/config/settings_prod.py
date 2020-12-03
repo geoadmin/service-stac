@@ -14,6 +14,8 @@ from pathlib import Path
 import yaml
 from dotenv import load_dotenv
 
+from .version import APP_VERSION  # pylint: disable=unused-import
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 print(f"BASE_DIR is {BASE_DIR}")
@@ -46,7 +48,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_gis',
     'stac_api.apps.StacApiConfig',
-    'django.contrib.admin',
+    'config.apps.StacAdminConfig',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -75,7 +77,7 @@ API_BASE = 'api/stac/v0.9'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'app/templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -83,6 +85,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'middleware.settings_context_processor.inject_settings_values',
             ],
         },
     },

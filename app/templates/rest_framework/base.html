@@ -1,0 +1,14 @@
+{% extends "rest_framework/base.html" %}
+
+{% block title %}geoadmin STAC API{% endblock %}
+
+{% block branding %}
+<a class='navbar-brand' rel="nofollow" href={{ request.scheme }}://{{ request.get_host }}/{{ SETTINGS_API_BASE }}>
+    Geoadmin STAC API
+</a>
+{% endblock %}
+
+{% block userlinks %}
+    {{ block.super }}
+    <li class="navbar-text grey">{{ SETTINGS_APP_VERSION }}</li>
+{% endblock %}
