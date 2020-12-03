@@ -528,19 +528,16 @@ class AssetSerializer(NonNullModelSerializer):
     )
     id = serializers.CharField(
         source='name',
-        required=True,
         max_length=255,
         validators=[validate_name, UniqueValidator(queryset=Asset.objects.all())]
     )
-    title = serializers.CharField(max_length=255, required=False, allow_blank=True)
     type = serializers.CharField(source='media_type', max_length=200)
     # Here we need to explicitely define these fields with the source, because they are renamed
     # in the get_fields() method
-    description = serializers.CharField(max_length=255, required=False, allow_blank=True)
     eo_gsd = serializers.FloatField(source='eo_gsd', required=False, allow_null=True)
     geoadmin_lang = serializers.ChoiceField(
         source='geoadmin_lang',
-        choices=['de', 'fr', 'it', 'rm', 'en', ''],
+        choices=Asset.Language.values,
         required=False,
         allow_null=True,
         allow_blank=True
@@ -568,14 +565,6 @@ class AssetSerializer(NonNullModelSerializer):
         fields['geoadmin:lang'] = fields.pop('geoadmin_lang')
         fields['checksum:multihash'] = fields.pop('checksum_multihash')
         return fields
-
-    def create(self, validated_data):
-        asset = Asset.objects.create(**validated_data)
-        return asset
-
-    def update(self, instance, validated_data):
-        instance.save()
-        return instance
 
 
 class ItemSerializer(NonNullModelSerializer):

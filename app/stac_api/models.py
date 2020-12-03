@@ -544,10 +544,8 @@ class Asset(models.Model):
         Item, related_name='assets', related_query_name='asset', on_delete=models.CASCADE
     )
     # using "name" instead of "id", as "id" has a default meaning in django
-    name = models.CharField(
-        'id', unique=True, blank=False, max_length=255, validators=[validate_name]
-    )
-    checksum_multihash = models.CharField(blank=False, max_length=255)
+    name = models.CharField('id', unique=True, max_length=255, validators=[validate_name])
+    checksum_multihash = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
     eo_gsd = models.FloatField(null=True, blank=True)
 
@@ -569,7 +567,7 @@ class Asset(models.Model):
     proj_epsg = models.IntegerField(null=True, blank=True)
     title = models.CharField(max_length=255, null=True, blank=True)
     media_type = models.CharField(max_length=200)
-    href = models.URLField(max_length=255, blank=False)
+    href = models.URLField(max_length=255)
 
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
