@@ -188,8 +188,8 @@ class Collection(models.Model):
         validators=[validate_geometry]
     )
 
-    cache_start_datetime = models.DateTimeField(editable=False, null=True, blank=True)
-    cache_end_datetime = models.DateTimeField(editable=False, null=True, blank=True)
+    extent_start_datetime = models.DateTimeField(editable=False, null=True, blank=True)
+    extent_end_datetime = models.DateTimeField(editable=False, null=True, blank=True)
 
     license = models.CharField(max_length=30)  # string
 
@@ -301,6 +301,14 @@ class CollectionLink(Link):
         unique_together = (('rel', 'collection'),)
 
 
+ITEM_KEEP_ORIGINAL_FIELDS = [
+    'geometry',
+    'properties_datetime',
+    'properties_start_datetime',
+    'properties_end_datetime',
+]
+
+
 class Item(models.Model):
     name = models.CharField(
         'id', unique=True, blank=False, max_length=255, validators=[validate_name]
@@ -326,24 +334,27 @@ class Item(models.Model):
     # properties_platform = models.TextField(blank=True)
     # properties_providers = models.ManyToManyField(Provider)
     properties_title = models.CharField(blank=True, max_length=255)
+
     # properties_view_off_nadir = models.FloatField(blank=True)
     # properties_view_sun_azimuth = models.FloatField(blank=True)
     # properties_view_elevation = models.FloatField(blank=True)
 
-    # getting the original geometry helps that the bbox of the collection is only
-    # when the geometry has changed (during update)
-    # https://stackoverflow.com/questions/1355150/when-saving-how-can-you-check-if-a-field-has-changed
-    _original_geometry = None
-    _original_properties_start_datetime = None
-    _original_properties_end_datetime = None
-    _original_properties_datetime = None
-
     def __init__(self, *args, **kwargs):
-        super(Item, self).__init__(*args, **kwargs)
-        self._original_geometry = self.geometry
-        self._original_properties_start_datetime = self.properties_start_datetime
-        self._original_properties_end_datetime = self.properties_end_datetime
-        self._original_properties_datetime = self.properties_datetime
+        self._original_values = {}
+        super().__init__(*args, **kwargs)
+
+    @classmethod
+    def from_db(cls, db, field_names, values):
+        instance = super().from_db(db, field_names, values)
+
+        # Save original values for some fields, when model is loaded from database,
+        # in a separate attribute on the model, this simplify the collection extent update.
+        # See https://docs.djangoproject.com/en/3.1/ref/models/instances/#customizing-model-loading
+        instance._original_values = dict( # pylint: disable=protected-access
+            filter(lambda item: item[0] in ITEM_KEEP_ORIGINAL_FIELDS, zip(field_names, values))
+        )
+
+        return instance
 
     def __str__(self):
         return self.name
@@ -365,16 +376,16 @@ class Item(models.Model):
             action = "update"
 
         if self.properties_datetime is not None:
-            if self._original_properties_datetime is not None:
+            if self._original_values.get('properties_datetime', None) is not None:
                 # This is the case, when the value of properties.datetime has been
                 # updated
                 update_temporal_extent(
                     self,
                     self.collection,
                     action,
-                    self._original_properties_datetime,
+                    self._original_values['properties_datetime'],
                     self.properties_datetime,
-                    self._original_properties_datetime,
+                    self._original_values['properties_datetime'],
                     self.properties_datetime,
                     self.pk
                 )
@@ -390,23 +401,25 @@ class Item(models.Model):
                     self,
                     self.collection,
                     action,
-                    self._original_properties_start_datetime,
+                    self._original_values.get('properties_start_datetime', None),
                     self.properties_datetime,
-                    self._original_properties_end_datetime,
+                    self._original_values.get('properties_end_datetime', None),
                     self.properties_datetime,
                     self.pk
                 )
-        elif self._original_properties_start_datetime is not None and \
-            self._original_properties_end_datetime is not None:
+        elif (
+            self._original_values.get('properties_start_datetime', None) is not None and
+            self._original_values.get('properties_end_datetime', None) is not None
+        ):
             # This is the case, if an items values for start_ and/or end_datetime
             # were updated.
             update_temporal_extent(
                 self,
                 self.collection,
                 action,
-                self._original_properties_start_datetime,
+                self._original_values['properties_start_datetime'],
                 self.properties_start_datetime,
-                self._original_properties_end_datetime,
+                self._original_values['properties_end_datetime'],
                 self.properties_end_datetime,
                 self.pk
             )
@@ -418,9 +431,9 @@ class Item(models.Model):
                 self,
                 self.collection,
                 action,
-                self._original_properties_datetime,
+                self._original_values.get('properties_datetime', None),
                 self.properties_start_datetime,
-                self._original_properties_datetime,
+                self._original_values.get('properties_datetime', None),
                 self.properties_end_datetime,
                 self.pk
             )
@@ -429,15 +442,13 @@ class Item(models.Model):
         if self.pk is None:
             self.collection.update_bbox_extent('insert', self.geometry, self.pk, self.name)
         # update the bbox of the collection only when the geometry of the item has changed
-        elif self.geometry != self._original_geometry:
+        elif self.geometry != self._original_values.get('geometry', None):
             self.collection.update_bbox_extent('update', self.geometry, self.pk, self.name)
 
         super().save(*args, **kwargs)
 
-        self._original_geometry = self.geometry
-        self._original_properties_start_datetime = self.properties_start_datetime
-        self._original_properties_end_datetime = self.properties_end_datetime
-        self._original_properties_datetime = self.properties_datetime
+        # update the original_values just in case save() is called again without reloading from db
+        self._original_values = {key: getattr(self, key) for key in ITEM_KEEP_ORIGINAL_FIELDS}
 
     def delete(self, *args, **kwargs):  # pylint: disable=signature-differs
         # It is important to use `*args, **kwargs` in signature because django might add dynamically
@@ -447,9 +458,9 @@ class Item(models.Model):
                 self,
                 self.collection,
                 'remove',
-                self._original_properties_datetime,
+                self._original_values.get('properties_datetime', None),
                 self.properties_datetime,
-                self._original_properties_datetime,
+                self._original_values.get('properties_datetime', None),
                 self.properties_datetime,
                 self.pk
             )
@@ -458,9 +469,9 @@ class Item(models.Model):
                 self,
                 self.collection,
                 'remove',
-                self._original_properties_start_datetime,
+                self._original_values.get('properties_start_datetime', None),
                 self.properties_start_datetime,
-                self._original_properties_end_datetime,
+                self._original_values.get('properties_end_datetime', None),
                 self.properties_end_datetime,
                 self.pk
             )
@@ -491,6 +502,9 @@ class ItemLink(Link):
     item = models.ForeignKey(
         Item, related_name='links', related_query_name='link', on_delete=models.CASCADE
     )
+
+
+ASSET_KEEP_ORIGINAL_FIELDS = ["eo_gsd", "geoadmin_variant", "proj_epsg"]
 
 
 class Asset(models.Model):
@@ -530,15 +544,22 @@ class Asset(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
 
-    _original_eo_gsd = None
-    _original_geoadmin_variant = None
-    _original_proj_epsg = None
-
     def __init__(self, *args, **kwargs):
-        super(Asset, self).__init__(*args, **kwargs)
-        self._original_eo_gsd = self.eo_gsd
-        self._original_geoadmin_variant = self.geoadmin_variant
-        self._original_proj_epsg = self.proj_epsg
+        self._original_values = {}
+        super().__init__(*args, **kwargs)
+
+    @classmethod
+    def from_db(cls, db, field_names, values):
+        instance = super().from_db(db, field_names, values)
+
+        # Save original values for some fields, when model is loaded from database,
+        # in a separate attribute on the model, this simplify the collection summaries update.
+        # See https://docs.djangoproject.com/en/3.1/ref/models/instances/#customizing-model-loading
+        instance._original_values = dict( # pylint: disable=protected-access
+            filter(lambda item: item[0] in ASSET_KEEP_ORIGINAL_FIELDS, zip(field_names, values))
+        )
+
+        return instance
 
     def __str__(self):
         return self.name
@@ -547,13 +568,13 @@ class Asset(models.Model):
     # is saved, too.
     def save(self, *args, **kwargs):  # pylint: disable=signature-differs
         old_values = [
-            self._original_eo_gsd, self._original_geoadmin_variant, self._original_proj_epsg
+            self._original_values.get(field, None) for field in ASSET_KEEP_ORIGINAL_FIELDS
         ]
         update_summaries(self.item.collection, self, deleted=False, old_values=old_values)
         super().save(*args, **kwargs)
-        self._original_eo_gsd = self.eo_gsd
-        self._original_geoadmin_variant = self.geoadmin_variant
-        self._original_proj_epsg = self.proj_epsg
+
+        # update the original_values just in case save() is called again without reloading from db
+        self._original_values = {key: getattr(self, key) for key in ASSET_KEEP_ORIGINAL_FIELDS}
 
     def delete(self, *args, **kwargs):  # pylint: disable=signature-differs
         # It is important to use `*args, **kwargs` in signature because django might add dynamically

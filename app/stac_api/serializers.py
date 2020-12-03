@@ -231,14 +231,14 @@ class ProviderSerializer(NonNullModelSerializer):
 
 class ExtentTemporalSerializer(serializers.Serializer):
     # pylint: disable=abstract-method
-    cache_start_datetime = serializers.DateTimeField()
-    cache_end_datetime = serializers.DateTimeField()
+    extent_start_datetime = serializers.DateTimeField()
+    extent_end_datetime = serializers.DateTimeField()
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)
 
-        start = instance.cache_start_datetime
-        end = instance.cache_end_datetime
+        start = instance.extent_start_datetime
+        end = instance.extent_end_datetime
 
         if start is not None:
             start = isoformat(start)
