@@ -338,6 +338,7 @@ class CollectionSerializer(NonNullModelSerializer):
     summaries = serializers.JSONField(read_only=True)
     stac_extensions = serializers.SerializerMethodField(read_only=True)
     stac_version = serializers.SerializerMethodField(read_only=True)
+    title = serializers.CharField(allow_blank=False, allow_null=False, default=None)
     itemType = serializers.ReadOnlyField(default="Feature")  # pylint: disable=invalid-name
 
     def get_crs(self, obj):

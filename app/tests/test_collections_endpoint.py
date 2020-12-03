@@ -1,4 +1,5 @@
 import logging
+import sys
 from pprint import pformat
 
 from django.conf import settings
@@ -12,9 +13,12 @@ from stac_api.utils import fromisoformat
 
 import tests.database as db
 from tests.utils import get_http_error_description
+from tests.utils import get_sample_data
 from tests.utils import mock_request_from_response
 
 logger = logging.getLogger(__name__)
+handler = logging.StreamHandler(sys.stdout)
+logger.addHandler(handler)
 
 API_BASE = settings.API_BASE
 
@@ -26,6 +30,7 @@ class CollectionsEndpointTestCase(TestCase):
         self.factory = APIRequestFactory()
         self.collections, self.items, self.assets = db.create_dummy_db_content(4, 4, 4)
         self.maxDiff = None  # pylint: disable=invalid-name
+        self.sample_collections = get_sample_data('collections')
 
     def test_collections_endpoint(self):
         response = self.client.get(f"/{API_BASE}/collections")
@@ -84,3 +89,131 @@ class CollectionsEndpointTestCase(TestCase):
 
         response = self.client.get(f"/{API_BASE}/collections?limit=1000")
         self.assertEqual(400, response.status_code)
+
+    def test_valid_collections_post(self):
+        payload_json = self.sample_collections['valid_collection_set_1']
+
+        response = self.client.post(
+            f"/{API_BASE}/collections", data=payload_json, content_type='application/json'
+        )
+        response_json = response.json()
+        self.assertEqual(response.status_code, 201, msg=get_http_error_description(response_json))
+
+        response = self.client.get(f"/{API_BASE}/collections/{payload_json['id']}")
+        response_json = response.json()
+        self.assertEqual(response_json['id'], payload_json['id'])
+
+        # the dataset already exists in the database
+        response = self.client.post(
+            f"/{API_BASE}/collections", data=payload_json, content_type='application/json'
+        )
+        response_json = response.json()
+        self.assertEqual(response.status_code, 400, msg=get_http_error_description(response_json))
+
+    def test_invalid_collections_post(self):
+        # the dataset already exists in the database
+        payload_json = self.sample_collections['invalid_collection_set_1']
+
+        response = self.client.post(
+            f"/{API_BASE}/collections", data=payload_json, content_type='application/json'
+        )
+        response_json = response.json()
+        self.assertEqual(response.status_code, 400, msg=get_http_error_description(response_json))
+
+    def test_collections_min_mandatory_post(self):
+        # a post with the absolute valid minimum
+        payload_json = self.sample_collections['valid_min_collection_set_1']
+
+        response = self.client.post(
+            f"/{API_BASE}/collections", data=payload_json, content_type='application/json'
+        )
+        response_json = response.json()
+        logger.debug(response_json)
+        self.assertEqual(response.status_code, 201, msg=get_http_error_description(response_json))
+        self.assertIsNone(response_json.get('title'))  # no value has been set
+        self.assertEqual(response_json.get('providers'), [])  # no value has been set
+
+    def test_collections_less_than_mandatory_post(self):
+        # a post with the absolute valid minimum
+        payload_json = self.sample_collections['less_than_min_collection_set']
+
+        response = self.client.post(
+            f"/{API_BASE}/collections", data=payload_json, content_type='application/json'
+        )
+        response_json = response.json()
+        self.assertEqual(response.status_code, 400, msg=get_http_error_description(response_json))
+
+    def test_collections_put(self):
+        payload_json = self.sample_collections['valid_collection_set_2']
+
+        # the dataset to update does not exist yet
+        response = self.client.put(
+            f"/{API_BASE}/collections/{payload_json['id']}",
+            data=payload_json,
+            content_type='application/json'
+        )
+        response_json = response.json()
+        self.assertEqual(response.status_code, 404, msg=get_http_error_description(response_json))
+
+        # POST data
+        self.client.post(
+            f"/{API_BASE}/collections", data=payload_json, content_type='application/json'
+        )
+
+        payload_json['title'] = "The Swallows"
+        response = self.client.put(
+            f"/{API_BASE}/collections/{payload_json['id']}",
+            data=payload_json,
+            content_type='application/json'
+        )
+        response_json = response.json()
+
+        self.assertEqual(response.status_code, 200, msg=get_http_error_description(response_json))
+        self.assertEqual(response_json['title'], payload_json['title'])
+
+        # is it persistent?
+        response = self.client.get(
+            f"/{API_BASE}/collections/{payload_json['id']}",
+            data=payload_json,
+            content_type='application/json'
+        )
+
+        response_json = response.json()
+
+        self.assertEqual(response.status_code, 200, msg=get_http_error_description(response_json))
+        self.assertEqual(response_json['title'], payload_json['title'])
+
+    def test_collection_put_change_id(self):
+        payload_json = self.sample_collections['valid_collection_set_3']
+        logger.debug(self.collections[0].name)
+        response = self.client.put(
+            f"/{API_BASE}/collections/{self.collections[0].name}",
+            data=payload_json,
+            content_type='application/json'
+        )
+        response_json = response.json()
+        self.assertEqual(response.status_code, 200, msg=get_http_error_description(response_json))
+
+        # check if id changed
+        response = self.client.get(f"/{API_BASE}/collections/{payload_json['id']}")
+        response_json = response.json()
+        self.assertEqual(response_json['id'], payload_json['id'])
+
+        # the old collection shouldn't exist any more
+        response = self.client.get(f"/{API_BASE}/collections/{self.collections[0].name}")
+        response_json = response.json()
+        self.assertEqual(response.status_code, 404, msg=get_http_error_description(response_json))
+
+    def test_collection_put_none_values(self):
+        collection_name = self.collections[1].name
+        payload_json = self.sample_collections['valid_min_collection_set_2']
+        payload_json['id'] = collection_name
+        response = self.client.put(
+            f"/{API_BASE}/collections/{collection_name}",
+            data=payload_json,
+            content_type='application/json'
+        )
+        response_json = response.json()
+        self.assertIsNone(response_json.get('title'))  # no value has been set
+        self.assertEqual(response_json.get('providers'), [])  # no value has been set
+        logger.debug(response_json.get('providers'))  # no value has been set

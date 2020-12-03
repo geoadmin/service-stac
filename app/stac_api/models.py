@@ -273,7 +273,7 @@ class Collection(models.Model):
     summaries = models.JSONField(
         default=get_default_summaries_value, encoder=DjangoJSONEncoder, editable=False
     )
-    title = models.CharField(blank=True, max_length=255)
+    title = models.CharField(blank=True, null=True, max_length=255)
 
     def __str__(self):
         return self.name

@@ -1,0 +1,30 @@
+{
+  "crs": [
+    "http://www.opengis.net/def/crs/OGC/1.3/CRS84"
+  ],
+  "description": "A European Swallow",
+  "id": "european-swallow",
+  "license": "proprietary",
+  "links": [
+    {
+      "href": "https://youtu.be/_7iXw9zZrLo?t=180",
+      "rel": "license",
+      "title": "Licence for the free geodata of the Federal Office of Topography swisstopo"
+    },
+    {
+      "href": "https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df",
+      "rel": "describedby"
+    }
+  ],
+  "providers": [
+    {
+      "name": "Federal Office of Topography - swisstopo",
+      "roles": [
+        "producer",
+        "licensor"
+      ],
+      "url": "https://www.swisstopo.admin.ch"
+    }
+  ],
+  "title": "European Swallow"
+}
