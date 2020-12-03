@@ -44,38 +44,38 @@ phases:
     commands:
       - |-
         if [ "${GIT_TAG}" = "undefined" ] ; then
-          DOCKER_IMG_TAG=${IMAGE_BASE_NAME}:${GITHUB_BRANCH}.${COMMIT_HASH}
+          DOCKER_IMG_TAG="${IMAGE_BASE_NAME}:${GITHUB_BRANCH}.${COMMIT_HASH}"
         else
-          DOCKER_IMG_TAG=${IMAGE_BASE_NAME}:"${GIT_TAG}"
+          DOCKER_IMG_TAG="${IMAGE_BASE_NAME}:${GIT_TAG}"
         fi
       - export DOCKER_IMG_TAG=${DOCKER_IMG_TAG}
-      - export DOCKER_IMG_TAG_DEV=${DOCKER_IMG_TAG_DEV}-dev
-      - export DOCKER_IMG_TAG_LATEST=${IMAGE_BASE_NAME}:${GITHUB_BRANCH}.latest
-      - export DOCKER_IMG_TAG_LATEST_DEV=${IMAGE_BASE_NAME}:${GITHUB_BRANCH}.latest-dev
+      - export DOCKER_IMG_TAG_DEV="${DOCKER_IMG_TAG}-dev"
+      - export DOCKER_IMG_TAG_LATEST="${IMAGE_BASE_NAME}:${GITHUB_BRANCH}.latest"
+      - export DOCKER_IMG_TAG_LATEST_DEV="${IMAGE_BASE_NAME}:${GITHUB_BRANCH}.latest-dev"
       # Starting dev build for testing
       - echo "starting debug build on $(date)"
-      - echo "Building docker debug image with tags ${DOCKER_IMG_TAG_HASH} and ${DOCKER_IMG_TAG_LATEST_DEV}"
+      - echo "Building docker debug image with tags ${DOCKER_IMG_TAG} and ${DOCKER_IMG_TAG_LATEST_DEV}"
       - >
         docker build
         --build-arg GIT_HASH="${COMMIT_HASH}"
         --build-arg GIT_BRANCH="${GITHUB_BRANCH}"
         --build-arg AUTHOR="CI"
         --build-arg VERSION="${GIT_TAG}"
-        -t ${DOCKER_IMG_TAG} -t ${DOCKER_IMG_TAG_LATEST_DEV} --target debug .
+        -t "${DOCKER_IMG_TAG_DEV}" -t "${DOCKER_IMG_TAG_LATEST_DEV}" --target debug .
       # Running tests
       # Note: the app container will 'exit 0' once tests are completed, we need to
       # stop the db as well then
       - docker-compose up --abort-on-container-exit
       # Starting prod build
       - echo "starting production build on $(date)"
-      - echo "Building docker production image with tags ${DOCKER_IMG_TAG_HASH} and ${DOCKER_IMG_TAG_LATEST}"
+      - echo "Building docker production image with tags ${DOCKER_IMG_TAG} and ${DOCKER_IMG_TAG_LATEST}"
       - >
         docker build
         --build-arg GIT_HASH="${COMMIT_HASH}"
         --build-arg GIT_BRANCH="${GITHUB_BRANCH}"
         --build-arg AUTHOR="CI"
         --build-arg VERSION="${GIT_TAG}"
-        -t ${DOCKER_IMG_TAG} -t ${DOCKER_IMG_TAG_LATEST} --target production .
+        -t "${DOCKER_IMG_TAG}" -t "${DOCKER_IMG_TAG_LATEST}" --target production .
 
   post_build:
     commands:
