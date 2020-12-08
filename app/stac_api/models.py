@@ -1,5 +1,6 @@
 import logging
 import re
+from datetime import datetime
 
 from django.contrib.gis.db import models
 from django.contrib.gis.geos import GEOSGeometry
@@ -128,6 +129,20 @@ def validate_item_properties_datetimes_dependencies(
             raise ValidationError(_(message))
 
 
+def validate_datetime_string(datetime_string):
+    '''
+    Check if a given string is a datetime string in the expected format or
+    raise an error, if not.
+
+    Raises:
+        ValueError
+    '''
+    try:
+        datetime.strptime(datetime_string, '%Y-%m-%dT%H:%M:%SZ')
+    except:
+        raise ValueError(_('Invalid datetime string'))
+
+
 def validate_item_properties_datetimes(
     properties_datetime, properties_start_datetime, properties_end_datetime, partial=False
 ):
@@ -142,6 +157,16 @@ def validate_item_properties_datetimes(
             properties_start_datetime,
             properties_end_datetime,
         )
+
+        if properties_datetime is None:
+            if not isinstance(properties_start_datetime, datetime):
+                validate_datetime_string(properties_start_datetime)
+            if not isinstance(properties_end_datetime, datetime):
+                validate_datetime_string(properties_end_datetime)
+            if properties_end_datetime < properties_start_datetime:
+                message = "Property end_datetime can't refer to a date earlier than property "\
+                "start_datetime"
+                raise ValidationError(_(message))
 
 
 def get_conformance_default_links():
