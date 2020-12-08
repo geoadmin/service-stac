@@ -1,5 +1,4 @@
 import logging
-import sys
 from pprint import pformat
 
 from django.conf import settings
@@ -17,8 +16,6 @@ from tests.utils import get_sample_data
 from tests.utils import mock_request_from_response
 
 logger = logging.getLogger(__name__)
-handler = logging.StreamHandler(sys.stdout)
-logger.addHandler(handler)
 
 API_BASE = settings.API_BASE
 
@@ -130,8 +127,8 @@ class CollectionsEndpointTestCase(TestCase):
         response_json = response.json()
         logger.debug(response_json)
         self.assertEqual(response.status_code, 201, msg=get_http_error_description(response_json))
-        self.assertIsNone(response_json.get('title'))  # no value has been set
-        self.assertEqual(response_json.get('providers'), [])  # no value has been set
+        self.assertNotIn('title', response_json.keys())  # key does not exist
+        self.assertEqual(response_json['providers'], [])
 
     def test_collections_less_than_mandatory_post(self):
         # a post with the absolute valid minimum
@@ -214,6 +211,5 @@ class CollectionsEndpointTestCase(TestCase):
             content_type='application/json'
         )
         response_json = response.json()
-        self.assertIsNone(response_json.get('title'))  # no value has been set
-        self.assertEqual(response_json.get('providers'), [])  # no value has been set
-        logger.debug(response_json.get('providers'))  # no value has been set
+        self.assertNotIn('title', response_json.keys())  # key does not exist
+        self.assertEqual(response_json['providers'], [])

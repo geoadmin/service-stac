@@ -550,6 +550,7 @@ components:
           items:
             type: string
           type: array
+          readOnly: true
         description:
           schema:
             $ref: "#/components/schemas/description"
@@ -1885,8 +1886,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/collection"
+          $ref: "#/components/responses/Collection"
         "403":
           $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/ServerError"
   /collections/{collectionId}:
