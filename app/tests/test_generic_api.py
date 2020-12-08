@@ -4,8 +4,9 @@ from django.conf import settings
 
 from rest_framework.test import APITestCase
 
+from stac_api.utils import get_link
+
 import tests.database as db
-from tests.base_test import get_link
 from tests.utils import get_http_error_description
 
 logger = logging.getLogger(__name__)

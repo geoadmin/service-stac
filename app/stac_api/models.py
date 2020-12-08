@@ -97,10 +97,10 @@ def validate_item_properties_datetimes_dependencies(
 ):
     '''
     Validate the dependencies between the Item datetimes properties
-	
-	This makes sure that either only the properties.datetime is set or 
+
+	This makes sure that either only the properties.datetime is set or
 	both properties.start_datetime and properties.end_datetime
-	
+
 	Raises:
 		django.core.exceptions.ValidationError
     '''
@@ -396,7 +396,7 @@ class Item(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
     # after discussion with Chris and Tobias: for the moment only support
-    # proterties: datetime, eo_gsd and title (the rest is hence commented out)
+    # proterties: datetime and title (the rest is hence commented out)
     properties_datetime = models.DateTimeField(blank=True, null=True)
     properties_start_datetime = models.DateTimeField(blank=True, null=True)
     properties_end_datetime = models.DateTimeField(blank=True, null=True)
@@ -408,7 +408,10 @@ class Item(models.Model):
     # properties_license = models.TextField(blank=True)
     # properties_platform = models.TextField(blank=True)
     # properties_providers = models.ManyToManyField(Provider)
-    properties_title = models.CharField(blank=True, max_length=255)
+    # Although it is discouraged by Django to set blank=True and null=True on a CharField, it is
+    # here required because this field is optional and having an empty string value is not permitted
+    # in the serializer and default to None. None value are then not displayed in the serializer.
+    properties_title = models.CharField(blank=True, null=True, max_length=255)
 
     # properties_view_off_nadir = models.FloatField(blank=True)
     # properties_view_sun_azimuth = models.FloatField(blank=True)

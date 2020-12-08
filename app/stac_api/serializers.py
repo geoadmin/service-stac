@@ -467,17 +467,15 @@ class ItemsPropertiesSerializer(serializers.Serializer):
 
     # NOTE: when explicitely declaring fields, we need to add the validation as for the field
     # in model !
-    datetime = serializers.DateTimeField(
-        source='properties_datetime', allow_null=True, required=False
-    )
+    datetime = serializers.DateTimeField(source='properties_datetime', required=False, default=None)
     start_datetime = serializers.DateTimeField(
-        source='properties_start_datetime', allow_null=True, required=False
+        source='properties_start_datetime', required=False, default=None
     )
     end_datetime = serializers.DateTimeField(
-        source='properties_end_datetime', allow_null=True, required=False
+        source='properties_end_datetime', required=False, default=None
     )
     title = serializers.CharField(
-        source='properties_title', required=False, allow_blank=True, max_length=255
+        source='properties_title', required=False, allow_blank=False, max_length=255, default=None
     )
     created = serializers.DateTimeField(read_only=True)
     updated = serializers.DateTimeField(read_only=True)

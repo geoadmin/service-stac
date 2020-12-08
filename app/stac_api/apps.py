@@ -82,10 +82,10 @@ def custom_exception_handler(exc, context):
     elif isinstance(exc, django.core.exceptions.PermissionDenied):
         exc = PermissionDenied()
     elif isinstance(exc, django.core.exceptions.ValidationError):
-	    # Translate django ValidationError to Rest Framework ValidationError,
-		# this is required because some validation cannot be done in the Rest
-		# framework serializer but must be left to the model, like for instance
-		# the Item properties datetimes dependencies during a partial update.
+        # Translate django ValidationError to Rest Framework ValidationError,
+        # this is required because some validation cannot be done in the Rest
+        # framework serializer but must be left to the model, like for instance
+        # the Item properties datetimes dependencies during a partial update.
         exc = ValidationError(exc.message)
 
     if isinstance(exc, APIException):

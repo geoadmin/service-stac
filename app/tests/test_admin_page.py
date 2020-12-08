@@ -435,6 +435,24 @@ class AdminItemTestCase(AdminBaseTestCase):
             msg="Admin page item properties_title update did not work"
         )
 
+    def test_add_update_item_remove_title(self):
+        # Login the user first
+        self.client.login(username=self.username, password=self.password)
+
+        item, data = self._create_item(self.collection)[:2]
+
+        # remove the title
+        data['properties_title'] = ""
+        response = self.client.post(f"/api/stac/admin/stac_api/item/{item.id}/change/", data)
+
+        # Status code for successful creation is 302, since in the admin UI
+        # you're redirected to the list view after successful creation
+        self.assertEqual(response.status_code, 302, msg="Admin page failed to update item")
+        item.refresh_from_db()
+        self.assertEqual(
+            item.properties_title, None, msg="Admin page item properties_title update did not work"
+        )
+
     def test_add_update_item_with_link(self):
         # Login the user first
         self.client.login(username=self.username, password=self.password)
