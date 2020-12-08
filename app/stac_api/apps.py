@@ -1,13 +1,15 @@
 import logging
 
+import django.core.exceptions
 from django.apps import AppConfig
 from django.conf import settings
-from django.core.exceptions import PermissionDenied
 from django.http import Http404
 from django.utils.translation import gettext_lazy as _
 
-from rest_framework import exceptions
 from rest_framework import pagination
+from rest_framework.exceptions import APIException
+from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import exception_handler
@@ -76,11 +78,17 @@ def custom_exception_handler(exc, context):
     response = exception_handler(exc, context)
 
     if isinstance(exc, Http404):
-        exc = exceptions.NotFound()
-    elif isinstance(exc, PermissionDenied):
-        exc = exceptions.PermissionDenied()
+        exc = NotFound()
+    elif isinstance(exc, django.core.exceptions.PermissionDenied):
+        exc = PermissionDenied()
+    elif isinstance(exc, django.core.exceptions.ValidationError):
+	    # Translate django ValidationError to Rest Framework ValidationError,
+		# this is required because some validation cannot be done in the Rest
+		# framework serializer but must be left to the model, like for instance
+		# the Item properties datetimes dependencies during a partial update.
+        exc = ValidationError(exc.message)
 
-    if isinstance(exc, exceptions.APIException):
+    if isinstance(exc, APIException):
         status_code = exc.status_code
         description = exc.detail
         if isinstance(description, (list)):

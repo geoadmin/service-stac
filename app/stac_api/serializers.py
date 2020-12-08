@@ -19,6 +19,7 @@ from stac_api.models import LandingPage
 from stac_api.models import LandingPageLink
 from stac_api.models import Provider
 from stac_api.models import validate_geoadmin_variant
+from stac_api.models import validate_item_properties_datetimes
 from stac_api.models import validate_name
 from stac_api.utils import isoformat
 
@@ -656,3 +657,12 @@ class ItemSerializer(NonNullModelSerializer):
             instance_type="item", model=ItemLink, instance=instance, links_data=links_data
         )
         return super().update(instance, validated_data)
+
+    def validate(self, attrs):
+        validate_item_properties_datetimes(
+            attrs.get('properties_datetime', None),
+            attrs.get('properties_start_datetime', None),
+            attrs.get('properties_end_datetime', None),
+            partial=self.partial
+        )
+        return attrs
