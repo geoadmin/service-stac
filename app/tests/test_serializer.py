@@ -383,10 +383,7 @@ class ItemSerializationTestCase(StacBaseTestCase):
                         ('title', 'my-title'),
                         ('type', 'image/tiff; application=geotiff; '
                          'profile=cloud-optimize'),
-                        (
-                            'href',
-                            'https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-1-2019-2056-kgrs-10.tiff'
-                        ),
+                        ('href', f'http://testserver/{collection_name}/{item_name}/asset-1'),
                         ('description', 'this an asset'),
                         ('eo:gsd', 3.4),
                         ('proj:epsg', 2056),
@@ -870,8 +867,7 @@ class AssetSerializationTestCase(StacBaseTestCase):
             'eo:gsd': 3.4,
             'geoadmin:lang': 'fr',
             'geoadmin:variant': 'kgrs',
-            'href':
-                'https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-1-2019-2056-kgrs-10.tiff',
+            'href': f'http://testserver/{collection_name}/{item_name}/{asset_name}',
             'proj:epsg': 2056,
             'title': 'my-title',
             'type': 'image/tiff; application=geotiff; profile=cloud-optimize'
@@ -906,8 +902,6 @@ class AssetSerializationTestCase(StacBaseTestCase):
             'eo:gsd': 3.4,
             'geoadmin:lang': 'fr',
             'geoadmin:variant': 'kgrs',
-            'href':
-                'https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-1-2019-2056-kgrs-10.tiff',
             'proj:epsg': 2056,
             'title': 'my-title',
             'type': 'image/tiff; application=geotiff; profile=cloud-optimize'
@@ -928,7 +922,7 @@ class AssetSerializationTestCase(StacBaseTestCase):
 
         # ignoring item below, as it is a "write_only" field in the asset's serializer.
         # it will not be present in the mocked request's data.
-        self.check_stac_asset(data, python_native, ignore="item")
+        self.check_stac_asset(data, python_native, ignore=["item"])
 
     def test_asset_deserialization_required_fields_only(self):
         collection_name = self.collection.name
@@ -938,8 +932,6 @@ class AssetSerializationTestCase(StacBaseTestCase):
             'id': "asset-2",
             'item': self.item.name,
             'checksum:multihash': '01205c3fd6978a7d0b051efaa4263a09',
-            'href':
-                'https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-1-2019-2056-kgrs-10.tiff',
             'type': 'image/tiff; application=geotiff; profile=cloud-optimize'
         }
 
@@ -958,7 +950,7 @@ class AssetSerializationTestCase(StacBaseTestCase):
 
         # ignoring item below, as it is a "write_only" field in the asset's serializer.
         # it will not be present in the mocked request's data.
-        self.check_stac_asset(data, python_native, ignore="item")
+        self.check_stac_asset(data, python_native, ignore=["item"])
 
     def test_asset_deserialization_invalid_id(self):
         collection_name = self.collection.name

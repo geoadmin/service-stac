@@ -1,8 +1,31 @@
+# WARNING: Order of imports must not be changed!!
+# The block
+# ---
+# from moto import mock_s3
+# s3mock = mock_s3()
+# s3mock.start()
+# ---
+# must remain at the top before any other import,
+# otherwise mocking s3 will not work successfully
+"""
+isort:skip_file
+"""
+# pylint: disable=wrong-import-position
+# pylint: disable=wrong-import-order
+from moto import mock_s3
+s3mock = mock_s3()
+s3mock.start()
+
 import logging
+from io import BytesIO
+
+import boto3
+import botocore
 
 from django.contrib.auth import get_user_model
 from django.test import Client
 from django.test import TestCase
+from django.test import override_settings
 
 from stac_api.models import Asset
 from stac_api.models import Collection
@@ -13,9 +36,15 @@ from stac_api.models import Provider
 
 logger = logging.getLogger(__name__)
 
+
 #--------------------------------------------------------------------------------------------------
-
-
+@override_settings(
+    AWS_STORAGE_BUCKET_NAME='mybucket',
+    AWS_ACCESS_KEY_ID='mykey',
+    AWS_DEFAULT_ACL='public-read',
+    AWS_S3_REGION_NAME='wonderland',
+    AWS_S3_ENDPOINT_URL=None
+)
 class AdminBaseTestCase(TestCase):
 
     def setUp(self):
@@ -162,7 +191,27 @@ class AdminBaseTestCase(TestCase):
 
         return item, data, link
 
+    @mock_s3
     def _create_asset(self, item, extra=None):
+
+        # Check if the bucket exists and if not, create it
+        s3 = boto3.resource('s3', region_name='wonderland')
+        try:
+            s3.meta.client.head_bucket(Bucket='mybucket')
+        except botocore.exceptions.ClientError as e:  # pylint: disable=invalid-name
+            # If a client error is thrown, then check that it was a 404 error.
+            # If it was a 404 error, then the bucket does not exist.
+            error_code = e.response['Error']['Code']
+            if error_code == '404':
+                # We need to create the bucket since this is all in Moto's 'virtual' AWS account
+                bucket = s3.create_bucket(
+                    Bucket='mybucket',
+                    CreateBucketConfiguration={'LocationConstraint': 'wonderland'}
+                )
+
+        filecontent = b'mybinarydata'
+        filelike = BytesIO(filecontent)
+        filelike.name = 'testname.tiff'
 
         data = {
             "item": item.id,
@@ -175,9 +224,10 @@ class AdminBaseTestCase(TestCase):
             "proj_epsg": 2056,
             "title": "My first Asset for test",
             "media_type": "application/x.filegdb+zip",
-            "href": "http://www.example.com"
+            "file": filelike
         }
         response = self.client.post("/api/stac/admin/stac_api/asset/add/", data)
+        print(response.content)
 
         # Status code for successful creation is 302, since in the admin UI
         # you're redirected to the list view after successful creation
@@ -190,9 +240,16 @@ class AdminBaseTestCase(TestCase):
 
         # Check the asset values
         for key, value in data.items():
-            if key in ['item', 'id']:
+            if key in ['item', 'id', 'file']:
                 continue
             self.assertEqual(getattr(asset, key), value, msg=f"Asset field {key} value missmatch")
+
+        # Assert that the filename is set to the value in name
+        self.assertEqual(asset.filename, data['name'])
+
+        # Check file content is correct
+        with asset.file.open() as fd:
+            self.assertEqual(filecontent, fd.read())
 
         return asset, data
 
@@ -553,19 +610,43 @@ class AdminItemTestCase(AdminBaseTestCase):
 
 
 #--------------------------------------------------------------------------------------------------
-
-
+@override_settings(
+    AWS_STORAGE_BUCKET_NAME='mybucket',
+    AWS_ACCESS_KEY_ID='mykey',
+    AWS_DEFAULT_ACL='public-read',
+    AWS_S3_REGION_NAME='wonderland',
+    AWS_S3_ENDPOINT_URL=None
+)
+@mock_s3
 class AdminAssetTestCase(AdminBaseTestCase):
 
     def setUp(self):
         super().setUp()
         self._setup(create_collection=True, create_item=True)
+        # Check if the bucket exists and if not, create it
+        s3 = boto3.resource('s3', region_name='wonderland')
+        try:
+            s3.meta.client.head_bucket(Bucket='mybucket')
+        except botocore.exceptions.ClientError as e:  # pylint: disable=invalid-name
+            # If a client error is thrown, then check that it was a 404 error.
+            # If it was a 404 error, then the bucket does not exist.
+            error_code = e.response['Error']['Code']
+            if error_code == '404':
+                # We need to create the bucket since this is all in Moto's 'virtual' AWS account
+                bucket = s3.create_bucket(
+                    Bucket='mybucket',
+                    CreateBucketConfiguration={'LocationConstraint': 'wonderland'}
+                )
 
     def test_add_update_asset(self):
         # Login the user first
         self.client.login(username=self.username, password=self.password)
 
         asset, data = self._create_asset(self.item)
+
+        filecontent = b'mybinarydata2'
+        filelike = BytesIO(filecontent)
+        filelike.name = 'testname.tiff'
 
         # update some data
         data["checksum_multihash"] = "fffffffffffffffffff"
@@ -576,7 +657,7 @@ class AdminAssetTestCase(AdminBaseTestCase):
         data["proj_epsg"] = 2057
         data["title"] = "New Asset for test"
         data["media_type"] = "application/x.asc+zip"
-        data["href"] = "http://www.new-example.com"
+        data["file"] = filelike
         response = self.client.post(f"/api/stac/admin/stac_api/asset/{asset.id}/change/", data)
 
         # Status code for successful creation is 302, since in the admin UI
@@ -584,9 +665,13 @@ class AdminAssetTestCase(AdminBaseTestCase):
         self.assertEqual(response.status_code, 302, msg="Admin page failed to update asset")
         asset.refresh_from_db()
         for key, value in data.items():
-            if key in ['item', 'id']:
+            if key in ['item', 'id', 'file']:
                 continue
             self.assertEqual(getattr(asset, key), value, msg=f"Failed to update field {key}")
+
+        # Check that file content has changed
+        with asset.file.open() as fd:
+            self.assertEqual(filecontent, fd.read())
 
     def test_add_asset_with_invalid_data(self):
         # Login the user first
@@ -623,3 +708,6 @@ class AdminAssetTestCase(AdminBaseTestCase):
         self.assertFalse(
             Asset.objects.filter(name=data["name"]).exists(), msg="Admin page asset still in DB"
         )
+
+
+s3mock.stop()

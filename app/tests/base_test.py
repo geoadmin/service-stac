@@ -27,13 +27,19 @@ class StacBaseTestCase(TestCase):
             self.assertEqual(code, json_data['code'], msg="invalid response code")
 
     def check_stac_collection(self, expected, current, ignore=None):
+        if ignore is None:
+            ignore = []
         self._check_stac_dictsubset('collection', expected, current, ignore)
 
     def check_stac_item(self, expected, current, ignore=None):
-        self._check_stac_dictsubset('item', expected, current, ignore)
+        if ignore is None:
+            ignore = []
+        self._check_stac_dictsubset('item', expected, current, ignore=ignore + ['href'])
 
     def check_stac_asset(self, expected, current, ignore=None):
-        self._check_stac_dictsubset('asset', expected, current, ignore)
+        if ignore is None:
+            ignore = []
+        self._check_stac_dictsubset('asset', expected, current, ignore=ignore + ['href'])
 
     def _check_stac_dictsubset(self, parent_path, expected, current, ignore=None):
         for key, value in expected.items():

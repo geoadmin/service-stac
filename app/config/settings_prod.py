@@ -49,21 +49,22 @@ ALLOWED_HOSTS += os.getenv('ALLOWED_HOSTS', '').split(',')
 # Application definition
 
 INSTALLED_APPS = [
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'django.contrib.gis',
     'rest_framework',
     'rest_framework_gis',
     'rest_framework.authtoken',
     #  Note: If you use TokenAuthentication in production you must ensure
     #  that your API is only available over https.
-    'stac_api.apps.StacApiConfig',
-    'config.apps.StacAdminConfig',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
+    'solo.apps.SoloAppConfig',
+    'storages',
     'whitenoise.runserver_nostatic',
-    'django.contrib.staticfiles',
-    'django.contrib.gis',
-    'solo.apps.SoloAppConfig'
+    'config.apps.StacAdminConfig',
+    'stac_api.apps.StacApiConfig',
 ]
 
 MIDDLEWARE = [
@@ -157,6 +158,16 @@ STATIC_URL = STATIC_HOST + '/api/stac/v0.9/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'var/www/stac_api/static_files')
 STATICFILES_DIRS = [BASE_DIR / "spec/static", BASE_DIR / "app/stac_api/templates"]
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# Media files (i.e. uploaded content=assets in this project)
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
+AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
+AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME')
+AWS_S3_ENDPOINT_URL = os.environ.get('AWS_S3_ENDPOINT_URL', None)
+AWS_S3_CUSTOM_DOMAIN = os.environ.get('AWS_S3_CUSTOM_DOMAIN')
+AWS_DEFAULT_ACL = 'public-read'
 
 # Logging
 # https://docs.djangoproject.com/en/3.1/topics/logging/

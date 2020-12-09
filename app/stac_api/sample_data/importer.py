@@ -157,7 +157,6 @@ def parse_asset(item, asset_name, asset_data):
             "checksum_multihash": asset_data["checksum:multihash"],
             "eo_gsd": asset_data.get("eo:gsd", None),
             "proj_epsg": asset_data.get("proj:epsg", None),
-            "href": asset_data['href'],
             "media_type": asset_data["type"],
             "geoadmin_lang": asset_data.get("geoadmin:lang", None),
             "geoadmin_variant": asset_data.get("geoadmin:variant", None),

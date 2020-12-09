@@ -41,7 +41,7 @@ class AssetsEndpointTestCase(TestCase):
 
         # Check that the answer is equal to the initial data
         serializer = AssetSerializer(
-            self.assets[0][0], many=True, context={'request': response.request}
+            self.assets[0][0], many=True, context={'request': response.wsgi_request}
         )
         original_data = to_dict(serializer.data)
         logger.debug('Serialized data:\n%s', pformat(original_data))
@@ -61,7 +61,9 @@ class AssetsEndpointTestCase(TestCase):
         logger.debug('Response (%s):\n%s', type(json_data), pformat(json_data))
 
         # Check that the answer is equal to the initial data
-        serializer = AssetSerializer(self.assets[0][0][0], context={'request': response.request})
+        serializer = AssetSerializer(
+            self.assets[0][0][0], context={'request': response.wsgi_request}
+        )
         original_data = to_dict(serializer.data)
         logger.debug('Serialized data:\n%s', pformat(original_data))
         self.assertDictEqual(

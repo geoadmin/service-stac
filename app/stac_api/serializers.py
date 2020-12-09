@@ -535,6 +535,7 @@ class AssetSerializer(NonNullModelSerializer):
         validators=[validate_name, UniqueValidator(queryset=Asset.objects.all())]
     )
     type = serializers.CharField(source='media_type', max_length=200)
+    href = serializers.SerializerMethodField(read_only=True)
     # Here we need to explicitely define these fields with the source, because they are renamed
     # in the get_fields() method
     eo_gsd = serializers.FloatField(source='eo_gsd', required=False, allow_null=True)
@@ -568,6 +569,11 @@ class AssetSerializer(NonNullModelSerializer):
         fields['geoadmin:lang'] = fields.pop('geoadmin_lang')
         fields['checksum:multihash'] = fields.pop('checksum_multihash')
         return fields
+
+    def get_href(self, obj):
+        request = self.context.get("request")
+        path = obj.file.name
+        return request.build_absolute_uri('/' + path) if path else None
 
 
 class ItemSerializer(NonNullModelSerializer):

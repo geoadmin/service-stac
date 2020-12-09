@@ -1,6 +1,8 @@
 import logging
 from datetime import datetime
 
+from moto import mock_s3
+
 from django.test import TestCase
 
 from stac_api.models import Asset
@@ -12,6 +14,7 @@ import tests.database as db
 logger = logging.getLogger(__name__)
 
 
+@mock_s3
 class CollectionsSummariesTestCase(TestCase):
 
     y200 = utc_aware(datetime.strptime('0200-01-01T00:00:00Z', '%Y-%m-%dT%H:%M:%SZ'))
@@ -48,24 +51,7 @@ class CollectionsSummariesTestCase(TestCase):
         return item
 
     def add_asset(self, item, name, eo_gsd, geoadmin_variant, proj_epsg):
-        asset = Asset.objects.create(
-            item=item,
-            title='my-title',
-            name=name,
-            checksum_multihash="01205c3fd6978a7d0b051efaa4263a09",
-            description="this an asset",
-            eo_gsd=eo_gsd,
-            geoadmin_lang="fr",
-            geoadmin_variant=geoadmin_variant,
-            proj_epsg=proj_epsg,
-            media_type="image/tiff; application=geotiff; profile=cloud-optimize",
-            href=
-            "https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-1-2019-2056-kgrs-10.tiff"
-        )
-        asset.full_clean()
-        asset.save()
-        item.save()
-        self.collection.save()
+        asset = db.create_asset(item, name, eo_gsd, geoadmin_variant, proj_epsg)
         return asset
 
     def test_update_collection_summaries_asset_insertion(self):
