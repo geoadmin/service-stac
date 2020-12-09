@@ -138,6 +138,11 @@ class ItemsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
     serializer_class = ItemSerializer
     queryset = Item.objects.all()
 
+    def get_write_request_data(self, request, *args, **kwargs):
+        data = request.data.copy()
+        data['collection'] = kwargs['collection_name']
+        return data
+
     def get_queryset(self):
         # filter based on the url
         queryset = Item.objects.filter(collection__name=self.kwargs['collection_name'])
@@ -246,6 +251,11 @@ class ItemDetail(
     serializer_class = ItemSerializer
     lookup_url_kwarg = "item_name"
     queryset = Item.objects.all()
+
+    def get_write_request_data(self, request, *args, **kwargs):
+        data = request.data.copy()
+        data['collection'] = kwargs['collection_name']
+        return data
 
     def get_object(self):
         item_name = self.kwargs.get(self.lookup_url_kwarg)
