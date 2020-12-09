@@ -671,6 +671,7 @@ components:
       properties:
         code:
           type: int
+          example: 500
         description:
           type: string
       required:

@@ -215,7 +215,7 @@ components:
       name: If-Match
       in: header
       description: >-
-        Only take the action if the ETag of the item still matches
+        Only take the action if the ETag of the item/collection still matches
       required: true
       schema:
         type: string
@@ -223,7 +223,7 @@ components:
       name: If-Match
       in: header
       description: >-
-        Only take the action if the ETag of the item still matches
+        Only take the action if the ETag of the item/collection still matches
       required: false
       schema:
         type: string
@@ -421,6 +421,34 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/itemAsset"
+    DeletedResource:
+      description: Status of the delete resource
+      content:
+        application/json:
+          schema:
+            description: >-
+              Information about the deleted resource and a link to the parent resource
+            type: object
+            properties:
+              code:
+                type: int
+                example: 200
+              description:
+                type: string
+                example: Resource successfully deleted
+              links:
+                type: array
+                items:
+                  $ref: "#/components/schemas/link"
+                description: >-
+                  The array contain at least a link to the parent resource (`rel:
+                  parent`).
+                example:
+                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items
+                  rel: parent
+            required:
+            - code
+            - links
     BadRequest:
       description: The request was malformed or semantically invalid
       content:
@@ -736,6 +764,7 @@ components:
       properties:
         code:
           type: int
+          example: 500
         description:
           type: string
       required:
@@ -1695,33 +1724,22 @@ components:
     partialItem:
       type: object
       properties:
-        stac_version:
-          $ref: "#/components/schemas/stac_version"
-        stac_extensions:
-          $ref: "#/components/schemas/stac_extensions"
         id:
-          $ref: "#/components/schemas/itemId"
-        bbox:
-          $ref: "#/components/schemas/bbox"
+          $ref: "#/components/schemas/itemIdUpdate"
         geometry:
           $ref: "https://geojson.org/schema/Geometry.json"
-        type:
-          $ref: "#/components/schemas/itemType"
         properties:
-          $ref: "#/components/schemas/partialItemProperties"
+          $ref: "#/components/schemas/itemProperties"
         links:
           type: array
           items:
             $ref: "#/components/schemas/link"
+          description: >-
+            Add/update additional link to the generated ones (`self`, `root`, `parent`,
+            `items`, `collection`, `next`, `previous`)
       example:
-        datetime: "2016-05-03T13:22:30.040Z"
-    partialItemProperties:
-      type: object
-      description: Allows for partial collections of metadata fields
-      additionalProperties: true
-      properties:
-        datetime:
-          $ref: "#/components/schemas/datetime"
+        properties:
+          datetime: "2016-05-03T13:22:30.040Z"
     partialCollection:
       type: object
       description: Allows for a set of partial metadata fields for a collection
@@ -1852,7 +1870,21 @@ paths:
               title: National Map 1:200'000
       responses:
         "201":
-          $ref: "#/components/responses/Collection"
+          description: Returns the created Collection
+          headers:
+            Location:
+              description: A link to the collection
+              schema:
+                type: string
+                format: url
+            ETag:
+              schema:
+                type: string
+              description: A string to ensure the collection has been created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/collection"
         "403":
           $ref: "#/components/responses/PermissionDenied"
         "500":
@@ -1881,6 +1913,7 @@ paths:
       operationId: updateCollection
       parameters:
       - $ref: "#/components/parameters/collectionId"
+      - $ref: "#/components/parameters/IfMatch"
       requestBody:
         content:
           application/json:
@@ -1909,11 +1942,22 @@ paths:
               title: National Map 1:200'000
       responses:
         "200":
-          $ref: "#/components/responses/Collection"
+          description: Returns the updated Collection
+          headers:
+            ETag:
+              schema:
+                type: string
+              description: A string to ensure the collection has not been modified
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/collection"
         "403":
           $ref: "#/components/responses/PermissionDenied"
         "404":
           $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
         "500":
           $ref: "#/components/responses/ServerError"
   /collections/{collectionId}/items:
@@ -2002,7 +2046,7 @@ paths:
                 rel: describedby
       responses:
         "201":
-          description: Status of the create request.
+          description: Return the created Item.
           headers:
             Location:
               description: A link to the item
@@ -2047,8 +2091,13 @@ paths:
     put:
       summary: Update an existing feature by Id with a complete item definition
       description: >-
-        Use this method to update an existing feature. Requires the entire GeoJSON 
-        description be submitted.
+        Use this method to update an existing feature. Requires the entire JSON description
+        be submitted.
+
+
+        *NOTE: Optional fields that are not part of the PUT payload, will be erased
+        in the resource. For example if the resource as a properties.title and the
+        PUT payload doesn't, then the resource properties.title will be removed.*
       operationId: putFeature
       tags:
       - Data Management
@@ -2104,7 +2153,7 @@ paths:
                 rel: describedby
       responses:
         "200":
-          description: Status of the update request.
+          description: Returns the updated Item
           headers:
             ETag:
               schema:
@@ -2127,8 +2176,8 @@ paths:
     patch:
       summary: Update an existing feature by Id with a partial item definition
       description: >-
-        Use this method to update an existing feature. Requires a GeoJSON fragment
-        (containing the fields to be updated) be submitted.
+        Use this method to update an existing feature. Requires a JSON fragment (containing
+        the fields to be updated) be submitted.
       operationId: patchFeature
       tags:
       - Data Management
@@ -2143,7 +2192,7 @@ paths:
               $ref: "#/components/schemas/partialItem"
       responses:
         "200":
-          description: Status of the update request.
+          description: Returns the updated Item
           headers:
             ETag:
               schema:
@@ -2165,7 +2214,7 @@ paths:
           $ref: "#/components/responses/ServerError"
     delete:
       summary: Delete an existing feature by Id
-      description: Use this method to delete an existing feature.
+      description: Use this method to delete an existing feature/item.
       operationId: deleteFeature
       tags:
       - Data Management
@@ -2174,23 +2223,16 @@ paths:
       - $ref: "#/components/parameters/featureId"
       - $ref: "#/components/parameters/IfMatch"
       responses:
-        "204":
-          description: Status of the delete request.
+        "200":
+          $ref: "#/components/responses/DeletedResource"
         "400":
           $ref: "#/components/responses/BadRequest"
         "404":
           $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
         5XX:
           $ref: "#/components/responses/ServerError"
-        default:
-          description: An error occurred.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/exception"
-            text/html:
-              schema:
-                type: string
   /conformance:
     get:
       description: >-
@@ -2399,6 +2441,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "404":
           $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
         5XX:
           $ref: "#/components/responses/ServerError"
     patch:
@@ -2438,6 +2482,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "404":
           $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
         5XX:
           $ref: "#/components/responses/ServerError"
     delete:
@@ -2452,11 +2498,13 @@ paths:
       - $ref: "#/components/parameters/assetId"
       - $ref: "#/components/parameters/IfMatch"
       responses:
-        "204":
-          description: Status of the delete request.
+        "200":
+          $ref: "#/components/responses/DeletedResource"
         "400":
           $ref: "#/components/responses/BadRequest"
         "404":
           $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
         5XX:
           $ref: "#/components/responses/ServerError"
