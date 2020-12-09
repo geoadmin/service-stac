@@ -344,6 +344,9 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/exception"
+          example:
+            code: 400
+            description: "Invalid parameter"
       description: A query parameter has an invalid value.
     LandingPage:
       content:
@@ -382,17 +385,28 @@ components:
         relation `conformance`), and the Feature Collections (path `/collections`,
         link relation `data`).
     NotFound:
-      description: The specified resource was not found
+      description: The specified resource/URI was not found
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/exception"
+          example:
+            code: 404
+            description: "Resource not found"
     ServerError:
+      description: >-
+        The request was syntactically and semantically valid, but an error occurred
+        while trying to act upon it
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/exception"
-      description: A server error occurred.
+          example:
+            code: 500
+            description: "Internal server error"
+        text/html:
+          schema:
+            type: string
     Assets:
       description: >-
         The response is a document consisting of all assets of the feature.
@@ -415,13 +429,16 @@ components:
             $ref: "#/components/schemas/exception"
           example:
             code: 400
-            description: "bla"
+            description: "Invalid parameter"
     PermissionDenied:
       description: No Permission for this request
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/exception"
+          example:
+            code: 403
+            description: "Permission denied"
     PreconditionFailed:
       description: Some condition specified by the request could not be met in the
         server
@@ -429,14 +446,9 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/exception"
-    InternalServerError:
-      description: >-
-        The request was syntactically and semantically valid, but an error occurred
-        while trying to act upon it
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/exception"
+          example:
+            code: 412
+            description: "Precondition not met"
   schemas:
     bbox:
       description: >-
@@ -1841,6 +1853,10 @@ paths:
       responses:
         "201":
           $ref: "#/components/responses/Collection"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "500":
+          $ref: "#/components/responses/ServerError"
   /collections/{collectionId}:
     get:
       operationId: describeCollection
@@ -1998,22 +2014,15 @@ paths:
                 type: string
               description: A string to ensure the item has not been modified
           content:
-            application/geo+json:
+            application/json:
               schema:
                 $ref: "#/components/schemas/item"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
         5XX:
-          $ref: "#/components/responses/InternalServerError"
-        default:
-          description: An error occurred.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/exception"
-            text/html:
-              schema:
-                type: string
+          $ref: "#/components/responses/ServerError"
   /collections/{collectionId}/items/{featureId}:
     get:
       description: >-
@@ -2102,26 +2111,19 @@ paths:
                 type: string
               description: A string to ensure the item has not been modified
           content:
-            text/html:
+            application/json:
               schema:
                 $ref: "#/components/schemas/item"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
         "404":
           $ref: "#/components/responses/NotFound"
         "412":
           $ref: "#/components/responses/PreconditionFailed"
         5XX:
-          $ref: "#/components/responses/InternalServerError"
-        default:
-          description: An error occurred.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/exception"
-            text/html:
-              schema:
-                type: string
+          $ref: "#/components/responses/ServerError"
     patch:
       summary: Update an existing feature by Id with a partial item definition
       description: >-
@@ -2148,27 +2150,19 @@ paths:
                 type: string
               description: A string to ensure the item has not been modified
           content:
-            text/html:
-              schema:
-                type: string
             application/json:
               schema:
-                type: string
+                $ref: "#/components/schemas/item"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
         "404":
           $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
         5XX:
-          $ref: "#/components/responses/InternalServerError"
-        default:
-          description: An error occurred.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/exception"
-            text/html:
-              schema:
-                type: string
+          $ref: "#/components/responses/ServerError"
     delete:
       summary: Delete an existing feature by Id
       description: Use this method to delete an existing feature.
@@ -2187,7 +2181,7 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
         5XX:
-          $ref: "#/components/responses/InternalServerError"
+          $ref: "#/components/responses/ServerError"
         default:
           description: An error occurred.
           content:
@@ -2236,22 +2230,15 @@ paths:
       responses:
         "200":
           content:
-            application/geo+json:
+            application/json:
               schema:
                 $ref: "#/components/schemas/itemCollection"
             text/html:
               schema:
                 type: string
           description: A feature collection.
-        default:
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/exception"
-            text/html:
-              schema:
-                type: string
-          description: An error occurred.
+        "500":
+          $ref: "#/components/responses/ServerError"
       summary: Search STAC items with simple filtering.
       tags:
       - STAC
@@ -2274,22 +2261,15 @@ paths:
       responses:
         "200":
           content:
-            application/geo+json:
+            application/json:
               schema:
                 $ref: "#/components/schemas/itemCollection"
             text/html:
               schema:
                 type: string
           description: A feature collection.
-        default:
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/exception"
-            text/html:
-              schema:
-                type: string
-          description: An error occurred.
+        "500":
+          $ref: "#/components/responses/ServerError"
       summary: Search STAC items with full-featured filtering.
       tags:
       - STAC
@@ -2352,7 +2332,7 @@ paths:
                 type: string
               description: A string to ensure the item has not been modified
           content:
-            application/geo+json:
+            application/json:
               schema:
                 type: string
             text/html:
@@ -2361,16 +2341,7 @@ paths:
         "400":
           $ref: "#/components/responses/BadRequest"
         5XX:
-          $ref: "#/components/responses/InternalServerError"
-        default:
-          description: An error occurred.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/exception"
-            text/html:
-              schema:
-                type: string
+          $ref: "#/components/responses/ServerError"
   /collections/{collectionId}/items/{featureId}/assets/{assetId}:
     get:
       description: >-
@@ -2429,16 +2400,7 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
         5XX:
-          $ref: "#/components/responses/InternalServerError"
-        default:
-          description: An error occurred.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/exception"
-            text/html:
-              schema:
-                type: string
+          $ref: "#/components/responses/ServerError"
     patch:
       summary: Update an existing asset by Id with a partial asset definition
       description: >-
@@ -2477,16 +2439,7 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
         5XX:
-          $ref: "#/components/responses/InternalServerError"
-        default:
-          description: An error occurred.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/exception"
-            text/html:
-              schema:
-                type: string
+          $ref: "#/components/responses/ServerError"
     delete:
       summary: Delete an existing asset by Id
       description: Use this method to delete an existing asset.
@@ -2506,13 +2459,4 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
         5XX:
-          $ref: "#/components/responses/InternalServerError"
-        default:
-          description: An error occurred.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/exception"
-            text/html:
-              schema:
-                type: string
+          $ref: "#/components/responses/ServerError"

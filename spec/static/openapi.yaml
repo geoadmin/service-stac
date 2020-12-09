@@ -321,6 +321,9 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/exception"
+          example:
+            code: 400
+            description: "Invalid parameter"
       description: A query parameter has an invalid value.
     LandingPage:
       content:
@@ -359,13 +362,28 @@ components:
         relation `conformance`), and the Feature Collections (path `/collections`,
         link relation `data`).
     NotFound:
-      description: The requested URI was not found.
-    ServerError:
+      description: The specified resource/URI was not found
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/exception"
-      description: A server error occurred.
+          example:
+            code: 404
+            description: "Resource not found"
+    ServerError:
+      description: >-
+        The request was syntactically and semantically valid, but an error occurred
+        while trying to act upon it
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/exception"
+          example:
+            code: 500
+            description: "Internal server error"
+        text/html:
+          schema:
+            type: string
   schemas:
     bbox:
       description: >-
@@ -1618,22 +1636,15 @@ paths:
       responses:
         "200":
           content:
-            application/geo+json:
+            application/json:
               schema:
                 $ref: "#/components/schemas/itemCollection"
             text/html:
               schema:
                 type: string
           description: A feature collection.
-        default:
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/exception"
-            text/html:
-              schema:
-                type: string
-          description: An error occurred.
+        "500":
+          $ref: "#/components/responses/ServerError"
       summary: Search STAC items with simple filtering.
       tags:
       - STAC
@@ -1656,22 +1667,15 @@ paths:
       responses:
         "200":
           content:
-            application/geo+json:
+            application/json:
               schema:
                 $ref: "#/components/schemas/itemCollection"
             text/html:
               schema:
                 type: string
           description: A feature collection.
-        default:
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/exception"
-            text/html:
-              schema:
-                type: string
-          description: An error occurred.
+        "500":
+          $ref: "#/components/responses/ServerError"
       summary: Search STAC items with full-featured filtering.
       tags:
       - STAC

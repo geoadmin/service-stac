@@ -34,6 +34,10 @@ paths:
       responses:
         "201":
           $ref: "#/components/responses/Collection"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "500":
+          $ref: "#/components/responses/ServerError"
   "/collections/{collectionId}":
     put:
       tags:
@@ -166,22 +170,15 @@ paths:
                 type: string
               description: A string to ensure the item has not been modified
           content:
-            application/geo+json:
+            application/json:
               schema:
                 $ref: "#/components/schemas/item"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
         "5XX":
-          $ref: "#/components/responses/InternalServerError"
-        default:
-          description: An error occurred.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/exception"
-            text/html:
-              schema:
-                type: string
+          $ref: "#/components/responses/ServerError"
   "/collections/{collectionId}/items/{featureId}":
     # get:
     #   responses:
@@ -257,26 +254,19 @@ paths:
                 type: string
               description: A string to ensure the item has not been modified
           content:
-            text/html:
+            application/json:
               schema:
                 $ref: "#/components/schemas/item"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
         "404":
           $ref: "#/components/responses/NotFound"
         "412":
           $ref: "#/components/responses/PreconditionFailed"
         "5XX":
-          $ref: "#/components/responses/InternalServerError"
-        default:
-          description: An error occurred.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/exception"
-            text/html:
-              schema:
-                type: string
+          $ref: "#/components/responses/ServerError"
     patch:
       summary: Update an existing feature by Id with a partial item definition
       description: >-
@@ -303,27 +293,19 @@ paths:
                 type: string
               description: A string to ensure the item has not been modified
           content:
-            text/html:
-              schema:
-                type: string
             application/json:
               schema:
-                type: string
+                $ref: "#/components/schemas/item"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
         "404":
           $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
         "5XX":
-          $ref: "#/components/responses/InternalServerError"
-        default:
-          description: An error occurred.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/exception"
-            text/html:
-              schema:
-                type: string
+          $ref: "#/components/responses/ServerError"
     delete:
       summary: Delete an existing feature by Id
       description: Use this method to delete an existing feature.
@@ -342,7 +324,7 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
         "5XX":
-          $ref: "#/components/responses/InternalServerError"
+          $ref: "#/components/responses/ServerError"
         default:
           description: An error occurred.
           content:
@@ -412,7 +394,7 @@ paths:
                 type: string
               description: A string to ensure the item has not been modified
           content:
-            application/geo+json:
+            application/json:
               schema:
                 type: string
             text/html:
@@ -421,16 +403,8 @@ paths:
         "400":
           $ref: "#/components/responses/BadRequest"
         "5XX":
-          $ref: "#/components/responses/InternalServerError"
-        default:
-          description: An error occurred.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/exception"
-            text/html:
-              schema:
-                type: string
+          $ref: "#/components/responses/ServerError"
+
   "/collections/{collectionId}/items/{featureId}/assets/{assetId}":
     get:
       description: >-
@@ -496,16 +470,7 @@ paths:
         # '412':
         #   $ref: '#/components/responses/PreconditionFailed'
         "5XX":
-          $ref: "#/components/responses/InternalServerError"
-        default:
-          description: An error occurred.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/exception"
-            text/html:
-              schema:
-                type: string
+          $ref: "#/components/responses/ServerError"
     patch:
       summary: Update an existing asset by Id with a partial asset definition
       description: >-
@@ -544,16 +509,7 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
         "5XX":
-          $ref: "#/components/responses/InternalServerError"
-        default:
-          description: An error occurred.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/exception"
-            text/html:
-              schema:
-                type: string
+          $ref: "#/components/responses/ServerError"
     delete:
       summary: Delete an existing asset by Id
       description: Use this method to delete an existing asset.
@@ -573,16 +529,8 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
         "5XX":
-          $ref: "#/components/responses/InternalServerError"
-        default:
-          description: An error occurred.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/exception"
-            text/html:
-              schema:
-                type: string
+          $ref: "#/components/responses/ServerError"
+
 components:
   parameters:
     assetId:
@@ -895,12 +843,6 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/itemAsset"
-    NotFound:
-      description: The specified resource was not found
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/exception"
     BadRequest:
       description: The request was malformed or semantically invalid
       content:
@@ -909,27 +851,25 @@ components:
             $ref: "#/components/schemas/exception"
           example:
             code: 400
-            description: "bla"
+            description: "Invalid parameter"
     PermissionDenied:
       description: No Permission for this request
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/exception"
+          example:
+            code: 403
+            description: "Permission denied"
     PreconditionFailed:
       description: Some condition specified by the request could not be met in the server
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/exception"
-    InternalServerError:
-      description: >-
-        The request was syntactically and semantically valid, but an error occurred while trying
-        to act upon it
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/exception"
+          example:
+            code: 412
+            description: "Precondition not met"
 # Note: this is defined as an overwrite in 'overwrites', since defining it here would violate
 # the alphabetical order of the tags ending up in openapi.yaml, see https://speccy.io/rules/1-rulesets#openapi-tags-alphabetical
 # tags:
