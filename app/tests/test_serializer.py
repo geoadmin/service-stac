@@ -1,3 +1,5 @@
+# pylint: disable=too-many-lines
+
 import io
 import logging
 from collections import OrderedDict
@@ -675,7 +677,7 @@ class ItemSerializationTestCase(StacBaseTestCase):
         data['links'][0]['type'] = 'example'
         serializer = ItemSerializer(item, data=data)
         serializer.is_valid(raise_exception=True)
-        collection = serializer.save()
+        item = serializer.save()
 
         # serialize the object and test it against the one above
         # mock a request needed for the serialization of links
@@ -709,14 +711,12 @@ class ItemSerializationTestCase(StacBaseTestCase):
 
         # Update some data
         data['properties']['datetime'] = isoformat(utc_aware(datetime.utcnow()))
-        # To remove a property we have to set it to None otherwise the property
-        # is left unchanged
-        data['properties']['start_datetime'] = None
-        data['properties']['end_datetime'] = None
+        del data['properties']['start_datetime']
+        del data['properties']['end_datetime']
         del data['links']
         serializer = ItemSerializer(item, data=data)
         serializer.is_valid(raise_exception=True)
-        collection = serializer.save()
+        item = serializer.save()
 
         # serialize the object and test it against the one above
         # mock a request needed for the serialization of links
@@ -725,9 +725,42 @@ class ItemSerializationTestCase(StacBaseTestCase):
         )
         serializer = ItemSerializer(item, context={'request': request})
         python_native = serializer.data
-        # remove the properties that have been previously set to know for removal
-        del data['properties']['start_datetime']
-        del data['properties']['end_datetime']
+        self.check_stac_item(data, python_native)
+
+    def test_item_deserialization_update_remove_title(self):
+        data = OrderedDict([
+            ("collection", self.collection.name),
+            ("id", "test"),
+            ("geometry", geometry_json),
+            (
+                "properties",
+                OrderedDict([
+                    ("start_datetime", isoformat(utc_aware(datetime.utcnow()))),
+                    ("end_datetime", isoformat(utc_aware(datetime.utcnow()))),
+                    ("title", "This is a title"),
+                ])
+            ),
+        ])
+
+        # translate to Python native:
+        serializer = ItemSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        item = serializer.save()
+
+        # Remove the optional title
+        del data['properties']['title']
+        serializer = ItemSerializer(item, data=data)
+        serializer.is_valid(raise_exception=True)
+        item = serializer.save()
+
+        # serialize the object and test it against the one above
+        # mock a request needed for the serialization of links
+        request = self.factory.get(
+            f'{API_BASE}/collections/{self.collection.name}/items/{item.name}'
+        )
+        serializer = ItemSerializer(item, context={'request': request})
+        python_native = serializer.data
+        self.assertNotIn('title', python_native['properties'].keys(), msg="Title was not removed")
         self.check_stac_item(data, python_native)
 
     def test_item_deserialization_missing_required(self):

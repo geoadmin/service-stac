@@ -18,3 +18,25 @@ def utc_aware(date_time):
     '''Return a UTC date_time aware object
     '''
     return date_time.replace(tzinfo=timezone.utc)
+
+
+def get_link(links, rel, raise_exception=False):
+    '''Get link from list based on his rel attribute
+
+    Args:
+	    links: list
+			list of link object: {'href': url, 'rel': str}
+        rel: string
+            rel attribute to look for
+        raise_exception: boolean (default=False)
+            raises KeyError instead of returning None when link is not found
+
+    Returns:
+        The link object if found, else None
+    '''
+    for link in links:
+        if link['rel'] == rel:
+            return link
+    if raise_exception:
+        raise KeyError(f'Link with rel {rel} not found')
+    return None

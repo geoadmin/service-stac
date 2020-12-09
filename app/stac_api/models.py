@@ -92,6 +92,51 @@ def validate_geometry(geometry):
     return geometry
 
 
+def validate_item_properties_datetimes_dependencies(
+    properties_datetime, properties_start_datetime, properties_end_datetime
+):
+    '''
+    Validate the dependencies between the Item datetimes properties
+
+	This makes sure that either only the properties.datetime is set or
+	both properties.start_datetime and properties.end_datetime
+
+	Raises:
+		django.core.exceptions.ValidationError
+    '''
+    if properties_datetime is not None:
+        if (properties_start_datetime is not None or properties_end_datetime is not None):
+            message = 'Cannot provide together property datetime with datetime range ' \
+                '(start_datetime, end_datetime)'
+            logger.error(message)
+            raise ValidationError(_(message))
+    else:
+        if properties_end_datetime is None:
+            message = "Property end_datetime can't be null when no property datetime is given"
+            logger.error(message)
+            raise ValidationError(_(message))
+        if properties_start_datetime is None:
+            message = "Property start_datetime can't be null when no property datetime is given"
+            logger.error(message)
+            raise ValidationError(_(message))
+
+
+def validate_item_properties_datetimes(
+    properties_datetime, properties_start_datetime, properties_end_datetime, partial=False
+):
+    '''
+    Validate datetime values in the properties Item attributes
+    '''
+    if not partial:
+        # Do not validate dependencies in partial update, leave it to the validation to the model
+        # instance.
+        validate_item_properties_datetimes_dependencies(
+            properties_datetime,
+            properties_start_datetime,
+            properties_end_datetime,
+        )
+
+
 def get_conformance_default_links():
     '''
     A helper function of the class Conformance Page
@@ -351,7 +396,7 @@ class Item(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
     # after discussion with Chris and Tobias: for the moment only support
-    # proterties: datetime, eo_gsd and title (the rest is hence commented out)
+    # proterties: datetime and title (the rest is hence commented out)
     properties_datetime = models.DateTimeField(blank=True, null=True)
     properties_start_datetime = models.DateTimeField(blank=True, null=True)
     properties_end_datetime = models.DateTimeField(blank=True, null=True)
@@ -363,7 +408,10 @@ class Item(models.Model):
     # properties_license = models.TextField(blank=True)
     # properties_platform = models.TextField(blank=True)
     # properties_providers = models.ManyToManyField(Provider)
-    properties_title = models.CharField(blank=True, max_length=255)
+    # Although it is discouraged by Django to set blank=True and null=True on a CharField, it is
+    # here required because this field is optional and having an empty string value is not permitted
+    # in the serializer and default to None. None value are then not displayed in the serializer.
+    properties_title = models.CharField(blank=True, null=True, max_length=255)
 
     # properties_view_off_nadir = models.FloatField(blank=True)
     # properties_view_sun_azimuth = models.FloatField(blank=True)
@@ -390,7 +438,9 @@ class Item(models.Model):
         return self.name
 
     def clean(self):
-        self.validate_datetime_properties()
+        validate_item_properties_datetimes(
+            self.properties_datetime, self.properties_start_datetime, self.properties_end_datetime
+        )
 
     def save(self, *args, **kwargs):  # pylint: disable=signature-differs
         # It is important to use `*args, **kwargs` in signature because django might add dynamically
@@ -398,7 +448,7 @@ class Item(models.Model):
         # Make sure that the properties datetime are valid before updating the temporal extent
         # This is needed because save() is called during the Item.object.create() function without
         # calling clean() ! and our validation is done within clean() method.
-        self.validate_datetime_properties()
+        self.clean()
 
         if self.pk is None:
             action = "insert"
@@ -508,24 +558,6 @@ class Item(models.Model):
 
         self.collection.update_bbox_extent('rm', self.geometry, self.pk, self.name)
         super().delete(*args, **kwargs)
-
-    def validate_datetime_properties(self):
-        if self.properties_datetime is not None:
-            if self.properties_start_datetime is not None \
-                or self.properties_end_datetime is not None:
-                message = 'Cannot provide together property datetime with datetime range ' \
-                    '(start_datetime, end_datetime)'
-                logger.error(message)
-                raise ValidationError(_(message))
-        else:
-            if self.properties_end_datetime is None:
-                message = "Property end_datetime can't be null when no property datetime is given"
-                logger.error(message)
-                raise ValidationError(_(message))
-            if self.properties_start_datetime is None:
-                message = "Property start_datetime can't be null when no property datetime is given"
-                logger.error(message)
-                raise ValidationError(_(message))
 
 
 class ItemLink(Link):

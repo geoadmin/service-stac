@@ -9,9 +9,11 @@ from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext_lazy as _
 
 from rest_framework import generics
+from rest_framework import mixins
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
+from stac_api import views_mixins
 from stac_api.models import Asset
 from stac_api.models import Collection
 from stac_api.models import ConformancePage
@@ -132,9 +134,14 @@ class CollectionDetail(generics.RetrieveAPIView):
         return obj
 
 
-class ItemsList(generics.ListAPIView):
+class ItemsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
     serializer_class = ItemSerializer
     queryset = Item.objects.all()
+
+    def get_write_request_data(self, request, *args, **kwargs):
+        data = request.data.copy()
+        data['collection'] = kwargs['collection_name']
+        return data
 
     def get_queryset(self):
         # filter based on the url
@@ -228,17 +235,45 @@ class ItemsList(generics.ListAPIView):
             return self.get_paginated_response(data)
         return Response(data)
 
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
 
-class ItemDetail(generics.RetrieveAPIView):
+    def post(self, request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)
+
+
+class ItemDetail(
+    generics.GenericAPIView,
+    mixins.RetrieveModelMixin,
+    views_mixins.UpdateModelMixin,
+    views_mixins.DestroyModelMixin
+):
     serializer_class = ItemSerializer
     lookup_url_kwarg = "item_name"
     queryset = Item.objects.all()
+
+    def get_write_request_data(self, request, *args, **kwargs):
+        data = request.data.copy()
+        data['collection'] = kwargs['collection_name']
+        return data
 
     def get_object(self):
         item_name = self.kwargs.get(self.lookup_url_kwarg)
         queryset = self.get_queryset().filter(name=item_name)
         obj = get_object_or_404(queryset)
         return obj
+
+    def get(self, request, *args, **kwargs):
+        return self.retrieve(request, *args, **kwargs)
+
+    def put(self, request, *args, **kwargs):
+        return self.update(request, *args, **kwargs)
+
+    def patch(self, request, *args, **kwargs):
+        return self.partial_update(request, *args, **kwargs)
+
+    def delete(self, request, *args, **kwargs):
+        return self.destroy(request, *args, **kwargs)
 
 
 class AssetsList(generics.GenericAPIView):

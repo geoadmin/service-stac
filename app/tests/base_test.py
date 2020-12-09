@@ -6,20 +6,25 @@ from urllib.parse import urlparse
 from django.test import TestCase
 
 from stac_api.utils import fromisoformat
+from stac_api.utils import get_link
+
+from tests.utils import get_http_error_description
 
 logger = logging.getLogger(__name__)
 
 
-def get_link(links, rel):
-    '''Get link from list based on his rel attribute
-    '''
-    for link in links:
-        if link['rel'] == rel:
-            return link
-    return None
-
-
 class StacBaseTestCase(TestCase):
+
+    # we keep the TestCase nomenclature here therefore we disable the pylint invalid-name
+    def assertStatusCode(self, code, response):  # pylint: disable=invalid-name
+        json_data = response.json()
+        self.assertEqual(code, response.status_code, msg=get_http_error_description(json_data))
+        if code >= 400:
+            self.assertIn('code', json_data.keys(), msg="'code' is missing from response")
+            self.assertIn(
+                'description', json_data.keys(), msg="'description' is missing from response"
+            )
+            self.assertEqual(code, json_data['code'], msg="invalid response code")
 
     def check_stac_collection(self, expected, current, ignore=None):
         self._check_stac_dictsubset('collection', expected, current, ignore)
