@@ -17,9 +17,26 @@ class StacBaseTestCase(TestCase):
 
     # we keep the TestCase nomenclature here therefore we disable the pylint invalid-name
     def assertStatusCode(self, code, response):  # pylint: disable=invalid-name
-        json_data = response.json()
+        '''Assert the HTTP Status Code
+
+        Check the status code, if the status code is a >= 400 then the response body is also check
+        against the `code` and `description` keys.
+
+        Args:
+            code: int
+                Expected HTTP code
+            response: HttpResponse
+                HTTP Response object to check
+        '''
+        try:
+            json_data = response.json()
+        except (TypeError, ValueError) as err:
+            json_data = {}
         self.assertEqual(code, response.status_code, msg=get_http_error_description(json_data))
-        if code >= 400:
+        if code in [412, 304]:
+            # HTTP 412 Precondition Failed and 304 Not Modified doesn't have a body.
+            self.assertEqual(b'', response.content)
+        elif code >= 400:
             self.assertIn('code', json_data.keys(), msg="'code' is missing from response")
             self.assertIn(
                 'description', json_data.keys(), msg="'description' is missing from response"
@@ -30,17 +47,80 @@ class StacBaseTestCase(TestCase):
             )
             self.assertEqual(code, json_data['code'], msg="invalid response code")
 
+    def check_etag(self, etag, response):
+        '''Check for the ETag Header
+
+        Args:
+            etag: string | None
+                Expected ETag value or None if the value cannot be checked (e.g. the ETag changed
+                for each test call).
+            response: HttpResponse
+                HTTP response object
+        '''
+        self.assertTrue(response.has_header('ETag'), msg="ETag header missing")
+        self.assertTrue(
+            response['ETag'].startswith('"') and response['ETag'].endswith('"'),
+            msg="ETag is not enclosed in double quotes"
+        )
+        if etag is not None:
+            self.assertEqual(etag, response['ETag'], msg="ETag header missmatch")
+
     def check_stac_collection(self, expected, current, ignore=None):
+        '''Check a STAC Collection data
+
+        Check if the `current` Collection data match the `expected`. This check is a subset check
+        which means that if a value is missing from `current`, then it raises a Test Assert, while
+        if a value is in `current` but not in `expected`, the test passed. The functions knows also
+        the STAC Spec and does some check based on it.
+
+        Args:
+            expected: dict
+                Expected STAC Collection
+            current: dict
+                Current STAC Collection to test
+            ignore: list(string) | None
+                List of keys to ignore in the test
+        '''
         if ignore is None:
             ignore = []
         self._check_stac_dictsubset('collection', expected, current, ignore)
 
     def check_stac_item(self, expected, current, ignore=None):
+        '''Check a STAC Item data
+
+        Check if the `current` Item data match the `expected`. This check is a subset check
+        which means that if a value is missing from `current`, then it raises a Test Assert, while
+        if a value is in `current` but not in `expected`, the test passed. The functions knows also
+        the STAC Spec and does some check based on it.
+
+        Args:
+            expected: dict
+                Expected STAC Item
+            current: dict
+                Current STAC Item to test
+            ignore: list(string) | None
+                List of keys to ignore in the test
+        '''
         if ignore is None:
             ignore = []
         self._check_stac_dictsubset('item', expected, current, ignore=ignore + ['href'])
 
     def check_stac_asset(self, expected, current, ignore=None):
+        '''Check a STAC Asset data
+
+        Check if the `current` Asset data match the `expected`. This check is a subset check
+        which means that if a value is missing from `current`, then it raises a Test Assert, while
+        if a value is in `current` but not in `expected`, the test passed. The functions knows also
+        the STAC Spec and does some check based on it.
+
+        Args:
+            expected: dict
+                Expected STAC Asset
+            current: dict
+                Current STAC Asset to test
+            ignore: list(string) | None
+                List of keys to ignore in the test
+        '''
         if ignore is None:
             ignore = []
         self._check_stac_dictsubset('asset', expected, current, ignore=ignore + ['href'])

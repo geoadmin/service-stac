@@ -4,7 +4,6 @@ from pprint import pformat
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import Client
-from django.test import TestCase
 
 from rest_framework.test import APIRequestFactory
 
@@ -12,7 +11,7 @@ from stac_api.serializers import CollectionSerializer
 from stac_api.utils import fromisoformat
 
 import tests.database as db
-from tests.utils import get_http_error_description
+from tests.base_test import StacBaseTestCase
 from tests.utils import get_sample_data
 from tests.utils import mock_request_from_response
 
@@ -21,7 +20,7 @@ logger = logging.getLogger(__name__)
 API_BASE = settings.API_BASE
 
 
-class CollectionsEndpointTestCase(TestCase):
+class CollectionsEndpointTestCase(StacBaseTestCase):
 
     def setUp(self):  # pylint: disable=invalid-name
         self.client = Client()
@@ -38,7 +37,7 @@ class CollectionsEndpointTestCase(TestCase):
     def test_collections_endpoint(self):
         response = self.client.get(f"/{API_BASE}/collections")
         response_json = response.json()
-        self.assertEqual(200, response.status_code, msg=get_http_error_description(response_json))
+        self.assertStatusCode(200, response)
 
         # mock the request for creations of links
         request = mock_request_from_response(self.factory, response)
@@ -58,7 +57,10 @@ class CollectionsEndpointTestCase(TestCase):
         collection_name = self.collections[0].name
         response = self.client.get(f"/{API_BASE}/collections/{collection_name}")
         response_json = response.json()
-        self.assertEqual(response.status_code, 200, msg=get_http_error_description(response_json))
+        self.assertStatusCode(200, response)
+        # The ETag change between each test call due to the created, updated time that are in the
+        # hash computation of the ETag
+        self.check_etag(None, response)
 
         # mock the request for creations of links
         request = mock_request_from_response(self.factory, response)
@@ -78,20 +80,20 @@ class CollectionsEndpointTestCase(TestCase):
 
     def test_collections_limit_query(self):
         response = self.client.get(f"/{API_BASE}/collections?limit=1")
-        self.assertEqual(200, response.status_code)
+        self.assertStatusCode(200, response)
         self.assertLessEqual(1, len(response.json()['collections']))
 
         response = self.client.get(f"/{API_BASE}/collections?limit=0")
-        self.assertEqual(400, response.status_code)
+        self.assertStatusCode(400, response)
 
         response = self.client.get(f"/{API_BASE}/collections?limit=test")
-        self.assertEqual(400, response.status_code)
+        self.assertStatusCode(400, response)
 
         response = self.client.get(f"/{API_BASE}/collections?limit=-1")
-        self.assertEqual(400, response.status_code)
+        self.assertStatusCode(400, response)
 
         response = self.client.get(f"/{API_BASE}/collections?limit=1000")
-        self.assertEqual(400, response.status_code)
+        self.assertStatusCode(400, response)
 
     def test_valid_collections_post(self):
         payload_json = self.sample_collections['valid_collection_set_1']
@@ -101,7 +103,7 @@ class CollectionsEndpointTestCase(TestCase):
             f"/{API_BASE}/collections", data=payload_json, content_type='application/json'
         )
         response_json = response.json()
-        self.assertEqual(response.status_code, 201, msg=get_http_error_description(response_json))
+        self.assertStatusCode(201, response)
 
         response = self.client.get(f"/{API_BASE}/collections/{payload_json['id']}")
         response_json = response.json()
@@ -113,7 +115,7 @@ class CollectionsEndpointTestCase(TestCase):
             f"/{API_BASE}/collections", data=payload_json, content_type='application/json'
         )
         response_json = response.json()
-        self.assertEqual(response.status_code, 400, msg=get_http_error_description(response_json))
+        self.assertStatusCode(400, response)
 
     def test_invalid_collections_post(self):
         # the dataset already exists in the database
@@ -124,7 +126,7 @@ class CollectionsEndpointTestCase(TestCase):
             f"/{API_BASE}/collections", data=payload_json, content_type='application/json'
         )
         response_json = response.json()
-        self.assertEqual(response.status_code, 400, msg=get_http_error_description(response_json))
+        self.assertStatusCode(400, response)
 
     def test_collections_min_mandatory_post(self):
         # a post with the absolute valid minimum
@@ -136,7 +138,7 @@ class CollectionsEndpointTestCase(TestCase):
         )
         response_json = response.json()
         logger.debug(response_json)
-        self.assertEqual(response.status_code, 201, msg=get_http_error_description(response_json))
+        self.assertStatusCode(201, response)
         self.assertNotIn('title', response_json.keys())  # key does not exist
         self.assertNotIn('providers', response_json.keys())  # key does not exist
 
@@ -149,7 +151,7 @@ class CollectionsEndpointTestCase(TestCase):
             f"/{API_BASE}/collections", data=payload_json, content_type='application/json'
         )
         response_json = response.json()
-        self.assertEqual(response.status_code, 400, msg=get_http_error_description(response_json))
+        self.assertStatusCode(400, response)
 
     def test_collections_put(self):
         payload_json = self.sample_collections['valid_collection_set_2']
@@ -162,7 +164,7 @@ class CollectionsEndpointTestCase(TestCase):
             content_type='application/json'
         )
         response_json = response.json()
-        self.assertEqual(response.status_code, 404, msg=get_http_error_description(response_json))
+        self.assertStatusCode(404, response)
 
         # POST data
         self.client.post(
@@ -178,7 +180,7 @@ class CollectionsEndpointTestCase(TestCase):
         )
         response_json = response.json()
 
-        self.assertEqual(response.status_code, 200, msg=get_http_error_description(response_json))
+        self.assertStatusCode(200, response)
         self.assertEqual(response_json['title'], payload_json['title'])
         self.assertIn('providers', response_json.keys())  # optional value, should exist
 
@@ -191,7 +193,7 @@ class CollectionsEndpointTestCase(TestCase):
 
         response_json = response.json()
 
-        self.assertEqual(response.status_code, 200, msg=get_http_error_description(response_json))
+        self.assertStatusCode(200, response)
         self.assertEqual(response_json['title'], payload_json['title'])
 
     def test_collection_put_change_id(self):
@@ -205,17 +207,18 @@ class CollectionsEndpointTestCase(TestCase):
             content_type='application/json'
         )
         response_json = response.json()
-        self.assertEqual(response.status_code, 200, msg=get_http_error_description(response_json))
+        self.assertStatusCode(200, response)
 
         # check if id changed
         response = self.client.get(f"/{API_BASE}/collections/{payload_json['id']}")
+        self.assertStatusCode(200, response)
         response_json = response.json()
         self.assertEqual(response_json['id'], payload_json['id'])
 
         # the old collection shouldn't exist any more
         response = self.client.get(f"/{API_BASE}/collections/{self.collections[0].name}")
         response_json = response.json()
-        self.assertEqual(response.status_code, 404, msg=get_http_error_description(response_json))
+        self.assertStatusCode(404, response)
 
     def test_collection_put_remove_optional_fields(self):
         collection_name = self.collections[1].name  # get a name that is registered in the service
@@ -231,6 +234,7 @@ class CollectionsEndpointTestCase(TestCase):
             data=payload_json,
             content_type='application/json'
         )
+        self.assertStatusCode(200, response)
         response_json = response.json()
         self.assertNotIn('title', response_json.keys())  # key does not exist
         self.assertNotIn('providers', response_json.keys())  # key does not exist
@@ -249,6 +253,7 @@ class CollectionsEndpointTestCase(TestCase):
             data=payload_json,
             content_type='application/json'
         )
+        self.assertStatusCode(200, response)
         response_json = response.json()
         # licence affected by patch
         self.assertEqual(payload_json['license'], response_json['license'])
