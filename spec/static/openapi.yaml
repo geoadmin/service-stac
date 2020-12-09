@@ -652,7 +652,7 @@ components:
         Information about the exception: an error code plus an optional description.
       properties:
         code:
-          type: string
+          type: int
         description:
           type: string
       required:
@@ -801,7 +801,7 @@ components:
         intersects:
           $ref: https://geojson.org/schema/Geometry.json
       type: object
-    item:
+    itemBase:
       description: >-
         A GeoJSON Feature augmented with foreign members that contain values relevant
         to a STAC entity
@@ -812,21 +812,6 @@ components:
           $ref: "#/components/schemas/bbox"
         geometry:
           $ref: "#/components/schemas/geometryGeoJSON"
-        id:
-          $ref: "#/components/schemas/itemId"
-        links:
-          items:
-            $ref: "#/components/schemas/link"
-          type: array
-          example:
-          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr50-263-2016
-            rel: self
-          - href: https://data.geo.admin.ch/api/stac/v0.9/
-            rel: root
-          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items
-            rel: parent
-          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
-            rel: collection
         properties:
           $ref: "#/components/schemas/itemProperties"
         stac_extensions:
@@ -839,14 +824,35 @@ components:
           $ref: "#/components/schemas/itemType"
       required:
       - stac_version
-      - id
       - type
       - geometry
       - bbox
-      - links
       - properties
       - assets
       type: object
+    item:
+      allOf:
+      - type: object
+        required:
+        - id
+        - links
+        properties:
+          id:
+            $ref: "#/components/schemas/itemId"
+          links:
+            items:
+              $ref: "#/components/schemas/link"
+            type: array
+            example:
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr50-263-2016
+              rel: self
+            - href: https://data.geo.admin.ch/api/stac/v0.9/
+              rel: root
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items
+              rel: parent
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+              rel: collection
+      - $ref: "#/components/schemas/itemBase"
     items:
       description: >-
         A FeatureCollection augmented with foreign members that contain values relevant
@@ -930,6 +936,7 @@ components:
         - id
         type: object
       type: object
+      readOnly: true
       example:
         smr50-263-2016-2056-kgrs-2.5.tiff:
           checksum:multihash: 90e402107a7f2588a85362b9beea2a12d4514d45

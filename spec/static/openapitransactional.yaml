@@ -413,6 +413,9 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/exception"
+          example:
+            code: 400
+            description: "bla"
     PermissionDenied:
       description: No Permission for this request
       content:
@@ -720,7 +723,7 @@ components:
         Information about the exception: an error code plus an optional description.
       properties:
         code:
-          type: string
+          type: int
         description:
           type: string
       required:
@@ -869,7 +872,7 @@ components:
         intersects:
           $ref: https://geojson.org/schema/Geometry.json
       type: object
-    item:
+    itemBase:
       description: >-
         A GeoJSON Feature augmented with foreign members that contain values relevant
         to a STAC entity
@@ -880,21 +883,6 @@ components:
           $ref: "#/components/schemas/bbox"
         geometry:
           $ref: "#/components/schemas/geometryGeoJSON"
-        id:
-          $ref: "#/components/schemas/itemId"
-        links:
-          items:
-            $ref: "#/components/schemas/link"
-          type: array
-          example:
-          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr50-263-2016
-            rel: self
-          - href: https://data.geo.admin.ch/api/stac/v0.9/
-            rel: root
-          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items
-            rel: parent
-          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
-            rel: collection
         properties:
           $ref: "#/components/schemas/itemProperties"
         stac_extensions:
@@ -907,14 +895,35 @@ components:
           $ref: "#/components/schemas/itemType"
       required:
       - stac_version
-      - id
       - type
       - geometry
       - bbox
-      - links
       - properties
       - assets
       type: object
+    item:
+      allOf:
+      - type: object
+        required:
+        - id
+        - links
+        properties:
+          id:
+            $ref: "#/components/schemas/itemId"
+          links:
+            items:
+              $ref: "#/components/schemas/link"
+            type: array
+            example:
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr50-263-2016
+              rel: self
+            - href: https://data.geo.admin.ch/api/stac/v0.9/
+              rel: root
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items
+              rel: parent
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+              rel: collection
+      - $ref: "#/components/schemas/itemBase"
     items:
       description: >-
         A FeatureCollection augmented with foreign members that contain values relevant
@@ -999,6 +1008,7 @@ components:
         type: object
         $ref: "#/components/schemas/itemAsset"
       type: object
+      readOnly: true
       example:
         smr50-263-2016-2056-kgrs-2.5.tiff:
           checksum:multihash: 90e402107a7f2588a85362b9beea2a12d4514d45
@@ -1563,7 +1573,7 @@ components:
         of the `assetId`, so it's perfectly ok to have one asset with id `smr50-263-2016-2056-kgrs-2.5.tiff`
         and another one with id `smr50-263-2016-2056-kgrs-2.5.png`
       example: smr50-263-2016-2056-kgrs-2.5.tiff
-    itemBase:
+    assetBase:
       type: object
       required:
       - "checksum:multihash"
@@ -1640,90 +1650,36 @@ components:
             $ref: "#/components/schemas/copyFromHref"
         example:
           description: The new description of the asset
-    metaItem:
-      description: >-
-        A GeoJSON Feature augmented with foreign members that contain values relevant
-        to a STAC entity
-      type: object
-      required:
-      - stac_version
-      - id
-      - type
-      - geometry
-      - bbox
-      - links
-      - properties
-      - assets
-      properties:
-        stac_version:
-          $ref: "#/components/schemas/stac_version"
-        stac_extensions:
-          $ref: "#/components/schemas/stac_extensions"
-        id:
-          $ref: "#/components/schemas/itemId"
-        bbox:
-          $ref: "#/components/schemas/bbox"
-        geometry:
-          $ref: "https://geojson.org/schema/Geometry.json"
-        type:
-          $ref: "#/components/schemas/itemType"
+    writeItem:
+      allOf:
+      - $ref: "#/components/schemas/itemBase"
+      - type: object
         properties:
-          $ref: "#/components/schemas/itemProperties"
-        links:
-          type: array
-          items:
-            $ref: "#/components/schemas/link"
-      example:
-        stac_version: 0.9.0
-        stac_extensions:
-        - eo
-        - view
-        - "https://example.com/cs-extension/1.0/schema.json"
-        type: Feature
-        id: CS3-20160503_132131_05
-        bbox:
-        - -122.59750209
-        - 37.48803556
-        - -122.2880486
-        - 37.613537207
-        geometry:
-          type: Polygon
-          coordinates:
-          - - - -122.308150179
-              - 37.488035566
-            - - -122.597502109
-              - 37.538869539
-            - - -122.576687533
-              - 37.613537207
-            - - -122.2880486
-              - 37.562818007
-            - - -122.308150179
-              - 37.488035566
+          links:
+            items:
+              $ref: "#/components/schemas/link"
+            type: array
+            description: >-
+              Add additional link to the generated ones (`self`, `root`, `parent`,
+              `items`, `collection`, `next`, `previous`)
+    createItem:
+      allOf:
+      - type: object
+        required:
+        - id
         properties:
-          datetime: "2016-05-03T13:22:30.040Z"
-          title: A CS3 item
-          license: PDDL-1.0
-          providers:
-          - name: CoolSat
-            roles:
-            - producer
-            - licensor
-            url: "https://cool-sat.com/"
-          view:sun_azimuth: 168.7
-          eo:cloud_cover: 0.12
-          view:off_nadir: 1.4
-          platform: coolsat2
-          instruments:
-          - cool_sensor_v1
-          view:sun_elevation: 33.4
-        collection: CS3
-        links:
-        - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
-          rel: license
-          title: Licence for the free geodata of the Federal Office of Topography
-            swisstopo
-        - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
-          rel: describedby
+          id:
+            $ref: "#/components/schemas/itemId"
+      - $ref: "#/components/schemas/writeItem"
+    updateItem:
+      allOf:
+      - type: object
+        required:
+        - id
+        properties:
+          id:
+            $ref: "#/components/schemas/itemIdUpdate"
+      - $ref: "#/components/schemas/writeItem"
     partialItem:
       type: object
       properties:
@@ -1816,6 +1772,12 @@ components:
       type: string
       description: Media type of the asset
       example: image/png
+    itemIdUpdate:
+      description: >-
+        Item identifier (unique per collection. If it doesn't match the `featureId`
+        in path parameters, then the Item is renamed.
+      example: smr200-200-4-2019
+      type: string
 paths:
   /:
     get:
@@ -1969,8 +1931,8 @@ paths:
       tags:
       - Data
     post:
-      summary: Add a new item to a collection
-      description: Create a new item in a specific collection
+      summary: Add a new feature to a collection
+      description: Create a new feature/item in a specific collection
       operationId: postFeature
       tags:
       - Data Management
@@ -1980,7 +1942,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/metaItem"
+              $ref: "#/components/schemas/createItem"
             example:
               type: Feature
               id: CS3-20160503_132131_05
@@ -2038,10 +2000,7 @@ paths:
           content:
             application/geo+json:
               schema:
-                type: string
-            text/html:
-              schema:
-                type: string
+                $ref: "#/components/schemas/item"
         "400":
           $ref: "#/components/responses/BadRequest"
         5XX:
@@ -2092,7 +2051,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/metaItem"
+              $ref: "#/components/schemas/updateItem"
             example:
               type: Feature
               id: CS3-20160503_132131_05
@@ -2145,10 +2104,7 @@ paths:
           content:
             text/html:
               schema:
-                type: string
-            application/json:
-              schema:
-                type: string
+                $ref: "#/components/schemas/item"
         "400":
           $ref: "#/components/responses/BadRequest"
         "404":
