@@ -111,7 +111,7 @@ paths:
         - Data Management
       summary: >-
         Update an existing collection with Id `collectionId` with a partial collection definition
-      operationId: updateCollection
+      operationId: partialUpdateCollection
       parameters:
         - $ref: "#/components/parameters/collectionId"
         - $ref: "#/components/parameters/IfMatch"

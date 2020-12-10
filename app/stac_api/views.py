@@ -86,7 +86,7 @@ def checker(request):
     return JsonResponse(data)
 
 
-class CollectionList(generics.ListAPIView, mixins.CreateModelMixin):
+class CollectionList(generics.GenericAPIView, mixins.CreateModelMixin):
     serializer_class = CollectionSerializer
     queryset = Collection.objects.all()
 
