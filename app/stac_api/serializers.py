@@ -99,8 +99,9 @@ class NonNullModelSerializer(serializers.ModelSerializer):
             for key, value in obj.items():
                 if isinstance(value, dict):
                     filtered_obj[key] = filter_null(value)
-                elif isinstance(value, list) and len(value) > 0:
-                    filtered_obj[key] = value
+                elif isinstance(value, list) and key != 'links':
+                    if len(value) > 0:
+                        filtered_obj[key] = value
                 elif value is not None:
                     filtered_obj[key] = value
             return filtered_obj

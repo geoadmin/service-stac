@@ -128,7 +128,7 @@ class CollectionsEndpointTestCase(TestCase):
         logger.debug(response_json)
         self.assertEqual(response.status_code, 201, msg=get_http_error_description(response_json))
         self.assertNotIn('title', response_json.keys())  # key does not exist
-        self.assertEqual(response_json['providers'], [])
+        self.assertNotIn('providers', response_json.keys())  # key does not exist
 
     def test_collections_less_than_mandatory_post(self):
         # a post with the absolute valid minimum
@@ -167,6 +167,8 @@ class CollectionsEndpointTestCase(TestCase):
 
         self.assertEqual(response.status_code, 200, msg=get_http_error_description(response_json))
         self.assertEqual(response_json['title'], payload_json['title'])
+        self.assertIn('providers', response_json.keys())  # optional value, should exist
+
 
         # is it persistent?
         response = self.client.get(
@@ -217,7 +219,7 @@ class CollectionsEndpointTestCase(TestCase):
         )
         response_json = response.json()
         self.assertNotIn('title', response_json.keys())  # key does not exist
-        self.assertEqual(response_json['providers'], [])
+        self.assertNotIn('providers', response_json.keys())  # key does not exist
 
     def test_collection_patch(self):
         collection_name = self.collections[1].name  # get a name that is registered in the service
