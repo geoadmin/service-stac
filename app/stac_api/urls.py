@@ -45,5 +45,5 @@ urlpatterns = [
     ),
     # https://www.django-rest-framework.org/tutorial/quickstart/#urls
     path(f"{API_BASE}/", include('rest_framework.urls', namespace='rest_framework')),
-    path(F"{API_BASE}/get_token/", obtain_auth_token, name='api-token-auth'),
+    path(f"{API_BASE}/get_token", obtain_auth_token, name='get_token'),
 ]
