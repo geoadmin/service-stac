@@ -38,10 +38,6 @@ paths:
               schema:
                 type: string
                 format: url
-            ETag:
-              schema:
-                type: string
-              description: A string to ensure the collection has been created
           content:
             application/json:
               schema:
@@ -63,7 +59,7 @@ paths:
       operationId: updateCollection
       parameters:
         - $ref: "#/components/parameters/collectionId"
-        - $ref: "#/components/parameters/IfMatch"
+        - $ref: "#/components/parameters/IfMatchWrite"
       requestBody:
         content:
           application/json:
@@ -89,11 +85,6 @@ paths:
       responses:
         "200":
           description: Returns the updated Collection
-          headers:
-            ETag:
-              schema:
-                type: string
-              description: A string to ensure the collection has not been modified
           content:
             application/json:
               schema:
@@ -219,10 +210,6 @@ paths:
               schema:
                 type: string
                 format: url
-            ETag:
-              schema:
-                type: string
-              description: A string to ensure the item has not been modified
           content:
             application/json:
               schema:
@@ -234,14 +221,6 @@ paths:
         "5XX":
           $ref: "#/components/responses/ServerError"
   "/collections/{collectionId}/items/{featureId}":
-    # get:
-    #   responses:
-    #     '200':
-    #       headers:
-    #         ETag:
-    #           schema:
-    #             type: string
-    #           description: A string to ensure the item has not been modified
     put:
       summary: Update an existing feature by Id with a complete item definition
       description: >-
@@ -258,7 +237,7 @@ paths:
       parameters:
         - $ref: "#/components/parameters/collectionId"
         - $ref: "#/components/parameters/featureId"
-        - $ref: "#/components/parameters/IfMatch"
+        - $ref: "#/components/parameters/IfMatchWrite"
       requestBody:
         content:
           application/json:
@@ -307,11 +286,6 @@ paths:
       responses:
         "200":
           description: Returns the updated Item
-          headers:
-            ETag:
-              schema:
-                type: string
-              description: A string to ensure the item has not been modified
           content:
             application/json:
               schema:
@@ -337,7 +311,7 @@ paths:
       parameters:
         - $ref: "#/components/parameters/collectionId"
         - $ref: "#/components/parameters/featureId"
-        - $ref: "#/components/parameters/IfMatchOptional"
+        - $ref: "#/components/parameters/IfMatchWrite"
       requestBody:
         content:
           application/json:
@@ -346,11 +320,6 @@ paths:
       responses:
         "200":
           description: Returns the updated Item
-          headers:
-            ETag:
-              schema:
-                type: string
-              description: A string to ensure the item has not been modified
           content:
             application/json:
               schema:
@@ -374,7 +343,7 @@ paths:
       parameters:
         - $ref: "#/components/parameters/collectionId"
         - $ref: "#/components/parameters/featureId"
-        - $ref: "#/components/parameters/IfMatch"
+        - $ref: "#/components/parameters/IfMatchWrite"
       responses:
         "200":
           $ref: "#/components/responses/DeletedResource"
@@ -441,10 +410,6 @@ paths:
               schema:
                 type: string
                 format: url
-            ETag:
-              schema:
-                type: string
-              description: A string to ensure the item has not been modified
           content:
             application/json:
               schema:
@@ -467,16 +432,17 @@ paths:
         - $ref: "#/components/parameters/collectionId"
         - $ref: "#/components/parameters/featureId"
         - $ref: "#/components/parameters/assetId"
+        - $ref: "#/components/parameters/IfMatch"
+        - $ref: "#/components/parameters/IfNoneMatch"
       responses:
         "200":
           $ref: "#/components/responses/Asset"
-          # headers:
-          #   ETag:
-          #     description: A string to ensure the asset has not been modified
-          #     schema:
-          #       type: string
+        "304":
+          $ref: "#/components/responses/NotModified"
         "404":
           $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
         "500":
           $ref: "#/components/responses/ServerError"
       summary: Fetch a single asset
@@ -494,7 +460,7 @@ paths:
         - $ref: "#/components/parameters/collectionId"
         - $ref: "#/components/parameters/featureId"
         - $ref: "#/components/parameters/assetId"
-        - $ref: "#/components/parameters/IfMatch"
+        - $ref: "#/components/parameters/IfMatchWrite"
       requestBody:
         content:
           application/json:
@@ -503,11 +469,6 @@ paths:
       responses:
         "200":
           description: Status of the update request.
-          headers:
-            ETag:
-              schema:
-                type: string
-              description: A string to ensure the asset has not been modified
           content:
             text/html:
               schema:
@@ -535,7 +496,7 @@ paths:
         - $ref: "#/components/parameters/collectionId"
         - $ref: "#/components/parameters/featureId"
         - $ref: "#/components/parameters/assetId"
-        - $ref: "#/components/parameters/IfMatchOptional"
+        - $ref: "#/components/parameters/IfMatchWrite"
       requestBody:
         content:
           application/json:
@@ -544,11 +505,6 @@ paths:
       responses:
         "200":
           description: Status of the update request.
-          headers:
-            ETag:
-              schema:
-                type: string
-              description: A string to ensure the asset has not been modified
           content:
             text/html:
               schema:
@@ -574,7 +530,7 @@ paths:
         - $ref: "#/components/parameters/collectionId"
         - $ref: "#/components/parameters/featureId"
         - $ref: "#/components/parameters/assetId"
-        - $ref: "#/components/parameters/IfMatch"
+        - $ref: "#/components/parameters/IfMatchWrite"
       responses:
         "200":
           $ref: "#/components/responses/DeletedResource"
@@ -596,22 +552,21 @@ components:
       required: true
       schema:
         type: string
-    IfMatch:
+    IfMatchWrite:
       name: If-Match
       in: header
-      description: >-
-        Only take the action if the ETag of the item/collection still matches
-      required: true
       schema:
         type: string
-    IfMatchOptional:
-      name: If-Match
-      in: header
       description: >-
-        Only take the action if the ETag of the item/collection still matches
-      required: false
-      schema:
-        type: string
+        The RFC7232 `If-Match` header field makes the PUT/PATCH/DEL request method conditional. It is
+        composed of a comma separated list of ETags or value "*".
+
+
+        The server compares the client's ETags (sent with `If-Match`) with the ETag for its
+        current version of the resource, and if both values don't match (that is, the resource has changed),
+        the server sends back a `412 Precondition Failed` status, without a body, which tells the client that
+        he would overwrite another changes of the resource.
+      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
   schemas:
     description:
       type: string
@@ -884,6 +839,9 @@ components:
     Asset:
       description: >-
         The response is a document consisting of one asset of the feature.
+      headers:
+        ETag:
+          $ref: "#/components/schemas/ETag"
       content:
         application/json:
           schema:
@@ -933,15 +891,6 @@ components:
           example:
             code: 403
             description: "Permission denied"
-    PreconditionFailed:
-      description: Some condition specified by the request could not be met in the server
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/exception"
-          example:
-            code: 412
-            description: "Precondition not met"
 # Note: this is defined as an overwrite in 'overwrites', since defining it here would violate
 # the alphabetical order of the tags ending up in openapi.yaml, see https://speccy.io/rules/1-rulesets#openapi-tags-alphabetical
 # tags:
