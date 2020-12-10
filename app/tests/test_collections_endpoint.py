@@ -1,16 +1,10 @@
-import json
 import logging
 from pprint import pformat
 
-from django.apps import apps
 from django.conf import settings
-from django.contrib.auth import get_user_model
-from django.contrib.auth.models import Permission
-from django.contrib.contenttypes.models import ContentType
+from django.test import Client
 from django.test import TestCase
 
-from rest_framework.authtoken.models import Token
-from rest_framework.test import APIClient
 from rest_framework.test import APIRequestFactory
 
 from stac_api.serializers import CollectionSerializer
@@ -26,26 +20,6 @@ logger = logging.getLogger(__name__)
 API_BASE = settings.API_BASE
 
 
-def grant_permissions(model_name, user):
-    '''
-    grant the required permissions to a test user in order to
-    perform e.g. POST or PUT on the specified view
-    :param model_name: name of model, for which the permissions are granted
-    :param user: user, to whom the permissions are granted
-    '''
-    model_dict = apps.all_models['stac_api']
-    # grant permissions needed for specified view
-    for perm in ['add_', 'change_', 'delete_', 'view_']:
-        content_type = ContentType.objects.get_for_model(model_dict[model_name.lower()])
-        permission = Permission.objects.get(
-            codename=perm + model_name.lower(),
-            content_type=content_type,
-        )
-        user.user_permissions.add(permission)
-    user.save()
-    user.refresh_from_db()
-
-
 class CollectionsEndpointTestCase(TestCase):
 
 <<<<<<< HEAD
@@ -53,8 +27,12 @@ class CollectionsEndpointTestCase(TestCase):
         self.client = Client()
 =======
     def setUp(self):
+<<<<<<< HEAD
         self.client = APIClient()
 >>>>>>> BGDIINF_SB-1491: added basic, token and session authentication
+=======
+        self.client = Client()
+>>>>>>> BGDIINF_SB-1491: adapted urls.py
         self.factory = APIRequestFactory()
         self.collections, self.items, self.assets = db.create_dummy_db_content(4, 4, 4)
         self.maxDiff = None  # pylint: disable=invalid-name
