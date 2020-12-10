@@ -17,11 +17,13 @@ def update_summaries_on_asset_delete(collection, asset):
     '''
     updates the collection's summaries on an asset's deletion or raises
     errors when this fails.
-    :param collection: collection, for which the summaries probably need an update
-    :param asset: asset thats being deleted
-    For all the given parameters this function checks, if the corresponding
-    parameters of the collection need to be updated. If so, they will be either
-    updated or an error will be raised, if updating fails.
+    Args:
+        collection: collection, for which the summaries probably need an update
+        asset: asset thats being deleted
+
+        For all the given parameters this function checks, if the corresponding
+        parameters of the collection need to be updated. If so, they will be either
+        updated or an error will be raised, if updating fails.
     '''
     assets = type(asset).objects.filter(item__collection_id=collection.pk).exclude(id=asset.id)
     if bool(assets):
@@ -52,11 +54,12 @@ def update_summaries_on_asset_insert(collection, asset):
     '''
     updates the collection's summaries on an asset's insertion or raises
     errors when this fails.
-    :param collection: collection, for which the summaries probably need an update
-    :param asset: asset thats being inserted
-    For all the given parameters this function checks, if the corresponding
-    parameters of the collection need to be updated. If so, they will be either
-    updated or an error will be raised, if updating fails.
+    Args:
+        collection: collection, for which the summaries probably need an update
+        asset: asset thats being inserted
+        For all the given parameters this function checks, if the corresponding
+        parameters of the collection need to be updated. If so, they will be either
+        updated or an error will be raised, if updating fails.
     '''
     if asset.geoadmin_variant and \
         asset.geoadmin_variant not in collection.summaries["geoadmin:variant"]:
@@ -80,13 +83,14 @@ def update_summaries_on_asset_update(collection, asset, old_values):
     '''
     updates the collection's summaries on an asset's update or raises
     errors when this fails.
-    :param collection: collection, for which the summaries probably need an update
-    :param asset: asset thats being updated
-    :param old_values: (optional) list with the original values of asset's
-    eo_gsd, geoadmin_variant and proj_epsg.
-    For all the given parameters this function checks, if the corresponding
-    parameters of the collection need to be updated. If so, they will be either
-    updated or an error will be raised, if updating fails.
+    Args:
+        collection: collection, for which the summaries probably need an update
+        asset: asset thats being updated
+        old_values: (optional) list with the original values of asset's
+        eo_gsd, geoadmin_variant and proj_epsg.
+        For all the given parameters this function checks, if the corresponding
+        parameters of the collection need to be updated. If so, they will be either
+        updated or an error will be raised, if updating fails.
     '''
 
     original_eo_gsd = old_values[0]
@@ -151,14 +155,15 @@ def update_summaries(collection, asset, deleted, old_values=None):
     '''
     updates the collection's summaries when assets are updated or deleted or raises
     errors when this fails.
-    :param collection: collection, for which the summaries probably need an update
-    :param asset: asset thats being inserted/updated or deleted
-    :param deleted: true for asset deleteion, false for insertion or update
-    :param old_values: (optional) list with the original values of asset's
-    eo_gsd, geoadmin_variant and proj_epsg.
-    For all the given parameters this function checks, if the corresponding
-    parameters of the collection need to be updated. If so, they will be either
-    updated or an error will be raised, if updating fails.
+    Args:
+        collection: collection, for which the summaries probably need an update
+        asset: asset thats being inserted/updated or deleted
+        deleted: true for asset deleteion, false for insertion or update
+        old_values: (optional) list with the original values of asset's
+        eo_gsd, geoadmin_variant and proj_epsg.
+        For all the given parameters this function checks, if the corresponding
+        parameters of the collection need to be updated. If so, they will be either
+        updated or an error will be raised, if updating fails.
     '''
 
     if deleted:

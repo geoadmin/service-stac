@@ -78,7 +78,14 @@ def validate_geometry(geometry):
     '''
     A validator function that ensures, that only valid
     geometries are stored.
-    param: geometry
+    Args:
+         geometry: The geometry that will be validated
+
+    Returns:
+        The geometry, when tested valid
+
+    Raises:
+        ValidateionError: About that the geometry is not valid
     '''
     geos_geometry = GEOSGeometry(geometry)
     if geos_geometry.empty:
@@ -138,10 +145,11 @@ def validate_item_properties_datetimes(
 
 
 def get_conformance_default_links():
-    '''
-    A helper function of the class Conformance Page
-    to make it possible to define the default values as a callable
-    :return: a list of urls
+    '''A helper function of the class Conformance Page
+
+    The function makes it possible to define the default values as a callable
+    Returns:
+        a list of urls
     '''
     default_links = (
         'http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/core',
