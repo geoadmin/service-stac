@@ -124,10 +124,13 @@ class CollectionList(generics.ListAPIView, mixins.CreateModelMixin):
         return Response(data)
 
 
-class CollectionDetail(generics.RetrieveAPIView, mixins.UpdateModelMixin):
+class CollectionDetail(generics.GenericAPIView, mixins.RetrieveModelMixin, mixins.UpdateModelMixin):
     serializer_class = CollectionSerializer
     lookup_url_kwarg = "collection_name"
     queryset = Collection.objects.all()
+
+    def get(self, request, *args, **kwargs):
+        return self.retrieve(request, *args, **kwargs)
 
     def put(self, request, *args, **kwargs):
         return self.update(request, *args, **kwargs)

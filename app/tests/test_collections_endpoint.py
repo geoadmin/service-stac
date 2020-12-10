@@ -22,7 +22,7 @@ API_BASE = settings.API_BASE
 
 class CollectionsEndpointTestCase(TestCase):
 
-    def setUp(self):
+    def setUp(self): # pylint: disable=invalid-name
         self.client = Client()
         self.factory = APIRequestFactory()
         self.collections, self.items, self.assets = db.create_dummy_db_content(4, 4, 4)
@@ -182,7 +182,8 @@ class CollectionsEndpointTestCase(TestCase):
 
     def test_collection_put_change_id(self):
         payload_json = self.sample_collections['valid_collection_set_3']
-        logger.debug(self.collections[0].name)
+        # for the start, the id have to be different
+        self.assertNotEqual(self.collections[0].name, payload_json['id'])
         response = self.client.put(
             f"/{API_BASE}/collections/{self.collections[0].name}",
             data=payload_json,
@@ -201,12 +202,16 @@ class CollectionsEndpointTestCase(TestCase):
         response_json = response.json()
         self.assertEqual(response.status_code, 404, msg=get_http_error_description(response_json))
 
-    def test_collection_put_none_values(self):
-        collection_name = self.collections[1].name
+    def test_collection_put_remove_optional_fields(self):
+        collection_name = self.collections[1].name  # get a name that is registered in the service
         payload_json = self.sample_collections['valid_min_collection_set_2']
-        payload_json['id'] = collection_name
+        payload_json['id'] = collection_name  # rename the payload to this name
+        # for the start, the collection[1] has to have a title
+        self.assertNotEqual('', f'{self.collections[1].title}')
+        # for the start, the collection[1] has to have providers
+        self.assertNotEqual(self.collections[1].providers, [])
         response = self.client.put(
-            f"/{API_BASE}/collections/{collection_name}",
+            f"/{API_BASE}/collections/{payload_json['id']}",
             data=payload_json,
             content_type='application/json'
         )
