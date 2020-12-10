@@ -135,6 +135,9 @@ class CollectionDetail(generics.GenericAPIView, mixins.RetrieveModelMixin, mixin
     def put(self, request, *args, **kwargs):
         return self.update(request, *args, **kwargs)
 
+    def patch(self, request, *args, **kwargs):
+        return self.partial_update(request, *args, **kwargs)
+
     def get_object(self):
         collection_name = self.kwargs.get(self.lookup_url_kwarg)
         queryset = self.get_queryset().filter(name=collection_name)

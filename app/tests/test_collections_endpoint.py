@@ -218,3 +218,23 @@ class CollectionsEndpointTestCase(TestCase):
         response_json = response.json()
         self.assertNotIn('title', response_json.keys())  # key does not exist
         self.assertEqual(response_json['providers'], [])
+
+    def test_collection_patch(self):
+        collection_name = self.collections[1].name  # get a name that is registered in the service
+        payload_json = self.sample_collections['less_than_min_collection_set']
+        payload_json['id'] = collection_name  # rename the payload to this name
+        # for the start, the collection[1] has to have a different licence than the payload
+        self.assertNotEqual(self.collections[1].license, payload_json['license'])
+        # for start the payload has no description
+        self.assertNotIn('title', payload_json.keys())
+        response = self.client.patch(
+            f"/{API_BASE}/collections/{payload_json['id']}",
+            data=payload_json,
+            content_type='application/json'
+        )
+        response_json = response.json()
+        # licence affected by patch
+        self.assertEqual(payload_json['license'], response_json['license'])
+
+        # description not affected by patch
+        self.assertEqual(self.collections[1].description, response_json['description'])
