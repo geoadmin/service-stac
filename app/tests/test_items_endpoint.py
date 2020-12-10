@@ -42,7 +42,7 @@ def to_dict(input_ordered_dict):
 
 class ItemsEndpointTestCase(StacBaseTestCase):
 
-    def setUp(self):
+    def setUp(self): # pylint: disable=invalid-name
         self.factory = APIRequestFactory()
         self.client = Client()
         self.collections, self.items, self.assets = db.create_dummy_db_content(4, 4, 4)

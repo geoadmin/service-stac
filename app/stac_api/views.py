@@ -86,13 +86,15 @@ def checker(request):
     return JsonResponse(data)
 
 
-class CollectionList(generics.ListAPIView):
+class CollectionList(generics.GenericAPIView, mixins.CreateModelMixin):
     serializer_class = CollectionSerializer
     queryset = Collection.objects.all()
 
-    def list(self, request, *args, **kwargs):
-        queryset = self.filter_queryset(self.get_queryset())
+    def post(self, request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)
 
+    def get(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
@@ -122,10 +124,19 @@ class CollectionList(generics.ListAPIView):
         return Response(data)
 
 
-class CollectionDetail(generics.RetrieveAPIView):
+class CollectionDetail(generics.GenericAPIView, mixins.RetrieveModelMixin, mixins.UpdateModelMixin):
     serializer_class = CollectionSerializer
     lookup_url_kwarg = "collection_name"
     queryset = Collection.objects.all()
+
+    def get(self, request, *args, **kwargs):
+        return self.retrieve(request, *args, **kwargs)
+
+    def put(self, request, *args, **kwargs):
+        return self.update(request, *args, **kwargs)
+
+    def patch(self, request, *args, **kwargs):
+        return self.partial_update(request, *args, **kwargs)
 
     def get_object(self):
         collection_name = self.kwargs.get(self.lookup_url_kwarg)

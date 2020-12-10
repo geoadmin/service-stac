@@ -457,6 +457,7 @@ components:
           items:
             type: string
           type: array
+          readOnly: true
         description:
           schema:
             $ref: "#/components/schemas/description"
