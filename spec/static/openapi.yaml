@@ -321,6 +321,9 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/exception"
+          example:
+            code: 400
+            description: "Invalid parameter"
       description: A query parameter has an invalid value.
     LandingPage:
       content:
@@ -359,13 +362,28 @@ components:
         relation `conformance`), and the Feature Collections (path `/collections`,
         link relation `data`).
     NotFound:
-      description: The requested URI was not found.
-    ServerError:
+      description: The specified resource/URI was not found
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/exception"
-      description: A server error occurred.
+          example:
+            code: 404
+            description: "Resource not found"
+    ServerError:
+      description: >-
+        The request was syntactically and semantically valid, but an error occurred
+        while trying to act upon it
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/exception"
+          example:
+            code: 500
+            description: "Internal server error"
+        text/html:
+          schema:
+            type: string
   schemas:
     bbox:
       description: >-
@@ -652,7 +670,8 @@ components:
         Information about the exception: an error code plus an optional description.
       properties:
         code:
-          type: string
+          type: int
+          example: 500
         description:
           type: string
       required:
@@ -801,7 +820,7 @@ components:
         intersects:
           $ref: https://geojson.org/schema/Geometry.json
       type: object
-    item:
+    itemBase:
       description: >-
         A GeoJSON Feature augmented with foreign members that contain values relevant
         to a STAC entity
@@ -812,21 +831,6 @@ components:
           $ref: "#/components/schemas/bbox"
         geometry:
           $ref: "#/components/schemas/geometryGeoJSON"
-        id:
-          $ref: "#/components/schemas/itemId"
-        links:
-          items:
-            $ref: "#/components/schemas/link"
-          type: array
-          example:
-          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr50-263-2016
-            rel: self
-          - href: https://data.geo.admin.ch/api/stac/v0.9/
-            rel: root
-          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items
-            rel: parent
-          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
-            rel: collection
         properties:
           $ref: "#/components/schemas/itemProperties"
         stac_extensions:
@@ -839,14 +843,35 @@ components:
           $ref: "#/components/schemas/itemType"
       required:
       - stac_version
-      - id
       - type
       - geometry
       - bbox
-      - links
       - properties
       - assets
       type: object
+    item:
+      allOf:
+      - type: object
+        required:
+        - id
+        - links
+        properties:
+          id:
+            $ref: "#/components/schemas/itemId"
+          links:
+            items:
+              $ref: "#/components/schemas/link"
+            type: array
+            example:
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr50-263-2016
+              rel: self
+            - href: https://data.geo.admin.ch/api/stac/v0.9/
+              rel: root
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items
+              rel: parent
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+              rel: collection
+      - $ref: "#/components/schemas/itemBase"
     items:
       description: >-
         A FeatureCollection augmented with foreign members that contain values relevant
@@ -930,6 +955,7 @@ components:
         - id
         type: object
       type: object
+      readOnly: true
       example:
         smr50-263-2016-2056-kgrs-2.5.tiff:
           checksum:multihash: 90e402107a7f2588a85362b9beea2a12d4514d45
@@ -1611,22 +1637,15 @@ paths:
       responses:
         "200":
           content:
-            application/geo+json:
+            application/json:
               schema:
                 $ref: "#/components/schemas/itemCollection"
             text/html:
               schema:
                 type: string
           description: A feature collection.
-        default:
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/exception"
-            text/html:
-              schema:
-                type: string
-          description: An error occurred.
+        "500":
+          $ref: "#/components/responses/ServerError"
       summary: Search STAC items with simple filtering.
       tags:
       - STAC
@@ -1649,22 +1668,15 @@ paths:
       responses:
         "200":
           content:
-            application/geo+json:
+            application/json:
               schema:
                 $ref: "#/components/schemas/itemCollection"
             text/html:
               schema:
                 type: string
           description: A feature collection.
-        default:
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/exception"
-            text/html:
-              schema:
-                type: string
-          description: An error occurred.
+        "500":
+          $ref: "#/components/responses/ServerError"
       summary: Search STAC items with full-featured filtering.
       tags:
       - STAC

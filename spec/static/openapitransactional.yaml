@@ -215,7 +215,7 @@ components:
       name: If-Match
       in: header
       description: >-
-        Only take the action if the ETag of the item still matches
+        Only take the action if the ETag of the item/collection still matches
       required: true
       schema:
         type: string
@@ -223,7 +223,7 @@ components:
       name: If-Match
       in: header
       description: >-
-        Only take the action if the ETag of the item still matches
+        Only take the action if the ETag of the item/collection still matches
       required: false
       schema:
         type: string
@@ -344,6 +344,9 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/exception"
+          example:
+            code: 400
+            description: "Invalid parameter"
       description: A query parameter has an invalid value.
     LandingPage:
       content:
@@ -382,17 +385,28 @@ components:
         relation `conformance`), and the Feature Collections (path `/collections`,
         link relation `data`).
     NotFound:
-      description: The specified resource was not found
+      description: The specified resource/URI was not found
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/exception"
+          example:
+            code: 404
+            description: "Resource not found"
     ServerError:
+      description: >-
+        The request was syntactically and semantically valid, but an error occurred
+        while trying to act upon it
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/exception"
-      description: A server error occurred.
+          example:
+            code: 500
+            description: "Internal server error"
+        text/html:
+          schema:
+            type: string
     Assets:
       description: >-
         The response is a document consisting of all assets of the feature.
@@ -407,18 +421,52 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/itemAsset"
+    DeletedResource:
+      description: Status of the delete resource
+      content:
+        application/json:
+          schema:
+            description: >-
+              Information about the deleted resource and a link to the parent resource
+            type: object
+            properties:
+              code:
+                type: int
+                example: 200
+              description:
+                type: string
+                example: Resource successfully deleted
+              links:
+                type: array
+                items:
+                  $ref: "#/components/schemas/link"
+                description: >-
+                  The array contain at least a link to the parent resource (`rel:
+                  parent`).
+                example:
+                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items
+                  rel: parent
+            required:
+            - code
+            - links
     BadRequest:
       description: The request was malformed or semantically invalid
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/exception"
+          example:
+            code: 400
+            description: "Invalid parameter"
     PermissionDenied:
       description: No Permission for this request
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/exception"
+          example:
+            code: 403
+            description: "Permission denied"
     PreconditionFailed:
       description: Some condition specified by the request could not be met in the
         server
@@ -426,14 +474,9 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/exception"
-    InternalServerError:
-      description: >-
-        The request was syntactically and semantically valid, but an error occurred
-        while trying to act upon it
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/exception"
+          example:
+            code: 412
+            description: "Precondition not met"
   schemas:
     bbox:
       description: >-
@@ -720,7 +763,8 @@ components:
         Information about the exception: an error code plus an optional description.
       properties:
         code:
-          type: string
+          type: int
+          example: 500
         description:
           type: string
       required:
@@ -869,7 +913,7 @@ components:
         intersects:
           $ref: https://geojson.org/schema/Geometry.json
       type: object
-    item:
+    itemBase:
       description: >-
         A GeoJSON Feature augmented with foreign members that contain values relevant
         to a STAC entity
@@ -880,21 +924,6 @@ components:
           $ref: "#/components/schemas/bbox"
         geometry:
           $ref: "#/components/schemas/geometryGeoJSON"
-        id:
-          $ref: "#/components/schemas/itemId"
-        links:
-          items:
-            $ref: "#/components/schemas/link"
-          type: array
-          example:
-          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr50-263-2016
-            rel: self
-          - href: https://data.geo.admin.ch/api/stac/v0.9/
-            rel: root
-          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items
-            rel: parent
-          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
-            rel: collection
         properties:
           $ref: "#/components/schemas/itemProperties"
         stac_extensions:
@@ -907,14 +936,35 @@ components:
           $ref: "#/components/schemas/itemType"
       required:
       - stac_version
-      - id
       - type
       - geometry
       - bbox
-      - links
       - properties
       - assets
       type: object
+    item:
+      allOf:
+      - type: object
+        required:
+        - id
+        - links
+        properties:
+          id:
+            $ref: "#/components/schemas/itemId"
+          links:
+            items:
+              $ref: "#/components/schemas/link"
+            type: array
+            example:
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr50-263-2016
+              rel: self
+            - href: https://data.geo.admin.ch/api/stac/v0.9/
+              rel: root
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items
+              rel: parent
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+              rel: collection
+      - $ref: "#/components/schemas/itemBase"
     items:
       description: >-
         A FeatureCollection augmented with foreign members that contain values relevant
@@ -999,6 +1049,7 @@ components:
         type: object
         $ref: "#/components/schemas/itemAsset"
       type: object
+      readOnly: true
       example:
         smr50-263-2016-2056-kgrs-2.5.tiff:
           checksum:multihash: 90e402107a7f2588a85362b9beea2a12d4514d45
@@ -1563,7 +1614,7 @@ components:
         of the `assetId`, so it's perfectly ok to have one asset with id `smr50-263-2016-2056-kgrs-2.5.tiff`
         and another one with id `smr50-263-2016-2056-kgrs-2.5.png`
       example: smr50-263-2016-2056-kgrs-2.5.tiff
-    itemBase:
+    assetBase:
       type: object
       required:
       - "checksum:multihash"
@@ -1640,120 +1691,55 @@ components:
             $ref: "#/components/schemas/copyFromHref"
         example:
           description: The new description of the asset
-    metaItem:
-      description: >-
-        A GeoJSON Feature augmented with foreign members that contain values relevant
-        to a STAC entity
+    writeItem:
+      allOf:
+      - $ref: "#/components/schemas/itemBase"
+      - type: object
+        properties:
+          links:
+            items:
+              $ref: "#/components/schemas/link"
+            type: array
+            description: >-
+              Add additional link to the generated ones (`self`, `root`, `parent`,
+              `items`, `collection`, `next`, `previous`)
+    createItem:
+      allOf:
+      - type: object
+        required:
+        - id
+        properties:
+          id:
+            $ref: "#/components/schemas/itemId"
+      - $ref: "#/components/schemas/writeItem"
+    updateItem:
+      allOf:
+      - type: object
+        required:
+        - id
+        properties:
+          id:
+            $ref: "#/components/schemas/itemIdUpdate"
+      - $ref: "#/components/schemas/writeItem"
+    partialItem:
       type: object
-      required:
-      - stac_version
-      - id
-      - type
-      - geometry
-      - bbox
-      - links
-      - properties
-      - assets
       properties:
-        stac_version:
-          $ref: "#/components/schemas/stac_version"
-        stac_extensions:
-          $ref: "#/components/schemas/stac_extensions"
         id:
-          $ref: "#/components/schemas/itemId"
-        bbox:
-          $ref: "#/components/schemas/bbox"
+          $ref: "#/components/schemas/itemIdUpdate"
         geometry:
           $ref: "https://geojson.org/schema/Geometry.json"
-        type:
-          $ref: "#/components/schemas/itemType"
         properties:
           $ref: "#/components/schemas/itemProperties"
         links:
           type: array
           items:
             $ref: "#/components/schemas/link"
+          description: >-
+            Add/update additional link to the generated ones (`self`, `root`, `parent`,
+            `items`, `collection`, `next`, `previous`)
       example:
-        stac_version: 0.9.0
-        stac_extensions:
-        - eo
-        - view
-        - "https://example.com/cs-extension/1.0/schema.json"
-        type: Feature
-        id: CS3-20160503_132131_05
-        bbox:
-        - -122.59750209
-        - 37.48803556
-        - -122.2880486
-        - 37.613537207
-        geometry:
-          type: Polygon
-          coordinates:
-          - - - -122.308150179
-              - 37.488035566
-            - - -122.597502109
-              - 37.538869539
-            - - -122.576687533
-              - 37.613537207
-            - - -122.2880486
-              - 37.562818007
-            - - -122.308150179
-              - 37.488035566
         properties:
           datetime: "2016-05-03T13:22:30.040Z"
-          title: A CS3 item
-          license: PDDL-1.0
-          providers:
-          - name: CoolSat
-            roles:
-            - producer
-            - licensor
-            url: "https://cool-sat.com/"
-          view:sun_azimuth: 168.7
-          eo:cloud_cover: 0.12
-          view:off_nadir: 1.4
-          platform: coolsat2
-          instruments:
-          - cool_sensor_v1
-          view:sun_elevation: 33.4
-        collection: CS3
-        links:
-        - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
-          rel: license
-          title: Licence for the free geodata of the Federal Office of Topography
-            swisstopo
-        - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
-          rel: describedby
-    partialItem:
-      type: object
-      properties:
-        stac_version:
-          $ref: "#/components/schemas/stac_version"
-        stac_extensions:
-          $ref: "#/components/schemas/stac_extensions"
-        id:
-          $ref: "#/components/schemas/itemId"
-        bbox:
-          $ref: "#/components/schemas/bbox"
-        geometry:
-          $ref: "https://geojson.org/schema/Geometry.json"
-        type:
-          $ref: "#/components/schemas/itemType"
-        properties:
-          $ref: "#/components/schemas/partialItemProperties"
-        links:
-          type: array
-          items:
-            $ref: "#/components/schemas/link"
-      example:
-        datetime: "2016-05-03T13:22:30.040Z"
-    partialItemProperties:
-      type: object
-      description: Allows for partial collections of metadata fields
-      additionalProperties: true
-      properties:
-        datetime:
-          $ref: "#/components/schemas/datetime"
     partialCollection:
       type: object
       description: Allows for a set of partial metadata fields for a collection
@@ -1816,6 +1802,12 @@ components:
       type: string
       description: Media type of the asset
       example: image/png
+    itemIdUpdate:
+      description: >-
+        Item identifier (unique per collection. If it doesn't match the `featureId`
+        in path parameters, then the Item is renamed.
+      example: smr200-200-4-2019
+      type: string
 paths:
   /:
     get:
@@ -1878,7 +1870,25 @@ paths:
               title: National Map 1:200'000
       responses:
         "201":
-          $ref: "#/components/responses/Collection"
+          description: Returns the created Collection
+          headers:
+            Location:
+              description: A link to the collection
+              schema:
+                type: string
+                format: url
+            ETag:
+              schema:
+                type: string
+              description: A string to ensure the collection has been created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/collection"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "500":
+          $ref: "#/components/responses/ServerError"
   /collections/{collectionId}:
     get:
       operationId: describeCollection
@@ -1903,6 +1913,7 @@ paths:
       operationId: updateCollection
       parameters:
       - $ref: "#/components/parameters/collectionId"
+      - $ref: "#/components/parameters/IfMatch"
       requestBody:
         content:
           application/json:
@@ -1931,11 +1942,22 @@ paths:
               title: National Map 1:200'000
       responses:
         "200":
-          $ref: "#/components/responses/Collection"
+          description: Returns the updated Collection
+          headers:
+            ETag:
+              schema:
+                type: string
+              description: A string to ensure the collection has not been modified
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/collection"
         "403":
           $ref: "#/components/responses/PermissionDenied"
         "404":
           $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
         "500":
           $ref: "#/components/responses/ServerError"
   /collections/{collectionId}/items:
@@ -1969,8 +1991,8 @@ paths:
       tags:
       - Data
     post:
-      summary: Add a new item to a collection
-      description: Create a new item in a specific collection
+      summary: Add a new feature to a collection
+      description: Create a new feature/item in a specific collection
       operationId: postFeature
       tags:
       - Data Management
@@ -1980,7 +2002,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/metaItem"
+              $ref: "#/components/schemas/createItem"
             example:
               type: Feature
               id: CS3-20160503_132131_05
@@ -2024,7 +2046,7 @@ paths:
                 rel: describedby
       responses:
         "201":
-          description: Status of the create request.
+          description: Return the created Item.
           headers:
             Location:
               description: A link to the item
@@ -2036,25 +2058,15 @@ paths:
                 type: string
               description: A string to ensure the item has not been modified
           content:
-            application/geo+json:
-              schema:
-                type: string
-            text/html:
-              schema:
-                type: string
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        5XX:
-          $ref: "#/components/responses/InternalServerError"
-        default:
-          description: An error occurred.
-          content:
             application/json:
               schema:
-                $ref: "#/components/schemas/exception"
-            text/html:
-              schema:
-                type: string
+                $ref: "#/components/schemas/item"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        5XX:
+          $ref: "#/components/responses/ServerError"
   /collections/{collectionId}/items/{featureId}:
     get:
       description: >-
@@ -2079,8 +2091,13 @@ paths:
     put:
       summary: Update an existing feature by Id with a complete item definition
       description: >-
-        Use this method to update an existing feature. Requires the entire GeoJSON 
-        description be submitted.
+        Use this method to update an existing feature. Requires the entire JSON description
+        be submitted.
+
+
+        *NOTE: Optional fields that are not part of the PUT payload, will be erased
+        in the resource. For example if the resource as a properties.title and the
+        PUT payload doesn't, then the resource properties.title will be removed.*
       operationId: putFeature
       tags:
       - Data Management
@@ -2092,7 +2109,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/metaItem"
+              $ref: "#/components/schemas/updateItem"
             example:
               type: Feature
               id: CS3-20160503_132131_05
@@ -2136,41 +2153,31 @@ paths:
                 rel: describedby
       responses:
         "200":
-          description: Status of the update request.
+          description: Returns the updated Item
           headers:
             ETag:
               schema:
                 type: string
               description: A string to ensure the item has not been modified
           content:
-            text/html:
-              schema:
-                type: string
             application/json:
               schema:
-                type: string
+                $ref: "#/components/schemas/item"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
         "404":
           $ref: "#/components/responses/NotFound"
         "412":
           $ref: "#/components/responses/PreconditionFailed"
         5XX:
-          $ref: "#/components/responses/InternalServerError"
-        default:
-          description: An error occurred.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/exception"
-            text/html:
-              schema:
-                type: string
+          $ref: "#/components/responses/ServerError"
     patch:
       summary: Update an existing feature by Id with a partial item definition
       description: >-
-        Use this method to update an existing feature. Requires a GeoJSON fragment
-        (containing the fields to be updated) be submitted.
+        Use this method to update an existing feature. Requires a JSON fragment (containing
+        the fields to be updated) be submitted.
       operationId: patchFeature
       tags:
       - Data Management
@@ -2185,37 +2192,29 @@ paths:
               $ref: "#/components/schemas/partialItem"
       responses:
         "200":
-          description: Status of the update request.
+          description: Returns the updated Item
           headers:
             ETag:
               schema:
                 type: string
               description: A string to ensure the item has not been modified
           content:
-            text/html:
-              schema:
-                type: string
             application/json:
               schema:
-                type: string
+                $ref: "#/components/schemas/item"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
         "404":
           $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
         5XX:
-          $ref: "#/components/responses/InternalServerError"
-        default:
-          description: An error occurred.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/exception"
-            text/html:
-              schema:
-                type: string
+          $ref: "#/components/responses/ServerError"
     delete:
       summary: Delete an existing feature by Id
-      description: Use this method to delete an existing feature.
+      description: Use this method to delete an existing feature/item.
       operationId: deleteFeature
       tags:
       - Data Management
@@ -2224,23 +2223,16 @@ paths:
       - $ref: "#/components/parameters/featureId"
       - $ref: "#/components/parameters/IfMatch"
       responses:
-        "204":
-          description: Status of the delete request.
+        "200":
+          $ref: "#/components/responses/DeletedResource"
         "400":
           $ref: "#/components/responses/BadRequest"
         "404":
           $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
         5XX:
-          $ref: "#/components/responses/InternalServerError"
-        default:
-          description: An error occurred.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/exception"
-            text/html:
-              schema:
-                type: string
+          $ref: "#/components/responses/ServerError"
   /conformance:
     get:
       description: >-
@@ -2280,22 +2272,15 @@ paths:
       responses:
         "200":
           content:
-            application/geo+json:
+            application/json:
               schema:
                 $ref: "#/components/schemas/itemCollection"
             text/html:
               schema:
                 type: string
           description: A feature collection.
-        default:
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/exception"
-            text/html:
-              schema:
-                type: string
-          description: An error occurred.
+        "500":
+          $ref: "#/components/responses/ServerError"
       summary: Search STAC items with simple filtering.
       tags:
       - STAC
@@ -2318,22 +2303,15 @@ paths:
       responses:
         "200":
           content:
-            application/geo+json:
+            application/json:
               schema:
                 $ref: "#/components/schemas/itemCollection"
             text/html:
               schema:
                 type: string
           description: A feature collection.
-        default:
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/exception"
-            text/html:
-              schema:
-                type: string
-          description: An error occurred.
+        "500":
+          $ref: "#/components/responses/ServerError"
       summary: Search STAC items with full-featured filtering.
       tags:
       - STAC
@@ -2396,7 +2374,7 @@ paths:
                 type: string
               description: A string to ensure the item has not been modified
           content:
-            application/geo+json:
+            application/json:
               schema:
                 type: string
             text/html:
@@ -2405,16 +2383,7 @@ paths:
         "400":
           $ref: "#/components/responses/BadRequest"
         5XX:
-          $ref: "#/components/responses/InternalServerError"
-        default:
-          description: An error occurred.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/exception"
-            text/html:
-              schema:
-                type: string
+          $ref: "#/components/responses/ServerError"
   /collections/{collectionId}/items/{featureId}/assets/{assetId}:
     get:
       description: >-
@@ -2472,17 +2441,10 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "404":
           $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
         5XX:
-          $ref: "#/components/responses/InternalServerError"
-        default:
-          description: An error occurred.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/exception"
-            text/html:
-              schema:
-                type: string
+          $ref: "#/components/responses/ServerError"
     patch:
       summary: Update an existing asset by Id with a partial asset definition
       description: >-
@@ -2520,17 +2482,10 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "404":
           $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
         5XX:
-          $ref: "#/components/responses/InternalServerError"
-        default:
-          description: An error occurred.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/exception"
-            text/html:
-              schema:
-                type: string
+          $ref: "#/components/responses/ServerError"
     delete:
       summary: Delete an existing asset by Id
       description: Use this method to delete an existing asset.
@@ -2543,20 +2498,13 @@ paths:
       - $ref: "#/components/parameters/assetId"
       - $ref: "#/components/parameters/IfMatch"
       responses:
-        "204":
-          description: Status of the delete request.
+        "200":
+          $ref: "#/components/responses/DeletedResource"
         "400":
           $ref: "#/components/responses/BadRequest"
         "404":
           $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
         5XX:
-          $ref: "#/components/responses/InternalServerError"
-        default:
-          description: An error occurred.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/exception"
-            text/html:
-              schema:
-                type: string
+          $ref: "#/components/responses/ServerError"

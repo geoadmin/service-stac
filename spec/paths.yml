@@ -134,22 +134,15 @@ paths:
       responses:
         "200":
           content:
-            application/geo+json:
+            application/json:
               schema:
                 $ref: "#/components/schemas/itemCollection"
             text/html:
               schema:
                 type: string
           description: A feature collection.
-        default:
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/exception"
-            text/html:
-              schema:
-                type: string
-          description: An error occurred.
+        "500":
+          $ref: "#/components/responses/ServerError"
       summary: Search STAC items with simple filtering.
       tags:
         - STAC
@@ -172,22 +165,15 @@ paths:
       responses:
         "200":
           content:
-            application/geo+json:
+            application/json:
               schema:
                 $ref: "#/components/schemas/itemCollection"
             text/html:
               schema:
                 type: string
           description: A feature collection.
-        default:
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/exception"
-            text/html:
-              schema:
-                type: string
-          description: An error occurred.
+        "500":
+          $ref: "#/components/responses/ServerError"
       summary: Search STAC items with full-featured filtering.
       tags:
         - STAC
