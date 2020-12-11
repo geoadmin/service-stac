@@ -7,7 +7,7 @@ from django.core.exceptions import ValidationError
 from django.test import TestCase
 
 from stac_api.models import Item
-from stac_api.models import validate_item_properties_datetimes_dependencies
+from stac_api.validators import validate_item_properties_datetimes_dependencies
 from stac_api.utils import utc_aware
 
 import tests.database as db

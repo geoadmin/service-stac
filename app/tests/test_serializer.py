@@ -381,7 +381,7 @@ class ItemSerializationTestCase(StacBaseTestCase):
                 'asset-1':
                     OrderedDict([
                         ('title', 'my-title'),
-                        ('type', 'image/tiff; application=geotiff; '
+                        ('type', 'image/tiff;application=geotiff;'
                          'profile=cloud-optimize'),
                         ('href', f'http://testserver/{collection_name}/{item_name}/asset-1'),
                         ('description', 'this an asset'),
@@ -870,7 +870,7 @@ class AssetSerializationTestCase(StacBaseTestCase):
             'href': f'http://testserver/{collection_name}/{item_name}/{asset_name}',
             'proj:epsg': 2056,
             'title': 'my-title',
-            'type': 'image/tiff; application=geotiff; profile=cloud-optimize'
+            'type': 'image/tiff;application=geotiff;profile=cloud-optimize'
         }
         self.check_stac_asset(expected, python_native)
 

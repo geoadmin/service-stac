@@ -2,6 +2,8 @@ from django.contrib.gis import admin
 from django.contrib.postgres.fields import ArrayField
 from django.contrib.staticfiles import finders
 from django.db import models
+from django.forms import ChoiceField
+from django.forms import ModelForm
 from django.forms import Textarea
 
 from solo.admin import SingletonModelAdmin
@@ -15,6 +17,13 @@ from stac_api.models import ItemLink
 from stac_api.models import LandingPage
 from stac_api.models import LandingPageLink
 from stac_api.models import Provider
+from stac_api.validators import MEDIA_TYPES
+
+
+class MediaTypeForm(ModelForm):
+    # create a choice field for media_type in the AssetAdmin class
+    media_choices = [(x[0], f'{x[1]} ({x[0]})') for x in MEDIA_TYPES]
+    media_type = ChoiceField(choices=media_choices)
 
 
 @admin.register(Asset)
@@ -30,6 +39,8 @@ class AssetAdmin(admin.ModelAdmin):
     def href(self, instance):
         path = instance.file.name
         return self.request.build_absolute_uri('/' + path) if path else 'None'
+
+    form = MediaTypeForm
 
 
 class LandingPageLinkInline(admin.TabularInline):
