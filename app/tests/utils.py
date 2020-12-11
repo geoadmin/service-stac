@@ -26,10 +26,14 @@ def get_sample_data(topic):
 
     This function takes a string describing the subpath to the sample data and returns a
     dictionary with key = filename, value = json.
+
     f.ex. get_sample_data('collections')
-    :param topic: the name of the topic (f.ex. collections)
-    :return: dict
-    {'invalid_collection_set_1': json object }
+    Args:
+        topic: the name of the topic (f.ex. collections).
+    Returns:
+         dict mapping keys to corresponding json object.
+         For example:
+            {'invalid_collection_set_1': json object }
     '''
     path_to_json = f"{TESTDATADIR}/{topic}"
     json_files = [pos_json for pos_json in os.listdir(path_to_json) if pos_json.endswith('.json')]
