@@ -99,6 +99,8 @@ class NonNullModelSerializer(serializers.ModelSerializer):
             for key, value in obj.items():
                 if isinstance(value, dict):
                     filtered_obj[key] = filter_null(value)
+                # then links array might be empty at this point,
+                # but that in the view the auto generated links are added anyway
                 elif isinstance(value, list) and key != 'links':
                     if len(value) > 0:
                         filtered_obj[key] = value
