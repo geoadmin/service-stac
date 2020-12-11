@@ -287,10 +287,26 @@ class ItemDetail(
         return self.destroy(request, *args, **kwargs)
 
 
-class AssetsList(generics.GenericAPIView):
+class AssetsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
     serializer_class = AssetSerializer
     queryset = Asset.objects.all()
     pagination_class = None
+
+    def get_write_request_data(self, request, *args, **kwargs):
+        data = request.data.copy()
+        data['item'] = kwargs['item_name']
+        return data
+
+    def get_success_headers(self, data):
+        asset_link_self = self.request.build_absolute_uri() + "/" + self.request.data["id"]
+        try:
+            return {'Location': asset_link_self}
+        except KeyError as err:
+            logger.error('Failed to set the Location header for asset creation: %s', err)
+            return {}
+
+    def post(self, request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)
 
     def get_queryset(self):
         # filter based on the url
@@ -312,16 +328,38 @@ class AssetsList(generics.GenericAPIView):
         return Response(data)
 
 
-class AssetDetail(generics.RetrieveAPIView):
+class AssetDetail(
+    generics.GenericAPIView,
+    mixins.RetrieveModelMixin,
+    views_mixins.UpdateModelMixin,
+    views_mixins.DestroyModelMixin
+):
     serializer_class = AssetSerializer
     lookup_url_kwarg = "asset_name"
     queryset = Asset.objects.all()
+
+    def get_write_request_data(self, request, *args, **kwargs):
+        data = request.data.copy()
+        data['item'] = kwargs['item_name']
+        return data
 
     def get_object(self):
         asset_name = self.kwargs.get(self.lookup_url_kwarg)
         queryset = self.get_queryset().filter(name=asset_name)
         obj = get_object_or_404(queryset)
         return obj
+
+    def get(self, request, *args, **kwargs):
+        return self.retrieve(request, *args, **kwargs)
+
+    def put(self, request, *args, **kwargs):
+        return self.update(request, *args, **kwargs)
+
+    def patch(self, request, *args, **kwargs):
+        return self.partial_update(request, *args, **kwargs)
+
+    def delete(self, request, *args, **kwargs):
+        return self.destroy(request, *args, **kwargs)
 
 
 class TestHttp500(AssetDetail):
