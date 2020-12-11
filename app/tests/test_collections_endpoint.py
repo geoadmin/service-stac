@@ -182,7 +182,6 @@ class CollectionsEndpointTestCase(TestCase):
         self.assertEqual(response_json['title'], payload_json['title'])
         self.assertIn('providers', response_json.keys())  # optional value, should exist
 
-
         # is it persistent?
         response = self.client.get(
             f"/{API_BASE}/collections/{payload_json['id']}",

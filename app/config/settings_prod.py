@@ -80,7 +80,7 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'config.urls'
 API_BASE = 'api/stac/v0.9'
-LOGIN_URL = f"/{API_BASE}/login/"
+LOGIN_URL = "/api/stac/admin/login/"
 
 TEMPLATES = [
     {

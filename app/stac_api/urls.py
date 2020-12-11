@@ -1,5 +1,4 @@
 from django.conf import settings
-from django.urls import include
 from django.urls import path
 
 from rest_framework.authtoken.views import obtain_auth_token
@@ -43,7 +42,5 @@ urlpatterns = [
         AssetDetail.as_view(),
         name='asset-detail'
     ),
-    # https://www.django-rest-framework.org/tutorial/quickstart/#urls
-    path(f"{API_BASE}/", include('rest_framework.urls', namespace='rest_framework')),
     path(f"{API_BASE}/get_token", obtain_auth_token, name='get_token'),
 ]
