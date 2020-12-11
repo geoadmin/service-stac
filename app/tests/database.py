@@ -22,7 +22,6 @@ import boto3
 import botocore
 from dateutil.parser import isoparse
 
-
 from django.contrib.gis.geos import GEOSGeometry
 from django.core.files.base import ContentFile
 from django.test import override_settings
@@ -33,7 +32,6 @@ from stac_api.models import CollectionLink
 from stac_api.models import Item
 from stac_api.models import ItemLink
 from stac_api.models import Provider
-
 
 
 def create_collection(name):

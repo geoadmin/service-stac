@@ -14,8 +14,8 @@ from django.utils.translation import gettext_lazy as _
 
 from solo.models import SingletonModel
 
-from stac_api.collection_summaries import update_summaries
 from stac_api.collection_summaries import UPDATE_SUMMARIES_FIELDS
+from stac_api.collection_summaries import update_summaries
 from stac_api.temporal_extent import update_temporal_extent
 from stac_api.utils import fromisoformat
 
@@ -603,7 +603,7 @@ class ItemLink(Link):
 ASSET_KEEP_ORIGINAL_FIELDS = ["name"] + UPDATE_SUMMARIES_FIELDS
 
 
-def upload_to_asset_path(instance, filename):
+def get_upload_to_asset_path(instance, filename):
     return '/'.join([instance.item.collection.name, instance.item.name, instance.name])
 
 
@@ -615,7 +615,7 @@ class Asset(models.Model):
     )
     # using "name" instead of "id", as "id" has a default meaning in django
     name = models.CharField('id', unique=True, max_length=255, validators=[validate_name])
-    file = models.FileField(upload_to=upload_to_asset_path, null=True, blank=True)
+    file = models.FileField(upload_to=get_upload_to_asset_path, null=True, blank=True)
 
     @property
     def filename(self):
@@ -668,9 +668,10 @@ class Asset(models.Model):
         return self.name
 
     def clean(self):
-        if self._original_values.get(
-            "name"
-        ) is not None and self.name != self._original_values.get("name"):
+        if (
+            self._original_values.get("name") is not None and
+            self.name != self._original_values.get("name")
+        ):
             message = "Renaming assets is currently not supported"
             logger.error(message)
             raise ValidationError({"name": _(message)})
@@ -678,9 +679,7 @@ class Asset(models.Model):
     # alter save-function, so that the corresponding collection of the parent item of the asset
     # is saved, too.
     def save(self, *args, **kwargs):  # pylint: disable=signature-differs
-        old_values = [
-            self._original_values.get(field, None) for field in UPDATE_SUMMARIES_FIELDS
-        ]
+        old_values = [self._original_values.get(field, None) for field in UPDATE_SUMMARIES_FIELDS]
         update_summaries(self.item.collection, self, deleted=False, old_values=old_values)
         super().save(*args, **kwargs)
 

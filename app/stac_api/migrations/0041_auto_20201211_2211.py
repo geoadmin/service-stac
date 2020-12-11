@@ -9,7 +9,7 @@ import stac_api.models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('stac_api', '0039_auto_20201208_0653'),
+        ('stac_api', '0040_auto_20201210_0805'),
     ]
 
     operations = [
@@ -21,7 +21,7 @@ class Migration(migrations.Migration):
             model_name='asset',
             name='file',
             field=models.FileField(
-                blank=True, null=True, upload_to=stac_api.models.upload_to_asset_path
+                blank=True, null=True, upload_to=stac_api.models.get_upload_to_asset_path
             ),
         ),
     ]

@@ -4,7 +4,6 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
-
 UPDATE_SUMMARIES_FIELDS = ["eo_gsd", "geoadmin_variant", "proj_epsg"]
 
 

@@ -47,7 +47,10 @@ ALLOWED_HOSTS = []
 ALLOWED_HOSTS += os.getenv('ALLOWED_HOSTS', '').split(',')
 
 # Application definition
-
+# Apps are grouped according to
+# 1. django apps
+# 2. third-party apps
+# 3. own apps
 INSTALLED_APPS = [
     'django.contrib.auth',
     'django.contrib.contenttypes',

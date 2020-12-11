@@ -104,6 +104,11 @@ $(SETTINGS_TIMESTAMP): $(TIMESTAMPS)
 setup: $(SETTINGS_TIMESTAMP)
 # Create virtual env with all packages for development
 	pipenv install --dev
+# Create volume directories for postgres and minio
+# Note that the '/service_stac_local' part is already the bucket name
+	mkdir -p .volumes/minio/service-stac-local
+	mkdir -p .volumes/postgresql
+	docker-compose up &
 
 
 .PHONY: ci
@@ -198,6 +203,7 @@ clean_venv:
 
 .PHONY: clean
 clean: clean_venv
+	docker-compose down
 	@# clean python cache files
-	find . -name __pycache__ -type d -print0 | xargs -I {} -0 rm -rf "{}"
+	find . -path ./.volumes -prune -o -name __pycache__ -type d -print0 | xargs -I {} -0 rm -rf "{}"
 	rm -rf $(TIMESTAMPS)

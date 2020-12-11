@@ -198,10 +198,10 @@ class AdminBaseTestCase(TestCase):
         s3 = boto3.resource('s3', region_name='wonderland')
         try:
             s3.meta.client.head_bucket(Bucket='mybucket')
-        except botocore.exceptions.ClientError as e:  # pylint: disable=invalid-name
+        except botocore.exceptions.ClientError as error:
             # If a client error is thrown, then check that it was a 404 error.
             # If it was a 404 error, then the bucket does not exist.
-            error_code = e.response['Error']['Code']
+            error_code = error.response['Error']['Code']
             if error_code == '404':
                 # We need to create the bucket since this is all in Moto's 'virtual' AWS account
                 bucket = s3.create_bucket(
@@ -227,7 +227,6 @@ class AdminBaseTestCase(TestCase):
             "file": filelike
         }
         response = self.client.post("/api/stac/admin/stac_api/asset/add/", data)
-        print(response.content)
 
         # Status code for successful creation is 302, since in the admin UI
         # you're redirected to the list view after successful creation
@@ -627,10 +626,10 @@ class AdminAssetTestCase(AdminBaseTestCase):
         s3 = boto3.resource('s3', region_name='wonderland')
         try:
             s3.meta.client.head_bucket(Bucket='mybucket')
-        except botocore.exceptions.ClientError as e:  # pylint: disable=invalid-name
+        except botocore.exceptions.ClientError as error:
             # If a client error is thrown, then check that it was a 404 error.
             # If it was a 404 error, then the bucket does not exist.
-            error_code = e.response['Error']['Code']
+            error_code = error.response['Error']['Code']
             if error_code == '404':
                 # We need to create the bucket since this is all in Moto's 'virtual' AWS account
                 bucket = s3.create_bucket(
