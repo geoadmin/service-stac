@@ -291,3 +291,28 @@ class CollectionsEndpointTestCase(TestCase):
             content_type='application/json'
         )
         self.assertEqual(401, response.status_code, msg="Unauthorized patch was permitted.")
+
+    def test_unauthorized_collection_delete(self):
+        path = f'/{API_BASE}/collections/{self.collections[0].name}'
+        response = self.client.delete(path)
+        # Collection delete is not implemented (and currently not foreseen).
+        # Status code here is 401, as user is unauthorized for write requests.
+        # If logged-in, it should be 405, as DELETE for collections is not
+        # implemented.
+        self.assertEqual(
+            401,
+            response.status_code,
+            msg="unauthorized and unimplemented "
+            "collection delete was permitted."
+        )
+
+    def test_authorized_collection_delete(self):
+        path = f'/{API_BASE}/collections/{self.collections[0].name}'
+        self.client.login(username=self.username, password=self.password)
+        response = self.client.delete(path)
+        # Collection delete is not implemented (and currently not foreseen), hence
+        # the status code should be 405. If it should get implemented in future
+        # an unauthorized delete should get a status code of 401 (see test above).
+        self.assertEqual(
+            405, response.status_code, msg="unimplemented collection delete was permitted."
+        )

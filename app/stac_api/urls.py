@@ -42,5 +42,5 @@ urlpatterns = [
         AssetDetail.as_view(),
         name='asset-detail'
     ),
-    path(f"{API_BASE}/get_token", obtain_auth_token, name='get_token'),
+    path(f"{API_BASE}/get-token", obtain_auth_token, name='get-token'),
 ]
