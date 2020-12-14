@@ -144,7 +144,7 @@ class ItemsModelTestCase(TestCase):
 class ValidateItemPropertiesDatetimeDependenciesFunctionTestCase(TestCase):
 
     def test_validate_function_invalid_datetime_string(self):
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ValidationError):
             properties_datetime = None
             properties_start_datetime = "2001-22-66T08:00:00+00:00"
             properties_end_datetime = "2001-11-11T08:00:00+00:00"

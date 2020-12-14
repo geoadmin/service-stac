@@ -126,7 +126,7 @@ def validate_item_properties_datetimes_dependencies(
             properties_end_datetime = fromisoformat(properties_end_datetime)
     except ValueError as error:
         logger.error("Invalid datetime string %s", error)
-        raise ValidationError('Invalid datetime string %s' % (error))
+        raise ValidationError(f'Invalid datetime string {error}') from error
 
     if properties_datetime is not None:
         if (properties_start_datetime is not None or properties_end_datetime is not None):
