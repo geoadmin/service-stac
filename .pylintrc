@@ -291,6 +291,7 @@ good-names=i,
            Run,
            fd,
            id,
+           s3,
            _
 
 # Good variable names regexes, separated by a comma. If names match any regex,

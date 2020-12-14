@@ -29,18 +29,29 @@
 
 ### Dependencies
 
-Prerequisites for development:
+Prerequisites on host for development and build:
 
 - python version 3.7
 - pipenv
+- `docker` and `docker-compose`
+
+The other services that are used (Postgres with PostGIS extension for metadata and [MinIO](https://www.min.io) as local S3 replacement) are wrapped in a docker compose.
+
+Starting postgres and MinIO is done with a simple
+
+```
+docker-compose up
+``` 
+
+in the source root folder (this is automatically done if you `make setup`). Make sure to run `make setup` before to ensure the necessary folders `.volumes/*` are in place. These folders are mounted in the services and allow data persistency over restarts of the containers.
+
+### Using Postgres on local host
+
+If you want to use a local postgres instance instead of the dockerised one you need additionally
+
 - a local postgres (>= 12.0) running
 - postgis extension installed (>= 3.0)
 
-Prerequisite for testing the build/CI stages
-
-- `docker` and `docker-compose`
-
-### Setup local db
 
 Create a new superuser (required to create/destroy the test-databases) and a new database.
 
@@ -55,7 +66,7 @@ psql
 psql> CREATE USER service_stac WITH PASSWORD 'service_stac';
 psql> ALTER ROLE service_stac WITH SUPERUSER;
 # We need a database with utf8 encoding (for jsonfield) and utf8 needs template0
-psql> CREATE DATABASE service_stac WITH OWNER service_stac ENCODING 'UTF8' TEMPLATE template0;
+psql> CREATE DATABASE service_stac_local WITH OWNER service_stac ENCODING 'UTF8' TEMPLATE template0;
 ```
 
 The PostGIS extension will be installed automatically by Django.
@@ -106,7 +117,7 @@ cd app
 ./manage.py runserver
 ```
 
-### Running test
+### Running tests
 
 ```bash
 ./manage.py test
