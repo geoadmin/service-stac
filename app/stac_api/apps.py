@@ -20,6 +20,12 @@ logger = logging.getLogger(__name__)
 class StacApiConfig(AppConfig):
     name = 'stac_api'
 
+    def ready(self):
+        # signals have to be imported here so that the @register
+        # hooks are executed and signal handlers are active
+        # https://docs.djangoproject.com/en/3.1/topics/signals/#django.dispatch.receiver
+        import stac_api.signals
+
 
 class CursorPagination(pagination.CursorPagination):
     ordering = 'id'

@@ -1,26 +1,9 @@
-# WARNING: Order of imports must not be changed!!
-# The block
-# ---
-# from moto import mock_s3
-# s3mock = mock_s3()
-# s3mock.start()
-# ---
-# must remain at the top before any other import,
-# otherwise mocking s3 will not work successfully
-"""
-isort:skip_file
-"""
-# pylint: disable=wrong-import-position
-# pylint: disable=wrong-import-order
-from moto import mock_s3
-s3mock = mock_s3()
-s3mock.start()
-
 import json
 
 import boto3
 import botocore
 from dateutil.parser import isoparse
+from moto import mock_s3
 
 from django.contrib.gis.geos import GEOSGeometry
 from django.core.files.base import ContentFile
@@ -186,6 +169,3 @@ def create_dummy_db_content(nb_collections, nb_items=0, nb_assets=0):
                 assets[i][j].append(asset)
 
     return collections, items, assets
-
-
-s3mock.stop()

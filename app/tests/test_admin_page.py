@@ -1,27 +1,13 @@
-# WARNING: Order of imports must not be changed!!
-# The block
-# ---
-# from moto import mock_s3
-# s3mock = mock_s3()
-# s3mock.start()
-# ---
-# must remain at the top before any other import,
-# otherwise mocking s3 will not work successfully
-"""
-isort:skip_file
-"""
-# pylint: disable=wrong-import-position
-# pylint: disable=wrong-import-order
-from moto import mock_s3
-s3mock = mock_s3()
-s3mock.start()
-
+from tests.utils import S3TestMixin
+from stac_api.utils import get_s3_resource
 import logging
 from io import BytesIO
 
 import boto3
 import botocore
+from moto import mock_s3
 
+from django.urls import reverse
 from django.contrib.auth import get_user_model
 from django.test import Client
 from django.test import TestCase
@@ -617,7 +603,7 @@ class AdminItemTestCase(AdminBaseTestCase):
     AWS_S3_ENDPOINT_URL=None
 )
 @mock_s3
-class AdminAssetTestCase(AdminBaseTestCase):
+class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
 
     def setUp(self):
         super().setUp()
@@ -672,6 +658,30 @@ class AdminAssetTestCase(AdminBaseTestCase):
         with asset.file.open() as fd:
             self.assertEqual(filecontent, fd.read())
 
+
+    def test_rename_asset(self):
+        # Login the user first
+        self.client.login(username=self.username, password=self.password)
+        
+
+        asset, data = self._create_asset(self.item)
+
+        data['name'] = 'new_asset_name.zip'
+        # We just update the name hence we have to remove the
+        # 'file' from the data since submitting an empty file
+        # is not allowed
+        data.pop('file')
+
+        response = self.client.post(reverse('admin:stac_api_asset_change', args=[asset.id]), data)
+        self.assertEqual(response.status_code, 302)
+
+        # Assert that the location on s3 has been changed
+        new_path = f"{asset.item.collection.name}/{asset.item.name}/{data['name']}"
+        self.assertS3ObjectExists(new_path)
+        
+        asset.refresh_from_db()
+        self.assertEqual(asset.file.name, new_path)
+
     def test_add_asset_with_invalid_data(self):
         # Login the user first
         self.client.login(username=self.username, password=self.password)
@@ -695,10 +705,13 @@ class AdminAssetTestCase(AdminBaseTestCase):
         self.client.login(username=self.username, password=self.password)
 
         asset, data = self._create_asset(self.item)
+        path = f"{asset.item.collection.name}/{asset.item.name}/{data['name']}"
+        self.assertS3ObjectExists(path)
 
         # remove asset
         response = self.client.post(
-            f"/api/stac/admin/stac_api/asset/{asset.id}/delete/", {"post": "yes"}
+            reverse('admin:stac_api_asset_delete',
+                    args=[asset.id]), {"post": "yes"}
         )
 
         # Status code for successful creation is 302, since in the admin UI
@@ -708,5 +721,4 @@ class AdminAssetTestCase(AdminBaseTestCase):
             Asset.objects.filter(name=data["name"]).exists(), msg="Admin page asset still in DB"
         )
 
-
-s3mock.stop()
+        self.assertS3ObjectNotExists(path)

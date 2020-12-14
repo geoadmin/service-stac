@@ -1,6 +1,10 @@
 from datetime import datetime
 from datetime import timezone
 
+from django.conf import settings
+
+import boto3
+
 
 def isoformat(date_time):
     '''Return a datetime string in isoformat using 'Z' as timezone instead of '+00:00'
@@ -40,3 +44,8 @@ def get_link(links, rel, raise_exception=False):
     if raise_exception:
         raise KeyError(f'Link with rel {rel} not found')
     return None
+
+
+def get_s3_resource():
+    s3 = boto3.resource('s3', endpoint_url=settings.AWS_S3_ENDPOINT_URL)
+    return s3

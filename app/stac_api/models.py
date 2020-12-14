@@ -1,8 +1,10 @@
+from stac_api.utils import get_s3_resource
 import logging
 import os
 import re
 from uuid import uuid4
 
+from django.conf import settings
 from django.contrib.gis.db import models
 from django.contrib.gis.geos import GEOSGeometry
 from django.contrib.gis.geos import Polygon
@@ -636,6 +638,10 @@ class Asset(models.Model):
             filter(lambda item: item[0] in ASSET_KEEP_ORIGINAL_FIELDS, zip(field_names, values))
         )
 
+        # file.name / path has to be treated separately since it's not a simple
+        # field
+        instance._original_values['path'] = instance.file.name
+
         return instance
 
     def __str__(self):
@@ -651,9 +657,17 @@ class Asset(models.Model):
             self._original_values.get("name") is not None and
             self.name != self._original_values.get("name")
         ):
-            message = "Renaming assets is currently not supported"
-            logger.error(message)
-            raise ValidationError({"name": _(message)})
+            new_path = get_upload_to_asset_path(self, "unused")
+            self.move_asset(self._original_values['path'], new_path)
+            self.file.name = new_path
+
+    def move_asset(self, old_path, new_path):
+        logger.info("renaming asset on s3 from %s to %s", old_path, new_path)
+        s3 = get_s3_resource()
+
+        s3.Object(settings.AWS_STORAGE_BUCKET_NAME,
+                  new_path).copy_from(CopySource=f'{settings.AWS_STORAGE_BUCKET_NAME}/{old_path}')
+        s3.Object(settings.AWS_STORAGE_BUCKET_NAME, old_path).delete()
 
     # alter save-function, so that the corresponding collection of the parent item of the asset
     # is saved, too.

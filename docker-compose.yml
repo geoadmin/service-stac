@@ -7,6 +7,7 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_MULTIPLE_EXTENSIONS=postgis,postgis_topology
+    user: ${UID}
     ports:
       - 15432:5432
     volumes:
@@ -18,6 +19,9 @@ services:
     environment:
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
+      # - MINIO_USERNAME=$(id -u)
+      # - MINIO_GROUPNAME=$(id -g)
+    user: ${UID}
     command: server /data
     volumes:
       - type: bind

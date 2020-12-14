@@ -1,7 +1,11 @@
 import json
 import os
 
+import botocore
+
 from django.conf import settings
+
+from stac_api.utils import get_s3_resource
 
 TESTDATADIR = settings.BASE_DIR / 'app/tests/sample_data_test/'
 
@@ -42,3 +46,22 @@ def get_sample_data(topic):
         with open(os.path.join(path_to_json, name_json_file)) as json_file:
             dict_sampled_topic[name_json_file.split('.')[0]] = json.load(json_file)
     return dict_sampled_topic
+
+class S3TestMixin():
+    def assertS3ObjectExists(self, path):
+        s3 = get_s3_resource()
+
+        try:
+            s3.Object('mybucket', path).load()
+        except botocore.exceptions.ClientError as error:
+            if error.response['Error']['Code'] == "404":
+                # Object Was Not Found
+                self.fail("the object was not found at the expected location")
+            self.fail(f"object lookup failed for unexpected reason: {error}")
+
+    def assertS3ObjectNotExists(self, path):
+        s3 = get_s3_resource()
+        with self.assertRaises(botocore.exceptions.ClientError) as exception_context:
+            s3.Object('mybucket', path).load()
+        error = exception_context.exception
+        self.assertEqual(error.response['Error']['Code'], "404")
