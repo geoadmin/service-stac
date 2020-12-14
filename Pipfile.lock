@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "5d9372766ca917fb4efe5e90e8f419467494a9f387688f92d6998fd8f0256641"
+            "sha256": "7e3cbae08ce66e56b08906f98e830909fcdd646a2951befb6a06ad14784bbd47"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -33,10 +33,10 @@
         },
         "botocore": {
             "hashes": [
-                "sha256:633aa910509b060717df4130f7e2841f1101c0c47fd5871f4903b4b1dbab7e23",
-                "sha256:d31dce56799edb5796085d5296931faae201e28e14e568d9db4dac237a135fe3"
+                "sha256:5605c250f6f7c72ca50e45eab6186dfda03cb84296ca5b05f7416defcd3fcbc5",
+                "sha256:67bf1285455d79336ce7061da1768206b78f7a0efc13c8b4033fd348a74e7491"
             ],
-            "version": "==1.19.35"
+            "version": "==1.19.37"
         },
         "django": {
             "hashes": [
@@ -432,10 +432,10 @@
         },
         "botocore": {
             "hashes": [
-                "sha256:633aa910509b060717df4130f7e2841f1101c0c47fd5871f4903b4b1dbab7e23",
-                "sha256:d31dce56799edb5796085d5296931faae201e28e14e568d9db4dac237a135fe3"
+                "sha256:5605c250f6f7c72ca50e45eab6186dfda03cb84296ca5b05f7416defcd3fcbc5",
+                "sha256:67bf1285455d79336ce7061da1768206b78f7a0efc13c8b4033fd348a74e7491"
             ],
-            "version": "==1.19.35"
+            "version": "==1.19.37"
         },
         "certifi": {
             "hashes": [
@@ -487,10 +487,10 @@
         },
         "cfn-lint": {
             "hashes": [
-                "sha256:2ec93def44b85eae773d26e4f5d3c807d3da447449e8a880ffb208a929ba5a48",
-                "sha256:58e554b967c6d3ab63885551ebf8381e36a51c1c77a6ee1770e996a627acde80"
+                "sha256:81a6b135cde112a192ca4c246aa2ce7e3aee6cef8b2f525eb8c3568aa88dd3fd",
+                "sha256:87869944c66046466090c66bea75355506422b65e1ccd9bffcde35c6dc82c933"
             ],
-            "version": "==0.43.0"
+            "version": "==0.44.0"
         },
         "chardet": {
             "hashes": [
@@ -894,6 +894,14 @@
             ],
             "markers": "python_version > '3'",
             "version": "==3.1.0"
+        },
+        "tblib": {
+            "hashes": [
+                "sha256:059bd77306ea7b419d4f76016aef6d7027cc8a0785579b5aad198803435f882c",
+                "sha256:289fa7359e580950e7d9743eab36b0691f0310fce64dee7d9c31065b8f723e23"
+            ],
+            "index": "pypi",
+            "version": "==1.7.0"
         },
         "toml": {
             "hashes": [
