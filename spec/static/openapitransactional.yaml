@@ -1647,7 +1647,7 @@ components:
           $ref: "#/components/schemas/updated"
     itemAsset:
       allOf:
-      - $ref: "#/components/schemas/itemBase"
+      - $ref: "#/components/schemas/assetBase"
       - type: object
         required:
         - href
