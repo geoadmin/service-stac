@@ -116,13 +116,15 @@ def validate_item_properties_datetimes_dependencies(
     try:
         if not isinstance(properties_datetime, datetime) and properties_datetime is not None:
             properties_datetime = fromisoformat(properties_datetime)
-        if not isinstance(
-            properties_start_datetime, datetime
-        ) and properties_start_datetime is not None:
+        if (
+            not isinstance(properties_start_datetime, datetime) and
+            properties_start_datetime is not None
+        ):
             properties_start_datetime = fromisoformat(properties_start_datetime)
-        if not isinstance(
-            properties_end_datetime, datetime
-        ) and properties_end_datetime is not None:
+        if (
+            not isinstance(properties_end_datetime, datetime) and
+            properties_end_datetime is not None
+        ):
             properties_end_datetime = fromisoformat(properties_end_datetime)
     except ValueError as error:
         logger.error("Invalid datetime string %s", error)
