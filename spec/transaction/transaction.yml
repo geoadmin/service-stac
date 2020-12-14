@@ -693,7 +693,7 @@ components:
           #     updated: 2020-07-14T12:30:00Z
     itemAssetWrite:
       allOf:
-        - $ref: "#/components/schemas/itemBase"
+        - $ref: "#/components/schemas/assetBase"
         - type: object
           required:
             - copyFromHref
@@ -734,7 +734,7 @@ components:
         http://data.geo.admin.ch/ch.swisstopo.swissimage/collections/cs/items/CS3-20160503_132130_04/thumb.png
     partialAsset:
       allOf:
-        - $ref: "#/components/schemas/itemBase"
+        - $ref: "#/components/schemas/assetBase"
         - type: object
           properties:
             copyFromHref:
