@@ -787,6 +787,28 @@ class ItemSerializationTestCase(StacBaseTestCase):
         with self.assertRaises(ValidationError):
             serializer.is_valid(raise_exception=True)
 
+    def test_item_deserialization_end_date_before_start_date(self):
+        today = datetime.utcnow()
+        yesterday = today - timedelta(days=1)
+        data = OrderedDict([
+            ("collection", self.collection.name),
+            ("id", "test/invalid name"),
+            ("geometry", geometry_json),
+            (
+                "properties",
+                OrderedDict([
+                    ("start_datetime", isoformat(utc_aware(today))),
+                    ("end_datetime", isoformat(utc_aware(yesterday))),
+                    ("title", "This is a title"),
+                ])
+            ),
+        ])
+
+        # translate to Python native:
+        serializer = ItemSerializer(data=data)
+        with self.assertRaises(ValidationError):
+            serializer.is_valid(raise_exception=True)
+
     def test_item_deserialization_invalid_link(self):
         data = OrderedDict([
             ("collection", self.collection.name),

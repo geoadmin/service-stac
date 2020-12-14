@@ -1,5 +1,6 @@
 import logging
 import re
+from datetime import datetime
 
 from django.contrib.gis.db import models
 from django.contrib.gis.geos import GEOSGeometry
@@ -14,6 +15,7 @@ from solo.models import SingletonModel
 
 from stac_api.collection_summaries import update_summaries
 from stac_api.temporal_extent import update_temporal_extent
+from stac_api.utils import fromisoformat
 
 logger = logging.getLogger(__name__)
 
@@ -111,6 +113,23 @@ def validate_item_properties_datetimes_dependencies(
 	Raises:
 		django.core.exceptions.ValidationError
     '''
+    try:
+        if not isinstance(properties_datetime, datetime) and properties_datetime is not None:
+            properties_datetime = fromisoformat(properties_datetime)
+        if (
+            not isinstance(properties_start_datetime, datetime) and
+            properties_start_datetime is not None
+        ):
+            properties_start_datetime = fromisoformat(properties_start_datetime)
+        if (
+            not isinstance(properties_end_datetime, datetime) and
+            properties_end_datetime is not None
+        ):
+            properties_end_datetime = fromisoformat(properties_end_datetime)
+    except ValueError as error:
+        logger.error("Invalid datetime string %s", error)
+        raise ValidationError(f'Invalid datetime string {error}') from error
+
     if properties_datetime is not None:
         if (properties_start_datetime is not None or properties_end_datetime is not None):
             message = 'Cannot provide together property datetime with datetime range ' \
@@ -125,6 +144,12 @@ def validate_item_properties_datetimes_dependencies(
         if properties_start_datetime is None:
             message = "Property start_datetime can't be null when no property datetime is given"
             logger.error(message)
+            raise ValidationError(_(message))
+
+    if properties_datetime is None:
+        if properties_end_datetime < properties_start_datetime:
+            message = "Property end_datetime can't refer to a date earlier than property "\
+            "start_datetime"
             raise ValidationError(_(message))
 
 
@@ -457,7 +482,6 @@ class Item(models.Model):
         # This is needed because save() is called during the Item.object.create() function without
         # calling clean() ! and our validation is done within clean() method.
         self.clean()
-
         if self.pk is None:
             action = "insert"
         else:
