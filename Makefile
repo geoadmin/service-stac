@@ -198,7 +198,8 @@ dockerrun: dockerbuild-debug
 
 .PHONY: clean_venv
 clean_venv:
-	pipenv --rm
+	# ignore pipenv errors by adding command prefix -
+	-pipenv --rm
 
 
 .PHONY: clean
