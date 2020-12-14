@@ -7,6 +7,7 @@ from pprint import pformat
 from urllib.parse import urlparse
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.test import Client
 
 from rest_framework.test import APIRequestFactory
@@ -42,7 +43,7 @@ def to_dict(input_ordered_dict):
 
 class ItemsEndpointTestCase(StacBaseTestCase):
 
-    def setUp(self): # pylint: disable=invalid-name
+    def setUp(self):  # pylint: disable=invalid-name
         self.factory = APIRequestFactory()
         self.client = Client()
         self.collections, self.items, self.assets = db.create_dummy_db_content(4, 4, 4)
@@ -78,6 +79,11 @@ class ItemsEndpointTestCase(StacBaseTestCase):
         item_range.save()
         self.collections[0].save()
         self.maxDiff = None  # pylint: disable=invalid-name
+        self.username = 'SherlockHolmes'
+        self.password = '221B_BakerStreet'
+        self.superuser = get_user_model().objects.create_superuser(
+            self.username, 'test_e_mail1234@some_fantasy_domainname.com', self.password
+        )
 
 
 class ItemsReadEndpointTestCase(ItemsEndpointTestCase):
@@ -286,6 +292,7 @@ class ItemsWriteEndpointTestCase(ItemsEndpointTestCase):
             }
         }
         path = f'/{API_BASE}/collections/{self.collections[0].name}/items'
+        self.client.login(username=self.username, password=self.password)
         response = self.client.post(path, data=data, content_type="application/json")
         json_data = response.json()
         self.assertStatusCode(201, response)
@@ -310,6 +317,7 @@ class ItemsWriteEndpointTestCase(ItemsEndpointTestCase):
             }
         }
         path = f'/{API_BASE}/collections/{self.collections[0].name}/items'
+        self.client.login(username=self.username, password=self.password)
         response = self.client.post(path, data=data, content_type="application/json")
         json_data = response.json()
         self.assertStatusCode(201, response)
@@ -334,6 +342,7 @@ class ItemsWriteEndpointTestCase(ItemsEndpointTestCase):
             }
         }
         path = f'/{API_BASE}/collections/{self.collections[0].name}/items'
+        self.client.login(username=self.username, password=self.password)
         response = self.client.post(path, data=data, content_type="application/json")
         self.assertStatusCode(400, response)
 
@@ -346,6 +355,7 @@ class ItemsWriteEndpointTestCase(ItemsEndpointTestCase):
     def test_item_endpoint_post_invalid_datetime(self):
         data = {"id": "test", "geometry": TEST_VALID_GEOMETRY, "properties": {"title": "My title"}}
         path = f'/{API_BASE}/collections/{self.collections[0].name}/items'
+        self.client.login(username=self.username, password=self.password)
         response = self.client.post(path, data=data, content_type="application/json")
         self.assertStatusCode(400, response)
 
@@ -365,6 +375,7 @@ class ItemsWriteEndpointTestCase(ItemsEndpointTestCase):
             }
         }
         path = f'/{API_BASE}/collections/{self.collections[0].name}/items/{self.items[0][0].name}'
+        self.client.login(username=self.username, password=self.password)
         response = self.client.put(path, data=data, content_type="application/json")
         json_data = response.json()
         self.assertStatusCode(200, response)
@@ -386,6 +397,7 @@ class ItemsWriteEndpointTestCase(ItemsEndpointTestCase):
             }
         }
         path = f'/{API_BASE}/collections/{self.collections[0].name}/items/{self.items[0][0].name}'
+        self.client.login(username=self.username, password=self.password)
         response = self.client.put(path, data=data, content_type="application/json")
         json_data = response.json()
         self.assertStatusCode(200, response)
@@ -406,6 +418,7 @@ class ItemsWriteEndpointTestCase(ItemsEndpointTestCase):
             }
         }
         path = f'/{API_BASE}/collections/{self.collections[0].name}/items/{self.items[0][0].name}'
+        self.client.login(username=self.username, password=self.password)
         response = self.client.put(path, data=data, content_type="application/json")
         json_data = response.json()
         self.assertStatusCode(200, response)
@@ -432,6 +445,7 @@ class ItemsWriteEndpointTestCase(ItemsEndpointTestCase):
             }
         }
         path = f'/{API_BASE}/collections/{self.collections[0].name}/items/{self.items[0][0].name}'
+        self.client.login(username=self.username, password=self.password)
         response = self.client.put(path, data=data, content_type="application/json")
         json_data = response.json()
         self.assertStatusCode(200, response)
@@ -455,6 +469,7 @@ class ItemsWriteEndpointTestCase(ItemsEndpointTestCase):
     def test_item_endpoint_patch(self):
         data = {"geometry": TEST_VALID_GEOMETRY, "properties": {"title": "patched title",}}
         path = f'/{API_BASE}/collections/{self.collections[0].name}/items/{self.items[0][0].name}'
+        self.client.login(username=self.username, password=self.password)
         response = self.client.patch(path, data=data, content_type="application/json")
         json_data = response.json()
         self.assertStatusCode(200, response)
@@ -471,6 +486,7 @@ class ItemsWriteEndpointTestCase(ItemsEndpointTestCase):
     def test_item_endpoint_patch_invalid_datetimes(self):
         data = {"properties": {"datetime": "patched title",}}
         path = f'/{API_BASE}/collections/{self.collections[0].name}/items/{self.items[0][0].name}'
+        self.client.login(username=self.username, password=self.password)
         response = self.client.patch(path, data=data, content_type="application/json")
         self.assertStatusCode(400, response)
 
@@ -483,6 +499,7 @@ class ItemsWriteEndpointTestCase(ItemsEndpointTestCase):
             "id": f'new-{self.items[0][0].name}',
         }
         path = f'/{API_BASE}/collections/{self.collections[0].name}/items/{self.items[0][0].name}'
+        self.client.login(username=self.username, password=self.password)
         response = self.client.patch(path, data=data, content_type="application/json")
         json_data = response.json()
         self.assertStatusCode(200, response)
@@ -500,6 +517,7 @@ class ItemsWriteEndpointTestCase(ItemsEndpointTestCase):
 
     def test_item_endpoint_delete_item(self):
         path = f'/{API_BASE}/collections/{self.collections[0].name}/items/{self.items[0][0].name}'
+        self.client.login(username=self.username, password=self.password)
         response = self.client.delete(path)
         self.assertStatusCode(200, response)
 
@@ -515,5 +533,43 @@ class ItemsWriteEndpointTestCase(ItemsEndpointTestCase):
 
     def test_item_endpoint_delete_item_invalid_name(self):
         path = f'/{API_BASE}/collections/{self.collections[0].name}/items/non-existant-item'
+        self.client.login(username=self.username, password=self.password)
         response = self.client.delete(path)
         self.assertStatusCode(404, response)
+
+    def test_unauthorized_item_post_put_patch_delete(self):
+        # make sure POST fails for anonymous user:
+        data = {
+            "id": "test",
+            "geometry": TEST_VALID_GEOMETRY,
+            "properties": {
+                "datetime": "2020-10-18T00:00:00Z"
+            }
+        }
+        path = f'/{API_BASE}/collections/{self.collections[0].name}/items'
+        response = self.client.post(path, data=data, content_type="application/json")
+        self.assertEqual(401, response.status_code, msg="Unauthorized post was permitted.")
+
+        # make sure PUT fails for anonymous user:
+        data = {
+            "id": self.items[0][0].name,
+            "geometry": TEST_VALID_GEOMETRY,
+            "properties": {
+                "datetime": "2020-10-18T00:00:00Z",
+                "title": "My title",
+            }
+        }
+        path = f'/{API_BASE}/collections/{self.collections[0].name}/items/{self.items[0][0].name}'
+        response = self.client.put(path, data=data, content_type="application/json")
+        self.assertEqual(401, response.status_code, msg="Unauthorized put was permitted.")
+
+        # make sure PATCH fails for anonymous user:
+        data = {"geometry": TEST_VALID_GEOMETRY, "properties": {"title": "patched title",}}
+        path = f'/{API_BASE}/collections/{self.collections[0].name}/items/{self.items[0][0].name}'
+        response = self.client.patch(path, data=data, content_type="application/json")
+        self.assertEqual(401, response.status_code, msg="Unauthorized patch was permitted.")
+
+        # make sure DELETE fails for anonymous user:
+        path = f'/{API_BASE}/collections/{self.collections[0].name}/items/{self.items[0][0].name}'
+        response = self.client.delete(path)
+        self.assertEqual(401, response.status_code, msg="Unauthorized delete was permitted.")

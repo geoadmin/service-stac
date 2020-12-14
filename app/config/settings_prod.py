@@ -51,6 +51,9 @@ ALLOWED_HOSTS += os.getenv('ALLOWED_HOSTS', '').split(',')
 INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_gis',
+    'rest_framework.authtoken',
+    #  Note: If you use TokenAuthentication in production you must ensure
+    #  that your API is only available over https.
     'stac_api.apps.StacApiConfig',
     'config.apps.StacAdminConfig',
     'django.contrib.auth',
@@ -77,6 +80,7 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'config.urls'
 API_BASE = 'api/stac/v0.9'
+LOGIN_URL = "/api/stac/admin/login/"
 
 TEMPLATES = [
     {
@@ -181,11 +185,21 @@ else:
 TEST_RUNNER = 'tests.runner.TestRunner'
 
 # set default pagination configuration
+# set authentication schemes
+
 REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.BasicAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ],
     'DEFAULT_PAGINATION_CLASS': 'stac_api.apps.CursorPagination',
     'PAGE_SIZE': 100,
     'PAGE_SIZE_LIMIT': 100,
-    'EXCEPTION_HANDLER': 'stac_api.apps.custom_exception_handler'
+    'EXCEPTION_HANDLER': 'stac_api.apps.custom_exception_handler',
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly',
+    ]
 }
 
 # Exception handling

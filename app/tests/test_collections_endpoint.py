@@ -2,6 +2,7 @@ import logging
 from pprint import pformat
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.test import Client
 from django.test import TestCase
 
@@ -22,12 +23,17 @@ API_BASE = settings.API_BASE
 
 class CollectionsEndpointTestCase(TestCase):
 
-    def setUp(self): # pylint: disable=invalid-name
+    def setUp(self):  # pylint: disable=invalid-name
         self.client = Client()
         self.factory = APIRequestFactory()
         self.collections, self.items, self.assets = db.create_dummy_db_content(4, 4, 4)
         self.maxDiff = None  # pylint: disable=invalid-name
         self.sample_collections = get_sample_data('collections')
+        self.username = 'SherlockHolmes'
+        self.password = '221B_BakerStreet'
+        self.superuser = get_user_model().objects.create_superuser(
+            self.username, 'test_e_mail1234@some_fantasy_domainname.com', self.password
+        )
 
     def test_collections_endpoint(self):
         response = self.client.get(f"/{API_BASE}/collections")
@@ -90,6 +96,7 @@ class CollectionsEndpointTestCase(TestCase):
     def test_valid_collections_post(self):
         payload_json = self.sample_collections['valid_collection_set_1']
 
+        self.client.login(username=self.username, password=self.password)
         response = self.client.post(
             f"/{API_BASE}/collections", data=payload_json, content_type='application/json'
         )
@@ -101,6 +108,7 @@ class CollectionsEndpointTestCase(TestCase):
         self.assertEqual(response_json['id'], payload_json['id'])
 
         # the dataset already exists in the database
+        self.client.login(username=self.username, password=self.password)
         response = self.client.post(
             f"/{API_BASE}/collections", data=payload_json, content_type='application/json'
         )
@@ -111,6 +119,7 @@ class CollectionsEndpointTestCase(TestCase):
         # the dataset already exists in the database
         payload_json = self.sample_collections['invalid_collection_set_1']
 
+        self.client.login(username=self.username, password=self.password)
         response = self.client.post(
             f"/{API_BASE}/collections", data=payload_json, content_type='application/json'
         )
@@ -121,6 +130,7 @@ class CollectionsEndpointTestCase(TestCase):
         # a post with the absolute valid minimum
         payload_json = self.sample_collections['valid_min_collection_set_1']
 
+        self.client.login(username=self.username, password=self.password)
         response = self.client.post(
             f"/{API_BASE}/collections", data=payload_json, content_type='application/json'
         )
@@ -134,6 +144,7 @@ class CollectionsEndpointTestCase(TestCase):
         # a post with the absolute valid minimum
         payload_json = self.sample_collections['less_than_min_collection_set']
 
+        self.client.login(username=self.username, password=self.password)
         response = self.client.post(
             f"/{API_BASE}/collections", data=payload_json, content_type='application/json'
         )
@@ -144,6 +155,7 @@ class CollectionsEndpointTestCase(TestCase):
         payload_json = self.sample_collections['valid_collection_set_2']
 
         # the dataset to update does not exist yet
+        self.client.login(username=self.username, password=self.password)
         response = self.client.put(
             f"/{API_BASE}/collections/{payload_json['id']}",
             data=payload_json,
@@ -158,6 +170,7 @@ class CollectionsEndpointTestCase(TestCase):
         )
 
         payload_json['title'] = "The Swallows"
+        self.client.login(username=self.username, password=self.password)
         response = self.client.put(
             f"/{API_BASE}/collections/{payload_json['id']}",
             data=payload_json,
@@ -168,7 +181,6 @@ class CollectionsEndpointTestCase(TestCase):
         self.assertEqual(response.status_code, 200, msg=get_http_error_description(response_json))
         self.assertEqual(response_json['title'], payload_json['title'])
         self.assertIn('providers', response_json.keys())  # optional value, should exist
-
 
         # is it persistent?
         response = self.client.get(
@@ -186,6 +198,7 @@ class CollectionsEndpointTestCase(TestCase):
         payload_json = self.sample_collections['valid_collection_set_3']
         # for the start, the id have to be different
         self.assertNotEqual(self.collections[0].name, payload_json['id'])
+        self.client.login(username=self.username, password=self.password)
         response = self.client.put(
             f"/{API_BASE}/collections/{self.collections[0].name}",
             data=payload_json,
@@ -212,6 +225,7 @@ class CollectionsEndpointTestCase(TestCase):
         self.assertNotEqual('', f'{self.collections[1].title}')
         # for the start, the collection[1] has to have providers
         self.assertNotEqual(self.collections[1].providers, [])
+        self.client.login(username=self.username, password=self.password)
         response = self.client.put(
             f"/{API_BASE}/collections/{payload_json['id']}",
             data=payload_json,
@@ -229,6 +243,7 @@ class CollectionsEndpointTestCase(TestCase):
         self.assertNotEqual(self.collections[1].license, payload_json['license'])
         # for start the payload has no description
         self.assertNotIn('title', payload_json.keys())
+        self.client.login(username=self.username, password=self.password)
         response = self.client.patch(
             f"/{API_BASE}/collections/{payload_json['id']}",
             data=payload_json,
@@ -240,3 +255,64 @@ class CollectionsEndpointTestCase(TestCase):
 
         # description not affected by patch
         self.assertEqual(self.collections[1].description, response_json['description'])
+
+    def test_unauthorized_collection_post_put_patch(self):
+        # make sure POST fails for anonymous user:
+        # a post with the absolute valid minimum
+        payload_json = self.sample_collections['valid_min_collection_set_1']
+
+        response = self.client.post(
+            f"/{API_BASE}/collections", data=payload_json, content_type='application/json'
+        )
+        self.assertEqual(401, response.status_code, msg="Unauthorized post was permitted.")
+
+        # make sure PUT fails for anonymous user:
+        payload_json = self.sample_collections['valid_collection_set_3']
+        # for the start, the id have to be different
+        self.assertNotEqual(self.collections[0].name, payload_json['id'])
+        response = self.client.put(
+            f"/{API_BASE}/collections/{self.collections[0].name}",
+            data=payload_json,
+            content_type='application/json'
+        )
+        self.assertEqual(401, response.status_code, msg="Unauthorized put was permitted.")
+
+        # make sure PATCH fails for anonymous user:
+        collection_name = self.collections[1].name  # get a name that is registered in the service
+        payload_json = self.sample_collections['less_than_min_collection_set']
+        payload_json['id'] = collection_name  # rename the payload to this name
+        # for the start, the collection[1] has to have a different licence than the payload
+        self.assertNotEqual(self.collections[1].license, payload_json['license'])
+        # for start the payload has no description
+        self.assertNotIn('title', payload_json.keys())
+        response = self.client.patch(
+            f"/{API_BASE}/collections/{payload_json['id']}",
+            data=payload_json,
+            content_type='application/json'
+        )
+        self.assertEqual(401, response.status_code, msg="Unauthorized patch was permitted.")
+
+    def test_unauthorized_collection_delete(self):
+        path = f'/{API_BASE}/collections/{self.collections[0].name}'
+        response = self.client.delete(path)
+        # Collection delete is not implemented (and currently not foreseen).
+        # Status code here is 401, as user is unauthorized for write requests.
+        # If logged-in, it should be 405, as DELETE for collections is not
+        # implemented.
+        self.assertEqual(
+            401,
+            response.status_code,
+            msg="unauthorized and unimplemented "
+            "collection delete was permitted."
+        )
+
+    def test_authorized_collection_delete(self):
+        path = f'/{API_BASE}/collections/{self.collections[0].name}'
+        self.client.login(username=self.username, password=self.password)
+        response = self.client.delete(path)
+        # Collection delete is not implemented (and currently not foreseen), hence
+        # the status code should be 405. If it should get implemented in future
+        # an unauthorized delete should get a status code of 401 (see test above).
+        self.assertEqual(
+            405, response.status_code, msg="unimplemented collection delete was permitted."
+        )
