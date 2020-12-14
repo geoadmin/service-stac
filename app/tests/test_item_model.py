@@ -7,6 +7,7 @@ from django.core.exceptions import ValidationError
 from django.test import TestCase
 
 from stac_api.models import Item
+from stac_api.models import validate_item_properties_datetimes_dependencies
 from stac_api.utils import utc_aware
 
 import tests.database as db
@@ -138,3 +139,15 @@ class ItemsModelTestCase(TestCase):
                 geometry=None
             )
             item.full_clean()
+
+
+class ValidateItemPropertiesDatetimeDependenciesFunctionTestCase(TestCase):
+
+    def test_validate_function_invalid_datetime_string(self):
+        with self.assertRaises(ValueError):
+            properties_datetime = None
+            properties_start_datetime = "2001-22-66T08:00:00+00:00"
+            properties_end_datetime = "2001-11-11T08:00:00+00:00"
+            validate_item_properties_datetimes_dependencies(
+                properties_datetime, properties_start_datetime, properties_end_datetime
+            )

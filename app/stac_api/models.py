@@ -15,6 +15,7 @@ from solo.models import SingletonModel
 
 from stac_api.collection_summaries import update_summaries
 from stac_api.temporal_extent import update_temporal_extent
+from stac_api.utils import fromisoformat
 
 logger = logging.getLogger(__name__)
 
@@ -112,6 +113,21 @@ def validate_item_properties_datetimes_dependencies(
 	Raises:
 		django.core.exceptions.ValidationError
     '''
+    try:
+        if not isinstance(properties_datetime, datetime) and properties_datetime is not None:
+            properties_datetime = fromisoformat(properties_datetime)
+        if not isinstance(
+            properties_start_datetime, datetime
+        ) and properties_start_datetime is not None:
+            properties_start_datetime = fromisoformat(properties_start_datetime)
+        if not isinstance(
+            properties_end_datetime, datetime
+        ) and properties_end_datetime is not None:
+            properties_end_datetime = fromisoformat(properties_end_datetime)
+    except ValueError as error:
+        logger.error("Invalid datetime string %s", error)
+        raise ValidationError('Invalid datetime string %s' % (error))
+
     if properties_datetime is not None:
         if (properties_start_datetime is not None or properties_end_datetime is not None):
             message = 'Cannot provide together property datetime with datetime range ' \
@@ -128,19 +144,11 @@ def validate_item_properties_datetimes_dependencies(
             logger.error(message)
             raise ValidationError(_(message))
 
-
-def validate_datetime_string(datetime_string):
-    '''
-    Check if a given string is a datetime string in the expected format or
-    raise an error, if not.
-
-    Raises:
-        ValueError
-    '''
-    try:
-        datetime.strptime(datetime_string, '%Y-%m-%dT%H:%M:%SZ')
-    except:
-        raise ValueError(_('Invalid datetime string'))
+    if properties_datetime is None:
+        if properties_end_datetime < properties_start_datetime:
+            message = "Property end_datetime can't refer to a date earlier than property "\
+            "start_datetime"
+            raise ValidationError(_(message))
 
 
 def validate_item_properties_datetimes(
@@ -157,16 +165,6 @@ def validate_item_properties_datetimes(
             properties_start_datetime,
             properties_end_datetime,
         )
-
-        if properties_datetime is None:
-            if not isinstance(properties_start_datetime, datetime):
-                validate_datetime_string(properties_start_datetime)
-            if not isinstance(properties_end_datetime, datetime):
-                validate_datetime_string(properties_end_datetime)
-            if properties_end_datetime < properties_start_datetime:
-                message = "Property end_datetime can't refer to a date earlier than property "\
-                "start_datetime"
-                raise ValidationError(_(message))
 
 
 def get_conformance_default_links():
@@ -482,7 +480,6 @@ class Item(models.Model):
         # This is needed because save() is called during the Item.object.create() function without
         # calling clean() ! and our validation is done within clean() method.
         self.clean()
-
         if self.pk is None:
             action = "insert"
         else:
