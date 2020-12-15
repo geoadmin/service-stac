@@ -552,12 +552,6 @@ class Asset(models.Model):
             logger.error(message)
             raise ValidationError({"name": _(message)})
 
-    def clean_media_type(self):
-        # as the media type sometimes is with space, sometimes without
-        # it will alway be stored without
-        if self.media_type:
-            self.media_type = self.media_type.replace(' ', '')
-
     # alter save-function, so that the corresponding collection of the parent item of the asset
     # is saved, too.
     def save(self, *args, **kwargs):  # pylint: disable=signature-differs
