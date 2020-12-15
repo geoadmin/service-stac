@@ -651,12 +651,12 @@ components:
         - $ref: "#/components/schemas/assetBase"
         - type: object
           required:
-            - copyFromHref
+            - href
           properties:
             id:
               $ref: "#/components/schemas/assetId"
-            copyFromHref:
-              $ref: "#/components/schemas/copyFromHref"
+            href:
+              $ref: "#/components/schemas/writeHref"
           # example:
           #   smr50-263-2016-2056-kgrs-2.5.tiff:
           #     id: smr50-263-2016-2056-kgrs-2.5
@@ -669,7 +669,7 @@ components:
           #     checksum:multihash: 90e402107a7f2588a85362b9beea2a12d4514d45
           #     created: 2020-07-14T12:30:00Z
           #     updated: 2020-07-14T12:30:00Z
-    copyFromHref:
+    writeHref:
       type: string
       format: url
       description: >-
@@ -695,8 +695,8 @@ components:
         - $ref: "#/components/schemas/assetBase"
         - type: object
           properties:
-            copyFromHref:
-              $ref: "#/components/schemas/copyFromHref"
+            href:
+              $ref: "#/components/schemas/writeHref"
           example:
             description: The new description of the asset
     writeItem:

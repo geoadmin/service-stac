@@ -1,5 +1,7 @@
 import logging
 from collections import OrderedDict
+from urllib.parse import urlparse
+
 
 from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry
@@ -509,6 +511,35 @@ class AssetsDictSerializer(DictSerializer):
     key_identifier = 'id'
 
 
+class HrefSerializer(serializers.Field):
+
+    def get_attribute(self, instance):
+        # We pass the object instance onto `to_representation`,
+        # not just the field attribute.
+        return instance
+
+    def to_representation(self, instance):
+        request = self.context.get("request")
+        path = instance.file.name
+        return request.build_absolute_uri('/' + path) if path else None
+
+    def to_internal_value(self, data):
+        # strip host
+        # compare host
+        # compare path
+        print(dir(self.context.get("request")))
+        href = urlparse(data)
+        print(href)
+        return href.path[1:]
+
+    def get_value(self, *args, **kwargs):
+        print('++++')
+        print(*args)
+        print(**kwargs)
+        return super().get_value(*args, **kwargs)
+
+
+
 class AssetSerializer(NonNullModelSerializer):
 
     class Meta:
@@ -540,7 +571,7 @@ class AssetSerializer(NonNullModelSerializer):
         max_length=255,
         validators=[validate_name, UniqueValidator(queryset=Asset.objects.all())]
     )
-    href = serializers.SerializerMethodField(read_only=True)
+    href = HrefSerializer()
     type = serializers.ChoiceField(
         source='media_type',
         required=True,
@@ -548,6 +579,7 @@ class AssetSerializer(NonNullModelSerializer):
         allow_null=False,
         allow_blank=False
     )
+    type = serializers.CharField(source='media_type', max_length=200)
     # Here we need to explicitely define these fields with the source, because they are renamed
     # in the get_fields() method
     eo_gsd = serializers.FloatField(source='eo_gsd', required=False, allow_null=True)
@@ -582,10 +614,17 @@ class AssetSerializer(NonNullModelSerializer):
         fields['checksum:multihash'] = fields.pop('checksum_multihash')
         return fields
 
-    def get_href(self, obj):
-        request = self.context.get("request")
-        path = obj.file.name
-        return request.build_absolute_uri('/' + path) if path else None
+    def create(self, validated_data):
+        path = validated_data.pop("href")
+        instance = Asset.objects.create(**validated_data)
+        instance.file.name = path
+        instance.save()
+        return instance
+
+    def update(self, instance, validated_data):
+        path = validated_data.pop("href")
+        instance.file.name = path
+        return super().update(instance, validated_data)
 
     def validate(self, attrs):
         validate_json_payload(self)

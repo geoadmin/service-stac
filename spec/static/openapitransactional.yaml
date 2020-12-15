@@ -1713,13 +1713,13 @@ components:
       - $ref: "#/components/schemas/assetBase"
       - type: object
         required:
-        - copyFromHref
+        - href
         properties:
           id:
             $ref: "#/components/schemas/assetId"
-          copyFromHref:
-            $ref: "#/components/schemas/copyFromHref"
-    copyFromHref:
+          href:
+            $ref: "#/components/schemas/writeHref"
+    writeHref:
       type: string
       format: url
       description: >-
@@ -1745,8 +1745,8 @@ components:
       - $ref: "#/components/schemas/assetBase"
       - type: object
         properties:
-          copyFromHref:
-            $ref: "#/components/schemas/copyFromHref"
+          href:
+            $ref: "#/components/schemas/writeHref"
         example:
           description: The new description of the asset
     writeItem:
