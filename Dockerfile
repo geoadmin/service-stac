@@ -22,8 +22,8 @@ RUN cd /tmp && \
 
 # Set the working dir and copy the app
 WORKDIR /app
-COPY --chown=geoadmin:geoadmin ./app /app/
 COPY --chown=geoadmin:geoadmin ./spec /spec/
+COPY --chown=geoadmin:geoadmin ./app /app/
 
 ARG GIT_HASH=unknown
 ARG GIT_BRANCH=unknown

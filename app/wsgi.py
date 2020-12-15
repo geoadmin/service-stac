@@ -1,5 +1,17 @@
 #!/usr/bin/env python
 """
+    The gevent monkey import and patch suppress a warning, and a potential problem.
+    Gunicorn would call it anyway, but if it tries to call it after the ssl module
+    has been initialised in another module (like, in our code, by the botocore library),
+    then it could lead to inconcistencies in how the ssl module is used. Thus we patch
+    the ssl module through gevent.monkey.patch_all before any other import, especially
+    the app import, which would cause the boto module to be loaded, which would in turn
+    load the ssl module.
+"""
+import gevent.monkey  # pylint: disable=wrong-import-position
+
+gevent.monkey.patch_all()
+"""
 WSGI config for project project.
 
 It exposes the WSGI callable as a module-level variable named ``application``.
