@@ -4,6 +4,7 @@ from datetime import timezone
 from django.conf import settings
 
 import boto3
+from botocore.client import Config
 
 
 def isoformat(date_time):
@@ -47,5 +48,6 @@ def get_link(links, rel, raise_exception=False):
 
 
 def get_s3_resource():
-    s3 = boto3.resource('s3', endpoint_url=settings.AWS_S3_ENDPOINT_URL)
+    s3 = boto3.resource('s3', endpoint_url=settings.AWS_S3_ENDPOINT_URL,
+                        config=Config(signature_version='s3v4'))
     return s3

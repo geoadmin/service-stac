@@ -168,10 +168,16 @@ DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
 AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
+# The AWS region of the bucket
 AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME')
+# This is the URL where to reach the S3 service and is either minio
+# on localhost or https://s3.<region>.amazonaws.com
 AWS_S3_ENDPOINT_URL = os.environ.get('AWS_S3_ENDPOINT_URL', None)
+# The CUSTOM_DOMAIN is used to construct the correct URL when displaying
+# a link to the file in the admin UI. It must only contain the domain, but not
+# the scheme (http/https).
 AWS_S3_CUSTOM_DOMAIN = os.environ.get('AWS_S3_CUSTOM_DOMAIN')
-AWS_DEFAULT_ACL = 'public-read'
+AWS_DEFAULT_ACL = None
 
 # Logging
 # https://docs.djangoproject.com/en/3.1/topics/logging/
