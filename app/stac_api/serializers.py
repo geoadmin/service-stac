@@ -18,10 +18,11 @@ from stac_api.models import ItemLink
 from stac_api.models import LandingPage
 from stac_api.models import LandingPageLink
 from stac_api.models import Provider
-from stac_api.models import validate_geoadmin_variant
-from stac_api.models import validate_item_properties_datetimes
-from stac_api.models import validate_name
 from stac_api.utils import isoformat
+from stac_api.validators import MEDIA_TYPES_MIMES
+from stac_api.validators import validate_geoadmin_variant
+from stac_api.validators import validate_item_properties_datetimes
+from stac_api.validators import validate_name
 
 logger = logging.getLogger(__name__)
 
@@ -534,8 +535,14 @@ class AssetSerializer(NonNullModelSerializer):
         max_length=255,
         validators=[validate_name, UniqueValidator(queryset=Asset.objects.all())]
     )
-    type = serializers.CharField(source='media_type', max_length=200)
     href = serializers.SerializerMethodField(read_only=True)
+    type = serializers.ChoiceField(
+        source='media_type',
+        required=True,
+        choices=MEDIA_TYPES_MIMES,
+        allow_null=False,
+        allow_blank=False
+    )
     # Here we need to explicitely define these fields with the source, because they are renamed
     # in the get_fields() method
     eo_gsd = serializers.FloatField(source='eo_gsd', required=False, allow_null=True)

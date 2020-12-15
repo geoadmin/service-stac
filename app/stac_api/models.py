@@ -1,7 +1,6 @@
 import logging
 import os
 import re
-from datetime import datetime
 
 from django.contrib.gis.db import models
 from django.contrib.gis.geos import GEOSGeometry
@@ -17,7 +16,12 @@ from solo.models import SingletonModel
 from stac_api.collection_summaries import UPDATE_SUMMARIES_FIELDS
 from stac_api.collection_summaries import update_summaries
 from stac_api.temporal_extent import update_temporal_extent
-from stac_api.utils import fromisoformat
+from stac_api.validators import MEDIA_TYPES
+from stac_api.validators import validate_geoadmin_variant
+from stac_api.validators import validate_geometry
+from stac_api.validators import validate_item_properties_datetimes
+from stac_api.validators import validate_link_rel
+from stac_api.validators import validate_name
 
 logger = logging.getLogger(__name__)
 
@@ -40,135 +44,6 @@ def get_default_extent_value():
 
 def get_default_summaries_value():
     return DEFAULT_SUMMARIES_VALUE
-
-
-def validate_name(name):
-    '''Validate name used in URL
-    '''
-    if not re.match(r'^[0-9a-z-_.]+$', name):
-        logger.error('Invalid name %s, only the following characters are allowed: 0-9a-z-_.', name)
-        raise ValidationError(
-            _('Invalid name, only the following characters are allowed: 0-9a-z-_.')
-        )
-
-
-def validate_geoadmin_variant(variant):
-    '''Validate geoadmin:variant, it should not have special characters'''
-    if not re.match('^[a-zA-Z0-9]+$', variant):
-        logger.error(
-            "Invalid geoadmin:variant property %s, special characters not allowed", variant
-        )
-        raise ValidationError(_("Invalid geoadmin:variant, special characters not allowed"))
-
-
-def validate_link_rel(value):
-    invalid_rel = [
-        'self',
-        'root',
-        'parent',
-        'items',
-        'collection',
-        'service-desc',
-        'service-doc',
-        'search',
-        'conformance'
-    ]
-    if value in invalid_rel:
-        logger.error("Link rel attribute %s is not allowed, it is a reserved attribute", value)
-        raise ValidationError(_(f'Invalid rel attribute, must not be in {invalid_rel}'))
-
-
-def validate_geometry(geometry):
-    '''
-    A validator function that ensures, that only valid
-    geometries are stored.
-    Args:
-         geometry: The geometry that will be validated
-
-    Returns:
-        The geometry, when tested valid
-
-    Raises:
-        ValidateionError: About that the geometry is not valid
-    '''
-    geos_geometry = GEOSGeometry(geometry)
-    if geos_geometry.empty:
-        message = "The geometry is empty: %s" % geos_geometry.wkt
-        logger.error(message)
-        raise ValidationError(_(message))
-    if not geos_geometry.valid:
-        message = "The geometry is not valid: %s" % geos_geometry.valid_reason
-        logger.error(message)
-        raise ValidationError(_(message))
-    return geometry
-
-
-def validate_item_properties_datetimes_dependencies(
-    properties_datetime, properties_start_datetime, properties_end_datetime
-):
-    '''
-    Validate the dependencies between the Item datetimes properties
-
-	This makes sure that either only the properties.datetime is set or
-	both properties.start_datetime and properties.end_datetime
-
-	Raises:
-		django.core.exceptions.ValidationError
-    '''
-    try:
-        if not isinstance(properties_datetime, datetime) and properties_datetime is not None:
-            properties_datetime = fromisoformat(properties_datetime)
-        if (
-            not isinstance(properties_start_datetime, datetime) and
-            properties_start_datetime is not None
-        ):
-            properties_start_datetime = fromisoformat(properties_start_datetime)
-        if (
-            not isinstance(properties_end_datetime, datetime) and
-            properties_end_datetime is not None
-        ):
-            properties_end_datetime = fromisoformat(properties_end_datetime)
-    except ValueError as error:
-        logger.error("Invalid datetime string %s", error)
-        raise ValidationError(f'Invalid datetime string {error}') from error
-
-    if properties_datetime is not None:
-        if (properties_start_datetime is not None or properties_end_datetime is not None):
-            message = 'Cannot provide together property datetime with datetime range ' \
-                '(start_datetime, end_datetime)'
-            logger.error(message)
-            raise ValidationError(_(message))
-    else:
-        if properties_end_datetime is None:
-            message = "Property end_datetime can't be null when no property datetime is given"
-            logger.error(message)
-            raise ValidationError(_(message))
-        if properties_start_datetime is None:
-            message = "Property start_datetime can't be null when no property datetime is given"
-            logger.error(message)
-            raise ValidationError(_(message))
-
-    if properties_datetime is None:
-        if properties_end_datetime < properties_start_datetime:
-            message = "Property end_datetime can't refer to a date earlier than property "\
-            "start_datetime"
-            raise ValidationError(_(message))
-
-
-def validate_item_properties_datetimes(
-    properties_datetime, properties_start_datetime, properties_end_datetime, partial=False
-):
-    '''
-    Validate datetime values in the properties Item attributes
-    '''
-    if not partial:
-        # Do not validate dependencies in partial update, leave it to the validation to the model
-        # instance.
-        validate_item_properties_datetimes_dependencies(
-            properties_datetime,
-            properties_start_datetime,
-            properties_end_datetime,
-        )
 
 
 def get_conformance_default_links():
@@ -642,7 +517,8 @@ class Asset(models.Model):
     )
     proj_epsg = models.IntegerField(null=True, blank=True)
     title = models.CharField(max_length=255, null=True, blank=True)
-    media_type = models.CharField(max_length=200)
+    media_choices = [(x[0], f'{x[1]} ({x[0]})') for x in MEDIA_TYPES]
+    media_type = models.CharField(choices=media_choices, max_length=200, blank=False, null=False)
 
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
@@ -675,6 +551,12 @@ class Asset(models.Model):
             message = "Renaming assets is currently not supported"
             logger.error(message)
             raise ValidationError({"name": _(message)})
+
+    def clean_media_type(self):
+        # as the media type sometimes is with space, sometimes without
+        # it will alway be stored without
+        if self.media_type:
+            self.media_type = self.media_type.replace(' ', '')
 
     # alter save-function, so that the corresponding collection of the parent item of the asset
     # is saved, too.
