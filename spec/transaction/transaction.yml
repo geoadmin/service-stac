@@ -673,12 +673,15 @@ components:
       type: string
       format: url
       description: >-
-        Link to the temporary location of the asset object.
+        URL of the current location of the asset object.
 
+        The url must be publicly accessible. If the URL corresponds already to the correct location
+        of the asset object on s3, the checksum of the payload and the object on s3 are compared
+        and if matching the request will be accepted.
 
-        The service will move the asset from this temporary location to the correct one under
-        `data.geo.admin.ch`. If the temporary location is under `https://data.geo.admin.ch/tmp`
-        the data will not actually be copied, but just re-registered under a new key.
+        If the URL is different from the location that the asset object should have according to the
+        the pattern `/<collection_id>/<item_id>/<asset_id>`, the service will move the asset from this 
+        temporary location to the correct one.
       example: >-
         http://data.geo.admin.ch/tmp/gdwh/ch.swisstopo.swissimage/CS3-20160503_132130_04.png
     href:
