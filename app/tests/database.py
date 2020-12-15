@@ -159,7 +159,7 @@ def create_asset(item, name, eo_gsd=3.4, geoadmin_variant="kgrs", proj_epsg=2056
         geoadmin_lang='fr',
         geoadmin_variant=geoadmin_variant,
         proj_epsg=proj_epsg,
-        media_type="image/tiff; application=geotiff; profile=cloud-optimize",
+        media_type="image/tiff; application=geotiff; profile=cloud-optimized",
     )
     asset.file.save('some_name.tiff', ContentFile(b"dummy content"))
     asset.full_clean()

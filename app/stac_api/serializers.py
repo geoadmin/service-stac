@@ -19,9 +19,9 @@ from stac_api.models import LandingPage
 from stac_api.models import LandingPageLink
 from stac_api.models import Provider
 from stac_api.utils import isoformat
+from stac_api.validators import MEDIA_TYPES_MIMES
 from stac_api.validators import validate_geoadmin_variant
 from stac_api.validators import validate_item_properties_datetimes
-from stac_api.validators import validate_media_types
 from stac_api.validators import validate_name
 
 logger = logging.getLogger(__name__)
@@ -536,12 +536,12 @@ class AssetSerializer(NonNullModelSerializer):
         validators=[validate_name, UniqueValidator(queryset=Asset.objects.all())]
     )
     href = serializers.SerializerMethodField(read_only=True)
-    type = serializers.CharField(
+    type = serializers.ChoiceField(
         source='media_type',
-        max_length=200,
-        validators=[validate_media_types],
         required=True,
-        allow_null=False
+        choices=MEDIA_TYPES_MIMES,
+        allow_null=False,
+        allow_blank=False
     )
     # Here we need to explicitely define these fields with the source, because they are renamed
     # in the get_fields() method

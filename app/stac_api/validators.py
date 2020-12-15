@@ -5,68 +5,55 @@ from datetime import datetime
 from django.contrib.gis.geos import GEOSGeometry
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
+
 from stac_api.utils import fromisoformat
 
 logger = logging.getLogger(__name__)
 
 MEDIA_TYPES = [
-    ('application/x.asc+zip', 'Zipped ASCII (.asc)', '.zip'),
-    ('application/x.asc-grid+zip', 'Zipped ASCII-GRID (.xyz)', '.zip'),
-    ('application/x.e00+zip 	Zipped', 'e00', '.zip'),
-    ('image/tiff; application=geotiff', 'GeoTIFF', '.tiff or .tif'),
-    ('application/x.geotiff+zip', 'Zipped GeoTIFF', '.zip'),
-    ('application/x.tiff+zip', 'Zipped TIFF', '.zip'),
-    ('application/x.png+zip', 'Zipped PNG', '.zip'),
-    ('application/x.jpeg+zip', 'Zipped JPEG', '.zip'),
-    ('application/vnd.google-earth.kml+xml', 'KML', '.kml'),
+    ('application/x.asc+zip', 'Zipped ASCII (.asc)',
+     '.zip'), ('application/x.asc-grid+zip', 'Zipped ASCII-GRID (.xyz)',
+               '.zip'), ('application/x.e00+zip', 'Zipped e00',
+                         '.zip'), ('image/tiff; application=geotiff', 'GeoTIFF', '.tiff or .tif'),
+    ('application/x.geotiff+zip', 'Zipped GeoTIFF',
+     '.zip'), ('application/x.tiff+zip', 'Zipped TIFF',
+               '.zip'), ('application/x.png+zip', 'Zipped PNG',
+                         '.zip'), ('application/x.jpeg+zip', 'Zipped JPEG',
+                                   '.zip'), ('application/vnd.google-earth.kml+xml', 'KML', '.kml'),
     ('application/vnd.google-earth.kmz', 'Zipped KML', '.kmz'),
-    ('application/x.dxf+zip', 'Zipped DXF', '.zip'),
-    ('application/gml+xml', 'GML', '.gml or .xml'),
-    ('application/x.gml+zip', 'Zipped GML', '.zip'),
-    ('application/vnd.las', 'LIDAR', '.las'),
-    ('application/vnd.laszip', 'Zipped LIDAR', '.laz or .zip'),
-    ('application/x.shapefile+zip', 'Zipped Shapefile', '.zip'),
-    ('application/x.filegdb+zip', 'Zipped File Geodatabase', '.zip'),
-    ('application/x.ms-access+zip', 'Zipped Personal Geodatabase', '.zip'),
-    ('application/x.ms-excel+zip', 'Zipped Excel', '.zip'),
-    ('application/x.tab+zip', 'Zipped Mapinfo-TAB', '.zip'),
-    ('application/x.tab-raster+zip', 'Zipped Mapinfo-Raster-TAB', '.zip'),
-    ('application/x.csv+zip', 'Zipped CSV', '.zip'),
-    ('text/csv', 'CSV', '.csv'),
-    ('application/geopackage+sqlite3', 'Geopackage', '.gpkg'),
-    ('application/x.geopackage+zip', 'Zipped Geopackage', '.zip'),
-    ('application/geo+json', 'GeoJSON', '.json or .geojson'),
-    ('application/x.geojson+zip', 'Zipped GeoJSON', '.zip'),
-    ('application/x.interlis;version=2.3', 'Interlis 2', '.xtf or .xml'),
-    ('application/x.interlis+zip;version=2.3', 'Zipped XTF (2.3)', '.zip'),
-    ('application/x.interlis;version=1', 'Interlis 1', '.itf'),
-    ('application/x.interlis+zip;version=1', 'Zipped ITF', '.zip'),
+    ('application/x.dxf+zip', 'Zipped DXF', '.zip'), ('application/gml+xml', 'GML', '.gml or .xml'),
+    ('application/x.gml+zip', 'Zipped GML', '.zip'), ('application/vnd.las', 'LIDAR', '.las'),
+    ('application/vnd.laszip', 'Zipped LIDAR',
+     '.laz or .zip'), ('application/x.shapefile+zip', 'Zipped Shapefile',
+                       '.zip'), ('application/x.filegdb+zip', 'Zipped File Geodatabase', '.zip'),
+    ('application/x.ms-access+zip', 'Zipped Personal Geodatabase',
+     '.zip'), ('application/x.ms-excel+zip', 'Zipped Excel',
+               '.zip'), ('application/x.tab+zip', 'Zipped Mapinfo-TAB', '.zip'),
+    ('application/x.tab-raster+zip', 'Zipped Mapinfo-Raster-TAB',
+     '.zip'), ('application/x.csv+zip', 'Zipped CSV', '.zip'), ('text/csv', 'CSV', '.csv'),
+    ('application/geopackage+sqlite3', 'Geopackage',
+     '.gpkg'), ('application/x.geopackage+zip', 'Zipped Geopackage',
+                '.zip'), ('application/geo+json', 'GeoJSON', '.json or .geojson'),
+    ('application/x.geojson+zip', 'Zipped GeoJSON',
+     '.zip'), ('application/x.interlis; version=2.3', 'Interlis 2', '.xtf or .xml'),
+    ('application/x.interlis+zip;v ersion=2.3', 'Zipped XTF (2.3)',
+     '.zip'), ('application/x.interlis; version=1', 'Interlis 1',
+               '.itf'), ('application/x.interlis+zip; version=1', 'Zipped ITF', '.zip'),
     (
-        'image/tiff;application=geotiff;profile=cloud-optimize',
+        'image/tiff; application=geotiff; profile=cloud-optimized',
         'Cloud Optimized GeoTIFF (COG)',
         '.tiff or .tif'
-    ),
-    ('application/pdf', 'PDF', '.pdf'),
-    ('application/x.pdf+zip', 'Zipped PDF', '.zip'),
-    ('application/json', 'JSON', '.json'),
-    ('application/x.json+zip', 'Zipped JSON', '.zip'),
-    ('application/x-netcdf', 'NetCDF', '.nc'),
-    ('application/x.netcdf+zip', 'Zipped NetCDF', '.zip'),
-    ('application/xml', 'XML', '.xml'),
-    ('application/x.xml+zip', 'Zipped XML', '.zip'),
-    ('application/vnd.mapbox-vector-tile', 'mbtiles', '???'),
-    ('text/plain', 'Text', '.txt'),
-    ('text/x.plain+zip', 'Zipped text', '.zip')
+    ), ('application/pdf', 'PDF', '.pdf'), ('application/x.pdf+zip', 'Zipped PDF', '.zip'),
+    ('application/json', 'JSON', '.json'), ('application/x.json+zip', 'Zipped JSON',
+                                            '.zip'), ('application/x-netcdf', 'NetCDF', '.nc'),
+    ('application/x.netcdf+zip', 'Zipped NetCDF',
+     '.zip'), ('application/xml', 'XML',
+               '.xml'), ('application/x.xml+zip', 'Zipped XML',
+                         '.zip'), ('application/vnd.mapbox-vector-tile', 'mbtiles',
+                                   '???'), ('text/plain', 'Text',
+                                            '.txt'), ('text/x.plain+zip', 'Zipped text', '.zip')
 ]
 MEDIA_TYPES_MIMES = [x[0] for x in iter(MEDIA_TYPES)]
-
-
-def validate_media_types(value):
-    # replace - as the mime type is sometimes with space
-    if value.replace(' ', '') not in MEDIA_TYPES_MIMES:
-        message = f"The media type defined must be in {MEDIA_TYPES_MIMES}"
-        logger.error(message)
-        raise ValidationError(_(message))
 
 
 def validate_name(name):
@@ -135,10 +122,10 @@ def validate_item_properties_datetimes_dependencies(
 ):
     '''
     Validate the dependencies between the Item datetimes properties
-	This makes sure that either only the properties.datetime is set or
-	both properties.start_datetime and properties.end_datetime
-	Raises:
-		django.core.exceptions.ValidationError
+    This makes sure that either only the properties.datetime is set or
+    both properties.start_datetime and properties.end_datetime
+    Raises:
+        django.core.exceptions.ValidationError
     '''
     try:
         if not isinstance(properties_datetime, datetime) and properties_datetime is not None:

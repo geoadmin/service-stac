@@ -29,7 +29,7 @@ def to_dict(input_ordered_dict):
 
 class AssetsEndpointTestCase(StacBaseTestCase):
 
-    def setUp(self):
+    def setUp(self):  # pylint: disable=invalid-name
         self.factory = APIRequestFactory()
         self.client = Client()
         self.collections, self.items, self.assets = db.create_dummy_db_content(4, 4, 2)
@@ -182,7 +182,7 @@ class AssetsWriteEndpointTestCase(AssetsEndpointTestCase):
             "geoadmin:lang": "fr",
             "geoadmin:variant": "krel",
             "proj:epsg": 2056,
-            "type": "image/tiff; application=geotiff; profile=cloud-optimize",
+            "type": "image/tiff; application=geotiff; profile=cloud-optimized",
         }
         path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
         self.client.login(username=self.username, password=self.password)
@@ -211,7 +211,7 @@ class AssetsWriteEndpointTestCase(AssetsEndpointTestCase):
             "geoadmin:lang": "fr",
             "geoadmin:variant": "krel",
             "proj:epsg": 2056,
-            "type": "image/tiff; application=geotiff; profile=cloud-optimize",
+            "type": "image/tiff; application=geotiff; profile=cloud-optimized",
         }
         path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
         self.client.login(username=self.username, password=self.password)
@@ -235,7 +235,7 @@ class AssetsWriteEndpointTestCase(AssetsEndpointTestCase):
         data = {
             "id": new_asset_name,
             "checksum:multihash": "01205c3fd6978a7d0b051efaa4263a09",
-            "type": "image/tiff; application=geotiff; profile=cloud-optimize",
+            "type": "image/tiff; application=geotiff; profile=cloud-optimized",
         }
         path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
         self.client.login(username=self.username, password=self.password)

@@ -381,8 +381,8 @@ class ItemSerializationTestCase(StacBaseTestCase):
                 'asset-1':
                     OrderedDict([
                         ('title', 'my-title'),
-                        ('type', 'image/tiff;application=geotiff;'
-                         'profile=cloud-optimize'),
+                        ('type', 'image/tiff; application=geotiff; '
+                         'profile=cloud-optimized'),
                         ('href', f'http://testserver/{collection_name}/{item_name}/asset-1'),
                         ('description', 'this an asset'),
                         ('eo:gsd', 3.4),
@@ -870,7 +870,7 @@ class AssetSerializationTestCase(StacBaseTestCase):
             'href': f'http://testserver/{collection_name}/{item_name}/{asset_name}',
             'proj:epsg': 2056,
             'title': 'my-title',
-            'type': 'image/tiff;application=geotiff;profile=cloud-optimize'
+            'type': 'image/tiff; application=geotiff; profile=cloud-optimized'
         }
         self.check_stac_asset(expected, python_native)
 
@@ -904,7 +904,7 @@ class AssetSerializationTestCase(StacBaseTestCase):
             'geoadmin:variant': 'kgrs',
             'proj:epsg': 2056,
             'title': 'my-title',
-            'type': 'image/tiff; application=geotiff; profile=cloud-optimize'
+            'type': 'image/tiff; application=geotiff; profile=cloud-optimized'
         }
 
         # translate to Python native:
@@ -932,7 +932,7 @@ class AssetSerializationTestCase(StacBaseTestCase):
             'id': "asset-2",
             'item': self.item.name,
             'checksum:multihash': '01205c3fd6978a7d0b051efaa4263a09',
-            'type': 'image/tiff; application=geotiff; profile=cloud-optimize'
+            'type': 'image/tiff; application=geotiff; profile=cloud-optimized'
         }
 
         # translate to Python native:
@@ -968,7 +968,7 @@ class AssetSerializationTestCase(StacBaseTestCase):
                 'https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-1-2019-2056-kgrs-10.tiff',
             'proj:epsg': 2056,
             'title': 'my-title',
-            'type': 'image/tiff; application=geotiff; profile=cloud-optimize'
+            'type': 'image/tiff; application=geotiff; profile=cloud-optimized'
         }
 
         # translate to Python native:
@@ -992,7 +992,7 @@ class AssetSerializationTestCase(StacBaseTestCase):
                 'https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-1-2019-2056-kgrs-10.tiff',
             'proj:epsg': 2056.1,
             'title': 'my-title',
-            'type': 'image/tiff; application=geotiff; profile=cloud-optimize'
+            'type': 'image/tiff; application=geotiff; profile=cloud-optimized'
         }
 
         # translate to Python native:
@@ -1015,7 +1015,7 @@ class AssetSerializationTestCase(StacBaseTestCase):
                 'https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-1-2019-2056-kgrs-10.tiff',
             'proj:epsg': 2056,
             'title': 'my-title',
-            'type': 'image/tiff; application=geotiff; profile=cloud-optimize'
+            'type': 'image/tiff; application=geotiff; profile=cloud-optimized'
         }
 
         # translate to Python native:

@@ -16,11 +16,11 @@ from solo.models import SingletonModel
 from stac_api.collection_summaries import UPDATE_SUMMARIES_FIELDS
 from stac_api.collection_summaries import update_summaries
 from stac_api.temporal_extent import update_temporal_extent
+from stac_api.validators import MEDIA_TYPES
 from stac_api.validators import validate_geoadmin_variant
 from stac_api.validators import validate_geometry
 from stac_api.validators import validate_item_properties_datetimes
 from stac_api.validators import validate_link_rel
-from stac_api.validators import validate_media_types
 from stac_api.validators import validate_name
 
 logger = logging.getLogger(__name__)
@@ -517,7 +517,8 @@ class Asset(models.Model):
     )
     proj_epsg = models.IntegerField(null=True, blank=True)
     title = models.CharField(max_length=255, null=True, blank=True)
-    media_type = models.CharField(max_length=200, validators=[validate_media_types])
+    media_choices = [(x[0], f'{x[1]} ({x[0]})') for x in MEDIA_TYPES]
+    media_type = models.CharField(choices=media_choices, max_length=200, blank=False, null=False)
 
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
