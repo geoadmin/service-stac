@@ -299,11 +299,7 @@ class AssetsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
 
     def get_success_headers(self, data):
         asset_link_self = self.request.build_absolute_uri() + "/" + self.request.data["id"]
-        try:
-            return {'Location': asset_link_self}
-        except KeyError as err:
-            logger.error('Failed to set the Location header for asset creation: %s', err)
-            return {}
+        return {'Location': asset_link_self}
 
     def post(self, request, *args, **kwargs):
         return self.create(request, *args, **kwargs)
