@@ -24,6 +24,10 @@ class StacBaseTestCase(TestCase):
             self.assertIn(
                 'description', json_data.keys(), msg="'description' is missing from response"
             )
+            self.assertTrue(
+                isinstance(json_data['description'], (list, str, dict)),
+                msg=f"Description wrong type: {type(json_data['description'])}"
+            )
             self.assertEqual(code, json_data['code'], msg="invalid response code")
 
     def check_stac_collection(self, expected, current, ignore=None):

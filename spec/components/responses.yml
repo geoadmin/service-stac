@@ -185,6 +185,3 @@ components:
           example:
             code: 500
             description: "Internal server error"
-        text/html:
-          schema:
-            type: string

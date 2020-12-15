@@ -50,7 +50,9 @@ class ApiGenericTestCase(APITestCase):
                              sorted(list(json_msg.keys())),
                              msg="JSON response required keys missing")
         self.assertTrue(isinstance(json_msg['code'], int), msg="'code' is not an integer")
-        self.assertTrue(isinstance(json_msg['description'], str), msg="'code' is not an string")
+        self.assertTrue(
+            isinstance(json_msg['description'], (str, list, dict)), msg="'code' is not an string"
+        )
 
     def test_pagination(self):
         db.create_dummy_db_content(3)
