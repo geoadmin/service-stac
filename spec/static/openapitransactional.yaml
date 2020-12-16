@@ -767,7 +767,15 @@ components:
           type: int
           example: 500
         description:
-          type: string
+          anyOf:
+          - type: string
+            example: "Error description"
+          - type: array
+            items:
+              anyOf:
+              - type: string
+              - type: object
+          - type: object
       required:
       - code
       type: object

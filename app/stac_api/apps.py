@@ -91,10 +91,6 @@ def custom_exception_handler(exc, context):
     if isinstance(exc, APIException):
         status_code = exc.status_code
         description = exc.detail
-        if isinstance(description, (list)):
-            # Some APIException, like for instance the ValidationError wrap the detail into a list
-            # because the STAC API spec wants a string as description we join the list together here
-            description = '\n'.join(description)
     elif settings.DEBUG and not settings.DEBUG_PROPAGATE_API_EXCEPTIONS:
         # Other exceptions are left to Django to handle in DEBUG mode, this allow django
         # to set a nice HTML output with backtrace when DEBUG_PROPAGATE_EXCEPTIONS is false
