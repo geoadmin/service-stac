@@ -2,7 +2,6 @@ import logging
 from collections import OrderedDict
 from urllib.parse import urlparse
 
-
 from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry
 
@@ -518,26 +517,18 @@ class HrefSerializer(serializers.Field):
         # not just the field attribute.
         return instance
 
-    def to_representation(self, instance):
+    def to_representation(self, instance):  # pylint: disable=arguments-differ
+        # build an absolute URL from the file path
         request = self.context.get("request")
         path = instance.file.name
         return request.build_absolute_uri('/' + path) if path else None
 
     def to_internal_value(self, data):
-        # strip host
-        # compare host
-        # compare path
-        print(dir(self.context.get("request")))
+        # extract the file path part from the
+        # provided URL
+        # TODO: sanity checks
         href = urlparse(data)
-        print(href)
-        return href.path[1:]
-
-    def get_value(self, *args, **kwargs):
-        print('++++')
-        print(*args)
-        print(**kwargs)
-        return super().get_value(*args, **kwargs)
-
+        return href.path[1:]  # strip the leading '/'
 
 
 class AssetSerializer(NonNullModelSerializer):
@@ -571,7 +562,10 @@ class AssetSerializer(NonNullModelSerializer):
         max_length=255,
         validators=[validate_name, UniqueValidator(queryset=Asset.objects.all())]
     )
-    href = HrefSerializer()
+    # The href is only required for initial post requests
+    # and is ignored a.t.m for put requests
+    # TODO make sure required=False is the right thing here
+    href = HrefSerializer(required=False)
     type = serializers.ChoiceField(
         source='media_type',
         required=True,
@@ -579,7 +573,6 @@ class AssetSerializer(NonNullModelSerializer):
         allow_null=False,
         allow_blank=False
     )
-    type = serializers.CharField(source='media_type', max_length=200)
     # Here we need to explicitely define these fields with the source, because they are renamed
     # in the get_fields() method
     eo_gsd = serializers.FloatField(source='eo_gsd', required=False, allow_null=True)
@@ -615,15 +608,32 @@ class AssetSerializer(NonNullModelSerializer):
         return fields
 
     def create(self, validated_data):
+        if 'href' not in validated_data:
+            # TODO handle missing 'href'
+            pass
         path = validated_data.pop("href")
-        instance = Asset.objects.create(**validated_data)
+        instance = Asset(**validated_data)
         instance.file.name = path
+        # TODO make sure the asset actually exists at this location
         instance.save()
         return instance
 
     def update(self, instance, validated_data):
-        path = validated_data.pop("href")
-        instance.file.name = path
+        request = self.context.get("request")
+        # move asset if path has changed
+        # TODO uncomment, adapt tests
+        # if 'href' in validated_data:
+        #     path = validated_data.pop("href")
+        #     if path != instance.file.name:
+        #         logger.info(
+        #             "%s is renaming asset from %s to %s",
+        #             request.user,
+        #             instance.file.name,
+        #             path,
+        #             extra={'user': request.user}
+        #         )
+        #         instance.move_asset(source=instance.file.name, dest=path)
+        #         instance.file.name = path
         return super().update(instance, validated_data)
 
     def validate(self, attrs):

@@ -8,7 +8,14 @@
     the app import, which would cause the boto module to be loaded, which would in turn
     load the ssl module.
 """
+import os
+
 import gevent.monkey  # pylint: disable=wrong-import-position
+from gunicorn.app.base import BaseApplication
+
+from django.core.wsgi import get_wsgi_application
+
+from config.settings import get_logging_config
 
 gevent.monkey.patch_all()
 """
@@ -19,14 +26,6 @@ It exposes the WSGI callable as a module-level variable named ``application``.
 For more information on this file, see
 https://docs.djangoproject.com/en/3.1/howto/deployment/wsgi/
 """
-
-import os
-
-from gunicorn.app.base import BaseApplication
-
-from django.core.wsgi import get_wsgi_application
-
-from config.settings import get_logging_config
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 application = get_wsgi_application()

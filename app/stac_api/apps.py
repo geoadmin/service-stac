@@ -24,7 +24,7 @@ class StacApiConfig(AppConfig):
         # signals have to be imported here so that the @register
         # hooks are executed and signal handlers are active
         # https://docs.djangoproject.com/en/3.1/topics/signals/#django.dispatch.receiver
-        import stac_api.signals
+        import stac_api.signals  # pylint: disable=import-outside-toplevel, unused-import
 
 
 class CursorPagination(pagination.CursorPagination):

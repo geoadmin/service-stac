@@ -46,6 +46,8 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_CLOUDFRONT_FORWARDED_PROTO', 'https')
 ALLOWED_HOSTS = []
 ALLOWED_HOSTS += os.getenv('ALLOWED_HOSTS', '').split(',')
 
+# SERVICE_HOST = os.getenv('SERVICE_HOST', '127.0.0.1:8000')
+
 # Application definition
 # Apps are grouped according to
 # 1. django apps
@@ -177,6 +179,8 @@ AWS_S3_ENDPOINT_URL = os.environ.get('AWS_S3_ENDPOINT_URL', None)
 # a link to the file in the admin UI. It must only contain the domain, but not
 # the scheme (http/https).
 AWS_S3_CUSTOM_DOMAIN = os.environ.get('AWS_S3_CUSTOM_DOMAIN')
+# AWS_DEFAULT_ACL depends on bucket/user config. The user might not have
+# permissions to change ACL, then this setting must be None
 AWS_DEFAULT_ACL = None
 
 # Logging

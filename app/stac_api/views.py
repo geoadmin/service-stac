@@ -345,7 +345,7 @@ class AssetsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
         data['item'] = kwargs['item_name']
         return data
 
-    def get_success_headers(self, data):
+    def get_success_headers(self, data):  # pylint: disable=arguments-differ
         asset_link_self = self.request.build_absolute_uri() + "/" + self.request.data["id"]
         return {'Location': asset_link_self}
 

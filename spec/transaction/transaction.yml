@@ -465,7 +465,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/itemAssetWrite"
+              $ref: "#/components/schemas/itemAssetUpdate"
       responses:
         "200":
           description: Status of the update request.
@@ -584,10 +584,8 @@ components:
         The asset id uniquely identifies the asset for an item
 
 
-        **Note**: `assetId` must be unique for the item. The media-type
-        can be part of the `assetId`, so it's perfectly ok to have one asset
-        with id `smr50-263-2016-2056-kgrs-2.5.tiff` and another one with id
-        `smr50-263-2016-2056-kgrs-2.5.png`
+        **Note**: `assetId` must be unique for the item and must be identical to the
+        filename.
       example: smr50-263-2016-2056-kgrs-2.5.tiff
     itemAssets:
       type: object
@@ -635,17 +633,6 @@ components:
           properties:
             href:
               $ref: "#/components/schemas/href"
-          # example:
-          #   smr50-263-2016-2056-kgrs-2.5-tiff:
-          #     href: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr50-263-2016-2056-kgrs-2.5.tiff
-          #     type: image/tiff; application=geotiff
-          #     proj:epsg: 2056
-          #     'geoadmin:variant': kgrs
-          #     'geoadmin:lang': fr
-          #     eo:gsd: 2.5
-          #     checksum:multihash: 90e402107a7f2588a85362b9beea2a12d4514d45
-          #     created: 2020-07-14T12:30:00Z
-          #     updated: 2020-07-14T12:30:00Z
     itemAssetWrite:
       allOf:
         - $ref: "#/components/schemas/assetBase"
@@ -657,18 +644,13 @@ components:
               $ref: "#/components/schemas/assetId"
             href:
               $ref: "#/components/schemas/writeHref"
-          # example:
-          #   smr50-263-2016-2056-kgrs-2.5.tiff:
-          #     id: smr50-263-2016-2056-kgrs-2.5
-          #     copyFromHref: https://data.geo.admin.ch/tmp/gdwh/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr50-263-2016-2056-kgrs-2.5.tiff
-          #     type: image/tiff; application=geotiff
-          #     proj:epsg: 2056
-          #     'geoadmin:variant': kgrs
-          #     'geoadmin:lang': fr
-          #     eo:gsd: 2.5
-          #     checksum:multihash: 90e402107a7f2588a85362b9beea2a12d4514d45
-          #     created: 2020-07-14T12:30:00Z
-          #     updated: 2020-07-14T12:30:00Z
+    itemAssetUpdate:
+      allOf:
+        - $ref: "#/components/schemas/assetBase"
+        - type: object
+          properties:
+            id:
+              $ref: "#/components/schemas/assetId"
     writeHref:
       type: string
       format: url

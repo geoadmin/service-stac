@@ -5,6 +5,7 @@ import botocore
 from dateutil.parser import isoparse
 from moto import mock_s3
 
+from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry
 from django.core.files.base import ContentFile
 from django.test import override_settings
@@ -110,7 +111,6 @@ def create_item_links(item):
 
 
 @override_settings(
-    AWS_STORAGE_BUCKET_NAME='mybucket',
     AWS_ACCESS_KEY_ID='mykey',
     AWS_DEFAULT_ACL='public-read',
     AWS_S3_REGION_NAME='wonderland',
@@ -121,7 +121,7 @@ def create_asset(item, name, eo_gsd=3.4, geoadmin_variant="kgrs", proj_epsg=2056
     # Check if the bucket exists and if not, create it
     s3 = boto3.resource('s3', region_name='wonderland')
     try:
-        s3.meta.client.head_bucket(Bucket='mybucket')
+        s3.meta.client.head_bucket(Bucket=settings.AWS_STORAGE_BUCKET_NAME)
     except botocore.exceptions.ClientError as e:  # pylint: disable=invalid-name
         # If a client error is thrown, then check that it was a 404 error.
         # If it was a 404 error, then the bucket does not exist.
@@ -129,7 +129,8 @@ def create_asset(item, name, eo_gsd=3.4, geoadmin_variant="kgrs", proj_epsg=2056
         if error_code == '404':
             # We need to create the bucket since this is all in Moto's 'virtual' AWS account
             bucket = s3.create_bucket(
-                Bucket='mybucket', CreateBucketConfiguration={'LocationConstraint': 'wonderland'}
+                Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+                CreateBucketConfiguration={'LocationConstraint': 'wonderland'}
             )
 
     asset = Asset(

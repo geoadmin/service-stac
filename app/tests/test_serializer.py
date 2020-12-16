@@ -909,7 +909,8 @@ class AssetSerializationTestCase(StacBaseTestCase):
             'geoadmin:variant': 'kgrs',
             'proj:epsg': 2056,
             'title': 'my-title',
-            'type': 'image/tiff; application=geotiff; profile=cloud-optimized'
+            'type': 'image/tiff; application=geotiff; profile=cloud-optimized',
+            'href': f'http://testserver/{collection_name}/{item_name}/asset-2'
         }
 
         # translate to Python native:
@@ -937,7 +938,8 @@ class AssetSerializationTestCase(StacBaseTestCase):
             'id': "asset-2",
             'item': self.item.name,
             'checksum:multihash': '01205c3fd6978a7d0b051efaa4263a09',
-            'type': 'image/tiff; application=geotiff; profile=cloud-optimized'
+            'type': 'image/tiff; application=geotiff; profile=cloud-optimized',
+            'href': f'http://testserver/{collection_name}/{item_name}/asset-2'
         }
 
         # translate to Python native:

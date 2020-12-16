@@ -1,10 +1,10 @@
 from datetime import datetime
 from datetime import timezone
 
-from django.conf import settings
-
 import boto3
 from botocore.client import Config
+
+from django.conf import settings
 
 
 def isoformat(date_time):
@@ -47,7 +47,14 @@ def get_link(links, rel, raise_exception=False):
     return None
 
 
+# def build_absolute_uri(path, scheme='https', netloc=settings.SERVICE_HOST):
+#     if not path.startswith('/'):
+#         raise ValueError('url path must start with "/"')
+#     return f"{scheme}://{netloc}{path}"
+
+
 def get_s3_resource():
-    s3 = boto3.resource('s3', endpoint_url=settings.AWS_S3_ENDPOINT_URL,
-                        config=Config(signature_version='s3v4'))
+    s3 = boto3.resource(
+        's3', endpoint_url=settings.AWS_S3_ENDPOINT_URL, config=Config(signature_version='s3v4')
+    )
     return s3

@@ -1,5 +1,6 @@
 import os
 
+
 def check_toolbar_env(request):
     """ callback to check whether debug toolbar should be shown or not
 

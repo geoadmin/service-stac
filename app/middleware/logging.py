@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 class RequestResponseLoggingMiddleware:
+
     def __init__(self, get_response):
         self.get_response = get_response
         # One-time configuration and initialization.
@@ -43,6 +44,7 @@ class RequestResponseLoggingMiddleware:
 
 
 class ExceptionLoggingMiddleware:
+
     def __init__(self, get_response):
         self.get_response = get_response
         # One-time configuration and initialization.
@@ -60,8 +62,6 @@ class ExceptionLoggingMiddleware:
 
     def process_exception(self, request, exception):
         extra = {
-            "request": request,
-            "exception": repr(exception),
-            "traceback": traceback.format_exc()
+            "request": request, "exception": repr(exception), "traceback": traceback.format_exc()
         }
         logger.critical(repr(exception), extra=extra)

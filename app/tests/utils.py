@@ -47,21 +47,28 @@ def get_sample_data(topic):
             dict_sampled_topic[name_json_file.split('.')[0]] = json.load(json_file)
     return dict_sampled_topic
 
+
 class S3TestMixin():
-    def assertS3ObjectExists(self, path):
+    '''Check if object on s3 exists
+
+    This TestCase mixin provides helpers to check whether an
+    object exists at a specific location on s3 or not
+    '''
+
+    def assertS3ObjectExists(self, path):  # pylint: disable=invalid-name
         s3 = get_s3_resource()
 
         try:
-            s3.Object('mybucket', path).load()
+            s3.Object(settings.AWS_STORAGE_BUCKET_NAME, path).load()
         except botocore.exceptions.ClientError as error:
             if error.response['Error']['Code'] == "404":
                 # Object Was Not Found
                 self.fail("the object was not found at the expected location")
             self.fail(f"object lookup failed for unexpected reason: {error}")
 
-    def assertS3ObjectNotExists(self, path):
+    def assertS3ObjectNotExists(self, path):  # pylint: disable=invalid-name
         s3 = get_s3_resource()
         with self.assertRaises(botocore.exceptions.ClientError) as exception_context:
-            s3.Object('mybucket', path).load()
+            s3.Object(settings.AWS_STORAGE_BUCKET_NAME, path).load()
         error = exception_context.exception
         self.assertEqual(error.response['Error']['Code'], "404")

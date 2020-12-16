@@ -1,4 +1,3 @@
-from stac_api.utils import get_s3_resource
 import logging
 import os
 import re
@@ -21,6 +20,7 @@ from stac_api.collection_summaries import update_summaries_on_asset_delete
 from stac_api.collection_summaries import update_summaries_on_asset_insert
 from stac_api.collection_summaries import update_summaries_on_asset_update
 from stac_api.collection_temporal_extent import update_temporal_extent
+from stac_api.utils import get_s3_resource
 from stac_api.validators import MEDIA_TYPES
 from stac_api.validators import validate_geoadmin_variant
 from stac_api.validators import validate_geometry
@@ -640,7 +640,7 @@ class Asset(models.Model):
 
         # file.name / path has to be treated separately since it's not a simple
         # field
-        instance._original_values['path'] = instance.file.name
+        instance._original_values['path'] = instance.file.name  # pylint: disable=protected-access,no-member
 
         return instance
 
@@ -661,13 +661,13 @@ class Asset(models.Model):
             self.move_asset(self._original_values['path'], new_path)
             self.file.name = new_path
 
-    def move_asset(self, old_path, new_path):
-        logger.info("renaming asset on s3 from %s to %s", old_path, new_path)
+    def move_asset(self, source, dest):
+        logger.info("renaming asset on s3 from %s to %s", source, dest)
         s3 = get_s3_resource()
 
         s3.Object(settings.AWS_STORAGE_BUCKET_NAME,
-                  new_path).copy_from(CopySource=f'{settings.AWS_STORAGE_BUCKET_NAME}/{old_path}')
-        s3.Object(settings.AWS_STORAGE_BUCKET_NAME, old_path).delete()
+                  dest).copy_from(CopySource=f'{settings.AWS_STORAGE_BUCKET_NAME}/{source}')
+        s3.Object(settings.AWS_STORAGE_BUCKET_NAME, source).delete()
 
     # alter save-function, so that the corresponding collection of the parent item of the asset
     # is saved, too.
