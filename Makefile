@@ -139,7 +139,7 @@ lint:
 test:
 	# Collect static first to avoid warning in the test
 	$(PYTHON) $(DJANGO_MANAGER) collectstatic --noinput
-	$(PYTHON) $(DJANGO_MANAGER) test --verbosity=2 $(TEST_DIR)
+	$(PYTHON) $(DJANGO_MANAGER) test --verbosity=2 --parallel 8 $(TEST_DIR)
 
 
 ###################
@@ -198,7 +198,8 @@ dockerrun: dockerbuild-debug
 
 .PHONY: clean_venv
 clean_venv:
-	pipenv --rm
+	# ignore pipenv errors by adding command prefix -
+	-pipenv --rm
 
 
 .PHONY: clean

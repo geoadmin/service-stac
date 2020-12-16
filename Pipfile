@@ -13,6 +13,7 @@ pip = "*"
 django-debug-toolbar = "*"
 mock = "==4.0.2"
 requests = "~=2.25.0"
+tblib = "*"  # needed for traceback when running tests in parallel
 
 [packages]
 gevent = "==20.9.0"
