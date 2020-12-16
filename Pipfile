@@ -11,8 +11,8 @@ pylint-django = "~=2.3.0"
 django-extensions = "~=3.0.9"
 pip = "*"
 django-debug-toolbar = "*"
-moto = {extras = ["s3"], version = "*"}
 mock = "==4.0.2"
+requests = "~=2.25.0"
 
 [packages]
 gevent = "==20.9.0"
@@ -33,3 +33,7 @@ boto3 = "==1.16.32"
 
 [requires]
 python_version = "3.7"
+
+[dev-packages.moto]
+extras = [ "s3",]
+version = "*"
