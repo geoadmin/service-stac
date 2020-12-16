@@ -18,7 +18,7 @@ from stac_api.collection_summaries import UPDATE_SUMMARIES_FIELDS
 from stac_api.collection_summaries import update_summaries_on_asset_delete
 from stac_api.collection_summaries import update_summaries_on_asset_insert
 from stac_api.collection_summaries import update_summaries_on_asset_update
-from stac_api.temporal_extent import update_temporal_extent
+from stac_api.collection_temporal_extent import update_temporal_extent
 from stac_api.validators import MEDIA_TYPES
 from stac_api.validators import validate_geoadmin_variant
 from stac_api.validators import validate_geometry
