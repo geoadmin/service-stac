@@ -12,6 +12,7 @@ from rest_framework import generics
 from rest_framework import mixins
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
+from rest_framework_condition import etag
 
 from stac_api import views_mixins
 from stac_api.models import Asset
@@ -27,6 +28,41 @@ from stac_api.serializers import LandingPageSerializer
 from stac_api.utils import utc_aware
 
 logger = logging.getLogger(__name__)
+
+
+def get_etag(queryset):
+    if queryset.exists():
+        return list(queryset.only('etag').values('etag').first().values())[0]
+    return None
+
+
+def get_collection_etag(request, *args, **kwargs):
+    '''Get the ETag for a collection object
+
+    The ETag is an UUID4 computed on each object changes (including relations; provider and links)
+    '''
+    tag = get_etag(Collection.objects.filter(name=kwargs['collection_name']))
+    return tag
+
+
+def get_item_etag(request, *args, **kwargs):
+    '''Get the ETag for a item object
+
+    The ETag is an UUID4 computed on each object changes (including relations; assets and links)
+    '''
+    tag = get_etag(
+        Item.objects.filter(collection__name=kwargs['collection_name'], name=kwargs['item_name'])
+    )
+    return tag
+
+
+def get_asset_etag(request, *args, **kwargs):
+    '''Get the ETag for a asset object
+
+    The ETag is an UUID4 computed on each object changes
+    '''
+    tag = get_etag(Asset.objects.filter(item__name=kwargs['item_name'], name=kwargs['asset_name']))
+    return tag
 
 
 def parse_datetime_query(date_time):
@@ -129,12 +165,17 @@ class CollectionDetail(generics.GenericAPIView, mixins.RetrieveModelMixin, mixin
     lookup_url_kwarg = "collection_name"
     queryset = Collection.objects.all()
 
+    @etag(get_collection_etag)
     def get(self, request, *args, **kwargs):
         return self.retrieve(request, *args, **kwargs)
 
+    # Here the etag is only added to support pre-conditional If-Match and If-Not-Match
+    @etag(get_collection_etag)
     def put(self, request, *args, **kwargs):
         return self.update(request, *args, **kwargs)
 
+    # Here the etag is only added to support pre-conditional If-Match and If-Not-Match
+    @etag(get_collection_etag)
     def patch(self, request, *args, **kwargs):
         return self.partial_update(request, *args, **kwargs)
 
@@ -274,15 +315,22 @@ class ItemDetail(
         obj = get_object_or_404(queryset)
         return obj
 
+    @etag(get_item_etag)
     def get(self, request, *args, **kwargs):
         return self.retrieve(request, *args, **kwargs)
 
+    # Here the etag is only added to support pre-conditional If-Match and If-Not-Match
+    @etag(get_item_etag)
     def put(self, request, *args, **kwargs):
         return self.update(request, *args, **kwargs)
 
+    # Here the etag is only added to support pre-conditional If-Match and If-Not-Match
+    @etag(get_item_etag)
     def patch(self, request, *args, **kwargs):
         return self.partial_update(request, *args, **kwargs)
 
+    # Here the etag is only added to support pre-conditional If-Match and If-Not-Match
+    @etag(get_item_etag)
     def delete(self, request, *args, **kwargs):
         return self.destroy(request, *args, **kwargs)
 
@@ -345,12 +393,17 @@ class AssetDetail(
         obj = get_object_or_404(queryset)
         return obj
 
+    @etag(get_asset_etag)
     def get(self, request, *args, **kwargs):
         return self.retrieve(request, *args, **kwargs)
 
+    # Here the etag is only added to support pre-conditional If-Match and If-Not-Match
+    @etag(get_asset_etag)
     def put(self, request, *args, **kwargs):
         return self.update(request, *args, **kwargs)
 
+    # Here the etag is only added to support pre-conditional If-Match and If-Not-Match
+    @etag(get_asset_etag)
     def patch(self, request, *args, **kwargs):
         return self.partial_update(request, *args, **kwargs)
 

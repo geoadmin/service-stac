@@ -71,6 +71,10 @@ class AssetsEndpointTestCase(StacBaseTestCase):
         self.assertEqual(200, response.status_code, msg=get_http_error_description(json_data))
         logger.debug('Response (%s):\n%s', type(json_data), pformat(json_data))
 
+        # The ETag change between each test call due to the created, updated time that are in the
+        # hash computation of the ETag
+        self.check_etag(None, response)
+
         # Check that the answer is equal to the initial data
         serializer = AssetSerializer(
             self.assets[0][0][0], context={'request': response.wsgi_request}

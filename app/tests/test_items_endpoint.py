@@ -156,6 +156,10 @@ class ItemsReadEndpointTestCase(ItemsEndpointTestCase):
         logger.debug('Response (%s):\n%s', type(json_data), pformat(json_data))
         self.assertStatusCode(200, response)
 
+        # The ETag change between each test call due to the created, updated time that are in the
+        # hash computation of the ETag
+        self.check_etag(None, response)
+
         # mock the request for creations of links
         request = mock_request_from_response(self.factory, response)
 
