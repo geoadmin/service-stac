@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 from pprint import pformat
 
 from django.conf import settings
@@ -9,6 +10,7 @@ from rest_framework.test import APIRequestFactory
 
 from stac_api.serializers import CollectionSerializer
 from stac_api.utils import fromisoformat
+from stac_api.utils import utc_aware
 
 import tests.database as db
 from tests.base_test import StacBaseTestCase
@@ -95,6 +97,21 @@ class CollectionsEndpointTestCase(StacBaseTestCase):
         response = self.client.get(f"/{API_BASE}/collections?limit=1000")
         self.assertStatusCode(400, response)
 
+
+class CollectionsWriteEndpointTestCase(StacBaseTestCase):
+
+    def setUp(self):  # pylint: disable=invalid-name
+        self.client = Client()
+        self.factory = APIRequestFactory()
+        self.collections, self.items, self.assets = db.create_dummy_db_content(4, 4, 4)
+        self.maxDiff = None  # pylint: disable=invalid-name
+        self.sample_collections = get_sample_data('collections')
+        self.username = 'SherlockHolmes'
+        self.password = '221B_BakerStreet'
+        self.superuser = get_user_model().objects.create_superuser(
+            self.username, 'test_e_mail1234@some_fantasy_domainname.com', self.password
+        )
+
     def test_valid_collections_post(self):
         payload_json = self.sample_collections['valid_collection_set_1']
 
@@ -115,6 +132,26 @@ class CollectionsEndpointTestCase(StacBaseTestCase):
             f"/{API_BASE}/collections", data=payload_json, content_type='application/json'
         )
         response_json = response.json()
+        self.assertStatusCode(400, response)
+
+    def test_collections_post_extra_payload(self):
+        payload_json = self.sample_collections['valid_collection_set_1']
+        payload_json["crazy:stuff"] = "woooohoooo"
+
+        self.client.login(username=self.username, password=self.password)
+        response = self.client.post(
+            f"/{API_BASE}/collections", data=payload_json, content_type='application/json'
+        )
+        self.assertStatusCode(400, response)
+
+    def test_collections_post_read_only_in_payload(self):
+        payload_json = self.sample_collections['valid_collection_set_1']
+        payload_json["created"] = utc_aware(datetime.utcnow())
+
+        self.client.login(username=self.username, password=self.password)
+        response = self.client.post(
+            f"/{API_BASE}/collections", data=payload_json, content_type='application/json'
+        )
         self.assertStatusCode(400, response)
 
     def test_invalid_collections_post(self):
@@ -196,6 +233,40 @@ class CollectionsEndpointTestCase(StacBaseTestCase):
         self.assertStatusCode(200, response)
         self.assertEqual(response_json['title'], payload_json['title'])
 
+    def test_collections_put_extra_payload(self):
+        payload_json = self.sample_collections['valid_collection_set_2']
+        # POST data first
+        self.client.login(username=self.username, password=self.password)
+        self.client.post(
+            f"/{API_BASE}/collections", data=payload_json, content_type='application/json'
+        )
+
+        payload_json['title'] = "The Swallows"
+        payload_json["crazy:stuff"] = "woooohoooo"
+        response = self.client.put(
+            f"/{API_BASE}/collections/{payload_json['id']}",
+            data=payload_json,
+            content_type='application/json'
+        )
+        self.assertStatusCode(400, response)
+
+    def test_collections_put_read_only_in_payload(self):
+        payload_json = self.sample_collections['valid_collection_set_2']
+        # POST data first
+        self.client.login(username=self.username, password=self.password)
+        self.client.post(
+            f"/{API_BASE}/collections", data=payload_json, content_type='application/json'
+        )
+
+        payload_json['title'] = "The Swallows"
+        payload_json["created"] = utc_aware(datetime.utcnow())
+        response = self.client.put(
+            f"/{API_BASE}/collections/{payload_json['id']}",
+            data=payload_json,
+            content_type='application/json'
+        )
+        self.assertStatusCode(400, response)
+
     def test_collection_put_change_id(self):
         payload_json = self.sample_collections['valid_collection_set_3']
         # for the start, the id have to be different
@@ -260,6 +331,40 @@ class CollectionsEndpointTestCase(StacBaseTestCase):
 
         # description not affected by patch
         self.assertEqual(self.collections[1].description, response_json['description'])
+
+    def test_collection_patch_extra_payload(self):
+        collection_name = self.collections[1].name  # get a name that is registered in the service
+        payload_json = self.sample_collections['less_than_min_collection_set']
+        payload_json['id'] = collection_name  # rename the payload to this name
+        payload_json["crazy:stuff"] = "woooohoooo"
+        # for the start, the collection[1] has to have a different licence than the payload
+        self.assertNotEqual(self.collections[1].license, payload_json['license'])
+        # for start the payload has no description
+        self.assertNotIn('title', payload_json.keys())
+        self.client.login(username=self.username, password=self.password)
+        response = self.client.patch(
+            f"/{API_BASE}/collections/{payload_json['id']}",
+            data=payload_json,
+            content_type='application/json'
+        )
+        self.assertStatusCode(400, response)
+
+    def test_collection_patch_read_only_in_payload(self):
+        collection_name = self.collections[1].name  # get a name that is registered in the service
+        payload_json = self.sample_collections['less_than_min_collection_set']
+        payload_json['id'] = collection_name  # rename the payload to this name
+        payload_json["created"] = utc_aware(datetime.utcnow())
+        # for the start, the collection[1] has to have a different licence than the payload
+        self.assertNotEqual(self.collections[1].license, payload_json['license'])
+        # for start the payload has no description
+        self.assertNotIn('title', payload_json.keys())
+        self.client.login(username=self.username, password=self.password)
+        response = self.client.patch(
+            f"/{API_BASE}/collections/{payload_json['id']}",
+            data=payload_json,
+            content_type='application/json'
+        )
+        self.assertStatusCode(400, response)
 
     def test_unauthorized_collection_post_put_patch(self):
         # make sure POST fails for anonymous user:

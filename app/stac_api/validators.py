@@ -187,3 +187,29 @@ def validate_item_properties_datetimes(
             properties_start_datetime,
             properties_end_datetime,
         )
+
+
+def validate_json_payload_write_requests(serializer, request_data):
+    '''
+    Validate JSON payload of write requests.
+    Args:
+         serializer: serializer instance for validating and deserializing input and
+         for serializing output.
+
+         request_data: data of the request to be validated
+
+    Raises:
+        ValidateionError: Either in case of unexpected payload or if the payload contains
+        values for read-only fields.
+    '''
+    if hasattr(serializer, "fields"):
+        expected_payload = list(serializer.fields.keys())
+        expected_payload_read_only = [
+            field for field in serializer.fields if serializer.fields[field].read_only
+        ]
+
+        for key in request_data:
+            if key not in expected_payload:
+                raise ValidationError(_(f"Found unexpected property in payload: {key}"))
+            if key in expected_payload_read_only:
+                raise ValidationError(_(f"Found read-only property in payload: {key}"))

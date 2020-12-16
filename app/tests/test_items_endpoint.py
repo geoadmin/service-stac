@@ -312,6 +312,34 @@ class ItemsWriteEndpointTestCase(ItemsEndpointTestCase):
         self.assertStatusCode(200, response)
         self.check_stac_item(data, json_data)
 
+    def test_item_endpoint_post_extra_payload(self):
+        data = {
+            "id": "test",
+            "geometry": TEST_VALID_GEOMETRY,
+            "properties": {
+                "datetime": "2020-10-18T00:00:00Z"
+            },
+            "crazy:stuff": "woooohoooo"
+        }
+        path = f'/{API_BASE}/collections/{self.collections[0].name}/items'
+        self.client.login(username=self.username, password=self.password)
+        response = self.client.post(path, data=data, content_type="application/json")
+        self.assertStatusCode(400, response)
+
+    def test_item_endpoint_post_read_only_in_payload(self):
+        data = {
+            "id": "test",
+            "geometry": TEST_VALID_GEOMETRY,
+            "properties": {
+                "datetime": "2020-10-18T00:00:00Z"
+            },
+            "created": utc_aware(datetime.utcnow())
+        }
+        path = f'/{API_BASE}/collections/{self.collections[0].name}/items'
+        self.client.login(username=self.username, password=self.password)
+        response = self.client.post(path, data=data, content_type="application/json")
+        self.assertStatusCode(400, response)
+
     def test_item_endpoint_post_full(self):
         data = {
             "id": "test",
@@ -390,6 +418,36 @@ class ItemsWriteEndpointTestCase(ItemsEndpointTestCase):
         json_data = response.json()
         self.assertStatusCode(200, response)
         self.check_stac_item(data, json_data)
+
+    def test_item_endpoint_put_extra_payload(self):
+        data = {
+            "id": self.items[0][0].name,
+            "geometry": TEST_VALID_GEOMETRY,
+            "properties": {
+                "datetime": "2020-10-18T00:00:00Z",
+                "title": "My title",
+            },
+            "crazy:stuff": "woooohoooo"
+        }
+        path = f'/{API_BASE}/collections/{self.collections[0].name}/items/{self.items[0][0].name}'
+        self.client.login(username=self.username, password=self.password)
+        response = self.client.put(path, data=data, content_type="application/json")
+        self.assertStatusCode(400, response)
+
+    def test_item_endpoint_put_read_only_in_payload(self):
+        data = {
+            "id": self.items[0][0].name,
+            "geometry": TEST_VALID_GEOMETRY,
+            "properties": {
+                "datetime": "2020-10-18T00:00:00Z",
+                "title": "My title",
+            },
+            "created": utc_aware(datetime.utcnow())
+        }
+        path = f'/{API_BASE}/collections/{self.collections[0].name}/items/{self.items[0][0].name}'
+        self.client.login(username=self.username, password=self.password)
+        response = self.client.put(path, data=data, content_type="application/json")
+        self.assertStatusCode(400, response)
 
     def test_item_endpoint_put_update_to_datetime_range(self):
         data = {
@@ -486,6 +544,34 @@ class ItemsWriteEndpointTestCase(ItemsEndpointTestCase):
         self.assertStatusCode(200, response)
         self.assertEqual(self.items[0][0].name, json_data['id'])
         self.check_stac_item(data, json_data)
+
+    def test_item_endpoint_patch_extra_payload(self):
+        data = {
+            "geometry": TEST_VALID_GEOMETRY,
+            "properties": {
+                "title": "patched title",
+            },
+            "crazy:stuff": "woooohoooo"
+        }
+        path = f'/{API_BASE}/collections/{self.collections[0].name}/items/{self.items[0][0].name}'
+        self.client.login(username=self.username, password=self.password)
+        response = self.client.patch(path, data=data, content_type="application/json")
+        json_data = response.json()
+        self.assertStatusCode(400, response)
+
+    def test_item_endpoint_patch_read_only_in_payload(self):
+        data = {
+            "geometry": TEST_VALID_GEOMETRY,
+            "properties": {
+                "title": "patched title",
+            },
+            "created": utc_aware(datetime.utcnow())
+        }
+        path = f'/{API_BASE}/collections/{self.collections[0].name}/items/{self.items[0][0].name}'
+        self.client.login(username=self.username, password=self.password)
+        response = self.client.patch(path, data=data, content_type="application/json")
+        json_data = response.json()
+        self.assertStatusCode(400, response)
 
     def test_item_endpoint_patch_invalid_datetimes(self):
         data = {"properties": {"datetime": "patched title",}}
