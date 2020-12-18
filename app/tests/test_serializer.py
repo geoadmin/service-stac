@@ -857,6 +857,11 @@ class AssetSerializationTestCase(StacBaseTestCase):
         logger.debug('python native:\n%s', pformat(python_native))
 
         # translate to JSON:
+        # remove read-only properties from python_native
+        read_only_fields = ["href", "created", "updated"]
+        for key in read_only_fields:
+            del python_native[key]
+
         json_string = JSONRenderer().render(python_native, renderer_context={'indent': 2})
         logger.debug('json string: %s', json_string.decode("utf-8"))
 

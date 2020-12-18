@@ -26,7 +26,6 @@ from stac_api.serializers import ConformancePageSerializer
 from stac_api.serializers import ItemSerializer
 from stac_api.serializers import LandingPageSerializer
 from stac_api.utils import utc_aware
-from stac_api.validators import validate_json_payload_write_requests
 
 logger = logging.getLogger(__name__)
 
@@ -101,32 +100,6 @@ def parse_datetime_query(date_time):
     return start, end
 
 
-class BaseAPIView(generics.GenericAPIView):
-    """
-    Base class for all other generic views.
-
-    This is a copy of the original GenericAPIView, but the get_serializer() has been overriden,
-    in order to do a validation of the JSON payload for write requests.
-    In case extra-payload or read-only properties in payload are detected, a 400 will
-    be raised.
-    """
-
-    def get_serializer(self, *args, **kwargs):
-        """
-        Return the serializer instance that should be used for validating and
-        deserializing input, and for serializing output.
-
-        This function has been overriden and a validation of the JSON
-        payload has been added.
-        """
-        serializer_class = self.get_serializer_class()  # pylint: disable=no-member
-        kwargs.setdefault('context', self.get_serializer_context())  # pylint: disable=no-member
-        serializer = serializer_class(*args, **kwargs)
-        validate_json_payload_write_requests(serializer, self.request.data)  # pylint: disable=no-member
-
-        return serializer
-
-
 class LandingPageDetail(generics.RetrieveAPIView):
     serializer_class = LandingPageSerializer
     queryset = LandingPage.objects.all()
@@ -149,7 +122,7 @@ def checker(request):
     return JsonResponse(data)
 
 
-class CollectionList(BaseAPIView, mixins.CreateModelMixin):
+class CollectionList(generics.GenericAPIView, mixins.CreateModelMixin):
     serializer_class = CollectionSerializer
     queryset = Collection.objects.all()
 
@@ -187,7 +160,7 @@ class CollectionList(BaseAPIView, mixins.CreateModelMixin):
         return Response(data)
 
 
-class CollectionDetail(BaseAPIView, mixins.RetrieveModelMixin, mixins.UpdateModelMixin):
+class CollectionDetail(generics.GenericAPIView, mixins.RetrieveModelMixin, mixins.UpdateModelMixin):
     serializer_class = CollectionSerializer
     lookup_url_kwarg = "collection_name"
     queryset = Collection.objects.all()
@@ -213,7 +186,7 @@ class CollectionDetail(BaseAPIView, mixins.RetrieveModelMixin, mixins.UpdateMode
         return obj
 
 
-class ItemsList(BaseAPIView, views_mixins.CreateModelMixin):
+class ItemsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
     serializer_class = ItemSerializer
     queryset = Item.objects.all()
 
@@ -322,7 +295,7 @@ class ItemsList(BaseAPIView, views_mixins.CreateModelMixin):
 
 
 class ItemDetail(
-    BaseAPIView,
+    generics.GenericAPIView,
     mixins.RetrieveModelMixin,
     views_mixins.UpdateModelMixin,
     views_mixins.DestroyModelMixin
@@ -362,7 +335,7 @@ class ItemDetail(
         return self.destroy(request, *args, **kwargs)
 
 
-class AssetsList(BaseAPIView, views_mixins.CreateModelMixin):
+class AssetsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
     serializer_class = AssetSerializer
     queryset = Asset.objects.all()
     pagination_class = None
@@ -400,7 +373,7 @@ class AssetsList(BaseAPIView, views_mixins.CreateModelMixin):
 
 
 class AssetDetail(
-    BaseAPIView,
+    generics.GenericAPIView,
     mixins.RetrieveModelMixin,
     views_mixins.UpdateModelMixin,
     views_mixins.DestroyModelMixin

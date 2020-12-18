@@ -3,8 +3,10 @@ from collections import OrderedDict
 
 from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry
+from django.utils.translation import gettext_lazy as _
 
 from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
 from rest_framework.utils.serializer_helpers import ReturnDict
 from rest_framework.validators import UniqueValidator
 from rest_framework_gis import serializers as gis_serializers
@@ -82,6 +84,36 @@ def update_or_create_links(model, instance, instance_type, links_data):
         instance.name,
         extra={instance_type: instance}
     )
+
+
+class CommonJsonValidatorSerializer(serializers.ModelSerializer):
+
+    def validate(self, attrs):
+
+        # see: https://www.django-rest-framework.org/api-guide/serializers/#object-level-validation
+
+        # common validation part for collection, item and asset:
+        expected_payload = list(self.fields.keys())
+        expected_payload_read_only = [
+            field for field in self.fields if self.fields[field].read_only
+        ]
+
+        for key in self.initial_data.keys():
+            if key not in expected_payload:
+                raise ValidationError(detail=_("Unexpected property in payload"), code=key)
+            if key in expected_payload_read_only:
+                raise ValidationError(detail=_("Found read-only property in payload"), code=key)
+
+        # add specific validation for ItemSerializer
+        if self.__class__.__name__ == "ItemSerializer":
+            validate_item_properties_datetimes(
+                attrs.get('properties_datetime', None),
+                attrs.get('properties_start_datetime', None),
+                attrs.get('properties_end_datetime', None),
+                partial=self.partial
+            )
+
+        return attrs
 
 
 class NonNullModelSerializer(serializers.ModelSerializer):
@@ -299,7 +331,7 @@ class CollectionLinkSerializer(NonNullModelSerializer):
     )
 
 
-class CollectionSerializer(NonNullModelSerializer):
+class CollectionSerializer(NonNullModelSerializer, CommonJsonValidatorSerializer):
 
     class Meta:
         model = Collection
@@ -504,7 +536,7 @@ class AssetsDictSerializer(DictSerializer):
     key_identifier = 'id'
 
 
-class AssetSerializer(NonNullModelSerializer):
+class AssetSerializer(NonNullModelSerializer, CommonJsonValidatorSerializer):
 
     class Meta:
         model = Asset
@@ -583,7 +615,7 @@ class AssetSerializer(NonNullModelSerializer):
         return request.build_absolute_uri('/' + path) if path else None
 
 
-class ItemSerializer(NonNullModelSerializer):
+class ItemSerializer(NonNullModelSerializer, CommonJsonValidatorSerializer):
 
     class Meta:
         model = Item
@@ -672,12 +704,3 @@ class ItemSerializer(NonNullModelSerializer):
             instance_type="item", model=ItemLink, instance=instance, links_data=links_data
         )
         return super().update(instance, validated_data)
-
-    def validate(self, attrs):
-        validate_item_properties_datetimes(
-            attrs.get('properties_datetime', None),
-            attrs.get('properties_start_datetime', None),
-            attrs.get('properties_end_datetime', None),
-            partial=self.partial
-        )
-        return attrs
