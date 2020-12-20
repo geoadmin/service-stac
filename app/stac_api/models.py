@@ -400,17 +400,6 @@ class Collection(models.Model):
             return update_summaries_on_asset_insert(self, asset)
         raise ValueError(f'Invalid trigger parameter: {trigger}')
 
-    def clean(self):
-        # very simple validation, raises error when geoadmin_variant strings contain special
-        # characters or umlaut.
-        for variant in self.summaries["geoadmin:variant"]:
-            if not bool(re.search('^[a-zA-Z0-9]*$', variant)):
-                logger.error(
-                    "Property geoadmin:variant not compatible with the naming conventions."
-                )
-                raise ValidationError(_("Property geoadmin:variant not compatible with the"
-                                        "naming conventions."))
-
     def save(self, *args, **kwargs):  # pylint: disable=signature-differs
         # It is important to use `*args, **kwargs` in signature because django might add dynamically
         # parameters
