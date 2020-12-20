@@ -857,11 +857,6 @@ class AssetSerializationTestCase(StacBaseTestCase):
         logger.debug('python native:\n%s', pformat(python_native))
 
         # translate to JSON:
-        # remove read-only properties from python_native
-        read_only_fields = ["href", "created", "updated"]
-        for key in read_only_fields:
-            del python_native[key]
-
         json_string = JSONRenderer().render(python_native, renderer_context={'indent': 2})
         logger.debug('json string: %s', json_string.decode("utf-8"))
 
@@ -887,6 +882,11 @@ class AssetSerializationTestCase(StacBaseTestCase):
         # hack to deal with the item property, as it is "write_only", it will not appear
         # in the mocked request's data. So we manually add it here:
         python_native_back["item"] = item_name
+
+        # remove read-only properties from python_native
+        read_only_fields = ["href", "created", "updated"]
+        for key in read_only_fields:
+            del python_native_back[key]
 
         # back-translate into fully populated Item instance:
         back_serializer = AssetSerializer(

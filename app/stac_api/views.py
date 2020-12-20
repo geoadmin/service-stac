@@ -411,7 +411,7 @@ class AssetDetail(
         return self.destroy(request, *args, **kwargs)
 
 
-class TestHttp500(AssetDetail):  # pylint: disable=too-many-ancestors
+class TestHttp500(AssetDetail):
 
     def get(self, request, *args, **kwargs):
         logger.debug('Test request that raises an exception')
