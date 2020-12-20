@@ -68,7 +68,8 @@ def validate_name(name):
     if not re.match(r'^[0-9a-z-_.]+$', name):
         logger.error('Invalid name %s, only the following characters are allowed: 0-9a-z-_.', name)
         raise ValidationError(
-            _('Invalid name, only the following characters are allowed: 0-9a-z-_.')
+            _('Invalid name, only the following characters are allowed: 0-9a-z-_.'),
+            code='id'
         )
 
 
@@ -78,7 +79,10 @@ def validate_geoadmin_variant(variant):
         logger.error(
             "Invalid geoadmin:variant property %s, special characters not allowed", variant
         )
-        raise ValidationError(_("Invalid geoadmin:variant, special characters not allowed"))
+        raise ValidationError(
+            _("Invalid geoadmin:variant, special characters not allowed"),
+            code="geoadmin:variant"
+        )
 
 
 def validate_link_rel(value):
@@ -95,7 +99,10 @@ def validate_link_rel(value):
     ]
     if value in invalid_rel:
         logger.error("Link rel attribute %s is not allowed, it is a reserved attribute", value)
-        raise ValidationError(_(f'Invalid rel attribute, must not be in {invalid_rel}'))
+        raise ValidationError(
+            _(f'Invalid rel attribute, must not be in {invalid_rel}'),
+            code="rel"
+        )
 
 
 def validate_geometry(geometry):
@@ -115,11 +122,11 @@ def validate_geometry(geometry):
     if geos_geometry.empty:
         message = "The geometry is empty: %s" % geos_geometry.wkt
         logger.error(message)
-        raise ValidationError(_(message))
+        raise ValidationError(_(message), code='geometry')
     if not geos_geometry.valid:
         message = "The geometry is not valid: %s" % geos_geometry.valid_reason
         logger.error(message)
-        raise ValidationError(_(message))
+        raise ValidationError(_(message), code='geometry')
     return geometry
 
 

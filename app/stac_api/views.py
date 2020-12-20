@@ -84,7 +84,10 @@ def parse_datetime_query(date_time):
         logger.error(
             'Invalid datetime query parameter "%s", must be isoformat; %s', date_time, error
         )
-        raise ValidationError(_('Invalid datetime query parameter, must be isoformat'))
+        raise ValidationError(
+            _('Invalid datetime query parameter, must be isoformat'),
+            code='datetime'
+        )
 
     if end == '':
         end = None
@@ -95,8 +98,11 @@ def parse_datetime_query(date_time):
             'cannot start with open range when no end range is defined',
             date_time
         )
-        raise ValidationError(_('Invalid datetime query parameter, '
-                                'cannot start with open range when no end range is defined'))
+        raise ValidationError(
+            _('Invalid datetime query parameter, '
+              'cannot start with open range when no end range is defined'),
+            code='datetime'
+        )
     return start, end
 
 
@@ -222,8 +228,11 @@ class ItemsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
                 bbox,
                 error
             )
-            raise ValidationError(_('Invalid bbox query parameter, '
-                                    ' has to contain 4 values. f.ex. bbox=5.96,45.82,10.49,47.81'))
+            raise ValidationError(
+                _('Invalid bbox query parameter, '
+                  ' has to contain 4 values. f.ex. bbox=5.96,45.82,10.49,47.81'),
+                code='bbox'
+            )
 
         return queryset.filter(geometry__intersects=query_bbox_polygon)
 

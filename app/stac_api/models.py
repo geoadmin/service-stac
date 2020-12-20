@@ -178,7 +178,10 @@ class Provider(models.Model):
         for role in self.roles:
             if role not in self.allowed_roles:
                 logger.error('Invalid role %s', role)
-                raise ValidationError(_('Invalid role, must be in %s' % (self.allowed_roles)))
+                raise ValidationError(
+                    _('Invalid role, must be in %s' % (self.allowed_roles)),
+                    code='roles'
+                )
 
 
 # For Collections and Items: No primary key will be defined, so that the auto-generated ones
@@ -400,7 +403,6 @@ class Collection(models.Model):
     def clean(self):
         # very simple validation, raises error when geoadmin_variant strings contain special
         # characters or umlaut.
-
         for variant in self.summaries["geoadmin:variant"]:
             if not bool(re.search('^[a-zA-Z0-9]*$', variant)):
                 logger.error(

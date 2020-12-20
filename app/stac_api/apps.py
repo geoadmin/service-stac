@@ -64,15 +64,20 @@ class CursorPagination(pagination.CursorPagination):
                 integer_string,
                 extra={'request': request}
             )
-            raise ValidationError(_('invalid limit query parameter: must be an integer'))
+            raise ValidationError(
+                _('invalid limit query parameter: must be an integer'),
+                code='limit'
+            )
 
         if page_size <= 0:
             raise ValidationError(
-                _('limit query parameter to small, must be in range 1..%d') % (self.max_page_size)
+                _('limit query parameter to small, must be in range 1..%d') % (self.max_page_size),
+                code='limit'
             )
         if self.max_page_size and page_size > self.max_page_size:
             raise ValidationError(
-                _('limit query parameter to big, must be in range 1..%d') % (self.max_page_size)
+                _('limit query parameter to big, must be in range 1..%d') % (self.max_page_size),
+                code='limit'
             )
 
         return page_size
@@ -92,7 +97,7 @@ def custom_exception_handler(exc, context):
         # this is required because some validation cannot be done in the Rest
         # framework serializer but must be left to the model, like for instance
         # the Item properties datetimes dependencies during a partial update.
-        exc = ValidationError(exc.message)
+        exc = ValidationError(exc.message, exc.code)
 
     if isinstance(exc, APIException):
         status_code = exc.status_code
