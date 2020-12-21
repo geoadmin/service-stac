@@ -12,5 +12,3 @@ s3mock = mock_s3()
 s3mock.start()
 
 from config.settings import *  # pylint: disable=wildcard-import,unused-wildcard-import,wrong-import-position
-
-AWS_STORAGE_BUCKET_NAME = 'bigbag'

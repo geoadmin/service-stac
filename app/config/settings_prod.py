@@ -27,10 +27,10 @@ print(f"BASE_DIR is {BASE_DIR}")
 APP_ENV = os.environ.get('APP_ENV', 'local')
 
 # If we develop locally, load ENV from file
-if APP_ENV.lower() == 'local':
-    print("running locally hence injecting env vars from {}".format(BASE_DIR / f'.env.{APP_ENV}'))
+if APP_ENV.lower() in ['local', 'default']:
+    print("Running locally hence injecting env vars from {}".format(BASE_DIR / f'.env.{APP_ENV}'))
     # set the APP_ENV to local (in case it was set from default above)
-    os.environ['APP_ENV'] = 'local'
+    os.environ['APP_ENV'] = APP_ENV
     load_dotenv(BASE_DIR / f'.env.{APP_ENV}')
 
 # SECURITY WARNING: keep the secret key used in production secret!
@@ -167,21 +167,24 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Media files (i.e. uploaded content=assets in this project)
 DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
-AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
-AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
-AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
-# The AWS region of the bucket
-AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME')
-# This is the URL where to reach the S3 service and is either minio
-# on localhost or https://s3.<region>.amazonaws.com
-AWS_S3_ENDPOINT_URL = os.environ.get('AWS_S3_ENDPOINT_URL', None)
-# The CUSTOM_DOMAIN is used to construct the correct URL when displaying
-# a link to the file in the admin UI. It must only contain the domain, but not
-# the scheme (http/https).
-AWS_S3_CUSTOM_DOMAIN = os.environ.get('AWS_S3_CUSTOM_DOMAIN')
-# AWS_DEFAULT_ACL depends on bucket/user config. The user might not have
-# permissions to change ACL, then this setting must be None
-AWS_DEFAULT_ACL = None
+try:
+    AWS_ACCESS_KEY_ID = os.environ['AWS_ACCESS_KEY_ID']
+    AWS_SECRET_ACCESS_KEY = os.environ['AWS_SECRET_ACCESS_KEY']
+    AWS_STORAGE_BUCKET_NAME = os.environ['AWS_STORAGE_BUCKET_NAME']
+    # The AWS region of the bucket
+    AWS_S3_REGION_NAME = os.environ['AWS_S3_REGION_NAME']
+    # This is the URL where to reach the S3 service and is either minio
+    # on localhost or https://s3.<region>.amazonaws.com
+    AWS_S3_ENDPOINT_URL = os.environ.get('AWS_S3_ENDPOINT_URL', None)
+    # The CUSTOM_DOMAIN is used to construct the correct URL when displaying
+    # a link to the file in the admin UI. It must only contain the domain, but not
+    # the scheme (http/https).
+    AWS_S3_CUSTOM_DOMAIN = os.environ.get('AWS_S3_CUSTOM_DOMAIN', None)
+    # AWS_DEFAULT_ACL depends on bucket/user config. The user might not have
+    # permissions to change ACL, then this setting must be None
+    AWS_DEFAULT_ACL = None
+except KeyError as err:
+    raise KeyError(f'AWS configuration {err} missing') from err
 
 # Logging
 # https://docs.djangoproject.com/en/3.1/topics/logging/
