@@ -23,6 +23,7 @@ from stac_api.validators import MEDIA_TYPES_MIMES
 from stac_api.validators import validate_geoadmin_variant
 from stac_api.validators import validate_item_properties_datetimes
 from stac_api.validators import validate_name
+from stac_api.validators_serializer import validate_json_payload
 
 logger = logging.getLogger(__name__)
 
@@ -451,6 +452,10 @@ class CollectionSerializer(NonNullModelSerializer):
         ]
         return representation
 
+    def validate(self, attrs):
+        validate_json_payload(self)
+        return attrs
+
 
 class ItemLinkSerializer(NonNullModelSerializer):
 
@@ -582,6 +587,10 @@ class AssetSerializer(NonNullModelSerializer):
         path = obj.file.name
         return request.build_absolute_uri('/' + path) if path else None
 
+    def validate(self, attrs):
+        validate_json_payload(self)
+        return attrs
+
 
 class ItemSerializer(NonNullModelSerializer):
 
@@ -680,4 +689,7 @@ class ItemSerializer(NonNullModelSerializer):
             attrs.get('properties_end_datetime', None),
             partial=self.partial
         )
+
+        validate_json_payload(self)
+
         return attrs

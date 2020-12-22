@@ -883,6 +883,11 @@ class AssetSerializationTestCase(StacBaseTestCase):
         # in the mocked request's data. So we manually add it here:
         python_native_back["item"] = item_name
 
+        # remove read-only properties from python_native
+        read_only_fields = ["href", "created", "updated"]
+        for key in read_only_fields:
+            del python_native_back[key]
+
         # back-translate into fully populated Item instance:
         back_serializer = AssetSerializer(
             instance=self.asset, data=python_native_back, context={'request': request}
