@@ -683,13 +683,12 @@ class ItemSerializer(NonNullModelSerializer):
         return super().update(instance, validated_data)
 
     def validate(self, attrs):
-        if self.__class__.__name__ == "ItemSerializer":
-            validate_item_properties_datetimes(
-                attrs.get('properties_datetime', None),
-                attrs.get('properties_start_datetime', None),
-                attrs.get('properties_end_datetime', None),
-                partial=self.partial
-            )
+        validate_item_properties_datetimes(
+            attrs.get('properties_datetime', None),
+            attrs.get('properties_start_datetime', None),
+            attrs.get('properties_end_datetime', None),
+            partial=self.partial
+        )
 
         validate_json_payload(self)
 
