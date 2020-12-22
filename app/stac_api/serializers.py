@@ -22,8 +22,8 @@ from stac_api.utils import isoformat
 from stac_api.validators import MEDIA_TYPES_MIMES
 from stac_api.validators import validate_geoadmin_variant
 from stac_api.validators import validate_item_properties_datetimes
-from stac_api.validators import validate_json_payload
 from stac_api.validators import validate_name
+from stac_api.validators_serializer import validate_json_payload
 
 logger = logging.getLogger(__name__)
 
