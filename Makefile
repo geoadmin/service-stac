@@ -102,10 +102,12 @@ $(SETTINGS_TIMESTAMP): $(TIMESTAMPS)
 
 .PHONY: setup
 setup: $(SETTINGS_TIMESTAMP)
-# Create virtual env with all packages for development
+	# Create virtual env with all packages for development
 	pipenv install --dev
-# Create volume directories for postgres and minio
-# Note that the '/service_stac_local' part is already the bucket name
+	# Patch multihash for md5 support
+	pipenv run pypatch apply ./multihash.patch multihash
+	# Create volume directories for postgres and minio
+	# Note that the '/service_stac_local' part is already the bucket name
 	mkdir -p .volumes/minio/service-stac-local
 	mkdir -p .volumes/postgresql
 	docker-compose up &
@@ -115,6 +117,8 @@ setup: $(SETTINGS_TIMESTAMP)
 ci: $(SETTINGS_TIMESTAMP)
 # Create virtual env with all packages for development using the Pipfile.lock
 	pipenv sync --dev
+	# Patch multihash for md5 support
+	pipenv run pypatch apply ./multihash.patch multihash
 
 
 # call yapf to make sure your code is easier to read and respects some conventions.

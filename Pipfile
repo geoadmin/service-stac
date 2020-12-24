@@ -35,6 +35,7 @@ boto3 = "==1.16.32"
 django-rest-framework-condition = "~=0.1.1"
 requests = "~=2.25.0"
 py-multihash = "~=2.0.1"
+pypatch = "*"
 
 [requires]
 python_version = "3.7"

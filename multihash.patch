@@ -1,0 +1,10 @@
+--- constants.py	2020-12-24 14:58:13.097432567 +0100
++++ constants.py	2020-12-24 14:59:00.473144878 +0100
+@@ -16,6 +16,7 @@
+     {'code': 0x22, 'length': 0x20, 'hash': 'murmur3-128'},
+     {'code': 0x23, 'hash': 'murmur3-32'},
+     {'code': 0x56, 'length': 0x20, 'hash': 'dbl-sha2-256'},
++    {'code': 0xd5, 'length': 0x10, 'hash': 'md5'},
+     {'code': 0xb201, 'length': 0x1, 'hash': 'blake2b-8'},
+     {'code': 0xb202, 'length': 0x2, 'hash': 'blake2b-16'},
+     {'code': 0xb203, 'length': 0x3, 'hash': 'blake2b-24'},
