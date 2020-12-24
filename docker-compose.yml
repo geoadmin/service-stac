@@ -16,11 +16,7 @@ services:
         target: /var/lib/postgresql
   s3:
     image: minio/minio
-    environment:
-      - MINIO_ACCESS_KEY=minioadmin
-      - MINIO_SECRET_KEY=minioadmin
-      # - MINIO_USERNAME=$(id -u)
-      # - MINIO_GROUPNAME=$(id -g)
+    env_file: ./minio.env
     user: ${UID}
     command: server /data
     volumes:
@@ -29,3 +25,22 @@ services:
         target: /data
     ports:
       - 9090:9000
+  s3-client:
+    image: minio/mc
+    links:
+      - s3
+    env_file: ./minio.env
+    restart: on-failure
+    entrypoint: >
+      /bin/sh -c "
+        set +o history;
+        while ! echo > /dev/tcp/s3/9000;
+        do
+          echo waiting for minio;
+          sleep 1;
+        done;
+        echo minio server is up;
+        /usr/bin/mc alias set minio http://s3:9000 minioadmin minioadmin;
+        /usr/bin/mc policy set download minio/service-stac-local;
+        exit 0;
+      "
