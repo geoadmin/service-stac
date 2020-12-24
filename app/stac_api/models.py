@@ -212,9 +212,7 @@ class Collection(models.Model):
     title = models.CharField(blank=True, null=True, max_length=255)
 
     # hidden ETag field
-    etag = models.CharField(
-        blank=False, null=False, editable=False, max_length=56, default=str(uuid4())
-    )
+    etag = models.CharField(blank=False, null=False, editable=False, max_length=56)
 
     def __str__(self):
         return self.name
@@ -473,9 +471,7 @@ class Item(models.Model):
     # properties_view_elevation = models.FloatField(blank=True)
 
     # hidden ETag field
-    etag = models.CharField(
-        blank=False, null=False, editable=False, max_length=56, default=str(uuid4())
-    )
+    etag = models.CharField(blank=False, null=False, editable=False, max_length=56)
 
     def __init__(self, *args, **kwargs):
         self._original_values = {}
@@ -617,9 +613,7 @@ class Asset(models.Model):
     updated = models.DateTimeField(auto_now=True)
 
     # hidden ETag field
-    etag = models.CharField(
-        blank=False, null=False, editable=False, max_length=56, default=str(uuid4())
-    )
+    etag = models.CharField(blank=False, null=False, editable=False, max_length=56)
 
     def __init__(self, *args, **kwargs):
         self._original_values = {}
