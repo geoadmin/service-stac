@@ -24,8 +24,10 @@ import os
 
 from gunicorn.app.base import BaseApplication
 
-from django.conf import settings
 from django.core.wsgi import get_wsgi_application
+
+# Here we cannot uses `from django.conf import settings` because it breaks the `make gunicornserver`
+from config.settings import get_logging_config
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 application = get_wsgi_application()
@@ -59,6 +61,6 @@ if __name__ == '__main__':
         'worker_class': 'gevent',
         'workers': 2,  # scaling horizontally is left to Kubernetes
         'timeout': 60,
-        'logconfig_dict': settings.get_logging_config()
+        'logconfig_dict': get_logging_config()
     }
     StandaloneApplication(application, options).run()
