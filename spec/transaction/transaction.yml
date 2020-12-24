@@ -384,12 +384,19 @@ paths:
 
 
         When creating a new asset for a feature, the metadata of
-        the asset along with a temporary url of the asset itself is
-        posted to the API.
+        the asset is posted to the API. The Asset object itself must be already publicly
+        available at the following URL: https://data.geo.admin.ch/{collectionId}/{featureId}/{assetId}
 
+        Optionally the Asset object multihash can be given for sanity check.
+      # description: >-
+      #   Create a new asset for a specific feature.
 
-        The service is taking care of copying the asset from the temporary
-        location to correct one.
+      #   When creating a new asset for a feature, the metadata of
+      #   the asset along with a temporary url of the asset itself is
+      #   posted to the API.
+
+      #   The service is taking care of copying the asset from the temporary
+      #   location to correct one.
       operationId: postAsset
       tags:
         - Data Management
@@ -402,21 +409,33 @@ paths:
             schema:
               $ref: "#/components/schemas/itemAssetWrite"
       responses:
-        "202":
-          description: Accepted create request
+        "201":
+          description: Return the created Asset
           headers:
             Location:
-              description: A link to the item
+              description: A link to the asset
               schema:
                 type: string
                 format: url
           content:
             application/json:
               schema:
-                type: string
-            text/html:
-              schema:
-                type: string
+                $ref: "#/components/schemas/itemAsset"
+        # "202":
+        #   description: Accepted create request
+        #   headers:
+        #     Location:
+        #       description: A link to the item
+        #       schema:
+        #         type: string
+        #         format: url
+        #   content:
+        #     application/json:
+        #       schema:
+        #         type: string
+        #     text/html:
+        #       schema:
+        #         type: string
         "400":
           $ref: "#/components/responses/BadRequest"
         "5XX":
@@ -452,7 +471,7 @@ paths:
       summary: Update an existing asset by Id with a complete asset definition
       description: >-
         Use this method to update an existing asset. Requires the entire
-        GeoJSON  description be submitted.
+        JSON  description be submitted.
       operationId: putAsset
       tags:
         - Data Management
@@ -470,12 +489,9 @@ paths:
         "200":
           description: Status of the update request.
           content:
-            text/html:
-              schema:
-                type: string
             application/json:
               schema:
-                type: string
+                $ref: "#/components/schemas/itemAsset"
         "400":
           $ref: "#/components/responses/BadRequest"
         "404":
@@ -487,7 +503,7 @@ paths:
     patch:
       summary: Update an existing asset by Id with a partial asset definition
       description: >-
-        Use this method to update an existing asset. Requires a GeoJSON
+        Use this method to update an existing asset. Requires a JSON
         fragment (containing the fields to be updated) be submitted.
       operationId: patchAsset
       tags:
@@ -501,17 +517,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/partialAsset"
+              $ref: "#/components/schemas/itemAssetPartialUpdate"
       responses:
         "200":
           description: Status of the update request.
           content:
-            text/html:
-              schema:
-                type: string
             application/json:
               schema:
-                type: string
+                $ref: "#/components/schemas/itemAsset"
         "400":
           $ref: "#/components/responses/BadRequest"
         "404":
@@ -522,7 +535,11 @@ paths:
           $ref: "#/components/responses/ServerError"
     delete:
       summary: Delete an existing asset by Id
-      description: Use this method to delete an existing asset.
+      description: >-
+        Use this method to delete an existing asset.
+
+
+        **NOTE: Asset file on S3 will be also removed !**
       operationId: deleteAsset
       tags:
         - Data Management
@@ -584,8 +601,20 @@ components:
         The asset id uniquely identifies the asset for an item
 
 
-        **Note**: `assetId` must be unique for the item and must be identical to the
+        **Note**: `id` must be unique for the item and must be identical to the
         filename.
+      example: smr50-263-2016-2056-kgrs-2.5.tiff
+    updateAssetId:
+      type: string
+      pattern: ^[a-z0-9.-_]+$
+      title: asset id
+      description: >-
+        The asset id uniquely identifies the asset for an item
+
+
+        **Note**: `id` must be unique for the item and must be identical to the
+        filename. When the `id` doesn't match the parameter `assetId`, the asset is renamed,
+        renaming also the object itself on S3.
       example: smr50-263-2016-2056-kgrs-2.5.tiff
     itemAssets:
       type: object
@@ -594,12 +623,8 @@ components:
     assetBase:
       type: object
       required:
-        - "checksum:multihash"
-        - href
-        - type
         - created
         - updated
-        - id
       properties:
         title:
           $ref: "#/components/schemas/title"
@@ -613,8 +638,6 @@ components:
           $ref: "#/components/schemas/geoadmin:variant"
         "geoadmin:lang":
           $ref: "#/components/schemas/geoadmin:lang"
-        "checksum:multihash":
-          $ref: "#/components/schemas/checksum:multihash"
         "proj:epsg":
           $ref: "#/components/schemas/proj:epsg"
         "eo:gsd":
@@ -629,8 +652,13 @@ components:
         - $ref: "#/components/schemas/assetBase"
         - type: object
           required:
+            - id
+            - type
             - href
+            - checksum:multihash
           properties:
+            "checksum:multihash":
+              $ref: "#/components/schemas/checksum:multihash"
             href:
               $ref: "#/components/schemas/href"
     itemAssetWrite:
@@ -638,19 +666,44 @@ components:
         - $ref: "#/components/schemas/assetBase"
         - type: object
           required:
-            - href
+            - id
+            - type
           properties:
             id:
               $ref: "#/components/schemas/assetId"
-            href:
-              $ref: "#/components/schemas/writeHref"
+            "checksum:multihash":
+              $ref: "#/components/schemas/writeChecksumMultihash"
+            # href:
+            #   $ref: "#/components/schemas/writeHref"
     itemAssetUpdate:
+      allOf:
+        - $ref: "#/components/schemas/assetBase"
+        - type: object
+          required:
+            - id
+            - type
+          properties:
+            id:
+              $ref: "#/components/schemas/updateAssetId"
+    itemAssetPartialUpdate:
       allOf:
         - $ref: "#/components/schemas/assetBase"
         - type: object
           properties:
             id:
-              $ref: "#/components/schemas/assetId"
+              $ref: "#/components/schemas/updateAssetId"
+    writeChecksumMultihash:
+      description: >-
+        `sha2-256` or `md5` checksum of the asset in [multihash](https://multiformats.io/multihash/)
+        format.
+
+
+        When provided the asset Object located at href will be checked against this checksum and the
+        request is rejected if the checksum don't match.
+      example: 90e402107a7f2588a85362b9beea2a12d4514d45
+      pattern: ^[a-f0-9]+$
+      title: Multihash
+      type: string,
     writeHref:
       type: string
       format: url
@@ -664,8 +717,9 @@ components:
 
 
         If the URL is different from the location that the asset object should have according to the
-        the pattern `/<collection_id>/<item_id>/<asset_id>`, the service will move the asset from this 
+        the pattern `/<collection_id>/<item_id>/<asset_id>`, the service will move the asset from this
         temporary location to the correct one.
+      default: https://data.geo.admin.ch/<collection-id>/<item-id>/<asset-id>
       example: >-
         http://data.geo.admin.ch/tmp/gdwh/ch.swisstopo.swissimage/CS3-20160503_132130_04.png
     href:
@@ -674,15 +728,6 @@ components:
       description: Link to the asset object
       example: >-
         http://data.geo.admin.ch/ch.swisstopo.swissimage/collections/cs/items/CS3-20160503_132130_04/thumb.png
-    partialAsset:
-      allOf:
-        - $ref: "#/components/schemas/assetBase"
-        - type: object
-          properties:
-            href:
-              $ref: "#/components/schemas/writeHref"
-          example:
-            description: The new description of the asset
     writeItem:
       allOf:
         - $ref: "#/components/schemas/itemBase"

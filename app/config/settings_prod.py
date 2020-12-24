@@ -166,6 +166,7 @@ STATICFILES_DIRS = [BASE_DIR / "spec/static", BASE_DIR / "app/stac_api/templates
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Media files (i.e. uploaded content=assets in this project)
+UPLOAD_FILE_CHUNK_SIZE = 1024 * 1024  # Size in Bytes
 DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 try:
     AWS_ACCESS_KEY_ID = os.environ['AWS_ACCESS_KEY_ID']
@@ -183,6 +184,7 @@ try:
     # AWS_DEFAULT_ACL depends on bucket/user config. The user might not have
     # permissions to change ACL, then this setting must be None
     AWS_DEFAULT_ACL = None
+    AWS_S3_SIGNATURE_VERSION = "s3v4"
 except KeyError as err:
     raise KeyError(f'AWS configuration {err} missing') from err
 
@@ -237,3 +239,7 @@ REST_FRAMEWORK = {
 # this is usefull for unittest when we want to test exception handling. This settings can be set
 # via environment variable in settings_dev.py when DEBUG=True
 DEBUG_PROPAGATE_API_EXCEPTIONS = False
+
+# Timeout in seconds for call to external services, e.g. HTTP HEAD request to
+# data.geo.admin.ch/collection/item/asset to check if asset exists.
+EXTERNAL_SERVICE_TIMEOUT = 3

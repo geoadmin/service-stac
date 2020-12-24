@@ -2,6 +2,8 @@ import logging
 import re
 from datetime import datetime
 
+import multihash
+
 from django.contrib.gis.geos import GEOSGeometry
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
@@ -193,4 +195,27 @@ def validate_item_properties_datetimes(
             properties_datetime,
             properties_start_datetime,
             properties_end_datetime,
+        )
+
+
+def validate_asset_multihash(value):
+    '''Validate the Asset multihash field
+
+    The field value must be a multihash string
+
+    Args:
+        value: string
+            multihash value
+
+    Raises:
+        ValidationError in case of invalid multihash value
+    '''
+    try:
+        mhash = multihash.decode(multihash.from_hex_string(value))
+    except ValueError as error:
+        logger.error("Invalid multihash %s; %s", value, error)
+        raise ValidationError(
+            code='checksum:multihash',
+            message=_('Invalid multihash value; %(error)s'),
+            params={'error': error}
         )

@@ -1,6 +1,5 @@
 import logging
 from collections import OrderedDict
-from urllib.parse import urlparse
 
 from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry
@@ -19,11 +18,18 @@ from stac_api.models import ItemLink
 from stac_api.models import LandingPage
 from stac_api.models import LandingPageLink
 from stac_api.models import Provider
+from stac_api.models import get_asset_path
+from stac_api.utils import build_asset_href
+from stac_api.utils import build_asset_href_prefix
 from stac_api.utils import isoformat
 from stac_api.validators import MEDIA_TYPES_MIMES
+from stac_api.validators import validate_asset_multihash
 from stac_api.validators import validate_geoadmin_variant
 from stac_api.validators import validate_item_properties_datetimes
 from stac_api.validators import validate_name
+from stac_api.validators_serializer import validate_and_parse_href_url
+from stac_api.validators_serializer import validate_asset_file
+from stac_api.validators_serializer import validate_asset_href_path
 from stac_api.validators_serializer import validate_json_payload
 
 logger = logging.getLogger(__name__)
@@ -510,25 +516,22 @@ class AssetsDictSerializer(DictSerializer):
     key_identifier = 'id'
 
 
-class HrefSerializer(serializers.Field):
+class HrefField(serializers.Field):
 
-    def get_attribute(self, instance):
-        # We pass the object instance onto `to_representation`,
-        # not just the field attribute.
-        return instance
-
-    def to_representation(self, instance):  # pylint: disable=arguments-differ
+    def to_representation(self, value):
         # build an absolute URL from the file path
         request = self.context.get("request")
-        path = instance.file.name
-        return request.build_absolute_uri('/' + path) if path else None
+        path = value.name
+
+        return build_asset_href(request, path)
 
     def to_internal_value(self, data):
         # extract the file path part from the
-        # provided URL
-        # TODO: sanity checks
-        href = urlparse(data)
-        return href.path[1:]  # strip the leading '/'
+        # provided URL and do some sanity checks
+        request = self.context.get("request")
+        url = validate_and_parse_href_url(build_asset_href_prefix(request), data)
+
+        return url.path[1:]  # strip the leading '/'
 
 
 class AssetSerializer(NonNullModelSerializer):
@@ -562,10 +565,9 @@ class AssetSerializer(NonNullModelSerializer):
         max_length=255,
         validators=[validate_name, UniqueValidator(queryset=Asset.objects.all())]
     )
-    # The href is only required for initial post requests
-    # and is ignored a.t.m for put requests
-    # TODO make sure required=False is the right thing here
-    href = HrefSerializer(required=False)
+    # The href is only for POST request and is ignored for PUT requests this is done by dynamically
+    # removing the field with the serializer hide_fields parameter in the view
+    href = HrefField(source='file', required=False)
     type = serializers.ChoiceField(
         source='media_type',
         required=True,
@@ -592,10 +594,45 @@ class AssetSerializer(NonNullModelSerializer):
         validators=[validate_geoadmin_variant]
     )
     proj_epsg = serializers.IntegerField(source='proj_epsg', allow_null=True, required=False)
-    checksum_multihash = serializers.CharField(source='checksum_multihash', max_length=255)
+    checksum_multihash = serializers.CharField(
+        source='checksum_multihash',
+        max_length=255,
+        required=False,
+        validators=[validate_asset_multihash]
+    )
     # read only fields
     created = serializers.DateTimeField(read_only=True)
     updated = serializers.DateTimeField(read_only=True)
+
+    def __init__(self, *args, **kwargs):
+        hide_fields = kwargs.pop('hide_fields', [])
+
+        super().__init__(*args, **kwargs)
+
+        # Remove fields that should be hidden
+        for field_name in hide_fields:
+            self.fields.pop(field_name)
+
+    def validate(self, attrs):
+        validate_json_payload(self)
+
+        path = get_asset_path(attrs['item'], attrs['name'])
+
+        # validate the file path, although this is a field validation, it requires object values
+        # therefore it is placed in object validate method.
+        if 'file' in attrs:
+            # href is optional
+            validate_asset_href_path(attrs['item'], attrs['name'], attrs['file'])
+        elif not self.partial:
+            attrs['file'] = get_asset_path(attrs['item'], attrs['name'])
+
+        # Check if the asset exits for non partial update or when the checksum is available
+        if not self.partial or 'checksum_multihash' in attrs:
+            request = self.context.get("request")
+            href = build_asset_href(request, path)
+            attrs = validate_asset_file(href, attrs)
+
+        return attrs
 
     def get_fields(self):
         fields = super().get_fields()
@@ -606,39 +643,6 @@ class AssetSerializer(NonNullModelSerializer):
         fields['geoadmin:lang'] = fields.pop('geoadmin_lang')
         fields['checksum:multihash'] = fields.pop('checksum_multihash')
         return fields
-
-    def create(self, validated_data):
-        if 'href' not in validated_data:
-            # TODO handle missing 'href'
-            pass
-        path = validated_data.pop("href")
-        instance = Asset(**validated_data)
-        instance.file.name = path
-        # TODO make sure the asset actually exists at this location
-        instance.save()
-        return instance
-
-    def update(self, instance, validated_data):
-        request = self.context.get("request")
-        # move asset if path has changed
-        # TODO uncomment, adapt tests
-        # if 'href' in validated_data:
-        #     path = validated_data.pop("href")
-        #     if path != instance.file.name:
-        #         logger.info(
-        #             "%s is renaming asset from %s to %s",
-        #             request.user,
-        #             instance.file.name,
-        #             path,
-        #             extra={'user': request.user}
-        #         )
-        #         instance.move_asset(source=instance.file.name, dest=path)
-        #         instance.file.name = path
-        return super().update(instance, validated_data)
-
-    def validate(self, attrs):
-        validate_json_payload(self)
-        return attrs
 
 
 class ItemSerializer(NonNullModelSerializer):

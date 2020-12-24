@@ -202,7 +202,6 @@ class AdminBaseTestCase(TestCase):
         data = {
             "item": item.id,
             "name": "test_asset",
-            "checksum_multihash": "01205c3fd6978a7d0b051efaa4263a09",
             "description": "This is a description",
             "eo_gsd": 10,
             "geoadmin_lang": "en",
@@ -210,7 +209,6 @@ class AdminBaseTestCase(TestCase):
             "proj_epsg": 2056,
             "title": "My first Asset for test",
             "media_type": "application/x.filegdb+zip",
-            # "href": f"http://testserver/{item.collection.name}/{item.name}/test_asset",
             "file": filelike
         }
         response = self.client.post("/api/stac/admin/stac_api/asset/add/", data)
@@ -600,7 +598,8 @@ class AdminItemTestCase(AdminBaseTestCase):
     AWS_ACCESS_KEY_ID='mykey',
     AWS_DEFAULT_ACL='public-read',
     AWS_S3_REGION_NAME='wonderland',
-    AWS_S3_ENDPOINT_URL=None
+    AWS_S3_ENDPOINT_URL=None,
+    AWS_S3_CUSTOM_DOMAIN=None
 )
 @mock_s3
 class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
@@ -634,7 +633,6 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
         filelike.name = 'testname.tiff'
 
         # update some data
-        data["checksum_multihash"] = "fffffffffffffffffff"
         data["description"] = "This is a new description"
         data["eo_gsd"] = 20
         data["geoadmin_lang"] = "fr"
