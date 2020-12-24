@@ -19,10 +19,6 @@ TIMESTAMPS = .timestamps
 SETTINGS_TIMESTAMP = $(TIMESTAMPS)/.settins.timestamp
 DOCKER_BUILD_TIMESTAMP = $(TIMESTAMPS)/.docker-test.timestamp
 
-# Docker variables
-DOCKER_IMG_LOCAL_TAG = swisstopo/$(SERVICE_NAME):$(USER).latest
-DOCKER_IMG_LOCAL_TAG_DEV = swisstopo/$(SERVICE_NAME):$(USER).latest-dev
-
 # Find all python files that are not inside a hidden directory (directory starting with .)
 PYTHON_FILES := $(shell find $(APP_SRC_DIR) -type f -name "*.py" -print)
 
@@ -49,6 +45,10 @@ GIT_BRANCH := `git symbolic-ref HEAD --short 2>/dev/null`
 GIT_DIRTY := `git status --porcelain`
 GIT_TAG := `git describe --tags || echo "no version info"`
 AUTHOR := $(USER)
+
+# Docker variables
+DOCKER_IMG_LOCAL_TAG = swisstopo/$(SERVICE_NAME):$(USER).$(GIT_TAG)
+DOCKER_IMG_LOCAL_TAG_DEV = swisstopo/$(SERVICE_NAME):$(USER).$(GIT_TAG)-dev
 
 all: help
 
