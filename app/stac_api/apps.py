@@ -97,6 +97,9 @@ def custom_exception_handler(exc, context):
         # this is required because some validation cannot be done in the Rest
         # framework serializer but must be left to the model, like for instance
         # the Item properties datetimes dependencies during a partial update.
+        message = exc.message
+        if exc.params:
+            message %= exc.params
         exc = ValidationError(exc.message, exc.code)
 
     if isinstance(exc, APIException):
