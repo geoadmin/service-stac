@@ -587,6 +587,9 @@ def upload_asset_to_path_hook(instance, filename=None):
     for chunk in instance.file.chunks(settings.UPLOAD_FILE_CHUNK_SIZE):
         ctx.update(chunk)
     mhash = multihash.to_hex_string(multihash.encode(ctx.digest(), 'sha2-256'))
+    # set the hash to the storage to use it for upload signing, this temporary attribute is
+    # then used by storages.S3Storage to set the MetaData.sha256
+    setattr(instance.file.storage, '_tmp_sha256', ctx.hexdigest())
     logger.debug(
         'Set uploaded file %s multihash %s to checksum:multihash; computation done in %ss',
         filename,
