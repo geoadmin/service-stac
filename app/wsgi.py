@@ -8,10 +8,17 @@ the ssl module through gevent.monkey.patch_all before any other import, especial
 the app import, which would cause the boto module to be loaded, which would in turn
 load the ssl module.
 
+NOTE: We do this only if wsgi.py is the main program, when running django runserver
+for local development, monkey patching creates the following error:
+
+    `RuntimeError: cannot release un-acquired lock`
+
 isort:skip_file
 """
-# import gevent.monkey  # pylint: disable=wrong-import-position
-# gevent.monkey.patch_all()
+# pylint: disable=wrong-import-position
+if __name__ == '__main__':
+    import gevent.monkey
+    gevent.monkey.patch_all()
 """
 WSGI config for project project.
 
