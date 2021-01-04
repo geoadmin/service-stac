@@ -559,7 +559,59 @@ paths:
           $ref: "#/components/responses/PreconditionFailed"
         "5XX":
           $ref: "#/components/responses/ServerError"
-
+  "/get-token":
+    post:
+      tags:
+        - Data Management
+      summary: >-
+        Request token for token authentication.
+      operationId: getToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  decscription: name of user for whom token is requested
+                password:
+                  type: string
+                  description: password of user for whom token is requested
+              required:
+                - username
+                - password
+            example:
+              username: "Mickey Mouse"
+              password: "I_love_Minnie_Mouse"
+      responses:
+        "200":
+          description: Returns the token for the specified user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: generated token for specified user
+              example:
+                token: ccecf40693bfc52ba090cd46eb7f19e723fe831f
+        "400":
+          description: Wrong credentials were provided.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  description:
+                    type: string
+              example:
+                code: 400
+                description: "Unable to log in with provided credentials."
 components:
   parameters:
     assetId:
