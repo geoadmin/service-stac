@@ -26,18 +26,61 @@ tags:
 - description: Extension to OGC API - Features to support STAC metadata model and
     search API
   name: STAC
-- description: >-
-    All write requests require authentication. There are several options for a user
-    to authenticate himself:
+- description: |
+    All write requests require authentication. The currently available options for a user to
+    authenticate himself are described below.
 
-    * When using the browsable API the user can simply use the admin interface for
-    logging in
+    # Session authentication
+    When using the browsable API the user can simply use the admin interface for logging in.
+    Once logged in, the browsable API can be used to perform write requests.
 
-    * Using basic authentication for the write requests.
+    # Basic authentication
+    The username and password for authentication can be added to every write request the user wants to perform.
+    Here is an example of posting an asset using curl (_username_="MickeyMouse", _password_="I_love_Minnie_Mouse"):
+    ```
+    curl --request POST \
+      --user MickeyMouse:I_love_Minnie_Mouse \
+      --url https://service-stac.dev.bgdi.ch/api/stac/v0.9/collections/ch.swisstopo.swisstlmregio/items/swisstlmregio-2020/assets \
+      --header 'Content-Type: application/json' \
+      --data '{
+        "id": "fancy_unique_id",
+        "item": "swisstlmregio-2020",
+        "title": "My title",
+        "type": "application/x.filegdb+zip",
+        "description": "My description",
+        "proj:epsg": 2056,
+        "checksum:multihash": "01205c3fd6978a7d0b051efaa4263a04"
+    }'
+    ```
 
-    * Using token authentication for the write requests. See description of the get-token
-    POST endpoint at the bottom on how to obtain a token (requires that user already
-    exists and knows his password).
+    # Token authentication
+    A user specific token for authentication can be added to every write request the user wants to perform.
+    Here is an example of posting an asset using curl:
+    ```
+    curl --request POST \
+      --url https://service-stac.dev.bgdi.ch/api/stac/v0.9/collections/ch.swisstopo.swisstlmregio/items/swisstlmregio-2020/assets \
+      --header 'Authorization: Token ccecf40693bfc52ba090cd46eb7f19e723fe831f' \
+      --header 'Content-Type: application/json' \
+      --data '{
+        "id": "fancy_unique_id",
+        "item": "swisstlmregio-2020",
+        "title": "My title",
+        "type": "application/x.filegdb+zip",
+        "description": "My description",
+        "proj:epsg": 2056,
+        "checksum:multihash": "01205c3fd6978a7d0b051efaa4263a04"
+    }'
+    ```
+    Tokens can either be generated in the admin interface or existing users can perform a POST request
+    on the get-token endpoint to request a token (also see description of the get-token POST endpoint
+    at the bottom).
+    Here is an example using curl:
+    ```
+    curl --request POST \
+      --url https://service-stac.dev.bgdi.ch/api/stac/v0.9/get-token \
+      --header 'Content-Type: application/json' \
+      --data '{"username": "MickeyMouse", "password": "I_love_Minnie_Mouse"}'
+    ```
   name: Data Management
 components:
   parameters:

@@ -23,14 +23,3 @@ tags:
     name: Data
   - description: Extension to OGC API - Features to support STAC metadata model and search API
     name: STAC
-  - description: >-
-      All write requests require authentication. There are several options for a user to
-      authenticate himself:
-
-      * When using the browsable API the user can simply use the admin interface for logging in
-
-      * Using basic authentication for the write requests.
-
-      * Using token authentication for the write requests. See description of the get-token POST endpoint
-      at the bottom on how to obtain a token (requires that user already exists and knows his password).
-    name: Data Management
