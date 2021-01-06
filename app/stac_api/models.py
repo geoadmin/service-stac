@@ -439,7 +439,7 @@ ITEM_KEEP_ORIGINAL_FIELDS = [
 
 class Item(models.Model):
     name = models.CharField(
-        'id', unique=True, blank=False, max_length=255, validators=[validate_name]
+        'id', blank=False, max_length=255, validators=[validate_name]
     )
     collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
     geometry = models.PolygonField(
@@ -472,6 +472,9 @@ class Item(models.Model):
 
     # hidden ETag field
     etag = models.CharField(blank=False, null=False, editable=False, max_length=56)
+
+    class Meta:
+        unique_together = (('collection', 'name'),)
 
     def __init__(self, *args, **kwargs):
         self._original_values = {}
@@ -578,7 +581,7 @@ class Asset(models.Model):
         Item, related_name='assets', related_query_name='asset', on_delete=models.CASCADE
     )
     # using "name" instead of "id", as "id" has a default meaning in django
-    name = models.CharField('id', unique=True, max_length=255, validators=[validate_name])
+    name = models.CharField('id', max_length=255, validators=[validate_name])
     file = models.FileField(upload_to=get_upload_to_asset_path, null=True, blank=True)
 
     @property
@@ -614,6 +617,9 @@ class Asset(models.Model):
 
     # hidden ETag field
     etag = models.CharField(blank=False, null=False, editable=False, max_length=56)
+
+    class Meta:
+        unique_together = (('item', 'name'),)
 
     def __init__(self, *args, **kwargs):
         self._original_values = {}
