@@ -3,28 +3,44 @@ services:
   db:
     image: kartoza/postgis:12.0
     environment:
-      - POSTGRES_DB=service_stac
+      - POSTGRES_DB=service_stac_local
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_MULTIPLE_EXTENSIONS=postgis,postgis_topology
-  app:
-    build:
-      context: .
-      target: debug
-    image: swisstopo/service-stac:ci.latest-dev
-    # spinning up postgis container takes some time, app needs to wait
-    # for it to be ready before connecting
-    # see: https://docs.docker.com/compose/startup-order/
-    entrypoint: ["/app/wait-for-it.sh", "db:5432", "--", "python3", "manage.py"]
-    command: test --verbosity=2
-    depends_on:
-      - db
-    environment:
-      - DEBUG=True
-      - LOGGING_CFG=/app/config/logging-cfg-local.yml
-      - DB_USER=postgres
-      - DB_PW=postgres
-      - DB_NAME=service_stac
-      - DB_HOST=db
-      - APP_ENV=ci
-      - TEST_ENABLE_LOGGING=1
+    user: ${UID}
+    ports:
+      - 15432:5432
+    volumes:
+      - type: bind
+        source: ${PWD}/.volumes/postgresql
+        target: /var/lib/postgresql
+  s3:
+    image: minio/minio
+    env_file: ./minio.env
+    user: ${UID}
+    command: server /data
+    volumes:
+      - type: bind
+        source: ${PWD}/.volumes/minio
+        target: /data
+    ports:
+      - 9090:9000
+  s3-client:
+    image: minio/mc
+    links:
+      - s3
+    env_file: ./minio.env
+    restart: on-failure
+    entrypoint: >
+      /bin/sh -c "
+        set +o history;
+        while ! echo > /dev/tcp/s3/9000;
+        do
+          echo waiting for minio;
+          sleep 1;
+        done;
+        echo minio server is up;
+        /usr/bin/mc alias set minio http://s3:9000 minioadmin minioadmin;
+        /usr/bin/mc policy set download minio/service-stac-local;
+        exit 0;
+      "

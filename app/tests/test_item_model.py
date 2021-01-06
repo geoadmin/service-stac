@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime
+from datetime import timedelta
 
 from django.contrib.gis.geos import GEOSGeometry
 from django.core.exceptions import ValidationError
@@ -7,6 +8,7 @@ from django.test import TestCase
 
 from stac_api.models import Item
 from stac_api.utils import utc_aware
+from stac_api.validators import validate_item_properties_datetimes_dependencies
 
 import tests.database as db
 
@@ -39,7 +41,7 @@ class ItemsModelTestCase(TestCase):
                 name='item-2',
                 properties_start_datetime=utc_aware(datetime.utcnow())
             )
-            item.clean()
+            item.full_clean()
 
         with self.assertRaises(ValidationError, msg="only end_datetime is invalid"):
             item = Item.objects.create(
@@ -47,7 +49,7 @@ class ItemsModelTestCase(TestCase):
                 name='item-3',
                 properties_end_datetime=utc_aware(datetime.utcnow())
             )
-            item.clean()
+            item.full_clean()
 
         with self.assertRaises(ValidationError, msg="datetime is not allowed with start_datetime"):
             item = Item.objects.create(
@@ -57,7 +59,7 @@ class ItemsModelTestCase(TestCase):
                 properties_start_datetime=utc_aware(datetime.utcnow()),
                 properties_end_datetime=utc_aware(datetime.utcnow())
             )
-            item.clean()
+            item.full_clean()
 
         with self.assertRaises(ValidationError):
             item = Item.objects.create(
@@ -68,11 +70,26 @@ class ItemsModelTestCase(TestCase):
             item = Item.objects.create(
                 collection=self.collection, name='item-4', properties_start_datetime='asd'
             )
+            item.full_clean()
 
         with self.assertRaises(ValidationError):
             item = Item.objects.create(
                 collection=self.collection, name='item-1', properties_end_datetime='asd'
             )
+            item.full_clean()
+
+        with self.assertRaises(
+            ValidationError, msg="end_datetime must not be earlier than start_datetime"
+        ):
+            today = datetime.utcnow()
+            yesterday = today - timedelta(days=1)
+            item = Item.objects.create(
+                collection=self.collection,
+                name='item-5',
+                properties_start_datetime=utc_aware(today),
+                properties_end_datetime=utc_aware(yesterday)
+            )
+            item.full_clean()
 
     def test_item_create_model_valid_geometry(self):
         # a correct geometry should not pose any problems
@@ -122,3 +139,15 @@ class ItemsModelTestCase(TestCase):
                 geometry=None
             )
             item.full_clean()
+
+
+class ValidateItemPropertiesDatetimeDependenciesFunctionTestCase(TestCase):
+
+    def test_validate_function_invalid_datetime_string(self):
+        with self.assertRaises(ValidationError):
+            properties_datetime = None
+            properties_start_datetime = "2001-22-66T08:00:00+00:00"
+            properties_end_datetime = "2001-11-11T08:00:00+00:00"
+            validate_item_properties_datetimes_dependencies(
+                properties_datetime, properties_start_datetime, properties_end_datetime
+            )

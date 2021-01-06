@@ -4,10 +4,14 @@ disable_existing_loggers: False # this allow to get logger at module level
 root:
   handlers:
     - console
-  level: DEBUG
+  level: WARNING
   propagate: True
 
 loggers:
+  stac_api:
+    level: DEBUG
+  middleware:
+    level: DEBUG
   django:
     level: INFO
   django.utils.autoreload:
@@ -44,8 +48,8 @@ formatters:
   standard:
     (): logging_utilities.formatters.extra_formatter.ExtraFormatter
     format: "[%(utc_isotime)s] %(levelname)-8s - %(name)-26s : %(message)s"
-    extra_fmt: " - extra:\n%s"
-    extra_pretty_print: True
+    # extra_fmt: " - extra: %s"
+    # extra_pretty_print: True
   json:
     (): logging_utilities.formatters.json_formatter.JsonFormatter
     add_always_extra: True

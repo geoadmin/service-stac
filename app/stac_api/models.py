@@ -1,6 +1,13 @@
+import hashlib
 import logging
-import re
+import os
+import time
+from uuid import uuid4
 
+import botocore.exceptions
+import multihash
+
+from django.conf import settings
 from django.contrib.gis.db import models
 from django.contrib.gis.geos import GEOSGeometry
 from django.contrib.gis.geos import Polygon
@@ -12,8 +19,19 @@ from django.utils.translation import gettext_lazy as _
 
 from solo.models import SingletonModel
 
-from stac_api.collection_summaries import update_summaries
-from stac_api.temporal_extent import update_temporal_extent
+from stac_api.collection_summaries import UPDATE_SUMMARIES_FIELDS
+from stac_api.collection_summaries import update_summaries_on_asset_delete
+from stac_api.collection_summaries import update_summaries_on_asset_insert
+from stac_api.collection_summaries import update_summaries_on_asset_update
+from stac_api.collection_temporal_extent import update_temporal_extent
+from stac_api.utils import get_asset_path
+from stac_api.utils import get_s3_resource
+from stac_api.validators import MEDIA_TYPES
+from stac_api.validators import validate_geoadmin_variant
+from stac_api.validators import validate_geometry
+from stac_api.validators import validate_item_properties_datetimes
+from stac_api.validators import validate_link_rel
+from stac_api.validators import validate_name
 
 logger = logging.getLogger(__name__)
 
@@ -38,65 +56,12 @@ def get_default_summaries_value():
     return DEFAULT_SUMMARIES_VALUE
 
 
-def validate_name(name):
-    '''Validate name used in URL
-    '''
-    if not re.match(r'^[0-9a-z-_.]+$', name):
-        logger.error('Invalid name %s, only the following characters are allowed: 0-9a-z-_.', name)
-        raise ValidationError(
-            _('Invalid name, only the following characters are allowed: 0-9a-z-_.')
-        )
-
-
-def validate_geoadmin_variant(variant):
-    '''Validate geoadmin:variant, it should not have special characters'''
-    if not re.match('^[a-zA-Z0-9]+$', variant):
-        logger.error(
-            "Invalid geoadmin:variant property %s, special characters not allowed", variant
-        )
-        raise ValidationError(_("Invalid geoadmin:variant, special characters not allowed"))
-
-
-def validate_link_rel(value):
-    invalid_rel = [
-        'self',
-        'root',
-        'parent',
-        'items',
-        'collection',
-        'service-desc',
-        'service-doc',
-        'search',
-        'conformance'
-    ]
-    if value in invalid_rel:
-        logger.error("Link rel attribute %s is not allowed, it is a reserved attribute", value)
-        raise ValidationError(_(f'Invalid rel attribute, must not be in {invalid_rel}'))
-
-
-def validate_geometry(geometry):
-    '''
-    A validator function that ensures, that only valid
-    geometries are stored.
-    param: geometry
-    '''
-    geos_geometry = GEOSGeometry(geometry)
-    if geos_geometry.empty:
-        message = "The geometry is empty: %s" % geos_geometry.wkt
-        logger.error(message)
-        raise ValidationError(_(message))
-    if not geos_geometry.valid:
-        message = "The geometry is not valid: %s" % geos_geometry.valid_reason
-        logger.error(message)
-        raise ValidationError(_(message))
-    return geometry
-
-
 def get_conformance_default_links():
-    '''
-    A helper function of the class Conformance Page
-    to make it possible to define the default values as a callable
-    :return: a list of urls
+    '''A helper function of the class Conformance Page
+
+    The function makes it possible to define the default values as a callable
+    Returns:
+        a list of urls
     '''
     default_links = (
         'http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/core',
@@ -104,6 +69,23 @@ def get_conformance_default_links():
         'http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/geojson'
     )
     return default_links
+
+
+def compute_etag():
+    '''Compute a unique ETag'''
+    return str(uuid4())
+
+
+def get_save_trigger(instance):
+    '''Get the model instance save() trigger event
+
+    Returns:
+        'insert' or 'update'
+    '''
+    trigger = 'update'
+    if instance.pk is None:
+        trigger = 'insert'
+    return trigger
 
 
 class Link(models.Model):
@@ -189,13 +171,23 @@ class Provider(models.Model):
     def __str__(self):
         return self.name
 
+    def save(self, *args, **kwargs):  # pylint: disable=signature-differs
+        # It is important to use `*args, **kwargs` in signature because django might add dynamically
+        # parameters
+        super().save(*args, **kwargs)
+        self.collection.save()  # save the collection to updated its ETag
+
     def clean(self):
         if self.roles is None:
             return
         for role in self.roles:
             if role not in self.allowed_roles:
                 logger.error('Invalid role %s', role)
-                raise ValidationError(_('Invalid role, must be in %s' % (self.allowed_roles)))
+                raise ValidationError(
+                    _('Invalid role, must be in %(roles)s'),
+                    params={'roles': self.allowed_roles},
+                    code='roles'
+                )
 
 
 # For Collections and Items: No primary key will be defined, so that the auto-generated ones
@@ -228,43 +220,65 @@ class Collection(models.Model):
     summaries = models.JSONField(
         default=get_default_summaries_value, encoder=DjangoJSONEncoder, editable=False
     )
-    title = models.CharField(blank=True, max_length=255)
+    title = models.CharField(blank=True, null=True, max_length=255)
+
+    # hidden ETag field
+    etag = models.CharField(blank=False, null=False, editable=False, max_length=56)
 
     def __str__(self):
         return self.name
 
-    def update_bbox_extent(self, action, item_geom, item_id, item_name):
+    def update_etag(self):
+        '''Update the ETag with a new UUID
         '''
-        updates the collection's spatial extent when an item is updated.
-        :param action: either up (insert, update) or rm (delete)
-        :param geometry: the geometry of the item
-        :param item_id the id of the item being treated
+        self.etag = compute_etag()
+
+    def update_bbox_extent(self, trigger, geometry, original_geometry, item_id, item_name):
+        '''Updates the collection's spatial extent if needed when an item is updated.
+
         This function generates a new extent regarding all the items with the same
         collection foreign key. If there is no spatial bbox yet, the one of the geometry of the
         item is being used.
+
+        Args:
+            trigger: str
+                Item trigger event, one of 'insert', 'update' or 'delete'
+            geometry: GeometryField
+                the geometry of the item
+            original_geometry:
+                the original geometry during an updated or None
+            item_id: int
+                the id (pk) of the item being treated
+            item_name: str
+                the item name being treated
+
+        Returns:
+            bool: True if the collection temporal extent has been updated, false otherwise
         '''
+        updated = False
         try:
             # insert (as item_id is None)
-            if action == 'insert':
+            if trigger == 'insert':
                 logger.debug('Updating collections extent_geometry' ' as a item has been inserted')
                 # the first item of this collection
                 if self.extent_geometry is None:
-                    self.extent_geometry = Polygon.from_bbox(GEOSGeometry(item_geom).extent)
+                    self.extent_geometry = Polygon.from_bbox(GEOSGeometry(geometry).extent)
                 # there is already a geometry in the collection a union of the geometries
                 else:
                     self.extent_geometry = Polygon.from_bbox(
-                        GEOSGeometry(self.extent_geometry).union(GEOSGeometry(item_geom)).extent
+                        GEOSGeometry(self.extent_geometry).union(GEOSGeometry(geometry)).extent
                     )
+                updated |= True
 
             # update
-            if action == 'update':
+            if trigger == 'update' and geometry != original_geometry:
                 logger.debug(
                     'Updating collections extent_geometry'
                     ' as a item geometry has been updated'
                 )
                 # is the new bbox larger than (and covering) the existing
-                if Polygon.from_bbox(GEOSGeometry(item_geom).extent).covers(self.extent_geometry):
-                    self.extent_geometry = Polygon.from_bbox(GEOSGeometry(item_geom).extent)
+                if Polygon.from_bbox(GEOSGeometry(geometry).extent).covers(self.extent_geometry):
+                    self.extent_geometry = Polygon.from_bbox(GEOSGeometry(geometry).extent)
                 # we need to iterate trough the items
                 else:
                     logger.warning(
@@ -273,13 +287,14 @@ class Collection(models.Model):
                         self.pk
                     )
                     qs = Item.objects.filter(collection_id=self.pk).exclude(id=item_id)
-                    union_geometry = GEOSGeometry(item_geom)
+                    union_geometry = GEOSGeometry(geometry)
                     for item in qs:
                         union_geometry = union_geometry.union(item.geometry)
                     self.extent_geometry = Polygon.from_bbox(union_geometry.extent)
+                updated |= True
 
             # delete, we need to iterate trough the items
-            if action == 'rm':
+            if trigger == 'delete':
                 logger.debug('Updating collections extent_geometry' ' as a item has been deleted')
                 logger.warning(
                     'Looping over all items of collection %s,'
@@ -294,32 +309,108 @@ class Collection(models.Model):
                     self.extent_geometry = Polygon.from_bbox(union_geometry.extent)
                 else:
                     self.extent_geometry = None
+                updated |= True
         except GEOSException as error:
             logger.error(
-                'Failed to update spatial extend in collection %s with item %s action=%s: %s',
+                'Failed to update spatial extend in collection %s with item %s trigger=%s: %s',
                 self.name,
                 item_name,
-                action,
+                trigger,
                 error
             )
             raise GEOSException(
                 f'Failed to update spatial extend in colletion {self.name} with item '
                 f'{item_name}: {error}'
             )
+        return updated
 
-        self.save()
+    def update_temporal_extent(self, item, trigger, original_item_values):
+        '''Updates the collection's temporal extent if needed when items are inserted, updated or
+        deleted.
 
-    def clean(self):
-        # very simple validation, raises error when geoadmin_variant strings contain special
-        # characters or umlaut.
+        For all the given parameters this function checks, if the corresponding parameters of the
+        collection need to be updated. If so, they will be updated.
 
-        for variant in self.summaries["geoadmin:variant"]:
-            if not bool(re.search('^[a-zA-Z0-9]*$', variant)):
-                logger.error(
-                    "Property geoadmin:variant not compatible with the naming conventions."
-                )
-                raise ValidationError(_("Property geoadmin:variant not compatible with the"
-                                        "naming conventions."))
+        Args:
+            item:
+                Item thats being inserted/updated or deleted
+            trigger:
+                Item trigger event, one of 'insert', 'update' or 'delete'
+            original_item_values: (optional)
+                Dictionary with the original values of item's ['properties_datetime',
+                'properties_start_datetime', 'properties_end_datetime'].
+
+        Returns:
+            bool: True if the collection summaries has been updated, false otherwise
+        '''
+        updated = False
+
+        # Get the start end datetimes independently if we have a range or not, when there is no
+        # range then we use the same start and end datetime
+        start_datetime = item.properties_start_datetime
+        end_datetime = item.properties_end_datetime
+        if start_datetime is None or end_datetime is None:
+            start_datetime = item.properties_datetime
+            end_datetime = item.properties_datetime
+
+        # Get the original start end datetimes independently if we have a range or not, when there
+        # is no range then we use the same start and end datetime
+        old_start_datetime = original_item_values.get('properties_start_datetime', None)
+        old_end_datetime = original_item_values.get('properties_end_datetime', None)
+        if old_start_datetime is None or old_end_datetime is None:
+            old_start_datetime = original_item_values.get('properties_datetime', None)
+            old_end_datetime = original_item_values.get('properties_datetime', None)
+
+        if trigger == 'insert':
+            updated |= update_temporal_extent(
+                self, item, trigger, None, start_datetime, None, end_datetime
+            )
+        elif trigger in ['update', 'delete']:
+            updated |= update_temporal_extent(
+                self,
+                item,
+                trigger,
+                old_start_datetime,
+                start_datetime,
+                old_end_datetime,
+                end_datetime
+            )
+        else:
+            raise ValueError(f'Invalid trigger parameter; {trigger}')
+
+        return updated
+
+    def update_summaries(self, asset, trigger, old_values=None):
+        '''Updates the collection's summaries if needed when assets are updated or deleted.
+
+        For all the given parameters this function checks, if the corresponding parameters of the
+        collection need to be updated. If so, they will be updated.
+
+        Args:
+            asset:
+                Asset thats being inserted/updated or deleted
+            trigger:
+                Asset trigger event, one of 'insert', 'update' or 'delete'
+            old_values: (optional)
+                List with the original values of asset's [eo_gsd, geoadmin_variant, proj_epsg].
+
+        Returns:
+            bool: True if the collection summaries has been updated, false otherwise
+        '''
+
+        if trigger == 'delete':
+            return update_summaries_on_asset_delete(self, asset)
+        if trigger == 'update':
+            return update_summaries_on_asset_update(self, asset, old_values)
+        if trigger == 'insert':
+            return update_summaries_on_asset_insert(self, asset)
+        raise ValueError(f'Invalid trigger parameter: {trigger}')
+
+    def save(self, *args, **kwargs):  # pylint: disable=signature-differs
+        # It is important to use `*args, **kwargs` in signature because django might add dynamically
+        # parameters
+        self.update_etag()
+        super().save(*args, **kwargs)
 
 
 class CollectionLink(Link):
@@ -329,6 +420,12 @@ class CollectionLink(Link):
 
     class Meta:
         unique_together = (('rel', 'collection'),)
+
+    def save(self, *args, **kwargs):  # pylint: disable=signature-differs
+        # It is important to use `*args, **kwargs` in signature because django might add dynamically
+        # parameters
+        super().save(*args, **kwargs)
+        self.collection.save()  # save the collection to updated its ETag
 
 
 ITEM_KEEP_ORIGINAL_FIELDS = [
@@ -341,7 +438,7 @@ ITEM_KEEP_ORIGINAL_FIELDS = [
 
 class Item(models.Model):
     name = models.CharField(
-        'id', unique=True, blank=False, max_length=255, validators=[validate_name]
+        'id', blank=False, max_length=255, validators=[validate_name]
     )
     collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
     geometry = models.PolygonField(
@@ -351,7 +448,7 @@ class Item(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
     # after discussion with Chris and Tobias: for the moment only support
-    # proterties: datetime, eo_gsd and title (the rest is hence commented out)
+    # proterties: datetime and title (the rest is hence commented out)
     properties_datetime = models.DateTimeField(blank=True, null=True)
     properties_start_datetime = models.DateTimeField(blank=True, null=True)
     properties_end_datetime = models.DateTimeField(blank=True, null=True)
@@ -363,11 +460,20 @@ class Item(models.Model):
     # properties_license = models.TextField(blank=True)
     # properties_platform = models.TextField(blank=True)
     # properties_providers = models.ManyToManyField(Provider)
-    properties_title = models.CharField(blank=True, max_length=255)
+    # Although it is discouraged by Django to set blank=True and null=True on a CharField, it is
+    # here required because this field is optional and having an empty string value is not permitted
+    # in the serializer and default to None. None value are then not displayed in the serializer.
+    properties_title = models.CharField(blank=True, null=True, max_length=255)
 
     # properties_view_off_nadir = models.FloatField(blank=True)
     # properties_view_sun_azimuth = models.FloatField(blank=True)
     # properties_view_elevation = models.FloatField(blank=True)
+
+    # hidden ETag field
+    etag = models.CharField(blank=False, null=False, editable=False, max_length=56)
+
+    class Meta:
+        unique_together = (('collection', 'name'),)
 
     def __init__(self, *args, **kwargs):
         self._original_values = {}
@@ -389,91 +495,40 @@ class Item(models.Model):
     def __str__(self):
         return self.name
 
+    def update_etag(self):
+        '''Update the ETag with a new UUID
+        '''
+        self.etag = compute_etag()
+
     def clean(self):
-        self.validate_datetime_properties()
+        validate_item_properties_datetimes(
+            self.properties_datetime, self.properties_start_datetime, self.properties_end_datetime
+        )
 
     def save(self, *args, **kwargs):  # pylint: disable=signature-differs
         # It is important to use `*args, **kwargs` in signature because django might add dynamically
         # parameters
+        collection_updated = False
+
         # Make sure that the properties datetime are valid before updating the temporal extent
         # This is needed because save() is called during the Item.object.create() function without
         # calling clean() ! and our validation is done within clean() method.
-        self.validate_datetime_properties()
+        self.clean()
 
-        if self.pk is None:
-            action = "insert"
-        else:
-            action = "update"
+        self.update_etag()
 
-        if self.properties_datetime is not None:
-            if self._original_values.get('properties_datetime', None) is not None:
-                # This is the case, when the value of properties.datetime has been
-                # updated
-                update_temporal_extent(
-                    self,
-                    self.collection,
-                    action,
-                    self._original_values['properties_datetime'],
-                    self.properties_datetime,
-                    self._original_values['properties_datetime'],
-                    self.properties_datetime,
-                    self.pk
-                )
-            else:
-                # This is the case, when the item was defined by a start_ and
-                # end_datetime before and has been changed to only have a single
-                # datetime property. In that case, we hand over the old
-                # start_ and end_datetime values to the update function, so
-                # that a loop over all items will only be done, if really
-                # necessary.
+        trigger = get_save_trigger(self)
 
-                update_temporal_extent(
-                    self,
-                    self.collection,
-                    action,
-                    self._original_values.get('properties_start_datetime', None),
-                    self.properties_datetime,
-                    self._original_values.get('properties_end_datetime', None),
-                    self.properties_datetime,
-                    self.pk
-                )
-        elif (
-            self._original_values.get('properties_start_datetime', None) is not None and
-            self._original_values.get('properties_end_datetime', None) is not None
-        ):
-            # This is the case, if an items values for start_ and/or end_datetime
-            # were updated.
-            update_temporal_extent(
-                self,
-                self.collection,
-                action,
-                self._original_values['properties_start_datetime'],
-                self.properties_start_datetime,
-                self._original_values['properties_end_datetime'],
-                self.properties_end_datetime,
-                self.pk
-            )
-        else:
-            # This is the case, when an item was defined by a single datetime
-            # before and has been changed to contain a start_ and an
-            # end_datetime value now.
-            update_temporal_extent(
-                self,
-                self.collection,
-                action,
-                self._original_values.get('properties_datetime', None),
-                self.properties_start_datetime,
-                self._original_values.get('properties_datetime', None),
-                self.properties_end_datetime,
-                self.pk
-            )
+        collection_updated |= self.collection.update_temporal_extent(
+            self, trigger, self._original_values
+        )
 
-        # adding a new item means updating the bbox of the collection
-        if self.pk is None:
-            self.collection.update_bbox_extent('insert', self.geometry, self.pk, self.name)
-        # update the bbox of the collection only when the geometry of the item has changed
-        elif self.geometry != self._original_values.get('geometry', None):
-            self.collection.update_bbox_extent('update', self.geometry, self.pk, self.name)
+        collection_updated |= self.collection.update_bbox_extent(
+            trigger, self.geometry, self._original_values.get('geometry', None), self.pk, self.name
+        )
+
+        if collection_updated:
+            self.collection.save()
 
         super().save(*args, **kwargs)
 
@@ -483,49 +538,20 @@ class Item(models.Model):
     def delete(self, *args, **kwargs):  # pylint: disable=signature-differs
         # It is important to use `*args, **kwargs` in signature because django might add dynamically
         # parameters
-        if self.properties_datetime is not None:
-            update_temporal_extent(
-                self,
-                self.collection,
-                'remove',
-                self._original_values.get('properties_datetime', None),
-                self.properties_datetime,
-                self._original_values.get('properties_datetime', None),
-                self.properties_datetime,
-                self.pk
-            )
-        else:
-            update_temporal_extent(
-                self,
-                self.collection,
-                'remove',
-                self._original_values.get('properties_start_datetime', None),
-                self.properties_start_datetime,
-                self._original_values.get('properties_end_datetime', None),
-                self.properties_end_datetime,
-                self.pk
-            )
+        collection_updated = False
 
-        self.collection.update_bbox_extent('rm', self.geometry, self.pk, self.name)
+        collection_updated |= self.collection.update_temporal_extent(
+            self, 'delete', self._original_values
+        )
+
+        collection_updated |= self.collection.update_bbox_extent(
+            'delete', self.geometry, None, self.pk, self.name
+        )
+
+        if collection_updated:
+            self.collection.save()
+
         super().delete(*args, **kwargs)
-
-    def validate_datetime_properties(self):
-        if self.properties_datetime is not None:
-            if self.properties_start_datetime is not None \
-                or self.properties_end_datetime is not None:
-                message = 'Cannot provide together property datetime with datetime range ' \
-                    '(start_datetime, end_datetime)'
-                logger.error(message)
-                raise ValidationError(_(message))
-        else:
-            if self.properties_end_datetime is None:
-                message = "Property end_datetime can't be null when no property datetime is given"
-                logger.error(message)
-                raise ValidationError(_(message))
-            if self.properties_start_datetime is None:
-                message = "Property start_datetime can't be null when no property datetime is given"
-                logger.error(message)
-                raise ValidationError(_(message))
 
 
 class ItemLink(Link):
@@ -533,8 +559,45 @@ class ItemLink(Link):
         Item, related_name='links', related_query_name='link', on_delete=models.CASCADE
     )
 
+    def save(self, *args, **kwargs):  # pylint: disable=signature-differs
+        # It is important to use `*args, **kwargs` in signature because django might add dynamically
+        # parameters
+        super().save(*args, **kwargs)
+        self.item.save()  # We save the item to update its ETag
 
-ASSET_KEEP_ORIGINAL_FIELDS = ["eo_gsd", "geoadmin_variant", "proj_epsg"]
+
+ASSET_KEEP_ORIGINAL_FIELDS = ["name", "file"] + UPDATE_SUMMARIES_FIELDS
+
+
+def upload_asset_to_path_hook(instance, filename=None):
+    '''This returns the asset upload path on S3 and compute the asset file multihash
+
+    Args:
+        instance: Asset
+            Asset instance
+        filename: string
+            file name of the uploaded asset
+
+    Returns:
+        Asset file path to use on S3
+    '''
+    logger.debug('Start computing asset file %s multihash', filename)
+    start = time.time()
+    ctx = hashlib.sha256()
+    for chunk in instance.file.chunks(settings.UPLOAD_FILE_CHUNK_SIZE):
+        ctx.update(chunk)
+    mhash = multihash.to_hex_string(multihash.encode(ctx.digest(), 'sha2-256'))
+    # set the hash to the storage to use it for upload signing, this temporary attribute is
+    # then used by storages.S3Storage to set the MetaData.sha256
+    setattr(instance.file.storage, '_tmp_sha256', ctx.hexdigest())
+    logger.debug(
+        'Set uploaded file %s multihash %s to checksum:multihash; computation done in %ss',
+        filename,
+        mhash,
+        time.time() - start
+    )
+    instance.checksum_multihash = mhash
+    return get_asset_path(instance.item, instance.name)
 
 
 class Asset(models.Model):
@@ -544,8 +607,14 @@ class Asset(models.Model):
         Item, related_name='assets', related_query_name='asset', on_delete=models.CASCADE
     )
     # using "name" instead of "id", as "id" has a default meaning in django
-    name = models.CharField('id', unique=True, max_length=255, validators=[validate_name])
-    checksum_multihash = models.CharField(max_length=255)
+    name = models.CharField('id', max_length=255, validators=[validate_name])
+    file = models.FileField(upload_to=upload_asset_to_path_hook, max_length=255)
+
+    @property
+    def filename(self):
+        return os.path.basename(self.file.name)
+
+    checksum_multihash = models.CharField(editable=False, max_length=255, blank=True, default='')
     description = models.TextField(blank=True, null=True)
     eo_gsd = models.FloatField(null=True, blank=True)
 
@@ -566,11 +635,17 @@ class Asset(models.Model):
     )
     proj_epsg = models.IntegerField(null=True, blank=True)
     title = models.CharField(max_length=255, null=True, blank=True)
-    media_type = models.CharField(max_length=200)
-    href = models.URLField(max_length=255)
+    media_choices = [(x[0], f'{x[1]} ({x[0]})') for x in MEDIA_TYPES]
+    media_type = models.CharField(choices=media_choices, max_length=200, blank=False, null=False)
 
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
+
+    # hidden ETag field
+    etag = models.CharField(blank=False, null=False, editable=False, max_length=56)
+
+    class Meta:
+        unique_together = (('item', 'name'),)
 
     def __init__(self, *args, **kwargs):
         self._original_values = {}
@@ -583,29 +658,79 @@ class Asset(models.Model):
         # Save original values for some fields, when model is loaded from database,
         # in a separate attribute on the model, this simplify the collection summaries update.
         # See https://docs.djangoproject.com/en/3.1/ref/models/instances/#customizing-model-loading
-        instance._original_values = dict( # pylint: disable=protected-access
-            filter(lambda item: item[0] in ASSET_KEEP_ORIGINAL_FIELDS, zip(field_names, values))
-        )
+        instance.keep_originals(field_names, values)  # pylint: disable=no-member
 
         return instance
 
     def __str__(self):
         return self.name
 
+    def keep_originals(self, field_names, values):
+        self._original_values = dict( # pylint: disable=protected-access
+            filter(lambda item: item[0] in ASSET_KEEP_ORIGINAL_FIELDS, zip(field_names, values))
+        )
+
+        # file.name / path has to be treated separately since it's not a simple
+        # field
+        self._original_values['path'] = self.file.name
+
+    def update_etag(self):
+        '''Update the ETag with a new UUID
+        '''
+        self.etag = compute_etag()
+
+    def move_asset(self, source, dest):
+        logger.info("Renaming asset on s3 from %s to %s", source, dest)
+        s3 = get_s3_resource()
+
+        try:
+            s3.Object(settings.AWS_STORAGE_BUCKET_NAME,
+                      dest).copy_from(CopySource=f'{settings.AWS_STORAGE_BUCKET_NAME}/{source}')
+            s3.Object(settings.AWS_STORAGE_BUCKET_NAME, source).delete()
+            self.file.name = dest
+        except botocore.exceptions.ClientError as error:
+            logger.error(
+                'Failed to move asset %s from %s to %s: %s', self.name, source, dest, error
+            )
+            raise error
+
+    def remove_asset(self, source):
+        logger.info("Remove asset on s3 from %s", source)
+        s3 = get_s3_resource()
+
+        try:
+            s3.Object(settings.AWS_STORAGE_BUCKET_NAME, source).delete()
+        except botocore.exceptions.ClientError as error:
+            logger.error('Failed to remove asset %s from %s: %s', self.name, source, error)
+        self.file.name = ''
+        self.checksum_multihash = ''
+
     # alter save-function, so that the corresponding collection of the parent item of the asset
     # is saved, too.
     def save(self, *args, **kwargs):  # pylint: disable=signature-differs
-        old_values = [
-            self._original_values.get(field, None) for field in ASSET_KEEP_ORIGINAL_FIELDS
-        ]
-        update_summaries(self.item.collection, self, deleted=False, old_values=old_values)
+        self.update_etag()
+
+        trigger = get_save_trigger(self)
+
+        if trigger == 'update' and self.name != self._original_values["name"]:
+            self.move_asset(self._original_values['path'], get_asset_path(self.item, self.name))
+
+        old_values = [self._original_values.get(field, None) for field in UPDATE_SUMMARIES_FIELDS]
+        if self.item.collection.update_summaries(self, trigger, old_values=old_values):
+            self.item.collection.save()
+
+        self.item.save()  # We save the item to update its ETag
+
         super().save(*args, **kwargs)
 
         # update the original_values just in case save() is called again without reloading from db
-        self._original_values = {key: getattr(self, key) for key in ASSET_KEEP_ORIGINAL_FIELDS}
+        fields = [field.name for field in self._meta.get_fields()]
+        self.keep_originals(fields, [getattr(self, field) for field in fields])
 
     def delete(self, *args, **kwargs):  # pylint: disable=signature-differs
         # It is important to use `*args, **kwargs` in signature because django might add dynamically
         # parameters
-        update_summaries(self.item.collection, self, deleted=True, old_values=None)
+        if self.item.collection.update_summaries(self, 'delete', old_values=None):
+            self.item.collection.save()
+        self.item.save()  # We save the item to update its ETag
         super().delete(*args, **kwargs)

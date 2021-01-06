@@ -1,13 +1,15 @@
 import logging
 
+import django.core.exceptions
 from django.apps import AppConfig
 from django.conf import settings
-from django.core.exceptions import PermissionDenied
 from django.http import Http404
 from django.utils.translation import gettext_lazy as _
 
-from rest_framework import exceptions
 from rest_framework import pagination
+from rest_framework.exceptions import APIException
+from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import exception_handler
@@ -17,6 +19,12 @@ logger = logging.getLogger(__name__)
 
 class StacApiConfig(AppConfig):
     name = 'stac_api'
+
+    def ready(self):
+        # signals have to be imported here so that the @register
+        # hooks are executed and signal handlers are active
+        # https://docs.djangoproject.com/en/3.1/topics/signals/#django.dispatch.receiver
+        import stac_api.signals  # pylint: disable=import-outside-toplevel, unused-import
 
 
 class CursorPagination(pagination.CursorPagination):
@@ -56,15 +64,20 @@ class CursorPagination(pagination.CursorPagination):
                 integer_string,
                 extra={'request': request}
             )
-            raise ValidationError(_('invalid limit query parameter: must be an integer'))
+            raise ValidationError(
+                _('invalid limit query parameter: must be an integer'),
+                code='limit'
+            )
 
         if page_size <= 0:
             raise ValidationError(
-                _('limit query parameter to small, must be in range 1..%d') % (self.max_page_size)
+                _('limit query parameter to small, must be in range 1..%d') % (self.max_page_size),
+                code='limit'
             )
         if self.max_page_size and page_size > self.max_page_size:
             raise ValidationError(
-                _('limit query parameter to big, must be in range 1..%d') % (self.max_page_size)
+                _('limit query parameter to big, must be in range 1..%d') % (self.max_page_size),
+                code='limit'
             )
 
         return page_size
@@ -76,17 +89,22 @@ def custom_exception_handler(exc, context):
     response = exception_handler(exc, context)
 
     if isinstance(exc, Http404):
-        exc = exceptions.NotFound()
-    elif isinstance(exc, PermissionDenied):
-        exc = exceptions.PermissionDenied()
+        exc = NotFound()
+    elif isinstance(exc, django.core.exceptions.PermissionDenied):
+        exc = PermissionDenied()
+    elif isinstance(exc, django.core.exceptions.ValidationError):
+        # Translate django ValidationError to Rest Framework ValidationError,
+        # this is required because some validation cannot be done in the Rest
+        # framework serializer but must be left to the model, like for instance
+        # the Item properties datetimes dependencies during a partial update.
+        message = exc.message
+        if exc.params:
+            message %= exc.params
+        exc = ValidationError(exc.message, exc.code)
 
-    if isinstance(exc, exceptions.APIException):
+    if isinstance(exc, APIException):
         status_code = exc.status_code
         description = exc.detail
-        if isinstance(description, (list)):
-            # Some APIException, like for instance the ValidationError wrap the detail into a list
-            # because the STAC API spec wants a string as description we join the list together here
-            description = '\n'.join(description)
     elif settings.DEBUG and not settings.DEBUG_PROPAGATE_API_EXCEPTIONS:
         # Other exceptions are left to Django to handle in DEBUG mode, this allow django
         # to set a nice HTML output with backtrace when DEBUG_PROPAGATE_EXCEPTIONS is false

@@ -1,8 +1,16 @@
 import logging
+from io import BytesIO
 
+import boto3
+import botocore
+from moto import mock_s3
+
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import Client
 from django.test import TestCase
+from django.test import override_settings
+from django.urls import reverse
 
 from stac_api.models import Asset
 from stac_api.models import Collection
@@ -11,11 +19,18 @@ from stac_api.models import Item
 from stac_api.models import ItemLink
 from stac_api.models import Provider
 
+from tests.utils import S3TestMixin
+
 logger = logging.getLogger(__name__)
 
+
 #--------------------------------------------------------------------------------------------------
-
-
+@override_settings(
+    AWS_ACCESS_KEY_ID='mykey',
+    AWS_DEFAULT_ACL='public-read',
+    AWS_S3_REGION_NAME='wonderland',
+    AWS_S3_ENDPOINT_URL=None
+)
 class AdminBaseTestCase(TestCase):
 
     def setUp(self):
@@ -162,12 +177,31 @@ class AdminBaseTestCase(TestCase):
 
         return item, data, link
 
+    @mock_s3
     def _create_asset(self, item, extra=None):
+
+        # Check if the bucket exists and if not, create it
+        s3 = boto3.resource('s3', region_name='wonderland')
+        try:
+            s3.meta.client.head_bucket(Bucket=settings.AWS_STORAGE_BUCKET_NAME)
+        except botocore.exceptions.ClientError as error:
+            # If a client error is thrown, then check that it was a 404 error.
+            # If it was a 404 error, then the bucket does not exist.
+            error_code = error.response['Error']['Code']
+            if error_code == '404':
+                # We need to create the bucket since this is all in Moto's 'virtual' AWS account
+                bucket = s3.create_bucket(
+                    Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+                    CreateBucketConfiguration={'LocationConstraint': 'wonderland'}
+                )
+
+        filecontent = b'mybinarydata'
+        filelike = BytesIO(filecontent)
+        filelike.name = 'testname.tiff'
 
         data = {
             "item": item.id,
             "name": "test_asset",
-            "checksum_multihash": "01205c3fd6978a7d0b051efaa4263a09",
             "description": "This is a description",
             "eo_gsd": 10,
             "geoadmin_lang": "en",
@@ -175,7 +209,7 @@ class AdminBaseTestCase(TestCase):
             "proj_epsg": 2056,
             "title": "My first Asset for test",
             "media_type": "application/x.filegdb+zip",
-            "href": "http://www.example.com"
+            "file": filelike
         }
         response = self.client.post("/api/stac/admin/stac_api/asset/add/", data)
 
@@ -190,9 +224,16 @@ class AdminBaseTestCase(TestCase):
 
         # Check the asset values
         for key, value in data.items():
-            if key in ['item', 'id']:
+            if key in ['item', 'id', 'file']:
                 continue
             self.assertEqual(getattr(asset, key), value, msg=f"Asset field {key} value missmatch")
+
+        # Assert that the filename is set to the value in name
+        self.assertEqual(asset.filename, data['name'])
+
+        # Check file content is correct
+        with asset.file.open() as fd:
+            self.assertEqual(filecontent, fd.read())
 
         return asset, data
 
@@ -435,6 +476,24 @@ class AdminItemTestCase(AdminBaseTestCase):
             msg="Admin page item properties_title update did not work"
         )
 
+    def test_add_update_item_remove_title(self):
+        # Login the user first
+        self.client.login(username=self.username, password=self.password)
+
+        item, data = self._create_item(self.collection)[:2]
+
+        # remove the title
+        data['properties_title'] = ""
+        response = self.client.post(f"/api/stac/admin/stac_api/item/{item.id}/change/", data)
+
+        # Status code for successful creation is 302, since in the admin UI
+        # you're redirected to the list view after successful creation
+        self.assertEqual(response.status_code, 302, msg="Admin page failed to update item")
+        item.refresh_from_db()
+        self.assertEqual(
+            item.properties_title, None, msg="Admin page item properties_title update did not work"
+        )
+
     def test_add_update_item_with_link(self):
         # Login the user first
         self.client.login(username=self.username, password=self.password)
@@ -535,13 +594,33 @@ class AdminItemTestCase(AdminBaseTestCase):
 
 
 #--------------------------------------------------------------------------------------------------
-
-
-class AdminAssetTestCase(AdminBaseTestCase):
+@override_settings(
+    AWS_ACCESS_KEY_ID='mykey',
+    AWS_DEFAULT_ACL='public-read',
+    AWS_S3_REGION_NAME='wonderland',
+    AWS_S3_ENDPOINT_URL=None,
+    AWS_S3_CUSTOM_DOMAIN=None
+)
+@mock_s3
+class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
 
     def setUp(self):
         super().setUp()
         self._setup(create_collection=True, create_item=True)
+        # Check if the bucket exists and if not, create it
+        s3 = boto3.resource('s3', region_name='wonderland')
+        try:
+            s3.meta.client.head_bucket(Bucket=settings.AWS_STORAGE_BUCKET_NAME)
+        except botocore.exceptions.ClientError as error:
+            # If a client error is thrown, then check that it was a 404 error.
+            # If it was a 404 error, then the bucket does not exist.
+            error_code = error.response['Error']['Code']
+            if error_code == '404':
+                # We need to create the bucket since this is all in Moto's 'virtual' AWS account
+                bucket = s3.create_bucket(
+                    Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+                    CreateBucketConfiguration={'LocationConstraint': 'wonderland'}
+                )
 
     def test_add_update_asset(self):
         # Login the user first
@@ -549,8 +628,11 @@ class AdminAssetTestCase(AdminBaseTestCase):
 
         asset, data = self._create_asset(self.item)
 
+        filecontent = b'mybinarydata2'
+        filelike = BytesIO(filecontent)
+        filelike.name = 'testname.tiff'
+
         # update some data
-        data["checksum_multihash"] = "fffffffffffffffffff"
         data["description"] = "This is a new description"
         data["eo_gsd"] = 20
         data["geoadmin_lang"] = "fr"
@@ -558,7 +640,7 @@ class AdminAssetTestCase(AdminBaseTestCase):
         data["proj_epsg"] = 2057
         data["title"] = "New Asset for test"
         data["media_type"] = "application/x.asc+zip"
-        data["href"] = "http://www.new-example.com"
+        data["file"] = filelike
         response = self.client.post(f"/api/stac/admin/stac_api/asset/{asset.id}/change/", data)
 
         # Status code for successful creation is 302, since in the admin UI
@@ -566,9 +648,35 @@ class AdminAssetTestCase(AdminBaseTestCase):
         self.assertEqual(response.status_code, 302, msg="Admin page failed to update asset")
         asset.refresh_from_db()
         for key, value in data.items():
-            if key in ['item', 'id']:
+            if key in ['item', 'id', 'file']:
                 continue
             self.assertEqual(getattr(asset, key), value, msg=f"Failed to update field {key}")
+
+        # Check that file content has changed
+        with asset.file.open() as fd:
+            self.assertEqual(filecontent, fd.read())
+
+    def test_rename_asset(self):
+        # Login the user first
+        self.client.login(username=self.username, password=self.password)
+
+        asset, data = self._create_asset(self.item)
+
+        data['name'] = 'new_asset_name.zip'
+        # We just update the name hence we have to remove the
+        # 'file' from the data since submitting an empty file
+        # is not allowed
+        data.pop('file')
+
+        response = self.client.post(reverse('admin:stac_api_asset_change', args=[asset.id]), data)
+        self.assertEqual(response.status_code, 302)
+
+        # Assert that the location on s3 has been changed
+        new_path = f"{asset.item.collection.name}/{asset.item.name}/{data['name']}"
+        self.assertS3ObjectExists(new_path)
+
+        asset.refresh_from_db()
+        self.assertEqual(asset.file.name, new_path)
 
     def test_add_asset_with_invalid_data(self):
         # Login the user first
@@ -593,10 +701,12 @@ class AdminAssetTestCase(AdminBaseTestCase):
         self.client.login(username=self.username, password=self.password)
 
         asset, data = self._create_asset(self.item)
+        path = f"{asset.item.collection.name}/{asset.item.name}/{data['name']}"
+        self.assertS3ObjectExists(path)
 
         # remove asset
         response = self.client.post(
-            f"/api/stac/admin/stac_api/asset/{asset.id}/delete/", {"post": "yes"}
+            reverse('admin:stac_api_asset_delete', args=[asset.id]), {"post": "yes"}
         )
 
         # Status code for successful creation is 302, since in the admin UI
@@ -605,3 +715,5 @@ class AdminAssetTestCase(AdminBaseTestCase):
         self.assertFalse(
             Asset.objects.filter(name=data["name"]).exists(), msg="Admin page asset still in DB"
         )
+
+        self.assertS3ObjectNotExists(path)

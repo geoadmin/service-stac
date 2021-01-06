@@ -1,6 +1,11 @@
 from datetime import datetime
 from datetime import timezone
 
+import boto3
+from botocore.client import Config
+
+from django.conf import settings
+
 
 def isoformat(date_time):
     '''Return a datetime string in isoformat using 'Z' as timezone instead of '+00:00'
@@ -18,3 +23,104 @@ def utc_aware(date_time):
     '''Return a UTC date_time aware object
     '''
     return date_time.replace(tzinfo=timezone.utc)
+
+
+def get_link(links, rel, raise_exception=False):
+    '''Get link from list based on his rel attribute
+
+    Args:
+	    links: list
+			list of link object: {'href': url, 'rel': str}
+        rel: string
+            rel attribute to look for
+        raise_exception: boolean (default=False)
+            raises KeyError instead of returning None when link is not found
+
+    Returns:
+        The link object if found, else None
+    '''
+    for link in links:
+        if link['rel'] == rel:
+            return link
+    if raise_exception:
+        raise KeyError(f'Link with rel {rel} not found')
+    return None
+
+
+def get_asset_path(item, asset_name):
+    '''Returns the asset path on S3.
+
+    The path is defined as follow: COLLECTION_NAME/ITEM_NAME/ASSET_NAME
+
+    Args:
+        item: Item
+            Item instance in which the asset is attached
+        asset_name: string
+            Asset's name
+
+    Returns:
+        Assets path on S3
+    '''
+    return '/'.join([item.collection.name, item.name, asset_name])
+
+
+def get_s3_resource():
+    '''Returns an AWS S3 resource
+
+    Returns:
+        AWS S3 resource
+    '''
+    return boto3.resource(
+        's3', endpoint_url=settings.AWS_S3_ENDPOINT_URL, config=Config(signature_version='s3v4')
+    )
+
+
+def build_asset_href_prefix(request):
+    '''Build the asset href prefix based on the settings or request
+
+    This prefix can be then used for domain validation.
+
+    Args:
+        request: HttpRequest
+            Request object
+
+    Returns:
+        The asset href prefix either from settings.AWS_S3_CUSTOM_DOMAIN or from the request
+    '''
+    # Assets file are served by an AWS S3 services. This service uses the same domain as
+    # the API but could defer, especially for local development, so check first
+    # AWS_S3_CUSTOM_DOMAIN
+    if settings.AWS_S3_CUSTOM_DOMAIN:
+        # By definition we should not mixed up HTTP Scheme (HTTP/HTTPS) within our service,
+        # although the Assets file are not served by django we configure it with the same scheme
+        # as django that's why it is kind of safe to use the django scheme.
+        return f'{request.scheme if request.scheme else "https"}://{settings.AWS_S3_CUSTOM_DOMAIN}'
+
+    return request.build_absolute_uri('/')
+
+
+def build_asset_href(request, path):
+    '''Build asset href
+
+    Args:
+        request: HttpRequest
+            Request
+        path: string
+            Asset path
+
+    Returns:
+        Asset full href value
+    '''
+    if not path:
+        return None
+
+    # Assets file are served by an AWS S3 services. This service uses the same domain as
+    # the API but could defer, especially for local development, so check first
+    # AWS_S3_CUSTOM_DOMAIN
+    if settings.AWS_S3_CUSTOM_DOMAIN:
+        # By definition we should not mixed up HTTP Scheme (HTTP/HTTPS) within our service,
+        # although the Assets file are not served by django we configure it with the same scheme
+        # as django that's why it is kind of safe to use the django scheme.
+        return f'{request.scheme}://{settings.AWS_S3_CUSTOM_DOMAIN.strip("/")}/{path}'
+
+    return request.build_absolute_uri(f'/{path}')

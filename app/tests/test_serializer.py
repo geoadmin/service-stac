@@ -1,9 +1,13 @@
+# pylint: disable=too-many-lines
+
 import io
 import logging
 from collections import OrderedDict
 from datetime import datetime
 from datetime import timedelta
 from pprint import pformat
+
+import requests_mock
 
 from django.conf import settings
 
@@ -376,21 +380,21 @@ class ItemSerializationTestCase(StacBaseTestCase):
 
         expected = {
             'assets': {
-                'asset-1':
+                self.asset.name:
                     OrderedDict([
                         ('title', 'my-title'),
                         ('type', 'image/tiff; application=geotiff; '
-                         'profile=cloud-optimize'),
-                        (
-                            'href',
-                            'https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-1-2019-2056-kgrs-10.tiff'
-                        ),
+                         'profile=cloud-optimized'),
+                        ('href', f'http://testserver/{collection_name}/{item_name}/asset-1'),
                         ('description', 'this an asset'),
                         ('eo:gsd', 3.4),
                         ('proj:epsg', 2056),
                         ('geoadmin:variant', 'kgrs'),
                         ('geoadmin:lang', 'fr'),
-                        ('checksum:multihash', '01205c3fd6978a7d0b051efaa4263a09'),
+                        (
+                            'checksum:multihash',
+                            db.get_asset_dummy_content_multihash(self.asset.name)
+                        ),
                     ])
             },
             'bbox': (5.644711, 46.775054, 7.602408, 49.014995),
@@ -675,7 +679,7 @@ class ItemSerializationTestCase(StacBaseTestCase):
         data['links'][0]['type'] = 'example'
         serializer = ItemSerializer(item, data=data)
         serializer.is_valid(raise_exception=True)
-        collection = serializer.save()
+        item = serializer.save()
 
         # serialize the object and test it against the one above
         # mock a request needed for the serialization of links
@@ -709,14 +713,12 @@ class ItemSerializationTestCase(StacBaseTestCase):
 
         # Update some data
         data['properties']['datetime'] = isoformat(utc_aware(datetime.utcnow()))
-        # To remove a property we have to set it to None otherwise the property
-        # is left unchanged
-        data['properties']['start_datetime'] = None
-        data['properties']['end_datetime'] = None
+        del data['properties']['start_datetime']
+        del data['properties']['end_datetime']
         del data['links']
         serializer = ItemSerializer(item, data=data)
         serializer.is_valid(raise_exception=True)
-        collection = serializer.save()
+        item = serializer.save()
 
         # serialize the object and test it against the one above
         # mock a request needed for the serialization of links
@@ -725,9 +727,42 @@ class ItemSerializationTestCase(StacBaseTestCase):
         )
         serializer = ItemSerializer(item, context={'request': request})
         python_native = serializer.data
-        # remove the properties that have been previously set to know for removal
-        del data['properties']['start_datetime']
-        del data['properties']['end_datetime']
+        self.check_stac_item(data, python_native)
+
+    def test_item_deserialization_update_remove_title(self):
+        data = OrderedDict([
+            ("collection", self.collection.name),
+            ("id", "test"),
+            ("geometry", geometry_json),
+            (
+                "properties",
+                OrderedDict([
+                    ("start_datetime", isoformat(utc_aware(datetime.utcnow()))),
+                    ("end_datetime", isoformat(utc_aware(datetime.utcnow()))),
+                    ("title", "This is a title"),
+                ])
+            ),
+        ])
+
+        # translate to Python native:
+        serializer = ItemSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        item = serializer.save()
+
+        # Remove the optional title
+        del data['properties']['title']
+        serializer = ItemSerializer(item, data=data)
+        serializer.is_valid(raise_exception=True)
+        item = serializer.save()
+
+        # serialize the object and test it against the one above
+        # mock a request needed for the serialization of links
+        request = self.factory.get(
+            f'{API_BASE}/collections/{self.collection.name}/items/{item.name}'
+        )
+        serializer = ItemSerializer(item, context={'request': request})
+        python_native = serializer.data
+        self.assertNotIn('title', python_native['properties'].keys(), msg="Title was not removed")
         self.check_stac_item(data, python_native)
 
     def test_item_deserialization_missing_required(self):
@@ -754,6 +789,28 @@ class ItemSerializationTestCase(StacBaseTestCase):
         with self.assertRaises(ValidationError):
             serializer.is_valid(raise_exception=True)
 
+    def test_item_deserialization_end_date_before_start_date(self):
+        today = datetime.utcnow()
+        yesterday = today - timedelta(days=1)
+        data = OrderedDict([
+            ("collection", self.collection.name),
+            ("id", "test/invalid name"),
+            ("geometry", geometry_json),
+            (
+                "properties",
+                OrderedDict([
+                    ("start_datetime", isoformat(utc_aware(today))),
+                    ("end_datetime", isoformat(utc_aware(yesterday))),
+                    ("title", "This is a title"),
+                ])
+            ),
+        ])
+
+        # translate to Python native:
+        serializer = ItemSerializer(data=data)
+        with self.assertRaises(ValidationError):
+            serializer.is_valid(raise_exception=True)
+
     def test_item_deserialization_invalid_link(self):
         data = OrderedDict([
             ("collection", self.collection.name),
@@ -768,6 +825,7 @@ class ItemSerializationTestCase(StacBaseTestCase):
             serializer.is_valid(raise_exception=True)
 
 
+@requests_mock.Mocker(kw='mock')
 class AssetSerializationTestCase(StacBaseTestCase):
 
     def setUp(self):  # pylint: disable=invalid-name
@@ -788,7 +846,7 @@ class AssetSerializationTestCase(StacBaseTestCase):
         self.asset.save()
         self.maxDiff = None  # pylint: disable=invalid-name
 
-    def test_asset_serialization(self):
+    def test_asset_serialization(self, mock):
         collection_name = self.collection.name
         item_name = self.item.name
         asset_name = self.asset.name
@@ -810,16 +868,16 @@ class AssetSerializationTestCase(StacBaseTestCase):
 
         expected = {
             'id': asset_name,
-            'checksum:multihash': '01205c3fd6978a7d0b051efaa4263a09',
+            'checksum:multihash': db.get_asset_dummy_content_multihash(asset_name),
             'description': 'this an asset',
             'eo:gsd': 3.4,
             'geoadmin:lang': 'fr',
             'geoadmin:variant': 'kgrs',
             'href':
-                'https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-1-2019-2056-kgrs-10.tiff',
+                f'http://{settings.AWS_S3_CUSTOM_DOMAIN}/{collection_name}/{item_name}/{asset_name}',
             'proj:epsg': 2056,
             'title': 'my-title',
-            'type': 'image/tiff; application=geotiff; profile=cloud-optimize'
+            'type': 'image/tiff; application=geotiff; profile=cloud-optimized'
         }
         self.check_stac_asset(expected, python_native)
 
@@ -833,86 +891,101 @@ class AssetSerializationTestCase(StacBaseTestCase):
         python_native_back["item"] = item_name
 
         # back-translate into fully populated Item instance:
+        # for this we need to mock the requests.head() to the assets on S3
+        mock.head(
+            python_native_back['href'],
+            headers={'x-amz-meta-sha256': python_native_back['checksum:multihash'][4:]}
+        )
+
+        # remove read-only properties from python_native
+        read_only_fields = ["href", "created", "updated"]
+        for key in read_only_fields:
+            del python_native_back[key]
+
         back_serializer = AssetSerializer(
             instance=self.asset, data=python_native_back, context={'request': request}
         )
         back_serializer.is_valid(raise_exception=True)
         logger.debug('back validated data:\n%s', pformat(back_serializer.validated_data))
 
-    def test_asset_deserialization(self):
+    def test_asset_deserialization(self, mock):
         collection_name = self.collection.name
         item_name = self.item.name
-        asset_name = self.asset.name
+        asset_name = "asset-2"
         data = {
-            'id': "asset-2",
+            'id': asset_name,
             'item': self.item.name,
-            'checksum:multihash': '01205c3fd6978a7d0b051efaa4263a09',
+            'checksum:multihash': db.get_asset_dummy_content_multihash(asset_name),
             'description': 'this an asset',
             'eo:gsd': 3.4,
             'geoadmin:lang': 'fr',
             'geoadmin:variant': 'kgrs',
-            'href':
-                'https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-1-2019-2056-kgrs-10.tiff',
             'proj:epsg': 2056,
             'title': 'my-title',
-            'type': 'image/tiff; application=geotiff; profile=cloud-optimize'
+            'type': 'image/tiff; application=geotiff; profile=cloud-optimized',
+            'href': f'http://{settings.AWS_S3_CUSTOM_DOMAIN}/{collection_name}/{item_name}/asset-2'
         }
-
-        # translate to Python native:
-        serializer = AssetSerializer(data=data)
-        serializer.is_valid(raise_exception=True)
-        asset = serializer.save()
-
         # serialize the object and test it against the one above
         # mock a request needed for the serialization of links
         request = self.factory.get(
-            f'{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset.name}'
+            f'{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
         )
+
+        # translate to Python native:
+        # for this we need to mock the requests.head() to the assets on S3
+        mock.head(data['href'], headers={'x-amz-meta-sha256': data['checksum:multihash'][4:]})
+        serializer = AssetSerializer(data=data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        asset = serializer.save()
+
         serializer = AssetSerializer(asset, context={'request': request})
         python_native = serializer.data
 
         # ignoring item below, as it is a "write_only" field in the asset's serializer.
         # it will not be present in the mocked request's data.
-        self.check_stac_asset(data, python_native, ignore="item")
+        self.check_stac_asset(data, python_native, ignore=["item"])
 
-    def test_asset_deserialization_required_fields_only(self):
+    def test_asset_deserialization_required_fields_only(self, mock):
         collection_name = self.collection.name
         item_name = self.item.name
-        asset_name = self.asset.name
+        asset_name = 'asset-2'
         data = {
-            'id': "asset-2",
+            'id': asset_name,
             'item': self.item.name,
-            'checksum:multihash': '01205c3fd6978a7d0b051efaa4263a09',
-            'href':
-                'https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-1-2019-2056-kgrs-10.tiff',
-            'type': 'image/tiff; application=geotiff; profile=cloud-optimize'
+            'checksum:multihash': db.get_asset_dummy_content_multihash(asset_name),
+            'type': 'image/tiff; application=geotiff; profile=cloud-optimized',
+            'href': f'http://{settings.AWS_S3_CUSTOM_DOMAIN}/{collection_name}/{item_name}/asset-2'
         }
-
-        # translate to Python native:
-        serializer = AssetSerializer(data=data)
-        serializer.is_valid(raise_exception=True)
-        asset = serializer.save()
 
         # serialize the object and test it against the one above
         # mock a request needed for the serialization of links
         request = self.factory.get(
-            f'{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset.name}'
+            f'{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
         )
+
+        # translate to Python native:
+        # for this we need to mock the requests.head() to the assets on S3
+        mock.head(data['href'], headers={'x-amz-meta-sha256': data['checksum:multihash'][4:]})
+        serializer = AssetSerializer(data=data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        asset = serializer.save()
+
         serializer = AssetSerializer(asset, context={'request': request})
         python_native = serializer.data
 
         # ignoring item below, as it is a "write_only" field in the asset's serializer.
         # it will not be present in the mocked request's data.
-        self.check_stac_asset(data, python_native, ignore="item")
+        self.check_stac_asset(data, python_native, ignore=["item"])
 
-    def test_asset_deserialization_invalid_id(self):
+    def test_asset_deserialization_invalid_id(self, mock):
         collection_name = self.collection.name
         item_name = self.item.name
         asset_name = self.asset.name
         data = {
             'id': "test/invalid name",
             'item': self.item.name,
-            'checksum:multihash': '01205c3fd6978a7d0b051efaa4263a09',
+            'checksum:multihash':
+                '1220b0c2185619a5a9be2d27cfaf51bc3a6a18b2b0727b7e58760cfe6b2a36193c30',
             'description': 'this an asset',
             'eo:gsd': 3.4,
             'geoadmin:lang': 'fr',
@@ -921,22 +994,29 @@ class AssetSerializationTestCase(StacBaseTestCase):
                 'https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-1-2019-2056-kgrs-10.tiff',
             'proj:epsg': 2056,
             'title': 'my-title',
-            'type': 'image/tiff; application=geotiff; profile=cloud-optimize'
+            'type': 'image/tiff; application=geotiff; profile=cloud-optimized'
         }
 
+        # serialize the object and test it against the one above
+        # mock a request needed for the serialization of links
+        request = self.factory.get(
+            f'{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
+        )
+
         # translate to Python native:
-        serializer = ItemSerializer(data=data)
+        serializer = AssetSerializer(data=data, context={'request': request})
         with self.assertRaises(ValidationError):
             serializer.is_valid(raise_exception=True)
 
-    def test_asset_deserialization_invalid_proj_epsg(self):
+    def test_asset_deserialization_invalid_proj_epsg(self, mock):
         collection_name = self.collection.name
         item_name = self.item.name
         asset_name = self.asset.name
         data = {
             'id': "asset-2",
             'item': self.item.name,
-            'checksum:multihash': '01205c3fd6978a7d0b051efaa4263a09',
+            'checksum:multihash':
+                '1220b0c2185619a5a9be2d27cfaf51bc3a6a18b2b0727b7e58760cfe6b2a36193c30',
             'description': 'this an asset',
             'eo:gsd': 3.4,
             'geoadmin:lang': 'fr',
@@ -945,21 +1025,28 @@ class AssetSerializationTestCase(StacBaseTestCase):
                 'https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-1-2019-2056-kgrs-10.tiff',
             'proj:epsg': 2056.1,
             'title': 'my-title',
-            'type': 'image/tiff; application=geotiff; profile=cloud-optimize'
+            'type': 'image/tiff; application=geotiff; profile=cloud-optimized'
         }
 
+        # serialize the object and test it against the one above
+        # mock a request needed for the serialization of links
+        request = self.factory.get(
+            f'{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
+        )
+
         # translate to Python native:
-        serializer = ItemSerializer(data=data)
+        serializer = AssetSerializer(data=data, context={'request': request})
         with self.assertRaises(ValidationError):
             serializer.is_valid(raise_exception=True)
 
-    def test_asset_deserialization_missing_required_item(self):
+    def test_asset_deserialization_missing_required_item(self, mock):
         collection_name = self.collection.name
         item_name = self.item.name
         asset_name = self.asset.name
         data = {
             'id': "asset-2",
-            'checksum:multihash': '01205c3fd6978a7d0b051efaa4263a09',
+            'checksum:multihash':
+                '1220b0c2185619a5a9be2d27cfaf51bc3a6a18b2b0727b7e58760cfe6b2a36193c30',
             'description': 'this an asset',
             'eo:gsd': 3.4,
             'geoadmin:lang': 'fr',
@@ -968,10 +1055,16 @@ class AssetSerializationTestCase(StacBaseTestCase):
                 'https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-1-2019-2056-kgrs-10.tiff',
             'proj:epsg': 2056,
             'title': 'my-title',
-            'type': 'image/tiff; application=geotiff; profile=cloud-optimize'
+            'type': 'image/tiff; application=geotiff; profile=cloud-optimized'
         }
 
+        # serialize the object and test it against the one above
+        # mock a request needed for the serialization of links
+        request = self.factory.get(
+            f'{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
+        )
+
         # translate to Python native:
-        serializer = ItemSerializer(data=data)
+        serializer = AssetSerializer(data=data, context={'request': request})
         with self.assertRaises(ValidationError):
             serializer.is_valid(raise_exception=True)

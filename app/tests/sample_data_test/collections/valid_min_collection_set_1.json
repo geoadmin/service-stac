@@ -1,0 +1,16 @@
+{
+  "description": "Minimal Collection",
+  "id": "minimal-collection",
+  "license": "proprietary",
+  "links": [
+    {
+      "href": "https://www.youtube.com/watch?v=w8Rn_f75UHs",
+      "rel": "license",
+      "title": "Licence for the free geodata of the Federal Office of Topography swisstopo"
+    },
+    {
+      "href": "https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df",
+      "rel": "describedby"
+    }
+  ]
+}

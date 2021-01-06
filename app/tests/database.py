@@ -1,8 +1,16 @@
+import hashlib
 import json
 
+import boto3
+import botocore
+import multihash
 from dateutil.parser import isoparse
+from moto import mock_s3
 
+from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import override_settings
 
 from stac_api.models import Asset
 from stac_api.models import Collection
@@ -10,6 +18,33 @@ from stac_api.models import CollectionLink
 from stac_api.models import Item
 from stac_api.models import ItemLink
 from stac_api.models import Provider
+
+ASSET_FILE_DUMMY_CONTENT = '{asset_name}: Asset file dummy content'
+
+
+def get_asset_dummy_content(asset_name):
+    '''Get an asset file dummy content based on its name
+
+    Args:
+        asset_name: string
+
+    Returns:
+        Asset personalized in bytes
+    '''
+    return ASSET_FILE_DUMMY_CONTENT.format(asset_name=asset_name).encode('utf-8')
+
+
+def get_asset_dummy_content_multihash(asset_name):
+    '''Returns the multihash (sha2-256) of an Asset personalized dummy content
+
+    Args:
+        asset_name: string
+
+    Returns:
+        multihash string
+    '''
+    digest = hashlib.sha256(get_asset_dummy_content(asset_name)).digest()
+    return multihash.to_hex_string(multihash.encode(digest, 'sha2-256'))
 
 
 def create_collection(name):
@@ -104,28 +139,57 @@ def create_item_links(item):
     return [link]
 
 
-def create_asset(item, name):
-    asset = Asset.objects.create(
+@override_settings(
+    AWS_ACCESS_KEY_ID='mykey',
+    AWS_DEFAULT_ACL='public-read',
+    AWS_S3_REGION_NAME='wonderland',
+    AWS_S3_ENDPOINT_URL=None
+)
+def create_asset(item, name, eo_gsd=3.4, geoadmin_variant="kgrs", proj_epsg=2056, bucket=None):
+    mock = None
+    if bucket is None:
+        mock = mock_s3()
+        mock.start()
+        # Check if the bucket exists and if not, create it
+        s3 = boto3.resource('s3', region_name='wonderland')
+        try:
+            s3.meta.client.head_bucket(Bucket=settings.AWS_STORAGE_BUCKET_NAME)
+        except botocore.exceptions.ClientError as e:  # pylint: disable=invalid-name
+            # If a client error is thrown, then check that it was a 404 error.
+            # If it was a 404 error, then the bucket does not exist.
+            error_code = e.response['Error']['Code']
+            if error_code == '404':
+                # We need to create the bucket since this is all in Moto's 'virtual' AWS account
+                s3.create_bucket(
+                    Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+                    CreateBucketConfiguration={'LocationConstraint': 'wonderland'}
+                )
+        else:
+            raise NotImplementedError()
+
+    asset = Asset(
         item=item,
         title='my-title',
         name=name,
-        checksum_multihash="01205c3fd6978a7d0b051efaa4263a09",
         description="this an asset",
-        eo_gsd=3.4,
+        eo_gsd=eo_gsd,
         geoadmin_lang='fr',
-        geoadmin_variant="kgrs",
-        proj_epsg=2056,
-        media_type="image/tiff; application=geotiff; profile=cloud-optimize",
-        href=
-        "https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-1-2019-2056-kgrs-10.tiff"
+        geoadmin_variant=geoadmin_variant,
+        proj_epsg=proj_epsg,
+        media_type="image/tiff; application=geotiff; profile=cloud-optimized",
+        file=SimpleUploadedFile('some_name.tiff', get_asset_dummy_content(name))
     )
     asset.full_clean()
     asset.save()
     item.save()
+
+    if mock is not None:
+        mock.stop()
+
     return asset
 
 
-def create_dummy_db_content(nb_collections, nb_items=0, nb_assets=0):
+def create_dummy_db_content(nb_collections, nb_items=0, nb_assets=0, bucket=None):
     collections = []
     items = []
     assets = []
@@ -139,7 +203,7 @@ def create_dummy_db_content(nb_collections, nb_items=0, nb_assets=0):
             items[i].append(item)
             assets[i].append([])
             for k in range(nb_assets):
-                asset = create_asset(item, f'asset-{i+1}-{j+1}-{k+1}')
+                asset = create_asset(item, f'asset-{i+1}-{j+1}-{k+1}', bucket=bucket)
                 assets[i][j].append(asset)
 
     return collections, items, assets

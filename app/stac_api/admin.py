@@ -15,8 +15,22 @@ from stac_api.models import ItemLink
 from stac_api.models import LandingPage
 from stac_api.models import LandingPageLink
 from stac_api.models import Provider
+from stac_api.utils import build_asset_href
 
-admin.site.register(Asset)
+
+@admin.register(Asset)
+class AssetAdmin(admin.ModelAdmin):
+    readonly_fields = ['href', 'checksum_multihash']
+
+    # Note: this is a bit hacky and only required to get access
+    # to the request object in 'href' method.
+    def get_form(self, request, obj=None, **kwargs):  # pylint: disable=arguments-differ
+        self.request = request  # pylint: disable=attribute-defined-outside-init
+        return super().get_form(request, obj, **kwargs)
+
+    def href(self, instance):
+        path = instance.file.name
+        return build_asset_href(self.request, path)
 
 
 class LandingPageLinkInline(admin.TabularInline):

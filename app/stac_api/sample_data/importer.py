@@ -7,6 +7,7 @@ from dateutil.parser import isoparse
 
 from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry
+from django.core.files.uploadedfile import SimpleUploadedFile
 
 from stac_api.models import Asset
 from stac_api.models import Collection
@@ -154,11 +155,10 @@ def parse_asset(item, asset_name, asset_data):
         item=item,
         name=asset_name,
         defaults={
-            "checksum_multihash": asset_data["checksum:multihash"],
+            "file": SimpleUploadedFile(asset_name, b'Asset dummy content'),
+            "media_type": asset_data["type"],
             "eo_gsd": asset_data.get("eo:gsd", None),
             "proj_epsg": asset_data.get("proj:epsg", None),
-            "href": asset_data['href'],
-            "media_type": asset_data["type"],
             "geoadmin_lang": asset_data.get("geoadmin:lang", None),
             "geoadmin_variant": asset_data.get("geoadmin:variant", None),
         }

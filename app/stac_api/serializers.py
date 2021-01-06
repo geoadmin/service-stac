@@ -18,9 +18,19 @@ from stac_api.models import ItemLink
 from stac_api.models import LandingPage
 from stac_api.models import LandingPageLink
 from stac_api.models import Provider
-from stac_api.models import validate_geoadmin_variant
-from stac_api.models import validate_name
+from stac_api.models import get_asset_path
+from stac_api.utils import build_asset_href
+from stac_api.utils import build_asset_href_prefix
 from stac_api.utils import isoformat
+from stac_api.validators import MEDIA_TYPES_MIMES
+from stac_api.validators import validate_asset_multihash
+from stac_api.validators import validate_geoadmin_variant
+from stac_api.validators import validate_item_properties_datetimes
+from stac_api.validators import validate_name
+from stac_api.validators_serializer import validate_and_parse_href_url
+from stac_api.validators_serializer import validate_asset_file
+from stac_api.validators_serializer import validate_asset_href_path
+from stac_api.validators_serializer import validate_json_payload
 
 logger = logging.getLogger(__name__)
 
@@ -98,8 +108,11 @@ class NonNullModelSerializer(serializers.ModelSerializer):
             for key, value in obj.items():
                 if isinstance(value, dict):
                     filtered_obj[key] = filter_null(value)
-                elif isinstance(value, list) and len(value) > 0:
-                    filtered_obj[key] = value
+                # then links array might be empty at this point,
+                # but that in the view the auto generated links are added anyway
+                elif isinstance(value, list) and key != 'links':
+                    if len(value) > 0:
+                        filtered_obj[key] = value
                 elif value is not None:
                     filtered_obj[key] = value
             return filtered_obj
@@ -337,6 +350,7 @@ class CollectionSerializer(NonNullModelSerializer):
     summaries = serializers.JSONField(read_only=True)
     stac_extensions = serializers.SerializerMethodField(read_only=True)
     stac_version = serializers.SerializerMethodField(read_only=True)
+    title = serializers.CharField(required=False, allow_blank=False, default=None, max_length=255)
     itemType = serializers.ReadOnlyField(default="Feature")  # pylint: disable=invalid-name
 
     def get_crs(self, obj):
@@ -445,6 +459,10 @@ class CollectionSerializer(NonNullModelSerializer):
         ]
         return representation
 
+    def validate(self, attrs):
+        validate_json_payload(self)
+        return attrs
+
 
 class ItemLinkSerializer(NonNullModelSerializer):
 
@@ -466,17 +484,15 @@ class ItemsPropertiesSerializer(serializers.Serializer):
 
     # NOTE: when explicitely declaring fields, we need to add the validation as for the field
     # in model !
-    datetime = serializers.DateTimeField(
-        source='properties_datetime', allow_null=True, required=False
-    )
+    datetime = serializers.DateTimeField(source='properties_datetime', required=False, default=None)
     start_datetime = serializers.DateTimeField(
-        source='properties_start_datetime', allow_null=True, required=False
+        source='properties_start_datetime', required=False, default=None
     )
     end_datetime = serializers.DateTimeField(
-        source='properties_end_datetime', allow_null=True, required=False
+        source='properties_end_datetime', required=False, default=None
     )
     title = serializers.CharField(
-        source='properties_title', required=False, allow_blank=True, max_length=255
+        source='properties_title', required=False, allow_blank=False, max_length=255, default=None
     )
     created = serializers.DateTimeField(read_only=True)
     updated = serializers.DateTimeField(read_only=True)
@@ -498,6 +514,24 @@ class BboxSerializer(gis_serializers.GeoFeatureModelSerializer):
 class AssetsDictSerializer(DictSerializer):
     # pylint: disable=abstract-method
     key_identifier = 'id'
+
+
+class HrefField(serializers.Field):
+
+    def to_representation(self, value):
+        # build an absolute URL from the file path
+        request = self.context.get("request")
+        path = value.name
+
+        return build_asset_href(request, path)
+
+    def to_internal_value(self, data):
+        # extract the file path part from the
+        # provided URL and do some sanity checks
+        request = self.context.get("request")
+        url = validate_and_parse_href_url(build_asset_href_prefix(request), data)
+
+        return url.path[1:]  # strip the leading '/'
 
 
 class AssetSerializer(NonNullModelSerializer):
@@ -531,7 +565,16 @@ class AssetSerializer(NonNullModelSerializer):
         max_length=255,
         validators=[validate_name, UniqueValidator(queryset=Asset.objects.all())]
     )
-    type = serializers.CharField(source='media_type', max_length=200)
+    # The href is only for POST request and is ignored for PUT requests this is done by dynamically
+    # removing the field with the serializer hide_fields parameter in the view
+    href = HrefField(source='file', required=False)
+    type = serializers.ChoiceField(
+        source='media_type',
+        required=True,
+        choices=MEDIA_TYPES_MIMES,
+        allow_null=False,
+        allow_blank=False
+    )
     # Here we need to explicitely define these fields with the source, because they are renamed
     # in the get_fields() method
     eo_gsd = serializers.FloatField(source='eo_gsd', required=False, allow_null=True)
@@ -551,10 +594,44 @@ class AssetSerializer(NonNullModelSerializer):
         validators=[validate_geoadmin_variant]
     )
     proj_epsg = serializers.IntegerField(source='proj_epsg', allow_null=True, required=False)
-    checksum_multihash = serializers.CharField(source='checksum_multihash', max_length=255)
+    checksum_multihash = serializers.CharField(
+        source='checksum_multihash',
+        max_length=255,
+        required=False,
+        validators=[validate_asset_multihash]
+    )
     # read only fields
     created = serializers.DateTimeField(read_only=True)
     updated = serializers.DateTimeField(read_only=True)
+
+    def __init__(self, *args, **kwargs):
+        hide_fields = kwargs.pop('hide_fields', [])
+
+        super().__init__(*args, **kwargs)
+
+        # Remove fields that should be hidden
+        for field_name in hide_fields:
+            self.fields.pop(field_name)
+
+    def validate(self, attrs):
+        validate_json_payload(self)
+
+        # validate the file path, although this is a field validation, it requires object values
+        # therefore it is placed in object validate method.
+        if 'file' in attrs:
+            # href is optional
+            validate_asset_href_path(attrs['item'], attrs['name'], attrs['file'])
+        elif not self.partial:
+            attrs['file'] = get_asset_path(attrs['item'], attrs['name'])
+
+        # Check if the asset exits for non partial update or when the checksum is available
+        if not self.partial or 'checksum_multihash' in attrs:
+            path = get_asset_path(attrs['item'], attrs['name'])
+            request = self.context.get("request")
+            href = build_asset_href(request, path)
+            attrs = validate_asset_file(href, attrs)
+
+        return attrs
 
     def get_fields(self):
         fields = super().get_fields()
@@ -656,3 +733,15 @@ class ItemSerializer(NonNullModelSerializer):
             instance_type="item", model=ItemLink, instance=instance, links_data=links_data
         )
         return super().update(instance, validated_data)
+
+    def validate(self, attrs):
+        validate_item_properties_datetimes(
+            attrs.get('properties_datetime', None),
+            attrs.get('properties_start_datetime', None),
+            attrs.get('properties_end_datetime', None),
+            partial=self.partial
+        )
+
+        validate_json_payload(self)
+
+        return attrs

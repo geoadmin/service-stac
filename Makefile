@@ -19,10 +19,6 @@ TIMESTAMPS = .timestamps
 SETTINGS_TIMESTAMP = $(TIMESTAMPS)/.settins.timestamp
 DOCKER_BUILD_TIMESTAMP = $(TIMESTAMPS)/.docker-test.timestamp
 
-# Docker variables
-DOCKER_IMG_LOCAL_TAG = swisstopo/$(SERVICE_NAME):$(USER).latest
-DOCKER_IMG_LOCAL_TAG_DEV = swisstopo/$(SERVICE_NAME):$(USER).latest-dev
-
 # Find all python files that are not inside a hidden directory (directory starting with .)
 PYTHON_FILES := $(shell find $(APP_SRC_DIR) -type f -name "*.py" -print)
 
@@ -49,6 +45,10 @@ GIT_BRANCH := `git symbolic-ref HEAD --short 2>/dev/null`
 GIT_DIRTY := `git status --porcelain`
 GIT_TAG := `git describe --tags || echo "no version info"`
 AUTHOR := $(USER)
+
+# Docker variables
+DOCKER_IMG_LOCAL_TAG = swisstopo/$(SERVICE_NAME):$(USER).$(GIT_TAG)
+DOCKER_IMG_LOCAL_TAG_DEV = swisstopo/$(SERVICE_NAME):$(USER).$(GIT_TAG)-dev
 
 all: help
 
@@ -102,14 +102,23 @@ $(SETTINGS_TIMESTAMP): $(TIMESTAMPS)
 
 .PHONY: setup
 setup: $(SETTINGS_TIMESTAMP)
-# Create virtual env with all packages for development
+	# Create virtual env with all packages for development
 	pipenv install --dev
+	# Patch multihash for md5 support
+	pipenv run pypatch apply ./multihash.patch multihash
+	# Create volume directories for postgres and minio
+	# Note that the '/service_stac_local' part is already the bucket name
+	mkdir -p .volumes/minio/service-stac-local
+	mkdir -p .volumes/postgresql
+	docker-compose up &
 
 
 .PHONY: ci
 ci: $(SETTINGS_TIMESTAMP)
 # Create virtual env with all packages for development using the Pipfile.lock
 	pipenv sync --dev
+	# Patch multihash for md5 support
+	pipenv run pypatch apply ./multihash.patch multihash
 
 
 # call yapf to make sure your code is easier to read and respects some conventions.
@@ -134,7 +143,7 @@ lint:
 test:
 	# Collect static first to avoid warning in the test
 	$(PYTHON) $(DJANGO_MANAGER) collectstatic --noinput
-	$(PYTHON) $(DJANGO_MANAGER) test --verbosity=2 $(TEST_DIR)
+	$(PYTHON) $(DJANGO_MANAGER) test --verbosity=2 --parallel 8 $(TEST_DIR)
 
 
 ###################
@@ -193,11 +202,13 @@ dockerrun: dockerbuild-debug
 
 .PHONY: clean_venv
 clean_venv:
-	pipenv --rm
+	# ignore pipenv errors by adding command prefix -
+	-pipenv --rm
 
 
 .PHONY: clean
 clean: clean_venv
+	docker-compose down
 	@# clean python cache files
-	find . -name __pycache__ -type d -print0 | xargs -I {} -0 rm -rf "{}"
+	find . -path ./.volumes -prune -o -name __pycache__ -type d -print0 | xargs -I {} -0 rm -rf "{}"
 	rm -rf $(TIMESTAMPS)

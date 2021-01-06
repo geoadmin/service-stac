@@ -1,6 +1,9 @@
 components:
   responses:
     Collection:
+      headers:
+        ETag:
+          $ref: "#/components/schemas/ETag"
       content:
         application/json:
           schema:
@@ -84,6 +87,9 @@ components:
         API / server, the server declares the conformance
         classes it implements and conforms to.
     Feature:
+      headers:
+        ETag:
+          $ref: "#/components/schemas/ETag"
       content:
         application/json:
           schema:
@@ -118,11 +124,25 @@ components:
         selected features that should be returned in the response, the page size.
         Each page include links to support paging (link relation `next` and/or
         `previous`).
+    NotModified:
+      # Currently the 304 Not Modified is handled by django and we cannot give a body. Anyway
+      # the standard specify the 304 without body
+      # content:
+      #   application/json:
+      #     schema:
+      #       $ref: "#/components/schemas/exception"
+      #     example:
+      #       code: 304
+      #       description: "Not modified"
+      description: The cached resource was not modified since last request.
     InvalidParameter:
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/exception"
+          example:
+            code: 400
+            description: "Invalid parameter"
       description: A query parameter has an invalid value.
     LandingPage:
       content:
@@ -163,10 +183,32 @@ components:
         Collections (path `/collections`, link relation
         `data`).
     NotFound:
-      description: The requested URI was not found.
-    ServerError:
+      description: The specified resource/URI was not found
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/exception"
-      description: A server error occurred.
+          example:
+            code: 404
+            description: "Resource not found"
+    PreconditionFailed:
+      description: Some condition specified by the request could not be met in the server
+      # Currently the 412 Precondition not met is handled by django and we cannot give a body
+      # content:
+      #   application/json:
+      #     schema:
+      #       $ref: "#/components/schemas/exception"
+      #     example:
+      #       code: 412
+      #       description: "Precondition not met"
+    ServerError:
+      description: >-
+        The request was syntactically and semantically valid, but an error occurred while trying
+        to act upon it
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/exception"
+          example:
+            code: 500
+            description: "Internal server error"

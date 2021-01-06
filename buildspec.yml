@@ -65,7 +65,7 @@ phases:
       # Running tests
       # Note: the app container will 'exit 0' once tests are completed, we need to
       # stop the db as well then
-      - docker-compose up --abort-on-container-exit
+      - docker-compose -f docker-compose-ci.yml up --abort-on-container-exit
       # Starting prod build
       - echo "starting production build on $(date)"
       - echo "Building docker production image with tags ${DOCKER_IMG_TAG} and ${DOCKER_IMG_TAG_LATEST}"

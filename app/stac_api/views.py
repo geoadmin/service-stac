@@ -9,9 +9,12 @@ from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext_lazy as _
 
 from rest_framework import generics
+from rest_framework import mixins
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
+from rest_framework_condition import etag
 
+from stac_api import views_mixins
 from stac_api.models import Asset
 from stac_api.models import Collection
 from stac_api.models import ConformancePage
@@ -25,6 +28,41 @@ from stac_api.serializers import LandingPageSerializer
 from stac_api.utils import utc_aware
 
 logger = logging.getLogger(__name__)
+
+
+def get_etag(queryset):
+    if queryset.exists():
+        return list(queryset.only('etag').values('etag').first().values())[0]
+    return None
+
+
+def get_collection_etag(request, *args, **kwargs):
+    '''Get the ETag for a collection object
+
+    The ETag is an UUID4 computed on each object changes (including relations; provider and links)
+    '''
+    tag = get_etag(Collection.objects.filter(name=kwargs['collection_name']))
+    return tag
+
+
+def get_item_etag(request, *args, **kwargs):
+    '''Get the ETag for a item object
+
+    The ETag is an UUID4 computed on each object changes (including relations; assets and links)
+    '''
+    tag = get_etag(
+        Item.objects.filter(collection__name=kwargs['collection_name'], name=kwargs['item_name'])
+    )
+    return tag
+
+
+def get_asset_etag(request, *args, **kwargs):
+    '''Get the ETag for a asset object
+
+    The ETag is an UUID4 computed on each object changes
+    '''
+    tag = get_etag(Asset.objects.filter(item__name=kwargs['item_name'], name=kwargs['asset_name']))
+    return tag
 
 
 def parse_datetime_query(date_time):
@@ -46,7 +84,10 @@ def parse_datetime_query(date_time):
         logger.error(
             'Invalid datetime query parameter "%s", must be isoformat; %s', date_time, error
         )
-        raise ValidationError(_('Invalid datetime query parameter, must be isoformat'))
+        raise ValidationError(
+            _('Invalid datetime query parameter, must be isoformat'),
+            code='datetime'
+        )
 
     if end == '':
         end = None
@@ -57,8 +98,11 @@ def parse_datetime_query(date_time):
             'cannot start with open range when no end range is defined',
             date_time
         )
-        raise ValidationError(_('Invalid datetime query parameter, '
-                                'cannot start with open range when no end range is defined'))
+        raise ValidationError(
+            _('Invalid datetime query parameter, '
+              'cannot start with open range when no end range is defined'),
+            code='datetime'
+        )
     return start, end
 
 
@@ -84,13 +128,15 @@ def checker(request):
     return JsonResponse(data)
 
 
-class CollectionList(generics.ListAPIView):
+class CollectionList(generics.GenericAPIView, mixins.CreateModelMixin):
     serializer_class = CollectionSerializer
     queryset = Collection.objects.all()
 
-    def list(self, request, *args, **kwargs):
-        queryset = self.filter_queryset(self.get_queryset())
+    def post(self, request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)
 
+    def get(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
@@ -120,10 +166,24 @@ class CollectionList(generics.ListAPIView):
         return Response(data)
 
 
-class CollectionDetail(generics.RetrieveAPIView):
+class CollectionDetail(generics.GenericAPIView, mixins.RetrieveModelMixin, mixins.UpdateModelMixin):
     serializer_class = CollectionSerializer
     lookup_url_kwarg = "collection_name"
     queryset = Collection.objects.all()
+
+    @etag(get_collection_etag)
+    def get(self, request, *args, **kwargs):
+        return self.retrieve(request, *args, **kwargs)
+
+    # Here the etag is only added to support pre-conditional If-Match and If-Not-Match
+    @etag(get_collection_etag)
+    def put(self, request, *args, **kwargs):
+        return self.update(request, *args, **kwargs)
+
+    # Here the etag is only added to support pre-conditional If-Match and If-Not-Match
+    @etag(get_collection_etag)
+    def patch(self, request, *args, **kwargs):
+        return self.partial_update(request, *args, **kwargs)
 
     def get_object(self):
         collection_name = self.kwargs.get(self.lookup_url_kwarg)
@@ -132,9 +192,14 @@ class CollectionDetail(generics.RetrieveAPIView):
         return obj
 
 
-class ItemsList(generics.ListAPIView):
+class ItemsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
     serializer_class = ItemSerializer
     queryset = Item.objects.all()
+
+    def get_write_request_data(self, request, *args, **kwargs):
+        data = request.data.copy()
+        data['collection'] = kwargs['collection_name']
+        return data
 
     def get_queryset(self):
         # filter based on the url
@@ -163,8 +228,11 @@ class ItemsList(generics.ListAPIView):
                 bbox,
                 error
             )
-            raise ValidationError(_('Invalid bbox query parameter, '
-                                    ' has to contain 4 values. f.ex. bbox=5.96,45.82,10.49,47.81'))
+            raise ValidationError(
+                _('Invalid bbox query parameter, '
+                  ' has to contain 4 values. f.ex. bbox=5.96,45.82,10.49,47.81'),
+                code='bbox'
+            )
 
         return queryset.filter(geometry__intersects=query_bbox_polygon)
 
@@ -228,11 +296,27 @@ class ItemsList(generics.ListAPIView):
             return self.get_paginated_response(data)
         return Response(data)
 
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
 
-class ItemDetail(generics.RetrieveAPIView):
+    def post(self, request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)
+
+
+class ItemDetail(
+    generics.GenericAPIView,
+    mixins.RetrieveModelMixin,
+    views_mixins.UpdateModelMixin,
+    views_mixins.DestroyModelMixin
+):
     serializer_class = ItemSerializer
     lookup_url_kwarg = "item_name"
     queryset = Item.objects.all()
+
+    def get_write_request_data(self, request, *args, partial=False, **kwargs):
+        data = request.data.copy()
+        data['collection'] = kwargs['collection_name']
+        return data
 
     def get_object(self):
         item_name = self.kwargs.get(self.lookup_url_kwarg)
@@ -240,11 +324,42 @@ class ItemDetail(generics.RetrieveAPIView):
         obj = get_object_or_404(queryset)
         return obj
 
+    @etag(get_item_etag)
+    def get(self, request, *args, **kwargs):
+        return self.retrieve(request, *args, **kwargs)
 
-class AssetsList(generics.GenericAPIView):
+    # Here the etag is only added to support pre-conditional If-Match and If-Not-Match
+    @etag(get_item_etag)
+    def put(self, request, *args, **kwargs):
+        return self.update(request, *args, **kwargs)
+
+    # Here the etag is only added to support pre-conditional If-Match and If-Not-Match
+    @etag(get_item_etag)
+    def patch(self, request, *args, **kwargs):
+        return self.partial_update(request, *args, **kwargs)
+
+    # Here the etag is only added to support pre-conditional If-Match and If-Not-Match
+    @etag(get_item_etag)
+    def delete(self, request, *args, **kwargs):
+        return self.destroy(request, *args, **kwargs)
+
+
+class AssetsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
     serializer_class = AssetSerializer
     queryset = Asset.objects.all()
     pagination_class = None
+
+    def get_write_request_data(self, request, *args, **kwargs):
+        data = request.data.copy()
+        data['item'] = kwargs['item_name']
+        return data
+
+    def get_success_headers(self, data):  # pylint: disable=arguments-differ
+        asset_link_self = self.request.build_absolute_uri() + "/" + self.request.data["id"]
+        return {'Location': asset_link_self}
+
+    def post(self, request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)
 
     def get_queryset(self):
         # filter based on the url
@@ -266,16 +381,54 @@ class AssetsList(generics.GenericAPIView):
         return Response(data)
 
 
-class AssetDetail(generics.RetrieveAPIView):
+class AssetDetail(
+    generics.GenericAPIView,
+    mixins.RetrieveModelMixin,
+    views_mixins.UpdateModelMixin,
+    views_mixins.DestroyModelMixin
+):
     serializer_class = AssetSerializer
     lookup_url_kwarg = "asset_name"
     queryset = Asset.objects.all()
+
+    def get_write_request_data(self, request, *args, partial=False, **kwargs):
+        data = request.data.copy()
+        data['item'] = kwargs['item_name']
+        if partial and not 'id' in data:
+            # Partial update for checksum:multihash requires the asset id in order to verify the
+            # file with the checksum, therefore if the id is missing in payload we take it from
+            # the request path.
+            data['id'] = kwargs['asset_name']
+        return data
 
     def get_object(self):
         asset_name = self.kwargs.get(self.lookup_url_kwarg)
         queryset = self.get_queryset().filter(name=asset_name)
         obj = get_object_or_404(queryset)
         return obj
+
+    def get_serializer(self, *args, **kwargs):
+        hide_fields = kwargs.pop('hide_fields', [])
+        serializer_class = self.get_serializer_class()
+        kwargs.setdefault('context', self.get_serializer_context())
+        return serializer_class(*args, hide_fields=hide_fields, **kwargs)
+
+    @etag(get_asset_etag)
+    def get(self, request, *args, **kwargs):
+        return self.retrieve(request, *args, **kwargs)
+
+    # Here the etag is only added to support pre-conditional If-Match and If-Not-Match
+    @etag(get_asset_etag)
+    def put(self, request, *args, **kwargs):
+        return self.update(request, *args, hide_fields=['href'], **kwargs)
+
+    # Here the etag is only added to support pre-conditional If-Match and If-Not-Match
+    @etag(get_asset_etag)
+    def patch(self, request, *args, **kwargs):
+        return self.partial_update(request, *args, hide_fields=['href'], **kwargs)
+
+    def delete(self, request, *args, **kwargs):
+        return self.destroy(request, *args, **kwargs)
 
 
 class TestHttp500(AssetDetail):

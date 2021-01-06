@@ -58,7 +58,7 @@
   "type": "Feature",
   "assets": {
     "smr200-200-1-2016-2056-kgrs-10.tiff": {
-      "checksum:multihash": "90e402107a7f2588a85362b9beea2a12d4514d45",
+      "checksum:multihash": "1220a7b5b9c902b5c1e5700781bf994e2af53359db699dff50a734566ceb2bd0f14f",
       "created": "2020-10-22T12:30:00Z",
       "eo:gsd": 10,
       "geoadmin:variant": "kgrs",
@@ -68,7 +68,7 @@
       "updated": "2020-10-22T12:30:00Z"
     },
     "smr200-200-1-2016-2056-komb-10.tiff": {
-      "checksum:multihash": "4473e588b35568687564de38ed134d0b",
+      "checksum:multihash": "1220a7b5b9c902b5c1e5700781bf994e2af53359db699dff50a734566ceb2bd0f14f",
       "created": "2020-10-22T12:30:00Z",
       "eo:gsd": 10,
       "geoadmin:variant": "komb",
@@ -78,7 +78,7 @@
       "updated": "2020-10-22T12:30:00Z"
     },
     "smr200-200-1-2016-2056-krel-20.tiff": {
-      "checksum:multihash": "01205c3fd6978a7d0b051efaa4263a09",
+      "checksum:multihash": "1220a7b5b9c902b5c1e5700781bf994e2af53359db699dff50a734566ceb2bd0f14f",
       "created": "2020-10-22T12:30:00Z",
       "eo:gsd": 20,
       "geoadmin:variant": "krel",

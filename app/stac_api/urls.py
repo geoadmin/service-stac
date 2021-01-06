@@ -1,6 +1,8 @@
 from django.conf import settings
 from django.urls import path
 
+from rest_framework.authtoken.views import obtain_auth_token
+
 from stac_api.views import AssetDetail
 from stac_api.views import AssetsList
 from stac_api.views import CollectionDetail
@@ -40,4 +42,5 @@ urlpatterns = [
         AssetDetail.as_view(),
         name='asset-detail'
     ),
+    path(f"{API_BASE}/get-token", obtain_auth_token, name='get-token'),
 ]
