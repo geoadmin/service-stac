@@ -559,7 +559,59 @@ paths:
           $ref: "#/components/responses/PreconditionFailed"
         "5XX":
           $ref: "#/components/responses/ServerError"
-
+  "/get-token":
+    post:
+      tags:
+        - Data Management
+      summary: >-
+        Request token for token authentication.
+      operationId: getToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  decscription: name of user for whom token is requested
+                password:
+                  type: string
+                  description: password of user for whom token is requested
+              required:
+                - username
+                - password
+            example:
+              username: "Mickey Mouse"
+              password: "I_love_Minnie_Mouse"
+      responses:
+        "200":
+          description: Returns the token for the specified user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: generated token for specified user
+              example:
+                token: ccecf40693bfc52ba090cd46eb7f19e723fe831f
+        "400":
+          description: Wrong credentials were provided.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  description:
+                    type: string
+              example:
+                code: 400
+                description: "Unable to log in with provided credentials."
 components:
   parameters:
     assetId:
@@ -925,8 +977,66 @@ components:
             description: "Permission denied"
 # Note: this is defined as an overwrite in 'overwrites', since defining it here would violate
 # the alphabetical order of the tags ending up in openapi.yaml, see https://speccy.io/rules/1-rulesets#openapi-tags-alphabetical
-# tags:
-#   - name: 'Data Management'
-#     description: >-
-#       STAC-specific operations to add, remove, and edit items within OGC API - Features
-#       collections.
+tags:
+  - description: Essential characteristics of this API
+    name: Capabilities
+  - description: Access to data (features)
+    name: Data
+  - description: Extension to OGC API - Features to support STAC metadata model and search API
+    name: STAC
+  - description: |
+      All write requests require authentication. The currently available options for a user to
+      authenticate himself are described below.
+
+      # Session authentication
+      When using the browsable API the user can simply use the admin interface for logging in.
+      Once logged in, the browsable API can be used to perform write requests.
+
+      # Basic authentication
+      The username and password for authentication can be added to every write request the user wants to perform.
+      Here is an example of posting an asset using curl (_username_="MickeyMouse", _password_="I_love_Minnie_Mouse"):
+      ```
+      curl --request POST \
+        --user MickeyMouse:I_love_Minnie_Mouse \
+        --url https://service-stac.dev.bgdi.ch/api/stac/v0.9/collections/ch.swisstopo.swisstlmregio/items/swisstlmregio-2020/assets \
+        --header 'Content-Type: application/json' \
+        --data '{
+          "id": "fancy_unique_id",
+          "item": "swisstlmregio-2020",
+          "title": "My title",
+          "type": "application/x.filegdb+zip",
+          "description": "My description",
+          "proj:epsg": 2056,
+          "checksum:multihash": "01205c3fd6978a7d0b051efaa4263a04"
+      }'
+      ```
+
+      # Token authentication
+      A user specific token for authentication can be added to every write request the user wants to perform.
+      Here is an example of posting an asset using curl:
+      ```
+      curl --request POST \
+        --url https://service-stac.dev.bgdi.ch/api/stac/v0.9/collections/ch.swisstopo.swisstlmregio/items/swisstlmregio-2020/assets \
+        --header 'Authorization: Token ccecf40693bfc52ba090cd46eb7f19e723fe831f' \
+        --header 'Content-Type: application/json' \
+        --data '{
+          "id": "fancy_unique_id",
+          "item": "swisstlmregio-2020",
+          "title": "My title",
+          "type": "application/x.filegdb+zip",
+          "description": "My description",
+          "proj:epsg": 2056,
+          "checksum:multihash": "01205c3fd6978a7d0b051efaa4263a04"
+      }'
+      ```
+      Tokens can either be generated in the admin interface or existing users can perform a POST request
+      on the get-token endpoint to request a token (also see description of the get-token POST endpoint
+      at the bottom).
+      Here is an example using curl:
+      ```
+      curl --request POST \
+        --url https://service-stac.dev.bgdi.ch/api/stac/v0.9/get-token \
+        --header 'Content-Type: application/json' \
+        --data '{"username": "MickeyMouse", "password": "I_love_Minnie_Mouse"}'
+      ```
+    name: Data Management
