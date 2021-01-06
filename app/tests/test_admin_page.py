@@ -1,31 +1,16 @@
-# WARNING: Order of imports must not be changed!!
-# The block
-# ---
-# from moto import mock_s3
-# s3mock = mock_s3()
-# s3mock.start()
-# ---
-# must remain at the top before any other import,
-# otherwise mocking s3 will not work successfully
-"""
-isort:skip_file
-"""
-# pylint: disable=wrong-import-position
-# pylint: disable=wrong-import-order
-from moto import mock_s3
-s3mock = mock_s3()
-s3mock.start()
-
 import logging
 from io import BytesIO
 
 import boto3
 import botocore
+from moto import mock_s3
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import Client
 from django.test import TestCase
 from django.test import override_settings
+from django.urls import reverse
 
 from stac_api.models import Asset
 from stac_api.models import Collection
@@ -34,12 +19,13 @@ from stac_api.models import Item
 from stac_api.models import ItemLink
 from stac_api.models import Provider
 
+from tests.utils import S3TestMixin
+
 logger = logging.getLogger(__name__)
 
 
 #--------------------------------------------------------------------------------------------------
 @override_settings(
-    AWS_STORAGE_BUCKET_NAME='mybucket',
     AWS_ACCESS_KEY_ID='mykey',
     AWS_DEFAULT_ACL='public-read',
     AWS_S3_REGION_NAME='wonderland',
@@ -197,7 +183,7 @@ class AdminBaseTestCase(TestCase):
         # Check if the bucket exists and if not, create it
         s3 = boto3.resource('s3', region_name='wonderland')
         try:
-            s3.meta.client.head_bucket(Bucket='mybucket')
+            s3.meta.client.head_bucket(Bucket=settings.AWS_STORAGE_BUCKET_NAME)
         except botocore.exceptions.ClientError as error:
             # If a client error is thrown, then check that it was a 404 error.
             # If it was a 404 error, then the bucket does not exist.
@@ -205,7 +191,7 @@ class AdminBaseTestCase(TestCase):
             if error_code == '404':
                 # We need to create the bucket since this is all in Moto's 'virtual' AWS account
                 bucket = s3.create_bucket(
-                    Bucket='mybucket',
+                    Bucket=settings.AWS_STORAGE_BUCKET_NAME,
                     CreateBucketConfiguration={'LocationConstraint': 'wonderland'}
                 )
 
@@ -216,7 +202,6 @@ class AdminBaseTestCase(TestCase):
         data = {
             "item": item.id,
             "name": "test_asset",
-            "checksum_multihash": "01205c3fd6978a7d0b051efaa4263a09",
             "description": "This is a description",
             "eo_gsd": 10,
             "geoadmin_lang": "en",
@@ -610,14 +595,14 @@ class AdminItemTestCase(AdminBaseTestCase):
 
 #--------------------------------------------------------------------------------------------------
 @override_settings(
-    AWS_STORAGE_BUCKET_NAME='mybucket',
     AWS_ACCESS_KEY_ID='mykey',
     AWS_DEFAULT_ACL='public-read',
     AWS_S3_REGION_NAME='wonderland',
-    AWS_S3_ENDPOINT_URL=None
+    AWS_S3_ENDPOINT_URL=None,
+    AWS_S3_CUSTOM_DOMAIN=None
 )
 @mock_s3
-class AdminAssetTestCase(AdminBaseTestCase):
+class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
 
     def setUp(self):
         super().setUp()
@@ -625,7 +610,7 @@ class AdminAssetTestCase(AdminBaseTestCase):
         # Check if the bucket exists and if not, create it
         s3 = boto3.resource('s3', region_name='wonderland')
         try:
-            s3.meta.client.head_bucket(Bucket='mybucket')
+            s3.meta.client.head_bucket(Bucket=settings.AWS_STORAGE_BUCKET_NAME)
         except botocore.exceptions.ClientError as error:
             # If a client error is thrown, then check that it was a 404 error.
             # If it was a 404 error, then the bucket does not exist.
@@ -633,7 +618,7 @@ class AdminAssetTestCase(AdminBaseTestCase):
             if error_code == '404':
                 # We need to create the bucket since this is all in Moto's 'virtual' AWS account
                 bucket = s3.create_bucket(
-                    Bucket='mybucket',
+                    Bucket=settings.AWS_STORAGE_BUCKET_NAME,
                     CreateBucketConfiguration={'LocationConstraint': 'wonderland'}
                 )
 
@@ -648,7 +633,6 @@ class AdminAssetTestCase(AdminBaseTestCase):
         filelike.name = 'testname.tiff'
 
         # update some data
-        data["checksum_multihash"] = "fffffffffffffffffff"
         data["description"] = "This is a new description"
         data["eo_gsd"] = 20
         data["geoadmin_lang"] = "fr"
@@ -671,6 +655,28 @@ class AdminAssetTestCase(AdminBaseTestCase):
         # Check that file content has changed
         with asset.file.open() as fd:
             self.assertEqual(filecontent, fd.read())
+
+    def test_rename_asset(self):
+        # Login the user first
+        self.client.login(username=self.username, password=self.password)
+
+        asset, data = self._create_asset(self.item)
+
+        data['name'] = 'new_asset_name.zip'
+        # We just update the name hence we have to remove the
+        # 'file' from the data since submitting an empty file
+        # is not allowed
+        data.pop('file')
+
+        response = self.client.post(reverse('admin:stac_api_asset_change', args=[asset.id]), data)
+        self.assertEqual(response.status_code, 302)
+
+        # Assert that the location on s3 has been changed
+        new_path = f"{asset.item.collection.name}/{asset.item.name}/{data['name']}"
+        self.assertS3ObjectExists(new_path)
+
+        asset.refresh_from_db()
+        self.assertEqual(asset.file.name, new_path)
 
     def test_add_asset_with_invalid_data(self):
         # Login the user first
@@ -695,10 +701,12 @@ class AdminAssetTestCase(AdminBaseTestCase):
         self.client.login(username=self.username, password=self.password)
 
         asset, data = self._create_asset(self.item)
+        path = f"{asset.item.collection.name}/{asset.item.name}/{data['name']}"
+        self.assertS3ObjectExists(path)
 
         # remove asset
         response = self.client.post(
-            f"/api/stac/admin/stac_api/asset/{asset.id}/delete/", {"post": "yes"}
+            reverse('admin:stac_api_asset_delete', args=[asset.id]), {"post": "yes"}
         )
 
         # Status code for successful creation is 302, since in the admin UI
@@ -708,5 +716,4 @@ class AdminAssetTestCase(AdminBaseTestCase):
             Asset.objects.filter(name=data["name"]).exists(), msg="Admin page asset still in DB"
         )
 
-
-s3mock.stop()
+        self.assertS3ObjectNotExists(path)

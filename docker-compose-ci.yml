@@ -16,7 +16,7 @@ services:
     # for it to be ready before connecting
     # see: https://docs.docker.com/compose/startup-order/
     entrypoint: ["/app/wait-for-it.sh", "db:5432", "--", "python3", "manage.py"]
-    command: test --verbosity=2
+    command: test --verbosity=2 --parallel=10
     depends_on:
       - db
     environment:
@@ -28,3 +28,9 @@ services:
       - DB_HOST=db
       - APP_ENV=ci
       - TEST_ENABLE_LOGGING=1
+      - AWS_ACCESS_KEY_ID=
+      - AWS_SECRET_ACCESS_KEY=
+      - AWS_STORAGE_BUCKET_NAME=bigbag
+      - AWS_S3_REGION_NAME=wonderland
+      - AWS_S3_CUSTOM_DOMAIN=localhost/service-stac-local
+      - SECRET_KEY=dummy

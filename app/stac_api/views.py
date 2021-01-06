@@ -84,7 +84,10 @@ def parse_datetime_query(date_time):
         logger.error(
             'Invalid datetime query parameter "%s", must be isoformat; %s', date_time, error
         )
-        raise ValidationError(_('Invalid datetime query parameter, must be isoformat'))
+        raise ValidationError(
+            _('Invalid datetime query parameter, must be isoformat'),
+            code='datetime'
+        )
 
     if end == '':
         end = None
@@ -95,8 +98,11 @@ def parse_datetime_query(date_time):
             'cannot start with open range when no end range is defined',
             date_time
         )
-        raise ValidationError(_('Invalid datetime query parameter, '
-                                'cannot start with open range when no end range is defined'))
+        raise ValidationError(
+            _('Invalid datetime query parameter, '
+              'cannot start with open range when no end range is defined'),
+            code='datetime'
+        )
     return start, end
 
 
@@ -222,8 +228,11 @@ class ItemsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
                 bbox,
                 error
             )
-            raise ValidationError(_('Invalid bbox query parameter, '
-                                    ' has to contain 4 values. f.ex. bbox=5.96,45.82,10.49,47.81'))
+            raise ValidationError(
+                _('Invalid bbox query parameter, '
+                  ' has to contain 4 values. f.ex. bbox=5.96,45.82,10.49,47.81'),
+                code='bbox'
+            )
 
         return queryset.filter(geometry__intersects=query_bbox_polygon)
 
@@ -304,7 +313,7 @@ class ItemDetail(
     lookup_url_kwarg = "item_name"
     queryset = Item.objects.all()
 
-    def get_write_request_data(self, request, *args, **kwargs):
+    def get_write_request_data(self, request, *args, partial=False, **kwargs):
         data = request.data.copy()
         data['collection'] = kwargs['collection_name']
         return data
@@ -345,7 +354,7 @@ class AssetsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
         data['item'] = kwargs['item_name']
         return data
 
-    def get_success_headers(self, data):
+    def get_success_headers(self, data):  # pylint: disable=arguments-differ
         asset_link_self = self.request.build_absolute_uri() + "/" + self.request.data["id"]
         return {'Location': asset_link_self}
 
@@ -382,9 +391,14 @@ class AssetDetail(
     lookup_url_kwarg = "asset_name"
     queryset = Asset.objects.all()
 
-    def get_write_request_data(self, request, *args, **kwargs):
+    def get_write_request_data(self, request, *args, partial=False, **kwargs):
         data = request.data.copy()
         data['item'] = kwargs['item_name']
+        if partial and not 'id' in data:
+            # Partial update for checksum:multihash requires the asset id in order to verify the
+            # file with the checksum, therefore if the id is missing in payload we take it from
+            # the request path.
+            data['id'] = kwargs['asset_name']
         return data
 
     def get_object(self):
@@ -393,6 +407,12 @@ class AssetDetail(
         obj = get_object_or_404(queryset)
         return obj
 
+    def get_serializer(self, *args, **kwargs):
+        hide_fields = kwargs.pop('hide_fields', [])
+        serializer_class = self.get_serializer_class()
+        kwargs.setdefault('context', self.get_serializer_context())
+        return serializer_class(*args, hide_fields=hide_fields, **kwargs)
+
     @etag(get_asset_etag)
     def get(self, request, *args, **kwargs):
         return self.retrieve(request, *args, **kwargs)
@@ -400,12 +420,12 @@ class AssetDetail(
     # Here the etag is only added to support pre-conditional If-Match and If-Not-Match
     @etag(get_asset_etag)
     def put(self, request, *args, **kwargs):
-        return self.update(request, *args, **kwargs)
+        return self.update(request, *args, hide_fields=['href'], **kwargs)
 
     # Here the etag is only added to support pre-conditional If-Match and If-Not-Match
     @etag(get_asset_etag)
     def patch(self, request, *args, **kwargs):
-        return self.partial_update(request, *args, **kwargs)
+        return self.partial_update(request, *args, hide_fields=['href'], **kwargs)
 
     def delete(self, request, *args, **kwargs):
         return self.destroy(request, *args, **kwargs)

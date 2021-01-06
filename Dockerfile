@@ -16,14 +16,17 @@ RUN apt-get update \
     && pip3 install pipenv \
     && pipenv --version
 
-COPY Pipfile* /tmp/
+COPY Pipfile* multihash.patch /tmp/
 RUN cd /tmp && \
-    pipenv install --system --deploy --ignore-pipfile
+    pipenv install --system --deploy --ignore-pipfile && \
+    # Patch multihash for md5 support
+    pipenv run pypatch apply ./multihash.patch multihash
 
 # Set the working dir and copy the app
 WORKDIR /app
-COPY --chown=geoadmin:geoadmin ./app /app/
+COPY --chown=geoadmin:geoadmin .env.default /
 COPY --chown=geoadmin:geoadmin ./spec /spec/
+COPY --chown=geoadmin:geoadmin ./app /app/
 
 ARG GIT_HASH=unknown
 ARG GIT_BRANCH=unknown
@@ -58,8 +61,8 @@ COPY ./wait-for-it.sh /app/
 RUN echo "from .settings_dev import *" > /app/config/settings.py \
     && chown geoadmin:geoadmin /app/config/settings.py
 
-# NOTE: uses a dummy secret_key to avoid django raising settings error
-RUN SECRET_KEY=dummy ./manage.py collectstatic --noinput
+# Collect static files, uses the .env.default settings to avoid django raising settings error
+RUN APP_ENV=default ./manage.py collectstatic --noinput
 
 USER geoadmin
 
@@ -79,8 +82,8 @@ LABEL target=production
 RUN echo "from .settings_prod import *" > /app/config/settings.py \
     && chown geoadmin:geoadmin /app/config/settings.py
 
-# Collect static files, uses a dummy secret_key to avoid django raising settings error
-RUN SECRET_KEY=dummy ./manage.py collectstatic --noinput
+# Collect static files, uses the .env.default settings to avoid django raising settings error
+RUN APP_ENV=default ./manage.py collectstatic --noinput
 
 # production container must not run as root
 USER geoadmin

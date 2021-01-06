@@ -1,8 +1,13 @@
+import hashlib
 import logging
 import os
-import re
+import time
 from uuid import uuid4
 
+import botocore.exceptions
+import multihash
+
+from django.conf import settings
 from django.contrib.gis.db import models
 from django.contrib.gis.geos import GEOSGeometry
 from django.contrib.gis.geos import Polygon
@@ -19,6 +24,8 @@ from stac_api.collection_summaries import update_summaries_on_asset_delete
 from stac_api.collection_summaries import update_summaries_on_asset_insert
 from stac_api.collection_summaries import update_summaries_on_asset_update
 from stac_api.collection_temporal_extent import update_temporal_extent
+from stac_api.utils import get_asset_path
+from stac_api.utils import get_s3_resource
 from stac_api.validators import MEDIA_TYPES
 from stac_api.validators import validate_geoadmin_variant
 from stac_api.validators import validate_geometry
@@ -176,7 +183,11 @@ class Provider(models.Model):
         for role in self.roles:
             if role not in self.allowed_roles:
                 logger.error('Invalid role %s', role)
-                raise ValidationError(_('Invalid role, must be in %s' % (self.allowed_roles)))
+                raise ValidationError(
+                    _('Invalid role, must be in %(roles)s'),
+                    params={'roles': self.allowed_roles},
+                    code='roles'
+                )
 
 
 # For Collections and Items: No primary key will be defined, so that the auto-generated ones
@@ -395,18 +406,6 @@ class Collection(models.Model):
             return update_summaries_on_asset_insert(self, asset)
         raise ValueError(f'Invalid trigger parameter: {trigger}')
 
-    def clean(self):
-        # very simple validation, raises error when geoadmin_variant strings contain special
-        # characters or umlaut.
-
-        for variant in self.summaries["geoadmin:variant"]:
-            if not bool(re.search('^[a-zA-Z0-9]*$', variant)):
-                logger.error(
-                    "Property geoadmin:variant not compatible with the naming conventions."
-                )
-                raise ValidationError(_("Property geoadmin:variant not compatible with the"
-                                        "naming conventions."))
-
     def save(self, *args, **kwargs):  # pylint: disable=signature-differs
         # It is important to use `*args, **kwargs` in signature because django might add dynamically
         # parameters
@@ -567,11 +566,38 @@ class ItemLink(Link):
         self.item.save()  # We save the item to update its ETag
 
 
-ASSET_KEEP_ORIGINAL_FIELDS = ["name"] + UPDATE_SUMMARIES_FIELDS
+ASSET_KEEP_ORIGINAL_FIELDS = ["name", "file"] + UPDATE_SUMMARIES_FIELDS
 
 
-def get_upload_to_asset_path(instance, filename):
-    return '/'.join([instance.item.collection.name, instance.item.name, instance.name])
+def upload_asset_to_path_hook(instance, filename=None):
+    '''This returns the asset upload path on S3 and compute the asset file multihash
+
+    Args:
+        instance: Asset
+            Asset instance
+        filename: string
+            file name of the uploaded asset
+
+    Returns:
+        Asset file path to use on S3
+    '''
+    logger.debug('Start computing asset file %s multihash', filename)
+    start = time.time()
+    ctx = hashlib.sha256()
+    for chunk in instance.file.chunks(settings.UPLOAD_FILE_CHUNK_SIZE):
+        ctx.update(chunk)
+    mhash = multihash.to_hex_string(multihash.encode(ctx.digest(), 'sha2-256'))
+    # set the hash to the storage to use it for upload signing, this temporary attribute is
+    # then used by storages.S3Storage to set the MetaData.sha256
+    setattr(instance.file.storage, '_tmp_sha256', ctx.hexdigest())
+    logger.debug(
+        'Set uploaded file %s multihash %s to checksum:multihash; computation done in %ss',
+        filename,
+        mhash,
+        time.time() - start
+    )
+    instance.checksum_multihash = mhash
+    return get_asset_path(instance.item, instance.name)
 
 
 class Asset(models.Model):
@@ -582,13 +608,13 @@ class Asset(models.Model):
     )
     # using "name" instead of "id", as "id" has a default meaning in django
     name = models.CharField('id', max_length=255, validators=[validate_name])
-    file = models.FileField(upload_to=get_upload_to_asset_path, null=True, blank=True)
+    file = models.FileField(upload_to=upload_asset_to_path_hook, max_length=255)
 
     @property
     def filename(self):
         return os.path.basename(self.file.name)
 
-    checksum_multihash = models.CharField(max_length=255)
+    checksum_multihash = models.CharField(editable=False, max_length=255, blank=True, default='')
     description = models.TextField(blank=True, null=True)
     eo_gsd = models.FloatField(null=True, blank=True)
 
@@ -632,28 +658,52 @@ class Asset(models.Model):
         # Save original values for some fields, when model is loaded from database,
         # in a separate attribute on the model, this simplify the collection summaries update.
         # See https://docs.djangoproject.com/en/3.1/ref/models/instances/#customizing-model-loading
-        instance._original_values = dict( # pylint: disable=protected-access
-            filter(lambda item: item[0] in ASSET_KEEP_ORIGINAL_FIELDS, zip(field_names, values))
-        )
+        instance.keep_originals(field_names, values)  # pylint: disable=no-member
 
         return instance
 
     def __str__(self):
         return self.name
 
+    def keep_originals(self, field_names, values):
+        self._original_values = dict( # pylint: disable=protected-access
+            filter(lambda item: item[0] in ASSET_KEEP_ORIGINAL_FIELDS, zip(field_names, values))
+        )
+
+        # file.name / path has to be treated separately since it's not a simple
+        # field
+        self._original_values['path'] = self.file.name
+
     def update_etag(self):
         '''Update the ETag with a new UUID
         '''
         self.etag = compute_etag()
 
-    def clean(self):
-        if (
-            self._original_values.get("name") is not None and
-            self.name != self._original_values.get("name")
-        ):
-            message = "Renaming assets is currently not supported"
-            logger.error(message)
-            raise ValidationError({"name": _(message)})
+    def move_asset(self, source, dest):
+        logger.info("Renaming asset on s3 from %s to %s", source, dest)
+        s3 = get_s3_resource()
+
+        try:
+            s3.Object(settings.AWS_STORAGE_BUCKET_NAME,
+                      dest).copy_from(CopySource=f'{settings.AWS_STORAGE_BUCKET_NAME}/{source}')
+            s3.Object(settings.AWS_STORAGE_BUCKET_NAME, source).delete()
+            self.file.name = dest
+        except botocore.exceptions.ClientError as error:
+            logger.error(
+                'Failed to move asset %s from %s to %s: %s', self.name, source, dest, error
+            )
+            raise error
+
+    def remove_asset(self, source):
+        logger.info("Remove asset on s3 from %s", source)
+        s3 = get_s3_resource()
+
+        try:
+            s3.Object(settings.AWS_STORAGE_BUCKET_NAME, source).delete()
+        except botocore.exceptions.ClientError as error:
+            logger.error('Failed to remove asset %s from %s: %s', self.name, source, error)
+        self.file.name = ''
+        self.checksum_multihash = ''
 
     # alter save-function, so that the corresponding collection of the parent item of the asset
     # is saved, too.
@@ -661,6 +711,9 @@ class Asset(models.Model):
         self.update_etag()
 
         trigger = get_save_trigger(self)
+
+        if trigger == 'update' and self.name != self._original_values["name"]:
+            self.move_asset(self._original_values['path'], get_asset_path(self.item, self.name))
 
         old_values = [self._original_values.get(field, None) for field in UPDATE_SUMMARIES_FIELDS]
         if self.item.collection.update_summaries(self, trigger, old_values=old_values):
@@ -671,7 +724,8 @@ class Asset(models.Model):
         super().save(*args, **kwargs)
 
         # update the original_values just in case save() is called again without reloading from db
-        self._original_values = {key: getattr(self, key) for key in UPDATE_SUMMARIES_FIELDS}
+        fields = [field.name for field in self._meta.get_fields()]
+        self.keep_originals(fields, [getattr(self, field) for field in fields])
 
     def delete(self, *args, **kwargs):  # pylint: disable=signature-differs
         # It is important to use `*args, **kwargs` in signature because django might add dynamically

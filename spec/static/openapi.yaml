@@ -476,6 +476,9 @@ components:
           $ref: "#/components/schemas/bbox"
       type: object
     checksum:multihash:
+      description: >-
+        `sha2-256` or `md5` checksum of the asset in [multihash](https://multiformats.io/multihash/)
+        format.
       example: 90e402107a7f2588a85362b9beea2a12d4514d45
       pattern: ^[a-f0-9]+$
       title: Multihash

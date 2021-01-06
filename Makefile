@@ -19,10 +19,6 @@ TIMESTAMPS = .timestamps
 SETTINGS_TIMESTAMP = $(TIMESTAMPS)/.settins.timestamp
 DOCKER_BUILD_TIMESTAMP = $(TIMESTAMPS)/.docker-test.timestamp
 
-# Docker variables
-DOCKER_IMG_LOCAL_TAG = swisstopo/$(SERVICE_NAME):$(USER).latest
-DOCKER_IMG_LOCAL_TAG_DEV = swisstopo/$(SERVICE_NAME):$(USER).latest-dev
-
 # Find all python files that are not inside a hidden directory (directory starting with .)
 PYTHON_FILES := $(shell find $(APP_SRC_DIR) -type f -name "*.py" -print)
 
@@ -49,6 +45,10 @@ GIT_BRANCH := `git symbolic-ref HEAD --short 2>/dev/null`
 GIT_DIRTY := `git status --porcelain`
 GIT_TAG := `git describe --tags || echo "no version info"`
 AUTHOR := $(USER)
+
+# Docker variables
+DOCKER_IMG_LOCAL_TAG = swisstopo/$(SERVICE_NAME):$(USER).$(GIT_TAG)
+DOCKER_IMG_LOCAL_TAG_DEV = swisstopo/$(SERVICE_NAME):$(USER).$(GIT_TAG)-dev
 
 all: help
 
@@ -102,10 +102,12 @@ $(SETTINGS_TIMESTAMP): $(TIMESTAMPS)
 
 .PHONY: setup
 setup: $(SETTINGS_TIMESTAMP)
-# Create virtual env with all packages for development
+	# Create virtual env with all packages for development
 	pipenv install --dev
-# Create volume directories for postgres and minio
-# Note that the '/service_stac_local' part is already the bucket name
+	# Patch multihash for md5 support
+	pipenv run pypatch apply ./multihash.patch multihash
+	# Create volume directories for postgres and minio
+	# Note that the '/service_stac_local' part is already the bucket name
 	mkdir -p .volumes/minio/service-stac-local
 	mkdir -p .volumes/postgresql
 	docker-compose up &
@@ -115,6 +117,8 @@ setup: $(SETTINGS_TIMESTAMP)
 ci: $(SETTINGS_TIMESTAMP)
 # Create virtual env with all packages for development using the Pipfile.lock
 	pipenv sync --dev
+	# Patch multihash for md5 support
+	pipenv run pypatch apply ./multihash.patch multihash
 
 
 # call yapf to make sure your code is easier to read and respects some conventions.

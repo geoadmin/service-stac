@@ -21,7 +21,7 @@ class Migration(migrations.Migration):
             model_name='asset',
             name='file',
             field=models.FileField(
-                blank=True, null=True, upload_to=stac_api.models.get_upload_to_asset_path
+                blank=True, null=True, upload_to=stac_api.models.upload_asset_to_path_hook
             ),
         ),
     ]
