@@ -29,7 +29,7 @@ def reverse_migration(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('stac_api', '0045_auto_20201223_1557'),
+        ('stac_api', '0046_auto_20210106_0736'),
     ]
 
     operations = [

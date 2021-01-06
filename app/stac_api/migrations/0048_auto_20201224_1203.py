@@ -9,7 +9,7 @@ import stac_api.models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('stac_api', '0046_data_default_file'),
+        ('stac_api', '0047_data_default_file'),
     ]
 
     operations = [
