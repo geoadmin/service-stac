@@ -1,5 +1,5 @@
-from django.db import migrations
 from django.core.files import File
+from django.db import migrations
 
 
 def set_asset_default_file(apps, schema_editor):

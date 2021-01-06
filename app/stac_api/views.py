@@ -313,7 +313,7 @@ class ItemDetail(
     lookup_url_kwarg = "item_name"
     queryset = Item.objects.all()
 
-    def get_write_request_data(self, request, *args, **kwargs):
+    def get_write_request_data(self, request, *args, partial=False, **kwargs):
         data = request.data.copy()
         data['collection'] = kwargs['collection_name']
         return data
@@ -391,9 +391,14 @@ class AssetDetail(
     lookup_url_kwarg = "asset_name"
     queryset = Asset.objects.all()
 
-    def get_write_request_data(self, request, *args, **kwargs):
+    def get_write_request_data(self, request, *args, partial=False, **kwargs):
         data = request.data.copy()
         data['item'] = kwargs['item_name']
+        if partial and not 'id' in data:
+            # Partial update for checksum:multihash requires the asset id in order to verify the
+            # file with the checksum, therefore if the id is missing in payload we take it from
+            # the request path.
+            data['id'] = kwargs['asset_name']
         return data
 
     def get_object(self):

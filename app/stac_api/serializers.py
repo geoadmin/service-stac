@@ -616,8 +616,6 @@ class AssetSerializer(NonNullModelSerializer):
     def validate(self, attrs):
         validate_json_payload(self)
 
-        path = get_asset_path(attrs['item'], attrs['name'])
-
         # validate the file path, although this is a field validation, it requires object values
         # therefore it is placed in object validate method.
         if 'file' in attrs:
@@ -628,6 +626,7 @@ class AssetSerializer(NonNullModelSerializer):
 
         # Check if the asset exits for non partial update or when the checksum is available
         if not self.partial or 'checksum_multihash' in attrs:
+            path = get_asset_path(attrs['item'], attrs['name'])
             request = self.context.get("request")
             href = build_asset_href(request, path)
             attrs = validate_asset_file(href, attrs)

@@ -54,13 +54,13 @@ class UpdateModelMixin:
     This new mixin allow this patching through the `get_write_request_data` method.
     """
 
-    def get_write_request_data(self, request, *args, **kwargs):
+    def get_write_request_data(self, request, *args, partial=False, **kwargs):
         return request.data
 
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
-        data = self.get_write_request_data(request, *args, **kwargs)
+        data = self.get_write_request_data(request, partial=partial, *args, **kwargs)
         serializer = self.get_serializer(instance, data=data, partial=partial)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
