@@ -975,8 +975,6 @@ components:
           example:
             code: 403
             description: "Permission denied"
-# Note: this is defined as an overwrite in 'overwrites', since defining it here would violate
-# the alphabetical order of the tags ending up in openapi.yaml, see https://speccy.io/rules/1-rulesets#openapi-tags-alphabetical
 tags:
   - description: Essential characteristics of this API
     name: Capabilities
