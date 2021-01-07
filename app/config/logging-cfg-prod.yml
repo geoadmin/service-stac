@@ -4,10 +4,14 @@ disable_existing_loggers: False # this allow to get logger at module level
 root:
   handlers:
     - console
-  level: INFO
+  level: WARNING
   propagate: True
 
 loggers:
+  stac_api:
+    level: DEBUG
+  middleware:
+    level: DEBUG
   django:
     level: INFO
   gunicorn.error:
