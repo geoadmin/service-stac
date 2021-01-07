@@ -42,7 +42,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/collection"
-          $ref: "#/components/responses/Collection"
         "403":
           $ref: "#/components/responses/PermissionDenied"
         "404":
@@ -130,11 +129,6 @@ paths:
       responses:
         "200":
           description: Returns the updated Collection
-          headers:
-            ETag:
-              schema:
-                type: string
-              description: A string to ensure the collection has not been modified
           content:
             application/json:
               schema:
