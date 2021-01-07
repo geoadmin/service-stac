@@ -6,19 +6,23 @@ from django.contrib.gis.geos import GEOSGeometry
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 
+from stac_api.models import Collection
 from stac_api.models import Item
 from stac_api.utils import utc_aware
-from stac_api.validators import validate_item_properties_datetimes_dependencies
 
-import tests.database as db
+from tests.data_factory import CollectionFactory
 
 logger = logging.getLogger(__name__)
 
 
 class ItemsModelTestCase(TestCase):
 
+    @classmethod
+    def setUpTestData(cls):
+        CollectionFactory().create_sample().create()
+
     def setUp(self):
-        self.collection = db.create_collection('collection-1')
+        self.collection = Collection.objects.get(name='collection-1')
 
     def test_item_create_model(self):
         item = Item.objects.create(
@@ -27,7 +31,6 @@ class ItemsModelTestCase(TestCase):
             properties_datetime=utc_aware(datetime.utcnow())
         )
         item.full_clean()
-        item.save()
         self.assertEqual('item-1', item.name)
 
     def test_item_create_model_invalid_datetime(self):
@@ -139,15 +142,3 @@ class ItemsModelTestCase(TestCase):
                 geometry=None
             )
             item.full_clean()
-
-
-class ValidateItemPropertiesDatetimeDependenciesFunctionTestCase(TestCase):
-
-    def test_validate_function_invalid_datetime_string(self):
-        with self.assertRaises(ValidationError):
-            properties_datetime = None
-            properties_start_datetime = "2001-22-66T08:00:00+00:00"
-            properties_end_datetime = "2001-11-11T08:00:00+00:00"
-            validate_item_properties_datetimes_dependencies(
-                properties_datetime, properties_start_datetime, properties_end_datetime
-            )

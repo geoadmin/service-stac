@@ -443,9 +443,7 @@ ITEM_KEEP_ORIGINAL_FIELDS = [
 
 
 class Item(models.Model):
-    name = models.CharField(
-        'id', blank=False, max_length=255, validators=[validate_name]
-    )
+    name = models.CharField('id', blank=False, max_length=255, validators=[validate_name])
     collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
     geometry = models.PolygonField(
         null=False, blank=False, default=BBOX_CH, srid=4326, validators=[validate_geometry]

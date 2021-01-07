@@ -1,34 +1,27 @@
 import logging
-from datetime import datetime
 
 from django.contrib.gis.geos import GEOSGeometry
 from django.contrib.gis.geos import Polygon
 from django.test import TestCase
 
-from stac_api.models import Item
-from stac_api.utils import utc_aware
-
-import tests.database as db
+from tests.data_factory import Factory
 
 logger = logging.getLogger(__name__)
 
 
-class ItemsToCollectionTestCase(TestCase):
+class CollectionSpatialExtentTestCase(TestCase):
     '''
     Testing the propagation of item geometries to the bbox of the collection
     '''
 
     def setUp(self):
-        self.collection = db.create_collection('collection-1')
-        self.item = Item.objects.create(
+        self.factory = Factory()
+        self.collection = self.factory.create_collection_sample().model
+        self.item = self.factory.create_item_sample(
             collection=self.collection,
-            properties_datetime=utc_aware(datetime.utcnow()),
             name='base-bbox',
-            geometry=GEOSGeometry('SRID=4326;POLYGON '
-                                  '((0 0, 0 45, 45 45, 45 0, 0 0))')
-        )
-        self.item.full_clean()
-        self.item.save()
+            geometry=GEOSGeometry('SRID=4326;POLYGON ((0 0, 0 45, 45 45, 45 0, 0 0))')
+        ).model
 
     def test_if_collection_gets_right_extent(self):
         # the collection has to have the bbox of the item
@@ -36,22 +29,18 @@ class ItemsToCollectionTestCase(TestCase):
 
     def test_if_new_collection_has_extent(self):
         # a new collection has no bbox yet
-        collection_no_bbox = db.create_collection('collection-no-bbox')
+        collection_no_bbox = self.factory.create_collection_sample(name='collection-no-bbox').model
         self.assertIsNone(collection_no_bbox.extent_geometry)
 
     def test_changing_bbox_with_bigger_item(self):
         # changing the size of the bbox of the collection
         self.assertEqual(self.collection.extent_geometry, self.item.geometry)
 
-        bigger_item = Item.objects.create(
-            collection=self.collection,
-            properties_datetime=utc_aware(datetime.utcnow()),
+        bigger_item = self.factory.create_item_sample(
+            self.collection,
             name='bigger-bbox',
-            geometry=GEOSGeometry('SRID=4326;POLYGON '
-                                  '((0 0, 0 50, 50 50, 50 0, 0 0))')
-        )
-        bigger_item.full_clean()
-        bigger_item.save()
+            geometry=GEOSGeometry('SRID=4326;POLYGON ((0 0, 0 50, 50 50, 50 0, 0 0))')
+        ).model
         # collection has to have the size of the bigger extent
         self.assertEqual(self.collection.extent_geometry, bigger_item.geometry)
 
@@ -61,15 +50,12 @@ class ItemsToCollectionTestCase(TestCase):
     def test_changing_bbox_with_smaller_item(self):
         # changing the size of the bbox of the collection
         self.assertEqual(self.collection.extent_geometry, self.item.geometry)
-        smaller_item = Item.objects.create(
-            collection=self.collection,
-            properties_datetime=utc_aware(datetime.utcnow()),
-            name='bigger-bbox',
-            geometry=GEOSGeometry('SRID=4326;POLYGON '
-                                  '((1 1, 1 40, 40 40, 40 1, 1 1))')
-        )
-        smaller_item.full_clean()
-        smaller_item.save()
+        smaller_item = self.factory.create_item_sample(
+            self.collection,
+            name='smaller-bbox',
+            geometry=GEOSGeometry('SRID=4326;POLYGON ((1 1, 1 40, 40 40, 40 1, 1 1))')
+        ).model
+
         # collection has to have the size of the bigger extent
         self.assertEqual(self.collection.extent_geometry, self.item.geometry)
         smaller_item.delete()
@@ -78,25 +64,18 @@ class ItemsToCollectionTestCase(TestCase):
     def test_changing_bbox_with_diagonal_update(self):
         # changing collection bbox by moving one of two geometries
         self.assertEqual(self.collection.extent_geometry, self.item.geometry)
-        diagonal_item = Item.objects.create(
-            collection=self.collection,
-            properties_datetime=utc_aware(datetime.utcnow()),
-            name='bigger-bbox',
-            geometry=GEOSGeometry('SRID=4326;POLYGON '
-                                  '((45 45, 45 90, 90 90, 90 45, 45 45))')
-        )
-        diagonal_item.full_clean()
-        diagonal_item.save()
+        diagonal_item = self.factory.create_item_sample(
+            self.collection,
+            name='diagonal-bbox',
+            geometry=GEOSGeometry('SRID=4326;POLYGON ((45 45, 45 90, 90 90, 90 45, 45 45))')
+        ).model
         # collection bbox composed of the two diagonal geometries
         self.assertEqual(
             GEOSGeometry(self.collection.extent_geometry).extent,
             GEOSGeometry(Polygon.from_bbox((0, 0, 90, 90))).extent
         )
-        # moving the second geometrie to be on top of the other one
-        diagonal_item.geometry = GEOSGeometry(
-            'SRID=4326;POLYGON '
-            '((0 0, 0 45, 45 45, 45 0, 0 0))'
-        )
+        # moving the second geometry to be on top of the other one
+        diagonal_item.geometry = GEOSGeometry('SRID=4326;POLYGON ((0 0, 0 45, 45 45, 45 0, 0 0))')
         diagonal_item.full_clean()
         diagonal_item.save()
         self.assertEqual(

@@ -30,7 +30,7 @@ def update_temporal_extent_on_item_insert(
         new_start_datetime,
         new_end_datetime,
         collection.name,
-        extra={'collection_name': collection.name}
+        extra={'collection': collection.name}
     )
     if collection.extent_start_datetime is None:
         updated |= True
@@ -95,7 +95,7 @@ def update_start_temporal_extent_on_item_update(
         new_start_datetime,
         old_end_datetime,
         new_end_datetime,
-        extra={'collection_name': collection.name}
+        extra={'collection': collection.name}
     )
 
     if old_start_datetime == collection.extent_start_datetime:
@@ -187,7 +187,7 @@ def update_end_temporal_extent_on_item_update(
         new_start_datetime,
         old_end_datetime,
         new_end_datetime,
-        extra={'collection_name': collection.name}
+        extra={'collection': collection.name}
     )
 
     if old_end_datetime == collection.extent_end_datetime:
@@ -260,7 +260,7 @@ def update_start_temporal_extent_on_item_delete(collection, old_start_datetime, 
         "Deleting item %s from collection %s and updating the collection's start date",
         item_id,
         collection.name,
-        extra={'collection_name': collection.name}
+        extra={'collection': collection.name}
     )
 
     if old_start_datetime == collection.extent_start_datetime:
@@ -327,7 +327,7 @@ def update_end_temporal_extent_on_item_delete(collection, old_end_datetime, item
         "Deleting item %s from collection %s and updating the collection's end date",
         item_id,
         collection.name,
-        extra={'collection_name': collection.name}
+        extra={'collection': collection.name}
     )
 
     if old_end_datetime == collection.extent_end_datetime:

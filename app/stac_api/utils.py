@@ -1,7 +1,9 @@
+import hashlib
 from datetime import datetime
 from datetime import timezone
 
 import boto3
+import multihash
 from botocore.client import Config
 
 from django.conf import settings
@@ -44,6 +46,28 @@ def get_link(links, rel, raise_exception=False):
             return link
     if raise_exception:
         raise KeyError(f'Link with rel {rel} not found')
+    return None
+
+
+def get_provider(providers, name, raise_exception=False):
+    '''Get provider from list based on his name attribute
+
+    Args:
+	    providers: list
+			list of provider object
+        name: string
+            name attribute to look for
+        raise_exception: boolean (default=False)
+            raises KeyError instead of returning None when provider is not found
+
+    Returns:
+        The provider object if found, else None
+    '''
+    for provider in providers:
+        if provider['name'] == name:
+            return provider
+    if raise_exception:
+        raise KeyError(f'Provider with name {name} not found')
     return None
 
 
@@ -124,3 +148,16 @@ def build_asset_href(request, path):
         return f'{request.scheme}://{settings.AWS_S3_CUSTOM_DOMAIN.strip("/")}/{path}'
 
     return request.build_absolute_uri(f'/{path}')
+
+
+def get_sha256_multihash(content):
+    '''Get the sha2-256 multihash of the bytes content
+
+    Args:
+        content: bytes
+
+    Returns:
+        sha256 multihash string
+    '''
+    digest = hashlib.sha256(content).digest()
+    return multihash.to_hex_string(multihash.encode(digest, 'sha2-256'))
