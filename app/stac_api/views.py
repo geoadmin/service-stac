@@ -128,7 +128,7 @@ def checker(request):
     return JsonResponse(data)
 
 
-class CollectionList(generics.GenericAPIView, mixins.CreateModelMixin):
+class CollectionList(generics.GenericAPIView, views_mixins.CreateModelMixin):
     serializer_class = CollectionSerializer
     queryset = Collection.objects.all()
 
@@ -427,6 +427,8 @@ class AssetDetail(
     def patch(self, request, *args, **kwargs):
         return self.partial_update(request, *args, hide_fields=['href'], **kwargs)
 
+    # Here the etag is only added to support pre-conditional If-Match and If-Not-Match
+    @etag(get_asset_etag)
     def delete(self, request, *args, **kwargs):
         return self.destroy(request, *args, **kwargs)
 
