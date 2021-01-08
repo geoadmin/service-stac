@@ -63,7 +63,7 @@ class CollectionSerializationTestCase(StacBaseTestCase):
         content = JSONRenderer().render(python_native)
         logger.debug('json string: %s', content.decode("utf-8"))
 
-        expected = self.collection.json
+        expected = self.collection.get_json('serialize')
         expected.update({
             'created': isoformat(self.collection_created),
             'crs': ['http://www.opengis.net/def/crs/OGC/1.3/CRS84'],
@@ -149,7 +149,7 @@ class CollectionDeserializationTestCase(StacBaseTestCase):
 
     def test_collection_deserialization_create_only_required(self):
         sample = self.data_factory.create_collection_sample(required_only=True)
-        serializer = CollectionSerializer(data=sample.json)
+        serializer = CollectionSerializer(data=sample.get_json('deserialize'))
         serializer.is_valid(raise_exception=True)
         collection = serializer.save()
 
@@ -160,8 +160,8 @@ class CollectionDeserializationTestCase(StacBaseTestCase):
         self.check_stac_collection(sample.json, python_native)
 
     def test_collection_deserialization_create_full(self):
-        data = self.data_factory.create_collection_sample().json
-        serializer = CollectionSerializer(data=data)
+        sample = self.data_factory.create_collection_sample()
+        serializer = CollectionSerializer(data=sample.get_json('deserialize'))
         serializer.is_valid(raise_exception=True)
         collection = serializer.save()
 
@@ -170,18 +170,20 @@ class CollectionDeserializationTestCase(StacBaseTestCase):
         context = {'request': api_request_mocker.get(f'{API_BASE}/collections/{collection.name}')}
         serializer = CollectionSerializer(collection, context=context)
         python_native = serializer.data
-        self.check_stac_collection(data, python_native)
+        self.check_stac_collection(sample.json, python_native)
 
     def test_collection_deserialization_update_existing(self):
         # Create a collection
         collection = self.data_factory.create_collection_sample(sample='collection-1').model
 
         # Get a new samples based on another sample
-        data = self.data_factory.create_collection_sample(
+        sample = self.data_factory.create_collection_sample(
             sample='collection-4', name=collection.name
-        ).json
+        )
         context = {'request': api_request_mocker.get(f'{API_BASE}/collections/{collection.name}')}
-        serializer = CollectionSerializer(collection, data=data, context=context)
+        serializer = CollectionSerializer(
+            collection, data=sample.get_json('deserialize'), context=context
+        )
         serializer.is_valid(raise_exception=True)
         collection = serializer.save()
 
@@ -189,7 +191,7 @@ class CollectionDeserializationTestCase(StacBaseTestCase):
         # mock a request needed for the serialization of links
         serializer = CollectionSerializer(collection, context=context)
         python_native = serializer.data
-        self.check_stac_collection(data, python_native)
+        self.check_stac_collection(sample.json, python_native)
 
         self.assertNotIn('providers', python_native, msg='Providers have not been removed')
         self.assertIn('links', python_native, msg='Generated links missing')
@@ -199,7 +201,8 @@ class CollectionDeserializationTestCase(StacBaseTestCase):
         )
 
     def test_collection_deserialization_invalid_data(self):
-        data = self.data_factory.create_collection_sample(sample='collection-invalid').json
+        data = self.data_factory.create_collection_sample(sample='collection-invalid'
+                                                         ).get_json('deserialize')
 
         # translate to Python native:
         serializer = CollectionSerializer(data=data)
@@ -207,7 +210,8 @@ class CollectionDeserializationTestCase(StacBaseTestCase):
             serializer.is_valid(raise_exception=True)
 
     def test_collection_deserialization_invalid_link(self):
-        data = self.data_factory.create_collection_sample(sample='collection-invalid-links').json
+        data = self.data_factory.create_collection_sample(sample='collection-invalid-links'
+                                                         ).get_json('deserialize')
 
         # translate to Python native:
         serializer = CollectionSerializer(data=data)
@@ -215,9 +219,8 @@ class CollectionDeserializationTestCase(StacBaseTestCase):
             serializer.is_valid(raise_exception=True)
 
     def test_collection_deserialization_invalid_provider(self):
-        data = self.data_factory.create_collection_sample(
-            sample='collection-invalid-providers'
-        ).json
+        data = self.data_factory.create_collection_sample(sample='collection-invalid-providers'
+                                                         ).get_json('deserialize')
 
         # translate to Python native:
         serializer = CollectionSerializer(data=data)
@@ -353,7 +356,7 @@ class ItemDeserializationTestCase(StacBaseTestCase):
         )
 
         # translate to Python native:
-        serializer = ItemSerializer(data=sample.json)
+        serializer = ItemSerializer(data=sample.get_json('deserialize'))
         serializer.is_valid(raise_exception=True)
         item = serializer.save()
 
@@ -374,7 +377,7 @@ class ItemDeserializationTestCase(StacBaseTestCase):
         )
 
         # translate to Python native:
-        serializer = ItemSerializer(data=sample.json)
+        serializer = ItemSerializer(data=sample.get_json('deserialize'))
         serializer.is_valid(raise_exception=True)
         item = serializer.save()
 
@@ -395,7 +398,7 @@ class ItemDeserializationTestCase(StacBaseTestCase):
         )
 
         # translate to Python native:
-        serializer = ItemSerializer(data=sample.json)
+        serializer = ItemSerializer(data=sample.get_json('deserialize'))
         serializer.is_valid(raise_exception=True)
         item = serializer.save()
 
@@ -418,7 +421,7 @@ class ItemDeserializationTestCase(StacBaseTestCase):
         sample = self.data_factory.create_item_sample(
             collection=self.collection.model, sample='item-2', name=original_sample["name"]
         )
-        serializer = ItemSerializer(original_sample.model, data=sample.json)
+        serializer = ItemSerializer(original_sample.model, data=sample.get_json('deserialize'))
         serializer.is_valid(raise_exception=True)
         item = serializer.save()
 
@@ -447,7 +450,7 @@ class ItemDeserializationTestCase(StacBaseTestCase):
             name=original_sample["name"],
             properties={"datetime": isoformat(utc_aware(datetime.utcnow()))}
         )
-        serializer = ItemSerializer(original_sample.model, data=sample.json)
+        serializer = ItemSerializer(original_sample.model, data=sample.get_json('deserialize'))
         serializer.is_valid(raise_exception=True)
         item = serializer.save()
 
@@ -477,7 +480,7 @@ class ItemDeserializationTestCase(StacBaseTestCase):
         data = self.data_factory.create_item_sample(
             collection=self.collection.model,
             sample='item-invalid',
-        ).json
+        ).get_json('deserialize')
 
         # translate to Python native:
         serializer = ItemSerializer(data=data)
@@ -497,7 +500,7 @@ class ItemDeserializationTestCase(StacBaseTestCase):
         )
 
         # translate to Python native:
-        serializer = ItemSerializer(data=sample.json)
+        serializer = ItemSerializer(data=sample.get_json('deserialize'))
         with self.assertRaises(ValidationError):
             serializer.is_valid(raise_exception=True)
 
@@ -508,7 +511,7 @@ class ItemDeserializationTestCase(StacBaseTestCase):
         )
 
         # translate to Python native:
-        serializer = ItemSerializer(data=sample.json)
+        serializer = ItemSerializer(data=sample.get_json('deserialize'))
         with self.assertRaises(ValidationError):
             serializer.is_valid(raise_exception=True)
 
@@ -579,7 +582,9 @@ class AssetDeserializationTestCase(StacBaseTestCase):
             f'{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
         )
         mock_requests_asset_file(requests_mocker, sample)
-        serializer = AssetSerializer(data=sample.json, context={'request': request_mocker})
+        serializer = AssetSerializer(
+            data=sample.get_json('deserialize'), context={'request': request_mocker}
+        )
         serializer.is_valid(raise_exception=True)
         asset = serializer.save()
 
@@ -602,7 +607,9 @@ class AssetDeserializationTestCase(StacBaseTestCase):
         )
         mock_requests_asset_file(requests_mocker, sample)
 
-        serializer = AssetSerializer(data=sample.json, context={'request': request_mocker})
+        serializer = AssetSerializer(
+            data=sample.get_json('deserialize'), context={'request': request_mocker}
+        )
         serializer.is_valid(raise_exception=True)
         asset = serializer.save()
 
@@ -633,7 +640,9 @@ class AssetDeserializationTestCase(StacBaseTestCase):
         )
         mock_requests_asset_file(requests_mocker, sample)
 
-        serializer = AssetSerializer(data=sample.json, context={'request': request_mocker})
+        serializer = AssetSerializer(
+            data=sample.get_json('deserialize'), context={'request': request_mocker}
+        )
         with self.assertRaises(ValidationError):
             serializer.is_valid(raise_exception=True)
 
@@ -648,7 +657,9 @@ class AssetDeserializationTestCase(StacBaseTestCase):
         )
         mock_requests_asset_file(requests_mocker, sample)
 
-        serializer = AssetSerializer(data=sample.json, context={'request': request_mocker})
+        serializer = AssetSerializer(
+            data=sample.get_json('deserialize'), context={'request': request_mocker}
+        )
         with self.assertRaises(ValidationError):
             serializer.is_valid(raise_exception=True)
 
@@ -664,6 +675,8 @@ class AssetDeserializationTestCase(StacBaseTestCase):
             f'{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
         )
 
-        serializer = AssetSerializer(data=sample.json, context={'request': request_mocker})
+        serializer = AssetSerializer(
+            data=sample.get_json('deserialize'), context={'request': request_mocker}
+        )
         with self.assertRaises(ValidationError):
             serializer.is_valid(raise_exception=True)

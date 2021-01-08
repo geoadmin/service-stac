@@ -73,7 +73,9 @@ class CollectionsWriteEndpointTestCase(StacBaseTestCase):
         collection = self.collection_factory.create_sample()
 
         path = f"/{API_BASE}/collections"
-        response = self.client.post(path, data=collection.json, content_type='application/json')
+        response = self.client.post(
+            path, data=collection.get_json('post'), content_type='application/json'
+        )
         self.assertStatusCode(201, response)
         self.check_header_location(f'{path}/{collection.json["id"]}', response)
 
@@ -84,7 +86,9 @@ class CollectionsWriteEndpointTestCase(StacBaseTestCase):
 
         # the dataset already exists in the database
         response = self.client.post(
-            f"/{API_BASE}/collections", data=collection.json, content_type='application/json'
+            f"/{API_BASE}/collections",
+            data=collection.get_json('post'),
+            content_type='application/json'
         )
         self.assertStatusCode(400, response)
 
@@ -92,7 +96,9 @@ class CollectionsWriteEndpointTestCase(StacBaseTestCase):
         collection = self.collection_factory.create_sample(extra_payload='not allowed')
 
         response = self.client.post(
-            f"/{API_BASE}/collections", data=collection.json, content_type='application/json'
+            f"/{API_BASE}/collections",
+            data=collection.get_json('post'),
+            content_type='application/json'
         )
         self.assertStatusCode(400, response)
 
@@ -100,7 +106,9 @@ class CollectionsWriteEndpointTestCase(StacBaseTestCase):
         collection = self.collection_factory.create_sample(created=utc_aware(datetime.utcnow()))
 
         response = self.client.post(
-            f"/{API_BASE}/collections", data=collection.json, content_type='application/json'
+            f"/{API_BASE}/collections",
+            data=collection.get_json('post'),
+            content_type='application/json'
         )
         self.assertStatusCode(400, response)
 
@@ -109,7 +117,9 @@ class CollectionsWriteEndpointTestCase(StacBaseTestCase):
         collection = self.collection_factory.create_sample(sample='collection-invalid')
 
         response = self.client.post(
-            f"/{API_BASE}/collections", data=collection.json, content_type='application/json'
+            f"/{API_BASE}/collections",
+            data=collection.get_json('post'),
+            content_type='application/json'
         )
         self.assertStatusCode(400, response)
 
@@ -118,7 +128,9 @@ class CollectionsWriteEndpointTestCase(StacBaseTestCase):
         collection = self.collection_factory.create_sample(required_only=True)
 
         path = f"/{API_BASE}/collections"
-        response = self.client.post(path, data=collection.json, content_type='application/json')
+        response = self.client.post(
+            path, data=collection.get_json('post'), content_type='application/json'
+        )
         response_json = response.json()
         logger.debug(response_json)
         self.assertStatusCode(201, response)
@@ -134,7 +146,9 @@ class CollectionsWriteEndpointTestCase(StacBaseTestCase):
         )
 
         response = self.client.post(
-            f"/{API_BASE}/collections", data=collection.json, content_type='application/json'
+            f"/{API_BASE}/collections",
+            data=collection.get_json('post'),
+            content_type='application/json'
         )
         self.assertStatusCode(400, response)
 
@@ -149,81 +163,77 @@ class CollectionsUpdateEndpointTestCase(StacBaseTestCase):
         self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_collection_put_dont_exists(self):
-        payload_json = self.collection_factory.create_sample(sample='collection-2').json
+        sample = self.collection_factory.create_sample(sample='collection-2')
 
         # the dataset to update does not exist yet
         response = self.client.put(
-            f"/{API_BASE}/collections/{payload_json['id']}",
-            data=payload_json,
+            f"/{API_BASE}/collections/{sample['name']}",
+            data=sample.get_json('put'),
             content_type='application/json'
         )
         self.assertStatusCode(404, response)
 
     def test_collections_put(self):
-        payload_json = self.collection_factory.create_sample(
+        sample = self.collection_factory.create_sample(
             name=self.collection.name, sample='collection-2'
-        ).json
+        )
 
         response = self.client.put(
-            f"/{API_BASE}/collections/{payload_json['id']}",
-            data=payload_json,
+            f"/{API_BASE}/collections/{sample['name']}",
+            data=sample.get_json('put'),
             content_type='application/json'
         )
 
         self.assertStatusCode(200, response)
 
         # is it persistent?
-        response = self.client.get(
-            f"/{API_BASE}/collections/{payload_json['id']}",
-            data=payload_json,
-            content_type='application/json'
-        )
+        response = self.client.get(f"/{API_BASE}/collections/{sample['name']}")
 
         self.assertStatusCode(200, response)
-        self.check_stac_collection(payload_json, response.json())
+        self.check_stac_collection(sample.json, response.json())
 
     def test_collections_put_extra_payload(self):
-        payload_json = self.collection_factory.create_sample(
+        sample = self.collection_factory.create_sample(
             name=self.collection.name, sample='collection-2', extra_payload='not valid'
-        ).json
+        )
 
         response = self.client.put(
-            f"/{API_BASE}/collections/{payload_json['id']}",
-            data=payload_json,
+            f"/{API_BASE}/collections/{sample['name']}",
+            data=sample.get_json('put'),
             content_type='application/json'
         )
         self.assertStatusCode(400, response)
 
     def test_collections_put_read_only_in_payload(self):
-        payload_json = self.collection_factory.create_sample(
+        sample = self.collection_factory.create_sample(
             name=self.collection.name, sample='collection-2', created=utc_aware(datetime.utcnow())
-        ).json
+        )
 
         response = self.client.put(
-            f"/{API_BASE}/collections/{payload_json['id']}",
-            data=payload_json,
+            f"/{API_BASE}/collections/{sample['name']}",
+            data=sample.get_json('put'),
             content_type='application/json'
         )
         self.assertStatusCode(400, response)
 
     def test_collection_put_change_id(self):
-        payload_json = self.collection_factory.create_sample(
+        sample = self.collection_factory.create_sample(
             name='new-collection-name', sample='collection-2'
-        ).json
+        )
 
         # for the start, the id have to be different
-        self.assertNotEqual(self.collection.name, payload_json['id'])
+        self.assertNotEqual(self.collection.name, sample['name'])
         response = self.client.put(
             f"/{API_BASE}/collections/{self.collection.name}",
-            data=payload_json,
+            data=sample.get_json('put'),
             content_type='application/json'
         )
         self.assertStatusCode(200, response)
 
         # check if id changed
-        response = self.client.get(f"/{API_BASE}/collections/{payload_json['id']}")
+        response = self.client.get(f"/{API_BASE}/collections/{sample['name']}")
         self.assertStatusCode(200, response)
-        self.check_stac_collection(payload_json, response.json())
+        self.check_stac_collection(sample.json, response.json())
 
         # the old collection shouldn't exist any more
         response = self.client.get(f"/{API_BASE}/collections/{self.collection.name}")
@@ -231,15 +241,15 @@ class CollectionsUpdateEndpointTestCase(StacBaseTestCase):
 
     def test_collection_put_remove_optional_fields(self):
         collection_name = self.collection.name  # get a name that is registered in the service
-        payload_json = self.collection_factory.create_sample(
+        sample = self.collection_factory.create_sample(
             name=collection_name, sample='collection-1', required_only=True
-        ).json
+        )
 
         # for the start, the collection[1] has to have a title
         self.assertNotEqual('', f'{self.collection.title}')
         response = self.client.put(
-            f"/{API_BASE}/collections/{payload_json['id']}",
-            data=payload_json,
+            f"/{API_BASE}/collections/{sample['name']}",
+            data=sample.get_json('put'),
             content_type='application/json'
         )
         self.assertStatusCode(200, response)
@@ -313,20 +323,22 @@ class CollectionsUnauthorizeEndpointTestCase(StacBaseTestCase):
     def test_unauthorized_collection_post_put_patch(self):
         # make sure POST fails for anonymous user:
         # a post with the absolute valid minimum
-        payload_json = self.collection_factory.create_sample(sample='collection-2').json
+        sample = self.collection_factory.create_sample(sample='collection-2')
 
         response = self.client.post(
-            f"/{API_BASE}/collections", data=payload_json, content_type='application/json'
+            f"/{API_BASE}/collections",
+            data=sample.get_json('post'),
+            content_type='application/json'
         )
         self.assertStatusCode(401, response, msg="Unauthorized post was permitted.")
 
         # make sure PUT fails for anonymous user:
-        payload_json = self.collection_factory.create_sample(
+        sample = self.collection_factory.create_sample(
             name=self.collection.name, sample='collection-2'
-        ).json
+        )
         response = self.client.put(
             f"/{API_BASE}/collections/{self.collection.name}",
-            data=payload_json,
+            data=sample.get_json('put'),
             content_type='application/json'
         )
         self.assertStatusCode(401, response, msg="Unauthorized put was permitted.")
@@ -334,7 +346,7 @@ class CollectionsUnauthorizeEndpointTestCase(StacBaseTestCase):
         # make sure PATCH fails for anonymous user:
         response = self.client.patch(
             f"/{API_BASE}/collections/{self.collection.name}",
-            data=payload_json,
+            data=sample.get_json('patch'),
             content_type='application/json'
         )
         self.assertStatusCode(401, response, msg="Unauthorized patch was permitted.")

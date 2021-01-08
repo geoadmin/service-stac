@@ -8,24 +8,24 @@ payload.
 Create samples
 ==============
 
-Samples are located in the tests.sample_data module. The simplest way to get a sample is by using
+Samples are located in the `tests.sample_data` module. The simplest way to get a sample is by using
 the Factory class as follow:
 
-sample = Factory().create_collection_sample()
+    sample = Factory().create_collection_sample()
 
-This line above creates a collection sample named 'collection-1' using the
-sample_data.collection_samples.collections['collection-1'] as data base.
+This line above creates a collection sample named `'collection-1'` using the
+`sample_data.collection_samples.collections['collection-1']` as data base.
 
 NOTE: A Factory instance keeps tracks of samples and avoids creating duplicate samples,
 so you might want to keep a Factory instance in your test case to reuse it. This way if you call the
-create_collection_sample() method again, the new sample will be named 'collection-2' instead of
-'collection-1'.
+`create_collection_sample()` method again, the new sample will be named `'collection-2'` instead of
+`'collection-1'`.
 
 While creating a sample you can freely overwrite any attribute or add extra attribute by using
 keywords arguments.
 
-sample = Factory().create_collection_sample(title='My personal title',
-                                            extra_argument='This is an extra argument')
+    sample = Factory().create_collection_sample(title='My personal title',
+                                                extra_argument='This is an extra argument')
 
 You can also define your own sample name with the `name` argument and/or choose another sample data
 base with the `sample` argument.
@@ -37,13 +37,13 @@ the Asset `checksum_multihash` is mapped into `checksum:multihash`, etc.
 
 You can also creates multiple samples at a time:
 
-samples = Factory().create_collection_samples(5)
+    samples = Factory().create_collection_samples(5)
 
-This creates 5 collections samples: 'collection-1', 'collection-2', 'collection-3', ...
+This creates 5 collections samples: `'collection-1'`, `'collection-2'`, `'collection-3'`, ...
 
-samples = Factory().create_collection_samples(['collection-1',
-                                               'collection-2',
-                                               'collection-invalid'])
+    samples = Factory().create_collection_samples(['collection-1',
+                                                   'collection-2',
+                                                   'collection-invalid'])
 
 This creates 3 collections samples:
 - 'collection-1' based on 'collection-1' sample
@@ -52,31 +52,36 @@ This creates 3 collections samples:
 
 You can also overwrite sample attribute of each sample:
 
-samples = Factory().create_collection_samples(3, title=['Title of first collection',
-                                                        'Title of second collection',
-                                                        'Title of third collection'])
+    samples = Factory().create_collection_samples(3, title=['Title of first collection',
+                                                            'Title of second collection',
+                                                            'Title of third collection'])
 
 Using samples
 =============
 
-Each attribute of a sample can be retrieved/set using either the get()/set() method or the
-dictionary way: sample[key].
+Each attribute of a sample can be retrieved/set using either the `get()`/`set()` method or the
+dictionary way: `sample[key]`.
 
-print(sample.get('name')) or  print(sample['name'])
+    print(sample.get('name')) or  print(sample['name'])
 
-To use the sample with a Django model, uses the sample.attributes property or attributes() method.
+To use the sample with a Django model, uses the `sample.attributes` property or
+`sample.get_attributes()` method.
 
-stac_api.models.Collection(**sample.attributes)
+    stac_api.models.Collection(**sample.attributes)
 
 You can also use the shorthand sample.model property to get a django model instances with the
 sample. The corresponding DB object is then automatically created on the first call of sample.model.
 
-model_instance = sample.model
+    model_instance = sample.model
 
 To use the sample as an HTTP request payload or as serializer data, uses the sample.json property
-or the sample.json() method.
+or the `sample.get_json()` method or `sample.json` property (alias for
+`sample.get_json(method='get')`).
 
-stac_api.serializer.ItemSerializer(data=sample.json)
+   stac_api.serializer.ItemSerializer(data=sample.get_json(method='deserialize'))
+
+   response = client.get(path_to_item)
+   self.check_stac_item(sample.json, response.json())
 
 '''
 # pylint: disable=too-many-lines, arguments-differ
@@ -233,20 +238,40 @@ class SampleData:
         self.model_instance.save()
         return self.model_instance
 
+    def get_json(self, method='get'):
+        '''Returns a json serializable representation of the sample data
+
+        This json payload can then be used in the write API payload (with method='post', 'put' or
+        'patch') or to check the read API payload. It can also be directly used as the serializer
+        data.
+
+        Args:
+            method: string
+                Method for which the JSON would be used; 'get', 'post', 'put', 'patch', 'serialize',
+                'deserialize'.
+
+        Returns
+            A dictionary with the sample data.
+        '''
+        self._check_get_json_method(method)
+        return {
+            self.key_mapped(key): value for key,
+            value in self.get_attributes(remove_relations=False).items()
+        }
+
     @property
     def json(self):
         '''Returns a json serializable representation of the sample data
 
         This json payload can then be used in the write API payload or to check
-        the read API payload.
+        the read API payload. It can also be directly used as the serializer data.
+
+        NOTE: this output is usually for GET method.
 
         Returns
             A dictionary with the sample data.
         '''
-        return {
-            self.key_mapped(key): value for key,
-            value in self.get_attributes(remove_relations=False).items()
-        }
+        return self.get_json(method='get')
 
     @property
     def model(self):
@@ -267,6 +292,10 @@ class SampleData:
             attribute = f'attr_{attribute}'
             if hasattr(self, attribute):
                 delattr(self, attribute)
+
+    def _check_get_json_method(self, method):
+        if method not in ['get', 'post', 'put', 'patch', 'serialize', 'deserialize']:
+            raise ValueError(f'Invalid get_json() method parameter: {method}')
 
 
 class LinkSample(SampleData):
@@ -373,17 +402,22 @@ class CollectionSample(SampleData):
             self._create_model_links(links)
         return self.model_instance
 
-    @property
-    def json(self):
+    def get_json(self, method='get'):
         '''Returns a json serializable representation of the sample data
 
-        This json payload can then be used in the write API payload or to check
-        the read API payload.
+        This json payload can then be used in the write API payload (with method='post', 'put' or
+        'patch') or to check the read API payload. It can also be directly used as the serializer
+        data.
+
+        Args:
+            method: string
+                Method for which the JSON would be used; 'get', 'post', 'put', 'patch', 'serialize',
+                'deserialize'.
 
         Returns
             A dictionary with the sample data.
         '''
-        json_data = super().json
+        json_data = super().get_json(method)
         providers = json_data.pop('providers', [])
         links = json_data.pop('links', [])
         if providers:
@@ -508,20 +542,28 @@ class ItemSample(SampleData):
             attributes['links'] = [link.attributes for link in links]
         return attributes
 
-    @property
-    def json(self):
+    def get_json(self, method='get'):
         '''Returns a json serializable representation of the sample data
 
-        This json payload can then be used in the write API payload or to check
-        the read API payload.
+        This json payload can then be used in the write API payload (with method='post', 'put' or
+        'patch') or to check the read API payload. It can also be directly used as the serializer
+        data.
+
+        Args:
+            method: string
+                Method for which the JSON would be used; 'get', 'post', 'put', 'patch', 'serialize',
+                'deserialize'.
 
         Returns
             A dictionary with the sample data.
         '''
         json_data = {
-            key: value for key, value in super().json.items() if not key.startswith('properties_')
+            key: value for key,
+            value in super().get_json(method).items() if not key.startswith('properties_')
         }
-        json_data['collection'] = json_data['collection'].name
+        collection = json_data.pop('collection')
+        if method in ['get', 'serialize', 'deserialize']:
+            json_data['collection'] = collection.name
         if 'geometry' in json_data and isinstance(json_data['geometry'], GEOSGeometry):
             json_data['geometry'] = json_data['geometry'].json
         if not 'properties' in json_data:
@@ -639,20 +681,25 @@ class AssetSample(SampleData):
                 f'{item.collection.name}/{item.name}/{self.attr_name}', file
             )
 
-    @property
-    def json(self):
+    def get_json(self, method='get'):
         '''Returns a json serializable representation of the sample data
 
-        This json payload can then be used in the write API payload or to check
-        the read API payload.
+        This json payload can then be used in the write API payload (with method='post', 'put' or
+        'patch') or to check the read API payload. It can also be directly used as the serializer
+        data.
+
+        Args:
+            method: string
+                Method for which the JSON would be used; 'get', 'post', 'put', 'patch', 'serialize',
+                'deserialize'.
 
         Returns
             A dictionary with the sample data.
         '''
-        # pylint: disable=no-member
-        data = super().json
+        data = super().get_json(method)
         item = data.pop('item')
-        data['item'] = item.name
+        if method in ['get', 'serialize', 'deserialize']:
+            data['item'] = item.name
         file = data.pop('file', None)
         if file:
             data['href'] = \

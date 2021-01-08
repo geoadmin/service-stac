@@ -112,7 +112,9 @@ class AssetsWriteEndpointTestCase(StacBaseTestCase):
 
         mock_requests_asset_file(requests_mocker, asset)
         path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets'
-        response = self.client.post(path, data=asset.json, content_type="application/json")
+        response = self.client.post(
+            path, data=asset.get_json('post'), content_type="application/json"
+        )
         json_data = response.json()
         self.assertStatusCode(201, response)
         self.check_header_location(f"{path}/{asset['name']}", response)
@@ -131,7 +133,9 @@ class AssetsWriteEndpointTestCase(StacBaseTestCase):
 
         mock_requests_asset_file(requests_mocker, asset)
         path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets'
-        response = self.client.post(path, data=asset.json, content_type="application/json")
+        response = self.client.post(
+            path, data=asset.get_json('post'), content_type="application/json"
+        )
         json_data = response.json()
         self.assertStatusCode(201, response)
         self.check_header_location(f"{path}/{asset['name']}", response)
@@ -150,7 +154,9 @@ class AssetsWriteEndpointTestCase(StacBaseTestCase):
 
         mock_requests_asset_file(requests_mocker, asset)
         path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets'
-        response = self.client.post(path, data=asset.json, content_type="application/json")
+        response = self.client.post(
+            path, data=asset.get_json('post'), content_type="application/json"
+        )
         self.assertStatusCode(400, response)
 
         # Make sure that the asset is not found in DB
@@ -168,7 +174,9 @@ class AssetsWriteEndpointTestCase(StacBaseTestCase):
 
         mock_requests_asset_file(requests_mocker, asset)
         path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets'
-        response = self.client.post(path, data=asset.json, content_type="application/json")
+        response = self.client.post(
+            path, data=asset.get_json('post'), content_type="application/json"
+        )
         self.assertStatusCode(400, response)
 
         # Make sure that the asset is not found in DB
@@ -184,7 +192,9 @@ class AssetsWriteEndpointTestCase(StacBaseTestCase):
 
         mock_requests_asset_file(requests_mocker, asset)
         path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets'
-        response = self.client.post(path, data=asset.json, content_type="application/json")
+        response = self.client.post(
+            path, data=asset.get_json('post'), content_type="application/json"
+        )
         self.assertStatusCode(400, response)
 
         # Make sure that the asset is not found in DB
@@ -210,7 +220,8 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
     def test_asset_put_dont_exists(self, requests_mocker):
         collection_name = self.collection.name
         item_name = self.item.name
-        payload_json = self.factory.create_asset_sample(item=self.item, sample='asset-2').json
+        payload_json = self.factory.create_asset_sample(item=self.item,
+                                                        sample='asset-2').get_json('put')
 
         # the dataset to update does not exist yet
         path = \
@@ -231,7 +242,9 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
 
         mock_requests_asset_file(requests_mocker, changed_asset)
         path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
-        response = self.client.put(path, data=changed_asset.json, content_type="application/json")
+        response = self.client.put(
+            path, data=changed_asset.get_json('put'), content_type="application/json"
+        )
         json_data = response.json()
         self.assertStatusCode(200, response)
         self.check_stac_asset(changed_asset.json, json_data, ignore=['item'])
@@ -256,7 +269,9 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
 
         mock_requests_asset_file(requests_mocker, changed_asset)
         path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
-        response = self.client.put(path, data=changed_asset.json, content_type="application/json")
+        response = self.client.put(
+            path, data=changed_asset.get_json('put'), content_type="application/json"
+        )
         self.assertStatusCode(400, response)
 
     def test_asset_endpoint_put_read_only_in_payload(self, requests_mocker):
@@ -273,7 +288,9 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
 
         mock_requests_asset_file(requests_mocker, changed_asset)
         path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
-        response = self.client.put(path, data=changed_asset.json, content_type="application/json")
+        response = self.client.put(
+            path, data=changed_asset.get_json('put'), content_type="application/json"
+        )
         self.assertStatusCode(400, response)
 
     def test_asset_endpoint_put_rename_asset(self, requests_mocker):
@@ -290,7 +307,9 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
 
         mock_requests_asset_file(requests_mocker, changed_asset)
         path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
-        response = self.client.put(path, data=changed_asset.json, content_type="application/json")
+        response = self.client.put(
+            path, data=changed_asset.get_json('put'), content_type="application/json"
+        )
         self.assertStatusCode(200, response)
         json_data = response.json()
         self.assertEqual(changed_asset.json['id'], json_data['id'])
@@ -315,7 +334,9 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
 
         mock_requests_asset_file(requests_mocker, changed_asset)
         path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
-        response = self.client.patch(path, data=changed_asset.json, content_type="application/json")
+        response = self.client.patch(
+            path, data=changed_asset.get_json('patch'), content_type="application/json"
+        )
         json_data = response.json()
         self.assertStatusCode(200, response)
         self.assertEqual(changed_asset.json['id'], json_data['id'])
@@ -340,7 +361,9 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
 
         mock_requests_asset_file(requests_mocker, changed_asset)
         path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
-        response = self.client.patch(path, data=changed_asset.json, content_type="application/json")
+        response = self.client.patch(
+            path, data=changed_asset.get_json('patch'), content_type="application/json"
+        )
         self.assertStatusCode(400, response)
 
     def test_asset_endpoint_patch_read_only_in_payload(self, requests_mocker):
@@ -356,7 +379,9 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
 
         mock_requests_asset_file(requests_mocker, changed_asset)
         path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
-        response = self.client.patch(path, data=changed_asset.json, content_type="application/json")
+        response = self.client.patch(
+            path, data=changed_asset.get_json('patch'), content_type="application/json"
+        )
         self.assertStatusCode(400, response)
 
 
@@ -419,7 +444,7 @@ class AssetsEndpointUnauthorizedTestCase(StacBaseTestCase):
         new_asset = self.factory.create_asset_sample(item=self.item).json
         updated_asset = self.factory.create_asset_sample(
             item=self.item, name=asset_name, sample='asset-1-updated'
-        ).json
+        ).get_json('post')
 
         # make sure POST fails for anonymous user:
         path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets'
