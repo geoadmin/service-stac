@@ -161,3 +161,31 @@ def get_sha256_multihash(content):
     '''
     digest = hashlib.sha256(content).digest()
     return multihash.to_hex_string(multihash.encode(digest, 'sha2-256'))
+
+
+def create_multihash(digest, hash_type):
+    '''Returns a multihash from a digest
+
+    Args:
+        digest: string
+        hash_type: string
+            hash type (sha2-256, md5, ...)
+
+    Returns: multihash
+        multihash
+    '''
+    return multihash.decode(multihash.encode(multihash.from_hex_string(digest), hash_type))
+
+
+def create_multihash_string(digest, hash_code):
+    '''Returns a multihash string from a digest
+
+    Args:
+        digest: string
+        hash_code: string | int
+            hash code (sha2-256, md5, ...)
+
+    Returns: string
+        multihash string
+    '''
+    return multihash.to_hex_string(multihash.encode(digest, hash_code))
