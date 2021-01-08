@@ -1,3 +1,85 @@
+'''Data Factory module
+
+The data factory can and should be used in unittests for creating sample data. A sample data can be
+used either to create an object in DB and returning its corresponding django model object, and/or
+for creating a JSON sample to be used in a Rest Framework serializer and/or in a HTTP request
+payload.
+
+Create samples
+==============
+
+Samples are located in the tests.sample_data module. The simplest way to get a sample is by using
+the Factory class as follow:
+
+sample = Factory().create_collection_sample()
+
+This line above creates a collection sample named 'collection-1' using the
+sample_data.collection_samples.collections['collection-1'] as data base.
+
+NOTE: A Factory instance keeps tracks of samples and avoids creating duplicate samples,
+so you might want to keep a Factory instance in your test case to reuse it. This way if you call the
+create_collection_sample() method again, the new sample will be named 'collection-2' instead of
+'collection-1'.
+
+While creating a sample you can freely overwrite any attribute or add extra attribute by using
+keywords arguments.
+
+sample = Factory().create_collection_sample(title='My personal title',
+                                            extra_argument='This is an extra argument')
+
+You can also define your own sample name with the `name` argument and/or choose another sample data
+base with the `sample` argument.
+
+NOTE: the sample attribute should not have any special characters and should be the same as the
+Django model fields name. Each sample class as a `key_mapping` attribute that maps the sample
+attribute name from model to JSON: for example the Asset `name` attribute is mapped into `id`,
+the Asset `checksum_multihash` is mapped into `checksum:multihash`, etc.
+
+You can also creates multiple samples at a time:
+
+samples = Factory().create_collection_samples(5)
+
+This creates 5 collections samples: 'collection-1', 'collection-2', 'collection-3', ...
+
+samples = Factory().create_collection_samples(['collection-1',
+                                               'collection-2',
+                                               'collection-invalid'])
+
+This creates 3 collections samples:
+- 'collection-1' based on 'collection-1' sample
+- 'collection-2' based on 'collection-2' sample
+- 'collection-3' based on 'collection-invalid' sample
+
+You can also overwrite sample attribute of each sample:
+
+samples = Factory().create_collection_samples(3, title=['Title of first collection',
+                                                        'Title of second collection',
+                                                        'Title of third collection'])
+
+Using samples
+=============
+
+Each attribute of a sample can be retrieved/set using either the get()/set() method or the
+dictionary way: sample[key].
+
+print(sample.get('name')) or  print(sample['name'])
+
+To use the sample with a Django model, uses the sample.attributes property or attributes() method.
+
+stac_api.models.Collection(**sample.attributes)
+
+You can also use the shorthand sample.model property to get a django model instances with the
+sample. The corresponding DB object is then automatically created on the first call of sample.model.
+
+model_instance = sample.model
+
+To use the sample as an HTTP request payload or as serializer data, uses the sample.json property
+or the sample.json() method.
+
+stac_api.serializer.ItemSerializer(data=sample.json)
+
+'''
+# pylint: disable=too-many-lines, arguments-differ
 import logging
 import re
 from datetime import datetime
@@ -50,7 +132,7 @@ class SampleData:
             setattr(self, f'attr_{key}', value)
 
         if required_only:
-            self.filter_optional(self.optional_fields)
+            self._filter_optional(self.optional_fields)
 
         self.model_instance = None
 
@@ -75,12 +157,12 @@ class SampleData:
 
         Args:
             key: string
-                Key of the asset sample attribute to return
+                Key of the sample attribute to return.
             default: any
-                Default value to return if the key is not found
+                Default value to return if the key is not found.
 
         Returns:
-            Asset key value
+            Asset key value.
         '''
         return getattr(self, f'attr_{key}', default)
 
@@ -91,18 +173,11 @@ class SampleData:
 
         Args:
             key: string
-                key to set
+                Key of the sample attribute to set.
             value:
-                value to set
+                Value to set.
         '''
         setattr(self, f'attr_{key}', value)
-
-    def filter_optional(self, optional_attributes):
-        '''Remove optional attributes'''
-        for attribute in optional_attributes:
-            attribute = f'attr_{attribute}'
-            if hasattr(self, attribute):
-                delattr(self, attribute)
 
     def get_attributes(self, remove_relations=True):
         '''Returns the sample data attributes as dictionary
@@ -111,10 +186,10 @@ class SampleData:
 
         Args:
             remove_relations: bool
-                remove relational attributes (providers and links)
+                Remove relational attributes (providers and links).
 
         Returns:
-            Dictionary with the sample attributes to use to create a DB object
+            Dictionary with the sample attributes to use to create a DB object.
         '''
         return {
             key[5:]: self.__dict__[key]
@@ -128,7 +203,7 @@ class SampleData:
         This can be used as arguments for the model class.
 
         Returns:
-            Dictionary with the sample attributes to use to create a DB object
+            Dictionary with the sample attributes to use to create a DB object.
         '''
         return self.get_attributes()
 
@@ -140,7 +215,7 @@ class SampleData:
 
         Args:
             key: string
-                key attribute to map into json key
+                Key attribute to map into json key.
 
         Returns:
             string, json key mapped
@@ -151,7 +226,7 @@ class SampleData:
         '''Create the sample in DB
 
         Returns:
-            the DB sample (model object)
+            The DB sample (model object).
         '''
         self.model_instance = self.model_class(**self.attributes)
         self.model_instance.full_clean()
@@ -166,7 +241,7 @@ class SampleData:
         the read API payload.
 
         Returns
-            A dictionary with the sample data
+            A dictionary with the sample data.
         '''
         return {
             self.key_mapped(key): value for key,
@@ -180,11 +255,18 @@ class SampleData:
         If the data has not yet been created in DB, then it is created.
 
         Returns:
-            model instance
+            Model instance.
         '''
         if not self.model_instance:
             self.create()
         return self.model_instance
+
+    def _filter_optional(self, optional_attributes):
+        '''Remove optional attributes'''
+        for attribute in optional_attributes:
+            attribute = f'attr_{attribute}'
+            if hasattr(self, attribute):
+                delattr(self, attribute)
 
 
 class LinkSample(SampleData):
@@ -230,20 +312,20 @@ class CollectionSample(SampleData):
     key_mapping = {'name': 'id'}
     optional_fields = ['title', 'providers', 'links']
 
-    def __init__(self, sample='collection-1', name=None, **kwargs):
+    def __init__(self, sample='collection-1', name=None, required_only=False, **kwargs):
         '''Create a collection sample data
 
         Args:
             sample: string
-                Name of the sample based to use, see tests.sample_data.collection_samples
+                Name of the sample based to use, see tests.sample_data.collection_samples.
             required_only: bool
-                return only attributes that are required (minimum sample data)
+                Return only attributes that are required (minimum sample data).
             name: string
-                Overwrite the sample name
+                Overwrite the sample name.
             **kwargs:
-                any parameter will overwrite existing attributes
+                Any parameter will overwrite existing attributes.
         '''
-        super().__init__(sample=sample, name=name, **kwargs)
+        super().__init__(sample, name=name, required_only=required_only, **kwargs)
 
         if hasattr(self, 'attr_providers'):
             self.attr_providers = [ProviderSample(**provider) for provider in self.attr_providers]
@@ -261,7 +343,7 @@ class CollectionSample(SampleData):
 
         Args:
             remove_relations: bool
-                remove relational attributes (providers and links)
+                Remove relational attributes (providers and links).
 
         Returns:
             Dictionary with the sample attributes to use to create a DB object
@@ -279,7 +361,7 @@ class CollectionSample(SampleData):
         '''Create the sample in DB
 
         Returns:
-            the DB sample (model object)
+            the DB sample (model object).
         '''
         attributes = self.get_attributes(remove_relations=False)
         providers = attributes.pop('providers', [])
@@ -299,7 +381,7 @@ class CollectionSample(SampleData):
         the read API payload.
 
         Returns
-            A dictionary with the sample data
+            A dictionary with the sample data.
         '''
         json_data = super().json
         providers = json_data.pop('providers', [])
@@ -317,7 +399,7 @@ class CollectionSample(SampleData):
         If the data has not yet been created in DB, then it is created.
 
         Returns:
-            list of provider model instances
+            List of provider model instances.
         '''
         if not self.model_providers_instance:
             attributes = self.get_attributes(remove_relations=False)
@@ -334,7 +416,7 @@ class CollectionSample(SampleData):
         If the data has not yet been created in DB, then it is created.
 
         Returns:
-            list of link model instances
+            List of link model instances.
         '''
         if not self.model_links_instance:
             attributes = self.get_attributes(remove_relations=False)
@@ -383,23 +465,24 @@ class ItemSample(SampleData):
     key_mapping = {'name': 'id'}
     optional_fields = ['properties_title', 'links']
 
-    def __init__(self, sample='item-1', collection=None, name=None, **kwargs):
+    def __init__(self, collection, sample='item-1', name=None, required_only=False, **kwargs):
         '''Create a item sample data
 
         Args:
-            sample: string
-                Name of the sample based to use, see tests.sample_data.item_samples
-            required_only: bool
-                return only attributes that are required (minimum sample data)
             collection: Collection
-                Collection DB object relations
+                Collection DB object relations.
+            sample: string
+                Name of the sample based to use, see tests.sample_data.item_samples.items.
             name: string
-                Overwrite the sample name
-
+                Overwrite the sample name.
+            required_only: bool
+                Return only attributes that are required (minimum sample data).
             **kwargs:
-                any parameter will overwrite existing attributes
+                Any parameter will overwrite existing attributes.
         '''
-        super().__init__(sample=sample, collection=collection, name=name, **kwargs)
+        super().__init__(
+            sample, collection=collection, name=name, required_only=required_only, **kwargs
+        )
 
         if hasattr(self, 'attr_links'):
             self.attr_links = [ItemLinkSample(**link) for link in self.attr_links]
@@ -413,10 +496,10 @@ class ItemSample(SampleData):
 
         Args:
             remove_relations: bool
-                remove relational attributes (links)
+                Remove relational attributes (links).
 
         Returns:
-            Dictionary with the sample attributes to use to create a DB object
+            Dictionary with the sample attributes to use to create a DB object.
         '''
         attributes = super().get_attributes(remove_relations)
 
@@ -433,7 +516,7 @@ class ItemSample(SampleData):
         the read API payload.
 
         Returns
-            A dictionary with the sample data
+            A dictionary with the sample data.
         '''
         json_data = {
             key: value for key, value in super().json.items() if not key.startswith('properties_')
@@ -448,24 +531,11 @@ class ItemSample(SampleData):
             json_data['links'] = [link.json for link in self.attr_links]
         return json_data
 
-    def _get_properties(self):
-        properties = {}
-        for attribute in self.__dict__:
-            if not attribute.startswith('attr_properties_'):
-                continue
-            key = attribute[16:]
-            value = getattr(self, attribute)
-            properties[key] = value
-            if key.endswith('datetime') and isinstance(value, datetime):
-                properties[key] = isoformat(value)
-
-        return properties
-
     def create(self):
         '''Create the sample in DB
 
         Returns:
-            the DB sample (model object)
+            The DB sample (model object).
         '''
         attributes = self.get_attributes(remove_relations=False)
         links = attributes.pop('links', [])
@@ -481,7 +551,7 @@ class ItemSample(SampleData):
         If the data has not yet been created in DB, then it is created.
 
         Returns:
-            list of link model instances
+            List of link model instances.
         '''
         if not self.model_links_instance:
             attributes = self.get_attributes(remove_relations=False)
@@ -490,6 +560,19 @@ class ItemSample(SampleData):
                 self._create_model(attributes)
             self._create_model_links(links)
         return self.model_links_instance
+
+    def _get_properties(self):
+        properties = {}
+        for attribute in self.__dict__:
+            if not attribute.startswith('attr_properties_'):
+                continue
+            key = attribute[16:]
+            value = getattr(self, attribute)
+            properties[key] = value
+            if key.endswith('datetime') and isinstance(value, datetime):
+                properties[key] = isoformat(value)
+
+        return properties
 
     def _create_model(self, attributes):
         attributes.pop('links', None)
@@ -524,23 +607,23 @@ class AssetSample(SampleData):
         'title', 'description', 'eo_gsd', 'geoadmin_variant', 'geoadmin_lang', 'proj_epsg', 'file'
     ]
 
-    def __init__(self, sample='asset-1', item=None, name=None, **kwargs):
+    def __init__(self, item, sample='asset-1', name=None, required_only=False, **kwargs):
         '''Create a item sample data
 
         Args:
-            sample: string
-                Name of the sample based to use, see tests.sample_data.asset_samples
-            required_only: bool
-                return only attributes that are required (minimum sample data)
             item: Item
-                Item DB object relations
+                Item DB object relations.
+            sample: string
+                Name of the sample based to use, see tests.sample_data.asset_samples.assets.
             name: string
-                Overwrite the sample name
+                Overwrite the sample name.
+            required_only: bool
+                Return only attributes that are required (minimum sample data).
             **kwargs:
-                any parameter will overwrite existing attributes
+                Any parameter will overwrite existing attributes.
         '''
         self.attr_name = name
-        super().__init__(sample=sample, item=item, name=name, **kwargs)
+        super().__init__(sample, item=item, name=name, required_only=required_only, **kwargs)
 
         file = getattr(self, 'attr_file', None)
         if file:
@@ -557,7 +640,7 @@ class AssetSample(SampleData):
         the read API payload.
 
         Returns
-            A dictionary with the sample data
+            A dictionary with the sample data.
         '''
         # pylint: disable=no-member
         data = super().json
@@ -590,26 +673,28 @@ class FactoryBase:
         )
         return last
 
-    def create_sample(self, name=None, db_create=False, **kwargs):
+    def create_sample(self, sample, name=None, db_create=False, **kwargs):
         '''Create a data sample
 
         Args:
+            sample: string
+                Sample based on the sample named found in tests.sample_data.
             name: string
                 Data name, if not given it creates a '{factory_name}-n' with n being incremented
-                after each function call
-            sample: string
-                sample based on the sample named found in tests.sample_data
+                after each function call.
+            db_create: bool
+                Create the sample in the DB.
             **kwargs:
-                key/value pairs used to overwrite arbitrary attribute in the sample
+                Key/value pairs used to overwrite arbitrary attribute in the sample.
 
         Returns:
-            The data sample
+            The data sample.
         '''
         if name:
-            data_sample = self.sample_class(name=name, **kwargs)
+            data_sample = self.sample_class(sample=sample, name=name, **kwargs)
         else:
             self.last = self.get_last_name(self.last)
-            data_sample = self.sample_class(name=self.last, **kwargs)
+            data_sample = self.sample_class(sample=sample, name=self.last, **kwargs)
         if db_create:
             data_sample.create()
         return data_sample
@@ -619,17 +704,14 @@ class FactoryBase:
 
         Args:
             samples: integer | [string]
-                number of DB sample to create or list of sample data name
+                Number of DB sample to create or list of sample data name.
             db_create: bool
-                create the sample in the DB
-            sample: string
-                sample name to use for all new samples
-                (NOTE: overwrite the name in samples parameter)
+                Create the sample in the DB.
             kwargs_list: bool
                 If set to true, then kwargs with list values are distributed over the samples,
                 otherwise the kwargs are passed as is to the sample.
             **kwargs:
-                key/value pairs used to overwrite arbitrary attribute in the sample
+                Key/value pairs used to overwrite arbitrary attribute in the sample..
 
         Returns:
             Array with the DB samples
@@ -655,28 +737,31 @@ class ProviderFactory(FactoryBase):
 
 
 class LinkFactory(FactoryBase):
-    # pylint: disable=arguments-differ
     factory_name = 'relation'
 
-    def create_sample(self, rel=None, **kwargs):
+    def create_sample(self, rel=None, sample=None, required_only=False, **kwargs):
         '''Create a data sample
 
         Args:
             rel: string
                 Data rel, if not given it creates a 'rel-n' with n being incremented
-                after each function call
+                after each function call.
             sample: string
-                sample based on the sample named found in tests.sample_data
+                Sample based on the sample named found in tests.sample_data.
+            required_only: bool
+                Return only attributes that are required (minimum sample data).
             **kwargs:
-                key/value pairs used to overwrite arbitrary attribute in the sample
+                Key/value pairs used to overwrite arbitrary attribute in the sample.
 
         Returns:
-            The data sample
+            The data sample.
         '''
         if rel:
-            return self.sample_class(rel=rel, **kwargs)
+            return self.sample_class(rel=rel, sample=sample, required_only=required_only, **kwargs)
         self.last = self.get_last_name(self.last)
-        return self.sample_class(rel=self.last, **kwargs)
+        return self.sample_class(
+            rel=self.last, sample=sample, required_only=required_only, **kwargs
+        )
 
 
 class CollectionLinkFactory(LinkFactory):
@@ -688,41 +773,46 @@ class CollectionFactory(FactoryBase):
     factory_name = 'collection'
     sample_class = CollectionSample
 
-    def create_sample(self, name=None, db_create=False, **kwargs):
+    def create_sample(
+        self, name=None, sample='collection-1', db_create=False, required_only=False, **kwargs
+    ):
         '''Create a collection data sample
 
         Args:
             name: string
                 Data name, if not given it creates a 'collection-n' with n being incremented
-                after each function call
+                after each function call.
             sample: string
-                sample based on the sample named found in tests.sample_data
+                Sample based on the sample named found in
+                tests.sample_data.collection_samples.collections dictionary.
             db_create: bool
-                create the sample in the DB
+                Create the sample in the DB.
+            required_only: bool
+                Return only attributes that are required (minimum sample data).
             **kwargs:
-                key/value pairs used to overwrite arbitrary attribute in the sample
+                Key/value pairs used to overwrite arbitrary attribute in the sample.
 
         Returns:
             The data sample
         '''
-        return super().create_sample(name=name, db_create=db_create, **kwargs)
+        return super().create_sample(
+            name=name, sample=sample, db_create=db_create, required_only=required_only, **kwargs
+        )
 
     def create_samples(self, samples, db_create=False, kwargs_list=True, **kwargs):
         '''Creates several Collection samples
 
         Args:
             samples: integer | [string]
-                number of DB sample to create or list of sample data name
+                Number of DB sample to create or list of sample data name. These names should be
+                in the dictionary keys of tests.sample_data.collection_samples.collections.
             db_create: bool
-                create the sample in the DB
-            sample: string
-                sample name to use for all new samples
-                (NOTE: overwrite the name in samples parameter)
+                Create the sample in the DB.
             kwargs_list: bool
                 If set to true, then kwargs with list values are distributed over the samples,
                 otherwise the kwargs are passed as is to the sample.
             **kwargs:
-                key/value pairs used to overwrite arbitrary attribute in the sample
+                Key/value pairs used to overwrite arbitrary attribute in the sample.
 
         Returns:
             Array with the DB samples
@@ -738,49 +828,64 @@ class ItemLinkFactory(FactoryBase):
 
 
 class ItemFactory(FactoryBase):
-    # pylint: disable=arguments-differ
     factory_name = 'item'
     sample_class = ItemSample
 
-    def create_sample(self, collection, name=None, db_create=False, **kwargs):
+    def create_sample(
+        self,
+        collection,
+        name=None,
+        sample='item-1',
+        db_create=False,
+        required_only=False,
+        **kwargs
+    ):
         '''Create an Item data sample
 
         Args:
             collection: Collection
-                Collection model object in which to create an Item
+                Collection model object in which to create an Item.
             name: string
                 Data name, if not given it creates a 'item-n' with n being incremented
-                after each function call
+                after each function call.
             sample: string
-                sample based on the sample named found in tests.sample_data
+                Sample based on the sample named found in tests.sample_data.item_samples.items
+                dictionary.
             db_create: bool
-                create the sample in the DB
+                Create the sample in the DB.
+            required_only: bool
+                Return only attributes that are required (minimum sample data).
             **kwargs:
-                key/value pairs used to overwrite arbitrary attribute in the sample
+                Key/value pairs used to overwrite arbitrary attribute in the sample.
 
         Returns:
             The data sample
         '''
-        return super().create_sample(name, collection=collection, db_create=db_create, **kwargs)
+        return super().create_sample(
+            sample,
+            collection=collection,
+            name=name,
+            db_create=db_create,
+            required_only=required_only,
+            **kwargs
+        )
 
     def create_samples(self, samples, collection, db_create=False, **kwargs):
         '''Creates several Item samples
 
         Args:
             samples: integer | [string]
-                number of DB sample to create or list of sample data name
+                Number of DB sample to create or list of sample data name. These names should be
+                in the dictionary keys of tests.sample_data.item_samples.items.
             collection: Collection
-                Collection model object in which to create an Item
+                Collection model object in which to create an Item.
             db_create: bool
-                create the sample in the DB
-            sample: string
-                sample name to use for all new samples
-                (NOTE: overwrite the name in samples parameter)
+                Create the sample in the DB.
             kwargs_list: bool
                 If set to true, then kwargs with list values are distributed over the samples,
                 otherwise the kwargs are passed as is to the sample.
             **kwargs:
-                key/value pairs used to overwrite arbitrary attribute in the sample
+                Key/value pairs used to overwrite arbitrary attribute in the sample.
 
         Returns:
             Array with the DB samples
@@ -789,54 +894,63 @@ class ItemFactory(FactoryBase):
 
 
 class AssetFactory(FactoryBase):
-    # pylint: disable=arguments-differ
     factory_name = 'asset'
     sample_class = AssetSample
 
-    def create_sample(self, item, name=None, db_create=False, **kwargs):
+    def create_sample(
+        self, item, name=None, sample='asset-1', db_create=False, required_only=False, **kwargs
+    ):
         '''Create an Asset data sample
 
         Args:
             item: Item
-                Item model object in which to create an Asset
+                Item model object in which to create an Asset.
             name: string
                 Data name, if not given it creates a 'asset-n' with n being incremented
-                after each function call
+                after each function call.
             sample: string
-                sample based on the sample named found in tests.sample_data
+                Sample based on the sample named found in tests.sample_data.asset_samples.assets
+                dictionary.
+            required_only: bool
+                Return only attributes that are required (minimum sample data).
             **kwargs:
-                key/value pairs used to overwrite arbitrary attribute in the sample
+                Key/value pairs used to overwrite arbitrary attribute in the sample.
 
         Returns:
             The data sample
         '''
-        return super().create_sample(name, item=item, db_create=db_create, **kwargs)
+        return super().create_sample(
+            sample,
+            name=name,
+            item=item,
+            db_create=db_create,
+            required_only=required_only,
+            **kwargs
+        )
 
     def create_samples(self, samples, item, db_create=False, **kwargs):
         '''Creates several Asset samples
 
         Args:
             samples: integer | [string]
-                number of DB sample to create or list of sample data name
+                Number of DB sample to create or list of sample data name. These names should be
+                in the dictionary keys of tests.sample_data.asset_samples.assets.
             db_create: bool
-                create the sample in the DB
-            sample: string
-                sample name to use for all new samples
-                (NOTE: overwrite the name in samples parameter)
+                Create the sample in the DB.
             kwargs_list: bool
                 If set to true, then kwargs with list values are distributed over the samples,
                 otherwise the kwargs are passed as is to the sample.
             **kwargs:
-                key/value pairs used to overwrite arbitrary attribute in the sample
+                Key/value pairs used to overwrite arbitrary attribute in the sample.
 
         Returns:
-            Array with the DB samples
+            Array with the DB samples.
         '''
         return super().create_samples(samples, item=item, db_create=db_create, **kwargs)
 
 
 class Factory:
-    '''Factory for data samples
+    '''Factory for data samples (Collection, Item and Asset)
     '''
 
     def __init__(self):
@@ -844,25 +958,30 @@ class Factory:
         self.items = ItemFactory()
         self.assets = AssetFactory()
 
-    def create_collection_sample(self, db_create=False, required_only=False, **kwargs):
+    def create_collection_sample(
+        self, name=None, sample='collection-1', db_create=False, required_only=False, **kwargs
+    ):
         '''Create a collection data sample
 
         Args:
             name: string
                 Data name, if not given it creates a 'collection-n' with n being incremented
-                after each function call
+                after each function call.
             sample: string
-                sample based on the sample named found in tests.sample_data
+                Sample based on the sample named found in
+                tests.sample_data.collection_samples.collections dictionary.
             db_create: bool
-                create the sample in the DB
+                Create the sample in the DB.
+            required_only: bool
+                Return only attributes that are required (minimum sample data).
             **kwargs:
-                key/value pairs used to overwrite arbitrary attribute in the sample
+                Key/value pairs used to overwrite arbitrary attribute in the sample.
 
         Returns:
-            The data sample
+            The data sample.
         '''
         return self.collections.create_sample(
-            db_create=db_create, required_only=required_only, **kwargs
+            name=name, sample=sample, db_create=db_create, required_only=required_only, **kwargs
         )
 
     def create_collection_samples(self, samples, db_create=False, **kwargs):
@@ -870,24 +989,30 @@ class Factory:
 
         Args:
             samples: integer | [string]
-                number of DB sample to create or list of sample data name
+                Number of DB sample to create or list of sample data name. These names should be
+                in the dictionary keys of tests.sample_data.collection_samples.collections.
             db_create: bool
-                create the sample in the DB
-            sample: string
-                sample name to use for all new samples
-                (NOTE: overwrite the name in samples parameter)
+                Create the sample in the DB.
             kwargs_list: bool
                 If set to true, then kwargs with list values are distributed over the samples,
                 otherwise the kwargs are passed as is to the sample.
             **kwargs:
-                key/value pairs used to overwrite arbitrary attribute in the sample
+                Key/value pairs used to overwrite arbitrary attribute in the sample.
 
         Returns:
-            Array with the DB samples
+            Array with the DB samples.
         '''
         return self.collections.create_samples(samples, db_create=db_create, **kwargs)
 
-    def create_item_sample(self, collection, db_create=False, required_only=False, **kwargs):
+    def create_item_sample(
+        self,
+        collection,
+        name=None,
+        sample='item-1',
+        db_create=False,
+        required_only=False,
+        **kwargs
+    ):
         '''Create an Item data sample
 
         Args:
@@ -895,19 +1020,27 @@ class Factory:
                 Collection model object in which to create an Item
             name: string
                 Data name, if not given it creates a 'item-n' with n being incremented
-                after each function call
+                after each function call.
             sample: string
-                sample based on the sample named found in tests.sample_data
+                Sample based on the sample named found in tests.sample_data.item_samples.items
+                dictionary.
             db_create: bool
-                create the sample in the DB
+                Create the sample in the DB.
+            required_only: bool
+                Return only attributes that are required (minimum sample data).
             **kwargs:
-                key/value pairs used to overwrite arbitrary attribute in the sample
+                Key/value pairs used to overwrite arbitrary attribute in the sample.
 
         Returns:
-            The data sample
+            The data sample.
         '''
         return self.items.create_sample(
-            collection, db_create=db_create, required_only=required_only, **kwargs
+            collection,
+            name=name,
+            sample=sample,
+            db_create=db_create,
+            required_only=required_only,
+            **kwargs
         )
 
     def create_item_samples(self, samples, collection, db_create=False, **kwargs):
@@ -915,44 +1048,52 @@ class Factory:
 
         Args:
             samples: integer | [string]
-                number of DB sample to create or list of sample data name
+                Number of DB sample to create or list of sample data name. These names should be
+                in the dictionary keys of tests.sample_data.item_samples.items.
             collection: Collection
-                Collection model object in which to create an Item
+                Collection model object in which to create an Item.
             db_create: bool
-                create the sample in the DB
-            sample: string
-                sample name to use for all new samples
-                (NOTE: overwrite the name in samples parameter)
+                Create the sample in the DB.
             kwargs_list: bool
                 If set to true, then kwargs with list values are distributed over the samples,
                 otherwise the kwargs are passed as is to the sample.
             **kwargs:
-                key/value pairs used to overwrite arbitrary attribute in the sample
+                Key/value pairs used to overwrite arbitrary attribute in the sample.
 
         Returns:
-            Array with the DB samples
+            Array with the DB samples.
         '''
         return self.items.create_samples(samples, collection, db_create=db_create, **kwargs)
 
-    def create_asset_sample(self, item, db_create=False, required_only=False, **kwargs):
+    def create_asset_sample(
+        self, item, name=None, sample='asset-1', db_create=False, required_only=False, **kwargs
+    ):
         '''Create an Asset data sample
 
         Args:
             item: Item
-                Item model object in which to create an Asset
+                Item model object in which to create an Asset.
             name: string
                 Data name, if not given it creates a 'asset-n' with n being incremented
-                after each function call
+                after each function call.
             sample: string
-                sample based on the sample named found in tests.sample_data
+                Sample based on the sample named found in tests.sample_data.asset_samples.assets
+                dictionary.
+            required_only: bool
+                Return only attributes that are required (minimum sample data).
             **kwargs:
-                key/value pairs used to overwrite arbitrary attribute in the sample
+                Key/value pairs used to overwrite arbitrary attribute in the sample.
 
         Returns:
-            The data sample
+            The data sample.
         '''
         return self.assets.create_sample(
-            item, db_create=db_create, required_only=required_only, **kwargs
+            item,
+            name=name,
+            sample=sample,
+            db_create=db_create,
+            required_only=required_only,
+            **kwargs
         )
 
     def create_asset_samples(self, samples, item, db_create=False, **kwargs):
@@ -960,19 +1101,17 @@ class Factory:
 
         Args:
             samples: integer | [string]
-                number of DB sample to create or list of sample data name
+                Number of DB sample to create or list of sample data name. These names should be
+                in the dictionary keys of tests.sample_data.asset_samples.assets.
             db_create: bool
-                create the sample in the DB
-            sample: string
-                sample name to use for all new samples
-                (NOTE: overwrite the name in samples parameter)
+                Create the sample in the DB.
             kwargs_list: bool
                 If set to true, then kwargs with list values are distributed over the samples,
                 otherwise the kwargs are passed as is to the sample.
             **kwargs:
-                key/value pairs used to overwrite arbitrary attribute in the sample
+                Key/value pairs used to overwrite arbitrary attribute in the sample.
 
         Returns:
-            Array with the DB samples
+            Array with the DB samples-.
         '''
         return self.assets.create_samples(samples, item, db_create=db_create, **kwargs)
