@@ -604,7 +604,14 @@ class AssetSample(SampleData):
         'checksum_multihash': 'checksum:multihash'
     }
     optional_fields = [
-        'title', 'description', 'eo_gsd', 'geoadmin_variant', 'geoadmin_lang', 'proj_epsg', 'file'
+        'title',
+        'description',
+        'eo_gsd',
+        'geoadmin_variant',
+        'geoadmin_lang',
+        'proj_epsg',
+        'file',
+        'checksum_multihash'
     ]
 
     def __init__(self, item, sample='asset-1', name=None, required_only=False, **kwargs):

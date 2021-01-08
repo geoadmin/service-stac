@@ -9,6 +9,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 
 from stac_api.utils import get_s3_resource
+from stac_api.utils import get_sha256_multihash
 
 logger = logging.getLogger(__name__)
 
@@ -108,7 +109,9 @@ def mock_requests_asset_file(mocker, asset):
     '''
     mocker.head(
         f'http://{settings.AWS_S3_CUSTOM_DOMAIN}/{asset["item"].collection.name}/{asset["item"].name}/{asset["name"]}',
-        headers={'x-amz-meta-sha256': asset.get("checksum_multihash", '0000')[4:]}
+        headers={
+            'x-amz-meta-sha256': asset.get("checksum_multihash", get_sha256_multihash(b''))[4:]
+        }
     )
 
 
