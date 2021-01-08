@@ -396,12 +396,13 @@ class Collection(models.Model):
 
         logger.debug(
             'Collection update summaries: '
-            'trigger=%s, asset=%s, old_values=%s, current_summaries=%s',
+            'trigger=%s, asset=%s, old_values=%s, new_values=%s, current_summaries=%s',
             trigger,
             asset,
             old_values,
+            [asset.eo_gsd, asset.geoadmin_variant, asset.proj_epsg],
             self.summaries,
-            extra={'collection': self.name}
+            extra={'collection': self.name},
         )
 
         if trigger == 'delete':
