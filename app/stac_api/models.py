@@ -43,17 +43,13 @@ _BBOX_CH.srid = 4326
 # 'SRID=4326;POLYGON ((5.96 45.82, 5.96 47.81, 10.49 47.81, 10.49 45.82, 5.96 45.82))'
 BBOX_CH = str(_BBOX_CH)
 
-DEFAULT_EXTENT_VALUE = {"spatial": {"bbox": [[None]]}, "temporal": {"interval": [[None, None]]}}
-
-DEFAULT_SUMMARIES_VALUE = {"eo:gsd": [], "geoadmin:variant": [], "proj:epsg": []}
-
 
 def get_default_extent_value():
-    return DEFAULT_EXTENT_VALUE
+    return dict({"spatial": {"bbox": [[None]]}, "temporal": {"interval": [[None, None]]}})
 
 
 def get_default_summaries_value():
-    return DEFAULT_SUMMARIES_VALUE
+    return dict({"eo:gsd": [], "geoadmin:variant": [], "proj:epsg": []})
 
 
 def get_conformance_default_links():
@@ -398,6 +394,16 @@ class Collection(models.Model):
             bool: True if the collection summaries has been updated, false otherwise
         '''
 
+        logger.debug(
+            'Collection update summaries: '
+            'trigger=%s, asset=%s, old_values=%s, current_summaries=%s',
+            trigger,
+            asset,
+            old_values,
+            self.summaries,
+            extra={'collection': self.name}
+        )
+
         if trigger == 'delete':
             return update_summaries_on_asset_delete(self, asset)
         if trigger == 'update':
@@ -437,9 +443,7 @@ ITEM_KEEP_ORIGINAL_FIELDS = [
 
 
 class Item(models.Model):
-    name = models.CharField(
-        'id', blank=False, max_length=255, validators=[validate_name]
-    )
+    name = models.CharField('id', blank=False, max_length=255, validators=[validate_name])
     collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
     geometry = models.PolygonField(
         null=False, blank=False, default=BBOX_CH, srid=4326, validators=[validate_geometry]

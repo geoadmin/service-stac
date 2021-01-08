@@ -41,7 +41,7 @@ Starting postgres and MinIO is done with a simple
 
 ```
 docker-compose up
-``` 
+```
 
 in the source root folder (this is automatically done if you `make setup`). Make sure to run `make setup` before to ensure the necessary folders `.volumes/*` are in place. These folders are mounted in the services and allow data persistency over restarts of the containers.
 

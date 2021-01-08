@@ -2026,7 +2026,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/collection"
-          $ref: "#/components/responses/Collection"
         "403":
           $ref: "#/components/responses/PermissionDenied"
         "404":

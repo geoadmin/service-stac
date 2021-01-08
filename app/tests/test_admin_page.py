@@ -1,15 +1,10 @@
 import logging
+import time
 from io import BytesIO
 
-import boto3
-import botocore
-from moto import mock_s3
-
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import Client
 from django.test import TestCase
-from django.test import override_settings
 from django.urls import reverse
 
 from stac_api.models import Asset
@@ -20,17 +15,13 @@ from stac_api.models import ItemLink
 from stac_api.models import Provider
 
 from tests.utils import S3TestMixin
+from tests.utils import mock_s3_asset_file
 
 logger = logging.getLogger(__name__)
 
-
 #--------------------------------------------------------------------------------------------------
-@override_settings(
-    AWS_ACCESS_KEY_ID='mykey',
-    AWS_DEFAULT_ACL='public-read',
-    AWS_S3_REGION_NAME='wonderland',
-    AWS_S3_ENDPOINT_URL=None
-)
+
+
 class AdminBaseTestCase(TestCase):
 
     def setUp(self):
@@ -177,24 +168,8 @@ class AdminBaseTestCase(TestCase):
 
         return item, data, link
 
-    @mock_s3
     def _create_asset(self, item, extra=None):
-
-        # Check if the bucket exists and if not, create it
-        s3 = boto3.resource('s3', region_name='wonderland')
-        try:
-            s3.meta.client.head_bucket(Bucket=settings.AWS_STORAGE_BUCKET_NAME)
-        except botocore.exceptions.ClientError as error:
-            # If a client error is thrown, then check that it was a 404 error.
-            # If it was a 404 error, then the bucket does not exist.
-            error_code = error.response['Error']['Code']
-            if error_code == '404':
-                # We need to create the bucket since this is all in Moto's 'virtual' AWS account
-                bucket = s3.create_bucket(
-                    Bucket=settings.AWS_STORAGE_BUCKET_NAME,
-                    CreateBucketConfiguration={'LocationConstraint': 'wonderland'}
-                )
-
+        start = time.time()
         filecontent = b'mybinarydata'
         filelike = BytesIO(filecontent)
         filelike.name = 'testname.tiff'
@@ -212,6 +187,7 @@ class AdminBaseTestCase(TestCase):
             "file": filelike
         }
         response = self.client.post("/api/stac/admin/stac_api/asset/add/", data)
+        logger.debug('Asset created in %fs', time.time() - start)
 
         # Status code for successful creation is 302, since in the admin UI
         # you're redirected to the list view after successful creation
@@ -407,6 +383,7 @@ class AdminCollectionTestCase(AdminBaseTestCase):
             msg="Deleted link still in DB"
         )
 
+    @mock_s3_asset_file
     def test_add_remove_collection(self):
         # Login the user first
         self.client.login(username=self.username, password=self.password)
@@ -568,6 +545,7 @@ class AdminItemTestCase(AdminBaseTestCase):
             msg="Deleted link still in DB"
         )
 
+    @mock_s3_asset_file
     def test_add_remove_item(self):
         # Login the user first
         self.client.login(username=self.username, password=self.password)
@@ -594,34 +572,15 @@ class AdminItemTestCase(AdminBaseTestCase):
 
 
 #--------------------------------------------------------------------------------------------------
-@override_settings(
-    AWS_ACCESS_KEY_ID='mykey',
-    AWS_DEFAULT_ACL='public-read',
-    AWS_S3_REGION_NAME='wonderland',
-    AWS_S3_ENDPOINT_URL=None,
-    AWS_S3_CUSTOM_DOMAIN=None
-)
-@mock_s3
+
+
 class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
 
     def setUp(self):
         super().setUp()
         self._setup(create_collection=True, create_item=True)
-        # Check if the bucket exists and if not, create it
-        s3 = boto3.resource('s3', region_name='wonderland')
-        try:
-            s3.meta.client.head_bucket(Bucket=settings.AWS_STORAGE_BUCKET_NAME)
-        except botocore.exceptions.ClientError as error:
-            # If a client error is thrown, then check that it was a 404 error.
-            # If it was a 404 error, then the bucket does not exist.
-            error_code = error.response['Error']['Code']
-            if error_code == '404':
-                # We need to create the bucket since this is all in Moto's 'virtual' AWS account
-                bucket = s3.create_bucket(
-                    Bucket=settings.AWS_STORAGE_BUCKET_NAME,
-                    CreateBucketConfiguration={'LocationConstraint': 'wonderland'}
-                )
 
+    @mock_s3_asset_file
     def test_add_update_asset(self):
         # Login the user first
         self.client.login(username=self.username, password=self.password)
@@ -696,6 +655,7 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
             msg="Asset with invalid data has been added to db"
         )
 
+    @mock_s3_asset_file
     def test_add_remove_asset(self):
         # Login the user first
         self.client.login(username=self.username, password=self.password)

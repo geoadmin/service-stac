@@ -6,12 +6,12 @@ from django.test import TestCase
 from stac_api.models import Item
 from stac_api.utils import utc_aware
 
-import tests.database as db
+from tests.data_factory import Factory
 
 logger = logging.getLogger(__name__)
 
 
-class CollectionsModelTestCase(TestCase):
+class CollectionsModelTemporalExtentTestCase(TestCase):
 
     y100 = utc_aware(datetime.strptime('0100-01-01T00:00:00Z', '%Y-%m-%dT%H:%M:%SZ'))
     y150 = utc_aware(datetime.strptime('0150-01-01T00:00:00Z', '%Y-%m-%dT%H:%M:%SZ'))
@@ -23,34 +23,25 @@ class CollectionsModelTestCase(TestCase):
     y9500 = utc_aware(datetime.strptime('9500-01-01T00:00:00Z', '%Y-%m-%dT%H:%M:%SZ'))
 
     def setUp(self):
-        self.collection = db.create_collection('collection-1')
+        self.factory = Factory()
+        self.collection = self.factory.create_collection_sample().model
 
     def add_range_item(self, start, end, name):
-        item = Item.objects.create(
-            collection=self.collection,
+        item = self.factory.create_item_sample(
+            self.collection,
             name=name,
+            sample='item-2',
             properties_start_datetime=start,
             properties_end_datetime=end,
-            properties_title="My title",
         )
-        db.create_item_links(item)
-        item.full_clean()
-        item.save()
-        self.collection.save()
-        return item
+        item.create()
+        return item.model
 
     def add_single_datetime_item(self, datetime_val, name):
-        item = Item.objects.create(
-            collection=self.collection,
-            name=name,
-            properties_datetime=datetime_val,
-            properties_title="My Title",
+        item = self.factory.create_item_sample(
+            self.collection, name=name, properties_datetime=datetime_val
         )
-        db.create_item_links(item)
-        item.full_clean()
-        item.save()
-        self.collection.save()
-        return item
+        return item.model
 
     def test_update_temporal_extent_range(self):
         # Tests if the collection's temporal extent is correctly updated, when
