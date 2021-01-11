@@ -132,12 +132,14 @@ class SampleData:
         # Sets attributes from sample
         for key, value in sample.items():
             setattr(self, f'attr_{key}', value)
-        # overwrite sample data with kwargs
-        for key, value in kwargs.items():
-            setattr(self, f'attr_{key}', value)
 
         if required_only:
+            # remove optional fields
             self._filter_optional(self.optional_fields)
+
+        # overwrite/add sample data with kwargs
+        for key, value in kwargs.items():
+            setattr(self, f'attr_{key}', value)
 
         self.model_instance = None
 

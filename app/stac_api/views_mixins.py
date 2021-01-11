@@ -59,9 +59,13 @@ class UpdateModelMixin:
 
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
+        hide_fields = kwargs.pop('hide_fields', [])
+        serializer_kwargs = {'partial': partial}
+        if hide_fields:
+            serializer_kwargs['hide_fields'] = hide_fields
         instance = self.get_object()
         data = self.get_write_request_data(request, partial=partial, *args, **kwargs)
-        serializer = self.get_serializer(instance, data=data, partial=partial)
+        serializer = self.get_serializer(instance, data=data, **serializer_kwargs)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
 

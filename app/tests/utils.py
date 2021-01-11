@@ -95,7 +95,7 @@ def mock_s3_asset_file(test_function):
     return wrapper
 
 
-def mock_requests_asset_file(mocker, asset):
+def mock_requests_asset_file(mocker, asset, **kwargs):
     '''Mock the HEAD request to the Asset file
 
     When creating/updating an Asset, the serializer verify if the file exists by doing a HEAD
@@ -106,12 +106,21 @@ def mock_requests_asset_file(mocker, asset):
             python requests mocker.
         asset:
             Asset sample used to create/modify an asset
+        **kwargs:
+            Arguments to pass to the mocker.
     '''
+    headers = kwargs.pop('headers', {})
+    if 'x-amz-meta-sha256' not in headers:
+        headers['x-amz-meta-sha256'] = asset.get("checksum_multihash",
+                                                 get_sha256_multihash(b''))[4:]
+    elif headers['x-amz-meta-sha256'] is None:
+        headers.pop('x-amz-meta-sha256')
+
+    if 'exc' not in kwargs:
+        kwargs['headers'] = headers
     mocker.head(
         f'http://{settings.AWS_S3_CUSTOM_DOMAIN}/{asset["item"].collection.name}/{asset["item"].name}/{asset["name"]}',
-        headers={
-            'x-amz-meta-sha256': asset.get("checksum_multihash", get_sha256_multihash(b''))[4:]
-        }
+        **kwargs
     )
 
 
