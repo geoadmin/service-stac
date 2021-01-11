@@ -25,37 +25,41 @@ class ItemsModelTestCase(TestCase):
         self.collection = Collection.objects.get(name='collection-1')
 
     def test_item_create_model(self):
-        item = Item.objects.create(
+        item = Item(
             collection=self.collection,
             name='item-1',
             properties_datetime=utc_aware(datetime.utcnow())
         )
         item.full_clean()
+        item.save()
         self.assertEqual('item-1', item.name)
 
     def test_item_create_model_invalid_datetime(self):
         with self.assertRaises(ValidationError, msg="no datetime is invalid"):
-            item = Item.objects.create(collection=self.collection, name='item-1')
-            item.clean()
+            item = Item(collection=self.collection, name='item-1')
+            item.full_clean()
+            item.save()
 
         with self.assertRaises(ValidationError, msg="only start_datetime is invalid"):
-            item = Item.objects.create(
+            item = Item(
                 collection=self.collection,
                 name='item-2',
                 properties_start_datetime=utc_aware(datetime.utcnow())
             )
             item.full_clean()
+            item.save()
 
         with self.assertRaises(ValidationError, msg="only end_datetime is invalid"):
-            item = Item.objects.create(
+            item = Item(
                 collection=self.collection,
                 name='item-3',
                 properties_end_datetime=utc_aware(datetime.utcnow())
             )
             item.full_clean()
+            item.save()
 
         with self.assertRaises(ValidationError, msg="datetime is not allowed with start_datetime"):
-            item = Item.objects.create(
+            item = Item(
                 collection=self.collection,
                 name='item-4',
                 properties_datetime=utc_aware(datetime.utcnow()),
@@ -63,36 +67,36 @@ class ItemsModelTestCase(TestCase):
                 properties_end_datetime=utc_aware(datetime.utcnow())
             )
             item.full_clean()
+            item.save()
 
         with self.assertRaises(ValidationError):
-            item = Item.objects.create(
-                collection=self.collection, name='item-1', properties_datetime='asd'
-            )
-
-        with self.assertRaises(ValidationError):
-            item = Item.objects.create(
-                collection=self.collection, name='item-4', properties_start_datetime='asd'
-            )
+            item = Item(collection=self.collection, name='item-1', properties_datetime='asd')
             item.full_clean()
+            item.save()
 
         with self.assertRaises(ValidationError):
-            item = Item.objects.create(
-                collection=self.collection, name='item-1', properties_end_datetime='asd'
-            )
+            item = Item(collection=self.collection, name='item-4', properties_start_datetime='asd')
             item.full_clean()
+            item.save()
+
+        with self.assertRaises(ValidationError):
+            item = Item(collection=self.collection, name='item-1', properties_end_datetime='asd')
+            item.full_clean()
+            item.save()
 
         with self.assertRaises(
             ValidationError, msg="end_datetime must not be earlier than start_datetime"
         ):
             today = datetime.utcnow()
             yesterday = today - timedelta(days=1)
-            item = Item.objects.create(
+            item = Item(
                 collection=self.collection,
                 name='item-5',
                 properties_start_datetime=utc_aware(today),
                 properties_end_datetime=utc_aware(yesterday)
             )
             item.full_clean()
+            item.save()
 
     def test_item_create_model_valid_geometry(self):
         # a correct geometry should not pose any problems
@@ -106,6 +110,7 @@ class ItemsModelTestCase(TestCase):
             )
         )
         item.full_clean()
+        item.save()
 
     def test_item_create_model_invalid_geometry(self):
         # a geometry with self-intersection should not be allowed
@@ -120,6 +125,7 @@ class ItemsModelTestCase(TestCase):
                 )
             )
             item.full_clean()
+            item.save()
 
     def test_item_create_model_empty_geometry(self):
         # empty geometry should not be allowed
@@ -131,6 +137,7 @@ class ItemsModelTestCase(TestCase):
                 geometry=GEOSGeometry('POLYGON EMPTY')
             )
             item.full_clean()
+            item.save()
 
     def test_item_create_model_none_geometry(self):
         # None geometry should not be allowed
@@ -142,3 +149,4 @@ class ItemsModelTestCase(TestCase):
                 geometry=None
             )
             item.full_clean()
+            item.save()

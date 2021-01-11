@@ -5,8 +5,6 @@ import requests_mock
 from django.conf import settings
 from django.test import Client
 
-from stac_api.models import Collection
-from stac_api.models import Item
 from stac_api.utils import get_link
 
 from tests.base_test import StacBaseTestCase
@@ -132,13 +130,9 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
     def setUpTestData(cls):
         mock_s3_bucket()
         cls.factory = Factory()
-        cls.collection = cls.factory.create_collection_sample().model
-        cls.item = cls.factory.create_item_sample(collection=cls.collection).model
-        cls.asset = cls.factory.create_asset_sample(item=cls.item).model
-
-    def setUp(self):
-        self.collection = Collection.objects.get(name='collection-1')
-        self.item = Item.objects.get(name='item-1')
+        cls.collection = cls.factory.create_collection_sample(name='collection-1').model
+        cls.item = cls.factory.create_item_sample(collection=cls.collection, name='item-1').model
+        cls.asset = cls.factory.create_asset_sample(item=cls.item, name='asset-1').model
 
     def test_get_precondition(self):
         for endpoint in [

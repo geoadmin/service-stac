@@ -735,12 +735,21 @@ class ItemSerializer(NonNullModelSerializer):
         return super().update(instance, validated_data)
 
     def validate(self, attrs):
-        validate_item_properties_datetimes(
-            attrs.get('properties_datetime', None),
-            attrs.get('properties_start_datetime', None),
-            attrs.get('properties_end_datetime', None),
-            partial=self.partial
-        )
+        if (
+            not self.partial or \
+            'properties_datetime' in attrs or \
+            'properties_start_datetime' in attrs or \
+            'properties_end_datetime' in attrs
+        ):
+            validate_item_properties_datetimes(
+                attrs.get('properties_datetime', None),
+                attrs.get('properties_start_datetime', None),
+                attrs.get('properties_end_datetime', None)
+            )
+        else:
+            logger.info(
+                'Skip validation of item properties datetimes; partial update without datetimes'
+            )
 
         validate_json_payload(self)
 

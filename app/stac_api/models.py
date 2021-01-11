@@ -514,11 +514,6 @@ class Item(models.Model):
         # parameters
         collection_updated = False
 
-        # Make sure that the properties datetime are valid before updating the temporal extent
-        # This is needed because save() is called during the Item.object.create() function without
-        # calling clean() ! and our validation is done within clean() method.
-        self.clean()
-
         self.update_etag()
 
         trigger = get_save_trigger(self)

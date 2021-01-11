@@ -183,19 +183,16 @@ def validate_item_properties_datetimes_dependencies(
 
 
 def validate_item_properties_datetimes(
-    properties_datetime, properties_start_datetime, properties_end_datetime, partial=False
+    properties_datetime, properties_start_datetime, properties_end_datetime
 ):
     '''
     Validate datetime values in the properties Item attributes
     '''
-    if not partial:
-        # Do not validate dependencies in partial update, leave it to the validation to the model
-        # instance.
-        validate_item_properties_datetimes_dependencies(
-            properties_datetime,
-            properties_start_datetime,
-            properties_end_datetime,
-        )
+    validate_item_properties_datetimes_dependencies(
+        properties_datetime,
+        properties_start_datetime,
+        properties_end_datetime,
+    )
 
 
 def validate_asset_multihash(value):
