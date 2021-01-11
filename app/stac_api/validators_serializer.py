@@ -12,6 +12,8 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework.exceptions import APIException
 from rest_framework.exceptions import ValidationError
 
+from stac_api.utils import create_multihash
+from stac_api.utils import create_multihash_string
 from stac_api.utils import get_asset_path
 
 logger = logging.getLogger(__name__)
@@ -130,11 +132,17 @@ def validate_asset_file(href, attrs):
     except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as error:
         logger.error('Failed to check if asset exists at href %s, %s', href, error)
         raise ValidationError({'href': _("href location not responding")})
-
     except requests.exceptions.RequestException as error:
         logger.error('Failed to check if asset exists at href %s, %s', href, error)
         # here we raise for a 500 HTTP error code as this should not happen and is a server issue
         raise APIException({'href': _("Error while checking href existence")})
+
+    logger.debug(
+        'Asset file %s HEAD request; status_code=%d, headers=%s',
+        href,
+        response.status_code,
+        response.headers
+    )
 
     if response.status_code == 404:
         logger.error('Asset at href %s doesn\'t exists', href)
@@ -152,15 +160,11 @@ def validate_asset_file(href, attrs):
     # Get the hash from response
     asset_multihash = None
     asset_sha256 = response.headers.get('x-amz-meta-sha256', None)
-    asset_md5 = response.headers.get('etag', None)
+    asset_md5 = response.headers.get('etag', '').strip('"')
     if asset_sha256:
-        asset_multihash = multihash.decode(
-            multihash.encode(from_hex_string(asset_sha256), 'sha2-256')
-        )
+        asset_multihash = create_multihash(asset_sha256, 'sha2-256')
     elif asset_md5:
-        asset_multihash = multihash.decode(
-            multihash.encode(from_hex_string(asset_md5.strip('"')), 'md5')
-        )
+        asset_multihash = create_multihash(asset_md5, 'md5')
 
     if asset_multihash is None:
         logger.error(
@@ -168,46 +172,68 @@ def validate_asset_file(href, attrs):
             'or an ETag md5 checksum', href
         )
         raise APIException({
-            'href': _("Asset at href doesn't provide a valid checksum header "
+            'href': _(f"Asset at href {href} doesn't provide a valid checksum header "
                       "(ETag or x-amz-meta-sha256) for validation")
         })
 
     expected_multihash = attrs.get('checksum_multihash', None)
     if expected_multihash is None:
-        attrs['checksum_multihash'] = to_hex_string(
-            multihash.encode(asset_multihash.digest, asset_multihash.code)
+        # checksum_multihash attribute not found in attributes, therefore set it with the multihash
+        # created from the HEAD Header and terminates the validation
+        attrs['checksum_multihash'] = create_multihash_string(
+            asset_multihash.digest, asset_multihash.code
         )
         return attrs
 
+    # When a checksum_multihash is found in attributes then make sure that it match the checksum of
+    # found in the HEAD header.
+
+    _validate_asset_file_checksum(href, expected_multihash, asset_multihash)
+
+    return attrs
+
+
+def _validate_asset_file_checksum(href, expected_multihash, asset_multihash):
     expected_multihash = multihash.decode(from_hex_string(expected_multihash))
+
+    logger.debug(
+        'Validate asset file checksum at %s with multihash %s/%s, expected %s/%s',
+        href,
+        to_hex_string(asset_multihash.digest),
+        asset_multihash.name,
+        to_hex_string(expected_multihash.digest),
+        expected_multihash.name
+    )
 
     if asset_multihash.name != expected_multihash.name:
         logger.error(
-            'Asset at href %s, with %s multihash=%s, doesn\'t match the expected %s multihash %s',
+            'Asset at href %s, with multihash name=%s digest=%s, doesn\'t match the expected '
+            'multihash name=%s digest=%s',
             href,
             asset_multihash.name,
+            to_hex_string(asset_multihash.digest),
             expected_multihash.name,
-            asset_multihash,
-            expected_multihash
+            to_hex_string(expected_multihash.digest)
         )
         raise ValidationError(
             code='href',
-            detail=_(f"Asset at href has an {asset_multihash.name} multihash while an "
+            detail=_(f"Asset at href {href} has an {asset_multihash.name} multihash while an "
                      f"{expected_multihash.name} multihash is expected")
         )
 
     if asset_multihash != expected_multihash:
         logger.error(
-            'Asset at href %s, with multihash=%s, doesn\'t match the expected multihash %s',
+            'Asset at href %s, with multihash name=%s digest=%s, doesn\'t match the expected '
+            'multihash name=%s digest=%s',
             href,
-            asset_multihash,
-            expected_multihash
+            asset_multihash.name,
+            to_hex_string(asset_multihash.digest),
+            expected_multihash.name,
+            to_hex_string(expected_multihash.digest)
         )
         raise ValidationError(
             code='href',
-            detail=_(f"Asset at href with {asset_multihash.name} hash "
-                     f"{to_hex_string(asset_multihash.digest)} don't match expected "
+            detail=_(f"Asset at href {href} with {asset_multihash.name} hash "
+                     f"{to_hex_string(asset_multihash.digest)} don't match expected hash "
                      f"{to_hex_string(expected_multihash.digest)}")
         )
-
-    return attrs

@@ -252,51 +252,57 @@ class ItemsWriteEndpointTestCase(StacBaseTestCase):
         client_login(self.client)
 
     def test_item_endpoint_post_only_required(self):
-        data = self.factory.create_item_sample(self.collection, required_only=True).json
+        sample = self.factory.create_item_sample(self.collection, required_only=True)
         path = f'/{API_BASE}/collections/{self.collection.name}/items'
-        response = self.client.post(path, data=data, content_type="application/json")
+        response = self.client.post(
+            path, data=sample.get_json('post'), content_type="application/json"
+        )
         json_data = response.json()
         self.assertStatusCode(201, response)
-        self.check_header_location(f'{path}/{data["id"]}', response)
+        self.check_header_location(f'{path}/{sample.json["id"]}', response)
 
-        self.check_stac_item(data, json_data)
+        self.check_stac_item(sample.json, json_data)
 
         # Check the data by reading it back
         response = self.client.get(response['Location'])
         json_data = response.json()
         self.assertStatusCode(200, response)
-        self.check_stac_item(data, json_data)
+        self.check_stac_item(sample.json, json_data)
 
     def test_item_endpoint_post_extra_payload(self):
-        data = self.factory.create_item_sample(self.collection, extra_payload=True).json
+        data = self.factory.create_item_sample(self.collection, extra_payload=True).get_json('post')
         path = f'/{API_BASE}/collections/{self.collection.name}/items'
         response = self.client.post(path, data=data, content_type="application/json")
         self.assertStatusCode(400, response)
 
     def test_item_endpoint_post_read_only_in_payload(self):
-        data = self.factory.create_item_sample(self.collection, created=datetime.today()).json
+        data = self.factory.create_item_sample(self.collection,
+                                               created=datetime.today()).get_json('post')
         path = f'/{API_BASE}/collections/{self.collection.name}/items'
         response = self.client.post(path, data=data, content_type="application/json")
         self.assertStatusCode(400, response)
 
     def test_item_endpoint_post_full(self):
-        data = self.factory.create_item_sample(self.collection).json
+        sample = self.factory.create_item_sample(self.collection)
         path = f'/{API_BASE}/collections/{self.collection.name}/items'
-        response = self.client.post(path, data=data, content_type="application/json")
+        response = self.client.post(
+            path, data=sample.get_json('post'), content_type="application/json"
+        )
         json_data = response.json()
         self.assertStatusCode(201, response)
-        self.check_header_location(f'{path}/{data["id"]}', response)
+        self.check_header_location(f'{path}/{sample.json["id"]}', response)
 
-        self.check_stac_item(data, json_data)
+        self.check_stac_item(sample.json, json_data)
 
         # Check the data by reading it back
         response = self.client.get(response['Location'])
         json_data = response.json()
         self.assertStatusCode(200, response)
-        self.check_stac_item(data, json_data)
+        self.check_stac_item(sample.json, json_data)
 
     def test_item_endpoint_post_invalid_data(self):
-        data = self.factory.create_item_sample(self.collection, sample='item-invalid').json
+        data = self.factory.create_item_sample(self.collection,
+                                               sample='item-invalid').get_json('post')
         path = f'/{API_BASE}/collections/{self.collection.name}/items'
         response = self.client.post(path, data=data, content_type="application/json")
         self.assertStatusCode(400, response)
@@ -313,7 +319,7 @@ class ItemsWriteEndpointTestCase(StacBaseTestCase):
             properties_datetime=None,
             properties_start_datetime=None,
             properties_end_datetime=None
-        ).json
+        ).get_json('post')
         path = f'/{API_BASE}/collections/{self.collection.name}/items'
         response = self.client.post(path, data=data, content_type="application/json")
         self.assertStatusCode(400, response)
@@ -338,39 +344,43 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
         client_login(self.client)
 
     def test_item_endpoint_put(self):
-        data = self.factory.create_item_sample(
+        sample = self.factory.create_item_sample(
             self.collection, sample='item-2', name=self.item.name
-        ).json
+        )
         path = f'/{API_BASE}/collections/{self.collection.name}/items/{self.item.name}'
-        response = self.client.put(path, data=data, content_type="application/json")
+        response = self.client.put(
+            path, data=sample.get_json('put'), content_type="application/json"
+        )
         json_data = response.json()
         self.assertStatusCode(200, response)
-        self.check_stac_item(data, json_data)
+        self.check_stac_item(sample.json, json_data)
 
         # Check the data by reading it back
         response = self.client.get(path)
         json_data = response.json()
         self.assertStatusCode(200, response)
-        self.check_stac_item(data, json_data)
+        self.check_stac_item(sample.json, json_data)
 
     def test_item_endpoint_put_extra_payload(self):
-        data = self.factory.create_item_sample(
+        sample = self.factory.create_item_sample(
             self.collection, sample='item-2', name=self.item.name, extra_payload='invalid'
-        ).json
+        )
         path = f'/{API_BASE}/collections/{self.collection.name}/items/{self.item.name}'
-        response = self.client.put(path, data=data, content_type="application/json")
+        response = self.client.put(
+            path, data=sample.get_json('put'), content_type="application/json"
+        )
         self.assertStatusCode(400, response)
 
     def test_item_endpoint_put_read_only_in_payload(self):
         data = self.factory.create_item_sample(
             self.collection, sample='item-2', name=self.item.name, created=datetime.now()
-        ).json
+        ).get_json('put')
         path = f'/{API_BASE}/collections/{self.collection.name}/items/{self.item.name}'
         response = self.client.put(path, data=data, content_type="application/json")
         self.assertStatusCode(400, response)
 
     def test_item_endpoint_put_update_to_datetime_range(self):
-        data = self.factory.create_item_sample(
+        sample = self.factory.create_item_sample(
             self.collection,
             sample='item-2',
             name=self.item.name,
@@ -378,44 +388,48 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
                 "start_datetime": "2020-10-18T00:00:00Z",
                 "end_datetime": "2020-10-19T00:00:00Z",
             }
-        ).json
+        )
         path = f'/{API_BASE}/collections/{self.collection.name}/items/{self.item.name}'
-        response = self.client.put(path, data=data, content_type="application/json")
+        response = self.client.put(
+            path, data=sample.get_json('put'), content_type="application/json"
+        )
         json_data = response.json()
         self.assertStatusCode(200, response)
-        self.check_stac_item(data, json_data)
+        self.check_stac_item(sample.json, json_data)
 
         # Check the data by reading it back
         response = self.client.get(path)
         json_data = response.json()
         self.assertStatusCode(200, response)
-        self.check_stac_item(data, json_data)
+        self.check_stac_item(sample.json, json_data)
         self.assertNotIn('datetime', json_data['properties'].keys())
         self.assertNotIn('title', json_data['properties'].keys())
 
     def test_item_endpoint_put_rename_item(self):
-        data = self.factory.create_item_sample(
+        sample = self.factory.create_item_sample(
             self.collection,
             sample='item-2',
             name=f'new-{self.item.name}',
-        ).json
+        )
         path = f'/{API_BASE}/collections/{self.collection.name}/items/{self.item.name}'
-        response = self.client.put(path, data=data, content_type="application/json")
+        response = self.client.put(
+            path, data=sample.get_json('put'), content_type="application/json"
+        )
         json_data = response.json()
         self.assertStatusCode(200, response)
-        self.assertEqual(data['id'], json_data['id'])
-        self.check_stac_item(data, json_data)
+        self.assertEqual(sample.json['id'], json_data['id'])
+        self.check_stac_item(sample.json, json_data)
 
         response = self.client.get(path)
         self.assertStatusCode(404, response, msg="Renamed item still available on old name")
 
         # Check the data by reading it back
-        path = f'/{API_BASE}/collections/{self.collection.name}/items/{data["id"]}'
+        path = f'/{API_BASE}/collections/{self.collection.name}/items/{sample.json["id"]}'
         response = self.client.get(path)
         json_data = response.json()
         self.assertStatusCode(200, response)
-        self.assertEqual(data['id'], json_data['id'])
-        self.check_stac_item(data, json_data)
+        self.assertEqual(sample.json['id'], json_data['id'])
+        self.check_stac_item(sample.json, json_data)
 
     def test_item_endpoint_patch(self):
         data = {"properties": {"title": "patched title"}}
@@ -521,15 +535,19 @@ class ItemsUnauthorizeEndpointTestCase(StacBaseTestCase):
 
     def test_unauthorized_item_post_put_patch_delete(self):
         # make sure POST fails for anonymous user:
-        data = self.factory.create_item_sample(self.collection).json
+        sample = self.factory.create_item_sample(self.collection)
         path = f'/{API_BASE}/collections/{self.collection.name}/items'
-        response = self.client.post(path, data=data, content_type="application/json")
+        response = self.client.post(
+            path, data=sample.get_json('post'), content_type="application/json"
+        )
         self.assertStatusCode(401, response, msg="Unauthorized post was permitted.")
 
         # make sure PUT fails for anonymous user:
-        data = self.factory.create_item_sample(self.collection, name=self.item.name).json
+        sample = self.factory.create_item_sample(self.collection, name=self.item.name)
         path = f'/{API_BASE}/collections/{self.collection.name}/items/{self.item.name}'
-        response = self.client.put(path, data=data, content_type="application/json")
+        response = self.client.put(
+            path, data=sample.get_json('put'), content_type="application/json"
+        )
         self.assertStatusCode(401, response, msg="Unauthorized put was permitted.")
 
         # make sure PATCH fails for anonymous user:

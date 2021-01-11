@@ -4,7 +4,7 @@ logger = logging.getLogger(__name__)
 
 
 def update_temporal_extent_on_item_insert(
-    collection, new_start_datetime, new_end_datetime, item_id
+    collection, new_start_datetime, new_end_datetime, item_name
 ):
     '''This function is called from within update_temporal_extent() when a new item is inserted to
     the collection.
@@ -16,8 +16,8 @@ def update_temporal_extent_on_item_insert(
             item's updated value for properties_start_datetime
         new_end_datetime: datetime
             item's updated value for properties_end_datetime
-        item_id: int
-            the id of the item being treated (pk)
+        item_name: string
+            the name of the item being treated
 
     Returns:
         bool: True if temporal extent has been updated, false otherwise
@@ -26,7 +26,7 @@ def update_temporal_extent_on_item_insert(
     logger.debug(
         "Inserting item %s (start_datetime: %s, end_datetime: %s) in "
         "collection %s and updating the collection's temporal extent.",
-        item_id,
+        item_name,
         new_start_datetime,
         new_end_datetime,
         collection.name,
@@ -410,7 +410,7 @@ def update_temporal_extent(
     # INSERT (as item_id is None)
     if action == "insert":
         updated = update_temporal_extent_on_item_insert(
-            collection, new_start_datetime, new_end_datetime, item.pk
+            collection, new_start_datetime, new_end_datetime, item.name
         )
 
     # UPDATE
