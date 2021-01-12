@@ -30,7 +30,7 @@ def update_summaries_on_asset_delete(collection, asset):
     '''
     updated = False
     assets = type(asset).objects.filter(item__collection_id=collection.pk).exclude(id=asset.id)
-    if bool(assets):
+    if assets.exists():
 
         if not assets.filter(geoadmin_variant=asset.geoadmin_variant).exists():
             collection.summaries["geoadmin:variant"].remove(asset.geoadmin_variant)
@@ -120,7 +120,8 @@ def update_summaries_geoadmin_variant_on_update(
 
     # check if the asset's original value is still present in other
     # assets and can remain in the summaries or has to be deleted:
-    if not bool(assets) or not assets.filter(geoadmin_variant=original_geoadmin_variant).exists():
+    if not assets.exists() or not assets.filter(geoadmin_variant=original_geoadmin_variant
+                                               ).exists():
         collection.summaries["geoadmin:variant"].remove(original_geoadmin_variant)
         updated |= True
 
@@ -156,7 +157,7 @@ def update_summaries_proj_epsg_on_update(collection, assets, proj_epsg, original
         collection.summaries["proj:epsg"].append(proj_epsg)
         updated |= True
 
-    if not bool(assets) or not assets.filter(proj_epsg=original_proj_epsg).exists():
+    if not assets.exists() or not assets.filter(proj_epsg=original_proj_epsg).exists():
         collection.summaries["proj:epsg"].remove(original_proj_epsg)
         updated |= True
 
@@ -192,7 +193,7 @@ def update_summaries_eo_gsd_on_update(collection, assets, eo_gsd, original_eo_gs
         collection.summaries["eo:gsd"].append(eo_gsd)
         updated |= True
 
-    if not bool(assets) or not assets.filter(eo_gsd=original_eo_gsd).exists():
+    if not assets.exists() or not assets.filter(eo_gsd=original_eo_gsd).exists():
         collection.summaries["eo:gsd"].remove(original_eo_gsd)
         updated |= True
 
