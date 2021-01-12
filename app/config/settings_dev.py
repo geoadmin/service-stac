@@ -20,6 +20,8 @@ DEBUG = bool(strtobool(os.getenv('DEBUG', 'False')))
 
 ALLOWED_HOSTS = ['*']
 
+SECRET_KEY = 'fJZUSfuyvLGR5roQklcqBrvc/ceFPk8dcePzZIVqOKc='
+
 # django-extensions
 # ------------------------------------------------------------------------------
 if DEBUG:

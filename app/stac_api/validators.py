@@ -41,7 +41,7 @@ MEDIA_TYPES = [
     ('application/geo+json', 'GeoJSON', '.json or .geojson'),
     ('application/x.geojson+zip', 'Zipped GeoJSON', '.zip'),
     ('application/x.interlis; version=2.3', 'Interlis 2', '.xtf or .xml'),
-    ('application/x.interlis+zip;v ersion=2.3', 'Zipped XTF (2.3)', '.zip'),
+    ('application/x.interlis+zip; version=2.3', 'Zipped XTF (2.3)', '.zip'),
     ('application/x.interlis; version=1', 'Interlis 1', '.itf'),
     ('application/x.interlis+zip; version=1', 'Zipped ITF', '.zip'),
     (

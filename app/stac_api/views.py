@@ -235,7 +235,10 @@ def checker(request):
 
 class CollectionList(generics.GenericAPIView, views_mixins.CreateModelMixin):
     serializer_class = CollectionSerializer
-    queryset = Collection.objects.all()
+    # prefetch_related is a performance optimization to reduce the number
+    # of DB queries.
+    # see https://docs.djangoproject.com/en/3.1/ref/models/querysets/#prefetch-related
+    queryset = Collection.objects.all().prefetch_related('providers', 'links')
 
     def post(self, request, *args, **kwargs):
         return self.create(request, *args, **kwargs)
@@ -299,7 +302,6 @@ class CollectionDetail(generics.GenericAPIView, mixins.RetrieveModelMixin, mixin
 
 class ItemsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
     serializer_class = ItemSerializer
-    queryset = Item.objects.all()
 
     def get_write_request_data(self, request, *args, **kwargs):
         data = request.data.copy()
@@ -308,7 +310,8 @@ class ItemsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
 
     def get_queryset(self):
         # filter based on the url
-        queryset = Item.objects.filter(collection__name=self.kwargs['collection_name'])
+        queryset = Item.objects.filter(collection__name=self.kwargs['collection_name']
+                                      ).prefetch_related('assets', 'links')
 
         bbox = self.request.query_params.get('bbox', None)
         date_time = self.request.query_params.get('datetime', None)
@@ -369,7 +372,12 @@ class ItemDetail(
 ):
     serializer_class = ItemSerializer
     lookup_url_kwarg = "item_name"
-    queryset = Item.objects.all()
+
+    def get_queryset(self):
+        # filter based on the url
+        queryset = Item.objects.filter(collection__name=self.kwargs['collection_name']
+                                      ).prefetch_related('assets', 'links')
+        return queryset
 
     def get_write_request_data(self, request, *args, partial=False, **kwargs):
         data = request.data.copy()
@@ -604,7 +612,6 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
 
 class AssetsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
     serializer_class = AssetSerializer
-    queryset = Asset.objects.all()
     pagination_class = None
 
     def get_write_request_data(self, request, *args, **kwargs):
@@ -621,7 +628,10 @@ class AssetsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
 
     def get_queryset(self):
         # filter based on the url
-        return Asset.objects.filter(item__name=self.kwargs['item_name'])
+        return Asset.objects.filter(
+            item__collection__name=self.kwargs['collection_name'],
+            item__name=self.kwargs['item_name']
+        )
 
     def get(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
@@ -647,7 +657,6 @@ class AssetDetail(
 ):
     serializer_class = AssetSerializer
     lookup_url_kwarg = "asset_name"
-    queryset = Asset.objects.all()
 
     def get_write_request_data(self, request, *args, partial=False, **kwargs):
         data = request.data.copy()
@@ -658,6 +667,13 @@ class AssetDetail(
             # the request path.
             data['id'] = kwargs['asset_name']
         return data
+
+    def get_queryset(self):
+        # filter based on the url
+        return Asset.objects.filter(
+            item__collection__name=self.kwargs['collection_name'],
+            item__name=self.kwargs['item_name']
+        )
 
     def get_object(self):
         asset_name = self.kwargs.get(self.lookup_url_kwarg)
