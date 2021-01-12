@@ -9,6 +9,7 @@ from django.test import Client
 from stac_api.models import BBOX_CH
 from stac_api.models import Item
 from stac_api.utils import fromisoformat
+from stac_api.utils import get_link
 from stac_api.utils import isoformat
 from stac_api.utils import utc_aware
 
@@ -189,6 +190,154 @@ class ItemsDatetimeQueryEndpointTestCase(StacBaseTestCase):
             f"?datetime=2019/2019&limit=100"
         )
         self.assertStatusCode(400, response)
+
+
+class ItemsDatetimeQueryPaginationEndpointTestCase(StacBaseTestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.factory = Factory()
+        cls.collection = cls.factory.create_collection_sample().model
+
+        cls.items = cls.factory.create_item_samples(
+            2,
+            cls.collection,
+            name=['item-1', 'item-2'],
+            properties_datetime=fromisoformat('2019-01-01T00:00:00Z'),
+            db_create=True,
+        )
+
+        cls.now = utc_aware(datetime.utcnow())
+        cls.yesterday = cls.now - timedelta(days=1)
+
+        cls.items_now = cls.factory.create_item_samples(
+            2,
+            cls.collection,
+            name=['item-now-1', 'item-now-2'],
+            properties_datetime=cls.now,
+            db_create=True,
+        )
+        cls.items_yesterday = cls.factory.create_item_samples(
+            2,
+            cls.collection,
+            name=['item-yesterday-1', 'item-yesterday-2'],
+            properties_datetime=cls.yesterday,
+            db_create=True
+        )
+
+    def setUp(self):
+        self.client = Client()
+
+    def _navigate_to_next_items(self, expected_items, json_response):
+        for expected_item in expected_items:
+            self.assertIn('links', json_response, msg='No links found in answer')
+            next_link = get_link(json_response['links'], 'next')
+            self.assertIsNotNone(
+                next_link, msg=f'No next link found in links: {json_response["links"]}'
+            )
+            self.assertIn('href', next_link, msg=f'Next link has no href: {next_link}')
+            response = self.client.get(next_link['href'])
+            json_response = response.json()
+            self.assertStatusCode(200, response)
+            self.assertEqual(1, len(json_response['features']), msg="More than one item found")
+            self.assertEqual(expected_item, json_response['features'][0]['id'])
+
+        # Make sure there is no next link
+        self.assertIn('links', json_response, msg='No links found in answer')
+        self.assertIsNone(get_link(json_response['links'], 'next'), msg='Should not have next link')
+
+        return json_response
+
+    def _navigate_to_previous_items(self, expected_items, json_response):
+        for expected_item in expected_items:
+            self.assertIn('links', json_response, msg='No links found in answer')
+            previous_link = get_link(json_response['links'], 'previous')
+            self.assertIsNotNone(
+                previous_link, msg=f'No previous link found in links: {json_response["links"]}'
+            )
+            self.assertIn('href', previous_link, msg=f'Previous link has no href: {previous_link}')
+            response = self.client.get(previous_link['href'])
+            json_response = response.json()
+            self.assertStatusCode(200, response)
+            self.assertEqual(1, len(json_response['features']), msg="More than one item found")
+            self.assertEqual(expected_item, json_response['features'][0]['id'])
+
+        # Make sure there is no previous link
+        self.assertIn('links', json_response, msg='No links found in answer')
+        self.assertIsNone(
+            get_link(json_response['links'], 'previous'), msg='Should not have previous link'
+        )
+
+        return json_response
+
+    def test_items_endpoint_datetime_query(self):
+        response = self.client.get(
+            f"/{API_BASE}/collections/{self.collection.name}/items"
+            f"?datetime={isoformat(self.now)}&limit=1"
+        )
+        json_data = response.json()
+        self.assertStatusCode(200, response)
+        self.assertEqual(1, len(json_data['features']), msg="More than one item found")
+        self.assertEqual('item-now-1', json_data['features'][0]['id'])
+
+        json_response = self._navigate_to_next_items(['item-now-2'], json_data)
+
+        self._navigate_to_previous_items(['item-now-1'], json_response)
+
+    def test_items_endpoint_datetime_range_query(self):
+        response = self.client.get(
+            f"/{API_BASE}/collections/{self.collection.name}/items"
+            f"?datetime={isoformat(self.yesterday)}/{isoformat(self.now)}&limit=1"
+        )
+        json_data = response.json()
+        self.assertStatusCode(200, response)
+        self.assertEqual(1, len(json_data['features']), msg="More than one item found")
+        self.assertEqual('item-now-1', json_data['features'][0]['id'])
+
+        json_response = self._navigate_to_next_items(
+            ['item-now-2', 'item-yesterday-1', 'item-yesterday-2'],
+            json_data,
+        )
+
+        self._navigate_to_previous_items(['item-yesterday-1', 'item-now-2', 'item-now-1'],
+                                         json_response)
+
+    def test_items_endpoint_datetime_open_end_range_query(self):
+        # test open end query
+        response = self.client.get(
+            f"/{API_BASE}/collections/{self.collection.name}/items"
+            f"?datetime={isoformat(self.yesterday)}/..&limit=1"
+        )
+        json_data = response.json()
+        self.assertStatusCode(200, response)
+        self.assertEqual(1, len(json_data['features']), msg="More than one item found")
+        self.assertEqual('item-now-1', json_data['features'][0]['id'])
+
+        json_response = self._navigate_to_next_items(
+            ['item-now-2', 'item-yesterday-1', 'item-yesterday-2'],
+            json_data,
+        )
+
+        self._navigate_to_previous_items(['item-yesterday-1', 'item-now-2', 'item-now-1'],
+                                         json_response)
+
+    def test_items_endpoint_datetime_open_start_range_query(self):
+        # test open start query
+        response = self.client.get(
+            f"/{API_BASE}/collections/{self.collection.name}/items"
+            f"?datetime=../{isoformat(self.yesterday)}&limit=1"
+        )
+        json_data = response.json()
+        self.assertStatusCode(200, response)
+        self.assertEqual(1, len(json_data['features']), msg="More than one item found")
+        self.assertEqual('item-1', json_data['features'][0]['id'])
+
+        json_response = self._navigate_to_next_items(
+            ['item-2', 'item-yesterday-1', 'item-yesterday-2'],
+            json_data,
+        )
+
+        self._navigate_to_previous_items(['item-yesterday-1', 'item-2', 'item-1'], json_response)
 
 
 class ItemsBboxQueryEndpointTestCase(StacBaseTestCase):
