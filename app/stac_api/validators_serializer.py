@@ -72,7 +72,7 @@ def validate_asset_href_path(item, asset_name, path):
     if path != expected_path:
         logger.error("Invalid path %s; don't follow the convention %s", path, expected_path)
         raise ValidationError({
-            'href': _(f"Invalid path; should be {expected_path}")
+            'href': _(f"Invalid path; should be {expected_path} but got {path}")
         })
 
 
