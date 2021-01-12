@@ -4,6 +4,7 @@ from datetime import datetime
 
 from django.conf import settings
 from django.contrib.gis.geos import Polygon
+from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext_lazy as _
@@ -247,21 +248,23 @@ class ItemsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
     def filter_by_datetime_range(self, queryset, start_datetime, end_datetime):
         if start_datetime == '..':
             # open start range
-            queryset1 = queryset.filter(properties_datetime__lte=end_datetime)
-            queryset2 = queryset.filter(properties_end_datetime__lte=end_datetime)
-            return queryset1.union(queryset2)
+            return queryset.filter(
+                Q(properties_datetime__lte=end_datetime) |
+                Q(properties_end_datetime__lte=end_datetime)
+            )
         if end_datetime == '..':
             # open end range
-            queryset1 = queryset.filter(properties_datetime__gte=start_datetime)
-            queryset2 = queryset.filter(properties_end_datetime__gte=start_datetime)
-            return queryset1.union(queryset2)
+            return queryset.filter(
+                Q(properties_datetime__gte=start_datetime) |
+                Q(properties_end_datetime__gte=start_datetime)
+            )
         # else fixed range
-        queryset1 = queryset.filter(properties_datetime__range=(start_datetime, end_datetime))
-        queryset2 = queryset.filter(
-            properties_start_datetime__gte=start_datetime,
-            properties_end_datetime__lte=end_datetime
+        return queryset.filter(
+            Q(properties_datetime__range=(start_datetime, end_datetime)) | (
+                Q(properties_start_datetime__gte=start_datetime) &
+                Q(properties_end_datetime__lte=end_datetime)
+            )
         )
-        return queryset1.union(queryset2)
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
