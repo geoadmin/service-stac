@@ -299,7 +299,7 @@ class StacBaseTestCase(TestCase):
             self.assertEqual(
                 urlparse(value).path,
                 urlparse(current[key]).path,
-                msg=f'{path}[{key}]: value does not match in href {current[key]}'
+                msg=f'{path}: value does not match in href {current[key]}'
             )
         else:
             self.assertEqual(
