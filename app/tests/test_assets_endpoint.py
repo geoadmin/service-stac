@@ -128,6 +128,14 @@ class AssetsWriteEndpointTestCase(StacBaseTestCase):
         self.assertStatusCode(200, response)
         self.check_stac_asset(asset.json, json_data, ignore=['item'])
 
+        # make sure that the optional fields are not present
+        self.assertNotIn('geoadmin:lang', json_data)
+        self.assertNotIn('geoadmin:variant', json_data)
+        self.assertNotIn('proj:epsg', json_data)
+        self.assertNotIn('eo:gsd', json_data)
+        self.assertNotIn('description', json_data)
+        self.assertNotIn('title', json_data)
+
     def test_asset_endpoint_post_full(self, requests_mocker):
         collection_name = self.collection.name
         item_name = self.item.name
@@ -148,6 +156,28 @@ class AssetsWriteEndpointTestCase(StacBaseTestCase):
         json_data = response.json()
         self.assertStatusCode(200, response)
         self.check_stac_asset(asset.json, json_data, ignore=['item'])
+
+    def test_asset_endpoint_post_empty_string(self, requests_mocker):
+        collection_name = self.collection.name
+        item_name = self.item.name
+        asset = self.factory.create_asset_sample(
+            item=self.item,
+            required_only=True,
+            description='',
+            geoadmin_variant='',
+            geoadmin_lang='',
+            title=''
+        )
+
+        mock_requests_asset_file(requests_mocker, asset)
+        path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets'
+        response = self.client.post(
+            path, data=asset.get_json('post'), content_type="application/json"
+        )
+        self.assertStatusCode(400, response)
+        json_data = response.json()
+        for field in ['description', 'title', 'geoadmin:lang', 'geoadmin:variant']:
+            self.assertIn(field, json_data['description'], msg=f'Field {field} error missing')
 
     def test_asset_endpoint_post_extra_payload(self, requests_mocker):
         collection_name = self.collection.name

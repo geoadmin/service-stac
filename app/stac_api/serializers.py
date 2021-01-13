@@ -565,6 +565,10 @@ class AssetSerializer(NonNullModelSerializer):
         max_length=255,
         validators=[validate_name, UniqueValidator(queryset=Asset.objects.all())]
     )
+    title = serializers.CharField(
+        required=False, max_length=255, allow_null=True, allow_blank=False
+    )
+    description = serializers.CharField(required=False, allow_blank=False, allow_null=True)
     # The href is only for POST request and is ignored for PUT requests this is done by dynamically
     # removing the field with the serializer hide_fields parameter in the view
     href = HrefField(source='file', required=False)
@@ -583,12 +587,12 @@ class AssetSerializer(NonNullModelSerializer):
         choices=Asset.Language.values,
         required=False,
         allow_null=True,
-        allow_blank=True
+        allow_blank=False
     )
     geoadmin_variant = serializers.CharField(
         source='geoadmin_variant',
         max_length=15,
-        allow_blank=True,
+        allow_blank=False,
         allow_null=True,
         required=False,
         validators=[validate_geoadmin_variant]
@@ -598,6 +602,7 @@ class AssetSerializer(NonNullModelSerializer):
         source='checksum_multihash',
         max_length=255,
         required=False,
+        allow_blank=False,
         validators=[validate_asset_multihash]
     )
     # read only fields

@@ -615,7 +615,8 @@ class Asset(models.Model):
         return os.path.basename(self.file.name)
 
     checksum_multihash = models.CharField(editable=False, max_length=255, blank=True, default='')
-    description = models.TextField(blank=True, null=True)
+    # here we need to set blank=True otherwise the field is as required in the admin interface
+    description = models.TextField(blank=True, null=True, default=None)
     eo_gsd = models.FloatField(null=True, blank=True)
 
     class Language(models.TextChoices):
@@ -625,15 +626,18 @@ class Asset(models.Model):
         FRENCH = 'fr', _('French')
         ROMANSH = 'rm', _('Romansh')
         ENGLISH = 'en', _('English')
-        NONE = '', _('')
+        __empty__ = _('')
 
+    # here we need to set blank=True otherwise the field is as required in the admin interface
     geoadmin_lang = models.CharField(
-        max_length=2, choices=Language.choices, default=Language.NONE, null=True, blank=True
+        max_length=2, choices=Language.choices, default=None, null=True, blank=True
     )
+    # here we need to set blank=True otherwise the field is as required in the admin interface
     geoadmin_variant = models.CharField(
         max_length=15, null=True, blank=True, validators=[validate_geoadmin_variant]
     )
     proj_epsg = models.IntegerField(null=True, blank=True)
+    # here we need to set blank=True otherwise the field is as required in the admin interface
     title = models.CharField(max_length=255, null=True, blank=True)
     media_choices = [(x[0], f'{x[1]} ({x[0]})') for x in MEDIA_TYPES]
     media_type = models.CharField(choices=media_choices, max_length=200, blank=False, null=False)

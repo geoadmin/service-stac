@@ -22,6 +22,14 @@ from stac_api.utils import build_asset_href
 class AssetAdmin(admin.ModelAdmin):
     readonly_fields = ['href', 'checksum_multihash']
 
+    def save_model(self, request, obj, form, change):
+        if obj.description == '':
+            # The admin interface with TextArea uses empty string instead
+            # of None. We use None for empty value, None value are stripped
+            # then in the output will empty string not.
+            obj.description = None
+        super().save_model(request, obj, form, change)
+
     # Note: this is a bit hacky and only required to get access
     # to the request object in 'href' method.
     def get_form(self, request, obj=None, **kwargs):  # pylint: disable=arguments-differ

@@ -677,7 +677,7 @@ class AssetSample(SampleData):
         super().__init__(sample, item=item, name=name, required_only=required_only, **kwargs)
 
         file = getattr(self, 'attr_file', None)
-        if file:
+        if isinstance(file, bytes):
             self.attr_checksum_multihash = get_sha256_multihash(file)
             self.attr_file = SimpleUploadedFile(
                 f'{item.collection.name}/{item.name}/{self.attr_name}', file
