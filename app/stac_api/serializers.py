@@ -687,11 +687,14 @@ class ItemSerializer(NonNullModelSerializer):
     geometry = gis_serializers.GeometryField(required=True)
     links = ItemLinkSerializer(required=False, many=True)
     # read only fields
-    type = serializers.ReadOnlyField(default='Feature')
+    type = serializers.SerializerMethodField()
     bbox = BboxSerializer(source='*', read_only=True)
     assets = AssetSerializer(many=True, read_only=True)
     stac_extensions = serializers.SerializerMethodField()
     stac_version = serializers.SerializerMethodField()
+
+    def get_type(self, obj):
+        return 'Feature'
 
     def get_stac_extensions(self, obj):
         return list()
