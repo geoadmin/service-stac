@@ -520,11 +520,16 @@ class BboxSerializer(gis_serializers.GeoFeatureModelSerializer):
 
 
 class AssetsDictSerializer(DictSerializer):
+    '''Assets serializer list to dictionary
+
+    This serializer returns an asset dictionary with the asset name as keys.
+    '''
     # pylint: disable=abstract-method
     key_identifier = 'id'
 
 
 class HrefField(serializers.Field):
+    '''Special Href field for Assets'''
 
     def to_representation(self, value):
         # build an absolute URL from the file path
@@ -542,11 +547,12 @@ class HrefField(serializers.Field):
         return url.path[1:]  # strip the leading '/'
 
 
-class AssetSerializer(NonNullModelSerializer):
+class AssetBaseSerializer(NonNullModelSerializer):
+    '''Asset serializer base class
+    '''
 
     class Meta:
         model = Asset
-        list_serializer_class = AssetsDictSerializer
         fields = [
             'id',
             'item',
@@ -657,6 +663,87 @@ class AssetSerializer(NonNullModelSerializer):
         return fields
 
 
+class AssetSerializer(AssetBaseSerializer):
+    '''Asset serializer for the asset views
+
+    This serializer adds the links list attribute.
+    '''
+
+    def to_representation(self, instance):
+        collection = instance.item.collection.name
+        item = instance.item.name
+        name = instance.name
+        api = settings.API_BASE
+        request = self.context.get("request")
+        representation = super().to_representation(instance)
+        # Add auto links
+        # We use OrderedDict, although it is not necessary, because the default serializer/model for
+        # links already uses OrderedDict, this way we keep consistency between auto link and user
+        # link
+        representation['links'] = [
+            OrderedDict([
+                ('rel', 'self'),
+                (
+                    'href',
+                    request.build_absolute_uri(
+                        f'/{api}/collections/{collection}/items/{item}/assets/{name}'
+                    )
+                ),
+            ]),
+            OrderedDict([
+                ('rel', 'root'),
+                ('href', request.build_absolute_uri(f'/{api}/')),
+            ]),
+            OrderedDict([
+                ('rel', 'parent'),
+                (
+                    'href',
+                    request.
+                    build_absolute_uri(f'/{api}/collections/{collection}/items/{item}/assets')
+                ),
+            ]),
+            OrderedDict([
+                ('rel', 'item'),
+                (
+                    'href',
+                    request.build_absolute_uri(f'/{api}/collections/{collection}/items/{item}')
+                ),
+            ]),
+            OrderedDict([
+                ('rel', 'collection'),
+                ('href', request.build_absolute_uri(f'/{api}/collections/{collection}')),
+            ])
+        ]
+        return representation
+
+
+class AssetsForItemSerializer(AssetBaseSerializer):
+    '''Assets serializer for nesting them inside the item
+
+    Assets should be nested inside their item but using a dictionary instead of a list and without
+    links.
+    '''
+
+    class Meta:
+        model = Asset
+        list_serializer_class = AssetsDictSerializer
+        fields = [
+            'id',
+            'item',
+            'title',
+            'type',
+            'href',
+            'description',
+            'eo_gsd',
+            'geoadmin_lang',
+            'geoadmin_variant',
+            'proj_epsg',
+            'checksum_multihash',
+            'created',
+            'updated'
+        ]
+
+
 class ItemSerializer(NonNullModelSerializer):
 
     class Meta:
@@ -689,7 +776,7 @@ class ItemSerializer(NonNullModelSerializer):
     # read only fields
     type = serializers.SerializerMethodField()
     bbox = BboxSerializer(source='*', read_only=True)
-    assets = AssetSerializer(many=True, read_only=True)
+    assets = AssetsForItemSerializer(many=True, read_only=True)
     stac_extensions = serializers.SerializerMethodField()
     stac_version = serializers.SerializerMethodField()
 

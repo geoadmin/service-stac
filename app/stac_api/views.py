@@ -640,7 +640,31 @@ class AssetsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
         else:
             serializer = self.get_serializer(queryset, many=True)
 
-        data = serializer.data
+        data = {
+            'assets': serializer.data,
+            'links': [
+                OrderedDict([
+                    ('rel', 'self'),
+                    ('href', request.build_absolute_uri()),
+                ]),
+                OrderedDict([
+                    ('rel', 'root'),
+                    ('href', request.build_absolute_uri(f'/{settings.API_BASE}/')),
+                ]),
+                OrderedDict([
+                    ('rel', 'parent'),
+                    ('href', request.build_absolute_uri('.').rstrip('/')),
+                ]),
+                OrderedDict([
+                    ('rel', 'item'),
+                    ('href', request.build_absolute_uri('.').rstrip('/')),
+                ]),
+                OrderedDict([
+                    ('rel', 'collection'),
+                    ('href', request.build_absolute_uri('../..').rstrip('/')),
+                ])
+            ]
+        }
 
         if page is not None:
             return self.get_paginated_response(data)

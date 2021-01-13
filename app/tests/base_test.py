@@ -121,9 +121,13 @@ class StacBaseTestCase(TestCase):
         ]:
             self.assertIn(key, current)
             self.assertEqual(value, current[key])
-        self.assertIn('extent', current, msg='Collection extent are missing')
-        self.assertIn('summaries', current, msg='Collection summaries are missing')
-        self.assertIn('links', current, msg='Collection links are missing')
+        for key in ['extent', 'summaries', 'links', 'created', 'updated']:
+            self.assertIn(key, current, msg=f'Collection {key} is missing')
+        for date_field in ['created', 'updated']:
+            self.assertTrue(
+                fromisoformat(current[date_field]),
+                msg=f"The collection field {date_field} has an invalid date"
+            )
         name = current['id']
         links = [
             {
@@ -164,8 +168,16 @@ class StacBaseTestCase(TestCase):
         for key, value in [('stac_version', '0.9.0'), ('type', 'Feature')]:
             self.assertIn(key, current)
             self.assertEqual(value, current[key])
-        self.assertIn('bbox', current, msg='Item bbox are missing')
-        self.assertIn('links', current, msg='Item links are missing')
+        for key in ['bbox', 'links', 'properties']:
+            self.assertIn(key, current, msg=f'Item {key} is missing')
+        for key in ['created', 'updated']:
+            self.assertIn(key, current['properties'], msg=f'Item properties.{key} is missing')
+        for date_field in ['created', 'updated']:
+            self.assertTrue(
+                fromisoformat(current['properties'][date_field]),
+                msg=f"The item field {date_field} has an invalid date"
+            )
+
         name = current['id']
         links = [
             {
@@ -203,7 +215,13 @@ class StacBaseTestCase(TestCase):
         if ignore is None:
             ignore = []
         self._check_stac_dictsubset('asset', expected, current, ignore=ignore)
-        self.assertIn('links', current, msg='Asset links are missing')
+        for key in ['links', 'created', 'updated']:
+            self.assertIn(key, current, msg=f'Asset {key} is missing')
+        for date_field in ['created', 'updated']:
+            self.assertTrue(
+                fromisoformat(current[date_field]),
+                msg=f"The asset field {date_field} has an invalid date"
+            )
         name = current['id']
         links = [
             {

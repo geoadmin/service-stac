@@ -646,13 +646,13 @@ components:
             example: http://cool-sat.com/catalog/collections/cs/items/CS3-20160503_132130_04/thumb.png
             format: url
             type: string
-          roles:
-            description: Purposes of the asset
-            example:
-              - thumbnail
-            items:
-              type: string
-            type: array
+          # roles:
+          #   description: Purposes of the asset
+          #   example:
+          #     - thumbnail
+          #   items:
+          #     type: string
+          #   type: array
           title:
             description: Displayed title
             example: Thumbnail
@@ -675,7 +675,6 @@ components:
           - type
           - created
           - updated
-          - id
         type: object
       type: object
       readOnly: true
