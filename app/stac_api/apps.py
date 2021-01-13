@@ -54,7 +54,11 @@ class CursorPagination(pagination.CursorPagination):
         # don't validate the query parameter, its simply correct it if it is not valid
         # here we want to return a 400 BAD REQUEST when the provided page size is invalid.
 
-        integer_string = request.query_params.get(self.page_size_query_param, self.page_size)
+        # POST 'limit' param has a higher priority than GET
+        if self.page_size_query_param in request.data:
+            integer_string = request.data[self.page_size_query_param]
+        else:
+            integer_string = request.query_params.get(self.page_size_query_param, self.page_size)
 
         try:
             page_size = int(integer_string)
