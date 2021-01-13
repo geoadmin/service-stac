@@ -4,9 +4,8 @@ from collections import OrderedDict
 from datetime import datetime
 
 from django.conf import settings
-from django.contrib.gis.geos import Polygon
-from django.contrib.gis.geos import Point
 from django.contrib.gis.geos import GEOSGeometry
+from django.contrib.gis.geos import Point
 from django.contrib.gis.geos import Polygon
 from django.db.models import Q
 from django.http import JsonResponse
@@ -133,8 +132,17 @@ def filter_by_bbox(queryset, bbox):
     '''
     try:
         logger.debug('Query parameter bbox = %s', bbox)
-        query_bbox_polygon = Polygon.from_bbox(bbox.split(','))
-    except ValueError as error:
+        list_bbox_values = bbox.split(',')
+        if (
+            list_bbox_values[0] == list_bbox_values[2] and
+            list_bbox_values[1] == list_bbox_values[3]
+        ):
+            bbox_geometry = Point(float(list_bbox_values[0]), float(list_bbox_values[1]))
+        else:
+            bbox_geometry = Polygon.from_bbox(list_bbox_values)
+        validate_geometry(bbox_geometry)
+
+    except (ValueError, ValidationError, IndexError) as error:
         logger.error(
             'Invalid bbox query parameter: '
             'Could not transform bbox "%s" to a polygon; %s'
@@ -147,7 +155,8 @@ def filter_by_bbox(queryset, bbox):
               ' has to contain 4 values. f.ex. bbox=5.96,45.82,10.49,47.81'),
             code='bbox-invalid'
         )
-    return queryset.filter(geometry__intersects=query_bbox_polygon)
+
+    return queryset.filter(geometry__intersects=bbox_geometry)
 
 
 def filter_by_datetime(queryset, date_time):
