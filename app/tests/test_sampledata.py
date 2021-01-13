@@ -72,4 +72,4 @@ class SampleDataTestCase(StacBaseTestCase):
 
         # we ignore the created and updated attribute because they cannot match the one from the
         # samples as they are automatically generated with the time of creation/update.
-        self.check_stac_item(item_dict, payload, ignore=['created', 'updated'])
+        self.check_stac_item(item_dict, payload, collection_name, ignore=['created', 'updated'])

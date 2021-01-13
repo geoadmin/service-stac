@@ -81,7 +81,7 @@ or the `sample.get_json()` method or `sample.json` property (alias for
    stac_api.serializer.ItemSerializer(data=sample.get_json(method='deserialize'))
 
    response = client.get(path_to_item)
-   self.check_stac_item(sample.json, response.json())
+   self.check_stac_item(sample.json, response.json(), 'collection-1')
 
 '''
 # pylint: disable=too-many-lines, arguments-differ

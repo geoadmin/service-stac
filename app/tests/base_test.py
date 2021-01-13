@@ -15,6 +15,9 @@ from tests.utils import get_http_error_description
 
 logger = logging.getLogger(__name__)
 
+TEST_LINK_ROOT_HREF = 'http://testserver/api/stac/v0.9'
+TEST_LINK_ROOT = {'rel': 'root', 'href': f'{TEST_LINK_ROOT_HREF}/'}
+
 
 class StacBaseTestCase(TestCase):
 
@@ -111,8 +114,35 @@ class StacBaseTestCase(TestCase):
         if ignore is None:
             ignore = []
         self._check_stac_dictsubset('collection', expected, current, ignore)
+        for key, value in [
+            ('stac_version', '0.9.0'),
+            ('crs', ['http://www.opengis.net/def/crs/OGC/1.3/CRS84']),
+            ('itemType', 'Feature')
+        ]:
+            self.assertIn(key, current)
+            self.assertEqual(value, current[key])
+        self.assertIn('extent', current, msg='Collection extent are missing')
+        self.assertIn('summaries', current, msg='Collection summaries are missing')
+        self.assertIn('links', current, msg='Collection links are missing')
+        name = current['id']
+        links = [
+            {
+                'rel': 'self',
+                'href': f'{TEST_LINK_ROOT_HREF}/collections/{name}',
+            },
+            TEST_LINK_ROOT,
+            {
+                'rel': 'parent',
+                'href': f'{TEST_LINK_ROOT_HREF}/collections',
+            },
+            {
+                'rel': 'items',
+                'href': f'{TEST_LINK_ROOT_HREF}/collections/{name}/items',
+            },
+        ]
+        self._check_stac_links('item.links', links, current['links'])
 
-    def check_stac_item(self, expected, current, ignore=None):
+    def check_stac_item(self, expected, current, collection, ignore=None):
         '''Check a STAC Item data
 
         Check if the `current` Item data match the `expected`. This check is a subset check
@@ -131,8 +161,30 @@ class StacBaseTestCase(TestCase):
         if ignore is None:
             ignore = []
         self._check_stac_dictsubset('item', expected, current, ignore=ignore)
+        for key, value in [('stac_version', '0.9.0'), ('type', 'Feature')]:
+            self.assertIn(key, current)
+            self.assertEqual(value, current[key])
+        self.assertIn('bbox', current, msg='Item bbox are missing')
+        self.assertIn('links', current, msg='Item links are missing')
+        name = current['id']
+        links = [
+            {
+                'rel': 'self',
+                'href': f'{TEST_LINK_ROOT_HREF}/collections/{collection}/items/{name}',
+            },
+            TEST_LINK_ROOT,
+            {
+                'rel': 'parent',
+                'href': f'{TEST_LINK_ROOT_HREF}/collections/{collection}/items',
+            },
+            {
+                'rel': 'collection',
+                'href': f'{TEST_LINK_ROOT_HREF}/collections/{collection}',
+            },
+        ]
+        self._check_stac_links('item.links', links, current['links'])
 
-    def check_stac_asset(self, expected, current, ignore=None):
+    def check_stac_asset(self, expected, current, collection, item, ignore=None):
         '''Check a STAC Asset data
 
         Check if the `current` Asset data match the `expected`. This check is a subset check
@@ -151,6 +203,28 @@ class StacBaseTestCase(TestCase):
         if ignore is None:
             ignore = []
         self._check_stac_dictsubset('asset', expected, current, ignore=ignore)
+        self.assertIn('links', current, msg='Asset links are missing')
+        name = current['id']
+        links = [
+            {
+                'rel': 'self',
+                'href': f'{TEST_LINK_ROOT_HREF}/collections/{collection}/items/{item}/assets/{name}'
+            },
+            TEST_LINK_ROOT,
+            {
+                'rel': 'parent',
+                'href': f'{TEST_LINK_ROOT_HREF}/collections/{collection}/items/{item}/assets',
+            },
+            {
+                'rel': 'item',
+                'href': f'{TEST_LINK_ROOT_HREF}/collections/{collection}/items/{item}',
+            },
+            {
+                'rel': 'collection',
+                'href': f'{TEST_LINK_ROOT_HREF}/collections/{collection}',
+            },
+        ]
+        self._check_stac_links('asset.links', links, current['links'])
 
     def _check_stac_dictsubset(self, parent_path, expected, current, ignore=None):
         for key, value in expected.items():
@@ -193,7 +267,9 @@ class StacBaseTestCase(TestCase):
         for i, link in enumerate(expected):
             path = f'{parent_path}.{i}'
             current_link = get_link(current, link['rel'])
-            self.assertIsNotNone(current_link, msg=f'{path}: Link {link} is missing in current')
+            self.assertIsNotNone(
+                current_link, msg=f'{path}: Link {link} is missing in current links {current}'
+            )
             for key, value in link.items():
                 self.assertIn(
                     key, current_link, msg=f'key {key} is missing in current link {current_link}'

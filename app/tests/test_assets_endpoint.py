@@ -11,8 +11,6 @@ from django.conf import settings
 from django.test import Client
 
 from stac_api.models import Asset
-from stac_api.serializers import AssetSerializer
-from stac_api.utils import fromisoformat
 from stac_api.utils import get_sha256_multihash
 from stac_api.utils import utc_aware
 
@@ -39,14 +37,14 @@ class AssetsEndpointTestCase(StacBaseTestCase):
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample().model
         self.item = self.factory.create_item_sample(collection=self.collection).model
-        self.asset_1 = self.factory.create_asset_sample(item=self.item).model
+        self.asset_1 = self.factory.create_asset_sample(item=self.item, db_create=True)
         self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_assets_endpoint(self):
         collection_name = self.collection.name
         item_name = self.item.name
-        asset_2 = self.factory.create_asset_sample(item=self.item, sample='asset-2').model
-        asset_3 = self.factory.create_asset_sample(item=self.item, sample='asset-3').model
+        asset_2 = self.factory.create_asset_sample(item=self.item, sample='asset-2', db_create=True)
+        asset_3 = self.factory.create_asset_sample(item=self.item, sample='asset-3', db_create=True)
         response = self.client.get(
             f"/{API_BASE}/collections/{collection_name}/items/{item_name}/assets"
         )
@@ -54,20 +52,19 @@ class AssetsEndpointTestCase(StacBaseTestCase):
         json_data = response.json()
         logger.debug('Response (%s):\n%s', type(json_data), pformat(json_data))
 
-        # Check that the answer is equal to the initial data
-        serializer = AssetSerializer([self.asset_1, asset_2, asset_3],
-                                     many=True,
-                                     context={'request': response.wsgi_request})
-        original_data = to_dict(serializer.data)
-        logger.debug('Serialized data:\n%s', pformat(original_data))
-        self.assertDictEqual(
-            original_data, json_data, msg="Returned data does not match expected data"
+        self.assertIn('assets', json_data, msg='assets is missing in response')
+        self.assertEqual(
+            3, len(json_data['assets']), msg='Number of assets doen\'t match the expected'
         )
+        for i, asset in enumerate([self.asset_1, asset_2, asset_3]):
+            self.check_stac_asset(
+                asset.json, json_data['assets'][i], collection_name, item_name, ignore=['item']
+            )
 
     def test_single_asset_endpoint(self):
         collection_name = self.collection.name
         item_name = self.item.name
-        asset_name = self.asset_1.name
+        asset_name = self.asset_1["name"]
         response = self.client.get(
             f"/{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}"
         )
@@ -75,24 +72,21 @@ class AssetsEndpointTestCase(StacBaseTestCase):
         self.assertStatusCode(200, response)
         logger.debug('Response (%s):\n%s', type(json_data), pformat(json_data))
 
+        self.check_stac_asset(
+            self.asset_1.json, json_data, collection_name, item_name, ignore=['item']
+        )
+
         # The ETag change between each test call due to the created, updated time that are in the
         # hash computation of the ETag
         self.check_header_etag(None, response)
 
-        # Check that the answer is equal to the initial data
-        serializer = AssetSerializer(self.asset_1, context={'request': response.wsgi_request})
-        original_data = to_dict(serializer.data)
-        logger.debug('Serialized data:\n%s', pformat(original_data))
-        self.assertDictEqual(
-            original_data, json_data, msg="Returned data does not match expected data"
-        )
-        # created and updated must exist and be a valid date
-        date_fields = ['created', 'updated']
-        for date_field in date_fields:
-            self.assertTrue(
-                fromisoformat(json_data[date_field]),
-                msg=f"The field {date_field} has an invalid date"
-            )
+        # # created and updated must exist and be a valid date
+        # date_fields = ['created', 'updated']
+        # for date_field in date_fields:
+        #     self.assertTrue(
+        #         fromisoformat(json_data[date_field]),
+        #         msg=f"The field {date_field} has an invalid date"
+        #     )
 
 
 @requests_mock.Mocker(kw='requests_mocker')
@@ -120,13 +114,13 @@ class AssetsWriteEndpointTestCase(StacBaseTestCase):
         json_data = response.json()
         self.assertStatusCode(201, response)
         self.check_header_location(f"{path}/{asset['name']}", response)
-        self.check_stac_asset(asset.json, json_data, ignore=['item'])
+        self.check_stac_asset(asset.json, json_data, collection_name, item_name, ignore=['item'])
 
         # Check the data by reading it back
         response = self.client.get(response['Location'])
         json_data = response.json()
         self.assertStatusCode(200, response)
-        self.check_stac_asset(asset.json, json_data, ignore=['item'])
+        self.check_stac_asset(asset.json, json_data, collection_name, item_name, ignore=['item'])
 
         # make sure that the optional fields are not present
         self.assertNotIn('geoadmin:lang', json_data)
@@ -149,13 +143,13 @@ class AssetsWriteEndpointTestCase(StacBaseTestCase):
         json_data = response.json()
         self.assertStatusCode(201, response)
         self.check_header_location(f"{path}/{asset['name']}", response)
-        self.check_stac_asset(asset.json, json_data, ignore=['item'])
+        self.check_stac_asset(asset.json, json_data, collection_name, item_name, ignore=['item'])
 
         # Check the data by reading it back
         response = self.client.get(response['Location'])
         json_data = response.json()
         self.assertStatusCode(200, response)
-        self.check_stac_asset(asset.json, json_data, ignore=['item'])
+        self.check_stac_asset(asset.json, json_data, collection_name, item_name, ignore=['item'])
 
     def test_asset_endpoint_post_empty_string(self, requests_mocker):
         collection_name = self.collection.name
@@ -381,13 +375,17 @@ class AssetsUpdateEndpointAssetFileTestCase(StacBaseTestCase):
         response = self.client.patch(path, data=patch_payload, content_type="application/json")
         self.assertStatusCode(200, response)
         json_data = response.json()
-        self.check_stac_asset(asset_sample.json, json_data, ignore=['item'])
+        self.check_stac_asset(
+            asset_sample.json, json_data, collection_name, item_name, ignore=['item']
+        )
 
         # Check the data by reading it back
         response = self.client.get(path)
         json_data = response.json()
         self.assertStatusCode(200, response)
-        self.check_stac_asset(asset_sample.json, json_data, ignore=['item'])
+        self.check_stac_asset(
+            asset_sample.json, json_data, collection_name, item_name, ignore=['item']
+        )
 
     def test_asset_endpoint_patch_put_href(self, requests_mocker):
         collection_name = self.collection.name
@@ -467,13 +465,17 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
         )
         json_data = response.json()
         self.assertStatusCode(200, response)
-        self.check_stac_asset(changed_asset.json, json_data, ignore=['item'])
+        self.check_stac_asset(
+            changed_asset.json, json_data, collection_name, item_name, ignore=['item']
+        )
 
         # Check the data by reading it back
         response = self.client.get(path)
         json_data = response.json()
         self.assertStatusCode(200, response)
-        self.check_stac_asset(changed_asset.json, json_data, ignore=['item'])
+        self.check_stac_asset(
+            changed_asset.json, json_data, collection_name, item_name, ignore=['item']
+        )
 
     def test_asset_endpoint_put_extra_payload(self, requests_mocker):
         collection_name = self.collection.name
@@ -533,7 +535,9 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
         self.assertStatusCode(200, response)
         json_data = response.json()
         self.assertEqual(changed_asset.json['id'], json_data['id'])
-        self.check_stac_asset(changed_asset.json, json_data, ignore=['item'])
+        self.check_stac_asset(
+            changed_asset.json, json_data, collection_name, item_name, ignore=['item']
+        )
 
         # Check the data by reading it back
         response = self.client.get(
@@ -541,7 +545,9 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
         )
         json_data = response.json()
         self.assertStatusCode(200, response)
-        self.check_stac_asset(changed_asset.json, json_data, ignore=['item'])
+        self.check_stac_asset(
+            changed_asset.json, json_data, collection_name, item_name, ignore=['item']
+        )
 
     def test_asset_endpoint_patch_rename_asset(self, requests_mocker):
         collection_name = self.collection.name
@@ -560,7 +566,9 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
         json_data = response.json()
         self.assertStatusCode(200, response)
         self.assertEqual(changed_asset.json['id'], json_data['id'])
-        self.check_stac_asset(changed_asset.json, json_data, ignore=['item'])
+        self.check_stac_asset(
+            changed_asset.json, json_data, collection_name, item_name, ignore=['item']
+        )
 
         # Check the data by reading it back
         response = self.client.get(
@@ -569,7 +577,9 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
         json_data = response.json()
         self.assertStatusCode(200, response)
         self.assertEqual(changed_asset.json['id'], json_data['id'])
-        self.check_stac_asset(changed_asset.json, json_data, ignore=['item'])
+        self.check_stac_asset(
+            changed_asset.json, json_data, collection_name, item_name, ignore=['item']
+        )
 
     def test_asset_endpoint_patch_extra_payload(self, requests_mocker):
         collection_name = self.collection.name

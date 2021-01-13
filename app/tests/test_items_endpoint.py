@@ -40,8 +40,8 @@ class ItemsReadEndpointTestCase(StacBaseTestCase):
 
         self.assertEqual(len(json_data['features']), 2, msg='Output should only have two features')
 
-        self.check_stac_item(self.items[0].json, json_data['features'][0])
-        self.check_stac_item(self.items[1].json, json_data['features'][1])
+        self.check_stac_item(self.items[0].json, json_data['features'][0], self.collection.name)
+        self.check_stac_item(self.items[1].json, json_data['features'][1], self.collection.name)
 
     def test_items_endpoint_with_limit(self):
         response = self.client.get(f"/{API_BASE}/collections/{self.collection.name}/items?limit=1")
@@ -53,7 +53,7 @@ class ItemsReadEndpointTestCase(StacBaseTestCase):
 
         self.assertEqual(len(json_data['features']), 1, msg='Output should only have one feature')
 
-        self.check_stac_item(self.items[0].json, json_data['features'][0])
+        self.check_stac_item(self.items[0].json, json_data['features'][0], self.collection.name)
 
     def test_single_item_endpoint(self):
         collection_name = self.collection.name
@@ -66,7 +66,7 @@ class ItemsReadEndpointTestCase(StacBaseTestCase):
         # hash computation of the ETag
         self.check_header_etag(None, response)
 
-        self.check_stac_item(self.items[0].json, json_data)
+        self.check_stac_item(self.items[0].json, json_data, self.collection.name)
 
         # created and updated must exist and be a valid date
         date_fields = ['created', 'updated']
@@ -430,13 +430,13 @@ class ItemsWriteEndpointTestCase(StacBaseTestCase):
         self.assertStatusCode(201, response)
         self.check_header_location(f'{path}/{sample.json["id"]}', response)
 
-        self.check_stac_item(sample.json, json_data)
+        self.check_stac_item(sample.json, json_data, self.collection.name)
 
         # Check the data by reading it back
         response = self.client.get(response['Location'])
         json_data = response.json()
         self.assertStatusCode(200, response)
-        self.check_stac_item(sample.json, json_data)
+        self.check_stac_item(sample.json, json_data, self.collection.name)
 
     def test_item_endpoint_post_extra_payload(self):
         data = self.factory.create_item_sample(self.collection, extra_payload=True).get_json('post')
@@ -461,13 +461,13 @@ class ItemsWriteEndpointTestCase(StacBaseTestCase):
         self.assertStatusCode(201, response)
         self.check_header_location(f'{path}/{sample.json["id"]}', response)
 
-        self.check_stac_item(sample.json, json_data)
+        self.check_stac_item(sample.json, json_data, self.collection.name)
 
         # Check the data by reading it back
         response = self.client.get(response['Location'])
         json_data = response.json()
         self.assertStatusCode(200, response)
-        self.check_stac_item(sample.json, json_data)
+        self.check_stac_item(sample.json, json_data, self.collection.name)
 
     def test_item_endpoint_post_invalid_data(self):
         data = self.factory.create_item_sample(self.collection,
@@ -522,13 +522,13 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
         )
         json_data = response.json()
         self.assertStatusCode(200, response)
-        self.check_stac_item(sample.json, json_data)
+        self.check_stac_item(sample.json, json_data, self.collection.name)
 
         # Check the data by reading it back
         response = self.client.get(path)
         json_data = response.json()
         self.assertStatusCode(200, response)
-        self.check_stac_item(sample.json, json_data)
+        self.check_stac_item(sample.json, json_data, self.collection.name)
 
     def test_item_endpoint_put_extra_payload(self):
         sample = self.factory.create_item_sample(
@@ -564,13 +564,13 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
         )
         json_data = response.json()
         self.assertStatusCode(200, response)
-        self.check_stac_item(sample.json, json_data)
+        self.check_stac_item(sample.json, json_data, self.collection.name)
 
         # Check the data by reading it back
         response = self.client.get(path)
         json_data = response.json()
         self.assertStatusCode(200, response)
-        self.check_stac_item(sample.json, json_data)
+        self.check_stac_item(sample.json, json_data, self.collection.name)
         self.assertNotIn('datetime', json_data['properties'].keys())
         self.assertNotIn('title', json_data['properties'].keys())
 
@@ -587,7 +587,7 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
         json_data = response.json()
         self.assertStatusCode(200, response)
         self.assertEqual(sample.json['id'], json_data['id'])
-        self.check_stac_item(sample.json, json_data)
+        self.check_stac_item(sample.json, json_data, self.collection.name)
 
         response = self.client.get(path)
         self.assertStatusCode(404, response, msg="Renamed item still available on old name")
@@ -598,7 +598,7 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
         json_data = response.json()
         self.assertStatusCode(200, response)
         self.assertEqual(sample.json['id'], json_data['id'])
-        self.check_stac_item(sample.json, json_data)
+        self.check_stac_item(sample.json, json_data, self.collection.name)
 
     def test_item_endpoint_patch(self):
         data = {"properties": {"title": "patched title"}}
@@ -607,14 +607,14 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
         json_data = response.json()
         self.assertStatusCode(200, response)
         self.assertEqual(self.item.name, json_data['id'])
-        self.check_stac_item(data, json_data)
+        self.check_stac_item(data, json_data, self.collection.name)
 
         # Check the data by reading it back
         response = self.client.get(path)
         json_data = response.json()
         self.assertStatusCode(200, response)
         self.assertEqual(self.item.name, json_data['id'])
-        self.check_stac_item(data, json_data)
+        self.check_stac_item(data, json_data, self.collection.name)
 
     def test_item_endpoint_patch_extra_payload(self):
         data = {"crazy:stuff": "not allowed"}
@@ -647,6 +647,7 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
         json_data = response.json()
         self.assertStatusCode(200, response)
         self.assertEqual(data['id'], json_data['id'])
+        self.check_stac_item(data, json_data, self.collection.name)
 
         response = self.client.get(path)
         self.assertStatusCode(404, response, msg="Renamed item still available on old name")
