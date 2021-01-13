@@ -473,6 +473,12 @@ components:
         bbox:
           $ref: "#/components/schemas/bbox"
       type: object
+      example:
+        bbox:
+        - 5.96
+        - 45.82
+        - 10.49
+        - 47.81
     checksum:multihash:
       description: >-
         `sha2-256` or `md5` checksum of the asset in [multihash](https://multiformats.io/multihash/)
@@ -659,6 +665,10 @@ components:
         collections:
           $ref: "#/components/schemas/collectionsArray"
       type: object
+      example:
+        collections:
+        - collection-1
+        - collection-2
     confClasses:
       properties:
         conformsTo:
@@ -863,12 +873,22 @@ components:
         ids:
           $ref: "#/components/schemas/ids"
       type: object
+      example:
+        ids:
+        - item-1
+        - item-2
     intersectsFilter:
       description: Only returns items that intersect with the provided polygon.
       properties:
         intersects:
           $ref: https://geojson.org/schema/Geometry.json
       type: object
+      example:
+        intersects:
+          type: "Point"
+          coordinates:
+          - 7
+          - 46
     itemBase:
       description: >-
         A GeoJSON Feature augmented with foreign members that contain values relevant
@@ -1420,8 +1440,11 @@ components:
         $ref: "#/components/schemas/queryProp"
       description: Define which properties to query and the operations to apply
       example:
-        property:
-          eq: ""
+        title:
+          eq: "item-1"
+          contains: "item"
+        datetime:
+          lte: "2525-01-01T00:00:00.000Z"
       type: object
     queryFilter:
       description: Allows users to query properties for specific values

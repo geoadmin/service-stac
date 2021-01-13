@@ -420,7 +420,7 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
             queryset = self.filter_by_ids(queryset, data['ids'])
         else:
             if 'bbox' in data:
-                queryset = filter_by_bbox(queryset, data['bbox'])
+                queryset = filter_by_bbox(queryset, json.dumps(data['bbox']).strip('[]'))
             if 'date_time' in data:
                 queryset = filter_by_datetime(queryset, data['date_time'])
             if 'collections' in data:
@@ -442,13 +442,13 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
         query = self.request.query_params.get('query', None)
 
         if ids:
-            queryset = self.filter_by_ids(queryset, ids)
+            queryset = self.filter_by_ids(queryset, ids.split(','))
         else:  # if ids, all other restrictions are ignored
             if query:
                 queryset = self.filter_by_query(queryset, query)
 
             if collections:
-                queryset = self.filter_by_collections(queryset, collections)
+                queryset = self.filter_by_collections(queryset, collections.split(','))
 
             if bbox:
                 queryset = filter_by_bbox(queryset, bbox)
@@ -556,13 +556,11 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
         queryset = queryset.filter(geometry__intersects=the_geom)
         return queryset
 
-    def filter_by_collections(self, queryset, collections):
-        collections_array = collections.split(',')
+    def filter_by_collections(self, queryset, collections_array):
         queryset = queryset.filter(collection__name__in=collections_array)
         return queryset
 
-    def filter_by_ids(self, queryset, ids):
-        ids_array = ids.split(',')
+    def filter_by_ids(self, queryset, ids_array):
         queryset = queryset.filter(name__in=ids_array)
         return queryset
 

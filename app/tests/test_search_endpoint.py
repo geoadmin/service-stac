@@ -1,5 +1,4 @@
 import logging
-import sys
 
 from django.conf import settings
 from django.test import Client
@@ -9,8 +8,6 @@ from tests.data_factory import Factory
 from tests.utils import client_login
 
 logger = logging.getLogger(__name__)
-handler = logging.StreamHandler(sys.stdout)
-logger.addHandler(handler)
 
 API_BASE = settings.API_BASE
 
@@ -116,7 +113,7 @@ class SearchEndpointTestCase(StacBaseTestCase):
         json_data = response.json()
         self.assertGreater(len(json_data['features']), 0)
 
-    def test_collections(self):
+    def test_collections_get(self):
         # match
         response = self.client.get(f"/{API_BASE}/search" f"?collections=collection-1,har")
         self.assertStatusCode(200, response)
@@ -128,11 +125,35 @@ class SearchEndpointTestCase(StacBaseTestCase):
         json_data = response.json()
         self.assertEqual(len(json_data['features']), 0)
 
-    def test_ids(self):
+    def test_collections_post(self):
+        payload = """
+           { "collections": [
+              "collection-1"
+               ]
+           }
+           """
+        response = self.client.post(f"{self.path}", data=payload, content_type="application/json")
+        json_data = response.json()
+        self.assertGreater(len(json_data['features']), 0)
+
+    def test_ids_get(self):
         response = self.client.get(f"/{API_BASE}/search" f"?ids=item-1,item-2")
         self.assertStatusCode(200, response)
         json_data = response.json()
         self.assertEqual(len(json_data['features']), 2)
+
+    def test_ids_post(self):
+        payload = """
+                  { "ids": [
+                    "item-1",
+                    "item-2"
+                      ]
+                  }
+        """
+        response = self.client.post(f"{self.path}", data=payload, content_type="application/json")
+        json_data = response.json()
+        self.assertEqual(len(json_data['features']), 2)
+
 
     def test_ids_first_and_only_prio(self):
         response = self.client.get(
@@ -142,3 +163,17 @@ class SearchEndpointTestCase(StacBaseTestCase):
         self.assertStatusCode(200, response)
         json_data = response.json()
         self.assertEqual(len(json_data['features']), 2)
+
+    def test_bbox_post(self):
+        payload = """
+        { "bbox": [
+            6,
+            47,
+            6.5,
+            47.5
+            ]
+        }
+        """
+        response = self.client.post(f"{self.path}", data=payload, content_type="application/json")
+        json_data = response.json()
+        self.assertGreater(len(json_data['features']), 0)
