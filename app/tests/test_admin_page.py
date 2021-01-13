@@ -168,6 +168,56 @@ class AdminBaseTestCase(TestCase):
 
         return item, data, link
 
+    def _create_asset_minimal(self, item):
+        start = time.time()
+        filecontent = b'my binary data'
+        filelike = BytesIO(filecontent)
+        filelike.name = 'testname.txt'
+
+        data = {
+            "item": item.id,
+            "name": "test_asset.txt",
+            "description": "",
+            "eo_gsd": "",
+            "geoadmin_lang": "",
+            "geoadmin_variant": "",
+            "proj_epsg": "",
+            "title": "",
+            "media_type": "text/plain",
+            "file": filelike
+        }
+
+        response = self.client.post("/api/stac/admin/stac_api/asset/add/", data)
+        logger.debug('Asset created in %fs', time.time() - start)
+
+        # Status code for successful creation is 302, since in the admin UI
+        # you're redirected to the list view after successful creation
+        self.assertEqual(response.status_code, 302, msg="Admin page failed to add new asset")
+        self.assertTrue(
+            Asset.objects.filter(item=item, name=data["name"]).exists(),
+            msg="Admin page asset added not found in DB"
+        )
+        asset = Asset.objects.get(item=item, name=data["name"])
+
+        # Check the asset values
+        for key, value in data.items():
+            if key in ['item', 'name', 'file', 'checksum_multihash']:
+                continue
+            self.assertEqual(
+                getattr(asset, key),
+                value if value else None,
+                msg=f"Asset field {key} value missmatch"
+            )
+
+        # Assert that the filename is set to the value in name
+        self.assertEqual(asset.filename, data['name'])
+
+        # Check file content is correct
+        with asset.file.open() as fd:
+            self.assertEqual(filecontent, fd.read())
+
+        return asset, data
+
     def _create_asset(self, item, extra=None):
         start = time.time()
         filecontent = b'mybinarydata'
@@ -579,6 +629,13 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
     def setUp(self):
         super().setUp()
         self._setup(create_collection=True, create_item=True)
+
+    @mock_s3_asset_file
+    def test_add_asset_minimal(self):
+        # Login the user first
+        self.client.login(username=self.username, password=self.password)
+
+        self._create_asset_minimal(self.item)
 
     @mock_s3_asset_file
     def test_add_update_asset(self):
