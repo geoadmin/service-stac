@@ -388,6 +388,26 @@ class ItemsBboxQueryEndpointTestCase(StacBaseTestCase):
         )
         self.assertStatusCode(400, response)
 
+    def test_items_endpoint_bbox_from_pseudo_point(self):
+        response = self.client.get(
+            f"/{API_BASE}/collections/{self.collection.name}/items"
+            f"?bbox=5.96,45.82,5.97,45.83&limit=100"
+        )
+        json_data = response.json()
+        self.assertStatusCode(200, response)
+        nb_features_polygon = len(json_data['features'])
+
+        response = self.client.get(
+            f"/{API_BASE}/collections/{self.collection.name}/items"
+            f"?bbox=5.96,45.82,5.96,45.82&limit=100"
+        )
+        json_data = response.json()
+        self.assertStatusCode(200, response)
+        nb_features_point = len(json_data['features'])
+        self.assertEqual(3, nb_features_point, msg="More than one item found")
+        # do both queries return the same amount of items:
+        self.assertEqual(nb_features_polygon, nb_features_point)
+
 
 class ItemsWriteEndpointTestCase(StacBaseTestCase):
 

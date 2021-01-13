@@ -4,6 +4,8 @@ from collections import OrderedDict
 from datetime import datetime
 
 from django.conf import settings
+from django.contrib.gis.geos import Polygon
+from django.contrib.gis.geos import Point
 from django.contrib.gis.geos import GEOSGeometry
 from django.contrib.gis.geos import Polygon
 from django.db.models import Q
