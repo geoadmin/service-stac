@@ -1,13 +1,11 @@
+import json
 import logging
 from collections import OrderedDict
 from datetime import datetime
-from json import JSONDecodeError
-from json import loads
-from json import dumps
 
 from django.conf import settings
-from django.contrib.gis.geos import Polygon
 from django.contrib.gis.geos import GEOSGeometry
+from django.contrib.gis.geos import Polygon
 from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
@@ -132,11 +130,11 @@ def filter_by_bbox(queryset, bbox):
         from the bbox string is invalid.
     '''
     try:
-        logger.debug('Item query parameter bbox = %s', bbox)
+        logger.debug('Query parameter bbox = %s', bbox)
         query_bbox_polygon = Polygon.from_bbox(bbox.split(','))
     except ValueError as error:
         logger.error(
-            'Invalid bbox parameter: '
+            'Invalid bbox query parameter: '
             'Could not transform bbox "%s" to a polygon; %s'
             'f.ex. bbox=5.96, 45.82, 10.49, 47.81',
             bbox,
@@ -145,7 +143,7 @@ def filter_by_bbox(queryset, bbox):
         raise ValidationError(
             _('Invalid bbox query parameter, '
               ' has to contain 4 values. f.ex. bbox=5.96,45.82,10.49,47.81'),
-            code='bbox'
+            code='bbox-invalid'
         )
     return queryset.filter(geometry__intersects=query_bbox_polygon)
 
@@ -185,8 +183,7 @@ def _filter_by_datetime_range(queryset, start_datetime, end_datetime):
     if start_datetime == '..':
         # open start range
         return queryset.filter(
-            Q(properties_datetime__lte=end_datetime) |
-            Q(properties_end_datetime__lte=end_datetime)
+            Q(properties_datetime__lte=end_datetime) | Q(properties_end_datetime__lte=end_datetime)
         )
     if end_datetime == '..':
         # open end range
@@ -197,8 +194,8 @@ def _filter_by_datetime_range(queryset, start_datetime, end_datetime):
         # else fixed range
     return queryset.filter(
         Q(properties_datetime__range=(start_datetime, end_datetime)) | (
-                Q(properties_start_datetime__gte=start_datetime) &
-                Q(properties_end_datetime__lte=end_datetime)
+            Q(properties_start_datetime__gte=start_datetime) &
+            Q(properties_end_datetime__lte=end_datetime)
         )
     )
 
@@ -313,7 +310,6 @@ class ItemsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
 
         return queryset
 
-
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
 
@@ -411,10 +407,9 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
             if 'collections' in data:
                 queryset = self.filter_by_collections(queryset, data['collections'])
             if 'query' in data:
-                queryset = self.filter_by_query(queryset, dumps(data['query']))
+                queryset = self.filter_by_query(queryset, json.dumps(data['query']))
             if 'intersects' in data:
-                queryset = self.filter_by_intersects(queryset, dumps(data['intersects']))
-
+                queryset = self.filter_by_intersects(queryset, json.dumps(data['intersects']))
 
         return queryset
 
@@ -455,8 +450,8 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
 
         # validate json
         try:
-            json_query = loads(query)
-        except JSONDecodeError as error:
+            json_query = json.loads(query)
+        except json.JSONDecodeError as error:
             message = f"The application could not decode the JSON." \
                       f"Please check the syntax ({error})." \
                       f"{query}"
@@ -464,7 +459,7 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
             logger.error(message)
             raise ValidationError(_(message))
 
-        for attribute in json_query: # pylint: disable=too-many-nested-blocks
+        for attribute in json_query:  # pylint: disable=too-many-nested-blocks
             # iterate trough the fields given in the query parameter
             if attribute in queriable_fields:
                 logger.debug("attribute: %s", attribute)
@@ -504,7 +499,6 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
                                 message = f"Invalid dateformat: ({error})"
                                 logger.error(message)
                                 raise ValidationError(_(message))
-
 
                         # __eq does not exist, but = does it as well
                         if operator == 'eq':

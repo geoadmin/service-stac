@@ -33,7 +33,7 @@ urlpatterns = [
         ItemDetail.as_view(),
         name='item-detail'
     ),
-    path(f"{API_BASE}/search", SearchList.as_view(), name='items-list'),
+    path(f"{API_BASE}/search", SearchList.as_view(), name='search-list'),
     path(
         f"{API_BASE}/collections/<collection_name>/items/<item_name>/assets",
         AssetsList.as_view(),

@@ -12,7 +12,6 @@ logger = logging.getLogger(__name__)
 handler = logging.StreamHandler(sys.stdout)
 logger.addHandler(handler)
 
-
 API_BASE = settings.API_BASE
 
 
@@ -46,9 +45,7 @@ class SearchEndpointTestCase(StacBaseTestCase):
         # get match
         title = "My item 1"
         query = '{"title":{"eq":"%s"}}' % title
-        response = self.client.get(
-            f"/{API_BASE}/search"
-            f"?query={query}&limit=100")
+        response = self.client.get(f"/{API_BASE}/search" f"?query={query}&limit=100")
         self.assertStatusCode(200, response)
         json_data_get = response.json()
         self.assertEqual(json_data_get['features'][0]['properties']['title'], title)
@@ -69,7 +66,6 @@ class SearchEndpointTestCase(StacBaseTestCase):
         # compare get and post
         self.assertEqual(len(json_data_post['features']), len(json_data_get['features']))
 
-
     def test_query_data_in(self):
         payload = """
         {"query":
@@ -81,7 +77,6 @@ class SearchEndpointTestCase(StacBaseTestCase):
         response = self.client.post(self.path, data=payload, content_type="application/json")
         json_data = response.json()
         self.assertEqual(len(json_data['features']), 2)
-
 
     def test_post_pagination(self):
         data = """
@@ -109,7 +104,6 @@ class SearchEndpointTestCase(StacBaseTestCase):
         item_id2 = json_data['features'][0]['id']
         self.assertNotEqual(item_id1, item_id2)
 
-
     def test_post_intersects(self):
         data = """
         { "intersects":
@@ -124,24 +118,18 @@ class SearchEndpointTestCase(StacBaseTestCase):
 
     def test_collections(self):
         # match
-        response = self.client.get(
-            f"/{API_BASE}/search"
-            f"?collections=collection-1,har")
+        response = self.client.get(f"/{API_BASE}/search" f"?collections=collection-1,har")
         self.assertStatusCode(200, response)
         json_data = response.json()
         self.assertGreater(len(json_data['features']), 0)
         # no match
-        response = self.client.get(
-            f"/{API_BASE}/search"
-            f"?collections=collection-11,har")
+        response = self.client.get(f"/{API_BASE}/search" f"?collections=collection-11,har")
         self.assertStatusCode(200, response)
         json_data = response.json()
         self.assertEqual(len(json_data['features']), 0)
 
     def test_ids(self):
-        response = self.client.get(
-            f"/{API_BASE}/search"
-            f"?ids=item-1,item-2")
+        response = self.client.get(f"/{API_BASE}/search" f"?ids=item-1,item-2")
         self.assertStatusCode(200, response)
         json_data = response.json()
         self.assertEqual(len(json_data['features']), 2)
@@ -149,7 +137,8 @@ class SearchEndpointTestCase(StacBaseTestCase):
     def test_ids_first_and_only_prio(self):
         response = self.client.get(
             f"/{API_BASE}/search"
-            f"?ids=item-1,item-2&collections=not_exist")
+            f"?ids=item-1,item-2&collections=not_exist"
+        )
         self.assertStatusCode(200, response)
         json_data = response.json()
         self.assertEqual(len(json_data['features']), 2)
