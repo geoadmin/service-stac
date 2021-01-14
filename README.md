@@ -32,8 +32,20 @@
 Prerequisites on host for development and build:
 
 - python version 3.7
-- pipenv
+- [pipenv](https://pipenv-fork.readthedocs.io/en/latest/install.html)
 - `docker` and `docker-compose`
+
+#### Python3.7
+
+If your Ubuntu distribution is missing Python 3.7, you may use the `deadsnakes` PPA and install it:
+
+    sudo add-apt-repository ppa:deadsnakes/ppa
+    sudo apt-get update
+    sudo apt-get install python3.7
+    
+#### pipenv
+
+Generally, all modern distribution have already a [pipenv](https://pipenv-fork.readthedocs.io) package. If no, install from hand.
 
 The other services that are used (Postgres with PostGIS extension for metadata and [MinIO](https://www.min.io) as local S3 replacement) are wrapped in a docker compose.
 
