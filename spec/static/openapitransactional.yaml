@@ -809,8 +809,8 @@ components:
       type: object
       example:
         collections:
-        - collection-1
-        - collection-2
+        - ch.swisstopo.swisstlmregio
+        - ch.bfe.energieschweiz
     confClasses:
       properties:
         conformsTo:
@@ -1017,8 +1017,8 @@ components:
       type: object
       example:
         ids:
-        - item-1
-        - item-2
+        - swisstlmregio-2019
+        - swisstlmregio-2020
     intersectsFilter:
       description: Only returns items that intersect with the provided polygon.
       properties:
@@ -1588,10 +1588,10 @@ components:
       description: Define which properties to query and the operations to apply
       example:
         title:
-          eq: "item-1"
-          contains: "item"
+          eq: "Swissregio"
+          contains: "Swiss"
         datetime:
-          lte: "2525-01-01T00:00:00.000Z"
+          lte: "2021-01-01T00:00:00.000Z"
       type: object
     queryFilter:
       description: Allows users to query properties for specific values
@@ -2488,9 +2488,7 @@ paths:
       - STAC
     post:
       description: >-
-        Retrieve items matching filters. Intended as the standard, full-featured query
-        API.
-
+        Retrieve Items matching filters. Intended as a shorthand API for simple queries.
 
         This method is mandatory to implement if `GET /search` is implemented. If
         this endpoint is implemented on a server, it is required to add a link referring
