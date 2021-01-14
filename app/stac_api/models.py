@@ -443,6 +443,12 @@ ITEM_KEEP_ORIGINAL_FIELDS = [
 ]
 
 
+class ItemManager(models.Manager):
+
+    def get_queryset(self):
+        return super().get_queryset().select_related('collection')
+
+
 class Item(models.Model):
     name = models.CharField('id', blank=False, max_length=255, validators=[validate_name])
     collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
@@ -476,6 +482,9 @@ class Item(models.Model):
 
     # hidden ETag field
     etag = models.CharField(blank=False, null=False, editable=False, max_length=56)
+
+    # Custom Manager that preselects the collection
+    objects = ItemManager()
 
     class Meta:
         unique_together = (('collection', 'name'),)

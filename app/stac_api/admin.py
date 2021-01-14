@@ -85,6 +85,7 @@ class CollectionAdmin(admin.ModelAdmin):
         'extent_start_datetime', 'extent_end_datetime', 'summaries', 'extent_geometry'
     ]
     inlines = [ProviderInline, CollectionLinkInline]
+    search_fields = ['name']
 
 
 class ItemLinkInline(admin.TabularInline):
@@ -95,6 +96,8 @@ class ItemLinkInline(admin.TabularInline):
 @admin.register(Item)
 class ItemAdmin(admin.GeoModelAdmin):
     inlines = [ItemLinkInline]
+    autocomplete_fields = ['collection']
+    search_fields = ['name']
     fieldsets = (
         (None, {
             'fields': ('name', 'collection', 'geometry')

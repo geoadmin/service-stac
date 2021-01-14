@@ -12,6 +12,8 @@ loggers:
     level: DEBUG
   middleware:
     level: DEBUG
+  # django.db:
+  #   level: DEBUG
   django:
     level: INFO
   django.utils.autoreload:
