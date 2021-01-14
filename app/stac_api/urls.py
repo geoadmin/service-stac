@@ -18,9 +18,9 @@ from . import views
 API_BASE = settings.API_BASE
 
 urlpatterns = [
+    path('checker', views.checker, name='checker'),
     path(f'{API_BASE}/', LandingPageDetail.as_view(), name='landing-page'),
     path(f'{API_BASE}/conformance', ConformancePageDetail.as_view(), name='conformance'),
-    path('checker/', views.checker, name='checker'),
     path(f"{API_BASE}/collections", CollectionList.as_view(), name='collection-list'),
     path(
         f"{API_BASE}/collections/<collection_name>",

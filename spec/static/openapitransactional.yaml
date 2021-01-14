@@ -508,7 +508,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/itemAssets"
+            $ref: "#/components/schemas/assets"
     Asset:
       description: >-
         The response is a document consisting of one asset of the feature.
@@ -1134,13 +1134,6 @@ components:
             example: http://cool-sat.com/catalog/collections/cs/items/CS3-20160503_132130_04/thumb.png
             format: url
             type: string
-          roles:
-            description: Purposes of the asset
-            example:
-            - thumbnail
-            items:
-              type: string
-            type: array
           title:
             description: Displayed title
             example: Thumbnail
@@ -1163,9 +1156,7 @@ components:
         - type
         - created
         - updated
-        - id
         type: object
-        $ref: "#/components/schemas/itemAsset"
       type: object
       readOnly: true
       example:
@@ -1756,12 +1747,36 @@ components:
         When the `id` doesn't match the parameter `assetId`, the asset is renamed,
         renaming also the object itself on S3.
       example: smr50-263-2016-2056-kgrs-2.5.tiff
+    assets:
+      type: object
+      properties:
+        assets:
+          items:
+            $ref: "#/components/schemas/itemAsset"
+          type: array
+        links:
+          items:
+            $ref: "#/components/schemas/link"
+          type: array
+          example:
+          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets
+            rel: self
+          - href: https://data.geo.admin.ch/api/stac/v0.9/
+            rel: root
+          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019
+            rel: parent
+          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019
+            rel: item
+          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+            rel: collection
     assetBase:
       type: object
       required:
       - created
       - updated
       properties:
+        id:
+          $ref: "#/components/schemas/assetId"
         title:
           $ref: "#/components/schemas/title"
         description:
@@ -1789,11 +1804,27 @@ components:
         - type
         - href
         - checksum:multihash
+        - links
         properties:
           checksum:multihash:
             $ref: "#/components/schemas/checksum:multihash"
           href:
             $ref: "#/components/schemas/href"
+          links:
+            items:
+              $ref: "#/components/schemas/link"
+            type: array
+            example:
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets/smr50-263-2016-2056-kgrs-2.5.tiff
+              rel: self
+            - href: https://data.geo.admin.ch/api/stac/v0.9/
+              rel: root
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets
+              rel: parent
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019
+              rel: item
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+              rel: collection
     itemAssetWrite:
       allOf:
       - $ref: "#/components/schemas/assetBase"
@@ -1802,8 +1833,6 @@ components:
         - id
         - type
         properties:
-          id:
-            $ref: "#/components/schemas/assetId"
           checksum:multihash:
             $ref: "#/components/schemas/writeChecksumMultihash"
     itemAssetUpdate:
