@@ -236,6 +236,14 @@ class LandingPageSerializer(serializers.ModelSerializer):
             OrderedDict([
                 ("href", request.build_absolute_uri(f"/{api_base}/search")),
                 ("rel", "search"),
+                ("method", "GET"),
+                ("type", "application/json"),
+                ("title", "Search across feature collections"),
+            ]),
+            OrderedDict([
+                ("href", request.build_absolute_uri(f"/{api_base}/search")),
+                ("rel", "search"),
+                ("method", "POST"),
                 ("type", "application/json"),
                 ("title", "Search across feature collections"),
             ]),
@@ -512,11 +520,16 @@ class BboxSerializer(gis_serializers.GeoFeatureModelSerializer):
 
 
 class AssetsDictSerializer(DictSerializer):
+    '''Assets serializer list to dictionary
+
+    This serializer returns an asset dictionary with the asset name as keys.
+    '''
     # pylint: disable=abstract-method
     key_identifier = 'id'
 
 
 class HrefField(serializers.Field):
+    '''Special Href field for Assets'''
 
     def to_representation(self, value):
         # build an absolute URL from the file path
@@ -534,11 +547,12 @@ class HrefField(serializers.Field):
         return url.path[1:]  # strip the leading '/'
 
 
-class AssetSerializer(NonNullModelSerializer):
+class AssetBaseSerializer(NonNullModelSerializer):
+    '''Asset serializer base class
+    '''
 
     class Meta:
         model = Asset
-        list_serializer_class = AssetsDictSerializer
         fields = [
             'id',
             'item',
@@ -565,6 +579,10 @@ class AssetSerializer(NonNullModelSerializer):
         max_length=255,
         validators=[validate_name, UniqueValidator(queryset=Asset.objects.all())]
     )
+    title = serializers.CharField(
+        required=False, max_length=255, allow_null=True, allow_blank=False
+    )
+    description = serializers.CharField(required=False, allow_blank=False, allow_null=True)
     # The href is only for POST request and is ignored for PUT requests this is done by dynamically
     # removing the field with the serializer hide_fields parameter in the view
     href = HrefField(source='file', required=False)
@@ -583,12 +601,12 @@ class AssetSerializer(NonNullModelSerializer):
         choices=Asset.Language.values,
         required=False,
         allow_null=True,
-        allow_blank=True
+        allow_blank=False
     )
     geoadmin_variant = serializers.CharField(
         source='geoadmin_variant',
         max_length=15,
-        allow_blank=True,
+        allow_blank=False,
         allow_null=True,
         required=False,
         validators=[validate_geoadmin_variant]
@@ -598,6 +616,7 @@ class AssetSerializer(NonNullModelSerializer):
         source='checksum_multihash',
         max_length=255,
         required=False,
+        allow_blank=False,
         validators=[validate_asset_multihash]
     )
     # read only fields
@@ -644,6 +663,87 @@ class AssetSerializer(NonNullModelSerializer):
         return fields
 
 
+class AssetSerializer(AssetBaseSerializer):
+    '''Asset serializer for the asset views
+
+    This serializer adds the links list attribute.
+    '''
+
+    def to_representation(self, instance):
+        collection = instance.item.collection.name
+        item = instance.item.name
+        name = instance.name
+        api = settings.API_BASE
+        request = self.context.get("request")
+        representation = super().to_representation(instance)
+        # Add auto links
+        # We use OrderedDict, although it is not necessary, because the default serializer/model for
+        # links already uses OrderedDict, this way we keep consistency between auto link and user
+        # link
+        representation['links'] = [
+            OrderedDict([
+                ('rel', 'self'),
+                (
+                    'href',
+                    request.build_absolute_uri(
+                        f'/{api}/collections/{collection}/items/{item}/assets/{name}'
+                    )
+                ),
+            ]),
+            OrderedDict([
+                ('rel', 'root'),
+                ('href', request.build_absolute_uri(f'/{api}/')),
+            ]),
+            OrderedDict([
+                ('rel', 'parent'),
+                (
+                    'href',
+                    request.
+                    build_absolute_uri(f'/{api}/collections/{collection}/items/{item}/assets')
+                ),
+            ]),
+            OrderedDict([
+                ('rel', 'item'),
+                (
+                    'href',
+                    request.build_absolute_uri(f'/{api}/collections/{collection}/items/{item}')
+                ),
+            ]),
+            OrderedDict([
+                ('rel', 'collection'),
+                ('href', request.build_absolute_uri(f'/{api}/collections/{collection}')),
+            ])
+        ]
+        return representation
+
+
+class AssetsForItemSerializer(AssetBaseSerializer):
+    '''Assets serializer for nesting them inside the item
+
+    Assets should be nested inside their item but using a dictionary instead of a list and without
+    links.
+    '''
+
+    class Meta:
+        model = Asset
+        list_serializer_class = AssetsDictSerializer
+        fields = [
+            'id',
+            'item',
+            'title',
+            'type',
+            'href',
+            'description',
+            'eo_gsd',
+            'geoadmin_lang',
+            'geoadmin_variant',
+            'proj_epsg',
+            'checksum_multihash',
+            'created',
+            'updated'
+        ]
+
+
 class ItemSerializer(NonNullModelSerializer):
 
     class Meta:
@@ -674,11 +774,14 @@ class ItemSerializer(NonNullModelSerializer):
     geometry = gis_serializers.GeometryField(required=True)
     links = ItemLinkSerializer(required=False, many=True)
     # read only fields
-    type = serializers.ReadOnlyField(default='Feature')
+    type = serializers.SerializerMethodField()
     bbox = BboxSerializer(source='*', read_only=True)
-    assets = AssetSerializer(many=True, read_only=True)
+    assets = AssetsForItemSerializer(many=True, read_only=True)
     stac_extensions = serializers.SerializerMethodField()
     stac_version = serializers.SerializerMethodField()
+
+    def get_type(self, obj):
+        return 'Feature'
 
     def get_stac_extensions(self, obj):
         return list()
@@ -735,12 +838,21 @@ class ItemSerializer(NonNullModelSerializer):
         return super().update(instance, validated_data)
 
     def validate(self, attrs):
-        validate_item_properties_datetimes(
-            attrs.get('properties_datetime', None),
-            attrs.get('properties_start_datetime', None),
-            attrs.get('properties_end_datetime', None),
-            partial=self.partial
-        )
+        if (
+            not self.partial or \
+            'properties_datetime' in attrs or \
+            'properties_start_datetime' in attrs or \
+            'properties_end_datetime' in attrs
+        ):
+            validate_item_properties_datetimes(
+                attrs.get('properties_datetime', None),
+                attrs.get('properties_start_datetime', None),
+                attrs.get('properties_end_datetime', None)
+            )
+        else:
+            logger.info(
+                'Skip validation of item properties datetimes; partial update without datetimes'
+            )
 
         validate_json_payload(self)
 

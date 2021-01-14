@@ -43,3 +43,5 @@ if DEBUG:
     DEBUG_PROPAGATE_API_EXCEPTIONS = bool(
         strtobool(os.getenv('DEBUG_PROPAGATE_API_EXCEPTIONS', 'False'))
     )
+
+SHELL_PLUS_POST_IMPORTS = ['from tests.data_factory import Factory']

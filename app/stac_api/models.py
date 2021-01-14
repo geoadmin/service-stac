@@ -43,17 +43,13 @@ _BBOX_CH.srid = 4326
 # 'SRID=4326;POLYGON ((5.96 45.82, 5.96 47.81, 10.49 47.81, 10.49 45.82, 5.96 45.82))'
 BBOX_CH = str(_BBOX_CH)
 
-DEFAULT_EXTENT_VALUE = {"spatial": {"bbox": [[None]]}, "temporal": {"interval": [[None, None]]}}
-
-DEFAULT_SUMMARIES_VALUE = {"eo:gsd": [], "geoadmin:variant": [], "proj:epsg": []}
-
 
 def get_default_extent_value():
-    return DEFAULT_EXTENT_VALUE
+    return dict({"spatial": {"bbox": [[None]]}, "temporal": {"interval": [[None, None]]}})
 
 
 def get_default_summaries_value():
-    return DEFAULT_SUMMARIES_VALUE
+    return dict({"eo:gsd": [], "geoadmin:variant": [], "proj:epsg": []})
 
 
 def get_conformance_default_links():
@@ -398,6 +394,17 @@ class Collection(models.Model):
             bool: True if the collection summaries has been updated, false otherwise
         '''
 
+        logger.debug(
+            'Collection update summaries: '
+            'trigger=%s, asset=%s, old_values=%s, new_values=%s, current_summaries=%s',
+            trigger,
+            asset,
+            old_values,
+            [asset.eo_gsd, asset.geoadmin_variant, asset.proj_epsg],
+            self.summaries,
+            extra={'collection': self.name},
+        )
+
         if trigger == 'delete':
             return update_summaries_on_asset_delete(self, asset)
         if trigger == 'update':
@@ -436,10 +443,14 @@ ITEM_KEEP_ORIGINAL_FIELDS = [
 ]
 
 
+class ItemManager(models.Manager):
+
+    def get_queryset(self):
+        return super().get_queryset().select_related('collection')
+
+
 class Item(models.Model):
-    name = models.CharField(
-        'id', blank=False, max_length=255, validators=[validate_name]
-    )
+    name = models.CharField('id', blank=False, max_length=255, validators=[validate_name])
     collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
     geometry = models.PolygonField(
         null=False, blank=False, default=BBOX_CH, srid=4326, validators=[validate_geometry]
@@ -471,6 +482,9 @@ class Item(models.Model):
 
     # hidden ETag field
     etag = models.CharField(blank=False, null=False, editable=False, max_length=56)
+
+    # Custom Manager that preselects the collection
+    objects = ItemManager()
 
     class Meta:
         unique_together = (('collection', 'name'),)
@@ -509,11 +523,6 @@ class Item(models.Model):
         # It is important to use `*args, **kwargs` in signature because django might add dynamically
         # parameters
         collection_updated = False
-
-        # Make sure that the properties datetime are valid before updating the temporal extent
-        # This is needed because save() is called during the Item.object.create() function without
-        # calling clean() ! and our validation is done within clean() method.
-        self.clean()
 
         self.update_etag()
 
@@ -615,7 +624,8 @@ class Asset(models.Model):
         return os.path.basename(self.file.name)
 
     checksum_multihash = models.CharField(editable=False, max_length=255, blank=True, default='')
-    description = models.TextField(blank=True, null=True)
+    # here we need to set blank=True otherwise the field is as required in the admin interface
+    description = models.TextField(blank=True, null=True, default=None)
     eo_gsd = models.FloatField(null=True, blank=True)
 
     class Language(models.TextChoices):
@@ -625,15 +635,18 @@ class Asset(models.Model):
         FRENCH = 'fr', _('French')
         ROMANSH = 'rm', _('Romansh')
         ENGLISH = 'en', _('English')
-        NONE = '', _('')
+        __empty__ = _('')
 
+    # here we need to set blank=True otherwise the field is as required in the admin interface
     geoadmin_lang = models.CharField(
-        max_length=2, choices=Language.choices, default=Language.NONE, null=True, blank=True
+        max_length=2, choices=Language.choices, default=None, null=True, blank=True
     )
+    # here we need to set blank=True otherwise the field is as required in the admin interface
     geoadmin_variant = models.CharField(
         max_length=15, null=True, blank=True, validators=[validate_geoadmin_variant]
     )
     proj_epsg = models.IntegerField(null=True, blank=True)
+    # here we need to set blank=True otherwise the field is as required in the admin interface
     title = models.CharField(max_length=255, null=True, blank=True)
     media_choices = [(x[0], f'{x[1]} ({x[0]})') for x in MEDIA_TYPES]
     media_type = models.CharField(choices=media_choices, max_length=200, blank=False, null=False)

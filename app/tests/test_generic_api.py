@@ -1,78 +1,68 @@
 import logging
 
+import requests_mock
+
 from django.conf import settings
-from django.contrib.auth import get_user_model
+from django.test import Client
 
 from stac_api.utils import get_link
 
-import tests.database as db
 from tests.base_test import StacBaseTestCase
+from tests.data_factory import AssetSample
+from tests.data_factory import Factory
+from tests.utils import client_login
 from tests.utils import get_http_error_description
+from tests.utils import mock_requests_asset_file
+from tests.utils import mock_s3
+from tests.utils import mock_s3_bucket
 
 logger = logging.getLogger(__name__)
 
 API_BASE = settings.API_BASE
-TEST_VALID_GEOMETRY = {
-    "coordinates": [[
-        [11.199955188064508, 45.30427347827474],
-        [5.435800505341752, 45.34985402081985],
-        [5.327213305905472, 48.19113734655604],
-        [11.403439825339375, 48.14311756174606],
-        [11.199955188064508, 45.30427347827474],
-    ]],
-    "type": "Polygon"
-}
 
 
 class ApiGenericTestCase(StacBaseTestCase):
 
     def setUp(self):
-        self.username = 'SherlockHolmes'
-        self.password = '221B_BakerStreet'
-        self.superuser = get_user_model().objects.create_superuser(
-            self.username, 'test_e_mail1234@some_fantasy_domainname.com', self.password
-        )
-
-    def test_invalid_limit_query(self):
-        response = self.client.get(f"/{API_BASE}/collections?limit=0")
-        self.assertEqual(400, response.status_code)
-
-        response = self.client.get(f"/{API_BASE}/collections?limit=test")
-        self.assertEqual(400, response.status_code)
-
-        response = self.client.get(f"/{API_BASE}/collections?limit=-1")
-        self.assertEqual(400, response.status_code)
-
-        response = self.client.get(f"/{API_BASE}/collections?limit=1000")
-        self.assertEqual(400, response.status_code)
-
-    def test_http_error_invalid_query_param(self):
-        response = self.client.get(f"/{API_BASE}/collections?limit=0")
-        self.assertEqual(400, response.status_code)
-        self._check_http_error_msg(response.json())
+        self.client = Client()
 
     def test_http_error_collection_not_found(self):
         response = self.client.get(f"/{API_BASE}/collections/not-found")
-        self.assertEqual(404, response.status_code)
-        self._check_http_error_msg(response.json())
+        self.assertStatusCode(404, response)
 
     def test_http_error_500_exception(self):
         with self.settings(DEBUG_PROPAGATE_API_EXCEPTIONS=True):
             response = self.client.get("/tests/test_http_500")
-            self.assertEqual(500, response.status_code)
-            self._check_http_error_msg(response.json())
+            self.assertStatusCode(500, response)
 
-    def _check_http_error_msg(self, json_msg):
-        self.assertListEqual(['code', 'description'],
-                             sorted(list(json_msg.keys())),
-                             msg="JSON response required keys missing")
-        self.assertTrue(isinstance(json_msg['code'], int), msg="'code' is not an integer")
-        self.assertTrue(
-            isinstance(json_msg['description'], (str, list, dict)), msg="'code' is not an string"
-        )
+
+class ApiPaginationTestCase(StacBaseTestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        collections = Factory().create_collection_samples(3, db_create=True)
+
+    def setUp(self):
+        self.client = Client()
+
+    def test_invalid_limit_query(self):
+        response = self.client.get(f"/{API_BASE}/collections?limit=0")
+        self.assertStatusCode(400, response)
+
+        response = self.client.get(f"/{API_BASE}/collections?limit=test")
+        self.assertStatusCode(400, response)
+
+        response = self.client.get(f"/{API_BASE}/collections?limit=-1")
+        self.assertStatusCode(400, response)
+
+        response = self.client.get(f"/{API_BASE}/collections?limit=1000")
+        self.assertStatusCode(400, response)
+
+    def test_http_error_invalid_query_param(self):
+        response = self.client.get(f"/{API_BASE}/collections?limit=0")
+        self.assertStatusCode(400, response)
 
     def test_pagination(self):
-        db.create_dummy_db_content(3)
 
         response = self.client.get(f"/{API_BASE}/collections?limit=1")
         json_data = response.json()
@@ -132,19 +122,30 @@ class ApiGenericTestCase(StacBaseTestCase):
             msg='Invalid href link pagination string'
         )
 
+
+class ApiETagPreconditionTestCase(StacBaseTestCase):
+
+    @classmethod
+    @mock_s3
+    def setUpTestData(cls):
+        mock_s3_bucket()
+        cls.factory = Factory()
+        cls.collection = cls.factory.create_collection_sample(name='collection-1').model
+        cls.item = cls.factory.create_item_sample(collection=cls.collection, name='item-1').model
+        cls.asset = cls.factory.create_asset_sample(item=cls.item, name='asset-1').model
+
     def test_get_precondition(self):
-        db.create_dummy_db_content(1, 1, 1)
         for endpoint in [
             'collections/collection-1',
-            'collections/collection-1/items/item-1-1',
-            'collections/collection-1/items/item-1-1/assets/asset-1-1-1'
+            'collections/collection-1/items/item-1',
+            'collections/collection-1/items/item-1/assets/asset-1'
         ]:
             with self.subTest(endpoint=endpoint):
                 response1 = self.client.get(f"/{API_BASE}/{endpoint}")
                 self.assertStatusCode(200, response1)
                 # The ETag change between each test call due to the created, updated time that are
                 # in the hash computation of the ETag
-                self.check_etag(None, response1)
+                self.check_header_etag(None, response1)
 
                 response2 = self.client.get(
                     f"/{API_BASE}/{endpoint}", HTTP_IF_NONE_MATCH=response1['ETag']
@@ -161,27 +162,30 @@ class ApiGenericTestCase(StacBaseTestCase):
                 response4 = self.client.get(f"/{API_BASE}/{endpoint}", HTTP_IF_MATCH='"abcd"')
                 self.assertStatusCode(412, response4)
 
-    def test_put_precondition(self):
-        db.create_dummy_db_content(1, 1, 1)
-        self.client.login(username=self.username, password=self.password)
-        for (endpoint, data) in [
+    @requests_mock.Mocker(kw='requests_mocker')
+    def test_put_precondition(self, requests_mocker):
+        client_login(self.client)
+        for (endpoint, sample) in [
             (
-                'collections/collection-1', {
-                    'id': 'collection-1',
-                    'description': 'test',
-                    'license': 'test',
-                }
+                'collections/collection-1',
+                self.factory.create_collection_sample(
+                    name=self.collection.name, sample='collection-2'
+                )
             ),
             (
-                'collections/collection-1/items/item-1-1',
-                {
-                    "id": 'item-1-1',
-                    "geometry": TEST_VALID_GEOMETRY,
-                    "properties": {
-                        "datetime": "2020-10-18T00:00:00Z",
-                        "title": "My title",
-                    }
-                }
+                'collections/collection-1/items/item-1',
+                self.factory.create_item_sample(
+                    collection=self.collection, name=self.item.name, sample='item-2'
+                )
+            ),
+            (
+                'collections/collection-1/items/item-1/assets/asset-1',
+                self.factory.create_asset_sample(
+                    item=self.item,
+                    name=self.asset.name,
+                    sample='asset-1-updated',
+                    checksum_multihash=self.asset.checksum_multihash
+                )
             ),
         ]:
             with self.subTest(endpoint=endpoint):
@@ -190,12 +194,15 @@ class ApiGenericTestCase(StacBaseTestCase):
                 self.assertStatusCode(200, response)
                 # The ETag change between each test call due to the created, updated time that are
                 # in the hash computation of the ETag
-                self.check_etag(None, response)
+                self.check_header_etag(None, response)
                 etag1 = response['ETag']
+
+                if isinstance(sample, AssetSample):
+                    mock_requests_asset_file(requests_mocker, sample)
 
                 response = self.client.put(
                     f"/{API_BASE}/{endpoint}",
-                    data,
+                    sample.json,
                     content_type="application/json",
                     HTTP_IF_MATCH='"abc"'
                 )
@@ -203,8 +210,86 @@ class ApiGenericTestCase(StacBaseTestCase):
 
                 response = self.client.put(
                     f"/{API_BASE}/{endpoint}",
+                    sample.json,
+                    content_type="application/json",
+                    HTTP_IF_MATCH=etag1
+                )
+                self.assertStatusCode(200, response)
+
+    def test_patch_precondition(self):
+        client_login(self.client)
+        for (endpoint, data) in [
+            (
+                'collections/collection-1',
+                {
+                    'title': 'New title patched'
+                },
+            ),
+            (
+                'collections/collection-1/items/item-1',
+                {
+                    'properties': {
+                        'title': 'New title patched'
+                    }
+                },
+            ),
+            (
+                'collections/collection-1/items/item-1/assets/asset-1',
+                {
+                    'title': 'New title patched'
+                },
+            ),
+        ]:
+            with self.subTest(endpoint=endpoint):
+                # Get first the ETag
+                response = self.client.get(f"/{API_BASE}/{endpoint}")
+                self.assertStatusCode(200, response)
+                # The ETag change between each test call due to the created, updated time that are
+                # in the hash computation of the ETag
+                self.check_header_etag(None, response)
+                etag1 = response['ETag']
+
+                response = self.client.patch(
+                    f"/{API_BASE}/{endpoint}",
+                    data,
+                    content_type="application/json",
+                    HTTP_IF_MATCH='"abc"'
+                )
+                self.assertStatusCode(412, response)
+
+                response = self.client.patch(
+                    f"/{API_BASE}/{endpoint}",
                     data,
                     content_type="application/json",
                     HTTP_IF_MATCH=etag1
+                )
+                self.assertStatusCode(200, response)
+
+    def test_delete_precondition(self):
+        client_login(self.client)
+        for endpoint in [
+            'collections/collection-1/items/item-1/assets/asset-1',
+            'collections/collection-1/items/item-1',  # 'collections/collection-1',
+        ]:
+            with self.subTest(endpoint=endpoint):
+                # Get first the ETag
+                response = self.client.get(f"/{API_BASE}/{endpoint}")
+                self.assertStatusCode(200, response)
+                # The ETag change between each test call due to the created, updated time that are
+                # in the hash computation of the ETag
+                self.check_header_etag(None, response)
+                etag1 = response['ETag']
+
+                response = self.client.delete(
+                    f"/{API_BASE}/{endpoint}",
+                    content_type="application/json",
+                    HTTP_IF_MATCH='"abc"'
+                )
+                self.assertStatusCode(
+                    412, response, msg='Request should be refused due to precondition failed'
+                )
+
+                response = self.client.delete(
+                    f"/{API_BASE}/{endpoint}", content_type="application/json", HTTP_IF_MATCH=etag1
                 )
                 self.assertStatusCode(200, response)

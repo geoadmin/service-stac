@@ -42,7 +42,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/collection"
-          $ref: "#/components/responses/Collection"
         "403":
           $ref: "#/components/responses/PermissionDenied"
         "404":
@@ -130,11 +129,6 @@ paths:
       responses:
         "200":
           description: Returns the updated Collection
-          headers:
-            ETag:
-              schema:
-                type: string
-              description: A string to ensure the collection has not been modified
           content:
             application/json:
               schema:
@@ -668,16 +662,36 @@ components:
         filename. When the `id` doesn't match the parameter `assetId`, the asset is renamed,
         renaming also the object itself on S3.
       example: smr50-263-2016-2056-kgrs-2.5.tiff
-    itemAssets:
+    assets:
       type: object
-      additionalProperties:
-        $ref: "#/components/schemas/itemAsset"
+      properties:
+        assets:
+          items:
+            $ref: "#/components/schemas/itemAsset"
+          type: array
+        links:
+          items:
+            $ref: "#/components/schemas/link"
+          type: array
+          example:
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets
+              rel: self
+            - href: https://data.geo.admin.ch/api/stac/v0.9/
+              rel: root
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019
+              rel: parent
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019
+              rel: item
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+              rel: collection
     assetBase:
       type: object
       required:
         - created
         - updated
       properties:
+        id:
+          $ref: "#/components/schemas/assetId"
         title:
           $ref: "#/components/schemas/title"
         description:
@@ -708,11 +722,27 @@ components:
             - type
             - href
             - checksum:multihash
+            - links
           properties:
             "checksum:multihash":
               $ref: "#/components/schemas/checksum:multihash"
             href:
               $ref: "#/components/schemas/href"
+            links:
+              items:
+                $ref: "#/components/schemas/link"
+              type: array
+              example:
+                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets/smr50-263-2016-2056-kgrs-2.5.tiff
+                  rel: self
+                - href: https://data.geo.admin.ch/api/stac/v0.9/
+                  rel: root
+                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets
+                  rel: parent
+                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019
+                  rel: item
+                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+                  rel: collection
     itemAssetWrite:
       allOf:
         - $ref: "#/components/schemas/assetBase"
@@ -721,8 +751,6 @@ components:
             - id
             - type
           properties:
-            id:
-              $ref: "#/components/schemas/assetId"
             "checksum:multihash":
               $ref: "#/components/schemas/writeChecksumMultihash"
             # href:
@@ -919,7 +947,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/itemAssets"
+            $ref: "#/components/schemas/assets"
     Asset:
       description: >-
         The response is a document consisting of one asset of the feature.
@@ -975,8 +1003,6 @@ components:
           example:
             code: 403
             description: "Permission denied"
-# Note: this is defined as an overwrite in 'overwrites', since defining it here would violate
-# the alphabetical order of the tags ending up in openapi.yaml, see https://speccy.io/rules/1-rulesets#openapi-tags-alphabetical
 tags:
   - description: Essential characteristics of this API
     name: Capabilities

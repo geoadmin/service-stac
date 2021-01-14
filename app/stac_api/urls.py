@@ -11,15 +11,16 @@ from stac_api.views import ConformancePageDetail
 from stac_api.views import ItemDetail
 from stac_api.views import ItemsList
 from stac_api.views import LandingPageDetail
+from stac_api.views import SearchList
 
 from . import views
 
 API_BASE = settings.API_BASE
 
 urlpatterns = [
+    path('checker', views.checker, name='checker'),
     path(f'{API_BASE}/', LandingPageDetail.as_view(), name='landing-page'),
     path(f'{API_BASE}/conformance', ConformancePageDetail.as_view(), name='conformance'),
-    path('checker/', views.checker, name='checker'),
     path(f"{API_BASE}/collections", CollectionList.as_view(), name='collection-list'),
     path(
         f"{API_BASE}/collections/<collection_name>",
@@ -32,6 +33,7 @@ urlpatterns = [
         ItemDetail.as_view(),
         name='item-detail'
     ),
+    path(f"{API_BASE}/search", SearchList.as_view(), name='search-list'),
     path(
         f"{API_BASE}/collections/<collection_name>/items/<item_name>/assets",
         AssetsList.as_view(),

@@ -100,8 +100,7 @@ components:
 
 
         The coordinate reference system of the values is WGS 84 longitude/latitude
-        (http://www.opengis.net/def/crs/OGC/1.3/CRS84) unless a different coordinate
-        reference system is specified in the parameter `bbox-crs`.
+        (http://www.opengis.net/def/crs/OGC/1.3/CRS84).
 
 
         For WGS 84 longitude/latitude the values are in most cases the sequence of
@@ -509,7 +508,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/itemAssets"
+            $ref: "#/components/schemas/assets"
     Asset:
       description: >-
         The response is a document consisting of one asset of the feature.
@@ -583,8 +582,7 @@ components:
 
 
         The coordinate reference system of the values is WGS84 longitude/latitude
-        (http://www.opengis.net/def/crs/OGC/1.3/CRS84) unless a different coordinate
-        reference system is specified in the parameter `bbox-crs`.
+        (http://www.opengis.net/def/crs/OGC/1.3/CRS84).
 
 
         For WGS84 longitude/latitude the values are in most cases the sequence of
@@ -617,6 +615,12 @@ components:
         bbox:
           $ref: "#/components/schemas/bbox"
       type: object
+      example:
+        bbox:
+        - 5.96
+        - 45.82
+        - 10.49
+        - 47.81
     checksum:multihash:
       description: >-
         `sha2-256` or `md5` checksum of the asset in [multihash](https://multiformats.io/multihash/)
@@ -803,6 +807,10 @@ components:
         collections:
           $ref: "#/components/schemas/collectionsArray"
       type: object
+      example:
+        collections:
+        - ch.swisstopo.swisstlmregio
+        - ch.bfe.energieschweiz
     confClasses:
       properties:
         conformsTo:
@@ -1007,12 +1015,22 @@ components:
         ids:
           $ref: "#/components/schemas/ids"
       type: object
+      example:
+        ids:
+        - swisstlmregio-2019
+        - swisstlmregio-2020
     intersectsFilter:
       description: Only returns items that intersect with the provided polygon.
       properties:
         intersects:
           $ref: https://geojson.org/schema/Geometry.json
       type: object
+      example:
+        intersects:
+          type: "Point"
+          coordinates:
+          - 7
+          - 46
     itemBase:
       description: >-
         A GeoJSON Feature augmented with foreign members that contain values relevant
@@ -1116,13 +1134,6 @@ components:
             example: http://cool-sat.com/catalog/collections/cs/items/CS3-20160503_132130_04/thumb.png
             format: url
             type: string
-          roles:
-            description: Purposes of the asset
-            example:
-            - thumbnail
-            items:
-              type: string
-            type: array
           title:
             description: Displayed title
             example: Thumbnail
@@ -1145,9 +1156,7 @@ components:
         - type
         - created
         - updated
-        - id
         type: object
-        $ref: "#/components/schemas/itemAsset"
       type: object
       readOnly: true
       example:
@@ -1569,8 +1578,11 @@ components:
         $ref: "#/components/schemas/queryProp"
       description: Define which properties to query and the operations to apply
       example:
-        property:
-          eq: ""
+        title:
+          eq: "Swissregio"
+          contains: "Swiss"
+        datetime:
+          lte: "2021-01-01T00:00:00.000Z"
       type: object
     queryFilter:
       description: Allows users to query properties for specific values
@@ -1735,12 +1747,36 @@ components:
         When the `id` doesn't match the parameter `assetId`, the asset is renamed,
         renaming also the object itself on S3.
       example: smr50-263-2016-2056-kgrs-2.5.tiff
+    assets:
+      type: object
+      properties:
+        assets:
+          items:
+            $ref: "#/components/schemas/itemAsset"
+          type: array
+        links:
+          items:
+            $ref: "#/components/schemas/link"
+          type: array
+          example:
+          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets
+            rel: self
+          - href: https://data.geo.admin.ch/api/stac/v0.9/
+            rel: root
+          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019
+            rel: parent
+          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019
+            rel: item
+          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+            rel: collection
     assetBase:
       type: object
       required:
       - created
       - updated
       properties:
+        id:
+          $ref: "#/components/schemas/assetId"
         title:
           $ref: "#/components/schemas/title"
         description:
@@ -1768,11 +1804,27 @@ components:
         - type
         - href
         - checksum:multihash
+        - links
         properties:
           checksum:multihash:
             $ref: "#/components/schemas/checksum:multihash"
           href:
             $ref: "#/components/schemas/href"
+          links:
+            items:
+              $ref: "#/components/schemas/link"
+            type: array
+            example:
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets/smr50-263-2016-2056-kgrs-2.5.tiff
+              rel: self
+            - href: https://data.geo.admin.ch/api/stac/v0.9/
+              rel: root
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets
+              rel: parent
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019
+              rel: item
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+              rel: collection
     itemAssetWrite:
       allOf:
       - $ref: "#/components/schemas/assetBase"
@@ -1781,8 +1833,6 @@ components:
         - id
         - type
         properties:
-          id:
-            $ref: "#/components/schemas/assetId"
           checksum:multihash:
             $ref: "#/components/schemas/writeChecksumMultihash"
     itemAssetUpdate:
@@ -2026,7 +2076,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/collection"
-          $ref: "#/components/responses/Collection"
         "403":
           $ref: "#/components/responses/PermissionDenied"
         "404":
@@ -2138,11 +2187,6 @@ paths:
       responses:
         "200":
           description: Returns the updated Collection
-          headers:
-            ETag:
-              schema:
-                type: string
-              description: A string to ensure the collection has not been modified
           content:
             application/json:
               schema:
@@ -2438,16 +2482,6 @@ paths:
     get:
       description: >-
         Retrieve Items matching filters. Intended as a shorthand API for simple queries.
-
-
-        This method is optional, but you MUST implement `POST /search` if you want
-        to implement this method.
-
-
-        If this endpoint is implemented on a server, it is required to add a link
-        referring to this endpoint with `rel` set to `search` to the `links` array
-        in `GET /`. As `GET` is the default method, the `method` may not be set explicitly
-        in the link.
       operationId: getSearchSTAC
       parameters:
       - $ref: "#/components/parameters/query"
@@ -2475,12 +2509,6 @@ paths:
       description: >-
         Retrieve items matching filters. Intended as the standard, full-featured query
         API.
-
-
-        This method is mandatory to implement if `GET /search` is implemented. If
-        this endpoint is implemented on a server, it is required to add a link referring
-        to this endpoint with `rel` set to `search` and `method` set to `POST` to
-        the `links` array in `GET /`.
       operationId: postSearchSTAC
       requestBody:
         content:

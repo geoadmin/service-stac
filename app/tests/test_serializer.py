@@ -1,6 +1,5 @@
 # pylint: disable=too-many-lines
 
-import io
 import logging
 from collections import OrderedDict
 from datetime import datetime
@@ -12,66 +11,51 @@ import requests_mock
 from django.conf import settings
 
 from rest_framework.exceptions import ValidationError
-from rest_framework.parsers import JSONParser
 from rest_framework.renderers import JSONRenderer
 from rest_framework.test import APIRequestFactory
 
-from stac_api.models import Item
 from stac_api.serializers import STAC_VERSION
 from stac_api.serializers import AssetSerializer
 from stac_api.serializers import CollectionSerializer
 from stac_api.serializers import ItemSerializer
+from stac_api.utils import get_link
 from stac_api.utils import isoformat
 from stac_api.utils import utc_aware
 
-import tests.database as db
 from tests.base_test import StacBaseTestCase
+from tests.data_factory import Factory
+from tests.utils import mock_requests_asset_file
+from tests.utils import mock_s3_asset_file
 
 logger = logging.getLogger(__name__)
 API_BASE = settings.API_BASE
 
-geometry_json = OrderedDict([
-    (
-        "coordinates",
-        [[
-            [5.644711, 46.775054],
-            [5.644711, 48.014995],
-            [6.602408, 48.014995],
-            [7.602408, 49.014995],
-            [5.644711, 46.775054],
-        ]]
-    ),
-    ("type", "Polygon"),
-])
+api_request_mocker = APIRequestFactory()
 
 
 class CollectionSerializationTestCase(StacBaseTestCase):
 
+    @classmethod
+    @mock_s3_asset_file
+    def setUpTestData(cls):
+        cls.data_factory = Factory()
+        cls.collection_created = utc_aware(datetime.now())
+        cls.collection = cls.data_factory.create_collection_sample(db_create=True)
+        cls.item = cls.data_factory.create_item_sample(
+            collection=cls.collection.model, db_create=True
+        )
+        cls.asset = cls.data_factory.create_asset_sample(item=cls.item.model, db_create=True)
+
     def setUp(self):  # pylint: disable=invalid-name
-        '''
-        Prepare instances of keyword, link, provider and instance for testing.
-        Adding the relationships among those by populating the ManyToMany fields
-        '''
-        self.factory = APIRequestFactory()
-        self.collection_created = utc_aware(datetime.utcnow())
-        self.collection = db.create_collection('collection-1')
-        self.collection.full_clean()
-        self.collection.save()
-        self.item = db.create_item(self.collection, 'item-1')
-        self.item.full_clean()
-        self.item.save()
-        self.asset = db.create_asset(self.item, 'asset-1')
-        self.asset.full_clean()
-        self.asset.save()
         self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_collection_serialization(self):
-        collection_name = self.collection.name
+        collection_name = self.collection.model.name
         # mock a request needed for the serialization of links
-        request = self.factory.get(f'{API_BASE}/collections/{collection_name}')
+        context = {'request': api_request_mocker.get(f'{API_BASE}/collections/{collection_name}')}
 
         # transate to Python native:
-        serializer = CollectionSerializer(self.collection, context={'request': request})
+        serializer = CollectionSerializer(self.collection.model, context=context)
         python_native = serializer.data
         logger.debug('python native:\n%s', pformat(python_native))
 
@@ -79,10 +63,10 @@ class CollectionSerializationTestCase(StacBaseTestCase):
         content = JSONRenderer().render(python_native)
         logger.debug('json string: %s', content.decode("utf-8"))
 
-        expected = {
+        expected = self.collection.get_json('serialize')
+        expected.update({
             'created': isoformat(self.collection_created),
             'crs': ['http://www.opengis.net/def/crs/OGC/1.3/CRS84'],
-            'description': 'This is a description',
             'extent':
                 OrderedDict([
                     ('spatial', {
@@ -92,9 +76,7 @@ class CollectionSerializationTestCase(StacBaseTestCase):
                         'interval': [['2020-10-28T13:05:10Z', '2020-10-28T13:05:10Z']]
                     })
                 ]),
-            'id': collection_name,
             'itemType': 'Feature',
-            'license': 'test',
             'links': [
                 OrderedDict([
                     ('rel', 'self'),
@@ -116,19 +98,28 @@ class CollectionSerializationTestCase(StacBaseTestCase):
                     ),
                 ]),
                 OrderedDict([
-                    ('href', 'http://www.google.com'),
-                    ('rel', 'dummy'),
-                    ('type', 'dummy'),
-                    ('title', 'Dummy link'),
+                    ('href', 'https://www.example.com/described-by'),
+                    ('rel', 'describedBy'),
+                    ('type', 'description'),
+                    ('title', 'This is an extra link'),
                 ])
             ],
             'providers': [
-                OrderedDict([
-                    ('name', 'provider1'),
-                    ('roles', ['licensor']),
-                    ('url', 'http://www.google.com'),
-                    ('description', 'description'),
-                ])
+                {
+                    'name': 'provider-1',
+                    'roles': ['licensor', 'producer'],
+                    'description': 'This is a full description of the provider',
+                    'url': 'https://www.provider.com'
+                },
+                {
+                    'name': 'provider-2',
+                    'roles': ['licensor'],
+                    'description': 'This is a full description of a second provider',
+                    'url': 'https://www.provider.com/provider-2'
+                },
+                {
+                    'name': 'provider-3',
+                },
             ],
             'stac_extensions': [
                 'eo',
@@ -142,165 +133,76 @@ class CollectionSerializationTestCase(StacBaseTestCase):
                 'geoadmin:variant': ['kgrs'],
                 'proj:epsg': [2056],
             },
-            'title': 'Test title',
             'updated': isoformat(self.collection_created)
-        }
+        })
         self.check_stac_collection(expected, python_native)
 
-    def test_collection_deserialization_create_only_required(self):
-        data = OrderedDict([
-            ("id", "test"),
-            ("description", "This is a description for testing"),
-            ("license", "proprietary"),
-        ])
 
-        # translate to Python native:
-        serializer = CollectionSerializer(data=data)
+class CollectionDeserializationTestCase(StacBaseTestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.data_factory = Factory()
+
+    def setUp(self):  # pylint: disable=invalid-name
+        self.maxDiff = None  # pylint: disable=invalid-name
+
+    def test_collection_deserialization_create_only_required(self):
+        sample = self.data_factory.create_collection_sample(required_only=True)
+        serializer = CollectionSerializer(data=sample.get_json('deserialize'))
         serializer.is_valid(raise_exception=True)
         collection = serializer.save()
 
-        # serialize the object and test it against the one above
         # mock a request needed for the serialization of links
-        request = self.factory.get(f'{API_BASE}/collections/{collection.name}')
-        serializer = CollectionSerializer(collection, context={'request': request})
+        context = {'request': api_request_mocker.get(f'{API_BASE}/collections/{collection.name}')}
+        serializer = CollectionSerializer(collection, context=context)
         python_native = serializer.data
-        self.check_stac_collection(data, python_native)
+        self.check_stac_collection(sample.json, python_native)
 
     def test_collection_deserialization_create_full(self):
-        data = OrderedDict([
-            ("id", "test"),
-            ("description", "This is a description for testing"),
-            ("license", "proprietary"),
-            ("title", "My title"),
-            (
-                "providers",
-                [
-                    OrderedDict([
-                        ("name", "my-provider"),
-                        ("description", "My provider description"),
-                        ("roles", ["licensor"]),
-                        ("url", "http://www.example.com"),
-                    ])
-                ]
-            ),
-            (
-                "links",
-                [
-                    OrderedDict([
-                        ('href', 'http://www.example.com'),
-                        ('rel', 'example'),
-                        ('title', 'This is an example link'),
-                        ('type', 'example-type'),
-                    ])
-                ]
-            ),
-        ])
-
-        # translate to Python native:
-        serializer = CollectionSerializer(data=data)
+        sample = self.data_factory.create_collection_sample()
+        serializer = CollectionSerializer(data=sample.get_json('deserialize'))
         serializer.is_valid(raise_exception=True)
         collection = serializer.save()
 
         # serialize the object and test it against the one above
         # mock a request needed for the serialization of links
-        request = self.factory.get(f'{API_BASE}/collections/{collection.name}')
-        serializer = CollectionSerializer(collection, context={'request': request})
+        context = {'request': api_request_mocker.get(f'{API_BASE}/collections/{collection.name}')}
+        serializer = CollectionSerializer(collection, context=context)
         python_native = serializer.data
-        self.check_stac_collection(data, python_native)
+        self.check_stac_collection(sample.json, python_native)
 
-    def test_collection_deserialization_create_provider_link_required(self):
-        data = OrderedDict([
-            ("id", "test"),
-            ("description", "This is a description for testing"),
-            ("license", "proprietary"),
-            ("title", "My title"),
-            ("providers", [OrderedDict([("name", "my-provider")])]),
-            ("links", [OrderedDict([('href', 'http://www.example.com'), ('rel', 'example')])]),
-        ])
+    def test_collection_deserialization_update_existing(self):
+        # Create a collection
+        collection = self.data_factory.create_collection_sample(sample='collection-1').model
 
-        # translate to Python native:
-        serializer = CollectionSerializer(data=data)
+        # Get a new samples based on another sample
+        sample = self.data_factory.create_collection_sample(
+            sample='collection-4', name=collection.name
+        )
+        context = {'request': api_request_mocker.get(f'{API_BASE}/collections/{collection.name}')}
+        serializer = CollectionSerializer(
+            collection, data=sample.get_json('deserialize'), context=context
+        )
         serializer.is_valid(raise_exception=True)
         collection = serializer.save()
 
         # serialize the object and test it against the one above
         # mock a request needed for the serialization of links
-        request = self.factory.get(f'{API_BASE}/collections/{collection.name}')
-        serializer = CollectionSerializer(collection, context={'request': request})
+        serializer = CollectionSerializer(collection, context=context)
         python_native = serializer.data
-        self.check_stac_collection(data, python_native)
+        self.check_stac_collection(sample.json, python_native)
 
-    def test_collection_deserialization_update_provider_link_required(self):
-        data = OrderedDict([
-            ("id", "test"),
-            ("description", "This is a description for testing"),
-            ("license", "proprietary"),
-            ("title", "My title"),
-            ("providers", [OrderedDict([("name", "my-provider")])]),
-            ("links", [OrderedDict([('href', 'http://www.example.com'), ('rel', 'example')])]),
-        ])
-
-        # translate to Python native:
-        serializer = CollectionSerializer(data=data)
-        serializer.is_valid(raise_exception=True)
-        collection = serializer.save()
-
-        # Update some data
-        data['description'] = 'New description'
-        data['title'] = 'New Title'
-        data['license'] = 'New license'
-        data['providers'][0]['url'] = 'http://www.example.com'
-        data['providers'][0]['roles'] = ['licensor']
-        data['links'][0]['type'] = 'example'
-        serializer = CollectionSerializer(collection, data=data)
-        serializer.is_valid(raise_exception=True)
-        collection = serializer.save()
-
-        # serialize the object and test it against the one above
-        # mock a request needed for the serialization of links
-        request = self.factory.get(f'{API_BASE}/collections/{collection.name}')
-        serializer = CollectionSerializer(collection, context={'request': request})
-        python_native = serializer.data
-        self.check_stac_collection(data, python_native)
-
-    def test_collection_deserialization_update_remove_add_provider_link(self):
-        data = OrderedDict([
-            ("id", "test"),
-            ("description", "This is a description for testing"),
-            ("license", "proprietary"),
-            ("title", "My title"),
-            ("providers", [OrderedDict([("name", "my-provider")])]),
-            ("links", [OrderedDict([('href', 'http://www.example.com'), ('rel', 'example')])]),
-        ])
-
-        # translate to Python native:
-        serializer = CollectionSerializer(data=data)
-        serializer.is_valid(raise_exception=True)
-        collection = serializer.save()
-
-        # Remove and and new provider and link
-        data['providers'][0]['name'] = 'new-provider'
-        data['providers'][0]['url'] = 'http://www.example.com'
-        data['providers'][0]['roles'] = ['licensor']
-        data['links'][0] = OrderedDict([('href', 'http://www.new-example.com'),
-                                        ('rel', 'new-example')])
-        serializer = CollectionSerializer(collection, data=data)
-        serializer.is_valid(raise_exception=True)
-        collection = serializer.save()
-
-        # serialize the object and test it against the one above
-        # mock a request needed for the serialization of links
-        request = self.factory.get(f'{API_BASE}/collections/{collection.name}')
-        serializer = CollectionSerializer(collection, context={'request': request})
-        python_native = serializer.data
-        self.check_stac_collection(data, python_native)
+        self.assertNotIn('providers', python_native, msg='Providers have not been removed')
+        self.assertIn('links', python_native, msg='Generated links missing')
+        self.assertIsNone(
+            get_link(python_native['links'], 'describedBy'),
+            msg='User link describedBy have not been removed'
+        )
 
     def test_collection_deserialization_invalid_data(self):
-        data = OrderedDict([
-            ("id", "test/invalid name"),
-            ("description", "This is a description for testing"),
-            ("license", "proprietary"),
-        ])
+        data = self.data_factory.create_collection_sample(sample='collection-invalid'
+                                                         ).get_json('deserialize')
 
         # translate to Python native:
         serializer = CollectionSerializer(data=data)
@@ -308,12 +210,8 @@ class CollectionSerializationTestCase(StacBaseTestCase):
             serializer.is_valid(raise_exception=True)
 
     def test_collection_deserialization_invalid_link(self):
-        data = OrderedDict([
-            ("id", "test"),
-            ("description", "This is a description for testing"),
-            ("license", "proprietary"),
-            ("links", [OrderedDict([('href', 'www.example.com'), ('rel', 'example')])]),
-        ])
+        data = self.data_factory.create_collection_sample(sample='collection-invalid-links'
+                                                         ).get_json('deserialize')
 
         # translate to Python native:
         serializer = CollectionSerializer(data=data)
@@ -321,12 +219,8 @@ class CollectionSerializationTestCase(StacBaseTestCase):
             serializer.is_valid(raise_exception=True)
 
     def test_collection_deserialization_invalid_provider(self):
-        data = OrderedDict([
-            ("id", "test"),
-            ("description", "This is a description for testing"),
-            ("license", "proprietary"),
-            ("providers", [OrderedDict([("name", "my-provider"), ('roles', ['invalid-role'])])]),
-        ])
+        data = self.data_factory.create_collection_sample(sample='collection-invalid-providers'
+                                                         ).get_json('deserialize')
 
         # translate to Python native:
         serializer = CollectionSerializer(data=data)
@@ -336,33 +230,27 @@ class CollectionSerializationTestCase(StacBaseTestCase):
 
 class ItemSerializationTestCase(StacBaseTestCase):
 
+    @classmethod
+    @mock_s3_asset_file
+    def setUpTestData(cls):  # pylint: disable=invalid-name
+        cls.data_factory = Factory()
+        cls.collection = cls.data_factory.create_collection_sample(db_create=True)
+        cls.item = cls.data_factory.create_item_sample(
+            collection=cls.collection.model, db_create=True
+        )
+        cls.asset = cls.data_factory.create_asset_sample(item=cls.item.model, db_create=True)
+
     def setUp(self):  # pylint: disable=invalid-name
-        '''
-        Prepare instances of keyword, link, provider and instance for testing.
-        Adding the relationships among those by populating the ManyToMany fields
-        '''
-        self.factory = APIRequestFactory()
-        self.collection_created = utc_aware(datetime.utcnow())
-        self.collection = db.create_collection('collection-1')
-        self.collection.full_clean()
-        self.collection.save()
-        self.item = db.create_item(self.collection, 'item-1')
-        self.item.full_clean()
-        self.item.save()
-        self.asset = db.create_asset(self.item, 'asset-1')
-        self.asset.full_clean()
-        self.asset.save()
         self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_item_serialization(self):
-        collection_name = self.collection.name
-        item_name = self.item.name
 
-        # mock a request needed for the serialization of links
-        request = self.factory.get(f'{API_BASE}/collections/{collection_name}/items/{item_name}')
-
-        # translate to Python native:
-        serializer = ItemSerializer(self.item, context={'request': request})
+        context = {
+            'request':
+                api_request_mocker.
+                get(f'{API_BASE}/collections/{self.collection["name"]}/items/{self.item["name"]}')
+        }
+        serializer = ItemSerializer(self.item.model, context=context)
         python_native = serializer.data
 
         logger.debug('python native:\n%s', pformat(python_native))
@@ -378,77 +266,17 @@ class ItemSerializationTestCase(StacBaseTestCase):
             msg="These required fields by the STAC API spec are missing"
         )
 
-        expected = {
+        collection_name = self.collection.model.name
+        item_name = self.item.model.name
+        expected_asset = self.asset.json
+        expected_asset.pop('id')
+        expected_asset.pop('item')
+        expected = self.item.json
+        expected.update({
             'assets': {
-                self.asset.name:
-                    OrderedDict([
-                        ('title', 'my-title'),
-                        ('type', 'image/tiff; application=geotiff; '
-                         'profile=cloud-optimized'),
-                        ('href', f'http://testserver/{collection_name}/{item_name}/asset-1'),
-                        ('description', 'this an asset'),
-                        ('eo:gsd', 3.4),
-                        ('proj:epsg', 2056),
-                        ('geoadmin:variant', 'kgrs'),
-                        ('geoadmin:lang', 'fr'),
-                        (
-                            'checksum:multihash',
-                            db.get_asset_dummy_content_multihash(self.asset.name)
-                        ),
-                    ])
+                self.asset['name']: expected_asset
             },
             'bbox': (5.644711, 46.775054, 7.602408, 49.014995),
-            'collection': collection_name,
-            'geometry':
-                OrderedDict([
-                    ('type', 'Polygon'),
-                    (
-                        'coordinates',
-                        [[
-                            [5.644711, 46.775054],
-                            [5.644711, 48.014995],
-                            [6.602408, 48.014995],
-                            [7.602408, 49.014995],
-                            [5.644711, 46.775054],
-                        ]],
-                    ),
-                ]),
-            'id': item_name,
-            'links': [
-                OrderedDict([
-                    ('rel', 'self'),
-                    (
-                        'href',
-                        f'http://testserver/api/stac/v0.9/collections/{collection_name}/items/{item_name}'
-                    ),
-                ]),
-                OrderedDict([
-                    ('rel', 'root'),
-                    ('href', 'http://testserver/api/stac/v0.9/'),
-                ]),
-                OrderedDict([
-                    ('rel', 'parent'),
-                    (
-                        'href',
-                        f'http://testserver/api/stac/v0.9/collections/{collection_name}/items'
-                    ),
-                ]),
-                OrderedDict([
-                    ('rel', 'collection'),
-                    ('href', f'http://testserver/api/stac/v0.9/collections/{collection_name}'),
-                ]),
-                OrderedDict([
-                    ('href', 'https://example.com'),
-                    ('rel', 'dummy'),
-                    ('type', 'dummy'),
-                    ('title', 'Dummy link'),
-                ])
-            ],
-            'properties':
-                OrderedDict([
-                    ('datetime', '2020-10-28T13:05:10Z'),
-                    ('title', 'My Title'),
-                ]),
             'stac_extensions': [
                 'eo',
                 'proj',
@@ -457,34 +285,22 @@ class ItemSerializationTestCase(StacBaseTestCase):
             ],
             'stac_version': STAC_VERSION,
             'type': 'Feature'
-        }
-        self.check_stac_item(expected, python_native)
+        })
+        self.check_stac_item(expected, python_native, collection_name)
 
     def test_item_serialization_datetime_range(self):
-        now = utc_aware(datetime.utcnow())
-        yesterday = now - timedelta(days=1)
-        item_range = Item.objects.create(
-            collection=self.collection,
-            name='item-range',
-            properties_start_datetime=yesterday,
-            properties_end_datetime=now,
-            properties_title="My Title",
+        sample = self.data_factory.create_item_sample(
+            collection=self.collection.model, sample='item-2'
         )
-        db.create_item_links(item_range)
-        item_range.full_clean()
-        item_range.save()
-
-        collection_name = self.collection.name
-        item_name = item_range.name
-
-        # mock a request needed for the serialization of links
-        request = self.factory.get(f'{API_BASE}/collections/{collection_name}/items/{item_name}')
-
         # translate to Python native:
-        serializer = ItemSerializer(item_range, context={'request': request})
+        context = {
+            'request':
+                api_request_mocker.
+                get(f'{API_BASE}/collections/{self.collection["name"]}/items/{sample["name"]}')
+        }
+        serializer = ItemSerializer(sample.model, context=context)
         python_native = serializer.data
 
-        logger.debug('serialized fields:\n%s', pformat(serializer.fields))
         logger.debug('python native:\n%s', pformat(python_native))
 
         # translate to JSON:
@@ -497,277 +313,137 @@ class ItemSerializationTestCase(StacBaseTestCase):
             set(),
             msg="These required fields by the STAC API spec are missing"
         )
+        self.check_stac_item(sample.json, python_native, self.collection["name"])
 
-        expected = {
-            'assets': {},
-            'bbox': (5.96, 45.82, 10.49, 47.81),
-            'collection': collection_name,
-            'geometry':
-                OrderedDict([
-                    ('type', 'Polygon'),
-                    (
-                        'coordinates',
-                        [[
-                            [5.96, 45.82],
-                            [5.96, 47.81],
-                            [10.49, 47.81],
-                            [10.49, 45.82],
-                            [5.96, 45.82],
-                        ]]
-                    ),
-                ]),
-            'id': item_name,
-            'links': [
-                OrderedDict([
-                    ('rel', 'self'),
-                    (
-                        'href',
-                        f'http://testserver/api/stac/v0.9/collections/{collection_name}/items/{item_name}',
-                    ),
-                ]),
-                OrderedDict([
-                    ('rel', 'root'),
-                    ('href', 'http://testserver/api/stac/v0.9/'),
-                ]),
-                OrderedDict([
-                    ('rel', 'parent'),
-                    (
-                        'href',
-                        f'http://testserver/api/stac/v0.9/collections/{collection_name}/items'
-                    ),
-                ]),
-                OrderedDict([
-                    ('rel', 'collection'),
-                    (
-                        'href',
-                        f'http://testserver/api/stac/v0.9/collections/{collection_name}',
-                    ),
-                ]),
-                OrderedDict([
-                    ('href', 'https://example.com'),
-                    ('rel', 'dummy'),
-                    ('type', 'dummy'),
-                    ('title', 'Dummy link'),
-                ])
-            ],
-            'properties':
-                OrderedDict([
-                    ('start_datetime', isoformat(yesterday)),
-                    ('end_datetime', isoformat(now)),
-                    ('title', 'My Title'),
-                ]),
-            'stac_extensions': [
-                'eo',
-                'proj',
-                'view',
-                'https://data.geo.admin.ch/stac/geoadmin-extension/1.0/schema.json'
-            ],
-            'stac_version': STAC_VERSION,
-            'type': 'Feature'
-        }
-        self.check_stac_item(expected, python_native)
+
+class ItemDeserializationTestCase(StacBaseTestCase):
+
+    @classmethod
+    def setUpTestData(cls):  # pylint: disable=invalid-name
+        cls.data_factory = Factory()
+        cls.collection = cls.data_factory.create_collection_sample(db_create=True)
+
+    def setUp(self):  # pylint: disable=invalid-name
+        self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_item_deserialization_create_only_required(self):
-        data = OrderedDict([
-            ("collection", self.collection.name),
-            ("id", "test"),
-            ("geometry", geometry_json),
-            ("properties", OrderedDict([("datetime", isoformat(utc_aware(datetime.utcnow())))])),
-        ])
+        sample = self.data_factory.create_item_sample(
+            collection=self.collection.model, sample='item-1', required_only=True
+        )
 
         # translate to Python native:
-        serializer = ItemSerializer(data=data)
+        serializer = ItemSerializer(data=sample.get_json('deserialize'))
         serializer.is_valid(raise_exception=True)
         item = serializer.save()
 
         # serialize the object and test it against the one above
         # mock a request needed for the serialization of links
-        request = self.factory.get(
-            f'{API_BASE}/collections/{self.collection.name}/items/{item.name}'
-        )
-        serializer = ItemSerializer(item, context={'request': request})
+        context = {
+            'request':
+                api_request_mocker.
+                get(f'{API_BASE}/collections/{self.collection["name"]}/items/{sample["name"]}')
+        }
+        serializer = ItemSerializer(item, context=context)
         python_native = serializer.data
-        self.check_stac_item(data, python_native)
+        self.check_stac_item(sample.json, python_native, self.collection["name"])
 
     def test_item_deserialization_create_only_required_2(self):
-        data = OrderedDict([
-            ("collection", self.collection.name),
-            ("id", "test"),
-            ("geometry", geometry_json),
-            (
-                "properties",
-                OrderedDict([
-                    ("start_datetime", isoformat(utc_aware(datetime.utcnow()))),
-                    ("end_datetime", isoformat(utc_aware(datetime.utcnow()))),
-                ])
-            ),
-        ])
+        sample = self.data_factory.create_item_sample(
+            collection=self.collection.model, sample='item-2', required_only=True
+        )
 
         # translate to Python native:
-        serializer = ItemSerializer(data=data)
+        serializer = ItemSerializer(data=sample.get_json('deserialize'))
         serializer.is_valid(raise_exception=True)
         item = serializer.save()
 
         # serialize the object and test it against the one above
         # mock a request needed for the serialization of links
-        request = self.factory.get(
-            f'{API_BASE}/collections/{self.collection.name}/items/{item.name}'
-        )
-        serializer = ItemSerializer(item, context={'request': request})
+        context = {
+            'request':
+                api_request_mocker.
+                get(f'{API_BASE}/collections/{self.collection["name"]}/items/{sample["name"]}')
+        }
+        serializer = ItemSerializer(item, context=context)
         python_native = serializer.data
-        self.check_stac_item(data, python_native)
+        self.check_stac_item(sample.json, python_native, self.collection["name"])
 
     def test_item_deserialization_create_full(self):
-        data = OrderedDict([
-            ("collection", self.collection.name),
-            ("id", "test"),
-            ("geometry", geometry_json),
-            (
-                "properties",
-                OrderedDict([
-                    ("start_datetime", isoformat(utc_aware(datetime.utcnow()))),
-                    ("end_datetime", isoformat(utc_aware(datetime.utcnow()))),
-                    ("title", "This is a title"),
-                ])
-            ),
-            ("links", [OrderedDict([('href', 'http://www.example.com'), ('rel', 'example')])]),
-        ])
+        sample = self.data_factory.create_item_sample(
+            collection=self.collection.model, sample='item-1'
+        )
 
         # translate to Python native:
-        serializer = ItemSerializer(data=data)
+        serializer = ItemSerializer(data=sample.get_json('deserialize'))
         serializer.is_valid(raise_exception=True)
         item = serializer.save()
 
         # serialize the object and test it against the one above
         # mock a request needed for the serialization of links
-        request = self.factory.get(
-            f'{API_BASE}/collections/{self.collection.name}/items/{item.name}'
-        )
-        serializer = ItemSerializer(item, context={'request': request})
+        context = {
+            'request':
+                api_request_mocker.
+                get(f'{API_BASE}/collections/{self.collection["name"]}/items/{sample["name"]}')
+        }
+        serializer = ItemSerializer(item, context=context)
         python_native = serializer.data
-        self.check_stac_item(data, python_native)
+        self.check_stac_item(sample.json, python_native, self.collection["name"])
 
-    def test_item_deserialization_update_link_required(self):
-        data = OrderedDict([
-            ("collection", self.collection.name),
-            ("id", "test"),
-            ("geometry", geometry_json),
-            (
-                "properties",
-                OrderedDict([
-                    ("start_datetime", isoformat(utc_aware(datetime.utcnow()))),
-                    ("end_datetime", isoformat(utc_aware(datetime.utcnow()))),
-                    ("title", "This is a title"),
-                ])
-            ),
-            ("links", [OrderedDict([('href', 'http://www.example.com'), ('rel', 'example')])]),
-        ])
-
-        # translate to Python native:
-        serializer = ItemSerializer(data=data)
+    def test_item_deserialization_update(self):
+        original_sample = self.data_factory.create_item_sample(
+            collection=self.collection.model,
+            sample='item-1',
+        )
+        sample = self.data_factory.create_item_sample(
+            collection=self.collection.model, sample='item-2', name=original_sample["name"]
+        )
+        serializer = ItemSerializer(original_sample.model, data=sample.get_json('deserialize'))
         serializer.is_valid(raise_exception=True)
         item = serializer.save()
 
-        # Update some data
-        data['properties']['title'] = 'New Title'
-        data['geometry']['coordinates'] = [[[5.602407647225925, 48.01499501585063],
-                                            [8.175889890047533, 48.02711914887954],
-                                            [8.158929420648244, 46.78690091679339],
-                                            [5.644711296534027, 46.775053769032677],
-                                            [5.602407647225925, 48.01499501585063]]]
-        data['properties']['end_datetime'] = isoformat(utc_aware(datetime.utcnow()))
-        data['links'][0]['type'] = 'example'
-        serializer = ItemSerializer(item, data=data)
-        serializer.is_valid(raise_exception=True)
-        item = serializer.save()
-
-        # serialize the object and test it against the one above
         # mock a request needed for the serialization of links
-        request = self.factory.get(
-            f'{API_BASE}/collections/{self.collection.name}/items/{item.name}'
-        )
-        serializer = ItemSerializer(item, context={'request': request})
+        context = {
+            'request':
+                api_request_mocker.
+                get(f'{API_BASE}/collections/{self.collection["name"]}/items/{sample["name"]}')
+        }
+        serializer = ItemSerializer(item, context=context)
         python_native = serializer.data
-        self.check_stac_item(data, python_native)
-
-    def test_item_deserialization_update_remove_link_update_datetime(self):
-        data = OrderedDict([
-            ("collection", self.collection.name),
-            ("id", "test"),
-            ("geometry", geometry_json),
-            (
-                "properties",
-                OrderedDict([
-                    ("start_datetime", isoformat(utc_aware(datetime.utcnow()))),
-                    ("end_datetime", isoformat(utc_aware(datetime.utcnow()))),
-                    ("title", "This is a title"),
-                ])
-            ),
-            ("links", [OrderedDict([('href', 'http://www.example.com'), ('rel', 'example')])]),
-        ])
-
-        # translate to Python native:
-        serializer = ItemSerializer(data=data)
-        serializer.is_valid(raise_exception=True)
-        item = serializer.save()
-
-        # Update some data
-        data['properties']['datetime'] = isoformat(utc_aware(datetime.utcnow()))
-        del data['properties']['start_datetime']
-        del data['properties']['end_datetime']
-        del data['links']
-        serializer = ItemSerializer(item, data=data)
-        serializer.is_valid(raise_exception=True)
-        item = serializer.save()
-
-        # serialize the object and test it against the one above
-        # mock a request needed for the serialization of links
-        request = self.factory.get(
-            f'{API_BASE}/collections/{self.collection.name}/items/{item.name}'
+        self.check_stac_item(sample.json, python_native, self.collection["name"])
+        self.assertIsNone(
+            get_link(python_native['links'], 'describedBy'),
+            msg='Link describedBy was not removed in update'
         )
-        serializer = ItemSerializer(item, context={'request': request})
-        python_native = serializer.data
-        self.check_stac_item(data, python_native)
 
     def test_item_deserialization_update_remove_title(self):
-        data = OrderedDict([
-            ("collection", self.collection.name),
-            ("id", "test"),
-            ("geometry", geometry_json),
-            (
-                "properties",
-                OrderedDict([
-                    ("start_datetime", isoformat(utc_aware(datetime.utcnow()))),
-                    ("end_datetime", isoformat(utc_aware(datetime.utcnow()))),
-                    ("title", "This is a title"),
-                ])
-            ),
-        ])
-
-        # translate to Python native:
-        serializer = ItemSerializer(data=data)
-        serializer.is_valid(raise_exception=True)
-        item = serializer.save()
-
-        # Remove the optional title
-        del data['properties']['title']
-        serializer = ItemSerializer(item, data=data)
-        serializer.is_valid(raise_exception=True)
-        item = serializer.save()
-
-        # serialize the object and test it against the one above
-        # mock a request needed for the serialization of links
-        request = self.factory.get(
-            f'{API_BASE}/collections/{self.collection.name}/items/{item.name}'
+        original_sample = self.data_factory.create_item_sample(
+            collection=self.collection.model,
+            sample='item-1',
         )
-        serializer = ItemSerializer(item, context={'request': request})
+        sample = self.data_factory.create_item_sample(
+            collection=self.collection.model,
+            sample='item-2',
+            name=original_sample["name"],
+            properties={"datetime": isoformat(utc_aware(datetime.utcnow()))}
+        )
+        serializer = ItemSerializer(original_sample.model, data=sample.get_json('deserialize'))
+        serializer.is_valid(raise_exception=True)
+        item = serializer.save()
+
+        # mock a request needed for the serialization of links
+        context = {
+            'request':
+                api_request_mocker.
+                get(f'{API_BASE}/collections/{self.collection["name"]}/items/{sample["name"]}')
+        }
+        serializer = ItemSerializer(item, context=context)
         python_native = serializer.data
+        self.check_stac_item(sample.json, python_native, self.collection["name"])
         self.assertNotIn('title', python_native['properties'].keys(), msg="Title was not removed")
-        self.check_stac_item(data, python_native)
 
     def test_item_deserialization_missing_required(self):
         data = OrderedDict([
-            ("collection", self.collection.name),
+            ("collection", self.collection["name"]),
             ("id", "test"),
         ])
 
@@ -777,12 +453,10 @@ class ItemSerializationTestCase(StacBaseTestCase):
             serializer.is_valid(raise_exception=True)
 
     def test_item_deserialization_invalid_data(self):
-        data = OrderedDict([
-            ("collection", self.collection.name),
-            ("id", "test/invalid name"),
-            ("geometry", geometry_json),
-            ("properties", OrderedDict([("datetime", 'test')])),
-        ])
+        data = self.data_factory.create_item_sample(
+            collection=self.collection.model,
+            sample='item-invalid',
+        ).get_json('deserialize')
 
         # translate to Python native:
         serializer = ItemSerializer(data=data)
@@ -792,71 +466,59 @@ class ItemSerializationTestCase(StacBaseTestCase):
     def test_item_deserialization_end_date_before_start_date(self):
         today = datetime.utcnow()
         yesterday = today - timedelta(days=1)
-        data = OrderedDict([
-            ("collection", self.collection.name),
-            ("id", "test/invalid name"),
-            ("geometry", geometry_json),
-            (
-                "properties",
-                OrderedDict([
-                    ("start_datetime", isoformat(utc_aware(today))),
-                    ("end_datetime", isoformat(utc_aware(yesterday))),
-                    ("title", "This is a title"),
-                ])
-            ),
-        ])
+        sample = self.data_factory.create_item_sample(
+            collection=self.collection.model,
+            sample='item-1',
+            properties={
+                'start_datetime': isoformat(utc_aware(today)),
+                "end_datetime": isoformat(utc_aware(yesterday))
+            }
+        )
 
         # translate to Python native:
-        serializer = ItemSerializer(data=data)
+        serializer = ItemSerializer(data=sample.get_json('deserialize'))
         with self.assertRaises(ValidationError):
             serializer.is_valid(raise_exception=True)
 
     def test_item_deserialization_invalid_link(self):
-        data = OrderedDict([
-            ("collection", self.collection.name),
-            ("id", "test/invalid name"),
-            ("geometry", geometry_json),
-            ("links", [OrderedDict([('href', 'www.example.com'), ('rel', 'example')])]),
-        ])
+        sample = self.data_factory.create_item_sample(
+            collection=self.collection.model,
+            sample='item-invalid-link',
+        )
 
         # translate to Python native:
-        serializer = ItemSerializer(data=data)
+        serializer = ItemSerializer(data=sample.get_json('deserialize'))
         with self.assertRaises(ValidationError):
             serializer.is_valid(raise_exception=True)
 
 
-@requests_mock.Mocker(kw='mock')
 class AssetSerializationTestCase(StacBaseTestCase):
 
+    @classmethod
+    @mock_s3_asset_file
+    def setUpTestData(cls):
+        cls.data_factory = Factory()
+        cls.collection = cls.data_factory.create_collection_sample(db_create=True)
+        cls.item = cls.data_factory.create_item_sample(
+            collection=cls.collection.model, db_create=True
+        )
+        cls.asset = cls.data_factory.create_asset_sample(item=cls.item.model, db_create=True)
+
     def setUp(self):  # pylint: disable=invalid-name
-        '''
-        Prepare instances of keyword, link, provider and instance for testing.
-        Adding the relationships among those by populating the ManyToMany fields
-        '''
-        self.factory = APIRequestFactory()
-        self.collection_created = utc_aware(datetime.utcnow())
-        self.collection = db.create_collection('collection-1')
-        self.collection.full_clean()
-        self.collection.save()
-        self.item = db.create_item(self.collection, 'item-1')
-        self.item.full_clean()
-        self.item.save()
-        self.asset = db.create_asset(self.item, 'asset-1')
-        self.asset.full_clean()
-        self.asset.save()
         self.maxDiff = None  # pylint: disable=invalid-name
 
-    def test_asset_serialization(self, mock):
-        collection_name = self.collection.name
-        item_name = self.item.name
-        asset_name = self.asset.name
+    def test_asset_serialization(self):
+        collection_name = self.collection["name"]
+        item_name = self.item["name"]
+        asset_name = self.asset["name"]
+
         # mock a request needed for the serialization of links
-        request = self.factory.get(
+        request_mocker = api_request_mocker.get(
             f'{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
         )
 
         # translate to Python native:
-        serializer = AssetSerializer(self.asset, context={'request': request})
+        serializer = AssetSerializer(self.asset.model, context={'request': request_mocker})
         python_native = serializer.data
 
         logger.debug('serialized fields:\n%s', pformat(serializer.fields))
@@ -866,205 +528,137 @@ class AssetSerializationTestCase(StacBaseTestCase):
         json_string = JSONRenderer().render(python_native, renderer_context={'indent': 2})
         logger.debug('json string: %s', json_string.decode("utf-8"))
 
-        expected = {
-            'id': asset_name,
-            'checksum:multihash': db.get_asset_dummy_content_multihash(asset_name),
-            'description': 'this an asset',
-            'eo:gsd': 3.4,
-            'geoadmin:lang': 'fr',
-            'geoadmin:variant': 'kgrs',
-            'href':
-                f'http://{settings.AWS_S3_CUSTOM_DOMAIN}/{collection_name}/{item_name}/{asset_name}',
-            'proj:epsg': 2056,
-            'title': 'my-title',
-            'type': 'image/tiff; application=geotiff; profile=cloud-optimized'
-        }
-        self.check_stac_asset(expected, python_native)
-
-        # Make sure that back translation is possible and valid, though the write is not yet
-        # implemented.
-        # back-translate to Python native:
-        stream = io.BytesIO(json_string)
-        python_native_back = JSONParser().parse(stream)
-        # hack to deal with the item property, as it is "write_only", it will not appear
-        # in the mocked request's data. So we manually add it here:
-        python_native_back["item"] = item_name
-
-        # back-translate into fully populated Item instance:
-        # for this we need to mock the requests.head() to the assets on S3
-        mock.head(
-            python_native_back['href'],
-            headers={'x-amz-meta-sha256': python_native_back['checksum:multihash'][4:]}
+        self.check_stac_asset(
+            self.asset.json, python_native, collection_name, item_name, ignore=["item"]
         )
 
-        # remove read-only properties from python_native
-        read_only_fields = ["href", "created", "updated"]
-        for key in read_only_fields:
-            del python_native_back[key]
 
-        back_serializer = AssetSerializer(
-            instance=self.asset, data=python_native_back, context={'request': request}
+@requests_mock.Mocker(kw='requests_mocker')
+class AssetDeserializationTestCase(StacBaseTestCase):
+
+    @classmethod
+    @mock_s3_asset_file
+    def setUpTestData(cls):
+        cls.data_factory = Factory()
+        cls.collection = cls.data_factory.create_collection_sample(db_create=True)
+        cls.item = cls.data_factory.create_item_sample(
+            collection=cls.collection.model, db_create=True
         )
-        back_serializer.is_valid(raise_exception=True)
-        logger.debug('back validated data:\n%s', pformat(back_serializer.validated_data))
 
-    def test_asset_deserialization(self, mock):
-        collection_name = self.collection.name
-        item_name = self.item.name
-        asset_name = "asset-2"
-        data = {
-            'id': asset_name,
-            'item': self.item.name,
-            'checksum:multihash': db.get_asset_dummy_content_multihash(asset_name),
-            'description': 'this an asset',
-            'eo:gsd': 3.4,
-            'geoadmin:lang': 'fr',
-            'geoadmin:variant': 'kgrs',
-            'proj:epsg': 2056,
-            'title': 'my-title',
-            'type': 'image/tiff; application=geotiff; profile=cloud-optimized',
-            'href': f'http://{settings.AWS_S3_CUSTOM_DOMAIN}/{collection_name}/{item_name}/asset-2'
-        }
+    def setUp(self):  # pylint: disable=invalid-name
+        self.maxDiff = None  # pylint: disable=invalid-name
+
+    def test_asset_deserialization_create(self, requests_mocker):
+        sample = self.data_factory.create_asset_sample(item=self.item.model)
+
         # serialize the object and test it against the one above
         # mock a request needed for the serialization of links
-        request = self.factory.get(
+        collection_name = self.collection['name']
+        item_name = self.item['name']
+        asset_name = sample['name']
+        request_mocker = api_request_mocker.get(
             f'{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
         )
-
-        # translate to Python native:
-        # for this we need to mock the requests.head() to the assets on S3
-        mock.head(data['href'], headers={'x-amz-meta-sha256': data['checksum:multihash'][4:]})
-        serializer = AssetSerializer(data=data, context={'request': request})
+        mock_requests_asset_file(requests_mocker, sample)
+        serializer = AssetSerializer(
+            data=sample.get_json('deserialize'), context={'request': request_mocker}
+        )
         serializer.is_valid(raise_exception=True)
         asset = serializer.save()
 
-        serializer = AssetSerializer(asset, context={'request': request})
+        serializer = AssetSerializer(asset, context={'request': request_mocker})
         python_native = serializer.data
 
         # ignoring item below, as it is a "write_only" field in the asset's serializer.
         # it will not be present in the mocked request's data.
-        self.check_stac_asset(data, python_native, ignore=["item"])
-
-    def test_asset_deserialization_required_fields_only(self, mock):
-        collection_name = self.collection.name
-        item_name = self.item.name
-        asset_name = 'asset-2'
-        data = {
-            'id': asset_name,
-            'item': self.item.name,
-            'checksum:multihash': db.get_asset_dummy_content_multihash(asset_name),
-            'type': 'image/tiff; application=geotiff; profile=cloud-optimized',
-            'href': f'http://{settings.AWS_S3_CUSTOM_DOMAIN}/{collection_name}/{item_name}/asset-2'
-        }
-
-        # serialize the object and test it against the one above
-        # mock a request needed for the serialization of links
-        request = self.factory.get(
-            f'{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
+        self.check_stac_asset(
+            sample.json, python_native, collection_name, item_name, ignore=['item']
         )
 
-        # translate to Python native:
-        # for this we need to mock the requests.head() to the assets on S3
-        mock.head(data['href'], headers={'x-amz-meta-sha256': data['checksum:multihash'][4:]})
-        serializer = AssetSerializer(data=data, context={'request': request})
+    def test_asset_deserialization_create_required_fields_only(self, requests_mocker):
+        sample = self.data_factory.create_asset_sample(item=self.item.model, required_only=True)
+
+        # mock a request needed for the serialization of links
+        collection_name = self.collection['name']
+        item_name = self.item['name']
+        asset_name = sample['name']
+        request_mocker = api_request_mocker.get(
+            f'{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
+        )
+        mock_requests_asset_file(requests_mocker, sample)
+
+        serializer = AssetSerializer(
+            data=sample.get_json('deserialize'), context={'request': request_mocker}
+        )
         serializer.is_valid(raise_exception=True)
         asset = serializer.save()
 
-        serializer = AssetSerializer(asset, context={'request': request})
+        # serialize the object and test it against the one above
+        # mock a request needed for the serialization of links
+        collection_name = self.collection['name']
+        item_name = self.item['name']
+        asset_name = sample['name']
+        request_mocker = api_request_mocker.get(
+            f'{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
+        )
+
+        serializer = AssetSerializer(asset, context={'request': request_mocker})
         python_native = serializer.data
 
         # ignoring item below, as it is a "write_only" field in the asset's serializer.
         # it will not be present in the mocked request's data.
-        self.check_stac_asset(data, python_native, ignore=["item"])
-
-    def test_asset_deserialization_invalid_id(self, mock):
-        collection_name = self.collection.name
-        item_name = self.item.name
-        asset_name = self.asset.name
-        data = {
-            'id': "test/invalid name",
-            'item': self.item.name,
-            'checksum:multihash':
-                '1220b0c2185619a5a9be2d27cfaf51bc3a6a18b2b0727b7e58760cfe6b2a36193c30',
-            'description': 'this an asset',
-            'eo:gsd': 3.4,
-            'geoadmin:lang': 'fr',
-            'geoadmin:variant': 'kgrs',
-            'href':
-                'https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-1-2019-2056-kgrs-10.tiff',
-            'proj:epsg': 2056,
-            'title': 'my-title',
-            'type': 'image/tiff; application=geotiff; profile=cloud-optimized'
-        }
-
-        # serialize the object and test it against the one above
-        # mock a request needed for the serialization of links
-        request = self.factory.get(
-            f'{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
+        self.check_stac_asset(
+            sample.json, python_native, collection_name, item_name, ignore=['item']
         )
 
-        # translate to Python native:
-        serializer = AssetSerializer(data=data, context={'request': request})
+    def test_asset_deserialization_create_invalid_data(self, requests_mocker):
+        sample = self.data_factory.create_asset_sample(item=self.item.model, sample='asset-invalid')
+
+        collection_name = self.collection['name']
+        item_name = self.item['name']
+        asset_name = sample['name']
+        request_mocker = api_request_mocker.get(
+            f'{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
+        )
+        mock_requests_asset_file(requests_mocker, sample)
+
+        serializer = AssetSerializer(
+            data=sample.get_json('deserialize'), context={'request': request_mocker}
+        )
         with self.assertRaises(ValidationError):
             serializer.is_valid(raise_exception=True)
 
-    def test_asset_deserialization_invalid_proj_epsg(self, mock):
-        collection_name = self.collection.name
-        item_name = self.item.name
-        asset_name = self.asset.name
-        data = {
-            'id': "asset-2",
-            'item': self.item.name,
-            'checksum:multihash':
-                '1220b0c2185619a5a9be2d27cfaf51bc3a6a18b2b0727b7e58760cfe6b2a36193c30',
-            'description': 'this an asset',
-            'eo:gsd': 3.4,
-            'geoadmin:lang': 'fr',
-            'geoadmin:variant': 'kgrs',
-            'href':
-                'https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-1-2019-2056-kgrs-10.tiff',
-            'proj:epsg': 2056.1,
-            'title': 'my-title',
-            'type': 'image/tiff; application=geotiff; profile=cloud-optimized'
-        }
-
-        # serialize the object and test it against the one above
+    def test_asset_deserialization_invalid_proj_epsg(self, requests_mocker):
+        sample = self.data_factory.create_asset_sample(item=self.item.model, proj_epsg=2056.1)
         # mock a request needed for the serialization of links
-        request = self.factory.get(
+        collection_name = self.collection['name']
+        item_name = self.item['name']
+        asset_name = sample['name']
+        request_mocker = api_request_mocker.get(
             f'{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
         )
+        mock_requests_asset_file(requests_mocker, sample)
 
-        # translate to Python native:
-        serializer = AssetSerializer(data=data, context={'request': request})
+        serializer = AssetSerializer(
+            data=sample.get_json('deserialize'), context={'request': request_mocker}
+        )
         with self.assertRaises(ValidationError):
             serializer.is_valid(raise_exception=True)
 
-    def test_asset_deserialization_missing_required_item(self, mock):
-        collection_name = self.collection.name
-        item_name = self.item.name
-        asset_name = self.asset.name
-        data = {
-            'id': "asset-2",
-            'checksum:multihash':
-                '1220b0c2185619a5a9be2d27cfaf51bc3a6a18b2b0727b7e58760cfe6b2a36193c30',
-            'description': 'this an asset',
-            'eo:gsd': 3.4,
-            'geoadmin:lang': 'fr',
-            'geoadmin:variant': 'kgrs',
-            'href':
-                'https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-1-2019-2056-kgrs-10.tiff',
-            'proj:epsg': 2056,
-            'title': 'my-title',
-            'type': 'image/tiff; application=geotiff; profile=cloud-optimized'
-        }
-
-        # serialize the object and test it against the one above
+    def test_asset_deserialization_missing_required_item(self, requests_mocker):
+        sample = self.data_factory.create_asset_sample(
+            item=self.item.model, sample='asset-missing-required'
+        )
         # mock a request needed for the serialization of links
-        request = self.factory.get(
+        collection_name = self.collection['name']
+        item_name = self.item['name']
+        asset_name = sample['name']
+        request_mocker = api_request_mocker.get(
             f'{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
         )
 
-        # translate to Python native:
-        serializer = AssetSerializer(data=data, context={'request': request})
+        serializer = AssetSerializer(
+            data=sample.get_json('deserialize'), context={'request': request_mocker}
+        )
         with self.assertRaises(ValidationError):
             serializer.is_valid(raise_exception=True)
