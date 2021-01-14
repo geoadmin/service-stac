@@ -236,6 +236,14 @@ class LandingPageSerializer(serializers.ModelSerializer):
             OrderedDict([
                 ("href", request.build_absolute_uri(f"/{api_base}/search")),
                 ("rel", "search"),
+                ("method", "GET"),
+                ("type", "application/json"),
+                ("title", "Search across feature collections"),
+            ]),
+            OrderedDict([
+                ("href", request.build_absolute_uri(f"/{api_base}/search")),
+                ("rel", "search"),
+                ("method", "POST"),
                 ("type", "application/json"),
                 ("title", "Search across feature collections"),
             ]),
