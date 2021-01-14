@@ -1711,7 +1711,6 @@ paths:
     get:
       description: >-
         Retrieve Items matching filters. Intended as a shorthand API for simple queries.
-
       operationId: getSearchSTAC
       parameters:
       - $ref: "#/components/parameters/query"
@@ -1739,7 +1738,6 @@ paths:
       description: >-
         Retrieve items matching filters. Intended as the standard, full-featured query
         API.
-
       operationId: postSearchSTAC
       requestBody:
         content:
