@@ -154,7 +154,6 @@ class SearchEndpointTestCase(StacBaseTestCase):
         json_data = response.json()
         self.assertEqual(len(json_data['features']), 2)
 
-
     def test_ids_first_and_only_prio(self):
         response = self.client.get(
             f"/{API_BASE}/search"

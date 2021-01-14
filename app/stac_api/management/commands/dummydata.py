@@ -51,8 +51,7 @@ class Command(BaseCommand):
             type=str,
             choices=['populate', 'clean'],
             default='populate',
-            help=
-            'Define the action to be performed, either "populate" (default) to create '
+            help='Define the action to be performed, either "populate" (default) to create '
             'dummy data or "clean" to delete it',
         )
 
