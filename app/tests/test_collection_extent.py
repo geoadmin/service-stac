@@ -1,8 +1,12 @@
 import logging
+from datetime import datetime
 
 from django.contrib.gis.geos import GEOSGeometry
 from django.contrib.gis.geos import Polygon
 from django.test import TestCase
+
+from stac_api.models import Item
+from stac_api.utils import utc_aware
 
 from tests.data_factory import Factory
 
@@ -89,17 +93,6 @@ class CollectionSpatialExtentTestCase(TestCase):
     def test_collection_lost_all_items(self):
         self.item.delete()  # should be the one and only item of this collection
         self.assertIsNone(self.collection.extent_geometry)
-import logging
-from datetime import datetime
-
-from django.test import TestCase
-
-from stac_api.models import Item
-from stac_api.utils import utc_aware
-
-from tests.data_factory import Factory
-
-logger = logging.getLogger(__name__)
 
 
 class CollectionsModelTemporalExtentTestCase(TestCase):
