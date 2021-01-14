@@ -15,6 +15,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import generics
 from rest_framework import mixins
 from rest_framework.exceptions import ValidationError
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework_condition import etag
 
@@ -411,6 +412,7 @@ class ItemDetail(
 
 
 class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
+    permission_classes = [AllowAny]
     serializer_class = ItemSerializer
 
     def parse_request_body_for_queryset(self):
