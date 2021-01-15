@@ -128,7 +128,7 @@ def update_start_temporal_extent_on_item_update(
             qs_other_items_with_properties_start_datetime = qs_other_items.filter(
                 properties_start_datetime__isnull=False
             )
-            if bool(qs_other_items_with_properties_start_datetime):
+            if qs_other_items_with_properties_start_datetime.exists():
                 other_items_earliest_properties_start_datetime = (
                     qs_other_items_with_properties_start_datetime.
                     earliest('properties_start_datetime').properties_start_datetime
@@ -148,7 +148,7 @@ def update_start_temporal_extent_on_item_update(
             qs_other_items_with_properties_datetime = qs_other_items.filter(
                 properties_datetime__isnull=False
             )
-            if bool(qs_other_items_with_properties_datetime):
+            if qs_other_items_with_properties_datetime.exists():
                 other_items_earliest_properties_datetime = (
                     qs_other_items_with_properties_datetime.earliest('properties_datetime'
                                                                     ).properties_datetime
@@ -244,7 +244,7 @@ def update_end_temporal_extent_on_item_update(
             qs_other_items_with_properties_end_datetime = qs_other_items.filter(
                 properties_end_datetime__isnull=False
             )
-            if bool(qs_other_items_with_properties_end_datetime):
+            if qs_other_items_with_properties_end_datetime.exists():
                 other_items_latest_end_datetime = (
                     qs_other_items_with_properties_end_datetime.latest('properties_end_datetime'
                                                                       ).properties_end_datetime
@@ -266,7 +266,7 @@ def update_end_temporal_extent_on_item_update(
                 qs_other_items_with_properties_datetime = qs_other_items.filter(
                     properties_datetime__isnull=False
                 )
-            if bool(qs_other_items_with_properties_datetime):
+            if qs_other_items_with_properties_datetime.exists():
                 other_items_latest_properties_datetime = (
                     qs_other_items_with_properties_datetime.latest('properties_datetime'
                                                                   ).properties_datetime
@@ -338,7 +338,7 @@ def update_start_temporal_extent_on_item_delete(
         qs_other_items_with_properties_start_datetime = qs_other_items.filter(
             properties_start_datetime__isnull=False
         )
-        if bool(qs_other_items_with_properties_start_datetime):
+        if qs_other_items_with_properties_start_datetime.exists():
             earliest_start_datetime = qs_other_items_with_properties_start_datetime.earliest(
                 'properties_start_datetime'
             ).properties_start_datetime
@@ -354,7 +354,7 @@ def update_start_temporal_extent_on_item_delete(
         qs_other_items_with_properties_datetime = qs_other_items.filter(
             properties_datetime__isnull=False
         )
-        if bool(qs_other_items_with_properties_datetime):
+        if qs_other_items_with_properties_datetime.exists():
             earliest_datetime = qs_other_items_with_properties_datetime.earliest(
                 'properties_datetime'
             ).properties_datetime
@@ -426,7 +426,7 @@ def update_end_temporal_extent_on_item_delete(
         qs_other_items_with_properties_end_datetime = qs_other_items.filter(
             properties_end_datetime__isnull=False
         )
-        if bool(qs_other_items_with_properties_end_datetime):
+        if qs_other_items_with_properties_end_datetime.exists():
             latest_end_datetime = qs_other_items_with_properties_end_datetime.latest(
                 'properties_end_datetime'
             ).properties_end_datetime
@@ -445,7 +445,7 @@ def update_end_temporal_extent_on_item_delete(
             qs_other_items_with_properties_datetime = qs_other_items.filter(
                 properties_datetime__isnull=False
             )
-        if bool(qs_other_items_with_properties_datetime):
+        if qs_other_items_with_properties_datetime.exists():
             latest_datetime = qs_other_items_with_properties_datetime.latest(
                 'properties_datetime'
             ).properties_datetime
