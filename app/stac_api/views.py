@@ -175,10 +175,10 @@ class ItemsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
         date_time = self.request.query_params.get('datetime', None)
 
         if bbox:
-            queryset = queryset.by_bbox(bbox)
+            queryset = queryset.filter_by_bbox(bbox)
 
         if date_time:
-            queryset = queryset.by_datetime(date_time)
+            queryset = queryset.filter_by_datetime(date_time)
 
         return queryset
 
@@ -279,9 +279,9 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
             queryset = self.filter_by_ids(queryset, data['ids'])
         else:
             if 'bbox' in data:
-                queryset = queryset.by_bbox(json.dumps(data['bbox']).strip('[]'))
+                queryset = queryset.filter_by_bbox(json.dumps(data['bbox']).strip('[]'))
             if 'date_time' in data:
-                queryset = queryset.by_datetime(data['date_time'])
+                queryset = queryset.filter_by_datetime(data['date_time'])
             if 'collections' in data:
                 queryset = self.filter_by_collections(queryset, data['collections'])
             if 'query' in data:

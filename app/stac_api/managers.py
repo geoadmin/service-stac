@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 class ItemQuerySet(models.QuerySet):
 
-    def by_bbox(self, bbox):
+    def filter_by_bbox(self, bbox):
         '''Filter a querystring with a given bbox
 
         This function is a helper function, for some views, to add a bbox filter to the queryset.
@@ -62,7 +62,7 @@ class ItemQuerySet(models.QuerySet):
 
         return self.filter(geometry__intersects=bbox_geometry)
 
-    def by_datetime(self, date_time):
+    def filter_by_datetime(self, date_time):
         '''Filter a queryset by datetime
 
         Args:
