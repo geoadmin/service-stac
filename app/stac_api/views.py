@@ -69,6 +69,12 @@ def get_asset_etag(request, *args, **kwargs):
     return tag
 
 
+def checker(request):
+    data = {"success": True, "message": "OK"}
+
+    return JsonResponse(data)
+
+
 class LandingPageDetail(generics.RetrieveAPIView):
     serializer_class = LandingPageSerializer
     queryset = LandingPage.objects.all()
@@ -83,12 +89,6 @@ class ConformancePageDetail(generics.RetrieveAPIView):
 
     def get_object(self):
         return ConformancePage.get_solo()
-
-
-def checker(request):
-    data = {"success": True, "message": "OK"}
-
-    return JsonResponse(data)
 
 
 class CollectionList(generics.GenericAPIView, views_mixins.CreateModelMixin):

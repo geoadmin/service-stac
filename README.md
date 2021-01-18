@@ -299,3 +299,5 @@ The service is configured by Environment Variable:
 | Env         | Default               | Description                            |
 |-------------|-----------------------|----------------------------------------|
 | LOGGING_CFG | logging-cfg-local.yml | Logging configuration file             |
+| HTTP_CACHE_SECONDS | 600 | Sets the `cache-control max-age` of the GET and HEAD requests |
+| HTTP_STATIC_CACHE_SECONDS | 3600 | Sets the `cache-control max-age` of static files GET, HEAD requests |
