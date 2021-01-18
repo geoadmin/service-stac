@@ -310,10 +310,10 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
                 queryset = self.filter_by_collections(queryset, collections.split(','))
 
             if bbox:
-                queryset = queryset.by_bbox(bbox)
+                queryset = queryset.filter_by_bbox(bbox)
 
             if date_time:
-                queryset = queryset.by_datetime(date_time)
+                queryset = queryset.fiter_by_datetime(date_time)
 
         return queryset
 
