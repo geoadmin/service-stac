@@ -159,5 +159,8 @@ class ItemManager(models.Manager):
     def get_queryset(self):
         return ItemQuerySet(self.model, using=self._db).select_related('collection')
 
-    def by_bbox(self, bbox):
-        return self.get_queryset().by_bbox(bbox)
+    def filter_by_bbox(self, bbox):
+        return self.get_queryset().filter_by_bbox(bbox)
+
+    def filter_by_datetime(self, date_time):
+        return self.get_queryset().filter_by_datetime(date_time)
