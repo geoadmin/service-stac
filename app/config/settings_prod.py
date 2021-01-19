@@ -199,6 +199,12 @@ try:
 except KeyError as err:
     raise KeyError(f'AWS configuration {err} missing') from err
 
+# Configure the admin upload caching
+try:
+    STORAGE_ASSETS_CACHE_SECONDS = int(os.environ.get('HTTP_ASSETS_CACHE_SECONDS', '7200'))
+except ValueError as err:
+    raise ValueError('Invalid HTTP_ASSETS_CACHE_SECONDS, must be an integer')
+
 # Logging
 # https://docs.djangoproject.com/en/3.1/topics/logging/
 

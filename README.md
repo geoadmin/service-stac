@@ -313,8 +313,9 @@ The service is configured by Environment Variable:
 | LOGGING_CFG | `'logging-cfg-local.yml'` | Logging configuration file             |
 | SECRET_KEY | - | Secret key for django |
 | ALLOWED_HOSTS | `''` | See django ALLOWED_HOSTS. On local development and DEV staging this is overwritten with `'*'` |
-| HTTP_CACHE_SECONDS | `600` | Sets the `cache-control max-age` of the GET and HEAD requests |
-| HTTP_STATIC_CACHE_SECONDS | `3600` | Sets the `cache-control max-age` of static files GET, HEAD requests |
+| HTTP_CACHE_SECONDS | `600` | Sets the `Cache-Control: max-age` and `Expires` headers of the GET and HEAD requests to the api views. |
+| HTTP_STATIC_CACHE_SECONDS | `3600` | Sets the `Cache-Control: max-age` header of GET, HEAD requests to the static files. |
+| STORAGE_ASSETS_CACHE_SECONDS | `7200` | Sets the `Cache-Control: max-age` and `Expires` headers of the GET and HEAD on the assets file uploaded via admin page. |
 | DJANGO_STATIC_HOST | `''` | See [Whitenoise use CDN](http://whitenoise.evans.io/en/stable/django.html#use-a-content-delivery-network). |
 | DISABLE_LOGGING | `False` | Disable all logging |
 | TEST_ENABLE_LOGGING | `False` | Enable logging in unittest |
