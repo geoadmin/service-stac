@@ -73,6 +73,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'middleware.cache_headers.CacheHeadersMiddleware',
     'middleware.logging.RequestResponseLoggingMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
@@ -84,6 +85,11 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'middleware.logging.ExceptionLoggingMiddleware',
 ]
+
+try:
+    CACHE_MIDDLEWARE_SECONDS = int(os.environ.get('HTTP_CACHE_SECONDS', '600'))
+except ValueError as error:
+    raise ValueError('Invalid HTTP_CACHE_SECONDS environment value: must be an integer')
 
 ROOT_URLCONF = 'config.urls'
 API_BASE = 'api/stac/v0.9'
@@ -164,6 +170,10 @@ STATIC_URL = STATIC_HOST + '/api/stac/v0.9/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'var/www/stac_api/static_files')
 STATICFILES_DIRS = [BASE_DIR / "spec/static", BASE_DIR / "app/stac_api/templates"]
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+try:
+    WHITENOISE_MAX_AGE = int(os.environ.get('HTTP_STATIC_CACHE_SECONDS', '3600'))
+except ValueError as error:
+    raise ValueError('Invalid HTTP_STATIC_CACHE_SECONDS environment value: must be an integer')
 
 # Media files (i.e. uploaded content=assets in this project)
 UPLOAD_FILE_CHUNK_SIZE = 1024 * 1024  # Size in Bytes
