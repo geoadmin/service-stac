@@ -13,8 +13,8 @@ from stac_api.utils import fromisoformat
 logger = logging.getLogger(__name__)
 
 MEDIA_TYPES = [
-    ('application/x.asc+zip', 'Zipped ASCII (.asc)', '.zip'),
-    ('application/x.asc-grid+zip', 'Zipped ASCII-GRID (.xyz)', '.zip'),
+    ('application/x.ascii-grid+zip', 'Zipped ESRI ASCII raster format (.asc)', '.zip'),
+    ('application/x.ascii-xyz+zip', 'Zipped XYZ (.xyz)', '.zip'),
     ('application/x.e00+zip', 'Zipped e00', '.zip'),
     ('image/tiff; application=geotiff', 'GeoTIFF', '.tiff or .tif'),
     ('application/x.geotiff+zip', 'Zipped GeoTIFF', '.zip'),
