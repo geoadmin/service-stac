@@ -1,9 +1,12 @@
 import logging
+from datetime import datetime
+from datetime import timedelta
 
 import requests_mock
 
 from django.conf import settings
 from django.test import Client
+from django.test import override_settings
 
 from stac_api.utils import get_link
 
@@ -293,3 +296,79 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
                     f"/{API_BASE}/{endpoint}", content_type="application/json", HTTP_IF_MATCH=etag1
                 )
                 self.assertStatusCode(200, response)
+
+
+class ApiCacheHeaderTestCase(StacBaseTestCase):
+
+    @classmethod
+    @mock_s3
+    def setUpTestData(cls):
+        mock_s3_bucket()
+        cls.factory = Factory()
+        cls.collection = cls.factory.create_collection_sample(name='collection-1').model
+        cls.item = cls.factory.create_item_sample(collection=cls.collection, name='item-1').model
+        cls.asset = cls.factory.create_asset_sample(item=cls.item, name='asset-1').model
+
+    @override_settings(CACHE_MIDDLEWARE_SECONDS=3600)
+    def test_get_cache_header(self):
+        for endpoint in [
+            '',  # landing page
+            'conformance',
+            'search',
+            'search?ids=item-1',
+            'collections/collection-1',
+            'collections/collection-1/items/item-1',
+            'collections/collection-1/items/item-1/assets/asset-1'
+        ]:
+            with self.subTest(endpoint=endpoint):
+                now = datetime.now()
+                response = self.client.get(f"/{API_BASE}/{endpoint}")
+                self.assertStatusCode(200, response)
+
+                self.assertTrue(
+                    response.has_header('Cache-Control'), msg="Cache-Control header missing"
+                )
+                self.assertEqual(
+                    response['Cache-Control'],
+                    'max-age=3600, public',
+                    msg='Wrong cache-control values'
+                )
+
+                self.assertTrue(response.has_header('Expires'), msg="Expires header missing")
+
+                expires = datetime.strptime(response['Expires'], '%a, %d %b %Y %H:%M:%S GMT')
+                self.assertAlmostEqual((expires - now).total_seconds(),
+                                       timedelta(seconds=3600).total_seconds(),
+                                       delta=2)
+
+    @override_settings(CACHE_MIDDLEWARE_SECONDS=3600)
+    def test_head_cache_header(self):
+        for endpoint in [
+            '',  # landing page
+            'conformance',
+            'search',
+            'search?ids=item-1',
+            'collections/collection-1',
+            'collections/collection-1/items/item-1',
+            'collections/collection-1/items/item-1/assets/asset-1'
+        ]:
+            with self.subTest(endpoint=endpoint):
+                now = datetime.now()
+                response = self.client.head(f"/{API_BASE}/{endpoint}")
+                self.assertStatusCode(200, response)
+
+                self.assertTrue(
+                    response.has_header('Cache-Control'), msg="Cache-Control header missing"
+                )
+                self.assertEqual(
+                    response['Cache-Control'],
+                    'max-age=3600, public',
+                    msg='Wrong cache-control values'
+                )
+
+                self.assertTrue(response.has_header('Expires'), msg="Expires header missing")
+
+                expires = datetime.strptime(response['Expires'], '%a, %d %b %Y %H:%M:%S GMT')
+                self.assertAlmostEqual((expires - now).total_seconds(),
+                                       timedelta(seconds=3600).total_seconds(),
+                                       delta=2)

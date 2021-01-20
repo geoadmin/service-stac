@@ -19,7 +19,7 @@
   - [Linting and formatting your work](#linting-and-formatting-your-work)
 - [Deploying the project and continuous integration](#deploying-the-project-and-continuous-integration)
 - [Docker](#docker)
-- [Deployment configuration](#deployment-configuration)
+- [Configuration](#configuration)
 
 ## Summary of the project
 
@@ -39,7 +39,7 @@ The other services that are used (Postgres with PostGIS extension for metadata a
 
 Starting postgres and MinIO is done with a simple
 
-```
+```bash
 docker-compose up
 ```
 
@@ -51,7 +51,6 @@ If you want to use a local postgres instance instead of the dockerised one you n
 
 - a local postgres (>= 12.0) running
 - postgis extension installed (>= 3.0)
-
 
 Create a new superuser (required to create/destroy the test-databases) and a new database.
 
@@ -154,9 +153,11 @@ DISABLE_LOGGING=1 ./manage.py shell
 **NOTE:** the environment variable can also be set in the `.venv.local` file.
 
 #### Migrate DB with Django shell
+
 With the Django shell ist is possible to migrate the state of the database according to the code base. Please consider following principles:
 
 In general, the code base to setup the according state of the database ist stored here:
+
 ```bash
 stac_api/migrations/
 ├── 0001_initial.py
@@ -164,17 +165,22 @@ stac_api/migrations/
 ├── 0003_auto_20201022_1346.py
 ├── 0004_auto_20201028.py
 ```
+
 Please make sure, that per PR only one migrations script gets generated (_if possible_).
 
 **How to generate a db migrations script?**
+
 1. First of all this will only happen, when a model has changed
-2. Following command will generate a new migration script:
-   ```bash
-   ./manage.py makemigrations
-   ```
+1. Following command will generate a new migration script:
+
+    ```bash
+    ./manage.py makemigrations
+    ```
+
 **How to put the database to the state of a previous code base?**
 
 With the following command of the Django shell a specific state of the database can be achieved:
+
 ```bash
 .manage.py migrate stac_api 0003_auto_20201022_1346
 ```
@@ -183,6 +189,7 @@ With the following command of the Django shell a specific state of the database 
 
 Under a clean PR, we mean that only one migration script comes along a PR.
 This can be obtained with the following steps (_only if more than one migration script exist for this PR_):
+
 ```bash
 # 1. migrate back to the state before the PR
 ./manage.py migrate stac_api 0016_auto_20201022_1346
@@ -194,16 +201,19 @@ cd stac_api/migrations && rm 0017_har.py 0018_toto.py 0019_final.py
 # 3. add the generated migration script to git
 git add stac_api/migrations 0017_the_new_one.py
 ```
+
 **NOTE:** When going back to a certain migration step, you have to pay attention, that this also involves deleting fields, that have not been added yet.
 Which, of course, involves that its content will be purged as well.
 
 **How to get a working database when migrations scripts screw up?**
 
 With the following commands it is possible to get a proper state of the database:
+
 ```bash
 ./manage.py reset_db
 ./manage.py migrate
 ```
+
 **Warning:** ```reset_db``` a destructive command and will delete all structure and content of the database.
 
 ### Linting and formatting your work
@@ -251,7 +261,6 @@ setup the RDS database on int, run following command:
 
 **Note:** The script won't delete the existing database.
 
-
 ## Deploying the project and continuous integration
 
 When creating a PR, terraform should run a codebuild job to test and build automatically your PR as a tagged container. This container will only be pushed to dockerhub when the PR is accepted and merged.
@@ -292,10 +301,53 @@ You can also check these metadata on a running container as follow
 docker ps --format="table {{.ID}}\t{{.Image}}\t{{.Labels}}"d
 ```
 
-### Deployment configuration
+### Configuration
 
 The service is configured by Environment Variable:
 
+#### **General settings**
+
 | Env         | Default               | Description                            |
 |-------------|-----------------------|----------------------------------------|
-| LOGGING_CFG | logging-cfg-local.yml | Logging configuration file             |
+| APP_ENV | `'local'` | Determine the application environment (local|dev|int|prod) |
+| LOGGING_CFG | `'logging-cfg-local.yml'` | Logging configuration file             |
+| SECRET_KEY | - | Secret key for django |
+| ALLOWED_HOSTS | `''` | See django ALLOWED_HOSTS. On local development and DEV staging this is overwritten with `'*'` |
+| HTTP_CACHE_SECONDS | `600` | Sets the `Cache-Control: max-age` and `Expires` headers of the GET and HEAD requests to the api views. |
+| HTTP_STATIC_CACHE_SECONDS | `3600` | Sets the `Cache-Control: max-age` header of GET, HEAD requests to the static files. |
+| STORAGE_ASSETS_CACHE_SECONDS | `7200` | Sets the `Cache-Control: max-age` and `Expires` headers of the GET and HEAD on the assets file uploaded via admin page. |
+| DJANGO_STATIC_HOST | `''` | See [Whitenoise use CDN](http://whitenoise.evans.io/en/stable/django.html#use-a-content-delivery-network). |
+| DISABLE_LOGGING | `False` | Disable all logging |
+| TEST_ENABLE_LOGGING | `False` | Enable logging in unittest |
+
+#### **Database settings**
+
+| Env         | Default               | Description                            |
+|-------------|-----------------------|----------------------------------------|
+| DB_NAME | service_stac | Database name |
+| DB_USER | service_stac | Database user (used by django for DB connection) |
+| DB_PW | service_stac | Database password (used by django for DB connection) |
+| DB_HOST | service_stac | Database host |
+| DB_PORT | 5432 | Database port |
+| DB_NAME_TEST | test_service_stac | Database name used for unittest |
+
+#### **Asset Storage settings (AWS S3)**
+
+| Env         | Default               | Description                            |
+|-------------|-----------------------|----------------------------------------|
+| AWS_ACCESS_KEY_ID | - | |
+| AWS_SECRET_ACCESS_KEY | - | |
+| AWS_STORAGE_BUCKET_NAME | - | |
+| AWS_S3_REGION_NAME | - | |
+| AWS_S3_ENDPOINT_URL | `None` | |
+| AWS_S3_CUSTOM_DOMAIN | `None` | |
+
+#### **Development settings (only for local environment and DEV staging)**
+
+These settings are read from `settings_dev.py`
+
+| Env         | Default               | Description                            |
+|-------------|-----------------------|----------------------------------------|
+| DEBUG | `False` | Set django DEBUG flag |
+| PAGE_SIZE | `2` | Default page size |
+| DEBUG_PROPAGATE_API_EXCEPTIONS | `False` | When `True` the API exception are treated as in production, using a JSON response. Otherwise in DEBUG mode the API exception returns an HTML response with backtrace. |

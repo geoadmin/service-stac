@@ -655,7 +655,7 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
         data["geoadmin_variant"] = "kombs"
         data["proj_epsg"] = 2057
         data["title"] = "New Asset for test"
-        data["media_type"] = "application/x.asc+zip"
+        data["media_type"] = "application/x.ascii-grid+zip"
         data["file"] = filelike
         response = self.client.post(f"/api/stac/admin/stac_api/asset/{asset.id}/change/", data)
 

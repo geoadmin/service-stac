@@ -60,7 +60,7 @@ def update_start_temporal_extent_on_item_update(
     old_end_datetime,
     new_end_datetime,
     item_id,
-    qs=None
+    qs_other_items=None
 ):
     '''This function is called from within update_temporal_extent() when the
     start_datetime of an item in the collection is updated to check if the
@@ -79,13 +79,19 @@ def update_start_temporal_extent_on_item_update(
             item's updated value for properties_end_datetime
         item_id: int
             the id of the item being treated (pk)
-        qs: QuerySet | None
+        qs_other_items: QuerySet | None
             queryset with all items of the collection excluding the one being updated. (optional)
 
     Returns:
         bool: True if temporal extent has been updated, false otherwise
+        return_qs: QuerySet | None
+            Queryset containing all items (but the one currently updated) that have
+            non-null properties_datetime values. This queryset might be used in
+            update_end_temporal_extent_on_item_update() and can be passed in already
+            evaluated state to save one DB hit.
     '''
     updated = False
+    return_qs = None
     logger.debug(
         "Updating start of item %s in collection %s (old start: %s, new start: %s, "
         "old end: %s, new end: %s) ",
@@ -114,22 +120,43 @@ def update_start_temporal_extent_on_item_update(
             # set earliest start_datetime to min(earliest_start_datetime
             # of all items but the one currently updated and
             # new_start_datetime).
-            if bool(qs.filter(properties_start_datetime__isnull=False)):
+            logger.warning(
+                'Looping over all items of collection %s,'
+                'to update temporal extent, this may take a while',
+                collection.name
+            )
+            qs_other_items_with_properties_start_datetime = qs_other_items.filter(
+                properties_start_datetime__isnull=False
+            )
+            if qs_other_items_with_properties_start_datetime.exists():
+                other_items_earliest_properties_start_datetime = (
+                    qs_other_items_with_properties_start_datetime.
+                    earliest('properties_start_datetime').properties_start_datetime
+                )
                 earliest_start_datetime = min(
-                    new_start_datetime,
-                    qs.filter(properties_start_datetime__isnull=False
-                             ).earliest('properties_start_datetime').properties_start_datetime
+                    new_start_datetime, other_items_earliest_properties_start_datetime
                 )
             else:
                 earliest_start_datetime = new_start_datetime
             # set earliest datetime to min(earliest_datetime of all items
-            # bute the one currently updated and new_start_datetime)
-            if bool(qs.filter(properties_datetime__isnull=False)):
-                earliest_datetime = min(
-                    new_start_datetime,
-                    qs.filter(properties_datetime__isnull=False
-                             ).earliest('properties_datetime').properties_datetime
+            # but the one currently updated and new_start_datetime)
+            logger.warning(
+                'Looping over all items of collection %s,'
+                'to update temporal extent, this may take a while',
+                collection.name
+            )
+            qs_other_items_with_properties_datetime = qs_other_items.filter(
+                properties_datetime__isnull=False
+            )
+            if qs_other_items_with_properties_datetime.exists():
+                other_items_earliest_properties_datetime = (
+                    qs_other_items_with_properties_datetime.earliest('properties_datetime'
+                                                                    ).properties_datetime
                 )
+                earliest_datetime = min(
+                    new_start_datetime, other_items_earliest_properties_datetime
+                )
+                return_qs = qs_other_items_with_properties_datetime
             else:
                 earliest_datetime = new_start_datetime
             updated |= True
@@ -142,7 +169,7 @@ def update_start_temporal_extent_on_item_update(
         updated |= True
         collection.extent_start_datetime = new_start_datetime
 
-    return updated
+    return updated, return_qs
 
 
 def update_end_temporal_extent_on_item_update(
@@ -152,7 +179,8 @@ def update_end_temporal_extent_on_item_update(
     old_end_datetime,
     new_end_datetime,
     item_id,
-    qs=None
+    qs_other_items=None,
+    qs_other_items_with_properties_datetime=None
 ):
     '''This function is called from within update_temporal_extent() when an
     item in the collection is updated to check if the collection's
@@ -171,8 +199,11 @@ def update_end_temporal_extent_on_item_update(
             item's updated value for properties_end_datetime
         item_id: int
             the id of the item being treated (pk)
-        qs: QuerySet | None
+        qs_other_items: QuerySet | None
             queryset with all items of the collection excluding the one being updated. (optional)
+        qs_other_items_with_properties_datetimes: QuerySet | None
+            Already evaluated queryset with all items (but the one currently updated) that have
+            non-null properties_datetime values (optional).
 
     Returns:
         bool: True if temporal extent has been updated, false otherwise
@@ -205,22 +236,42 @@ def update_end_temporal_extent_on_item_update(
             # to be determined:
             # set latest end_datetime to max(new_end_datetime and
             # end_datetime of all items but the one currently updated).
-            if bool(qs.filter(properties_end_datetime__isnull=False)):
-                latest_end_datetime = max(
-                    new_end_datetime,
-                    qs.filter(properties_end_datetime__isnull=False
-                             ).latest('properties_end_datetime').properties_end_datetime
+            logger.warning(
+                'Looping over all items of collection %s,'
+                'to update temporal extent, this may take a while',
+                collection.name
+            )
+            qs_other_items_with_properties_end_datetime = qs_other_items.filter(
+                properties_end_datetime__isnull=False
+            )
+            if qs_other_items_with_properties_end_datetime.exists():
+                other_items_latest_end_datetime = (
+                    qs_other_items_with_properties_end_datetime.latest('properties_end_datetime'
+                                                                      ).properties_end_datetime
                 )
+                latest_end_datetime = max(new_end_datetime, other_items_latest_end_datetime)
             else:
                 latest_end_datetime = new_end_datetime
             # set latest datetime to max(new_end_datetime and
             # end end_datetime of all items but the one currently updated)
-            if bool(qs.filter(properties_datetime__isnull=False)):
-                latest_datetime = max(
-                    new_end_datetime,
-                    qs.filter(properties_datetime__isnull=False
-                             ).latest('properties_datetime').properties_datetime
+            logger.warning(
+                'Looping over all items of collection %s,'
+                'to update temporal extent, this may take a while',
+                collection.name
+            )
+            # get latest datetime, or none in case none exists and
+            # use the already evaluated qs_other_items_with_properties_datetime, if it has
+            # been passed to this function to save a DB hit.
+            if qs_other_items_with_properties_datetime is None:
+                qs_other_items_with_properties_datetime = qs_other_items.filter(
+                    properties_datetime__isnull=False
                 )
+            if qs_other_items_with_properties_datetime.exists():
+                other_items_latest_properties_datetime = (
+                    qs_other_items_with_properties_datetime.latest('properties_datetime'
+                                                                  ).properties_datetime
+                )
+                latest_datetime = max(new_end_datetime, other_items_latest_properties_datetime)
             else:
                 latest_datetime = new_end_datetime
             updated |= True
@@ -237,7 +288,9 @@ def update_end_temporal_extent_on_item_update(
     return updated
 
 
-def update_start_temporal_extent_on_item_delete(collection, old_start_datetime, item_id, qs=None):
+def update_start_temporal_extent_on_item_delete(
+    collection, old_start_datetime, item_id, qs_other_items=None
+):
     '''This function is called from within update_temporal_extent() when an
     item is deleted from the collection to check if the collection's
     start_datetime needs to be updated.
@@ -249,13 +302,19 @@ def update_start_temporal_extent_on_item_delete(collection, old_start_datetime, 
             item's old value for properties_start_datetime
         item_id: int
             the id of the item being treated (pk)
-        qs: QuerySet | None
+        qs_other_items: QuerySet | None
             queryset with all items of the collection excluding the one being updated. (optional)
 
     Returns:
         bool: True if temporal extent has been updated, false otherwise
+        return_qs: QuerySet | None
+            Queryset containing all items (but the one currently updated) that have
+            non-null properties_datetime values. This queryset might be used in
+            update_end_temporal_extent_on_item_update() and can be passed in already
+            evaluated state to save one DB hit.
     '''
     updated = False
+    return_qs = None
     logger.debug(
         "Deleting item %s from collection %s and updating the collection's start date",
         item_id,
@@ -270,25 +329,36 @@ def update_start_temporal_extent_on_item_delete(collection, old_start_datetime, 
         # the currently deleted item is the only item of the collection
         updated |= True
         collection.extent_start_datetime = None
-
         logger.warning(
-            'Looping (twice) over all items of collection %s,'
+            'Looping over all items of collection %s,'
             'to update temporal extent, this may take a while',
             collection.name
         )
-
         # get earliest start_datetime or none, in case none exists
-        if bool(qs.filter(properties_start_datetime__isnull=False)):
-            earliest_start_datetime = qs.filter(
-                properties_start_datetime__isnull=False
-            ).earliest('properties_start_datetime').properties_start_datetime
+        qs_other_items_with_properties_start_datetime = qs_other_items.filter(
+            properties_start_datetime__isnull=False
+        )
+        if qs_other_items_with_properties_start_datetime.exists():
+            earliest_start_datetime = qs_other_items_with_properties_start_datetime.earliest(
+                'properties_start_datetime'
+            ).properties_start_datetime
         else:
             earliest_start_datetime = None
 
+        logger.warning(
+            'Looping over all items of collection %s,'
+            'to update temporal extent, this may take a while',
+            collection.name
+        )
         # get earliest datetime, or none in case none exists
-        if bool(qs.filter(properties_datetime__isnull=False)):
-            earliest_datetime = qs.filter(properties_datetime__isnull=False
-                                         ).earliest('properties_datetime').properties_datetime
+        qs_other_items_with_properties_datetime = qs_other_items.filter(
+            properties_datetime__isnull=False
+        )
+        if qs_other_items_with_properties_datetime.exists():
+            earliest_datetime = qs_other_items_with_properties_datetime.earliest(
+                'properties_datetime'
+            ).properties_datetime
+            return_qs = qs_other_items_with_properties_datetime
         else:
             earliest_datetime = None
 
@@ -301,10 +371,16 @@ def update_start_temporal_extent_on_item_delete(collection, old_start_datetime, 
         else:
             collection.extent_start_datetime = earliest_start_datetime
 
-    return updated
+    return updated, return_qs
 
 
-def update_end_temporal_extent_on_item_delete(collection, old_end_datetime, item_id, qs=None):
+def update_end_temporal_extent_on_item_delete(
+    collection,
+    old_end_datetime,
+    item_id,
+    qs_other_items=None,
+    qs_other_items_with_properties_datetime=None
+):
     '''This function is called from within update_temporal_extent() when an
     item is deleted from the collection to check if the collection's
     end_datetime needs to be updated.
@@ -316,8 +392,11 @@ def update_end_temporal_extent_on_item_delete(collection, old_end_datetime, item
             item's old value for properties_end_datetime
         item_id: int
             the id of the item being treated (pk)
-        qs: QuerySet | None
+        qs_other_items: QuerySet | None
             queryset with all items of the collection excluding the one being updated. (optional)
+        qs_other_items_with_properties_datetimes: QuerySet | None
+            Already evaluated queryset with all items (but the one currently updated) that have
+            non-null properties_datetime values (optional).
 
     Returns:
         bool: True if temporal extent has been updated, false otherwise
@@ -339,22 +418,37 @@ def update_end_temporal_extent_on_item_delete(collection, old_end_datetime, item
         collection.extent_end_datetime = None
 
         logger.warning(
-            'Looping (twice) over all items of collection %s,'
+            'Looping over all items of collection %s,'
             'to update temporal extent, this may take a while',
             collection.name
         )
         # get latest end_datetime or none, in case none exists
-        if bool(qs.filter(properties_end_datetime__isnull=False)):
-            latest_end_datetime = qs.filter(
-                properties_end_datetime__isnull=False
-            ).latest('properties_end_datetime').properties_end_datetime
+        qs_other_items_with_properties_end_datetime = qs_other_items.filter(
+            properties_end_datetime__isnull=False
+        )
+        if qs_other_items_with_properties_end_datetime.exists():
+            latest_end_datetime = qs_other_items_with_properties_end_datetime.latest(
+                'properties_end_datetime'
+            ).properties_end_datetime
         else:
             latest_end_datetime = None
 
-        # get latest datetime, or none in case none exists
-        if bool(qs.filter(properties_datetime__isnull=False)):
-            latest_datetime = qs.filter(properties_datetime__isnull=False
-                                       ).latest('properties_datetime').properties_datetime
+        # get latest datetime, or none in case none exists and
+        # use the already evaluated qs_other_items_with_properties_datetime, if it has
+        # been passed to this function to save a DB hit.
+        logger.warning(
+            'Looping over all items of collection %s,'
+            'to update temporal extent, this may take a while',
+            collection.name
+        )
+        if qs_other_items_with_properties_datetime is None:
+            qs_other_items_with_properties_datetime = qs_other_items.filter(
+                properties_datetime__isnull=False
+            )
+        if qs_other_items_with_properties_datetime.exists():
+            latest_datetime = qs_other_items_with_properties_datetime.latest(
+                'properties_datetime'
+            ).properties_datetime
         else:
             latest_datetime = None
 
@@ -407,6 +501,7 @@ def update_temporal_extent(
         bool: True if temporal extent has been updated, false otherwise
     '''
     updated = False
+    qs_other_items_with_properties_datetime = None
     # INSERT (as item_id is None)
     if action == "insert":
         updated = update_temporal_extent_on_item_insert(
@@ -415,7 +510,7 @@ def update_temporal_extent(
 
     # UPDATE
     elif action == "update":
-        qs = None
+        qs_other_items = None
         if old_start_datetime != new_start_datetime:
             if old_start_datetime == collection.extent_start_datetime and \
                 new_start_datetime > old_start_datetime:
@@ -423,48 +518,44 @@ def update_temporal_extent(
                 # collection's temporal extent before the update.
                 # Collection's left bound needs to be updated now:
                 # get all items but the one to that is being updated:
-                logger.warning(
-                    'Looping over all items of collection %s,'
-                    'to update temporal extent, this may take a while',
-                    collection.name
+                qs_other_items = type(item).objects.filter(collection_id=collection.pk
+                                                          ).exclude(id=item.pk)
+                updated_temp, qs_other_items_with_properties_datetime = (
+                    update_start_temporal_extent_on_item_update(
+                        collection,
+                        old_start_datetime,
+                        new_start_datetime,
+                        old_end_datetime,
+                        new_end_datetime,
+                        item.pk,
+                        qs_other_items
+                    )
                 )
-                qs = type(item).objects.filter(collection_id=collection.pk).exclude(id=item.pk)
-                updated |= update_start_temporal_extent_on_item_update(
-                    collection,
-                    old_start_datetime,
-                    new_start_datetime,
-                    old_end_datetime,
-                    new_end_datetime,
-                    item.pk,
-                    qs
-                )
+                updated |= updated_temp
             else:
                 # Item probably has defined the left bound before update and
                 # might define the new left bound again
-                updated |= update_start_temporal_extent_on_item_update(
-                    collection,
-                    old_start_datetime,
-                    new_start_datetime,
-                    old_end_datetime,
-                    new_end_datetime,
-                    item.pk
+                updated_temp, qs_other_items_with_properties_datetime = (
+                    update_start_temporal_extent_on_item_update(
+                        collection,
+                        old_start_datetime,
+                        new_start_datetime,
+                        old_end_datetime,
+                        new_end_datetime,
+                        item.pk,
+                        qs_other_items=None
+                    )
                 )
-
+                updated |= updated_temp
         if old_end_datetime != new_end_datetime:
             if old_end_datetime == collection.extent_end_datetime and \
                 new_end_datetime < old_end_datetime:
                 # item has defined the right bound of the
                 # collection's temporal extent before the update.
                 # Collection's right bound needs to be updated now:
-                # only do the query, if not already done for start_datetime above
-                if qs is None:
-                    # get all items but the one that is being updated:
-                    logger.warning(
-                        'Looping over all items of collection %s,'
-                        'to update temporal extent, this may take a while',
-                        collection.name
-                    )
-                    qs = type(item).objects.filter(collection_id=collection.pk).exclude(id=item.pk)
+                # get all items but the one that is being updated:
+                qs_other_items = type(item).objects.filter(collection_id=collection.pk
+                                                          ).exclude(id=item.pk)
 
                 updated |= update_end_temporal_extent_on_item_update(
                     collection,
@@ -473,7 +564,8 @@ def update_temporal_extent(
                     old_end_datetime,
                     new_end_datetime,
                     item.pk,
-                    qs
+                    qs_other_items=qs_other_items,
+                    qs_other_items_with_properties_datetime=qs_other_items_with_properties_datetime
                 )
             else:
                 # Item probably has defined the right bound before update and
@@ -484,7 +576,9 @@ def update_temporal_extent(
                     new_start_datetime,
                     old_end_datetime,
                     new_end_datetime,
-                    item.pk
+                    item.pk,
+                    qs_other_items=None,
+                    qs_other_items_with_properties_datetime=qs_other_items_with_properties_datetime
                 )
 
     # DELETE
@@ -497,18 +591,33 @@ def update_temporal_extent(
                 collection.name
             )
             # get all items but the one to be deleted:
-            qs = type(item).objects.filter(collection_id=collection.pk).exclude(id=item.pk)
-            updated |= update_start_temporal_extent_on_item_delete(
-                collection, old_start_datetime, item.pk, qs
+            qs_other_items = type(item).objects.filter(collection_id=collection.pk
+                                                      ).exclude(id=item.pk)
+            updated_temp, qs_other_items_with_properties_datetime = (
+                update_start_temporal_extent_on_item_delete(
+                collection, old_start_datetime, item.pk, qs_other_items
+                )
             )
+            updated |= updated_temp
             updated |= update_end_temporal_extent_on_item_delete(
-                collection, old_end_datetime, item.pk, qs
+                collection,
+                old_end_datetime,
+                item.pk,
+                qs_other_items=qs_other_items,
+                qs_other_items_with_properties_datetime=qs_other_items_with_properties_datetime
             )
         else:
-            updated |= update_start_temporal_extent_on_item_delete(
-                collection, old_start_datetime, item.pk
+            updated_temp, qs_other_items_with_properties_datetime = (
+                update_start_temporal_extent_on_item_delete(
+                collection, old_start_datetime, item.pk, qs_other_items=None
+                )
             )
+            updated |= updated_temp
             updated |= update_end_temporal_extent_on_item_delete(
-                collection, old_end_datetime, item.pk
+                collection,
+                old_end_datetime,
+                item.pk,
+                qs_other_items=None,
+                qs_other_items_with_properties_datetime=qs_other_items_with_properties_datetime
             )
     return updated

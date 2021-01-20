@@ -114,7 +114,7 @@ class ItemAdmin(admin.GeoModelAdmin):
             }
         ),
     )
-    # customisation of the geometry field
+    # customization of the geometry field
     map_template = finders.find('admin/ol_swisstopo.html')  # custom swisstopo
     wms_layer = 'ch.swisstopo.pixelkarte-farbe-pk1000.noscale'
     wms_url = 'https://wms.geo.admin.ch/'

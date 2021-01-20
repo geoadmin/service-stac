@@ -24,6 +24,7 @@ from stac_api.collection_summaries import update_summaries_on_asset_delete
 from stac_api.collection_summaries import update_summaries_on_asset_insert
 from stac_api.collection_summaries import update_summaries_on_asset_update
 from stac_api.collection_temporal_extent import update_temporal_extent
+from stac_api.managers import ItemManager
 from stac_api.utils import get_asset_path
 from stac_api.utils import get_s3_resource
 from stac_api.validators import MEDIA_TYPES
@@ -441,12 +442,6 @@ ITEM_KEEP_ORIGINAL_FIELDS = [
     'properties_start_datetime',
     'properties_end_datetime',
 ]
-
-
-class ItemManager(models.Manager):
-
-    def get_queryset(self):
-        return super().get_queryset().select_related('collection')
 
 
 class Item(models.Model):

@@ -5,9 +5,6 @@ from datetime import datetime
 
 from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry
-from django.contrib.gis.geos import Point
-from django.contrib.gis.geos import Polygon
-from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext_lazy as _
@@ -72,144 +69,10 @@ def get_asset_etag(request, *args, **kwargs):
     return tag
 
 
-def parse_datetime_query(date_time):
-    '''Parse the datetime query as specified in the api-spec.md.
+def checker(request):
+    data = {"success": True, "message": "OK"}
 
-    Returns one of the following
-        datetime, None
-        datetime, '..'
-        '..', datetime
-        datetime, datetime
-    '''
-    start, sep, end = date_time.partition('/')
-    try:
-        if start != '..':
-            start = datetime.fromisoformat(start.replace('Z', '+00:00'))
-        if end and end != '..':
-            end = datetime.fromisoformat(end.replace('Z', '+00:00'))
-    except ValueError as error:
-        logger.error(
-            'Invalid datetime query parameter "%s", must be isoformat; %s', date_time, error
-        )
-        raise ValidationError(
-            _('Invalid datetime query parameter, must be isoformat'),
-            code='datetime'
-        )
-
-    if end == '':
-        end = None
-
-    if start == '..' and (end is None or end == '..'):
-        logger.error(
-            'Invalid datetime query parameter "%s"; '
-            'cannot start with open range when no end range is defined',
-            date_time
-        )
-        raise ValidationError(
-            _('Invalid datetime query parameter, '
-              'cannot start with open range when no end range is defined'),
-            code='datetime'
-        )
-    return start, end
-
-
-def filter_by_bbox(queryset, bbox):
-    '''Filter a querystring with a given bbox
-
-    This function is a helper function, for some views, to add a bbox filter to the queryset.
-
-    Args:
-        queryset:
-            A django queryset (https://docs.djangoproject.com/en/3.0/ref/models/querysets/)
-        bbox:
-            A string defining a spatial bbox (f.ex. 5.96, 45.82, 10.49, 47.81)
-
-    Returns:
-        The queryset with the added spatial filter
-
-    Raises:
-        ValidationError: When the bbox does not contain 4 values. Or when the polygon build
-        from the bbox string is invalid.
-    '''
-    try:
-        logger.debug('Query parameter bbox = %s', bbox)
-        list_bbox_values = bbox.split(',')
-        if (
-            list_bbox_values[0] == list_bbox_values[2] and
-            list_bbox_values[1] == list_bbox_values[3]
-        ):
-            bbox_geometry = Point(float(list_bbox_values[0]), float(list_bbox_values[1]))
-        else:
-            bbox_geometry = Polygon.from_bbox(list_bbox_values)
-        validate_geometry(bbox_geometry)
-
-    except (ValueError, ValidationError, IndexError) as error:
-        logger.error(
-            'Invalid bbox query parameter: '
-            'Could not transform bbox "%s" to a polygon; %s'
-            'f.ex. bbox=5.96, 45.82, 10.49, 47.81',
-            bbox,
-            error
-        )
-        raise ValidationError(
-            _('Invalid bbox query parameter, '
-              ' has to contain 4 values. f.ex. bbox=5.96,45.82,10.49,47.81'),
-            code='bbox-invalid'
-        )
-
-    return queryset.filter(geometry__intersects=bbox_geometry)
-
-
-def filter_by_datetime(queryset, date_time):
-    '''Filter a queryset by datetime
-
-    Args:
-        queryset:
-             A django queryset (https://docs.djangoproject.com/en/3.0/ref/models/querysets/)
-        date_time:
-            A string
-    Returns:
-        The queryset filtered by date_time
-    '''
-    start, end = parse_datetime_query(date_time)
-    if end is not None:
-        return _filter_by_datetime_range(queryset, start, end)
-    return queryset.filter(properties_datetime=start)
-
-
-def _filter_by_datetime_range(queryset, start_datetime, end_datetime):
-    '''Filter a queryset by datetime range
-
-    Helper function of filter_by_datetime
-
-    Args:
-        queryset:
-            A django queryset (https://docs.djangoproject.com/en/3.0/ref/models/querysets/)
-        start_datetime:
-            A string with the start datetime
-        end_datetime:
-            A string with the end datetime
-    Returns:
-        The queryset filtered by datetime range
-    '''
-    if start_datetime == '..':
-        # open start range
-        return queryset.filter(
-            Q(properties_datetime__lte=end_datetime) | Q(properties_end_datetime__lte=end_datetime)
-        )
-    if end_datetime == '..':
-        # open end range
-        return queryset.filter(
-            Q(properties_datetime__gte=start_datetime) |
-            Q(properties_end_datetime__gte=start_datetime)
-        )
-        # else fixed range
-    return queryset.filter(
-        Q(properties_datetime__range=(start_datetime, end_datetime)) | (
-            Q(properties_start_datetime__gte=start_datetime) &
-            Q(properties_end_datetime__lte=end_datetime)
-        )
-    )
+    return JsonResponse(data)
 
 
 class LandingPageDetail(generics.RetrieveAPIView):
@@ -226,12 +89,6 @@ class ConformancePageDetail(generics.RetrieveAPIView):
 
     def get_object(self):
         return ConformancePage.get_solo()
-
-
-def checker(request):
-    data = {"success": True, "message": "OK"}
-
-    return JsonResponse(data)
 
 
 class CollectionList(generics.GenericAPIView, views_mixins.CreateModelMixin):
@@ -318,10 +175,10 @@ class ItemsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
         date_time = self.request.query_params.get('datetime', None)
 
         if bbox:
-            queryset = filter_by_bbox(queryset, bbox)
+            queryset = queryset.filter_by_bbox(bbox)
 
         if date_time:
-            queryset = filter_by_datetime(queryset, date_time)
+            queryset = queryset.filter_by_datetime(date_time)
 
         return queryset
 
@@ -422,9 +279,9 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
             queryset = self.filter_by_ids(queryset, data['ids'])
         else:
             if 'bbox' in data:
-                queryset = filter_by_bbox(queryset, json.dumps(data['bbox']).strip('[]'))
+                queryset = queryset.filter_by_bbox(json.dumps(data['bbox']).strip('[]'))
             if 'date_time' in data:
-                queryset = filter_by_datetime(queryset, data['date_time'])
+                queryset = queryset.filter_by_datetime(data['date_time'])
             if 'collections' in data:
                 queryset = self.filter_by_collections(queryset, data['collections'])
             if 'query' in data:
@@ -453,10 +310,10 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
                 queryset = self.filter_by_collections(queryset, collections.split(','))
 
             if bbox:
-                queryset = filter_by_bbox(queryset, bbox)
+                queryset = queryset.filter_by_bbox(bbox)
 
             if date_time:
-                queryset = filter_by_datetime(queryset, date_time)
+                queryset = queryset.fiter_by_datetime(date_time)
 
         return queryset
 
