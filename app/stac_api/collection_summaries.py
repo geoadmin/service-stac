@@ -30,23 +30,36 @@ def update_summaries_on_asset_delete(collection, asset):
     '''
     updated = False
     assets = type(asset).objects.filter(item__collection_id=collection.pk).exclude(id=asset.id)
+
     if assets.exists():
-
-        if not assets.filter(geoadmin_variant=asset.geoadmin_variant).exists():
-            collection.summaries["geoadmin:variant"].remove(asset.geoadmin_variant)
-            updated |= True
-
-        if not assets.filter(proj_epsg=asset.proj_epsg).exists():
-            collection.summaries["proj:epsg"].remove(asset.proj_epsg)
-            collection.summaries["proj:epsg"].sort()
-            updated |= True
-
-        if not assets.filter(eo_gsd=asset.eo_gsd).exists():
-            collection.summaries["eo:gsd"].remove(asset.eo_gsd)
-            collection.summaries["eo:gsd"].sort()
-            updated |= True
-
+        for key, attribute in [('geoadmin:variant', 'geoadmin_variant'),
+                               ('proj:epsg', 'proj_epsg'),
+                               ('eo:gsd', 'eo_gsd')]:
+            attribute_value = getattr(asset, attribute)
+            if not assets.filter(**{attribute: attribute_value}).exists():
+                logger.info(
+                    'Removing %s %s from collection summaries',
+                    key,
+                    attribute_value,
+                    extra={
+                        'collection': collection.name,
+                        'item': asset.item.name,
+                        'asset': asset.name,
+                        'trigger': 'asset-delete'
+                    }
+                )
+                collection.summaries[key].remove(attribute_value)
+                updated |= True
     else:
+        logger.info(
+            'Clearing the collection summaries',
+            extra={
+                'collection': collection.name,
+                'item': asset.item.name,
+                'asset': asset.name,
+                'trigger': 'asset-delete'
+            }
+        )
         # asset was the last item in the collection
         collection.summaries["geoadmin:variant"] = []
         collection.summaries["proj:epsg"] = []
@@ -70,19 +83,50 @@ def update_summaries_on_asset_insert(collection, asset):
         bool: True if the collection summaries has been updated, false otherwise
     '''
     updated = False
-    if asset.geoadmin_variant and \
-        asset.geoadmin_variant not in collection.summaries["geoadmin:variant"]:
+    if (
+        asset.geoadmin_variant and
+        asset.geoadmin_variant not in collection.summaries["geoadmin:variant"]
+    ):
+        logger.info(
+            'Adds geoadmin:variant %s to collection summaries',
+            asset.geoadmin_variant,
+            extra={
+                'collection': collection.name,
+                'item': asset.item.name,
+                'asset': asset.name,
+                'trigger': 'asset-insert'
+            }
+        )
         collection.summaries["geoadmin:variant"].append(asset.geoadmin_variant)
         collection.summaries["geoadmin:variant"].sort()
         updated |= True
 
-    if asset.proj_epsg and \
-            asset.proj_epsg not in collection.summaries["proj:epsg"]:
+    if asset.proj_epsg and asset.proj_epsg not in collection.summaries["proj:epsg"]:
+        logger.info(
+            'Adds proj:epsg %s to collection summaries',
+            asset.proj_epsg,
+            extra={
+                'collection': collection.name,
+                'item': asset.item.name,
+                'asset': asset.name,
+                'trigger': 'asset-insert'
+            }
+        )
         collection.summaries["proj:epsg"].append(asset.proj_epsg)
         collection.summaries["proj:epsg"].sort()
         updated |= True
 
     if asset.eo_gsd and not float_in(asset.eo_gsd, collection.summaries["eo:gsd"]):
+        logger.info(
+            'Adds eo:gsd %s to collection summaries',
+            asset.proj_epsg,
+            extra={
+                'collection': collection.name,
+                'item': asset.item.name,
+                'asset': asset.name,
+                'trigger': 'asset-insert'
+            }
+        )
         collection.summaries["eo:gsd"].append(asset.eo_gsd)
         collection.summaries["eo:gsd"].sort()
         updated |= True
@@ -91,7 +135,7 @@ def update_summaries_on_asset_insert(collection, asset):
 
 
 def update_summaries_geoadmin_variant_on_update(
-    collection, assets, geoadmin_variant, original_geoadmin_variant
+    collection, assets, asset, geoadmin_variant, original_geoadmin_variant
 ):
     '''Updates the collection's geoadmin:variant summary if needed on an asset's update
 
@@ -104,6 +148,8 @@ def update_summaries_geoadmin_variant_on_update(
         assets: QuerySet
             Assets queryset of all other collection's assets (excluding the one that trigger this
             update)
+        asset: Asset
+            asset thats being updated
         geoadmin_variant: int
             New asset's geoadmin:variant value
         original_geoadmin_variant: int
@@ -115,13 +161,35 @@ def update_summaries_geoadmin_variant_on_update(
     updated = False
 
     if geoadmin_variant and geoadmin_variant not in collection.summaries["geoadmin:variant"]:
+        logger.info(
+            'Adds geoadmin:variant %s to collection summaries',
+            geoadmin_variant,
+            extra={
+                'collection': collection.name,
+                'item': asset.item.name,
+                'asset': asset.name,
+                'trigger': 'asset-update'
+            }
+        )
         collection.summaries["geoadmin:variant"].append(geoadmin_variant)
         updated |= True
 
     # check if the asset's original value is still present in other
     # assets and can remain in the summaries or has to be deleted:
-    if not assets.exists() or not assets.filter(geoadmin_variant=original_geoadmin_variant
-                                               ).exists():
+    if (
+        not assets.exists() or
+        not assets.filter(geoadmin_variant=original_geoadmin_variant).exists()
+    ):
+        logger.info(
+            'Removes original geoadmin:variant value %s from collection summaries',
+            original_geoadmin_variant,
+            extra={
+                'collection': collection.name,
+                'item': asset.item.name,
+                'asset': asset.name,
+                'trigger': 'asset-update'
+            }
+        )
         collection.summaries["geoadmin:variant"].remove(original_geoadmin_variant)
         updated |= True
 
@@ -131,7 +199,7 @@ def update_summaries_geoadmin_variant_on_update(
     return updated
 
 
-def update_summaries_proj_epsg_on_update(collection, assets, proj_epsg, original_proj_epsg):
+def update_summaries_proj_epsg_on_update(collection, assets, asset, proj_epsg, original_proj_epsg):
     '''Updates the collection's proj:epsg summary if needed on an asset's update
 
     For the given proj:epsg parameter this function checks, if the collection's proj:epsg summary
@@ -143,6 +211,8 @@ def update_summaries_proj_epsg_on_update(collection, assets, proj_epsg, original
         assets: QuerySet
             Assets queryset of all other collection's assets (excluding the one that trigger this
             update)
+        asset: Asset
+            asset thats being updated
         proj_epsg: int
             New asset's proj:epsg value
         original_proj_epsg: int
@@ -154,10 +224,30 @@ def update_summaries_proj_epsg_on_update(collection, assets, proj_epsg, original
     updated = False
 
     if proj_epsg and proj_epsg not in collection.summaries["proj:epsg"]:
+        logger.info(
+            'Adds proj:epsg value %s from collection summaries',
+            proj_epsg,
+            extra={
+                'collection': collection.name,
+                'item': asset.item.name,
+                'asset': asset.name,
+                'trigger': 'asset-update'
+            }
+        )
         collection.summaries["proj:epsg"].append(proj_epsg)
         updated |= True
 
     if not assets.exists() or not assets.filter(proj_epsg=original_proj_epsg).exists():
+        logger.info(
+            'Removes original proj:epsg value %s from collection summaries',
+            original_proj_epsg,
+            extra={
+                'collection': collection.name,
+                'item': asset.item.name,
+                'asset': asset.name,
+                'trigger': 'asset-update'
+            }
+        )
         collection.summaries["proj:epsg"].remove(original_proj_epsg)
         updated |= True
 
@@ -167,7 +257,7 @@ def update_summaries_proj_epsg_on_update(collection, assets, proj_epsg, original
     return updated
 
 
-def update_summaries_eo_gsd_on_update(collection, assets, eo_gsd, original_eo_gsd):
+def update_summaries_eo_gsd_on_update(collection, assets, asset, eo_gsd, original_eo_gsd):
     '''Updates the collection's eo:gsd summary if needed on an asset's update
 
     For the given eo:gsd parameter this function checks, if the collection's eo:gsd summary needs
@@ -179,6 +269,8 @@ def update_summaries_eo_gsd_on_update(collection, assets, eo_gsd, original_eo_gs
         assets: QuerySet
             Assets queryset of all other collection's assets (excluding the one that trigger this
             update)
+        asset: Asset
+            asset thats being updated
         eo_gsd: int
             New asset's eo:gsd value
         original_eo_gsd: int
@@ -190,10 +282,30 @@ def update_summaries_eo_gsd_on_update(collection, assets, eo_gsd, original_eo_gs
     updated = False
 
     if eo_gsd and not float_in(eo_gsd, collection.summaries["eo:gsd"]):
+        logger.info(
+            'Adds eo:gsd value %s from collection summaries',
+            eo_gsd,
+            extra={
+                'collection': collection.name,
+                'item': asset.item.name,
+                'asset': asset.name,
+                'trigger': 'asset-update'
+            }
+        )
         collection.summaries["eo:gsd"].append(eo_gsd)
         updated |= True
 
     if not assets.exists() or not assets.filter(eo_gsd=original_eo_gsd).exists():
+        logger.info(
+            'Removes original eo:gsd value %s from collection summaries',
+            original_eo_gsd,
+            extra={
+                'collection': collection.name,
+                'item': asset.item.name,
+                'asset': asset.name,
+                'trigger': 'asset-update'
+            }
+        )
         collection.summaries["eo:gsd"].remove(original_eo_gsd)
         updated |= True
 
@@ -229,17 +341,17 @@ def update_summaries_on_asset_update(collection, asset, old_values):
 
     if original_geoadmin_variant != asset.geoadmin_variant:
         updated |= update_summaries_geoadmin_variant_on_update(
-            collection, assets, asset.geoadmin_variant, original_geoadmin_variant
+            collection, assets, asset, asset.geoadmin_variant, original_geoadmin_variant
         )
 
     if original_proj_epsg != asset.proj_epsg:
         updated |= update_summaries_proj_epsg_on_update(
-            collection, assets, asset.proj_epsg, original_proj_epsg
+            collection, assets, asset, asset.proj_epsg, original_proj_epsg
         )
 
     if original_eo_gsd != asset.eo_gsd:
         updated |= update_summaries_eo_gsd_on_update(
-            collection, assets, asset.eo_gsd, original_eo_gsd
+            collection, assets, asset, asset.eo_gsd, original_eo_gsd
         )
 
     return updated

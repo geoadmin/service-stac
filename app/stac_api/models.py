@@ -228,6 +228,7 @@ class Collection(models.Model):
     def update_etag(self):
         '''Update the ETag with a new UUID
         '''
+        logger.debug('Updating collection etag', extra={'collection': self.name})
         self.etag = compute_etag()
 
     def update_bbox_extent(self, trigger, geometry, original_geometry, item_id, item_name):
@@ -256,7 +257,7 @@ class Collection(models.Model):
         try:
             # insert (as item_id is None)
             if trigger == 'insert':
-                logger.debug('Updating collections extent_geometry' ' as a item has been inserted')
+                logger.debug('Updating collections extent_geometry' ' as a item has been inserted',)
                 # the first item of this collection
                 if self.extent_geometry is None:
                     self.extent_geometry = Polygon.from_bbox(GEOSGeometry(geometry).extent)
@@ -403,7 +404,11 @@ class Collection(models.Model):
             old_values,
             [asset.eo_gsd, asset.geoadmin_variant, asset.proj_epsg],
             self.summaries,
-            extra={'collection': self.name},
+            extra={
+                'collection': self.name,
+                'item': asset.item.name,
+                'asset': asset.name,
+            },
         )
 
         if trigger == 'delete':
