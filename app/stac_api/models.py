@@ -257,12 +257,27 @@ class Collection(models.Model):
         try:
             # insert (as item_id is None)
             if trigger == 'insert':
-                logger.debug('Updating collections extent_geometry' ' as a item has been inserted',)
                 # the first item of this collection
                 if self.extent_geometry is None:
+                    logger.info(
+                        'Set collections extent_geometry with geometry %s, '
+                        'triggered by the first item insertion',
+                        GEOSGeometry(geometry).extent,
+                        extra={
+                            'collection': self.name, 'item': item_name, 'trigger': 'item-insert'
+                        },
+                    )
                     self.extent_geometry = Polygon.from_bbox(GEOSGeometry(geometry).extent)
                 # there is already a geometry in the collection a union of the geometries
                 else:
+                    logger.info(
+                        'Updating collections extent_geometry with geometry %s, '
+                        'triggered by an item insertion',
+                        GEOSGeometry(geometry).extent,
+                        extra={
+                            'collection': self.name, 'item': item_name, 'trigger': 'item-insert'
+                        },
+                    )
                     self.extent_geometry = Polygon.from_bbox(
                         GEOSGeometry(self.extent_geometry).union(GEOSGeometry(geometry)).extent
                     )
@@ -270,35 +285,60 @@ class Collection(models.Model):
 
             # update
             if trigger == 'update' and geometry != original_geometry:
-                logger.debug(
-                    'Updating collections extent_geometry'
-                    ' as a item geometry has been updated'
-                )
                 # is the new bbox larger than (and covering) the existing
                 if Polygon.from_bbox(GEOSGeometry(geometry).extent).covers(self.extent_geometry):
+                    # pylint: disable=fixme
+                    # TODO: cover this code by a unittest, remove this comment when BGDIINF_SB-1595
+                    # is implemented
+                    logger.info(
+                        'Updating collections extent_geometry with item geometry changed '
+                        'from %s to %s, (larger and covering bbox)',
+                        GEOSGeometry(original_geometry).extent,
+                        GEOSGeometry(geometry).extent,
+                        extra={
+                            'collection': self.name, 'item': item_name, 'trigger': 'item-update'
+                        },
+                    )
                     self.extent_geometry = Polygon.from_bbox(GEOSGeometry(geometry).extent)
                 # we need to iterate trough the items
                 else:
                     logger.warning(
-                        'Looping over all items of collection %s,'
-                        'to update extent_geometry, this may take a while',
-                        self.pk
+                        'Updating collections extent_geometry with item geometry changed '
+                        'from %s to %s. We need to loop over all items of the collection, '
+                        'this may take a while !',
+                        GEOSGeometry(original_geometry).extent,
+                        GEOSGeometry(geometry).extent,
+                        extra={
+                            'collection': self.name, 'item': item_name, 'trigger': 'item-update'
+                        },
                     )
+                    start = time.time()
                     qs = Item.objects.filter(collection_id=self.pk).exclude(id=item_id)
                     union_geometry = GEOSGeometry(geometry)
                     for item in qs:
                         union_geometry = union_geometry.union(item.geometry)
                     self.extent_geometry = Polygon.from_bbox(union_geometry.extent)
+                    logger.info(
+                        'Collection extent_geometry updated to %s in %ss, after item update',
+                        union_geometry.extent,
+                        time.time() - start,
+                        extra={
+                            'collection': self.name, 'item': item_name, 'trigger': 'item-update'
+                        },
+                    )
                 updated |= True
 
             # delete, we need to iterate trough the items
             if trigger == 'delete':
-                logger.debug('Updating collections extent_geometry' ' as a item has been deleted')
                 logger.warning(
-                    'Looping over all items of collection %s,'
-                    'to update extent_geometry, this may take a while',
-                    self.pk
+                    'Updating collections extent_geometry with removal of item geometry %s. '
+                    'We need to loop over all items of the collection, this may take a while !',
+                    GEOSGeometry(geometry).extent,
+                    extra={
+                        'collection': self.name, 'item': item_name, 'trigger': 'item-delete'
+                    },
                 )
+                start = time.time()
                 qs = Item.objects.filter(collection_id=self.pk).exclude(id=item_id)
                 union_geometry = GEOSGeometry('Polygon EMPTY')
                 if bool(qs):
@@ -307,14 +347,29 @@ class Collection(models.Model):
                     self.extent_geometry = Polygon.from_bbox(union_geometry.extent)
                 else:
                     self.extent_geometry = None
+                logger.info(
+                    'Collection extent_geometry updated to %s in %ss, after item deletion',
+                    union_geometry.extent,
+                    time.time() - start,
+                    extra={
+                        'collection': self.name, 'item': item_name, 'trigger': 'item-delete'
+                    },
+                )
                 updated |= True
         except GEOSException as error:
             logger.error(
-                'Failed to update spatial extend in collection %s with item %s trigger=%s: %s',
+                'Failed to update spatial extend in collection %s with item %s, trigger=%s, '
+                'current-extent=%s, new-geometry=%s, old-geometry=%s: %s',
                 self.name,
                 item_name,
                 trigger,
-                error
+                self.extent_geometry,
+                GEOSGeometry(geometry).extent,
+                GEOSGeometry(original_geometry).extent,
+                error,
+                extra={
+                    'collection': self.name, 'item': item_name, 'trigger': f'item-{trigger}'
+                },
             )
             raise GEOSException(
                 f'Failed to update spatial extend in colletion {self.name} with item '
