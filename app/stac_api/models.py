@@ -19,9 +19,7 @@ from solo.models import SingletonModel
 
 from stac_api.collection_spatial_extent import CollectionSpatialExtentMixin
 from stac_api.collection_summaries import UPDATE_SUMMARIES_FIELDS
-from stac_api.collection_summaries import update_summaries_on_asset_delete
-from stac_api.collection_summaries import update_summaries_on_asset_insert
-from stac_api.collection_summaries import update_summaries_on_asset_update
+from stac_api.collection_summaries import CollectionSummariesMixin
 from stac_api.collection_temporal_extent import update_temporal_extent
 from stac_api.managers import ItemManager
 from stac_api.utils import get_asset_path
@@ -191,7 +189,7 @@ class Provider(models.Model):
 # expected large number of assets
 
 
-class Collection(models.Model, CollectionSpatialExtentMixin):
+class Collection(models.Model, CollectionSpatialExtentMixin, CollectionSummariesMixin):
     # using "name" instead of "id", as "id" has a default meaning in django
     name = models.CharField('id', unique=True, max_length=255, validators=[validate_name])
     created = models.DateTimeField(auto_now_add=True)
@@ -290,47 +288,6 @@ class Collection(models.Model, CollectionSpatialExtentMixin):
             raise ValueError(f'Invalid trigger parameter; {trigger}')
 
         return updated
-
-    def update_summaries(self, asset, trigger, old_values=None):
-        '''Updates the collection's summaries if needed when assets are updated or deleted.
-
-        For all the given parameters this function checks, if the corresponding parameters of the
-        collection need to be updated. If so, they will be updated.
-
-        Args:
-            asset:
-                Asset thats being inserted/updated or deleted
-            trigger:
-                Asset trigger event, one of 'insert', 'update' or 'delete'
-            old_values: (optional)
-                List with the original values of asset's [eo_gsd, geoadmin_variant, proj_epsg].
-
-        Returns:
-            bool: True if the collection summaries has been updated, false otherwise
-        '''
-
-        logger.debug(
-            'Collection update summaries: '
-            'trigger=%s, asset=%s, old_values=%s, new_values=%s, current_summaries=%s',
-            trigger,
-            asset,
-            old_values,
-            [asset.eo_gsd, asset.geoadmin_variant, asset.proj_epsg],
-            self.summaries,
-            extra={
-                'collection': self.name,
-                'item': asset.item.name,
-                'asset': asset.name,
-            },
-        )
-
-        if trigger == 'delete':
-            return update_summaries_on_asset_delete(self, asset)
-        if trigger == 'update':
-            return update_summaries_on_asset_update(self, asset, old_values)
-        if trigger == 'insert':
-            return update_summaries_on_asset_insert(self, asset)
-        raise ValueError(f'Invalid trigger parameter: {trigger}')
 
     def save(self, *args, **kwargs):  # pylint: disable=signature-differs
         # It is important to use `*args, **kwargs` in signature because django might add dynamically
