@@ -9,9 +9,7 @@ import multihash
 
 from django.conf import settings
 from django.contrib.gis.db import models
-from django.contrib.gis.geos import GEOSGeometry
 from django.contrib.gis.geos import Polygon
-from django.contrib.gis.geos.error import GEOSException
 from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ValidationError
 from django.core.serializers.json import DjangoJSONEncoder
@@ -19,6 +17,7 @@ from django.utils.translation import gettext_lazy as _
 
 from solo.models import SingletonModel
 
+from stac_api.collection_spatial_extent import CollectionSpatialExtentMixin
 from stac_api.collection_summaries import UPDATE_SUMMARIES_FIELDS
 from stac_api.collection_summaries import update_summaries_on_asset_delete
 from stac_api.collection_summaries import update_summaries_on_asset_insert
@@ -192,7 +191,7 @@ class Provider(models.Model):
 # expected large number of assets
 
 
-class Collection(models.Model):
+class Collection(models.Model, CollectionSpatialExtentMixin):
     # using "name" instead of "id", as "id" has a default meaning in django
     name = models.CharField('id', unique=True, max_length=255, validators=[validate_name])
     created = models.DateTimeField(auto_now_add=True)
@@ -230,152 +229,6 @@ class Collection(models.Model):
         '''
         logger.debug('Updating collection etag', extra={'collection': self.name})
         self.etag = compute_etag()
-
-    def update_bbox_extent(self, trigger, geometry, original_geometry, item_id, item_name):
-        '''Updates the collection's spatial extent if needed when an item is updated.
-
-        This function generates a new extent regarding all the items with the same
-        collection foreign key. If there is no spatial bbox yet, the one of the geometry of the
-        item is being used.
-
-        Args:
-            trigger: str
-                Item trigger event, one of 'insert', 'update' or 'delete'
-            geometry: GeometryField
-                the geometry of the item
-            original_geometry:
-                the original geometry during an updated or None
-            item_id: int
-                the id (pk) of the item being treated
-            item_name: str
-                the item name being treated
-
-        Returns:
-            bool: True if the collection temporal extent has been updated, false otherwise
-        '''
-        updated = False
-        try:
-            # insert (as item_id is None)
-            if trigger == 'insert':
-                # the first item of this collection
-                if self.extent_geometry is None:
-                    logger.info(
-                        'Set collections extent_geometry with geometry %s, '
-                        'triggered by the first item insertion',
-                        GEOSGeometry(geometry).extent,
-                        extra={
-                            'collection': self.name, 'item': item_name, 'trigger': 'item-insert'
-                        },
-                    )
-                    self.extent_geometry = Polygon.from_bbox(GEOSGeometry(geometry).extent)
-                # there is already a geometry in the collection a union of the geometries
-                else:
-                    logger.info(
-                        'Updating collections extent_geometry with geometry %s, '
-                        'triggered by an item insertion',
-                        GEOSGeometry(geometry).extent,
-                        extra={
-                            'collection': self.name, 'item': item_name, 'trigger': 'item-insert'
-                        },
-                    )
-                    self.extent_geometry = Polygon.from_bbox(
-                        GEOSGeometry(self.extent_geometry).union(GEOSGeometry(geometry)).extent
-                    )
-                updated |= True
-
-            # update
-            if trigger == 'update' and geometry != original_geometry:
-                # is the new bbox larger than (and covering) the existing
-                if Polygon.from_bbox(GEOSGeometry(geometry).extent).covers(self.extent_geometry):
-                    # pylint: disable=fixme
-                    # TODO: cover this code by a unittest, remove this comment when BGDIINF_SB-1595
-                    # is implemented
-                    logger.info(
-                        'Updating collections extent_geometry with item geometry changed '
-                        'from %s to %s, (larger and covering bbox)',
-                        GEOSGeometry(original_geometry).extent,
-                        GEOSGeometry(geometry).extent,
-                        extra={
-                            'collection': self.name, 'item': item_name, 'trigger': 'item-update'
-                        },
-                    )
-                    self.extent_geometry = Polygon.from_bbox(GEOSGeometry(geometry).extent)
-                # we need to iterate trough the items
-                else:
-                    logger.warning(
-                        'Updating collections extent_geometry with item geometry changed '
-                        'from %s to %s. We need to loop over all items of the collection, '
-                        'this may take a while !',
-                        GEOSGeometry(original_geometry).extent,
-                        GEOSGeometry(geometry).extent,
-                        extra={
-                            'collection': self.name, 'item': item_name, 'trigger': 'item-update'
-                        },
-                    )
-                    start = time.time()
-                    qs = Item.objects.filter(collection_id=self.pk).exclude(id=item_id)
-                    union_geometry = GEOSGeometry(geometry)
-                    for item in qs:
-                        union_geometry = union_geometry.union(item.geometry)
-                    self.extent_geometry = Polygon.from_bbox(union_geometry.extent)
-                    logger.info(
-                        'Collection extent_geometry updated to %s in %ss, after item update',
-                        union_geometry.extent,
-                        time.time() - start,
-                        extra={
-                            'collection': self.name, 'item': item_name, 'trigger': 'item-update'
-                        },
-                    )
-                updated |= True
-
-            # delete, we need to iterate trough the items
-            if trigger == 'delete':
-                logger.warning(
-                    'Updating collections extent_geometry with removal of item geometry %s. '
-                    'We need to loop over all items of the collection, this may take a while !',
-                    GEOSGeometry(geometry).extent,
-                    extra={
-                        'collection': self.name, 'item': item_name, 'trigger': 'item-delete'
-                    },
-                )
-                start = time.time()
-                qs = Item.objects.filter(collection_id=self.pk).exclude(id=item_id)
-                union_geometry = GEOSGeometry('Polygon EMPTY')
-                if bool(qs):
-                    for item in qs:
-                        union_geometry = union_geometry.union(item.geometry)
-                    self.extent_geometry = Polygon.from_bbox(union_geometry.extent)
-                else:
-                    self.extent_geometry = None
-                logger.info(
-                    'Collection extent_geometry updated to %s in %ss, after item deletion',
-                    union_geometry.extent,
-                    time.time() - start,
-                    extra={
-                        'collection': self.name, 'item': item_name, 'trigger': 'item-delete'
-                    },
-                )
-                updated |= True
-        except GEOSException as error:
-            logger.error(
-                'Failed to update spatial extend in collection %s with item %s, trigger=%s, '
-                'current-extent=%s, new-geometry=%s, old-geometry=%s: %s',
-                self.name,
-                item_name,
-                trigger,
-                self.extent_geometry,
-                GEOSGeometry(geometry).extent,
-                GEOSGeometry(original_geometry).extent,
-                error,
-                extra={
-                    'collection': self.name, 'item': item_name, 'trigger': f'item-{trigger}'
-                },
-            )
-            raise GEOSException(
-                f'Failed to update spatial extend in colletion {self.name} with item '
-                f'{item_name}: {error}'
-            )
-        return updated
 
     def update_temporal_extent(self, item, trigger, original_item_values):
         '''Updates the collection's temporal extent if needed when items are inserted, updated or
@@ -593,7 +446,7 @@ class Item(models.Model):
         )
 
         collection_updated |= self.collection.update_bbox_extent(
-            trigger, self.geometry, self._original_values.get('geometry', None), self.pk, self.name
+            trigger, self.geometry, self._original_values.get('geometry', None), self
         )
 
         if collection_updated:
@@ -614,7 +467,7 @@ class Item(models.Model):
         )
 
         collection_updated |= self.collection.update_bbox_extent(
-            'delete', self.geometry, None, self.pk, self.name
+            'delete', self.geometry, None, self
         )
 
         if collection_updated:
