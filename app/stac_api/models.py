@@ -20,7 +20,7 @@ from solo.models import SingletonModel
 from stac_api.collection_spatial_extent import CollectionSpatialExtentMixin
 from stac_api.collection_summaries import UPDATE_SUMMARIES_FIELDS
 from stac_api.collection_summaries import CollectionSummariesMixin
-from stac_api.collection_temporal_extent import update_temporal_extent
+from stac_api.collection_temporal_extent import CollectionTemporalExtentMixin
 from stac_api.managers import ItemManager
 from stac_api.utils import get_asset_path
 from stac_api.utils import get_s3_resource
@@ -189,7 +189,12 @@ class Provider(models.Model):
 # expected large number of assets
 
 
-class Collection(models.Model, CollectionSpatialExtentMixin, CollectionSummariesMixin):
+class Collection(
+    models.Model,
+    CollectionSpatialExtentMixin,
+    CollectionSummariesMixin,
+    CollectionTemporalExtentMixin
+):
     # using "name" instead of "id", as "id" has a default meaning in django
     name = models.CharField('id', unique=True, max_length=255, validators=[validate_name])
     created = models.DateTimeField(auto_now_add=True)
@@ -227,67 +232,6 @@ class Collection(models.Model, CollectionSpatialExtentMixin, CollectionSummaries
         '''
         logger.debug('Updating collection etag', extra={'collection': self.name})
         self.etag = compute_etag()
-
-    def update_temporal_extent(self, item, trigger, original_item_values):
-        '''Updates the collection's temporal extent if needed when items are inserted, updated or
-        deleted.
-
-        For all the given parameters this function checks, if the corresponding parameters of the
-        collection need to be updated. If so, they will be updated.
-
-        Args:
-            item:
-                Item thats being inserted/updated or deleted
-            trigger:
-                Item trigger event, one of 'insert', 'update' or 'delete'
-            original_item_values: (optional)
-                Dictionary with the original values of item's ['properties_datetime',
-                'properties_start_datetime', 'properties_end_datetime'].
-
-        Returns:
-            bool: True if the collection summaries has been updated, false otherwise
-        '''
-        updated = False
-
-        # Get the start end datetimes independently if we have a range or not, when there is no
-        # range then we use the same start and end datetime
-        start_datetime = item.properties_start_datetime
-        end_datetime = item.properties_end_datetime
-        if start_datetime is None or end_datetime is None:
-            start_datetime = item.properties_datetime
-            end_datetime = item.properties_datetime
-
-        # Get the original start end datetimes independently if we have a range or not, when there
-        # is no range then we use the same start and end datetime
-        old_start_datetime = original_item_values.get('properties_start_datetime', None)
-        old_end_datetime = original_item_values.get('properties_end_datetime', None)
-        if old_start_datetime is None or old_end_datetime is None:
-            old_start_datetime = original_item_values.get('properties_datetime', None)
-            old_end_datetime = original_item_values.get('properties_datetime', None)
-
-        if trigger == 'insert':
-            updated |= update_temporal_extent(
-                self, item, trigger, None, start_datetime, None, end_datetime
-            )
-        elif trigger in ['update', 'delete']:
-            updated |= update_temporal_extent(
-                self,
-                item,
-                trigger,
-                old_start_datetime,
-                start_datetime,
-                old_end_datetime,
-                end_datetime
-            )
-        else:
-            logger.critical(
-                'Failed to update collection temporal extent; invalid trigger parameter %s',
-                trigger,
-                extra={'collection', self.name, 'item', item.name}
-            )
-            raise ValueError(f'Invalid trigger parameter; {trigger}')
-
-        return updated
 
     def save(self, *args, **kwargs):  # pylint: disable=signature-differs
         # It is important to use `*args, **kwargs` in signature because django might add dynamically
