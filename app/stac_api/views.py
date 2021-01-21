@@ -4,7 +4,6 @@ from collections import OrderedDict
 from datetime import datetime
 
 from django.conf import settings
-from django.contrib.gis.geos import GEOSGeometry
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext_lazy as _
@@ -29,6 +28,7 @@ from stac_api.serializers import ItemSerializer
 from stac_api.serializers import LandingPageSerializer
 from stac_api.utils import fromisoformat
 from stac_api.utils import utc_aware
+from stac_api.validators import ValidateSearch
 from stac_api.validators import validate_geometry
 
 logger = logging.getLogger(__name__)
@@ -272,26 +272,26 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
     permission_classes = [AllowAny]
     serializer_class = ItemSerializer
 
-    def parse_request_body_for_queryset(self):
+    def queryset_post(self):
         queryset = Item.objects.all()
         data = self.request.data
         if 'ids' in data:
-            queryset = self.filter_by_ids(queryset, data['ids'])
+            queryset = queryset.filter_by_ids(data['ids'])
         else:
             if 'bbox' in data:
                 queryset = queryset.filter_by_bbox(json.dumps(data['bbox']).strip('[]'))
             if 'date_time' in data:
                 queryset = queryset.filter_by_datetime(data['date_time'])
             if 'collections' in data:
-                queryset = self.filter_by_collections(queryset, data['collections'])
+                queryset = queryset.filter_by_collections(data['collections'])
             if 'query' in data:
                 queryset = self.filter_by_query(queryset, json.dumps(data['query']))
             if 'intersects' in data:
-                queryset = self.filter_by_intersects(queryset, json.dumps(data['intersects']))
+                queryset = queryset.filter_by_intersects(json.dumps(data['intersects']))
 
         return queryset
 
-    def get_queryset(self):
+    def queryset_get(self):
         queryset = Item.objects.all()
 
         bbox = self.request.query_params.get('bbox', None)
@@ -301,19 +301,19 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
         query = self.request.query_params.get('query', None)
 
         if ids:
-            queryset = self.filter_by_ids(queryset, ids.split(','))
+            queryset = queryset.filter_by_ids(ids.split(','))
         else:  # if ids, all other restrictions are ignored
             if query:
                 queryset = self.filter_by_query(queryset, query)
 
             if collections:
-                queryset = self.filter_by_collections(queryset, collections.split(','))
+                queryset = queryset.filter_by_collections(collections.split(','))
 
             if bbox:
                 queryset = queryset.filter_by_bbox(bbox)
 
             if date_time:
-                queryset = queryset.fiter_by_datetime(date_time)
+                queryset = queryset.filter_by_datetime(date_time)
 
         return queryset
 
@@ -338,6 +338,7 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
             raise ValidationError(_(message))
 
         for attribute in json_query:  # pylint: disable=too-many-nested-blocks
+
             # iterate trough the fields given in the query parameter
             if attribute in queriable_fields:
                 logger.debug("attribute: %s", attribute)
@@ -366,7 +367,7 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
                             logger.error(message)
                             raise ValidationError(_(message))
 
-                        # treate date
+                        # treat date
                         if attribute in queriable_date_fields:
                             try:
                                 if isinstance(value, list):
@@ -401,33 +402,14 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
                 raise ValidationError(_(message))
         return queryset
 
-    def filter_by_intersects(self, queryset, intersects):
-        try:
-            logger.debug('Item query parameter intersects = %s', intersects)
-            the_geom = GEOSGeometry(intersects)
-        except ValueError as error:
-            message = f"Invalid intersects parameter: " \
-                f"Could not transform {intersects} to a geometry; {error}"
-            logger.error(message)
-            raise ValidationError(_(message))
-        #geometry_intersects.srid = 4326  # as no other systems should be allowed
-        validate_geometry(the_geom)
-        queryset = queryset.filter(geometry__intersects=the_geom)
-        return queryset
-
-    def filter_by_collections(self, queryset, collections_array):
-        queryset = queryset.filter(collection__name__in=collections_array)
-        return queryset
-
-    def filter_by_ids(self, queryset, ids_array):
-        queryset = queryset.filter(name__in=ids_array)
-        return queryset
-
     def list(self, request, *args, **kwargs):
+        validate_search = ValidateSearch(request)  # validate the search request
+
         if request.method == 'POST':
-            queryset = self.filter_queryset(self.parse_request_body_for_queryset())
+            queryset = self.filter_queryset(self.queryset_post())
+
         else:
-            queryset = self.filter_queryset(self.get_queryset())
+            queryset = self.filter_queryset(self.queryset_get())
 
         page = self.paginate_queryset(queryset)
 

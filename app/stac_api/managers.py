@@ -2,6 +2,7 @@ import logging
 from datetime import datetime
 
 from django.contrib.gis.db import models
+from django.contrib.gis.geos import GEOSGeometry
 from django.contrib.gis.geos import Point
 from django.contrib.gis.geos import Polygon
 from django.db.models import Q
@@ -19,7 +20,7 @@ class ItemQuerySet(models.QuerySet):
     def filter_by_bbox(self, bbox):
         '''Filter a querystring with a given bbox
 
-        This function is a helper function, for some views, to add a bbox filter to the queryset.
+        This function adds a bbox filter to the queryset.
 
         Args:
             queryset:
@@ -153,6 +154,16 @@ class ItemQuerySet(models.QuerySet):
             )
         return start, end
 
+    def filter_by_ids(self, ids_array):
+        return self.filter(name__in=ids_array)
+
+    def filter_by_collections(self, collections_array):
+        return self.filter(collection__name__in=collections_array)
+
+    def filter_by_intersects(self, intersects):
+        the_geom = GEOSGeometry(intersects)
+        return self.filter(geometry__intersects=the_geom)
+
 
 class ItemManager(models.Manager):
 
@@ -164,3 +175,9 @@ class ItemManager(models.Manager):
 
     def filter_by_datetime(self, date_time):
         return self.get_queryset().filter_by_datetime(date_time)
+
+    def filter_by_collections(self, collections_array):
+        return self.get_queryset().filter_by_collections(collections_array)
+
+    def filter_by_ids(self, ids_array):
+        return self.get_queryset().filter_by_ids(ids_array)

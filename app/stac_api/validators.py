@@ -1,12 +1,19 @@
+import json
 import logging
 import re
 from datetime import datetime
 
 import multihash
 
+from django.contrib.gis.gdal.error import GDALException
 from django.contrib.gis.geos import GEOSGeometry
+from django.contrib.gis.geos import Point
+from django.contrib.gis.geos import Polygon
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
+
+from rest_framework.exceptions import ParseError
+from rest_framework.exceptions import ValidationError as RestValidationError
 
 from stac_api.utils import fromisoformat
 
@@ -216,3 +223,228 @@ def validate_asset_multihash(value):
             message=_('Invalid multihash value; %(error)s'),
             params={'error': error}
         )
+
+
+class ValidateSearch:
+
+    def __init__(self, request):
+        self.errors = {}  # a list with all the validation errors
+        self.max_len_array = 2000
+
+        if request.method == 'POST':
+            self.validate_post(request)
+        else:
+            self.validate_get(request)
+
+    def validate_get(self, request):
+        bbox = request.query_params.get('bbox', None)
+        date_time = request.query_params.get('datetime', None)
+        collections = request.query_params.get('collections', None)
+        ids = request.query_params.get('ids', None)  # ids of items
+        query = request.query_params.get('query', None)
+
+        if bbox:
+            self.validate_bbox(bbox)
+        if date_time:
+            self.validate_date_time(date_time)
+        if query:
+            pass
+            # DOTO: not yet done
+        if ids:
+            arr_ids = ids.split(',')  # an array
+            self.validate_array_of_strings(arr_ids, 'ids')
+        if collections:
+            arr_collections = collections.split(',')
+            self.validate_array_of_strings(arr_collections, 'collections')
+
+        if self.errors:
+            logger.error(">>>>>>> %s ", self.errors)
+            raise RestValidationError(code='payload', detail=self.errors)
+
+    def validate_post(self, request):
+
+        # check, if the payload is a valid JSON
+        try:
+            payload = request.data
+
+        except ParseError as error:
+            message = f"The application could not decode the query. " \
+                      f"Please check the syntax ({error})."
+            logger.error(message)
+            raise RestValidationError(_(message), code='payload')
+
+        if 'bbox' in payload:
+            bbox = json.dumps(payload['bbox']).strip('[]')  # array to string
+            self.validate_bbox(bbox)
+        if 'date_time' in payload:
+            self.validate_date_time(payload['date_time'])
+        if 'ids' in payload:
+            self.validate_array_of_strings(payload['ids'], 'ids')
+        if 'collections' in payload:
+            self.validate_array_of_strings(payload['collections'], 'collections')
+        if 'query' in payload:
+            self.validate_query(payload['query'])
+        if 'intersects' in payload:
+            self.validate_intersects(json.dumps(payload['intersects']))
+
+        if self.errors:
+            logger.error(">>>>>>> %s ", self.errors)
+            raise RestValidationError(code='query', detail=self.errors)
+
+    def validate_query(self, query):
+        # DOTO
+        queriable_date_fields = ['datetime', 'created', 'updated']
+        queriable_str_fields = ['title']
+        int_operators = ["eq", "neq", "lt", "lte", "gt", "gte"]
+        str_operators = ["startsWith", "endsWith", "contains", "in"]
+        operators = int_operators + str_operators
+        queriable_fields = queriable_date_fields + queriable_str_fields
+
+        for attribute in query:  # pylint: disable=too-many-nested-blocks
+
+            # iterate trough the fields given in the query parameter
+            if attribute in queriable_fields:
+                logger.debug("attribute: %s", attribute)
+                # iterate trough the operators
+                for operator in query[attribute]:
+                    if operator in operators:
+                        value = query[attribute][operator]  # get the values given by the operator
+                        # validate type to operation
+                        if (
+                            isinstance(value, str) and operator in int_operators and
+                            attribute in int_operators
+                        ):
+                            message = f"You are not allowed to compare a string/date ({attribute})"\
+                                      f" with a number operator." \
+                                      f"for string use one of these {str_operators}"
+                            logger.error(message)
+                            raise ValidationError(_(message))
+                        if (
+                            isinstance(value, int) and operator in str_operators and
+                            operator in str_operators
+                        ):
+                            message = f"You are not allowed to compare a number or a date with" \
+                                      f"a string operator." \
+                                      f"For numbers use one of these {int_operators}"
+                            logger.error(message)
+                            raise ValidationError(_(message))
+
+                        # treat date
+                        if attribute in queriable_date_fields:
+                            try:
+                                if isinstance(value, list):
+                                    value = [fromisoformat(i) for i in value]
+                                else:
+                                    value = fromisoformat(value)
+                            except ValueError as error:
+                                message = f"Invalid dateformat: ({error})"
+                                logger.error(message)
+                                raise ValidationError(_(message))
+
+                        logger.debug("query_filter: ")
+                        logger.debug("operator: %s", operator)
+                        logger.debug("value: %s", value)
+                    else:
+                        message = f"Invalid operator in query argument. The operator {operator} " \
+                                  f"is not supported. Use: {operators}"
+                        logger.error(message)
+                        raise ValidationError(_(message))
+            else:
+                message = f"Invalid field in query argument. The field {attribute} is not " \
+                          f"a propertie. Use one of these {queriable_fields}"
+                logger.error(message)
+                raise ValidationError(_(message))
+
+    def validate_date_time(self, date_time):
+        '''Validate the datetime query as specified in the api-spec.md.
+        '''
+        start, sep, end = date_time.partition('/')
+        message = None
+        try:
+            if start != '..':
+                start = datetime.fromisoformat(start.replace('Z', '+00:00'))
+            if end and end != '..':
+                end = datetime.fromisoformat(end.replace('Z', '+00:00'))
+        except ValueError as error:
+            message = "Invalid datetime query parameter, must be isoformat. "
+            self.errors['date_time'] = _(message)
+
+        if end == '':
+            end = None
+
+        if start == '..' and (end is None or end == '..'):
+            message = f"{message} Invalid datetime query parameter, " \
+                f"cannot start with open range when no end range is defined"
+
+        if message:
+            self.errors['date_time'] = _(message)
+
+    def validate_array_of_strings(self, array_of_strings, key):
+        '''
+        Validation of the ids. The ids have to be an array of strings. If this is not the
+        case, an entry will be added to the error dict.
+
+        Args:
+            ids: Should be an array of stings. But it is about testing, if this is the case.
+        key (string): The key that has to be added to the error dict.
+        '''
+        if not isinstance(array_of_strings, list):
+            message = f"The ids have to be within an array. " \
+                      f"Please check the type of {array_of_strings}"
+            self.errors[key] = _(message)
+        else:
+            for string_to_validate in array_of_strings:
+                if not isinstance(string_to_validate, str):
+                    message = f"Each entry in {key} has to be a string. " \
+                      f"Please check the type of {key}: {string_to_validate}"
+                    self.errors[key] = _(message)
+        self.validate_list_length(array_of_strings, key)
+
+    def validate_list_length(self, list_to_validate, key):
+        '''
+        Validate the length of a list. If the length exceeds the max, a error message is
+        added to the error dict
+
+        Args:
+            list_to_validate (list): a list, which length will be validated
+            key (string): The key that has to be added to the error dict
+        '''
+        if len(list_to_validate) > self.max_len_array:
+            message = f"The length of the list in the query is too long." \
+                      f"The list {list_to_validate} should not be longer than {self.max_len_array}."
+            self.errors[key] = _(message)
+
+    def validate_bbox(self, bbox):
+        '''
+        Validation of the bbox. If the creation of a
+        geometry (point or polygon) would not work, the function adds
+        a entry to the error dict.
+
+        Args:
+            bbox (string): The bbox is a string that has to be composed of 4 comma-seperated
+                            float values. F. ex.: 5.96,45.82,10.49,47.81
+        '''
+        try:
+            list_bbox_values = bbox.split(',')
+            if (
+                list_bbox_values[0] == list_bbox_values[2] and
+                list_bbox_values[1] == list_bbox_values[3]
+            ):
+                bbox_geometry = Point(float(list_bbox_values[0]), float(list_bbox_values[1]))
+            else:
+                bbox_geometry = Polygon.from_bbox(list_bbox_values)
+            validate_geometry(bbox_geometry)
+
+        except (ValueError, ValidationError, IndexError) as error:
+            message = f"Invalid bbox query parameter: " \
+                      f"f.ex. bbox=5.96,45.82,10.49,47.81, {bbox} ({error})"
+            self.errors['bbox'] = _(message)
+
+    def validate_intersects(self, geojson):
+        try:
+            intersects_geometry = GEOSGeometry(geojson)
+            validate_geometry(intersects_geometry)
+        except (ValueError, ValidationError, GDALException) as error:
+            message = f"Invalid query: " \
+                f"Could not transform {geojson} to a geometry; {error}"
+            self.errors['intersects'] = _(message)
