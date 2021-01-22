@@ -103,7 +103,7 @@ class ItemQuerySet(models.QuerySet):
             # open end range
             return self.filter(
                 Q(properties_datetime__gte=start_datetime) |
-                Q(properties_end_datetime__gte=start_datetime)
+                Q(properties_start_datetime__gte=start_datetime)
             )
             # else fixed range
         return self.filter(
