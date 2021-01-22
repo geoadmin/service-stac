@@ -73,6 +73,7 @@ class ItemQuerySet(models.QuerySet):
                  A django queryset (https://docs.djangoproject.com/en/3.0/ref/models/querysets/)
             date_time:
                 A string
+
         Returns:
             The queryset filtered by date_time
         '''
@@ -119,11 +120,16 @@ class ItemQuerySet(models.QuerySet):
     def _parse_datetime_query(self, date_time):
         '''Parse the datetime query as specified in the api-spec.md.
 
-        Returns one of the following
-            datetime, None
-            datetime, '..'
-            '..', datetime
-            datetime, datetime
+        A helper function of filter_by_datetime
+
+        Args:
+            date_time: string
+                Datetime as string (should be in isoformat)
+
+        Returns:
+            queryset filtered by datetime
+
+        Raises: ValidationError
         '''
         start, sep, end = date_time.partition('/')
         try:
@@ -157,16 +163,52 @@ class ItemQuerySet(models.QuerySet):
         return start, end
 
     def filter_by_ids(self, ids_array):
+        '''Filter by ids parameter
+
+        Args:
+            ids_array: list[string]
+                An array of ids (string)
+
+        Returns:
+            queryset filtered by a list of ids
+        '''
         return self.filter(name__in=ids_array)
 
     def filter_by_collections(self, collections_array):
+        '''Filter by collections parameter
+
+        Args:
+            collections_array: list[string]
+                An array of collections (string)
+
+        Returns:
+            queryset filtered by a list of collections
+        '''
         return self.filter(collection__name__in=collections_array)
 
     def filter_by_intersects(self, intersects):
+        '''Filter by intersects parameter
+
+        Args:
+            intersects: string
+                Is a geojson formatted string
+
+        Returns:
+            queryset filtered by intersects
+        '''
         the_geom = GEOSGeometry(intersects)
         return self.filter(geometry__intersects=the_geom)
 
     def filter_by_query(self, query):
+        '''Filter by the query parameter
+
+        Args:
+            query: string
+                The query is a json formatted string.
+
+        Returns:
+            queryset filtered by query
+        '''
         queriabel_date_fields = ['datetime', 'created', 'updated']
         json_query = json.loads(query)
         for attribute in json_query:

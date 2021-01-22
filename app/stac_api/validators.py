@@ -225,18 +225,38 @@ def validate_asset_multihash(value):
         )
 
 
-class ValidateSearch:
+class ValidateSearchRequest:
+    '''Validates the query parameter for the search endpoint.
 
-    def __init__(self, request):
+    The main function is validate. If everything in the query parameter is ok
+    this class does nothing.
+
+    If there are errors in the validation it sums them up and returns the summary
+    when raising a ValidationError.
+    '''
+
+    def __init__(self):
         self.errors = {}  # a list with all the validation errors
         self.max_len_array = 2000
 
         self.queriabel_date_fields = ['datetime', 'created', 'updated']
         self.queriabel_str_fields = ['title']
 
-        self.validate(request)
-
     def validate(self, request):
+        '''Validates the request of the search endpoint
+
+        This function validates the request of the search endpoint. As a simplification the
+        requests of GET and POST are harmonized. Then the search params are validated. This
+        function gathers as much validation information as possible. If there is one error
+        or several, finally it raises one error with a complete validation feedback.
+
+        Args:
+            request (RequestDict)
+                The Request (POST or GET)
+
+        Raises:
+            ValidationError(code, details)
+        '''
         # harmonize GET and POST
         query_param = harmonize_post_get_for_search(request)
 
@@ -260,6 +280,16 @@ class ValidateSearch:
             raise RestValidationError(code='query', detail=self.errors)
 
     def validate_query(self, query):
+        '''Validates the query parameter
+
+        The query parameter is being validated. If an validation error is detected,
+        an information is being added to the dict self.errors
+
+        Args:
+            query: string
+                The query parameter to be validated.
+        '''
+        # summing up the fields based of different types
         queriabel_fields = self.queriabel_date_fields + self.queriabel_str_fields
 
         # validate json
@@ -281,6 +311,18 @@ class ValidateSearch:
             self._query_validate_operators(json_query, attribute)
 
     def _query_validate_operators(self, json_query, attribute):
+        '''
+        Checks if the query param is build out of valid operators (like eq, lt).
+
+        There is a distinction between the allowed operators between string operators
+        and number operators.
+
+        Args:
+            json_query: dict
+                A dictionary of request payload
+            attribute: string
+                The attribute that is filtered by the operator
+        '''
         int_operators = ["eq", "neq", "lt", "lte", "gt", "gte"]
         str_operators = ["startsWith", "endsWith", "contains", "in"]
         operators = int_operators + str_operators
@@ -288,7 +330,8 @@ class ValidateSearch:
         # iterate trough the operators
         for operator in json_query[attribute]:
             if operator in operators:
-                value = json_query[attribute][operator]  # get the values given by the operator
+                # get the values which shall be filtered with the operator
+                value = json_query[attribute][operator]
                 # validate type to operation
                 if (
                     isinstance(value, str) and operator in int_operators and
@@ -314,7 +357,17 @@ class ValidateSearch:
             self._query_validate_datetime(attribute, value)
 
     def _query_validate_datetime(self, attribute, the_date):
-        # treat date
+        '''
+        Tests if the_date is a isoformat.
+        This is a helper function of _query_validate_operators.
+        If there is an error, a corresponding entry will be added to the self.errors dict
+
+        Args:
+            attribute: string
+                The attribute to be tested
+            the_date: string or list[strings]
+                The date/s to be tested
+        '''
         if attribute in self.queriabel_date_fields:
             try:
                 if isinstance(the_date, list):
@@ -326,7 +379,13 @@ class ValidateSearch:
                 self.errors[f"query-attributes-{attribute}"] = _(message)
 
     def validate_date_time(self, date_time):
-        '''Validate the datetime query as specified in the api-spec.md.
+        '''
+        Validate the datetime query as specified in the api-spec.md.
+        If there is an error, a corresponding entry will be added to the self.errors dict
+
+        Args:
+            date_time: string
+                The datetime to get validated
         '''
         start, sep, end = date_time.partition('/')
         message = None
@@ -352,11 +411,13 @@ class ValidateSearch:
     def validate_array_of_strings(self, array_of_strings, key):
         '''
         Validation of the ids. The ids have to be an array of strings. If this is not the
-        case, an entry will be added to the error dict.
+        case, an entry will be added to the self.errors dict.
 
         Args:
-            ids: Should be an array of stings. But it is about testing, if this is the case.
-        key (string): The key that has to be added to the error dict.
+            ids: list[strings]
+                Should be an array of stings. But it is about testing, if this is the case.
+            key: string
+                The key that has to be added to the error dict.
         '''
         if not isinstance(array_of_strings, list):
             message = f"The ids have to be within an array. " \
@@ -376,8 +437,10 @@ class ValidateSearch:
         added to the error dict
 
         Args:
-            list_to_validate (list): a list, which length will be validated
-            key (string): The key that has to be added to the error dict
+            list_to_validate: list
+                A list, which length will be validated
+            key: string
+                The key that has to be added to the error dict
         '''
         if len(list_to_validate) > self.max_len_array:
             message = f"The length of the list in the query is too long." \
@@ -388,11 +451,12 @@ class ValidateSearch:
         '''
         Validation of the bbox. If the creation of a
         geometry (point or polygon) would not work, the function adds
-        a entry to the error dict.
+        a entry to the self.errors dict.
 
         Args:
-            bbox (string): The bbox is a string that has to be composed of 4 comma-seperated
-                            float values. F. ex.: 5.96,45.82,10.49,47.81
+            bbox: string
+                The bbox is a string that has to be composed of 4 comma-seperated
+                float values. F. ex.: 5.96,45.82,10.49,47.81
         '''
         try:
             list_bbox_values = bbox.split(',')
@@ -411,6 +475,15 @@ class ValidateSearch:
             self.errors['bbox'] = _(message)
 
     def validate_intersects(self, geojson):
+        '''Validates the geojson in the intersects parameter.
+
+        To test, if the string is valid, a geometry is being build out of it. If it is not
+        possible, the dict self.errors is being widened with the corresponding information.
+
+        Args:
+            geojson: string
+                The geojson string to be validated
+        '''
         try:
             intersects_geometry = GEOSGeometry(geojson)
             validate_geometry(intersects_geometry)

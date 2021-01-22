@@ -26,7 +26,7 @@ from stac_api.serializers import ItemSerializer
 from stac_api.serializers import LandingPageSerializer
 from stac_api.utils import harmonize_post_get_for_search
 from stac_api.utils import utc_aware
-from stac_api.validators import ValidateSearch
+from stac_api.validators import ValidateSearchRequest
 
 logger = logging.getLogger(__name__)
 
@@ -294,7 +294,9 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
         return queryset
 
     def list(self, request, *args, **kwargs):
-        validate_search = ValidateSearch(request)  # validate the search request
+
+        validate_search_request = ValidateSearchRequest()
+        validate_search_request.validate(request)  # validate the search request
         queryset = self.filter_queryset(self.get_queryset())
 
         page = self.paginate_queryset(queryset)

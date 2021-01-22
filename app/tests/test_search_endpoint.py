@@ -68,7 +68,10 @@ class SearchEndpointTestCaseOne(StacBaseTestCase):
         self.assertEqual(json_data_post['features'][0]['properties']['title'], title)
 
         # compare get and post
-        self.assertEqual(len(json_data_post['features']), len(json_data_get['features']))
+        self.assertEqual(
+            son_data_get['features'][0]['properties']['title'],
+            son_data_post['features'][0]['properties']['title']
+        )
 
     def test_query_data_in(self):
         payload = """
@@ -80,7 +83,9 @@ class SearchEndpointTestCaseOne(StacBaseTestCase):
         """
         response = self.client.post(self.path, data=payload, content_type="application/json")
         json_data = response.json()
-        self.assertEqual(len(json_data['features']), 2)
+        list_expected_items = ['item-1', 'item-3']
+        self.assertIn(json_data['features'][0]['id'], list_expected_items)
+        self.assertIn(json_data['features'][1]['id'], list_expected_items)
 
     def test_post_pagination(self):
         data = """
@@ -118,7 +123,7 @@ class SearchEndpointTestCaseOne(StacBaseTestCase):
         """
         response = self.client.post(f"{self.path}", data=data, content_type="application/json")
         json_data = response.json()
-        self.assertGreater(len(json_data['features']), 0)
+        self.assertEqual(json_data['features'][0]['id'], 'item-3')
 
     def test_post_intersects_invalid(self):
         data = """
@@ -237,7 +242,9 @@ class SearchEndpointTestCaseTwo(StacBaseTestCase):
         )
         self.assertStatusCode(200, response)
         json_data = response.json()
-        self.assertEqual(len(json_data['features']), 2)
+        list_expected_items = ['item-1', 'item-2']
+        self.assertIn(json_data['features'][0]['id'], list_expected_items)
+        self.assertIn(json_data['features'][1]['id'], list_expected_items)
 
     def test_bbox_valid(self):
         payload = """
