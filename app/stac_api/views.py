@@ -28,8 +28,8 @@ from stac_api.serializers import ItemSerializer
 from stac_api.serializers import LandingPageSerializer
 from stac_api.utils import fromisoformat
 from stac_api.utils import utc_aware
+from stac_api.utils import harmonize_post_get_for_search
 from stac_api.validators import ValidateSearch
-from stac_api.validators import validate_geometry
 
 logger = logging.getLogger(__name__)
 
@@ -272,48 +272,27 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
     permission_classes = [AllowAny]
     serializer_class = ItemSerializer
 
-    def queryset_post(self):
+    def get_queryset(self):
         queryset = Item.objects.all()
-        data = self.request.data
-        if 'ids' in data:
-            queryset = queryset.filter_by_ids(data['ids'])
+        # harmonize GET and POST query
+        query_param = harmonize_post_get_for_search(self.request)
+
+        # build queryset
+
+        # if ids, then the other params will be ignored
+        if 'ids' in query_param:
+            queryset = queryset.filter_by_ids(query_param['ids'])
         else:
-            if 'bbox' in data:
-                queryset = queryset.filter_by_bbox(json.dumps(data['bbox']).strip('[]'))
-            if 'date_time' in data:
-                queryset = queryset.filter_by_datetime(data['date_time'])
-            if 'collections' in data:
-                queryset = queryset.filter_by_collections(data['collections'])
-            if 'query' in data:
-                queryset = self.filter_by_query(queryset, json.dumps(data['query']))
-            if 'intersects' in data:
-                queryset = queryset.filter_by_intersects(json.dumps(data['intersects']))
-
-        return queryset
-
-    def queryset_get(self):
-        queryset = Item.objects.all()
-
-        bbox = self.request.query_params.get('bbox', None)
-        date_time = self.request.query_params.get('datetime', None)
-        collections = self.request.query_params.get('collections', None)
-        ids = self.request.query_params.get('ids', None)  # ids of items
-        query = self.request.query_params.get('query', None)
-
-        if ids:
-            queryset = queryset.filter_by_ids(ids.split(','))
-        else:  # if ids, all other restrictions are ignored
-            if query:
-                queryset = self.filter_by_query(queryset, query)
-
-            if collections:
-                queryset = queryset.filter_by_collections(collections.split(','))
-
-            if bbox:
-                queryset = queryset.filter_by_bbox(bbox)
-
-            if date_time:
-                queryset = queryset.filter_by_datetime(date_time)
+            if 'bbox' in query_param:
+                queryset = queryset.filter_by_bbox(query_param['bbox'])
+            if 'datetime' in query_param:
+                queryset = queryset.filter_by_datetime(query_param['datetime'])
+            if 'collections' in query_param:
+                queryset = queryset.filter_by_collections(query_param['collections'])
+            if 'query' in query_param:
+                queryset = self.filter_by_query(queryset, query_param['query'])
+            if 'intersects' in query_param:
+                queryset = queryset.filter_by_intersects(json.dumps(query_param['intersects']))
 
         return queryset
 
@@ -404,12 +383,7 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
 
     def list(self, request, *args, **kwargs):
         validate_search = ValidateSearch(request)  # validate the search request
-
-        if request.method == 'POST':
-            queryset = self.filter_queryset(self.queryset_post())
-
-        else:
-            queryset = self.filter_queryset(self.queryset_get())
+        queryset = self.filter_queryset(self.get_queryset())
 
         page = self.paginate_queryset(queryset)
 

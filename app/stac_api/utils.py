@@ -1,3 +1,4 @@
+import json
 import hashlib
 from datetime import datetime
 from datetime import timezone
@@ -189,3 +190,21 @@ def create_multihash_string(digest, hash_code):
         multihash string
     '''
     return multihash.to_hex_string(multihash.encode(digest, hash_code))
+
+
+def harmonize_post_get_for_search(request):
+    # POST
+    if request.method == 'POST':
+        query_param = request.data.copy()
+        if 'bbox' in query_param:
+            query_param['bbox'] = json.dumps(query_param['bbox']).strip('[]')  # to string
+        if 'query' in query_param:
+            query_param['query'] = json.dumps(query_param['query'])  # to string
+    # GET
+    else:
+        query_param = request.GET.copy()
+        if 'ids' in query_param:
+            query_param['ids'] = query_param['ids'].split(',')  # to array
+        if 'collections' in query_param:
+            query_param['collections'] = query_param['collections'].split(',')  # to array
+    return query_param

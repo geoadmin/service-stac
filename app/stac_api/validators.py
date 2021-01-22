@@ -12,10 +12,10 @@ from django.contrib.gis.geos import Polygon
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
-from rest_framework.exceptions import ParseError
 from rest_framework.exceptions import ValidationError as RestValidationError
 
 from stac_api.utils import fromisoformat
+from stac_api.utils import harmonize_post_get_for_search
 
 logger = logging.getLogger(__name__)
 
@@ -231,67 +231,31 @@ class ValidateSearch:
         self.errors = {}  # a list with all the validation errors
         self.max_len_array = 2000
 
-        if request.method == 'POST':
-            self.validate_post(request)
-        else:
-            self.validate_get(request)
+        self.validate(request)
 
-    def validate_get(self, request):
-        bbox = request.query_params.get('bbox', None)
-        date_time = request.query_params.get('datetime', None)
-        collections = request.query_params.get('collections', None)
-        ids = request.query_params.get('ids', None)  # ids of items
-        query = request.query_params.get('query', None)
+    def validate(self, request):
+        # harmonize GET and POST
+        query_param = harmonize_post_get_for_search(request)
 
-        if bbox:
-            self.validate_bbox(bbox)
-        if date_time:
-            self.validate_date_time(date_time)
-        if query:
+        if 'bbox' in query_param:
+            self.validate_bbox(query_param['bbox'])
+        if 'datetime' in query_param:
+            self.validate_date_time(query_param['datetime'])
+        if 'ids' in query_param:
+            self.validate_array_of_strings(query_param['ids'], 'ids')
+        if 'collections' in query_param:
+            self.validate_array_of_strings(query_param['collections'], 'collections')
+        if 'query' in query_param:
             pass
-            # DOTO: not yet done
-        if ids:
-            arr_ids = ids.split(',')  # an array
-            self.validate_array_of_strings(arr_ids, 'ids')
-        if collections:
-            arr_collections = collections.split(',')
-            self.validate_array_of_strings(arr_collections, 'collections')
-
-        if self.errors:
-            logger.error(">>>>>>> %s ", self.errors)
-            raise RestValidationError(code='payload', detail=self.errors)
-
-    def validate_post(self, request):
-
-        # check, if the payload is a valid JSON
-        try:
-            payload = request.data
-
-        except ParseError as error:
-            message = f"The application could not decode the query. " \
-                      f"Please check the syntax ({error})."
-            logger.error(message)
-            raise RestValidationError(_(message), code='payload')
-
-        if 'bbox' in payload:
-            bbox = json.dumps(payload['bbox']).strip('[]')  # array to string
-            self.validate_bbox(bbox)
-        if 'date_time' in payload:
-            self.validate_date_time(payload['date_time'])
-        if 'ids' in payload:
-            self.validate_array_of_strings(payload['ids'], 'ids')
-        if 'collections' in payload:
-            self.validate_array_of_strings(payload['collections'], 'collections')
-        if 'query' in payload:
-            self.validate_query(payload['query'])
-        if 'intersects' in payload:
-            self.validate_intersects(json.dumps(payload['intersects']))
+            #self.validate_query(query_param['query'])
+        if 'intersects' in query_param:  # only in POST
+            self.validate_intersects(json.dumps(query_param['intersects']))
 
         if self.errors:
             logger.error(">>>>>>> %s ", self.errors)
             raise RestValidationError(code='query', detail=self.errors)
 
-    def validate_query(self, query):
+    def validate_query(self, query):  # pylint: disable=too-many-branches
         # DOTO
         queriable_date_fields = ['datetime', 'created', 'updated']
         queriable_str_fields = ['title']
