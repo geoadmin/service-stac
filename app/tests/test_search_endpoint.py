@@ -53,6 +53,7 @@ class SearchEndpointTestCaseOne(StacBaseTestCase):
         self.assertStatusCode(200, response)
         json_data_get = response.json()
         self.assertEqual(json_data_get['features'][0]['properties']['title'], title)
+        self.assertEqual(len(json_data_get['features']), 1)
 
         # post match
         payload = """
@@ -66,11 +67,12 @@ class SearchEndpointTestCaseOne(StacBaseTestCase):
         self.assertStatusCode(200, response)
         json_data_post = response.json()
         self.assertEqual(json_data_post['features'][0]['properties']['title'], title)
+        self.assertEqual(len(json_data_post['features']), 1)
 
         # compare get and post
         self.assertEqual(
-            son_data_get['features'][0]['properties']['title'],
-            son_data_post['features'][0]['properties']['title']
+            json_data_get['features'][0]['properties']['title'],
+            json_data_post['features'][0]['properties']['title']
         )
 
     def test_query_data_in(self):

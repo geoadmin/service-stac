@@ -2,6 +2,7 @@ import json
 import logging
 import re
 from datetime import datetime
+from collections import Counter
 
 import multihash
 
@@ -238,6 +239,8 @@ class ValidateSearchRequest:
     def __init__(self):
         self.errors = {}  # a list with all the validation errors
         self.max_len_array = 2000
+        self.max_times_same_query_attribute = 20
+        self.max_query_attributes = 50
 
         self.queriabel_date_fields = ['datetime', 'created', 'updated']
         self.queriabel_str_fields = ['title']
@@ -277,7 +280,7 @@ class ValidateSearchRequest:
         if self.errors:
             for key in self.errors:
                 logger.error('%s: %s', key, self.errors[key])
-            raise RestValidationError(code='query', detail=self.errors)
+            raise RestValidationError(code='query-invalid', detail=self.errors)
 
     def validate_query(self, query):
         '''Validates the query parameter
@@ -299,8 +302,10 @@ class ValidateSearchRequest:
             message = f"The application could not decode the query parameter" \
                       f"Please check the syntax ({error})." \
                       f"{query}"
-            raise RestValidationError(code='query', detail=_(message))
+            raise RestValidationError(code='query-invalid', detail=_(message))
 
+        self._query_validate_numb_occurences(json_query)
+        self._query_validate_length_of_query(json_query)
         for attribute in json_query:
             if not attribute in queriabel_fields:
                 message = f"Invalid field in query argument. The field {attribute} is not " \
@@ -309,6 +314,39 @@ class ValidateSearchRequest:
 
             # validate operators
             self._query_validate_operators(json_query, attribute)
+
+    def _query_validate_length_of_query(self, json_query):
+        '''Test the maximal number of attributes in the query parameter
+        Args:
+            json_query: dictionary
+                To test how many query attributes are provided
+        Raise:
+            ValidationError
+        '''
+        if len(json_query) > self.max_query_attributes:
+            message = f"Too many attributes in query parameter. Max. " \
+                      f"{self.max_query_attributes} allowed"
+            logger.error(message)
+            raise RestValidationError(code='query-invalid', detail=_(message))
+
+    def _query_validate_numb_occurences(self, json_query):
+        '''Test the maximal appearance of an attribute in the query parameter
+        DOTO(ltrea): IN A DICT IT IS NOT POSSIBLE TO HAVE TWICE THE SAME KEY .....
+        Args:
+            json_query: dictionary
+                To test how many time the same keys appear in the dictionary
+        Raise:
+            ValidationError
+        '''
+        arr_attributes = json_query.keys()
+        most_common, occurences = Counter(arr_attributes).most_common(1)[0]
+        if occurences > self.max_times_same_query_attribute:
+            message = f"Too many repetition of same attribute. Max. " \
+                      f"{self.max_times_same_query_attribute} allowed" \
+                      f"The attribute {most_common} " \
+                      f"appears {occurences} times."
+            logger.error(message)
+            raise RestValidationError(code='query-invalid', detail=_(message))
 
     def _query_validate_operators(self, json_query, attribute):
         '''
