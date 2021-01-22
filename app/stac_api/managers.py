@@ -1,3 +1,4 @@
+import json
 import logging
 from datetime import datetime
 
@@ -10,6 +11,7 @@ from django.utils.translation import gettext_lazy as _
 
 from rest_framework.exceptions import ValidationError
 
+from stac_api.utils import fromisoformat
 from stac_api.validators import validate_geometry
 
 logger = logging.getLogger(__name__)
@@ -164,6 +166,27 @@ class ItemQuerySet(models.QuerySet):
         the_geom = GEOSGeometry(intersects)
         return self.filter(geometry__intersects=the_geom)
 
+    def filter_by_query(self, query):
+        queriabel_date_fields = ['datetime', 'created', 'updated']
+        json_query = json.loads(query)
+        for attribute in json_query:
+            for operator in json_query[attribute]:
+                value = json_query[attribute][operator]  # get the values given by the operator
+                # treat date
+                if attribute in queriabel_date_fields:
+                    if isinstance(value, list):
+                        value = [fromisoformat(i) for i in value]
+                    else:
+                        value = fromisoformat(value)
+
+                # __eq does not exist, but = does it as well
+                if operator == 'eq':
+                    query_filter = f"properties_{attribute}"
+                else:
+                    query_filter = f"properties_{attribute}__{operator.lower()}"
+
+                return self.filter(**{query_filter: value})
+
 
 class ItemManager(models.Manager):
 
@@ -181,3 +204,6 @@ class ItemManager(models.Manager):
 
     def filter_by_ids(self, ids_array):
         return self.get_queryset().filter_by_ids(ids_array)
+
+    def filter_by_query(self, query):
+        return self.get_queryset().filter_by_query(query)

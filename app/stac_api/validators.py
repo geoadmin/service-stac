@@ -231,6 +231,9 @@ class ValidateSearch:
         self.errors = {}  # a list with all the validation errors
         self.max_len_array = 2000
 
+        self.queriabel_date_fields = ['datetime', 'created', 'updated']
+        self.queriabel_str_fields = ['title']
+
         self.validate(request)
 
     def validate(self, request):
@@ -246,78 +249,80 @@ class ValidateSearch:
         if 'collections' in query_param:
             self.validate_array_of_strings(query_param['collections'], 'collections')
         if 'query' in query_param:
-            pass
-            #self.validate_query(query_param['query'])
+            self.validate_query(query_param['query'])
         if 'intersects' in query_param:  # only in POST
             self.validate_intersects(json.dumps(query_param['intersects']))
 
+        # Raise ERROR with a list of parsed errors
         if self.errors:
             logger.error(">>>>>>> %s ", self.errors)
             raise RestValidationError(code='query', detail=self.errors)
 
-    def validate_query(self, query):  # pylint: disable=too-many-branches
-        # DOTO
-        queriable_date_fields = ['datetime', 'created', 'updated']
-        queriable_str_fields = ['title']
+    def validate_query(self, query):
+        queriabel_fields = self.queriabel_date_fields + self.queriabel_str_fields
+
+        # validate json
+        try:
+            json_query = json.loads(query)
+        except json.JSONDecodeError as error:
+            message = f"The application could not decode the query parameter" \
+                      f"Please check the syntax ({error})." \
+                      f"{query}"
+            raise RestValidationError(code='query', detail=_(message))
+
+        for attribute in json_query:
+            if not attribute in queriabel_fields:
+                message = f"Invalid field in query argument. The field {attribute} is not " \
+                          f"a propertie. Use one of these {queriabel_fields}"
+                self.errors[f"query-attributes-{attribute}"] = _(message)
+
+            # validate operators
+            self._query_validate_operators(json_query, attribute)
+
+    def _query_validate_operators(self, json_query, attribute):
         int_operators = ["eq", "neq", "lt", "lte", "gt", "gte"]
         str_operators = ["startsWith", "endsWith", "contains", "in"]
         operators = int_operators + str_operators
-        queriable_fields = queriable_date_fields + queriable_str_fields
 
-        for attribute in query:  # pylint: disable=too-many-nested-blocks
-
-            # iterate trough the fields given in the query parameter
-            if attribute in queriable_fields:
-                logger.debug("attribute: %s", attribute)
-                # iterate trough the operators
-                for operator in query[attribute]:
-                    if operator in operators:
-                        value = query[attribute][operator]  # get the values given by the operator
-                        # validate type to operation
-                        if (
-                            isinstance(value, str) and operator in int_operators and
-                            attribute in int_operators
-                        ):
-                            message = f"You are not allowed to compare a string/date ({attribute})"\
-                                      f" with a number operator." \
-                                      f"for string use one of these {str_operators}"
-                            logger.error(message)
-                            raise ValidationError(_(message))
-                        if (
-                            isinstance(value, int) and operator in str_operators and
-                            operator in str_operators
-                        ):
-                            message = f"You are not allowed to compare a number or a date with" \
-                                      f"a string operator." \
-                                      f"For numbers use one of these {int_operators}"
-                            logger.error(message)
-                            raise ValidationError(_(message))
-
-                        # treat date
-                        if attribute in queriable_date_fields:
-                            try:
-                                if isinstance(value, list):
-                                    value = [fromisoformat(i) for i in value]
-                                else:
-                                    value = fromisoformat(value)
-                            except ValueError as error:
-                                message = f"Invalid dateformat: ({error})"
-                                logger.error(message)
-                                raise ValidationError(_(message))
-
-                        logger.debug("query_filter: ")
-                        logger.debug("operator: %s", operator)
-                        logger.debug("value: %s", value)
-                    else:
-                        message = f"Invalid operator in query argument. The operator {operator} " \
-                                  f"is not supported. Use: {operators}"
-                        logger.error(message)
-                        raise ValidationError(_(message))
+        # iterate trough the operators
+        for operator in json_query[attribute]:
+            if operator in operators:
+                value = json_query[attribute][operator]  # get the values given by the operator
+                # validate type to operation
+                if (
+                    isinstance(value, str) and operator in int_operators and
+                    attribute in int_operators
+                ):
+                    message = f"You are not allowed to compare a string/date ({attribute})"\
+                              f" with a number operator." \
+                              f"for string use one of these {str_operators}"
+                    self.errors[f"query-operator-{operator}"] = _(message)
+                if (
+                    isinstance(value, int) and operator in str_operators and
+                    operator in str_operators
+                ):
+                    message = f"You are not allowed to compare a number or a date with" \
+                              f"a string operator." \
+                              f"For numbers use one of these {int_operators}"
+                    self.errors[f"query-operator-{operator}"] = _(message)
             else:
-                message = f"Invalid field in query argument. The field {attribute} is not " \
-                          f"a propertie. Use one of these {queriable_fields}"
-                logger.error(message)
-                raise ValidationError(_(message))
+                message = f"Invalid operator in query argument. The operator {operator} " \
+                          f"is not supported. Use: {operators}"
+                self.errors[f"query-operator-{operator}"] = _(message)
+
+            self._query_validate_datetime(attribute, value)
+
+    def _query_validate_datetime(self, attribute, the_date):
+        # treat date
+        if attribute in self.queriabel_date_fields:
+            try:
+                if isinstance(the_date, list):
+                    the_date = [fromisoformat(i) for i in the_date]
+                else:
+                    the_date = fromisoformat(the_date)
+            except ValueError as error:
+                message = f"{the_date} is an invalid dateformat: ({error})"
+                self.errors[f"query-attributes-{attribute}"] = _(message)
 
     def validate_date_time(self, date_time):
         '''Validate the datetime query as specified in the api-spec.md.
@@ -331,7 +336,7 @@ class ValidateSearch:
                 end = datetime.fromisoformat(end.replace('Z', '+00:00'))
         except ValueError as error:
             message = "Invalid datetime query parameter, must be isoformat. "
-            self.errors['date_time'] = _(message)
+            self.errors['datetime'] = _(message)
 
         if end == '':
             end = None
@@ -341,7 +346,7 @@ class ValidateSearch:
                 f"cannot start with open range when no end range is defined"
 
         if message:
-            self.errors['date_time'] = _(message)
+            self.errors['datetime'] = _(message)
 
     def validate_array_of_strings(self, array_of_strings, key):
         '''
@@ -376,7 +381,7 @@ class ValidateSearch:
         if len(list_to_validate) > self.max_len_array:
             message = f"The length of the list in the query is too long." \
                       f"The list {list_to_validate} should not be longer than {self.max_len_array}."
-            self.errors[key] = _(message)
+            self.errors[f"{key}-length"] = _(message)
 
     def validate_bbox(self, bbox):
         '''

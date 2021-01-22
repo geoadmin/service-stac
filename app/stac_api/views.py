@@ -6,11 +6,9 @@ from datetime import datetime
 from django.conf import settings
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
-from django.utils.translation import gettext_lazy as _
 
 from rest_framework import generics
 from rest_framework import mixins
-from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework_condition import etag
@@ -26,9 +24,8 @@ from stac_api.serializers import CollectionSerializer
 from stac_api.serializers import ConformancePageSerializer
 from stac_api.serializers import ItemSerializer
 from stac_api.serializers import LandingPageSerializer
-from stac_api.utils import fromisoformat
-from stac_api.utils import utc_aware
 from stac_api.utils import harmonize_post_get_for_search
+from stac_api.utils import utc_aware
 from stac_api.validators import ValidateSearch
 
 logger = logging.getLogger(__name__)
@@ -290,95 +287,10 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
             if 'collections' in query_param:
                 queryset = queryset.filter_by_collections(query_param['collections'])
             if 'query' in query_param:
-                queryset = self.filter_by_query(queryset, query_param['query'])
+                queryset = queryset.filter_by_query(query_param['query'])
             if 'intersects' in query_param:
                 queryset = queryset.filter_by_intersects(json.dumps(query_param['intersects']))
 
-        return queryset
-
-    def filter_by_query(self, queryset, query):  # pylint: disable=too-many-locals,too-many-branches,too-many-statements
-
-        queriable_date_fields = ['datetime', 'created', 'updated']
-        queriable_str_fields = ['title']
-        int_operators = ["eq", "neq", "lt", "lte", "gt", "gte"]
-        str_operators = ["startsWith", "endsWith", "contains", "in"]
-        operators = int_operators + str_operators
-        queriable_fields = queriable_date_fields + queriable_str_fields
-
-        # validate json
-        try:
-            json_query = json.loads(query)
-        except json.JSONDecodeError as error:
-            message = f"The application could not decode the JSON." \
-                      f"Please check the syntax ({error})." \
-                      f"{query}"
-
-            logger.error(message)
-            raise ValidationError(_(message))
-
-        for attribute in json_query:  # pylint: disable=too-many-nested-blocks
-
-            # iterate trough the fields given in the query parameter
-            if attribute in queriable_fields:
-                logger.debug("attribute: %s", attribute)
-                # iterate trough the operators
-                for operator in json_query[attribute]:
-                    if operator in operators:
-                        value = json_query[attribute][operator
-                                                     ]  # get the values given by the operator
-                        # validate type to operation
-                        if (
-                            isinstance(value, str) and operator in int_operators and
-                            attribute in int_operators
-                        ):
-                            message = f"You are not allowed to compare a string/date ({attribute})"\
-                                      f" with a number operator." \
-                                      f"for string use one of these {str_operators}"
-                            logger.error(message)
-                            raise ValidationError(_(message))
-                        if (
-                            isinstance(value, int) and operator in str_operators and
-                            operator in str_operators
-                        ):
-                            message = f"You are not allowed to compare a number or a date with" \
-                                      f"a string operator." \
-                                      f"For numbers use one of these {int_operators}"
-                            logger.error(message)
-                            raise ValidationError(_(message))
-
-                        # treat date
-                        if attribute in queriable_date_fields:
-                            try:
-                                if isinstance(value, list):
-                                    value = [fromisoformat(i) for i in value]
-                                else:
-                                    value = fromisoformat(value)
-                            except ValueError as error:
-                                message = f"Invalid dateformat: ({error})"
-                                logger.error(message)
-                                raise ValidationError(_(message))
-
-                        # __eq does not exist, but = does it as well
-                        if operator == 'eq':
-                            query_filter = f"properties_{attribute}"
-                        else:
-                            query_filter = f"properties_{attribute}__{operator.lower()}"
-
-                        queryset = queryset.filter(**{query_filter: value})
-
-                        logger.debug("query_filter: %s", query_filter)
-                        logger.debug("operator: %s", operator)
-                        logger.debug("value: %s", value)
-                    else:
-                        message = f"Invalid operator in query argument. The operator {operator} " \
-                                  f"is not supported. Use: {operators}"
-                        logger.error(message)
-                        raise ValidationError(_(message))
-            else:
-                message = f"Invalid field in query argument. The field {attribute} is not " \
-                          f"a propertie. Use one of these {queriable_fields}"
-                logger.error(message)
-                raise ValidationError(_(message))
         return queryset
 
     def list(self, request, *args, **kwargs):
