@@ -255,7 +255,8 @@ class ValidateSearch:
 
         # Raise ERROR with a list of parsed errors
         if self.errors:
-            logger.error(">>>>>>> %s ", self.errors)
+            for key in self.errors:
+                logger.error('%s: %s', key, self.errors[key])
             raise RestValidationError(code='query', detail=self.errors)
 
     def validate_query(self, query):
