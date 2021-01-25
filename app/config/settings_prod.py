@@ -16,6 +16,8 @@ from dotenv import load_dotenv
 
 from .version import APP_VERSION  # pylint: disable=unused-import
 
+STAC_VERSION = "0.9.0"
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 print(f"BASE_DIR is {BASE_DIR}")
