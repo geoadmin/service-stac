@@ -264,9 +264,37 @@ class SearchEndpointTestCaseTwo(StacBaseTestCase):
         self.assertIn(json_data_post['features'][0]['id'], list_expected_items)
         self.assertIn(json_data_post['features'][1]['id'], list_expected_items)
 
-        response = self.client.get(f"/{API_BASE}/search" f"?bbox=6,47,6.5,47.5")
+        response = self.client.get(f"/{API_BASE}/search" f"?bbox=6,47,6.5,47.5&limit=100")
         json_data_get = response.json()
         self.assertStatusCode(200, response)
+        self.assertEqual(json_data_get['features'][0]['id'], json_data_post['features'][0]['id'])
+
+    def test_bbox_as_point(self):
+        # bbox as a point
+        payload = """
+        { "bbox": [
+            6.1,
+            47.1,
+            6.1,
+            47.1
+            ],
+          "limit": 100
+        }
+        """
+        response = self.client.post(f"{self.path}", data=payload, content_type="application/json")
+        json_data_post = response.json()
+        list_expected_items = ['item-3', 'item-4', 'item-6']
+        self.assertIn(json_data_post['features'][0]['id'], list_expected_items)
+        self.assertIn(json_data_post['features'][1]['id'], list_expected_items)
+        self.assertIn(json_data_post['features'][2]['id'], list_expected_items)
+
+        response = self.client.get(f"/{API_BASE}/search" f"?bbox=6.1,47.1,6.1,47.1&limit=100")
+        json_data_get = response.json()
+        self.assertStatusCode(200, response)
+
+        self.assertIn(json_data_get['features'][0]['id'], list_expected_items)
+        self.assertIn(json_data_get['features'][1]['id'], list_expected_items)
+        self.assertIn(json_data_get['features'][2]['id'], list_expected_items)
         self.assertEqual(json_data_get['features'][0]['id'], json_data_post['features'][0]['id'])
 
     def test_bbox_post_invalid(self):

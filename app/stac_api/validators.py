@@ -496,8 +496,8 @@ class ValidateSearchRequest:
         try:
             list_bbox_values = bbox.split(',')
             if (
-                list_bbox_values[0] == list_bbox_values[2] and
-                list_bbox_values[1] == list_bbox_values[3]
+                float(list_bbox_values[0]) == float(list_bbox_values[2]) and
+                float(list_bbox_values[1]) == float(list_bbox_values[3])
             ):
                 bbox_geometry = Point(float(list_bbox_values[0]), float(list_bbox_values[1]))
             else:
