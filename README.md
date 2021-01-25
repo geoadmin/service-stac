@@ -13,6 +13,7 @@
   - [Dependencies](#dependencies)
   - [Creating the local environment](#creating-the-local-environment)
   - [Setting up the local database](#setting-up-the-local-database)
+  - [Using a local PostGres database instead of a container](#using-a-local-postgres-database-instead-of-a-container)
   - [Starting dev server](#starting-dev-server)
   - [Running test](#running-test)
   - [Using Django shell](#using-django-shell)
@@ -43,8 +44,6 @@ If you wish to use a local postgres instance rather than the dockerised one, you
 ### Creating the local environment
 
 These steps will ensure you have everything needed to start working locally.
-
-These steps you need to do once to setup the project.
 
 - clone the repo
 
@@ -84,7 +83,7 @@ and run those containers. ```Make setup``` assume a standard local installation 
 ### Setting up the local database
 
 The service use two other services to run, Posgres with a PostGIS extension and S3. 
-For local development, we recommend using the services given through the docker-compose.yml file, which will 
+For local development, we recommend using the services given through the [docker-compose.yml](docker-compose.yml) file, which will 
 instantiate a Postgres container and a [MinIO](https://www.min.io/) container which act as a local S3 replacement.
 
 If you used the ```make setup``` command during the local environment creation, those two services 
@@ -102,9 +101,11 @@ which should give you a result like this :
   d158be863ac1   kartoza/postgis:12.0   "/bin/sh -c /docker-…"    39 hours ago   Up 41 seconds               0.0.0.0:15432->5432/tcp   service-stac_db_1
   ```
 
-As you can see, MinIO is using two containers, one is the local S3 server, the other is a S3 client used to initialise
-some variables to allowe MinIO to run smoothly (and exited normally afterwards). You should also have a postGIS container.
+As you can see, MinIO is using two containers, one is the local S3 server, the other is a S3 client used to set the 
+download policy of the bucket which allows anonymous downloads, and exits once its job is done. You should also have a postGIS container.
 
+`make setup` creates some necessary directories : `.volumes/minio` and `.volumes/postgresql`, which are mounted to the 
+corresponding containers in order to allow data persistency.
 
 Another way to start these containers (if, for example, they stopped) is with a simple
 
@@ -112,9 +113,16 @@ Another way to start these containers (if, for example, they stopped) is with a 
   docker-compose up
   ```
 
-in the source root folder (this is the last command of `make setup`). Make sure to run `make setup` before to ensure the necessary folders `.volumes/*` are in place. These folders are mounted in the services and allow data persistency over restarts of the containers.
+Lastly, once your databases have been set up, it is time to apply migrations (to have the latest model) and fill it with
+some default values to be able to start working with it. (From the root)
+  ```bash 
+  pipenv shell
+  ./app/manage.py migrate
+  ./app/manage.py populate_testdb
+  ```
 
-If you want to use a local postgres instance instead of the dockerised one you need additionally
+the ```pipenv shell``` command activate the virtual environment provided by pipenv.
+### Using a local PostGres database instead of a container
 
 To use a local postgres instance rather than a container, once you've ensured you've the needed dependencies, you should : 
 
@@ -139,16 +147,6 @@ The PostGIS extension will be installed automatically by Django.
 **Note: this is a local development setup and not suitable for production!**
 
 You might have to change your .env.local file especially the DB_PORT, if you're using this setup.
-
-Lastly, once your databases have been set up, it is time to apply migrations (to have the latest model) and fill it with
-some default values to be able to start working with it. (From the root)
-  ```bash 
-  pipenv shell
-  ./app/manage.py migrate
-  ./app/manage.py populate_testdb
-  ```
-
-the ```pipenv shell``` command activate the virtual environment provided by pipenv.
 
 ### Starting dev server
 
