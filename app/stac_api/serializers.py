@@ -34,8 +34,6 @@ from stac_api.validators_serializer import validate_json_payload
 
 logger = logging.getLogger(__name__)
 
-STAC_VERSION = "0.9.0"
-
 
 def create_or_update_str(created):
     if created:
@@ -192,7 +190,7 @@ class LandingPageSerializer(serializers.ModelSerializer):
     stac_version = serializers.SerializerMethodField()
 
     def get_stac_version(self, obj):
-        return STAC_VERSION
+        return settings.STAC_VERSION
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
@@ -368,7 +366,7 @@ class CollectionSerializer(NonNullModelSerializer):
         return list()
 
     def get_stac_version(self, obj):
-        return STAC_VERSION
+        return settings.STAC_VERSION
 
     def _update_or_create_providers(self, collection, providers_data):
         provider_ids = []
@@ -787,7 +785,7 @@ class ItemSerializer(NonNullModelSerializer):
         return list()
 
     def get_stac_version(self, obj):
-        return STAC_VERSION
+        return settings.STAC_VERSION
 
     def to_representation(self, instance):
         collection = instance.collection.name

@@ -29,7 +29,10 @@ class CacheHeadersMiddleware:
         if request.path in ['/checker', '/get-token']:
             # never cache the /checker and /get-token endpoints.
             add_never_cache_headers(response)
-        elif request.method in ('GET', 'HEAD'):
+        elif (
+            request.method in ('GET', 'HEAD') and
+            not request.path.startswith(f'/api/stac/{settings.STAC_VERSION}/static/')
+        ):
             logger.debug(
                 "Patching cache headers for request %s %s",
                 request.method,
