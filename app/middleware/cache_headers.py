@@ -1,4 +1,5 @@
 import logging
+from urllib.parse import urlparse
 
 from django.conf import settings
 from django.utils.cache import add_never_cache_headers
@@ -31,7 +32,7 @@ class CacheHeadersMiddleware:
             add_never_cache_headers(response)
         elif (
             request.method in ('GET', 'HEAD') and
-            not request.path.startswith(f'/api/stac/{settings.STAC_VERSION}/static/')
+            not request.path.startswith(urlparse(settings.STATIC_URL).path)
         ):
             logger.debug(
                 "Patching cache headers for request %s %s",
