@@ -2,7 +2,6 @@ import json
 import logging
 import re
 from datetime import datetime
-from collections import Counter
 
 import multihash
 
@@ -304,7 +303,6 @@ class ValidateSearchRequest:
                       f"{query}"
             raise RestValidationError(code='query-invalid', detail=_(message))
 
-        self._query_validate_numb_occurences(json_query)
         self._query_validate_length_of_query(json_query)
         for attribute in json_query:
             if not attribute in queriabel_fields:
@@ -326,25 +324,6 @@ class ValidateSearchRequest:
         if len(json_query) > self.max_query_attributes:
             message = f"Too many attributes in query parameter. Max. " \
                       f"{self.max_query_attributes} allowed"
-            logger.error(message)
-            raise RestValidationError(code='query-invalid', detail=_(message))
-
-    def _query_validate_numb_occurences(self, json_query):
-        '''Test the maximal appearance of an attribute in the query parameter
-        DOTO(ltrea): IN A DICT IT IS NOT POSSIBLE TO HAVE TWICE THE SAME KEY .....
-        Args:
-            json_query: dictionary
-                To test how many time the same keys appear in the dictionary
-        Raise:
-            ValidationError
-        '''
-        arr_attributes = json_query.keys()
-        most_common, occurences = Counter(arr_attributes).most_common(1)[0]
-        if occurences > self.max_times_same_query_attribute:
-            message = f"Too many repetition of same attribute. Max. " \
-                      f"{self.max_times_same_query_attribute} allowed" \
-                      f"The attribute {most_common} " \
-                      f"appears {occurences} times."
             logger.error(message)
             raise RestValidationError(code='query-invalid', detail=_(message))
 
@@ -392,28 +371,46 @@ class ValidateSearchRequest:
                           f"is not supported. Use: {operators}"
                 self.errors[f"query-operator-{operator}"] = _(message)
 
-            self._query_validate_datetime(attribute, value)
+            self._query_validate_in_operator(attribute, value)
 
-    def _query_validate_datetime(self, attribute, the_date):
+    def _query_validate_in_operator(self, attribute, value):
         '''
-        Tests if the_date is a isoformat.
+        Tests if the type in the list stays the same.
         This is a helper function of _query_validate_operators.
         If there is an error, a corresponding entry will be added to the self.errors dict
 
         Args:
             attribute: string
                 The attribute to be tested
-            the_date: string or list[strings]
-                The date/s to be tested
+            value: string or list[strings]
+                The value to be tested (string or datetime)
         '''
+        # validate date
         if attribute in self.queriabel_date_fields:
             try:
-                if isinstance(the_date, list):
-                    the_date = [fromisoformat(i) for i in the_date]
+                if isinstance(value, list):
+                    self.validate_list_length(value, 'query')
+                    value = [fromisoformat(i) for i in value]
                 else:
-                    the_date = fromisoformat(the_date)
+                    value = fromisoformat(value)
             except ValueError as error:
-                message = f"{the_date} is an invalid dateformat: ({error})"
+                message = f"{value} is an invalid dateformat: ({error})"
+                self.errors[f"query-attributes-{attribute}"] = _(message)
+
+        # validate str
+        if attribute in self.queriabel_str_fields:
+            message = ''
+            if isinstance(value, list):
+                self.validate_list_length(value, 'query')
+                for val in value:
+                    if not isinstance(val, str):
+                        message = f"{message} The values have to be strings." \
+                                  f" The value {val} is not a string"
+            else:
+                if not isinstance(value, str):
+                    message = f"{message} The values have to be strings." \
+                              f" The value {val} is not a string"
+            if message != '':
                 self.errors[f"query-attributes-{attribute}"] = _(message)
 
     def validate_date_time(self, date_time):
