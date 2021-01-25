@@ -104,7 +104,7 @@ which should give you a result like this :
 As you can see, MinIO is using two containers, one is the local S3 server, the other is a S3 client used to set the 
 download policy of the bucket which allows anonymous downloads, and exits once its job is done. You should also have a postGIS container.
 
-`make setup` creates some necessary directories : `.volumes/minio` and `.volumes/postgresql`, which are mounted to the 
+`make setup` also creates some necessary directories : `.volumes/minio` and `.volumes/postgresql`, which are mounted to the 
 corresponding containers in order to allow data persistency.
 
 Another way to start these containers (if, for example, they stopped) is with a simple
