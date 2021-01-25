@@ -126,7 +126,7 @@ class CollectionSpatialExtentMixin():
                     self.extent_geometry = None
                 logger.info(
                     'Collection extent_geometry updated to %s in %ss, after item deletion',
-                    union_geometry.extent,
+                    union_geometry.extent if self.extent_geometry else None,
                     time.time() - start,
                     extra={
                         'collection': self.name, 'item': item.name, 'trigger': 'item-delete'
