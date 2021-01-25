@@ -15,7 +15,7 @@
   - [Setting up the local database](#setting-up-the-local-database)
   - [Using a local PostGres database instead of a container](#using-a-local-postgres-database-instead-of-a-container)
   - [Starting dev server](#starting-dev-server)
-  - [Running test](#running-test)
+  - [Running tests](#running-tests)
   - [Using Django shell](#using-django-shell)
   - [Linting and formatting your work](#linting-and-formatting-your-work)
 - [Deploying the project and continuous integration](#deploying-the-project-and-continuous-integration)
@@ -36,7 +36,7 @@ Prerequisites on host for development and build:
 - pipenv
 - `docker` and `docker-compose`
 
-If you wish to use a local postgres instance rather than the dockerised one, you'll also need the following : 
+If you wish to use a local postgres instance rather than the dockerised one, you'll also need the following :
 
 - a local postgres (>= 12.0) running
 - postgis extension installed (>= 3.0)
@@ -75,25 +75,25 @@ These steps will ensure you have everything needed to start working locally.
   ```bash
   pipenv install
   ```
-  
-An alternative to ```pipenv install``` is to use the ```make setup``` command, which will install the environment, 
+
+An alternative to ```pipenv install``` is to use the ```make setup``` command, which will install the environment,
 apply a patch to the multihash package to support md5, create the volumes needed by the Postgres and MinIO containers
 and run those containers. ```Make setup``` assume a standard local installation with a dev environment.
-  
+
 ### Setting up the local database
 
-The service use two other services to run, Posgres with a PostGIS extension and S3. 
-For local development, we recommend using the services given through the [docker-compose.yml](docker-compose.yml) file, which will 
+The service use two other services to run, Posgres with a PostGIS extension and S3.
+For local development, we recommend using the services given through the [docker-compose.yml](docker-compose.yml) file, which will
 instantiate a Postgres container and a [MinIO](https://www.min.io/) container which act as a local S3 replacement.
 
-If you used the ```make setup``` command during the local environment creation, those two services 
-should be already be up. You can check with 
+If you used the ```make setup``` command during the local environment creation, those two services
+should be already be up. You can check with
 
   ```bash
   docker ps -a
   ```
 
-which should give you a result like this : 
+which should give you a result like this :
   ```
   CONTAINER ID   IMAGE                  COMMAND                   CREATED        STATUS                      PORTS                     NAMES
   a63582388800   minio/mc               "/bin/sh -c '\n  set …"   39 hours ago   Exited (0) 40 seconds ago                             service-stac_s3-client_1
@@ -101,10 +101,10 @@ which should give you a result like this :
   d158be863ac1   kartoza/postgis:12.0   "/bin/sh -c /docker-…"    39 hours ago   Up 41 seconds               0.0.0.0:15432->5432/tcp   service-stac_db_1
   ```
 
-As you can see, MinIO is using two containers, one is the local S3 server, the other is a S3 client used to set the 
+As you can see, MinIO is using two containers, one is the local S3 server, the other is a S3 client used to set the
 download policy of the bucket which allows anonymous downloads, and exits once its job is done. You should also have a postGIS container.
 
-`make setup` also creates some necessary directories : `.volumes/minio` and `.volumes/postgresql`, which are mounted to the 
+`make setup` also creates some necessary directories : `.volumes/minio` and `.volumes/postgresql`, which are mounted to the
 corresponding containers in order to allow data persistency.
 
 Another way to start these containers (if, for example, they stopped) is with a simple
@@ -115,7 +115,7 @@ Another way to start these containers (if, for example, they stopped) is with a 
 
 Lastly, once your databases have been set up, it is time to apply migrations (to have the latest model) and fill it with
 some default values to be able to start working with it. (From the root)
-  ```bash 
+  ```bash
   pipenv shell
   ./app/manage.py migrate
   ./app/manage.py populate_testdb
@@ -124,7 +124,7 @@ some default values to be able to start working with it. (From the root)
 the ```pipenv shell``` command activate the virtual environment provided by pipenv.
 ### Using a local PostGres database instead of a container
 
-To use a local postgres instance rather than a container, once you've ensured you've the needed dependencies, you should : 
+To use a local postgres instance rather than a container, once you've ensured you've the needed dependencies, you should :
 
 - Create a new superuser (required to create/destroy the test-databases) and a new database.
 
@@ -163,11 +163,15 @@ cd app
 ./manage.py test
 ```
 
-you can choose to create a new test-db on every run or to keep the db, which speeds testing up:
+You can choose to create a new test-db on every run or to keep the db, which speeds testing up:
 
 ```bash
 ./manage.py test --keepdb
 ```
+
+You can uses `--parallel=20` which also speed up tests.
+
+You can use `--failfast` to stop at the first error.
 
 **NOTE:** by default logging is disabled during tests, you can enable it by setting the `TEST_ENABLE_LOGGING=1` environment variable:
 
@@ -175,7 +179,22 @@ you can choose to create a new test-db on every run or to keep the db, which spe
 TEST_ENABLE_LOGGING=1 ./manage.py test
 ```
 
-**NOTE:** the environment variable can also be set in the `.venv.local` file.
+or set the environment variable directly in the `.venv.local` file.
+
+Alternatively you can use `make` to run the tests which will run all tests in parallel.
+
+```bash
+make test
+```
+
+or use the container environment like on the CI.
+
+```bash
+docker-compose -f docker-compose-ci.yml up --build --abort-on-container-exit
+```
+
+**NOTE:** the `--build` option is important otherwise the container will not be rebuild and you don't have the latest modification
+of the code.
 
 ### Using Django shell
 

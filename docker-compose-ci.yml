@@ -16,7 +16,7 @@ services:
     # for it to be ready before connecting
     # see: https://docs.docker.com/compose/startup-order/
     entrypoint: ["/app/wait-for-it.sh", "db:5432", "--", "python3", "manage.py"]
-    command: test --verbosity=2 --parallel=10
+    command: test --verbosity=2 --parallel=10 --no-input
     depends_on:
       - db
     environment:
