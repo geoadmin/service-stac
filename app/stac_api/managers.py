@@ -1,4 +1,3 @@
-import json
 import logging
 from datetime import datetime
 
@@ -11,7 +10,6 @@ from django.utils.translation import gettext_lazy as _
 
 from rest_framework.exceptions import ValidationError
 
-from stac_api.utils import fromisoformat
 from stac_api.validators import validate_geometry
 
 logger = logging.getLogger(__name__)
@@ -203,23 +201,14 @@ class ItemQuerySet(models.QuerySet):
         '''Filter by the query parameter
 
         Args:
-            query: string
-                The query is a json formatted string.
-
+            query: dict
+                {"attribute": {"operator": "value"}}
         Returns:
             queryset filtered by query
         '''
-        queriabel_date_fields = ['datetime', 'created', 'updated']
-        json_query = json.loads(query)
-        for attribute in json_query:
-            for operator in json_query[attribute]:
-                value = json_query[attribute][operator]  # get the values given by the operator
-                # treat date
-                if attribute in queriabel_date_fields:
-                    if isinstance(value, list):
-                        value = [fromisoformat(i) for i in value]
-                    else:
-                        value = fromisoformat(value)
+        for attribute in query:
+            for operator in query[attribute]:
+                value = query[attribute][operator]  # get the values given by the operator
 
                 # __eq does not exist, but = does it as well
                 if operator == 'eq':

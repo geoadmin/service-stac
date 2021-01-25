@@ -296,38 +296,38 @@ class ValidateSearchRequest:
 
         # validate json
         try:
-            json_query = json.loads(query)
+            query_dict = json.loads(query)
         except json.JSONDecodeError as error:
             message = f"The application could not decode the query parameter" \
                       f"Please check the syntax ({error})." \
                       f"{query}"
             raise RestValidationError(code='query-invalid', detail=_(message))
 
-        self._query_validate_length_of_query(json_query)
-        for attribute in json_query:
+        self._query_validate_length_of_query(query_dict)
+        for attribute in query_dict:
             if not attribute in queriabel_fields:
                 message = f"Invalid field in query argument. The field {attribute} is not " \
                           f"a propertie. Use one of these {queriabel_fields}"
                 self.errors[f"query-attributes-{attribute}"] = _(message)
 
             # validate operators
-            self._query_validate_operators(json_query, attribute)
+            self._query_validate_operators(query_dict, attribute)
 
-    def _query_validate_length_of_query(self, json_query):
+    def _query_validate_length_of_query(self, query_dict):
         '''Test the maximal number of attributes in the query parameter
         Args:
-            json_query: dictionary
+            query_dict: dictionary
                 To test how many query attributes are provided
         Raise:
             ValidationError
         '''
-        if len(json_query) > self.max_query_attributes:
+        if len(query_dict) > self.max_query_attributes:
             message = f"Too many attributes in query parameter. Max. " \
                       f"{self.max_query_attributes} allowed"
             logger.error(message)
             raise RestValidationError(code='query-invalid', detail=_(message))
 
-    def _query_validate_operators(self, json_query, attribute):
+    def _query_validate_operators(self, query_dict, attribute):
         '''
         Checks if the query param is build out of valid operators (like eq, lt).
 
@@ -335,7 +335,7 @@ class ValidateSearchRequest:
         and number operators.
 
         Args:
-            json_query: dict
+            query_dict: dict
                 A dictionary of request payload
             attribute: string
                 The attribute that is filtered by the operator
@@ -345,10 +345,10 @@ class ValidateSearchRequest:
         operators = int_operators + str_operators
 
         # iterate trough the operators
-        for operator in json_query[attribute]:
+        for operator in query_dict[attribute]:
             if operator in operators:
                 # get the values which shall be filtered with the operator
-                value = json_query[attribute][operator]
+                value = query_dict[attribute][operator]
                 # validate type to operation
                 if (
                     isinstance(value, str) and operator in int_operators and

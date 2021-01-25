@@ -287,7 +287,8 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
             if 'collections' in query_param:
                 queryset = queryset.filter_by_collections(query_param['collections'])
             if 'query' in query_param:
-                queryset = queryset.filter_by_query(query_param['query'])
+                dict_query = json.loads(query_param['query'])
+                queryset = queryset.filter_by_query(dict_query)
             if 'intersects' in query_param:
                 queryset = queryset.filter_by_intersects(json.dumps(query_param['intersects']))
 
