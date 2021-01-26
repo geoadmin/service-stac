@@ -26,7 +26,7 @@ from stac_api.serializers import ItemSerializer
 from stac_api.serializers import LandingPageSerializer
 from stac_api.utils import harmonize_post_get_for_search
 from stac_api.utils import utc_aware
-from stac_api.validators import ValidateSearchRequest
+from stac_api.validators_serializer import ValidateSearchRequest
 
 logger = logging.getLogger(__name__)
 
@@ -278,7 +278,7 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
 
         # if ids, then the other params will be ignored
         if 'ids' in query_param:
-            queryset = queryset.filter_by_ids(query_param['ids'])
+            queryset = queryset.filter_by_item_name(query_param['ids'])
         else:
             if 'bbox' in query_param:
                 queryset = queryset.filter_by_bbox(query_param['bbox'])

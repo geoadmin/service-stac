@@ -160,17 +160,17 @@ class ItemQuerySet(models.QuerySet):
             )
         return start, end
 
-    def filter_by_ids(self, ids_array):
-        '''Filter by ids parameter
+    def filter_by_item_name(self, item_names_array):
+        '''Filter by item names parameter
 
         Args:
-            ids_array: list[string]
+            item_names_array: list[string]
                 An array of ids (string)
 
         Returns:
             queryset filtered by a list of ids
         '''
-        return self.filter(name__in=ids_array)
+        return self.filter(name__in=item_names_array)
 
     def filter_by_collections(self, collections_array):
         '''Filter by collections parameter
@@ -233,8 +233,8 @@ class ItemManager(models.Manager):
     def filter_by_collections(self, collections_array):
         return self.get_queryset().filter_by_collections(collections_array)
 
-    def filter_by_ids(self, ids_array):
-        return self.get_queryset().filter_by_ids(ids_array)
+    def filter_by_item_name(self, item_name_array):
+        return self.get_queryset().filter_by_item_name(item_name_array)
 
     def filter_by_query(self, query):
         return self.get_queryset().filter_by_query(query)

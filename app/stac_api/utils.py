@@ -193,6 +193,13 @@ def create_multihash_string(digest, hash_code):
 
 
 def harmonize_post_get_for_search(request):
+    '''Harmonizes the request of GET and POST for the search endpoint
+
+    Args:
+        request: QueryDict
+
+    Returns: Copy of the harmonized QueryDict
+    '''
     # POST
     if request.method == 'POST':
         query_param = request.data.copy()
