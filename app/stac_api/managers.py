@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime
+from decimal import Decimal
 
 from django.contrib.gis.db import models
 from django.contrib.gis.geos import GEOSGeometry
@@ -39,8 +40,8 @@ class ItemQuerySet(models.QuerySet):
             logger.debug('Query parameter bbox = %s', bbox)
             list_bbox_values = bbox.split(',')
             if (
-                float(list_bbox_values[0]) == float(list_bbox_values[2]) and
-                float(list_bbox_values[1]) == float(list_bbox_values[3])
+                Decimal(list_bbox_values[0]) == Decimal(list_bbox_values[2]) and
+                Decimal(list_bbox_values[1]) == Decimal(list_bbox_values[3])
             ):
                 bbox_geometry = Point(float(list_bbox_values[0]), float(list_bbox_values[1]))
             else:

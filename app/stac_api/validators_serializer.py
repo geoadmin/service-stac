@@ -1,5 +1,6 @@
 import json
 import logging
+from decimal import Decimal
 from urllib.parse import urlparse
 
 import multihash
@@ -380,10 +381,7 @@ class ValidateSearchRequest:
                               f" with a number operator." \
                               f"for string use one of these {str_operators}"
                     self.errors[f"query-operator-{operator}"] = _(message)
-                if (
-                    isinstance(value, int) and operator in str_operators and
-                    operator in str_operators
-                ):
+                if (isinstance(value, int) and operator in str_operators):
                     message = f"You are not allowed to compare a number or a date with" \
                               f"a string operator." \
                               f"For numbers use one of these {int_operators}"
@@ -518,8 +516,8 @@ class ValidateSearchRequest:
         try:
             list_bbox_values = bbox.split(',')
             if (
-                float(list_bbox_values[0]) == float(list_bbox_values[2]) and
-                float(list_bbox_values[1]) == float(list_bbox_values[3])
+                Decimal(list_bbox_values[0]) == Decimal(list_bbox_values[2]) and
+                Decimal(list_bbox_values[1]) == Decimal(list_bbox_values[3])
             ):
                 bbox_geometry = Point(float(list_bbox_values[0]), float(list_bbox_values[1]))
             else:
