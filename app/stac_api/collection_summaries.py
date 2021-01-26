@@ -71,7 +71,9 @@ class CollectionSummariesMixin():
             bool: True if the collection summaries has been updated, false otherwise
         '''
         updated = False
-        assets = type(asset).objects.filter(item__collection_id=self.pk).exclude(id=asset.id)
+        assets = type(asset).objects.filter(item__collection_id=self.pk).exclude(
+            id=asset.id
+        ).only('geoadmin_variant', 'proj_epsg', 'eo_gsd', 'collection')
 
         if assets.exists():
             for key, attribute in [('geoadmin:variant', 'geoadmin_variant'),
@@ -373,7 +375,9 @@ class CollectionSummariesMixin():
         original_geoadmin_variant = old_values[1]
         original_proj_epsg = old_values[2]
 
-        assets = type(asset).objects.filter(item__collection_id=self.pk).exclude(id=asset.id)
+        assets = type(asset).objects.filter(item__collection_id=self.pk).exclude(
+            id=asset.id
+        ).only('geoadmin_variant', 'proj_epsg', 'eo_gsd', 'collection')
 
         if original_geoadmin_variant != asset.geoadmin_variant:
             updated |= self._update_summaries_geoadmin_variant_on_update(
