@@ -170,6 +170,9 @@ def validate_asset_file(href, attrs):
     asset_multihash = None
     asset_sha256 = response.headers.get('x-amz-meta-sha256', None)
     asset_md5 = response.headers.get('etag', '').strip('"')
+    logger.debug(
+        'Asset file %s checksums from headers: sha256=%s, md5=%s', href, asset_sha256, asset_md5
+    )
     if asset_sha256:
         asset_multihash = create_multihash(asset_sha256, 'sha2-256')
     elif asset_md5:
@@ -206,7 +209,8 @@ def _validate_asset_file_checksum(href, expected_multihash, asset_multihash):
     expected_multihash = multihash.decode(from_hex_string(expected_multihash))
 
     logger.debug(
-        'Validate asset file checksum at %s with multihash %s/%s, expected %s/%s',
+        'Validate asset file checksum at %s with multihash %s/%s (from headers), expected %s/%s '
+        '(from checksum:multishash attribute)',
         href,
         to_hex_string(asset_multihash.digest),
         asset_multihash.name,
@@ -217,7 +221,7 @@ def _validate_asset_file_checksum(href, expected_multihash, asset_multihash):
     if asset_multihash.name != expected_multihash.name:
         logger.error(
             'Asset at href %s, with multihash name=%s digest=%s, doesn\'t match the expected '
-            'multihash name=%s digest=%s',
+            'multihash name=%s digest=%s defined in checksum:multihash attribute',
             href,
             asset_multihash.name,
             to_hex_string(asset_multihash.digest),
@@ -227,13 +231,14 @@ def _validate_asset_file_checksum(href, expected_multihash, asset_multihash):
         raise ValidationError(
             code='href',
             detail=_(f"Asset at href {href} has an {asset_multihash.name} multihash while an "
-                     f"{expected_multihash.name} multihash is expected")
+                     f"{expected_multihash.name} multihash is defined in the checksum:multihash "
+                     "attribute")
         )
 
     if asset_multihash != expected_multihash:
         logger.error(
-            'Asset at href %s, with multihash name=%s digest=%s, doesn\'t match the expected '
-            'multihash name=%s digest=%s',
+            'Asset at href %s, with multihash name=%s digest=%s, doesn\'t match the '
+            'checksum:multihash value name=%s digest=%s',
             href,
             asset_multihash.name,
             to_hex_string(asset_multihash.digest),
@@ -243,8 +248,8 @@ def _validate_asset_file_checksum(href, expected_multihash, asset_multihash):
         raise ValidationError(
             code='href',
             detail=_(f"Asset at href {href} with {asset_multihash.name} hash "
-                     f"{to_hex_string(asset_multihash.digest)} don't match expected hash "
-                     f"{to_hex_string(expected_multihash.digest)}")
+                     f"{to_hex_string(asset_multihash.digest)} doesn't match the "
+                     f"checksum:multihash {to_hex_string(expected_multihash.digest)}")
         )
 
 

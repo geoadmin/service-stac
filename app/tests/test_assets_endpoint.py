@@ -325,8 +325,8 @@ class AssetsWriteEndpointAssetFileTestCase(StacBaseTestCase):
         self.assertIn('non_field_errors', description, msg=f'Unexpected field error {description}')
         self.assertEqual(
             "Asset at href http://testserver/collection-1/item-1/asset-1 with sha2-256 hash "
-            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 don't match expected "
-            "hash a7f5e7ca03b0f80a2fcfe5142642377e7654df2dfa736fe4d925322d8a651efe",
+            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 doesn't match the "
+            "checksum:multihash a7f5e7ca03b0f80a2fcfe5142642377e7654df2dfa736fe4d925322d8a651efe",
             description['non_field_errors'][0],
             msg="Unexpected error message"
         )
