@@ -70,12 +70,17 @@ INSTALLED_APPS = [
     'solo.apps.SoloAppConfig',
     'storages',
     'whitenoise.runserver_nostatic',
+    'django_prometheus',
     'config.apps.StacAdminConfig',
     'stac_api.apps.StacApiConfig',
 ]
 
+# Middlewares are executed in order, once for the incoming
+# request top-down, once for the outgoing response bottom up
+# Note: The prometheus middlewares should always be first and
+# last, put everything else inbetween
 MIDDLEWARE = [
-    'middleware.cache_headers.CacheHeadersMiddleware',
+    'django_prometheus.middleware.PrometheusBeforeMiddleware',
     'middleware.logging.RequestResponseLoggingMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
@@ -86,6 +91,8 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'middleware.logging.ExceptionLoggingMiddleware',
+    'middleware.cache_headers.CacheHeadersMiddleware',
+    'django_prometheus.middleware.PrometheusAfterMiddleware',
 ]
 
 try:
