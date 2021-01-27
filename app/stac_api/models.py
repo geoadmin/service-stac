@@ -168,6 +168,7 @@ class Provider(models.Model):
     def save(self, *args, **kwargs):  # pylint: disable=signature-differs
         # It is important to use `*args, **kwargs` in signature because django might add dynamically
         # parameters
+        logger.debug('Saving CollectionProvider %s', self.name)
         super().save(*args, **kwargs)
         self.collection.save()  # save the collection to updated its ETag
 
@@ -176,7 +177,9 @@ class Provider(models.Model):
             return
         for role in self.roles:
             if role not in self.allowed_roles:
-                logger.error('Invalid role %s', role)
+                logger.error(
+                    'Invalid provider role %s', role, extra={'collection', self.collection.name}
+                )
                 raise ValidationError(
                     _('Invalid role, must be in %(roles)s'),
                     params={'roles': self.allowed_roles},
@@ -236,6 +239,7 @@ class Collection(
     def save(self, *args, **kwargs):  # pylint: disable=signature-differs
         # It is important to use `*args, **kwargs` in signature because django might add dynamically
         # parameters
+        logger.debug('Saving collection', extra={'collection': self.name})
         self.update_etag()
         super().save(*args, **kwargs)
 
@@ -251,6 +255,9 @@ class CollectionLink(Link):
     def save(self, *args, **kwargs):  # pylint: disable=signature-differs
         # It is important to use `*args, **kwargs` in signature because django might add dynamically
         # parameters
+        logger.debug(
+            'Saving collection link %s', self.rel, extra={'collection': self.collection.name}
+        )
         super().save(*args, **kwargs)
         self.collection.save()  # save the collection to updated its ETag
 
@@ -336,6 +343,7 @@ class Item(models.Model):
     def save(self, *args, **kwargs):  # pylint: disable=signature-differs
         # It is important to use `*args, **kwargs` in signature because django might add dynamically
         # parameters
+        logger.debug('Saving item', extra={'collection': self.collection.name, 'item': self.name})
         collection_updated = False
 
         self.update_etag()
@@ -361,6 +369,7 @@ class Item(models.Model):
     def delete(self, *args, **kwargs):  # pylint: disable=signature-differs
         # It is important to use `*args, **kwargs` in signature because django might add dynamically
         # parameters
+        logger.debug('Deleting item', extra={'collection': self.collection.name, 'item': self.name})
         collection_updated = False
 
         collection_updated |= self.collection.update_temporal_extent(
@@ -385,6 +394,13 @@ class ItemLink(Link):
     def save(self, *args, **kwargs):  # pylint: disable=signature-differs
         # It is important to use `*args, **kwargs` in signature because django might add dynamically
         # parameters
+        logger.debug(
+            'Saving item link %s',
+            self.rel,
+            extra={
+                'collection': self.item.collection.name, 'item': self.item.name
+            }
+        )
         super().save(*args, **kwargs)
         self.item.save()  # We save the item to update its ETag
 
@@ -535,6 +551,12 @@ class Asset(models.Model):
     # alter save-function, so that the corresponding collection of the parent item of the asset
     # is saved, too.
     def save(self, *args, **kwargs):  # pylint: disable=signature-differs
+        logger.debug(
+            'Saving asset',
+            extra={
+                'collection': self.item.collection.name, 'item': self.item.name, 'asset': self.name
+            }
+        )
         self.update_etag()
 
         trigger = get_save_trigger(self)
@@ -555,6 +577,12 @@ class Asset(models.Model):
         self.keep_originals(fields, [getattr(self, field) for field in fields])
 
     def delete(self, *args, **kwargs):  # pylint: disable=signature-differs
+        logger.debug(
+            'Deleting asset',
+            extra={
+                'collection': self.item.collection.name, 'item': self.item.name, 'asset': self.name
+            }
+        )
         # It is important to use `*args, **kwargs` in signature because django might add dynamically
         # parameters
         if self.item.collection.update_summaries(self, 'delete', old_values=None):
