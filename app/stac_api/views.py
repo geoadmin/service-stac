@@ -4,14 +4,11 @@ from collections import OrderedDict
 from datetime import datetime
 
 from django.conf import settings
-from django.contrib.gis.geos import GEOSGeometry
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
-from django.utils.translation import gettext_lazy as _
 
 from rest_framework import generics
 from rest_framework import mixins
-from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework_condition import etag
@@ -27,9 +24,9 @@ from stac_api.serializers import CollectionSerializer
 from stac_api.serializers import ConformancePageSerializer
 from stac_api.serializers import ItemSerializer
 from stac_api.serializers import LandingPageSerializer
-from stac_api.utils import fromisoformat
+from stac_api.utils import harmonize_post_get_for_search
 from stac_api.utils import utc_aware
-from stac_api.validators import validate_geometry
+from stac_api.validators_serializer import ValidateSearchRequest
 
 logger = logging.getLogger(__name__)
 
@@ -272,162 +269,36 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
     permission_classes = [AllowAny]
     serializer_class = ItemSerializer
 
-    def parse_request_body_for_queryset(self):
-        queryset = Item.objects.all()
-        data = self.request.data
-        if 'ids' in data:
-            queryset = self.filter_by_ids(queryset, data['ids'])
-        else:
-            if 'bbox' in data:
-                queryset = queryset.filter_by_bbox(json.dumps(data['bbox']).strip('[]'))
-            if 'date_time' in data:
-                queryset = queryset.filter_by_datetime(data['date_time'])
-            if 'collections' in data:
-                queryset = self.filter_by_collections(queryset, data['collections'])
-            if 'query' in data:
-                queryset = self.filter_by_query(queryset, json.dumps(data['query']))
-            if 'intersects' in data:
-                queryset = self.filter_by_intersects(queryset, json.dumps(data['intersects']))
-
-        return queryset
-
     def get_queryset(self):
         queryset = Item.objects.all()
+        # harmonize GET and POST query
+        query_param = harmonize_post_get_for_search(self.request)
 
-        bbox = self.request.query_params.get('bbox', None)
-        date_time = self.request.query_params.get('datetime', None)
-        collections = self.request.query_params.get('collections', None)
-        ids = self.request.query_params.get('ids', None)  # ids of items
-        query = self.request.query_params.get('query', None)
+        # build queryset
 
-        if ids:
-            queryset = self.filter_by_ids(queryset, ids.split(','))
-        else:  # if ids, all other restrictions are ignored
-            if query:
-                queryset = self.filter_by_query(queryset, query)
+        # if ids, then the other params will be ignored
+        if 'ids' in query_param:
+            queryset = queryset.filter_by_item_name(query_param['ids'])
+        else:
+            if 'bbox' in query_param:
+                queryset = queryset.filter_by_bbox(query_param['bbox'])
+            if 'datetime' in query_param:
+                queryset = queryset.filter_by_datetime(query_param['datetime'])
+            if 'collections' in query_param:
+                queryset = queryset.filter_by_collections(query_param['collections'])
+            if 'query' in query_param:
+                dict_query = json.loads(query_param['query'])
+                queryset = queryset.filter_by_query(dict_query)
+            if 'intersects' in query_param:
+                queryset = queryset.filter_by_intersects(json.dumps(query_param['intersects']))
 
-            if collections:
-                queryset = self.filter_by_collections(queryset, collections.split(','))
-
-            if bbox:
-                queryset = queryset.filter_by_bbox(bbox)
-
-            if date_time:
-                queryset = queryset.fiter_by_datetime(date_time)
-
-        return queryset
-
-    def filter_by_query(self, queryset, query):  # pylint: disable=too-many-locals,too-many-branches,too-many-statements
-
-        queriable_date_fields = ['datetime', 'created', 'updated']
-        queriable_str_fields = ['title']
-        int_operators = ["eq", "neq", "lt", "lte", "gt", "gte"]
-        str_operators = ["startsWith", "endsWith", "contains", "in"]
-        operators = int_operators + str_operators
-        queriable_fields = queriable_date_fields + queriable_str_fields
-
-        # validate json
-        try:
-            json_query = json.loads(query)
-        except json.JSONDecodeError as error:
-            message = f"The application could not decode the JSON." \
-                      f"Please check the syntax ({error})." \
-                      f"{query}"
-
-            logger.error(message)
-            raise ValidationError(_(message))
-
-        for attribute in json_query:  # pylint: disable=too-many-nested-blocks
-            # iterate trough the fields given in the query parameter
-            if attribute in queriable_fields:
-                logger.debug("attribute: %s", attribute)
-                # iterate trough the operators
-                for operator in json_query[attribute]:
-                    if operator in operators:
-                        value = json_query[attribute][operator
-                                                     ]  # get the values given by the operator
-                        # validate type to operation
-                        if (
-                            isinstance(value, str) and operator in int_operators and
-                            attribute in int_operators
-                        ):
-                            message = f"You are not allowed to compare a string/date ({attribute})"\
-                                      f" with a number operator." \
-                                      f"for string use one of these {str_operators}"
-                            logger.error(message)
-                            raise ValidationError(_(message))
-                        if (
-                            isinstance(value, int) and operator in str_operators and
-                            operator in str_operators
-                        ):
-                            message = f"You are not allowed to compare a number or a date with" \
-                                      f"a string operator." \
-                                      f"For numbers use one of these {int_operators}"
-                            logger.error(message)
-                            raise ValidationError(_(message))
-
-                        # treate date
-                        if attribute in queriable_date_fields:
-                            try:
-                                if isinstance(value, list):
-                                    value = [fromisoformat(i) for i in value]
-                                else:
-                                    value = fromisoformat(value)
-                            except ValueError as error:
-                                message = f"Invalid dateformat: ({error})"
-                                logger.error(message)
-                                raise ValidationError(_(message))
-
-                        # __eq does not exist, but = does it as well
-                        if operator == 'eq':
-                            query_filter = f"properties_{attribute}"
-                        else:
-                            query_filter = f"properties_{attribute}__{operator.lower()}"
-
-                        queryset = queryset.filter(**{query_filter: value})
-
-                        logger.debug("query_filter: %s", query_filter)
-                        logger.debug("operator: %s", operator)
-                        logger.debug("value: %s", value)
-                    else:
-                        message = f"Invalid operator in query argument. The operator {operator} " \
-                                  f"is not supported. Use: {operators}"
-                        logger.error(message)
-                        raise ValidationError(_(message))
-            else:
-                message = f"Invalid field in query argument. The field {attribute} is not " \
-                          f"a propertie. Use one of these {queriable_fields}"
-                logger.error(message)
-                raise ValidationError(_(message))
-        return queryset
-
-    def filter_by_intersects(self, queryset, intersects):
-        try:
-            logger.debug('Item query parameter intersects = %s', intersects)
-            the_geom = GEOSGeometry(intersects)
-        except ValueError as error:
-            message = f"Invalid intersects parameter: " \
-                f"Could not transform {intersects} to a geometry; {error}"
-            logger.error(message)
-            raise ValidationError(_(message))
-        #geometry_intersects.srid = 4326  # as no other systems should be allowed
-        validate_geometry(the_geom)
-        queryset = queryset.filter(geometry__intersects=the_geom)
-        return queryset
-
-    def filter_by_collections(self, queryset, collections_array):
-        queryset = queryset.filter(collection__name__in=collections_array)
-        return queryset
-
-    def filter_by_ids(self, queryset, ids_array):
-        queryset = queryset.filter(name__in=ids_array)
         return queryset
 
     def list(self, request, *args, **kwargs):
-        if request.method == 'POST':
-            queryset = self.filter_queryset(self.parse_request_body_for_queryset())
-        else:
-            queryset = self.filter_queryset(self.get_queryset())
+
+        validate_search_request = ValidateSearchRequest()
+        validate_search_request.validate(request)  # validate the search request
+        queryset = self.filter_queryset(self.get_queryset())
 
         page = self.paginate_queryset(queryset)
 
