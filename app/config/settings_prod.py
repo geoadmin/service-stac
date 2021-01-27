@@ -269,3 +269,7 @@ DEBUG_PROPAGATE_API_EXCEPTIONS = False
 # Timeout in seconds for call to external services, e.g. HTTP HEAD request to
 # data.geo.admin.ch/collection/item/asset to check if asset exists.
 EXTERNAL_SERVICE_TIMEOUT = 3
+
+# By default django_promtheus tracks the number of migrations
+# This causes troubles in various places so we disable it
+PROMETHEUS_EXPORT_MIGRATIONS = False
