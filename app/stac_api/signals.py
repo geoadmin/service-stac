@@ -14,4 +14,4 @@ def delete_s3_asset(sender, instance, **kwargs):
     # when the object holding its reference is deleted
     # hence it has to be done here.
     logger.info("The asset %s is deleted from s3", instance.file.name)
-    instance.file.delete()
+    instance.file.delete(save=False)
