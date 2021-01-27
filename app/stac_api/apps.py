@@ -74,11 +74,22 @@ class CursorPagination(pagination.CursorPagination):
             )
 
         if page_size <= 0:
+            logger.error(
+                'Invalid query parameter limit=%d: negative number not allowed',
+                page_size,
+                extra={'request': request}
+            )
             raise ValidationError(
                 _('limit query parameter to small, must be in range 1..%d') % (self.max_page_size),
                 code='limit'
             )
         if self.max_page_size and page_size > self.max_page_size:
+            logger.error(
+                'Invalid query parameter limit=%d: number bigger than the max size of %d',
+                page_size,
+                self.max_page_size,
+                extra={'request': request}
+            )
             raise ValidationError(
                 _('limit query parameter to big, must be in range 1..%d') % (self.max_page_size),
                 code='limit'
