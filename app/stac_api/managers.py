@@ -128,7 +128,8 @@ class ItemQuerySet(models.QuerySet):
         Returns:
             queryset filtered by datetime
 
-        Raises: ValidationError
+        Raises:
+            ValidationError: When the date_time string is not a valid isoformat
         '''
         start, sep, end = date_time.partition('/')
         try:
@@ -194,6 +195,9 @@ class ItemQuerySet(models.QuerySet):
 
         Returns:
             queryset filtered by intersects
+
+        Raises:
+            ValueError or GDALException: When the Geojson is not a valid geometry
         '''
         the_geom = GEOSGeometry(intersects)
         return self.filter(geometry__intersects=the_geom)
