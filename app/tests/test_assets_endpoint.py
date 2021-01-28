@@ -221,6 +221,32 @@ class AssetsWriteEndpointTestCase(StacBaseTestCase):
             msg="Invalid asset has been created in DB"
         )
 
+    def test_asset_endpoint_post_characters_geoadmin_variant(self, requests_mocker):
+        # valid geoadmin:variant
+        collection_name = self.collection.name
+        item_name = self.item.name
+        asset = self.factory.create_asset_sample(
+            item=self.item, sample='asset-valid_geoadmin_variant'
+        )
+
+        mock_requests_asset_file(requests_mocker, asset)
+        path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets'
+        response = self.client.post(
+            path, data=asset.get_json('post'), content_type="application/json"
+        )
+        self.assertStatusCode(201, response)
+
+        # invalid geoadmin:variant
+        asset = self.factory.create_asset_sample(
+            item=self.item, sample='asset-invalid_geoadmin_variant'
+        )
+        mock_requests_asset_file(requests_mocker, asset)
+        path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets'
+        response = self.client.post(
+            path, data=asset.get_json('post'), content_type="application/json"
+        )
+        self.assertStatusCode(400, response)
+
 
 @requests_mock.Mocker(kw='requests_mocker')
 class AssetsWriteEndpointAssetFileTestCase(StacBaseTestCase):

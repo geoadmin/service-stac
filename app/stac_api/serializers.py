@@ -603,7 +603,7 @@ class AssetBaseSerializer(NonNullModelSerializer):
     )
     geoadmin_variant = serializers.CharField(
         source='geoadmin_variant',
-        max_length=15,
+        max_length=25,
         allow_blank=False,
         allow_null=True,
         required=False,
