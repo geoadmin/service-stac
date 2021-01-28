@@ -3,8 +3,8 @@ import logging
 from decimal import Decimal
 from urllib.parse import urlparse
 
+import botocore
 import multihash
-import requests
 from multihash import from_hex_string
 from multihash import to_hex_string
 
@@ -22,6 +22,7 @@ from stac_api.utils import create_multihash
 from stac_api.utils import create_multihash_string
 from stac_api.utils import fromisoformat
 from stac_api.utils import get_asset_path
+from stac_api.utils import get_s3_resource
 from stac_api.utils import harmonize_post_get_for_search
 from stac_api.validators import validate_geometry
 
@@ -136,40 +137,24 @@ def validate_asset_file(href, attrs):
             in case of other networking errors
     '''
     logger.debug('Validate asset file at %s with attrs %s', href, attrs)
+
+    asset_path = get_asset_path(attrs['item'], attrs['name'])
     try:
-        response = requests.head(href, timeout=settings.EXTERNAL_SERVICE_TIMEOUT)
-    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as error:
-        logger.error('Failed to check if asset exists at href %s, %s', href, error)
-        raise ValidationError({'href': _("href location not responding")})
-    except requests.exceptions.RequestException as error:
-        logger.error('Failed to check if asset exists at href %s, %s', href, error)
-        # here we raise for a 500 HTTP error code as this should not happen and is a server issue
-        raise APIException({'href': _("Error while checking href existence")})
-
-    logger.debug(
-        'Asset file %s HEAD request; status_code=%d, headers=%s',
-        href,
-        response.status_code,
-        response.headers
-    )
-
-    if response.status_code == 404:
-        logger.error('Asset at href %s doesn\'t exists', href)
-        raise ValidationError({'href': _("Asset doesn't exists at href")})
-
-    if response.status_code != 200:
-        logger.error(
-            'Failed to check Asset at href %s existence; status code=%s',
-            href,
-            response.status_code
-        )
-        # here we raise for a 500 HTTP error code as this should not happen and is a server issue
-        raise APIException({'href': _("Error while checking href existence")})
+        s3 = get_s3_resource()
+        obj = s3.Object(settings.AWS_STORAGE_BUCKET_NAME, asset_path)
+        obj.load()
+        logger.debug('S3 obj %s etag=%s, metadata=%s', asset_path, obj.e_tag, obj.metadata)
+    except botocore.exceptions.ClientError as error:
+        logger.error('Failed to retrieve S3 object %s metadata: %s', asset_path, error)
+        if error.response.get('Error', {}).get('Code', None) == '404':
+            logger.error('Asset at href %s doesn\'t exists', href)
+            raise ValidationError({'href': _("Asset doesn't exists at href")}) from error
+        raise APIException({'href': _("Error while checking href existence")}) from error
 
     # Get the hash from response
     asset_multihash = None
-    asset_sha256 = response.headers.get('x-amz-meta-sha256', None)
-    asset_md5 = response.headers.get('etag', '').strip('"')
+    asset_sha256 = obj.metadata.get('sha256', None)
+    asset_md5 = obj.e_tag.strip('"')
     logger.debug(
         'Asset file %s checksums from headers: sha256=%s, md5=%s', href, asset_sha256, asset_md5
     )
@@ -230,7 +215,7 @@ def _validate_asset_file_checksum(href, expected_multihash, asset_multihash):
         )
         raise ValidationError(
             code='href',
-            detail=_(f"Asset at href {href} has an {asset_multihash.name} multihash while an "
+            detail=_(f"Asset at href {href} has a {asset_multihash.name} multihash while a "
                      f"{expected_multihash.name} multihash is defined in the checksum:multihash "
                      "attribute")
         )

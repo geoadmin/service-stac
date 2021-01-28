@@ -112,7 +112,7 @@ class Command(BaseCommand):
                         media_type = random.choice(MEDIA_TYPES)
                         asset, _ = Asset.objects.get_or_create(
                             item=item,
-                            name=f'{asset_id}{media_type[2]}',
+                            name=f'{asset_id}{random.choice(media_type[2])}',
                             defaults={
                                 'title': 'my-title',
                                 'description': "this an asset",
