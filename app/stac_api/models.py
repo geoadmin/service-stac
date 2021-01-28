@@ -473,7 +473,7 @@ class Asset(models.Model):
     )
     # here we need to set blank=True otherwise the field is as required in the admin interface
     geoadmin_variant = models.CharField(
-        max_length=15, null=True, blank=True, validators=[validate_geoadmin_variant]
+        max_length=25, null=True, blank=True, validators=[validate_geoadmin_variant]
     )
     proj_epsg = models.IntegerField(null=True, blank=True)
     # here we need to set blank=True otherwise the field is as required in the admin interface
