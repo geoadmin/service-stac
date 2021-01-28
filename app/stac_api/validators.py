@@ -77,7 +77,7 @@ def validate_name(name):
 
 def validate_geoadmin_variant(variant):
     '''Validate geoadmin:variant, it should not have special characters'''
-    if not re.match('^[a-zA-Z0-9]+$', variant):
+    if not re.match('^[a-zA-Z0-9 ]+$', variant):
         logger.error(
             "Invalid geoadmin:variant property %s, special characters not allowed", variant
         )
