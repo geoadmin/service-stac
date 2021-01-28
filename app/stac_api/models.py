@@ -4,7 +4,7 @@ import os
 import time
 from uuid import uuid4
 
-import botocore.exceptions
+# import botocore.exceptions # Un-comment with BGDIINF_SB-1625
 import multihash
 
 from django.conf import settings
@@ -23,7 +23,7 @@ from stac_api.collection_summaries import CollectionSummariesMixin
 from stac_api.collection_temporal_extent import CollectionTemporalExtentMixin
 from stac_api.managers import ItemManager
 from stac_api.utils import get_asset_path
-from stac_api.utils import get_s3_resource
+# from stac_api.utils import get_s3_resource # Un-comment with BGDIINF_SB-1625
 from stac_api.validators import MEDIA_TYPES
 from stac_api.validators import validate_geoadmin_variant
 from stac_api.validators import validate_geometry
@@ -523,30 +523,75 @@ class Asset(models.Model):
         self.etag = compute_etag()
 
     def move_asset(self, source, dest):
-        logger.info("Renaming asset on s3 from %s to %s", source, dest)
-        s3 = get_s3_resource()
+        # Un-comment and remove the warning with BGDIINF_SB-1625
+        logger.warning(
+            'Asset %s has been renamed to %s, file needs to renamed on S3 as well !',
+            source,
+            dest,
+            extra={
+                'collection': self.item.collection.name, 'item': self.item.name, 'asset': self.name
+            }
+        )
+        # logger.info(
+        #     "Renaming asset on s3 from %s to %s",
+        #     source,
+        #     dest,
+        #     extra={
+        #         'collection': self.item.collection.name,
+        #         'item': self.item.name,
+        #         'asset': self.name
+        #     }
+        # )
+        # s3 = get_s3_resource()
 
-        try:
-            s3.Object(settings.AWS_STORAGE_BUCKET_NAME,
-                      dest).copy_from(CopySource=f'{settings.AWS_STORAGE_BUCKET_NAME}/{source}')
-            s3.Object(settings.AWS_STORAGE_BUCKET_NAME, source).delete()
-            self.file.name = dest
-        except botocore.exceptions.ClientError as error:
-            logger.error(
-                'Failed to move asset %s from %s to %s: %s', self.name, source, dest, error
-            )
-            raise error
+        # try:
+        #     s3.Object(settings.AWS_STORAGE_BUCKET_NAME,
+        #               dest).copy_from(CopySource=f'{settings.AWS_STORAGE_BUCKET_NAME}/{source}')
+        #     s3.Object(settings.AWS_STORAGE_BUCKET_NAME, source).delete()
+        #     self.file.name = dest
+        # except botocore.exceptions.ClientError as error:
+        #     logger.error(
+        #         'Failed to move asset %s from %s to %s: %s',
+        #         self.name,
+        #         source,
+        #         dest,
+        #         error,
+        #         extra={
+        #             'collection': self.item.collection.name,
+        #             'item': self.item.name,
+        #             'asset': self.name
+        #         }
+        #     )
+        #     raise error
 
-    def remove_asset(self, source):
-        logger.info("Remove asset on s3 from %s", source)
-        s3 = get_s3_resource()
+    # def remove_asset(self, source):
+    #     logger.info(
+    #         "Remove asset on s3 from %s",
+    #         source,
+    #         extra={
+    #             'collection': self.item.collection.name,
+    #             'item': self.item.name,
+    #             'asset': self.name
+    #         }
+    #     )
+    #     s3 = get_s3_resource()
 
-        try:
-            s3.Object(settings.AWS_STORAGE_BUCKET_NAME, source).delete()
-        except botocore.exceptions.ClientError as error:
-            logger.error('Failed to remove asset %s from %s: %s', self.name, source, error)
-        self.file.name = ''
-        self.checksum_multihash = ''
+    #     try:
+    #         s3.Object(settings.AWS_STORAGE_BUCKET_NAME, source).delete()
+    #     except botocore.exceptions.ClientError as error:
+    #         logger.error(
+    #             'Failed to remove asset %s from %s: %s',
+    #             self.name,
+    #             source,
+    #             error,
+    #             extra={
+    #                 'collection': self.item.collection.name,
+    #                 'item': self.item.name,
+    #                 'asset': self.name
+    #             }
+    #         )
+    #     self.file.name = ''
+    #     self.checksum_multihash = ''
 
     # alter save-function, so that the corresponding collection of the parent item of the asset
     # is saved, too.
