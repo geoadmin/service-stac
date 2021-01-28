@@ -175,9 +175,10 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
 STATIC_HOST = os.environ.get('DJANGO_STATIC_HOST', '')
-STATIC_URL = STATIC_HOST + '/api/stac/v0.9/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'var/www/stac_api/static_files')
-STATICFILES_DIRS = [BASE_DIR / "spec/static", BASE_DIR / "app/stac_api/templates"]
+STATIC_URL = f'{STATIC_HOST}/api/stac/static/'
+STATIC_SPEC_URL = f'{STATIC_URL}spec/v0.9/'
+STATIC_ROOT = BASE_DIR / 'var' / 'www' / 'stac_api' / 'static_files'
+STATICFILES_DIRS = [BASE_DIR / "spec" / "static", BASE_DIR / "app" / "stac_api" / "templates"]
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 try:
     WHITENOISE_MAX_AGE = int(os.environ.get('HTTP_STATIC_CACHE_SECONDS', '3600'))
