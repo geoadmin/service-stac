@@ -1160,10 +1160,17 @@ components:
       type: string
     limit:
       default: 10
-      description: The maximum number of results to return (page size). Defaults to
-        10
+      description: >-
+        The optional limit parameter limits the number of collections that are presented
+        in the response document.
+
+
+        To retrieve the next collections result, uses the `next` link from the response.
+
+
+        Minimum = 1. Maximum = 100. Default = 100.
       example: 20
-      maximum: 10000
+      maximum: 100
       minimum: 1
       type: integer
     limitFilter:
