@@ -1,5 +1,6 @@
 import logging
 from collections import OrderedDict
+from urllib.parse import urlparse
 
 from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry
@@ -196,6 +197,8 @@ class LandingPageSerializer(serializers.ModelSerializer):
         representation = super().to_representation(instance)
         api_base = settings.API_BASE
         request = self.context.get("request")
+
+        spec_base = urlparse(settings.STATIC_SPEC_URL).path.strip('/')
         # Add auto links
         # We use OrderedDict, although it is not necessary, because the default serializer/model for
         # links already uses OrderedDict, this way we keep consistency between auto link and user
@@ -209,13 +212,13 @@ class LandingPageSerializer(serializers.ModelSerializer):
             ]),
             OrderedDict([
                 ("rel", "service-doc"),
-                ("href", request.build_absolute_uri(f"/{api_base}/static/api.html")),
+                ("href", request.build_absolute_uri(f"/{spec_base}/api.html")),
                 ("type", "text/html"),
                 ("title", "The API documentation"),
             ]),
             OrderedDict([
                 ("rel", "service-desc"),
-                ("href", request.build_absolute_uri(f"/{api_base}/static/openapi.yaml")),
+                ("href", request.build_absolute_uri(f"/{spec_base}/openapi.yaml")),
                 ("type", "application/vnd.oai.openapi+yaml;version=3.0"),
                 ("title", "The OPENAPI description of the service"),
             ]),
