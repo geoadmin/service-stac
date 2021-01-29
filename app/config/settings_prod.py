@@ -250,8 +250,8 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PAGINATION_CLASS': 'stac_api.apps.CursorPagination',
-    'PAGE_SIZE': 100,
-    'PAGE_SIZE_LIMIT': 100,
+    'PAGE_SIZE': os.environ.get('PAGE_SIZE', 100),
+    'PAGE_SIZE_LIMIT': os.environ.get('PAGE_SIZE_LIMIT', 100),
     'EXCEPTION_HANDLER': 'stac_api.apps.custom_exception_handler',
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly',

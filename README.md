@@ -379,6 +379,8 @@ The service is configured by Environment Variable:
 | DJANGO_STATIC_HOST | `''` | See [Whitenoise use CDN](http://whitenoise.evans.io/en/stable/django.html#use-a-content-delivery-network). |
 | DISABLE_LOGGING | `False` | Disable all logging |
 | TEST_ENABLE_LOGGING | `False` | Enable logging in unittest |
+| PAGE_SIZE | `100` | Default page size |
+| PAGE_SIZE_LIMIT | `100` | Maximum page size allowed |
 
 #### **Database settings**
 
@@ -409,5 +411,4 @@ These settings are read from `settings_dev.py`
 | Env         | Default               | Description                            |
 |-------------|-----------------------|----------------------------------------|
 | DEBUG | `False` | Set django DEBUG flag |
-| PAGE_SIZE | `2` | Default page size |
 | DEBUG_PROPAGATE_API_EXCEPTIONS | `False` | When `True` the API exception are treated as in production, using a JSON response. Otherwise in DEBUG mode the API exception returns an HTML response with backtrace. |
