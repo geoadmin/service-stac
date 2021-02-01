@@ -380,6 +380,7 @@ The service is configured by Environment Variable:
 | LOGGING_CFG | `'logging-cfg-local.yml'` | Logging configuration file             |
 | SECRET_KEY | - | Secret key for django |
 | ALLOWED_HOSTS | `''` | See django ALLOWED_HOSTS. On local development and DEV staging this is overwritten with `'*'` |
+| THIS_POD_IP | No default | The IP of the POD the service is running on |
 | HTTP_CACHE_SECONDS | `600` | Sets the `Cache-Control: max-age` and `Expires` headers of the GET and HEAD requests to the api views. |
 | HTTP_STATIC_CACHE_SECONDS | `3600` | Sets the `Cache-Control: max-age` header of GET, HEAD requests to the static files. |
 | STORAGE_ASSETS_CACHE_SECONDS | `7200` | Sets the `Cache-Control: max-age` and `Expires` headers of the GET and HEAD on the assets file uploaded via admin page. |
