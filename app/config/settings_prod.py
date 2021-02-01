@@ -45,7 +45,10 @@ DEBUG = False
 # https://docs.djangoproject.com/en/dev/ref/settings/#secure-proxy-ssl-header
 SECURE_PROXY_SSL_HEADER = ('HTTP_CLOUDFRONT_FORWARDED_PROTO', 'https')
 
-ALLOWED_HOSTS = []
+# We need to have the IP of the Pod/localhost in ALLOWED_HOSTS
+# as well to be able to scrape prometheus /metrics
+# see kubernetes config on how `THIS_POD_IP` is obtained
+ALLOWED_HOSTS = [os.getenv('THIS_POD_IP')]
 ALLOWED_HOSTS += os.getenv('ALLOWED_HOSTS', '').split(',')
 
 # SERVICE_HOST = os.getenv('SERVICE_HOST', '127.0.0.1:8000')
