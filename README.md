@@ -173,14 +173,6 @@ You can uses `--parallel=20` which also speed up tests.
 
 You can use `--failfast` to stop at the first error.
 
-**NOTE:** by default logging is disabled during tests, you can enable it by setting the `TEST_ENABLE_LOGGING=1` environment variable:
-
-```bash
-TEST_ENABLE_LOGGING=1 ./manage.py test
-```
-
-or set the environment variable directly in the `.venv.local` file.
-
 Alternatively you can use `make` to run the tests which will run all tests in parallel.
 
 ```bash
@@ -195,6 +187,21 @@ docker-compose -f docker-compose-ci.yml up --build --abort-on-container-exit
 
 **NOTE:** the `--build` option is important otherwise the container will not be rebuild and you don't have the latest modification
 of the code.
+
+#### Unit test logging
+
+By default only `WARNING` logs of the `tests` module is printed in the console during unit testing.
+All logs are also added to two logs files; `app/tests/logs/unittest-json-logs.json` and `app/tests/logs/unittest-standard-logs.txt`.
+
+To enable all logs on the console simply set the `TEST_ENABLE_LOGGING=1` environment variable.
+
+```bash
+TEST_ENABLE_LOGGING=1 ./manage.py test
+```
+
+or set the environment variable directly in the `.venv.local` file.
+
+Alternatively for a finer logging granularity during unit test, a new logging configuration base on `app/config/logging-cfg-test.yml` can be generated and set via `LOGGING_CFG` environment variable.
 
 ### Using Django shell
 

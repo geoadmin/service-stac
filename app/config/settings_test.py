@@ -8,6 +8,7 @@
     isort:skip_file
 """
 # pylint: disable=wildcard-import,unused-wildcard-import,wrong-import-position,wrong-import-order
+import os
 from moto import mock_s3
 s3mock = mock_s3()
 s3mock.start()
@@ -20,3 +21,8 @@ AWS_DEFAULT_ACL = 'public-read'
 AWS_S3_REGION_NAME = 'wonderland'
 AWS_S3_ENDPOINT_URL = None
 AWS_S3_CUSTOM_DOMAIN = 'testserver'
+
+if os.getenv('LOGGING_CFG', None) is None:
+    os.environ['LOGGING_CFG'] = 'app/config/logging-cfg-test.yml'
+
+LOGGING = get_logging_config()
