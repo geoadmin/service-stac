@@ -4,9 +4,6 @@ from json import dumps
 from json import loads
 from pprint import pformat
 
-import requests
-import requests_mock
-
 from django.conf import settings
 from django.test import Client
 
@@ -17,8 +14,8 @@ from stac_api.utils import utc_aware
 from tests.base_test import StacBaseTestCase
 from tests.data_factory import Factory
 from tests.utils import client_login
-from tests.utils import mock_requests_asset_file
 from tests.utils import mock_s3_asset_file
+from tests.utils import upload_file_on_s3
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +78,6 @@ class AssetsEndpointTestCase(StacBaseTestCase):
         self.check_header_etag(None, response)
 
 
-@requests_mock.Mocker(kw='requests_mocker')
 class AssetsWriteEndpointTestCase(StacBaseTestCase):
 
     @mock_s3_asset_file
@@ -93,12 +89,13 @@ class AssetsWriteEndpointTestCase(StacBaseTestCase):
         client_login(self.client)
         self.maxDiff = None  # pylint: disable=invalid-name
 
-    def test_asset_endpoint_post_only_required(self, requests_mocker):
+    def test_asset_endpoint_post_only_required(self):
         collection_name = self.collection.name
         item_name = self.item.name
-        asset = self.factory.create_asset_sample(item=self.item, required_only=True)
+        asset = self.factory.create_asset_sample(
+            item=self.item, required_only=True, create_asset_file=True, file=b'Dummy file content'
+        )
 
-        mock_requests_asset_file(requests_mocker, asset)
         path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets'
         response = self.client.post(
             path, data=asset.get_json('post'), content_type="application/json"
@@ -122,12 +119,11 @@ class AssetsWriteEndpointTestCase(StacBaseTestCase):
         self.assertNotIn('description', json_data)
         self.assertNotIn('title', json_data)
 
-    def test_asset_endpoint_post_full(self, requests_mocker):
+    def test_asset_endpoint_post_full(self):
         collection_name = self.collection.name
         item_name = self.item.name
-        asset = self.factory.create_asset_sample(item=self.item)
+        asset = self.factory.create_asset_sample(item=self.item, create_asset_file=True)
 
-        mock_requests_asset_file(requests_mocker, asset)
         path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets'
         response = self.client.post(
             path, data=asset.get_json('post'), content_type="application/json"
@@ -143,7 +139,7 @@ class AssetsWriteEndpointTestCase(StacBaseTestCase):
         self.assertStatusCode(200, response)
         self.check_stac_asset(asset.json, json_data, collection_name, item_name, ignore=['item'])
 
-    def test_asset_endpoint_post_empty_string(self, requests_mocker):
+    def test_asset_endpoint_post_empty_string(self):
         collection_name = self.collection.name
         item_name = self.item.name
         asset = self.factory.create_asset_sample(
@@ -152,10 +148,10 @@ class AssetsWriteEndpointTestCase(StacBaseTestCase):
             description='',
             geoadmin_variant='',
             geoadmin_lang='',
-            title=''
+            title='',
+            create_asset_file=True
         )
 
-        mock_requests_asset_file(requests_mocker, asset)
         path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets'
         response = self.client.post(
             path, data=asset.get_json('post'), content_type="application/json"
@@ -165,32 +161,13 @@ class AssetsWriteEndpointTestCase(StacBaseTestCase):
         for field in ['description', 'title', 'geoadmin:lang', 'geoadmin:variant']:
             self.assertIn(field, json_data['description'], msg=f'Field {field} error missing')
 
-    def test_asset_endpoint_post_extra_payload(self, requests_mocker):
-        collection_name = self.collection.name
-        item_name = self.item.name
-        asset = self.factory.create_asset_sample(item=self.item, extra_attribute='not allowed')
-
-        mock_requests_asset_file(requests_mocker, asset)
-        path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets'
-        response = self.client.post(
-            path, data=asset.get_json('post'), content_type="application/json"
-        )
-        self.assertStatusCode(400, response)
-
-        # Make sure that the asset is not found in DB
-        self.assertFalse(
-            Asset.objects.filter(name=asset.json['id']).exists(),
-            msg="Invalid asset has been created in DB"
-        )
-
-    def test_asset_endpoint_post_read_only_in_payload(self, requests_mocker):
+    def test_asset_endpoint_post_extra_payload(self):
         collection_name = self.collection.name
         item_name = self.item.name
         asset = self.factory.create_asset_sample(
-            item=self.item, created=utc_aware(datetime.utcnow())
+            item=self.item, extra_attribute='not allowed', create_asset_file=True
         )
 
-        mock_requests_asset_file(requests_mocker, asset)
         path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets'
         response = self.client.post(
             path, data=asset.get_json('post'), content_type="application/json"
@@ -203,12 +180,58 @@ class AssetsWriteEndpointTestCase(StacBaseTestCase):
             msg="Invalid asset has been created in DB"
         )
 
-    def test_asset_endpoint_post_invalid_data(self, requests_mocker):
+    def test_asset_endpoint_post_read_only_in_payload(self):
         collection_name = self.collection.name
         item_name = self.item.name
-        asset = self.factory.create_asset_sample(item=self.item, sample='asset-invalid')
+        asset = self.factory.create_asset_sample(
+            item=self.item, created=utc_aware(datetime.utcnow()), create_asset_file=True
+        )
 
-        mock_requests_asset_file(requests_mocker, asset)
+        path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets'
+        response = self.client.post(
+            path, data=asset.get_json('post', keep_read_only=True), content_type="application/json"
+        )
+        self.assertStatusCode(400, response)
+
+        # Make sure that the asset is not found in DB
+        self.assertFalse(
+            Asset.objects.filter(name=asset.json['id']).exists(),
+            msg="Invalid asset has been created in DB"
+        )
+
+    def test_asset_endpoint_post_read_only_href_in_payload(self):
+        collection_name = self.collection.name
+        item_name = self.item.name
+        asset = self.factory.create_asset_sample(
+            item=self.item, href='https://testserver/test.txt', create_asset_file=True
+        )
+
+        path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets'
+        response = self.client.post(
+            path, data=asset.get_json('post', keep_read_only=True), content_type="application/json"
+        )
+        self.assertStatusCode(400, response)
+        description = response.json()['description']
+        self.assertIn('href', description, msg=f'Unexpected field error {description}')
+        self.assertEqual(
+            "Found read-only property in payload",
+            description['href'][0],
+            msg="Unexpected error message"
+        )
+
+        # Make sure that the asset is not found in DB
+        self.assertFalse(
+            Asset.objects.filter(name=asset.json['id']).exists(),
+            msg="Invalid asset has been created in DB"
+        )
+
+    def test_asset_endpoint_post_invalid_data(self):
+        collection_name = self.collection.name
+        item_name = self.item.name
+        asset = self.factory.create_asset_sample(
+            item=self.item, sample='asset-invalid', create_asset_file=True
+        )
+
         path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets'
         response = self.client.post(
             path, data=asset.get_json('post'), content_type="application/json"
@@ -221,15 +244,14 @@ class AssetsWriteEndpointTestCase(StacBaseTestCase):
             msg="Invalid asset has been created in DB"
         )
 
-    def test_asset_endpoint_post_characters_geoadmin_variant(self, requests_mocker):
+    def test_asset_endpoint_post_characters_geoadmin_variant(self):
         # valid geoadmin:variant
         collection_name = self.collection.name
         item_name = self.item.name
         asset = self.factory.create_asset_sample(
-            item=self.item, sample='asset-valid_geoadmin_variant'
+            item=self.item, sample='asset-valid-geoadmin-variant', create_asset_file=True
         )
 
-        mock_requests_asset_file(requests_mocker, asset)
         path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets'
         response = self.client.post(
             path, data=asset.get_json('post'), content_type="application/json"
@@ -238,9 +260,9 @@ class AssetsWriteEndpointTestCase(StacBaseTestCase):
 
         # invalid geoadmin:variant
         asset = self.factory.create_asset_sample(
-            item=self.item, sample='asset-invalid_geoadmin_variant'
+            item=self.item, sample='asset-invalid-geoadmin-variant', create_asset_file=True
         )
-        mock_requests_asset_file(requests_mocker, asset)
+
         path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets'
         response = self.client.post(
             path, data=asset.get_json('post'), content_type="application/json"
@@ -248,7 +270,6 @@ class AssetsWriteEndpointTestCase(StacBaseTestCase):
         self.assertStatusCode(400, response)
 
 
-@requests_mock.Mocker(kw='requests_mocker')
 class AssetsWriteEndpointAssetFileTestCase(StacBaseTestCase):
 
     @mock_s3_asset_file
@@ -260,14 +281,11 @@ class AssetsWriteEndpointAssetFileTestCase(StacBaseTestCase):
         client_login(self.client)
         self.maxDiff = None  # pylint: disable=invalid-name
 
-    def test_asset_endpoint_post_asset_file_dont_exists(self, requests_mocker):
+    def test_asset_endpoint_post_asset_file_dont_exists(self):
         collection_name = self.collection.name
         item_name = self.item.name
-        asset = self.factory.create_asset_sample(item=self.item)
+        asset = self.factory.create_asset_sample(item=self.item, create_asset_file=False)
 
-        mock_requests_asset_file(
-            requests_mocker, asset, headers={'x-amz-meta-sha256': None}, status_code=404
-        )
         path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets'
         response = self.client.post(
             path, data=asset.get_json('post'), content_type="application/json"
@@ -276,55 +294,8 @@ class AssetsWriteEndpointAssetFileTestCase(StacBaseTestCase):
         description = response.json()['description']
         self.assertIn('href', description, msg=f'Unexpected field error {description}')
         self.assertEqual(
-            "Asset doesn't exists at href", description['href'][0], msg="Unexpected error message"
-        )
-
-        # Make sure that the asset is not found in DB
-        self.assertFalse(
-            Asset.objects.filter(name=asset.json['id']).exists(),
-            msg="Invalid asset has been created in DB"
-        )
-
-    def test_asset_endpoint_post_s3_not_answering(self, requests_mocker):
-        collection_name = self.collection.name
-        item_name = self.item.name
-        asset = self.factory.create_asset_sample(item=self.item)
-
-        mock_requests_asset_file(requests_mocker, asset, exc=requests.exceptions.ConnectTimeout)
-        path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets'
-        response = self.client.post(
-            path, data=asset.get_json('post'), content_type="application/json"
-        )
-        self.assertStatusCode(400, response)
-        description = response.json()['description']
-        self.assertIn('href', description, msg=f'Unexpected field error {description}')
-        self.assertEqual(
-            "href location not responding", description['href'][0], msg="Unexpected error message"
-        )
-
-        # Make sure that the asset is not found in DB
-        self.assertFalse(
-            Asset.objects.filter(name=asset.json['id']).exists(),
-            msg="Invalid asset has been created in DB"
-        )
-
-    def test_asset_endpoint_post_s3_without_sha256(self, requests_mocker):
-        collection_name = self.collection.name
-        item_name = self.item.name
-        asset = self.factory.create_asset_sample(item=self.item)
-
-        mock_requests_asset_file(requests_mocker, asset, headers={'x-amz-meta-sha256': None})
-        path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets'
-        response = self.client.post(
-            path, data=asset.get_json('post'), content_type="application/json"
-        )
-        self.assertStatusCode(500, response)
-        description = response.json()['description']
-        self.assertIn('href', description, msg=f'Unexpected field error {description}')
-        self.assertEqual(
-            "Asset at href http://testserver/collection-1/item-1/asset-1 doesn't provide a valid "
-            "checksum header (ETag or x-amz-meta-sha256) for validation",
-            description['href'],
+            "Asset doesn't exists at href http://testserver/collection-1/item-1/asset-1",
+            description['href'][0],
             msg="Unexpected error message"
         )
 
@@ -334,14 +305,38 @@ class AssetsWriteEndpointAssetFileTestCase(StacBaseTestCase):
             msg="Invalid asset has been created in DB"
         )
 
-    def test_asset_endpoint_post_wrong_checksum(self, requests_mocker):
+    # NOTE: Unfortunately this test cannot be done with the moto mocking.
+    # def test_asset_endpoint_post_s3_not_answering(self):
+    #     collection_name = self.collection.name
+    #     item_name = self.item.name
+    #     asset = self.factory.create_asset_sample(item=self.item)
+
+    #     path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets'
+    #     response = self.client.post(
+    #         path, data=asset.get_json('post'), content_type="application/json"
+    #     )
+    #     self.assertStatusCode(400, response)
+    #     description = response.json()['description']
+    #     self.assertIn('href', description, msg=f'Unexpected field error {description}')
+    #     self.assertEqual(
+    #         "href location not responding", description['href'][0], msg="Unexpected error message"
+    #     )
+
+    #     # Make sure that the asset is not found in DB
+    #     self.assertFalse(
+    #         Asset.objects.filter(name=asset.json['id']).exists(),
+    #         msg="Invalid asset has been created in DB"
+    #     )
+
+    def test_asset_endpoint_post_s3_without_sha256(self):
         collection_name = self.collection.name
         item_name = self.item.name
-        asset = self.factory.create_asset_sample(item=self.item)
+        asset = self.factory.create_asset_sample(item=self.item, create_asset_file=False)
 
-        mock_requests_asset_file(
-            requests_mocker, asset, headers={'x-amz-meta-sha256': get_sha256_multihash(b'')[4:]}
+        upload_file_on_s3(
+            f'{collection_name}/{item_name}/{asset["name"]}', asset["file"], params={}
         )
+
         path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets'
         response = self.client.post(
             path, data=asset.get_json('post'), content_type="application/json"
@@ -350,9 +345,36 @@ class AssetsWriteEndpointAssetFileTestCase(StacBaseTestCase):
         description = response.json()['description']
         self.assertIn('non_field_errors', description, msg=f'Unexpected field error {description}')
         self.assertEqual(
+            "Asset at href http://testserver/collection-1/item-1/asset-1 has a md5 multihash while "
+            "a sha2-256 multihash is defined in the checksum:multihash attribute",
+            description['non_field_errors'][0],
+            msg="Unexpected error message"
+        )
+
+        # Make sure that the asset is not found in DB
+        self.assertFalse(
+            Asset.objects.filter(name=asset.json['id']).exists(),
+            msg="Invalid asset has been created in DB"
+        )
+
+    def test_asset_endpoint_post_wrong_checksum(self):
+        collection_name = self.collection.name
+        item_name = self.item.name
+        asset = self.factory.create_asset_sample(item=self.item, create_asset_file=True)
+        asset_json = asset.get_json('post')
+        asset_json['checksum:multihash'] = get_sha256_multihash(
+            b'new dummy content that do not match real checksum'
+        )
+
+        path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets'
+        response = self.client.post(path, data=asset_json, content_type="application/json")
+        self.assertStatusCode(400, response)
+        description = response.json()['description']
+        self.assertIn('non_field_errors', description, msg=f'Unexpected field error {description}')
+        self.assertEqual(
             "Asset at href http://testserver/collection-1/item-1/asset-1 with sha2-256 hash "
-            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 doesn't match the "
-            "checksum:multihash a7f5e7ca03b0f80a2fcfe5142642377e7654df2dfa736fe4d925322d8a651efe",
+            "a7f5e7ca03b0f80a2fcfe5142642377e7654df2dfa736fe4d925322d8a651efe doesn't match the "
+            "checksum:multihash 3db85f41709d08bf1f2907042112bf483b28e12db4b3ffb5428a1f28308847ba",
             description['non_field_errors'][0],
             msg="Unexpected error message"
         )
@@ -364,37 +386,40 @@ class AssetsWriteEndpointAssetFileTestCase(StacBaseTestCase):
         )
 
 
-@requests_mock.Mocker(kw='requests_mocker')
 class AssetsUpdateEndpointAssetFileTestCase(StacBaseTestCase):
 
     @mock_s3_asset_file
     def setUp(self):  # pylint: disable=invalid-name
         self.factory = Factory()
-        self.collection = self.factory.create_collection_sample().model
-        self.item = self.factory.create_item_sample(collection=self.collection).model
-        self.asset = self.factory.create_asset_sample(item=self.item).model
+        self.collection = self.factory.create_collection_sample(db_create=True)
+        self.item = self.factory.create_item_sample(
+            collection=self.collection.model, db_create=True
+        )
+        self.asset = self.factory.create_asset_sample(item=self.item.model, db_create=True)
         self.client = Client()
         client_login(self.client)
         self.maxDiff = None  # pylint: disable=invalid-name
 
-    def test_asset_endpoint_patch_checksum(self, requests_mocker):
-        new_multihash = get_sha256_multihash(b'New file content')
-        collection_name = self.collection.name
-        item_name = self.item.name
-        asset_name = self.asset.name
-        asset_sample = self.factory.create_asset_sample(
-            item=self.item, name=asset_name, required_only=True, checksum_multihash=new_multihash
-        )
+    def test_asset_endpoint_patch_checksum(self):
+        new_file_content = b'New file content'
+        new_multihash = get_sha256_multihash(new_file_content)
+        collection_name = self.collection['name']
+        item_name = self.item['name']
+        asset_name = self.asset['name']
+
+        # upload first a new file on S3
+        upload_file_on_s3(f'{collection_name}/{item_name}/{asset_name}', new_file_content)
 
         patch_payload = {'checksum:multihash': new_multihash}
+        patch_asset = self.asset.copy()
+        patch_asset['checksum_multihash'] = new_multihash
 
-        mock_requests_asset_file(requests_mocker, asset_sample)
         path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
         response = self.client.patch(path, data=patch_payload, content_type="application/json")
         self.assertStatusCode(200, response)
         json_data = response.json()
         self.check_stac_asset(
-            asset_sample.json, json_data, collection_name, item_name, ignore=['item']
+            patch_asset.json, json_data, collection_name, item_name, ignore=['item']
         )
 
         # Check the data by reading it back
@@ -402,62 +427,61 @@ class AssetsUpdateEndpointAssetFileTestCase(StacBaseTestCase):
         json_data = response.json()
         self.assertStatusCode(200, response)
         self.check_stac_asset(
-            asset_sample.json, json_data, collection_name, item_name, ignore=['item']
+            patch_asset.json, json_data, collection_name, item_name, ignore=['item']
         )
 
-    def test_asset_endpoint_patch_put_href(self, requests_mocker):
-        collection_name = self.collection.name
-        item_name = self.item.name
-        asset_name = self.asset.name
-        asset_sample = self.factory.create_asset_sample(
-            item=self.item, name=asset_name, required_only=True, href='https://www.google.com'
-        )
+    def test_asset_endpoint_patch_put_href(self):
+        collection_name = self.collection['name']
+        item_name = self.item['name']
+        asset_name = self.asset['name']
+        asset_sample = self.asset.copy()
 
-        patch_payload = {'href': 'https://www.google.com'}
+        put_payload = asset_sample.get_json('put')
+        put_payload['href'] = 'https://testserver/non-existing-asset'
+        patch_payload = {'href': 'https://testserver/non-existing-asset'}
 
-        mock_requests_asset_file(requests_mocker, asset_sample)
         path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
         response = self.client.patch(path, data=patch_payload, content_type="application/json")
         self.assertStatusCode(400, response)
         description = response.json()['description']
         self.assertIn('href', description, msg=f'Unexpected field error {description}')
         self.assertEqual(
-            "Unexpected property in payload",
+            "Found read-only property in payload",
             description['href'][0],
             msg="Unexpected error message"
         )
 
-        response = self.client.put(
-            path, data=asset_sample.get_json('put'), content_type="application/json"
-        )
+        response = self.client.put(path, data=put_payload, content_type="application/json")
         self.assertStatusCode(400, response)
         description = response.json()['description']
         self.assertIn('href', description, msg=f'Unexpected field error {description}')
         self.assertEqual(
-            "Unexpected property in payload",
+            "Found read-only property in payload",
             description['href'][0],
             msg="Unexpected error message"
         )
 
 
-@requests_mock.Mocker(kw='requests_mocker')
 class AssetsUpdateEndpointTestCase(StacBaseTestCase):
 
     @mock_s3_asset_file
     def setUp(self):  # pylint: disable=invalid-name
         self.factory = Factory()
-        self.collection = self.factory.create_collection_sample().model
-        self.item = self.factory.create_item_sample(collection=self.collection).model
-        self.asset = self.factory.create_asset_sample(item=self.item).model
+        self.collection = self.factory.create_collection_sample(db_create=True)
+        self.item = self.factory.create_item_sample(
+            collection=self.collection.model, db_create=True
+        )
+        self.asset = self.factory.create_asset_sample(item=self.item.model, db_create=True)
         self.client = Client()
         client_login(self.client)
         self.maxDiff = None  # pylint: disable=invalid-name
 
-    def test_asset_put_dont_exists(self, requests_mocker):
-        collection_name = self.collection.name
-        item_name = self.item.name
-        payload_json = self.factory.create_asset_sample(item=self.item,
-                                                        sample='asset-2').get_json('put')
+    def test_asset_put_dont_exists(self):
+        collection_name = self.collection['name']
+        item_name = self.item['name']
+        payload_json = self.factory.create_asset_sample(
+            item=self.item.model, sample='asset-2', create_asset_file=False
+        ).get_json('put')
 
         # the dataset to update does not exist yet
         path = \
@@ -465,18 +489,18 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
         response = self.client.put(path, data=payload_json, content_type='application/json')
         self.assertStatusCode(404, response)
 
-    def test_asset_endpoint_put(self, requests_mocker):
-        collection_name = self.collection.name
-        item_name = self.item.name
-        asset_name = self.asset.name
+    def test_asset_endpoint_put(self):
+        collection_name = self.collection['name']
+        item_name = self.item['name']
+        asset_name = self.asset['name']
         changed_asset = self.factory.create_asset_sample(
-            item=self.item,
+            item=self.item.model,
             name=asset_name,
             sample='asset-1-updated',
-            checksum_multihash=self.asset.checksum_multihash
+            checksum_multihash=self.asset['checksum_multihash'],
+            create_asset_file=False
         )
 
-        mock_requests_asset_file(requests_mocker, changed_asset)
         path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
         response = self.client.put(
             path, data=changed_asset.get_json('put'), content_type="application/json"
@@ -495,57 +519,58 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
             changed_asset.json, json_data, collection_name, item_name, ignore=['item']
         )
 
-    def test_asset_endpoint_put_extra_payload(self, requests_mocker):
-        collection_name = self.collection.name
-        item_name = self.item.name
-        asset_name = self.asset.name
+    def test_asset_endpoint_put_extra_payload(self):
+        collection_name = self.collection['name']
+        item_name = self.item['name']
+        asset_name = self.asset['name']
         changed_asset = self.factory.create_asset_sample(
-            item=self.item,
+            item=self.item.model,
             name=asset_name,
             sample='asset-1-updated',
-            checksum_multihash=self.asset.checksum_multihash,
-            extra_attribute='not allowed'
+            checksum_multihash=self.asset['checksum_multihash'],
+            extra_attribute='not allowed',
+            create_asset_file=False
         )
 
-        mock_requests_asset_file(requests_mocker, changed_asset)
         path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
         response = self.client.put(
             path, data=changed_asset.get_json('put'), content_type="application/json"
         )
         self.assertStatusCode(400, response)
 
-    def test_asset_endpoint_put_read_only_in_payload(self, requests_mocker):
-        collection_name = self.collection.name
-        item_name = self.item.name
-        asset_name = self.asset.name
+    def test_asset_endpoint_put_read_only_in_payload(self):
+        collection_name = self.collection['name']
+        item_name = self.item['name']
+        asset_name = self.asset['name']
         changed_asset = self.factory.create_asset_sample(
-            item=self.item,
+            item=self.item.model,
             name=asset_name,
-            checksum_multihash=self.asset.checksum_multihash,
+            checksum_multihash=self.asset['checksum_multihash'],
             sample='asset-1-updated',
-            created=utc_aware(datetime.utcnow())
+            created=utc_aware(datetime.utcnow()),
+            create_asset_file=False
         )
 
-        mock_requests_asset_file(requests_mocker, changed_asset)
         path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
         response = self.client.put(
-            path, data=changed_asset.get_json('put'), content_type="application/json"
+            path,
+            data=changed_asset.get_json('put', keep_read_only=True),
+            content_type="application/json"
         )
         self.assertStatusCode(400, response)
 
-    def test_asset_endpoint_put_rename_asset(self, requests_mocker):
-        collection_name = self.collection.name
-        item_name = self.item.name
-        asset_name = self.asset.name
+    def test_asset_endpoint_put_rename_asset(self):
+        collection_name = self.collection['name']
+        item_name = self.item['name']
+        asset_name = self.asset['name']
         new_asset_name = "new-asset-name"
         changed_asset = self.factory.create_asset_sample(
-            item=self.item,
+            item=self.item.model,
             name=new_asset_name,
             sample='asset-1-updated',
-            checksum_multihash=self.asset.checksum_multihash
+            checksum_multihash=self.asset['checksum_multihash']
         )
 
-        mock_requests_asset_file(requests_mocker, changed_asset)
         path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
         response = self.client.put(
             path, data=changed_asset.get_json('put'), content_type="application/json"
@@ -567,16 +592,15 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
             changed_asset.json, json_data, collection_name, item_name, ignore=['item']
         )
 
-    def test_asset_endpoint_patch_rename_asset(self, requests_mocker):
-        collection_name = self.collection.name
-        item_name = self.item.name
-        asset_name = self.asset.name
+    def test_asset_endpoint_patch_rename_asset(self):
+        collection_name = self.collection['name']
+        item_name = self.item['name']
+        asset_name = self.asset['name']
         new_asset_name = "new-asset-name"
         changed_asset = self.factory.create_asset_sample(
-            item=self.item, name=new_asset_name, sample='asset-1-updated'
+            item=self.item.model, name=new_asset_name, sample='asset-1-updated'
         )
 
-        mock_requests_asset_file(requests_mocker, changed_asset)
         path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
         response = self.client.patch(
             path, data=changed_asset.get_json('patch'), content_type="application/json"
@@ -599,36 +623,39 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
             changed_asset.json, json_data, collection_name, item_name, ignore=['item']
         )
 
-    def test_asset_endpoint_patch_extra_payload(self, requests_mocker):
-        collection_name = self.collection.name
-        item_name = self.item.name
-        asset_name = self.asset.name
+    def test_asset_endpoint_patch_extra_payload(self):
+        collection_name = self.collection['name']
+        item_name = self.item['name']
+        asset_name = self.asset['name']
         changed_asset = self.factory.create_asset_sample(
-            item=self.item, name=asset_name, sample='asset-1-updated', extra_payload='invalid'
+            item=self.item.model,
+            name=asset_name,
+            sample='asset-1-updated',
+            extra_payload='invalid'
         )
 
-        mock_requests_asset_file(requests_mocker, changed_asset)
         path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
         response = self.client.patch(
             path, data=changed_asset.get_json('patch'), content_type="application/json"
         )
         self.assertStatusCode(400, response)
 
-    def test_asset_endpoint_patch_read_only_in_payload(self, requests_mocker):
-        collection_name = self.collection.name
-        item_name = self.item.name
-        asset_name = self.asset.name
+    def test_asset_endpoint_patch_read_only_in_payload(self):
+        collection_name = self.collection['name']
+        item_name = self.item['name']
+        asset_name = self.asset['name']
         changed_asset = self.factory.create_asset_sample(
-            item=self.item,
+            item=self.item.model,
             name=asset_name,
             sample='asset-1-updated',
             created=utc_aware(datetime.utcnow())
         )
 
-        mock_requests_asset_file(requests_mocker, changed_asset)
         path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
         response = self.client.patch(
-            path, data=changed_asset.get_json('patch'), content_type="application/json"
+            path,
+            data=changed_asset.get_json('patch', keep_read_only=True),
+            content_type="application/json"
         )
         self.assertStatusCode(400, response)
 

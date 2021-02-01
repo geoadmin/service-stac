@@ -107,7 +107,7 @@ class CollectionsWriteEndpointTestCase(StacBaseTestCase):
 
         response = self.client.post(
             f"/{API_BASE}/collections",
-            data=collection.get_json('post'),
+            data=collection.get_json('post', keep_read_only=True),
             content_type='application/json'
         )
         self.assertStatusCode(400, response)
@@ -211,7 +211,7 @@ class CollectionsUpdateEndpointTestCase(StacBaseTestCase):
 
         response = self.client.put(
             f"/{API_BASE}/collections/{sample['name']}",
-            data=sample.get_json('put'),
+            data=sample.get_json('put', keep_read_only=True),
             content_type='application/json'
         )
         self.assertStatusCode(400, response)
