@@ -110,6 +110,8 @@ setup: $(SETTINGS_TIMESTAMP)
 	# Note that the '/service_stac_local' part is already the bucket name
 	mkdir -p .volumes/minio/service-stac-local
 	mkdir -p .volumes/postgresql
+	# create directory for unittests logs
+	mkdir -p app/tests/logs
 	docker-compose up &
 
 
