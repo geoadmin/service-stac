@@ -118,7 +118,7 @@ def validate_and_parse_href_url(url_prefix, href):
     return url
 
 
-def validate_asset_file(href, attrs):
+def validate_asset_file(href, original_name, attrs):
     '''Validate Asset file
 
     Validate the Asset file located at href. The file must exist and match the multihash. The file
@@ -127,6 +127,8 @@ def validate_asset_file(href, attrs):
     Args:
         href: string
             Asset file href to validate
+        original_name: string
+            Asset original name in case of renaming
         expected_multihash: string (optional)
             Asset file expected multihash (must be a sha2-256 multihash !)
 
@@ -138,7 +140,7 @@ def validate_asset_file(href, attrs):
     '''
     logger.debug('Validate asset file at %s with attrs %s', href, attrs)
 
-    asset_path = get_asset_path(attrs['item'], attrs['name'])
+    asset_path = get_asset_path(attrs['item'], original_name)
     try:
         s3 = get_s3_resource()
         obj = s3.Object(settings.AWS_STORAGE_BUCKET_NAME, asset_path)
@@ -148,7 +150,7 @@ def validate_asset_file(href, attrs):
         logger.error('Failed to retrieve S3 object %s metadata: %s', asset_path, error)
         if error.response.get('Error', {}).get('Code', None) == '404':
             logger.error('Asset at href %s doesn\'t exists', href)
-            raise ValidationError({'href': _("Asset doesn't exists at href")}) from error
+            raise ValidationError({'href': _(f"Asset doesn't exists at href {href}")}) from error
         raise APIException({'href': _("Error while checking href existence")}) from error
 
     # Get the hash from response
