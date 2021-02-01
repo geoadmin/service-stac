@@ -348,3 +348,20 @@ class SearchEndpointTestCaseTwo(StacBaseTestCase):
     def test_datetime_invalid_range_query_get(self):
         response = self.client.get(f"/{API_BASE}/search" f"?datetime=../..&limit=100")
         self.assertStatusCode(400, response)
+
+    def test_datetime_exact_query_get(self):
+        response = self.client.get(
+            f"/{API_BASE}/search"
+            f"?datetime=2020-10-28T13:05:10Z&limit=100"
+        )
+        json_data = response.json()
+        self.assertEqual(7, len(json_data['features']), msg="Seven items Found")
+        self.assertEqual('item-1', json_data['features'][0]['id'])
+        self.assertEqual('item-8', json_data['features'][6]['id'])
+        self.assertStatusCode(200, response)
+
+    def test_datetime_invalid_format_query_get(self):
+        response = self.client.get(
+            f"/{API_BASE}/search"
+            f"?datetime=NotADate&limit=100")
+        self.assertStatusCode(400, response)
