@@ -114,6 +114,7 @@ class StacBaseTestCase(TestCase):
         if ignore is None:
             ignore = []
         self._check_stac_dictsubset('collection', expected, current, ignore)
+        # check required fields
         for key, value in [
             ('stac_version', '0.9.0'),
             ('crs', ['http://www.opengis.net/def/crs/OGC/1.3/CRS84']),
@@ -121,9 +122,10 @@ class StacBaseTestCase(TestCase):
         ]:
             self.assertIn(key, current)
             self.assertEqual(value, current[key])
-        for key in ['extent', 'summaries', 'links', 'created', 'updated']:
+        for key in ['id', 'extent', 'summaries', 'links', 'description', 'license']:
             self.assertIn(key, current, msg=f'Collection {key} is missing')
         for date_field in ['created', 'updated']:
+            self.assertIn(date_field, current, msg=f'Collection {date_field} is missing')
             self.assertTrue(
                 fromisoformat(current[date_field]),
                 msg=f"The collection field {date_field} has an invalid date"
@@ -165,14 +167,17 @@ class StacBaseTestCase(TestCase):
         if ignore is None:
             ignore = []
         self._check_stac_dictsubset('item', expected, current, ignore=ignore)
+
+        # check required fields
         for key, value in [('stac_version', '0.9.0'), ('type', 'Feature')]:
             self.assertIn(key, current)
             self.assertEqual(value, current[key])
-        for key in ['bbox', 'links', 'properties']:
+        for key in ['id', 'bbox', 'links', 'properties', 'assets', 'geometry']:
             self.assertIn(key, current, msg=f'Item {key} is missing')
-        for key in ['created', 'updated']:
-            self.assertIn(key, current['properties'], msg=f'Item properties.{key} is missing')
         for date_field in ['created', 'updated']:
+            self.assertIn(
+                date_field, current['properties'], msg=f'Item properties.{date_field} is missing'
+            )
             self.assertTrue(
                 fromisoformat(current['properties'][date_field]),
                 msg=f"The item field {date_field} has an invalid date"
@@ -215,9 +220,12 @@ class StacBaseTestCase(TestCase):
         if ignore is None:
             ignore = []
         self._check_stac_dictsubset('asset', expected, current, ignore=ignore)
-        for key in ['links', 'created', 'updated']:
+
+        # check required fields
+        for key in ['links', 'id', 'type', 'checksum:multihash', 'href']:
             self.assertIn(key, current, msg=f'Asset {key} is missing')
         for date_field in ['created', 'updated']:
+            self.assertIn(date_field, current, msg=f'Asset {date_field} is missing')
             self.assertTrue(
                 fromisoformat(current[date_field]),
                 msg=f"The asset field {date_field} has an invalid date"
