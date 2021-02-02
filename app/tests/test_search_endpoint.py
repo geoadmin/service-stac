@@ -361,7 +361,5 @@ class SearchEndpointTestCaseTwo(StacBaseTestCase):
         self.assertStatusCode(200, response)
 
     def test_datetime_invalid_format_query_get(self):
-        response = self.client.get(
-            f"/{API_BASE}/search"
-            f"?datetime=NotADate&limit=100")
+        response = self.client.get(f"/{API_BASE}/search?datetime=NotADate&limit=100")
         self.assertStatusCode(400, response)

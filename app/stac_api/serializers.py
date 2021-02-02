@@ -30,7 +30,6 @@ from stac_api.validators import validate_item_properties_datetimes
 from stac_api.validators import validate_name
 from stac_api.validators_serializer import validate_and_parse_href_url
 from stac_api.validators_serializer import validate_asset_file
-from stac_api.validators_serializer import validate_asset_href_path
 from stac_api.validators_serializer import validate_json_payload
 
 logger = logging.getLogger(__name__)
@@ -346,11 +345,13 @@ class CollectionSerializer(NonNullModelSerializer):
         source="name",
         validators=[validate_name, UniqueValidator(queryset=Collection.objects.all())]
     )
+    title = serializers.CharField(required=False, allow_blank=False, default=None, max_length=255)
     # Also links are required in the spec, the main links (self, root, items) are automatically
     # generated hence here it is set to required=False which allows to add optional links that
     # are not generated
     links = CollectionLinkSerializer(required=False, many=True)
     providers = ProviderSerializer(required=False, many=True)
+
     # read only fields
     crs = serializers.SerializerMethodField(read_only=True)
     created = serializers.DateTimeField(read_only=True)
@@ -359,7 +360,6 @@ class CollectionSerializer(NonNullModelSerializer):
     summaries = serializers.JSONField(read_only=True)
     stac_extensions = serializers.SerializerMethodField(read_only=True)
     stac_version = serializers.SerializerMethodField(read_only=True)
-    title = serializers.CharField(required=False, allow_blank=False, default=None, max_length=255)
     itemType = serializers.ReadOnlyField(default="Feature")  # pylint: disable=invalid-name
 
     def get_crs(self, obj):
@@ -584,9 +584,6 @@ class AssetBaseSerializer(NonNullModelSerializer):
         required=False, max_length=255, allow_null=True, allow_blank=False
     )
     description = serializers.CharField(required=False, allow_blank=False, allow_null=True)
-    # The href is only for POST request and is ignored for PUT requests this is done by dynamically
-    # removing the field with the serializer hide_fields parameter in the view
-    href = HrefField(source='file', required=False)
     type = serializers.ChoiceField(
         source='media_type',
         required=True,
@@ -621,35 +618,25 @@ class AssetBaseSerializer(NonNullModelSerializer):
         validators=[validate_asset_multihash]
     )
     # read only fields
+    href = HrefField(source='file', read_only=True)
     created = serializers.DateTimeField(read_only=True)
     updated = serializers.DateTimeField(read_only=True)
-
-    def __init__(self, *args, **kwargs):
-        hide_fields = kwargs.pop('hide_fields', [])
-
-        super().__init__(*args, **kwargs)
-
-        # Remove fields that should be hidden
-        for field_name in hide_fields:
-            self.fields.pop(field_name)
 
     def validate(self, attrs):
         validate_json_payload(self)
 
-        # validate the file path, although this is a field validation, it requires object values
-        # therefore it is placed in object validate method.
-        if 'file' in attrs:
-            # href is optional
-            validate_asset_href_path(attrs['item'], attrs['name'], attrs['file'])
-        elif not self.partial:
+        if not self.partial:
             attrs['file'] = get_asset_path(attrs['item'], attrs['name'])
 
         # Check if the asset exits for non partial update or when the checksum is available
         if not self.partial or 'checksum_multihash' in attrs:
-            path = get_asset_path(attrs['item'], attrs['name'])
+            original_name = attrs['name']
+            if self.instance:
+                original_name = self.instance.name
+            path = get_asset_path(attrs['item'], original_name)
             request = self.context.get("request")
             href = build_asset_href(request, path)
-            attrs = validate_asset_file(href, attrs)
+            attrs = validate_asset_file(href, original_name, attrs)
 
         return attrs
 

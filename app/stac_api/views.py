@@ -434,10 +434,9 @@ class AssetDetail(
         return obj
 
     def get_serializer(self, *args, **kwargs):
-        hide_fields = kwargs.pop('hide_fields', [])
         serializer_class = self.get_serializer_class()
         kwargs.setdefault('context', self.get_serializer_context())
-        return serializer_class(*args, hide_fields=hide_fields, **kwargs)
+        return serializer_class(*args, **kwargs)
 
     @etag(get_asset_etag)
     def get(self, request, *args, **kwargs):
@@ -446,12 +445,12 @@ class AssetDetail(
     # Here the etag is only added to support pre-conditional If-Match and If-Not-Match
     @etag(get_asset_etag)
     def put(self, request, *args, **kwargs):
-        return self.update(request, *args, hide_fields=['href'], **kwargs)
+        return self.update(request, *args, **kwargs)
 
     # Here the etag is only added to support pre-conditional If-Match and If-Not-Match
     @etag(get_asset_etag)
     def patch(self, request, *args, **kwargs):
-        return self.partial_update(request, *args, hide_fields=['href'], **kwargs)
+        return self.partial_update(request, *args, **kwargs)
 
     # Here the etag is only added to support pre-conditional If-Match and If-Not-Match
     @etag(get_asset_etag)
