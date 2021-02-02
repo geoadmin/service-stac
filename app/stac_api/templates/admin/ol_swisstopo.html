@@ -1,3 +1,8 @@
+{% load static %}
+{% block extrahead %}
+    <link rel="shortcut icon"href="{% static 'favicon.ico' %}">
+{% endblock %}
+
 {% block extrastyle %}
 {% load i18n static %}{% get_current_language_bidi as LANGUAGE_BIDI %}
 <style type="text/css">
@@ -15,6 +20,7 @@
   }
 </style>
 {% endblock %}
+
 <span id="{{ id }}_admin_map">
 <script>
 //<![CDATA[
