@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/3.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.1/ref/settings/
 """
+from distutils.util import strtobool
 
 from .settings_prod import *  # pylint: disable=wildcard-import, unused-wildcard-import
 

@@ -21,7 +21,7 @@ services:
       - db
     environment:
       - DEBUG=True
-      - LOGGING_CFG=/app/config/logging-cfg-local.yml
+      - LOGGING_CFG=/app/config/logging-cfg-unittest-ci.yml
       - DB_USER=postgres
       - DB_PW=postgres
       - DB_NAME=service_stac

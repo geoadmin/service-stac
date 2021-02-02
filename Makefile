@@ -111,7 +111,7 @@ setup: $(SETTINGS_TIMESTAMP)
 	mkdir -p .volumes/minio/service-stac-local
 	mkdir -p .volumes/postgresql
 	# create directory for unittests logs
-	mkdir -p app/tests/logs
+	mkdir -p logs
 	docker-compose up &
 
 

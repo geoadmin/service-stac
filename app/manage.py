@@ -7,12 +7,17 @@ import sys
 def main():
     """Run administrative tasks."""
 
-    # use seperate settings.py for tests
+    # use separate settings.py for tests
     if 'test' in sys.argv:
-        print('using settings_test.py')
+        os.environ.setdefault('LOGGING_CFG', 'app/config/logging-cfg-unittest.yml')
         os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings_test')
+    elif 'runserver' not in sys.argv:
+        # uses another logging configuration for management command (except for runserver)
+        os.environ.setdefault('LOGGING_CFG', 'app/config/logging-cfg-management.yml')
+        os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
     else:
         os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+
     try:
         from django.core.management import execute_from_command_line  # pylint: disable=import-outside-toplevel
     except ImportError as exc:

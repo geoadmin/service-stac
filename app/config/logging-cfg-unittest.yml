@@ -21,7 +21,7 @@ loggers:
   django:
     level: INFO
   django.db:
-    level: INFO
+    level: DEBUG
   django.utils.autoreload:
     level: INFO
   gunicorn.error:
@@ -51,7 +51,7 @@ formatters:
   standard:
     (): logging_utilities.formatters.extra_formatter.ExtraFormatter
     format: "[%(utc_isotime)s] %(levelname)-8s - %(name)-26s : %(message)s"
-    extra_fmt: " - collection: %(collection)s - item: %(item)s - asset: %(asset)s"
+    extra_fmt: " - collection: %(collection)s - item: %(item)s - asset: %(asset)s - duration: %(duration)s"
     # extra_pretty_print: True
   json:
     (): logging_utilities.formatters.json_formatter.JsonFormatter
@@ -89,7 +89,7 @@ handlers:
   file-standard:
     class: logging.FileHandler
     formatter: standard
-    filename: ./tests/logs/unittest-standard-logs.txt
+    filename: ${BASE_DIR}/logs/unittest-standard-logs.txt
     mode: w
     filters:
       - isotime
@@ -97,7 +97,7 @@ handlers:
   file-json:
     class: logging.FileHandler
     formatter: json
-    filename: ./tests/logs/unittest-json-logs.json
+    filename: ${BASE_DIR}/logs/unittest-json-logs.json
     mode: w
     filters:
       - isotime

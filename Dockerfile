@@ -62,7 +62,7 @@ RUN echo "from .settings_dev import *" > /app/config/settings.py \
     && chown geoadmin:geoadmin /app/config/settings.py
 
 # Collect static files, uses the .env.default settings to avoid django raising settings error
-RUN APP_ENV=default ./manage.py collectstatic --noinput
+RUN APP_ENV=default LOGGING_CFG=0 ./manage.py collectstatic --noinput
 
 USER geoadmin
 
@@ -83,7 +83,7 @@ RUN echo "from .settings_prod import *" > /app/config/settings.py \
     && chown geoadmin:geoadmin /app/config/settings.py
 
 # Collect static files, uses the .env.default settings to avoid django raising settings error
-RUN APP_ENV=default ./manage.py collectstatic --noinput
+RUN APP_ENV=default LOGGING_CFG=0 ./manage.py collectstatic --noinput
 
 # production container must not run as root
 USER geoadmin
