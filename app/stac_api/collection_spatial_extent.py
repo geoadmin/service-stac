@@ -64,9 +64,6 @@ class CollectionSpatialExtentMixin():
             if trigger == 'update' and geometry != original_geometry:
                 # is the new bbox larger than (and covering) the existing
                 if Polygon.from_bbox(GEOSGeometry(geometry).extent).covers(self.extent_geometry):
-                    # pylint: disable=fixme
-                    # TODO: cover this code by a unittest, remove this comment when BGDIINF_SB-1595
-                    # is implemented
                     logger.info(
                         'Updating collections extent_geometry with item geometry changed '
                         'from %s to %s, (larger and covering bbox)',
