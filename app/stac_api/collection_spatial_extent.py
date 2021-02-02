@@ -91,12 +91,18 @@ class CollectionSpatialExtentMixin():
                         },
                     )
                     start = time.time()
-                    qs = type(item).objects.filter(collection_id=self.pk
-                                                  ).exclude(id=item.pk
-                                                           ).aggregate(Extent('geometry'))
+                    raw_sql = '''
+                    SELECT
+                    1 AS id,
+                    st_AsText(st_extent(geometry)) AS geometry__extent
+                    FROM stac_api_item
+                    WHERE collection_id = %d
+                    AND NOT id = %d
+                    ''' % (self.pk, item.pk)
+                    qs = type(item).objects.raw(raw_sql)
                     union_geometry = GEOSGeometry(geometry)
                     self.extent_geometry = union_geometry.union(
-                        Polygon.from_bbox(qs['geometry__extent'])
+                        GEOSGeometry(qs[0].geometry__extent)
                     )
                     logger.info(
                         'Collection extent_geometry updated to %s in %ss, after item update',
@@ -119,10 +125,17 @@ class CollectionSpatialExtentMixin():
                     },
                 )
                 start = time.time()
-                qs = type(item).objects.filter(collection_id=self.pk
-                                              ).exclude(id=item.pk).aggregate(Extent('geometry'))
-                if bool(qs['geometry__extent']):
-                    self.extent_geometry = Polygon.from_bbox(qs['geometry__extent'])
+                raw_sql = '''
+                    SELECT
+                    1 AS id,
+                    st_AsText(st_extent(geometry)) AS geometry__extent
+                    FROM stac_api_item
+                    WHERE collection_id = %d
+                    AND NOT id = %d
+                    ''' % (self.pk, item.pk)
+                qs = type(item).objects.raw(raw_sql)
+                if bool(qs[0].geometry__extent):
+                    self.extent_geometry = GEOSGeometry(qs[0].geometry__extent)
                 else:
                     self.extent_geometry = None
                 logger.info(
