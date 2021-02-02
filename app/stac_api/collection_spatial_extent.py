@@ -1,7 +1,6 @@
 import logging
 import time
 
-from django.contrib.gis.db.models import Extent
 from django.contrib.gis.geos import GEOSGeometry
 from django.contrib.gis.geos import Polygon
 from django.contrib.gis.geos.error import GEOSException
@@ -101,12 +100,12 @@ class CollectionSpatialExtentMixin():
                     ''' % (self.pk, item.pk)
                     qs = type(item).objects.raw(raw_sql)
                     union_geometry = GEOSGeometry(geometry)
-                    self.extent_geometry = union_geometry.union(
-                        GEOSGeometry(qs[0].geometry__extent)
+                    self.extent_geometry = Polygon.from_bbox(
+                        union_geometry.union(GEOSGeometry(qs[0].geometry__extent)).extent
                     )
                     logger.info(
                         'Collection extent_geometry updated to %s in %ss, after item update',
-                        union_geometry.extent,
+                        self.extent_geometry.extent,
                         time.time() - start,
                         extra={
                             'collection': self.name, 'item': item.name, 'trigger': 'item-update'
