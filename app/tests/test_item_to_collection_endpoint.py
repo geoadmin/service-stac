@@ -15,17 +15,14 @@ API_BASE = settings.API_BASE
 
 class OneItemSpatialTestCase(StacBaseTestCase):
 
-    @classmethod
-    def setUpTestData(cls):
-        cls.factory = Factory()
-        cls.collection = cls.factory.create_collection_sample().model
-        cls.items = cls.factory.create_item_samples(['item-switzerland-west'],
-                                                    cls.collection,
-                                                    db_create=True)
-
     def setUp(self):
         self.client = Client()
         client_login(self.client)
+        self.factory = Factory()
+        self.collection = self.factory.create_collection_sample().model
+        self.items = self.factory.create_item_samples(['item-switzerland-west'],
+                                                      self.collection,
+                                                      db_create=True)
 
     def test_single_item(self):
         collection_name = self.collection.name
@@ -60,20 +57,17 @@ class OneItemSpatialTestCase(StacBaseTestCase):
 
 class TwoItemsSpatialTestCase(StacBaseTestCase):
 
-    @classmethod
-    def setUpTestData(cls):
-        cls.factory = Factory()
-        cls.collection = cls.factory.create_collection_sample().model
-        cls.items = cls.factory.create_item_samples(
-            ['item-switzerland-west', 'item-switzerland-east'],
-            cls.collection,
-            name=['item-switzerland-west', 'item-switzerland-east'],
-            db_create=True,
-        )
-
     def setUp(self):
         self.client = Client()
         client_login(self.client)
+        self.factory = Factory()
+        self.collection = self.factory.create_collection_sample().model
+        self.items = self.factory.create_item_samples(
+            ['item-switzerland-west', 'item-switzerland-east'],
+            self.collection,
+            name=['item-switzerland-west', 'item-switzerland-east'],
+            db_create=True,
+        )
 
     def test_two_item_endpoint(self):
         collection_name = self.collection.name
@@ -93,7 +87,21 @@ class TwoItemsSpatialTestCase(StacBaseTestCase):
         bbox_item_west = response_item_west.json()['bbox']
         bbox_item_east = response_item_east.json()['bbox']
 
-        self.assertNotEqual(bbox_item_west, bbox_item_east, bbox_collection)
+        self.assertNotEqual(
+            bbox_item_west,
+            bbox_item_east,
+            msg='the bbox should not be the same. one should cover the east, the other the west'
+        )
+        self.assertNotEqual(
+            bbox_item_west,
+            bbox_collection,
+            msg='the item bbox should be within the collection bbox'
+        )
+        self.assertNotEqual(
+            bbox_item_east,
+            bbox_collection,
+            msg='the item bbox should be within the collection bbox'
+        )
 
         polygon_west = Polygon.from_bbox(bbox_item_west)
         polygon_east = Polygon.from_bbox(bbox_item_east)
@@ -101,7 +109,11 @@ class TwoItemsSpatialTestCase(StacBaseTestCase):
 
         collection_polygon = Polygon.from_bbox(self._round_list(bbox_collection))
 
-        self.assertEqual(collection_polygon, union_polygon)
+        self.assertEqual(
+            collection_polygon,
+            union_polygon,
+            msg='the union of item east and item west should be identical with the collection'
+        )
 
     def test_one_left_item(self):
         collection_name = self.collection.name
@@ -121,7 +133,11 @@ class TwoItemsSpatialTestCase(StacBaseTestCase):
         )
         bbox_item_west = response_item_west.json()['bbox']
 
-        self.assertEqual(self._round_list(bbox_collection), self._round_list(bbox_item_west))
+        self.assertEqual(
+            self._round_list(bbox_collection),
+            self._round_list(bbox_item_west),
+            msg='the item and the collection bbox should be congruent'
+        )
 
     def test_update_covering_item(self):
         collection_name = self.collection.name
@@ -142,7 +158,11 @@ class TwoItemsSpatialTestCase(StacBaseTestCase):
         response_collection = self.client.get(f"/{API_BASE}/collections/{collection_name}")
         bbox_collection = response_collection.json()['extent']['spatial']['bbox'][0]
 
-        self.assertEqual(self._round_list(bbox_collection), self._round_list(bbox_item))
+        self.assertEqual(
+            self._round_list(bbox_collection),
+            self._round_list(bbox_item),
+            msg='the item and the collection bbox should be congruent'
+        )
 
     def test_add_covering_item(self):
         collection_name = self.collection.name
@@ -156,13 +176,19 @@ class TwoItemsSpatialTestCase(StacBaseTestCase):
         bbox_collection_covers_ch = response_collection.json()['extent']['spatial']['bbox'][0]
 
         self.assertNotEqual(
-            self._round_list(bbox_collection_ch), self._round_list(bbox_collection_covers_ch)
+            self._round_list(bbox_collection_ch),
+            self._round_list(bbox_collection_covers_ch),
+            msg='the bbox that covers switzerland should be different from the bbox of ch'
         )
 
         polygon_ch = Polygon.from_bbox(bbox_collection_ch)
         polygon_covers_ch = Polygon.from_bbox(bbox_collection_covers_ch)
 
-        self.assertGreater(polygon_covers_ch.area, polygon_ch.area)
+        self.assertGreater(
+            polygon_covers_ch.area,
+            polygon_ch.area,
+            msg='the area of the polygon covering CH has to be bigger than the bbox CH'
+        )
 
     def test_add_another_item(self):
         collection_name = self.collection.name
@@ -176,13 +202,19 @@ class TwoItemsSpatialTestCase(StacBaseTestCase):
         bbox_collection_paris = response_collection.json()['extent']['spatial']['bbox'][0]
 
         self.assertNotEqual(
-            self._round_list(bbox_collection_ch), self._round_list(bbox_collection_paris)
+            self._round_list(bbox_collection_ch),
+            self._round_list(bbox_collection_paris),
+            msg='the bbox should have changed meanwhile'
         )
 
         polygon_ch = Polygon.from_bbox(bbox_collection_ch)
         polygon_paris = Polygon.from_bbox(bbox_collection_paris)
 
-        self.assertGreater(polygon_paris.area, polygon_ch.area)
+        self.assertGreater(
+            polygon_paris.area,
+            polygon_ch.area,
+            msg='the area of the bbox up to Paris has to be bigger than the bbox of Switzerland'
+        )
 
     def _round_list(self, unrounded_list):
         '''round a list of numbers
