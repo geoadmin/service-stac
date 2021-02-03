@@ -140,7 +140,7 @@ format:
 .PHONY: lint
 lint:
 	@echo "Run pylint..."
-	DJANGO_SETTINGS_MODULE=config.settings $(PYLINT) $(PYTHON_FILES)
+	LOGGING_CFG=0 DJANGO_SETTINGS_MODULE=config.settings $(PYLINT) $(PYTHON_FILES)
 
 
 # Running tests locally
