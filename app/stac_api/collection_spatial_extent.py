@@ -64,9 +64,6 @@ class CollectionSpatialExtentMixin():
             if trigger == 'update' and geometry != original_geometry:
                 # is the new bbox larger than (and covering) the existing
                 if Polygon.from_bbox(GEOSGeometry(geometry).extent).covers(self.extent_geometry):
-                    # pylint: disable=fixme
-                    # TODO: cover this code by a unittest, remove this comment when BGDIINF_SB-1595
-                    # is implemented
                     logger.info(
                         'Updating collections extent_geometry with item geometry changed '
                         'from %s to %s, (larger and covering bbox)',
@@ -90,14 +87,22 @@ class CollectionSpatialExtentMixin():
                         },
                     )
                     start = time.time()
-                    qs = type(item).objects.filter(collection_id=self.pk).exclude(id=item.pk)
+                    raw_sql = '''
+                    SELECT
+                    1 AS id,
+                    st_AsText(st_extent(geometry)) AS geometry__extent
+                    FROM stac_api_item
+                    WHERE collection_id = %d
+                    AND NOT id = %d
+                    ''' % (self.pk, item.pk)
+                    qs = type(item).objects.raw(raw_sql)
                     union_geometry = GEOSGeometry(geometry)
-                    for _item in qs:
-                        union_geometry = union_geometry.union(_item.geometry)
-                    self.extent_geometry = Polygon.from_bbox(union_geometry.extent)
+                    self.extent_geometry = Polygon.from_bbox(
+                        union_geometry.union(GEOSGeometry(qs[0].geometry__extent)).extent
+                    )
                     logger.info(
                         'Collection extent_geometry updated to %s in %ss, after item update',
-                        union_geometry.extent,
+                        self.extent_geometry.extent,
                         time.time() - start,
                         extra={
                             'collection': self.name, 'item': item.name, 'trigger': 'item-update'
@@ -116,17 +121,22 @@ class CollectionSpatialExtentMixin():
                     },
                 )
                 start = time.time()
-                qs = type(item).objects.filter(collection_id=self.pk).exclude(id=item.pk)
-                union_geometry = GEOSGeometry('Polygon EMPTY')
-                if bool(qs):
-                    for _item in qs:
-                        union_geometry = union_geometry.union(_item.geometry)
-                    self.extent_geometry = Polygon.from_bbox(union_geometry.extent)
+                raw_sql = '''
+                    SELECT
+                    1 AS id,
+                    st_AsText(st_extent(geometry)) AS geometry__extent
+                    FROM stac_api_item
+                    WHERE collection_id = %d
+                    AND NOT id = %d
+                    ''' % (self.pk, item.pk)
+                qs = type(item).objects.raw(raw_sql)
+                if bool(qs[0].geometry__extent):
+                    self.extent_geometry = GEOSGeometry(qs[0].geometry__extent)
                 else:
                     self.extent_geometry = None
                 logger.info(
                     'Collection extent_geometry updated to %s in %ss, after item deletion',
-                    union_geometry.extent if self.extent_geometry else None,
+                    self.extent_geometry.extent if self.extent_geometry else None,
                     time.time() - start,
                     extra={
                         'collection': self.name, 'item': item.name, 'trigger': 'item-delete'

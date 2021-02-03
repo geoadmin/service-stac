@@ -3,8 +3,10 @@
 import django.contrib.gis.db.models.fields
 import django.contrib.postgres.fields
 import django.core.serializers.json
-from django.db import migrations, models
 import django.db.models.deletion
+from django.db import migrations
+from django.db import models
+
 import stac_api.collection_spatial_extent
 import stac_api.collection_summaries
 import stac_api.collection_temporal_extent
@@ -16,33 +18,86 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
             name='Collection',
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=255, unique=True, validators=[stac_api.validators.validate_name], verbose_name='id')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name='ID'
+                    )
+                ),
+                (
+                    'name',
+                    models.CharField(
+                        max_length=255,
+                        unique=True,
+                        validators=[stac_api.validators.validate_name],
+                        verbose_name='id'
+                    )
+                ),
                 ('created', models.DateTimeField(auto_now_add=True)),
                 ('updated', models.DateTimeField(auto_now=True)),
                 ('description', models.TextField()),
-                ('extent_geometry', django.contrib.gis.db.models.fields.PolygonField(blank=True, default=None, editable=False, null=True, srid=4326, validators=[stac_api.validators.validate_geometry])),
-                ('extent_start_datetime', models.DateTimeField(blank=True, editable=False, null=True)),
-                ('extent_end_datetime', models.DateTimeField(blank=True, editable=False, null=True)),
+                (
+                    'extent_geometry',
+                    django.contrib.gis.db.models.fields.PolygonField(
+                        blank=True,
+                        default=None,
+                        editable=False,
+                        null=True,
+                        srid=4326,
+                        validators=[stac_api.validators.validate_geometry]
+                    )
+                ),
+                (
+                    'extent_start_datetime',
+                    models.DateTimeField(blank=True, editable=False, null=True)
+                ),
+                (
+                    'extent_end_datetime',
+                    models.DateTimeField(blank=True, editable=False, null=True)
+                ),
                 ('license', models.CharField(max_length=30)),
-                ('summaries', models.JSONField(default=stac_api.models.get_default_summaries_value, editable=False, encoder=django.core.serializers.json.DjangoJSONEncoder)),
+                (
+                    'summaries',
+                    models.JSONField(
+                        default=stac_api.models.get_default_summaries_value,
+                        editable=False,
+                        encoder=django.core.serializers.json.DjangoJSONEncoder
+                    )
+                ),
                 ('title', models.CharField(blank=True, max_length=255, null=True)),
                 ('etag', models.CharField(editable=False, max_length=56)),
             ],
-            bases=(models.Model, stac_api.collection_spatial_extent.CollectionSpatialExtentMixin, stac_api.collection_summaries.CollectionSummariesMixin, stac_api.collection_temporal_extent.CollectionTemporalExtentMixin),
+            bases=(
+                models.Model,
+                stac_api.collection_spatial_extent.CollectionSpatialExtentMixin,
+                stac_api.collection_summaries.CollectionSummariesMixin,
+                stac_api.collection_temporal_extent.CollectionTemporalExtentMixin
+            ),
         ),
         migrations.CreateModel(
             name='ConformancePage',
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('conformsTo', django.contrib.postgres.fields.ArrayField(base_field=models.URLField(), default=stac_api.models.get_conformance_default_links, help_text='Comma-separated list of URLs for the value conformsTo', size=None)),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name='ID'
+                    )
+                ),
+                (
+                    'conformsTo',
+                    django.contrib.postgres.fields.ArrayField(
+                        base_field=models.URLField(),
+                        default=stac_api.models.get_conformance_default_links,
+                        help_text='Comma-separated list of URLs for the value conformsTo',
+                        size=None
+                    )
+                ),
             ],
             options={
                 'verbose_name': 'STAC Conformance Page',
@@ -51,9 +106,29 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Item',
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=255, validators=[stac_api.validators.validate_name], verbose_name='id')),
-                ('geometry', django.contrib.gis.db.models.fields.PolygonField(default='SRID=4326;POLYGON ((5.96 45.82, 5.96 47.81, 10.49 47.81, 10.49 45.82, 5.96 45.82))', srid=4326, validators=[stac_api.validators.validate_geometry])),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name='ID'
+                    )
+                ),
+                (
+                    'name',
+                    models.CharField(
+                        max_length=255,
+                        validators=[stac_api.validators.validate_name],
+                        verbose_name='id'
+                    )
+                ),
+                (
+                    'geometry',
+                    django.contrib.gis.db.models.fields.PolygonField(
+                        default=
+                        'SRID=4326;POLYGON ((5.96 45.82, 5.96 47.81, 10.49 47.81, 10.49 45.82, 5.96 45.82))',
+                        srid=4326,
+                        validators=[stac_api.validators.validate_geometry]
+                    )
+                ),
                 ('created', models.DateTimeField(auto_now_add=True)),
                 ('updated', models.DateTimeField(auto_now=True)),
                 ('properties_datetime', models.DateTimeField(blank=True, null=True)),
@@ -61,7 +136,12 @@ class Migration(migrations.Migration):
                 ('properties_end_datetime', models.DateTimeField(blank=True, null=True)),
                 ('properties_title', models.CharField(blank=True, max_length=255, null=True)),
                 ('etag', models.CharField(editable=False, max_length=56)),
-                ('collection', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='stac_api.collection')),
+                (
+                    'collection',
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to='stac_api.collection'
+                    )
+                ),
             ],
             options={
                 'unique_together': {('collection', 'name')},
@@ -70,10 +150,29 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='LandingPage',
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(default='ch', max_length=255, unique=True, validators=[stac_api.validators.validate_name], verbose_name='id')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name='ID'
+                    )
+                ),
+                (
+                    'name',
+                    models.CharField(
+                        default='ch',
+                        max_length=255,
+                        unique=True,
+                        validators=[stac_api.validators.validate_name],
+                        verbose_name='id'
+                    )
+                ),
                 ('title', models.CharField(default='data.geo.admin.ch', max_length=255)),
-                ('description', models.TextField(default='Data Catalog of the Swiss Federal Spatial Data Infrastructure')),
+                (
+                    'description',
+                    models.TextField(
+                        default='Data Catalog of the Swiss Federal Spatial Data Infrastructure'
+                    )
+                ),
             ],
             options={
                 'verbose_name': 'STAC Landing Page',
@@ -82,12 +181,30 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='ItemLink',
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name='ID'
+                    )
+                ),
                 ('href', models.URLField()),
-                ('rel', models.CharField(max_length=30, validators=[stac_api.validators.validate_link_rel])),
+                (
+                    'rel',
+                    models.CharField(
+                        max_length=30, validators=[stac_api.validators.validate_link_rel]
+                    )
+                ),
                 ('link_type', models.CharField(blank=True, max_length=150, null=True)),
                 ('title', models.CharField(blank=True, max_length=255, null=True)),
-                ('item', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='links', related_query_name='link', to='stac_api.item')),
+                (
+                    'item',
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name='links',
+                        related_query_name='link',
+                        to='stac_api.item'
+                    )
+                ),
             ],
             options={
                 'abstract': False,
@@ -96,12 +213,35 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Provider',
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name='ID'
+                    )
+                ),
                 ('name', models.CharField(max_length=200)),
                 ('description', models.TextField(blank=True, null=True)),
-                ('roles', django.contrib.postgres.fields.ArrayField(base_field=models.CharField(max_length=9), blank=True, help_text='Comma-separated list of roles. Possible values are licensor, producer, processor, host', null=True, size=None)),
+                (
+                    'roles',
+                    django.contrib.postgres.fields.ArrayField(
+                        base_field=models.CharField(max_length=9),
+                        blank=True,
+                        help_text=
+                        'Comma-separated list of roles. Possible values are licensor, producer, processor, host',
+                        null=True,
+                        size=None
+                    )
+                ),
                 ('url', models.URLField(blank=True, null=True)),
-                ('collection', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='providers', related_query_name='provider', to='stac_api.collection')),
+                (
+                    'collection',
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name='providers',
+                        related_query_name='provider',
+                        to='stac_api.collection'
+                    )
+                ),
             ],
             options={
                 'unique_together': {('collection', 'name')},
@@ -110,12 +250,30 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='LandingPageLink',
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name='ID'
+                    )
+                ),
                 ('href', models.URLField()),
-                ('rel', models.CharField(max_length=30, validators=[stac_api.validators.validate_link_rel])),
+                (
+                    'rel',
+                    models.CharField(
+                        max_length=30, validators=[stac_api.validators.validate_link_rel]
+                    )
+                ),
                 ('link_type', models.CharField(blank=True, max_length=150, null=True)),
                 ('title', models.CharField(blank=True, max_length=255, null=True)),
-                ('landing_page', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='links', related_query_name='link', to='stac_api.landingpage')),
+                (
+                    'landing_page',
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name='links',
+                        related_query_name='link',
+                        to='stac_api.landingpage'
+                    )
+                ),
             ],
             options={
                 'unique_together': {('rel', 'landing_page')},
@@ -124,12 +282,30 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='CollectionLink',
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name='ID'
+                    )
+                ),
                 ('href', models.URLField()),
-                ('rel', models.CharField(max_length=30, validators=[stac_api.validators.validate_link_rel])),
+                (
+                    'rel',
+                    models.CharField(
+                        max_length=30, validators=[stac_api.validators.validate_link_rel]
+                    )
+                ),
                 ('link_type', models.CharField(blank=True, max_length=150, null=True)),
                 ('title', models.CharField(blank=True, max_length=255, null=True)),
-                ('collection', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='links', related_query_name='link', to='stac_api.collection')),
+                (
+                    'collection',
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name='links',
+                        related_query_name='link',
+                        to='stac_api.collection'
+                    )
+                ),
             ],
             options={
                 'unique_together': {('rel', 'collection')},
@@ -139,20 +315,165 @@ class Migration(migrations.Migration):
             name='Asset',
             fields=[
                 ('id', models.BigAutoField(primary_key=True, serialize=False)),
-                ('name', models.CharField(max_length=255, validators=[stac_api.validators.validate_name], verbose_name='id')),
-                ('file', models.FileField(max_length=255, upload_to=stac_api.models.upload_asset_to_path_hook)),
-                ('checksum_multihash', models.CharField(blank=True, default='', editable=False, max_length=255)),
+                (
+                    'name',
+                    models.CharField(
+                        max_length=255,
+                        validators=[stac_api.validators.validate_name],
+                        verbose_name='id'
+                    )
+                ),
+                (
+                    'file',
+                    models.FileField(
+                        max_length=255, upload_to=stac_api.models.upload_asset_to_path_hook
+                    )
+                ),
+                (
+                    'checksum_multihash',
+                    models.CharField(blank=True, default='', editable=False, max_length=255)
+                ),
                 ('description', models.TextField(blank=True, default=None, null=True)),
                 ('eo_gsd', models.FloatField(blank=True, null=True)),
-                ('geoadmin_lang', models.CharField(blank=True, choices=[(None, ''), ('de', 'German'), ('it', 'Italian'), ('fr', 'French'), ('rm', 'Romansh'), ('en', 'English')], default=None, max_length=2, null=True)),
-                ('geoadmin_variant', models.CharField(blank=True, max_length=25, null=True, validators=[stac_api.validators.validate_geoadmin_variant])),
+                (
+                    'geoadmin_lang',
+                    models.CharField(
+                        blank=True,
+                        choices=[(None, ''), ('de', 'German'), ('it', 'Italian'), ('fr', 'French'),
+                                 ('rm', 'Romansh'), ('en', 'English')],
+                        default=None,
+                        max_length=2,
+                        null=True
+                    )
+                ),
+                (
+                    'geoadmin_variant',
+                    models.CharField(
+                        blank=True,
+                        max_length=25,
+                        null=True,
+                        validators=[stac_api.validators.validate_geoadmin_variant]
+                    )
+                ),
                 ('proj_epsg', models.IntegerField(blank=True, null=True)),
                 ('title', models.CharField(blank=True, max_length=255, null=True)),
-                ('media_type', models.CharField(choices=[('application/x.ascii-grid+zip', 'Zipped ESRI ASCII raster format (.asc) (application/x.ascii-grid+zip)'), ('application/x.ascii-xyz+zip', 'Zipped XYZ (.xyz) (application/x.ascii-xyz+zip)'), ('application/x.e00+zip', 'Zipped e00 (application/x.e00+zip)'), ('image/tiff; application=geotiff', 'GeoTIFF (image/tiff; application=geotiff)'), ('application/x.geotiff+zip', 'Zipped GeoTIFF (application/x.geotiff+zip)'), ('application/x.tiff+zip', 'Zipped TIFF (application/x.tiff+zip)'), ('application/x.png+zip', 'Zipped PNG (application/x.png+zip)'), ('application/x.jpeg+zip', 'Zipped JPEG (application/x.jpeg+zip)'), ('application/vnd.google-earth.kml+xml', 'KML (application/vnd.google-earth.kml+xml)'), ('application/vnd.google-earth.kmz', 'Zipped KML (application/vnd.google-earth.kmz)'), ('application/x.dxf+zip', 'Zipped DXF (application/x.dxf+zip)'), ('application/gml+xml', 'GML (application/gml+xml)'), ('application/x.gml+zip', 'Zipped GML (application/x.gml+zip)'), ('application/vnd.las', 'LIDAR (application/vnd.las)'), ('application/vnd.laszip', 'Zipped LIDAR (application/vnd.laszip)'), ('application/x.shapefile+zip', 'Zipped Shapefile (application/x.shapefile+zip)'), ('application/x.filegdb+zip', 'Zipped File Geodatabase (application/x.filegdb+zip)'), ('application/x.ms-access+zip', 'Zipped Personal Geodatabase (application/x.ms-access+zip)'), ('application/x.ms-excel+zip', 'Zipped Excel (application/x.ms-excel+zip)'), ('application/x.tab+zip', 'Zipped Mapinfo-TAB (application/x.tab+zip)'), ('application/x.tab-raster+zip', 'Zipped Mapinfo-Raster-TAB (application/x.tab-raster+zip)'), ('application/x.csv+zip', 'Zipped CSV (application/x.csv+zip)'), ('text/csv', 'CSV (text/csv)'), ('application/geopackage+sqlite3', 'Geopackage (application/geopackage+sqlite3)'), ('application/x.geopackage+zip', 'Zipped Geopackage (application/x.geopackage+zip)'), ('application/geo+json', 'GeoJSON (application/geo+json)'), ('application/x.geojson+zip', 'Zipped GeoJSON (application/x.geojson+zip)'), ('application/x.interlis; version=2.3', 'Interlis 2 (application/x.interlis; version=2.3)'), ('application/x.interlis+zip; version=2.3', 'Zipped XTF (2.3) (application/x.interlis+zip; version=2.3)'), ('application/x.interlis; version=1', 'Interlis 1 (application/x.interlis; version=1)'), ('application/x.interlis+zip; version=1', 'Zipped ITF (application/x.interlis+zip; version=1)'), ('image/tiff; application=geotiff; profile=cloud-optimized', 'Cloud Optimized GeoTIFF (COG) (image/tiff; application=geotiff; profile=cloud-optimized)'), ('application/pdf', 'PDF (application/pdf)'), ('application/x.pdf+zip', 'Zipped PDF (application/x.pdf+zip)'), ('application/json', 'JSON (application/json)'), ('application/x.json+zip', 'Zipped JSON (application/x.json+zip)'), ('application/x-netcdf', 'NetCDF (application/x-netcdf)'), ('application/x.netcdf+zip', 'Zipped NetCDF (application/x.netcdf+zip)'), ('application/xml', 'XML (application/xml)'), ('application/x.xml+zip', 'Zipped XML (application/x.xml+zip)'), ('application/vnd.mapbox-vector-tile', 'mbtiles (application/vnd.mapbox-vector-tile)'), ('text/plain', 'Text (text/plain)'), ('text/x.plain+zip', 'Zipped text (text/x.plain+zip)')], max_length=200)),
+                (
+                    'media_type',
+                    models.CharField(
+                        choices=[
+                            (
+                                'application/x.ascii-grid+zip',
+                                'Zipped ESRI ASCII raster format (.asc) (application/x.ascii-grid+zip)'
+                            ),
+                            (
+                                'application/x.ascii-xyz+zip',
+                                'Zipped XYZ (.xyz) (application/x.ascii-xyz+zip)'
+                            ), ('application/x.e00+zip', 'Zipped e00 (application/x.e00+zip)'),
+                            (
+                                'image/tiff; application=geotiff',
+                                'GeoTIFF (image/tiff; application=geotiff)'
+                            ),
+                            (
+                                'application/x.geotiff+zip',
+                                'Zipped GeoTIFF (application/x.geotiff+zip)'
+                            ), ('application/x.tiff+zip', 'Zipped TIFF (application/x.tiff+zip)'),
+                            ('application/x.png+zip', 'Zipped PNG (application/x.png+zip)'),
+                            ('application/x.jpeg+zip', 'Zipped JPEG (application/x.jpeg+zip)'),
+                            (
+                                'application/vnd.google-earth.kml+xml',
+                                'KML (application/vnd.google-earth.kml+xml)'
+                            ),
+                            (
+                                'application/vnd.google-earth.kmz',
+                                'Zipped KML (application/vnd.google-earth.kmz)'
+                            ), ('application/x.dxf+zip', 'Zipped DXF (application/x.dxf+zip)'),
+                            ('application/gml+xml', 'GML (application/gml+xml)'),
+                            ('application/x.gml+zip', 'Zipped GML (application/x.gml+zip)'),
+                            ('application/vnd.las', 'LIDAR (application/vnd.las)'),
+                            ('application/vnd.laszip', 'Zipped LIDAR (application/vnd.laszip)'),
+                            (
+                                'application/x.shapefile+zip',
+                                'Zipped Shapefile (application/x.shapefile+zip)'
+                            ),
+                            (
+                                'application/x.filegdb+zip',
+                                'Zipped File Geodatabase (application/x.filegdb+zip)'
+                            ),
+                            (
+                                'application/x.ms-access+zip',
+                                'Zipped Personal Geodatabase (application/x.ms-access+zip)'
+                            ),
+                            (
+                                'application/x.ms-excel+zip',
+                                'Zipped Excel (application/x.ms-excel+zip)'
+                            ),
+                            ('application/x.tab+zip', 'Zipped Mapinfo-TAB (application/x.tab+zip)'),
+                            (
+                                'application/x.tab-raster+zip',
+                                'Zipped Mapinfo-Raster-TAB (application/x.tab-raster+zip)'
+                            ), ('application/x.csv+zip', 'Zipped CSV (application/x.csv+zip)'),
+                            ('text/csv', 'CSV (text/csv)'),
+                            (
+                                'application/geopackage+sqlite3',
+                                'Geopackage (application/geopackage+sqlite3)'
+                            ),
+                            (
+                                'application/x.geopackage+zip',
+                                'Zipped Geopackage (application/x.geopackage+zip)'
+                            ), ('application/geo+json', 'GeoJSON (application/geo+json)'),
+                            (
+                                'application/x.geojson+zip',
+                                'Zipped GeoJSON (application/x.geojson+zip)'
+                            ),
+                            (
+                                'application/x.interlis; version=2.3',
+                                'Interlis 2 (application/x.interlis; version=2.3)'
+                            ),
+                            (
+                                'application/x.interlis+zip; version=2.3',
+                                'Zipped XTF (2.3) (application/x.interlis+zip; version=2.3)'
+                            ),
+                            (
+                                'application/x.interlis; version=1',
+                                'Interlis 1 (application/x.interlis; version=1)'
+                            ),
+                            (
+                                'application/x.interlis+zip; version=1',
+                                'Zipped ITF (application/x.interlis+zip; version=1)'
+                            ),
+                            (
+                                'image/tiff; application=geotiff; profile=cloud-optimized',
+                                'Cloud Optimized GeoTIFF (COG) (image/tiff; application=geotiff; profile=cloud-optimized)'
+                            ), ('application/pdf', 'PDF (application/pdf)'),
+                            ('application/x.pdf+zip', 'Zipped PDF (application/x.pdf+zip)'),
+                            ('application/json', 'JSON (application/json)'),
+                            ('application/x.json+zip', 'Zipped JSON (application/x.json+zip)'),
+                            ('application/x-netcdf', 'NetCDF (application/x-netcdf)'), (
+                                'application/x.netcdf+zip',
+                                'Zipped NetCDF (application/x.netcdf+zip)'
+                            ), ('application/xml', 'XML (application/xml)'),
+                            ('application/x.xml+zip', 'Zipped XML (application/x.xml+zip)'),
+                            (
+                                'application/vnd.mapbox-vector-tile',
+                                'mbtiles (application/vnd.mapbox-vector-tile)'
+                            ), ('text/plain', 'Text (text/plain)'),
+                            ('text/x.plain+zip', 'Zipped text (text/x.plain+zip)')
+                        ],
+                        max_length=200
+                    )
+                ),
                 ('created', models.DateTimeField(auto_now_add=True)),
                 ('updated', models.DateTimeField(auto_now=True)),
                 ('etag', models.CharField(editable=False, max_length=56)),
-                ('item', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='assets', related_query_name='asset', to='stac_api.item')),
+                (
+                    'item',
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name='assets',
+                        related_query_name='asset',
+                        to='stac_api.item'
+                    )
+                ),
             ],
             options={
                 'unique_together': {('item', 'name')},
