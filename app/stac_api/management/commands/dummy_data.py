@@ -223,8 +223,8 @@ class Command(BaseCommand):
         parser.add_argument(
             '--parallel-items',
             type=int,
-            default=10,
-            help="Number of items created in parallel (default 10)"
+            default=5,
+            help="Number of items created in parallel (default 5)"
         )
 
     def handle(self, *args, **options):
