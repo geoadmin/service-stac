@@ -193,15 +193,7 @@ of the code.
 By default only `WARNING` logs of the `tests` module is printed in the console during unit testing.
 All logs are also added to two logs files; `app/tests/logs/unittest-json-logs.json` and `app/tests/logs/unittest-standard-logs.txt`.
 
-To enable all logs on the console simply set the `TEST_ENABLE_LOGGING=1` environment variable.
-
-```bash
-TEST_ENABLE_LOGGING=1 ./manage.py test
-```
-
-or set the environment variable directly in the `.venv.local` file.
-
-Alternatively for a finer logging granularity during unit test, a new logging configuration base on `app/config/logging-cfg-test.yml` can be generated and set via `LOGGING_CFG` environment variable.
+Alternatively for a finer logging granularity during unit test, a new logging configuration base on `app/config/logging-cfg-unittest.yml` can be generated and set via `LOGGING_CFG` environment variable or logging can be completely disabled by setting `LOGGING_CFG=0`.
 
 ### Using Django shell
 

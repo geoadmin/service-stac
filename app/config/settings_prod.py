@@ -34,7 +34,7 @@ if APP_ENV.lower() in ['local', 'default']:
     print("Running locally hence injecting env vars from {}".format(BASE_DIR / f'.env.{APP_ENV}'))
     # set the APP_ENV to local (in case it was set from default above)
     os.environ['APP_ENV'] = APP_ENV
-    load_dotenv(BASE_DIR / f'.env.{APP_ENV}')
+    load_dotenv(BASE_DIR / f'.env.{APP_ENV}', override=True, verbose=True)
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('SECRET_KEY', None)

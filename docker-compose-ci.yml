@@ -27,7 +27,6 @@ services:
       - DB_NAME=service_stac
       - DB_HOST=db
       - APP_ENV=ci
-      - TEST_ENABLE_LOGGING=1
       - AWS_ACCESS_KEY_ID=
       - AWS_SECRET_ACCESS_KEY=
       - AWS_STORAGE_BUCKET_NAME=bigbag
