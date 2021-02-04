@@ -3,11 +3,12 @@
 # Buster slim python 3.7 base image.
 FROM python:3.7-slim-buster as base
 ENV HTTP_PORT 8080
-RUN groupadd -r geoadmin && useradd -r -s /bin/false -g geoadmin geoadmin
 
-
-# install relevent packages
-RUN apt-get update \
+RUN groupadd -r geoadmin \
+    && useradd -r -s /bin/false -g geoadmin geoadmin \
+    && mkdir -p /logs && chown geoadmin:geoadmin /logs \
+    # install relevent packages
+    && apt-get update \
     && apt-get install -y binutils libproj-dev gdal-bin \
     # the following line contains debug tools that can be removed later
     curl net-tools iputils-ping postgresql-client-common jq openssh-client \
