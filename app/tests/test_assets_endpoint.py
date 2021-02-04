@@ -173,6 +173,9 @@ class AssetsWriteEndpointTestCase(StacBaseTestCase):
             path, data=asset.get_json('post'), content_type="application/json"
         )
         self.assertStatusCode(400, response)
+        self.assertEqual({'extra_attribute': ['Unexpected property in payload']},
+                         response.json()['description'],
+                         msg='Unexpected error message')
 
         # Make sure that the asset is not found in DB
         self.assertFalse(
@@ -192,6 +195,14 @@ class AssetsWriteEndpointTestCase(StacBaseTestCase):
             path, data=asset.get_json('post', keep_read_only=True), content_type="application/json"
         )
         self.assertStatusCode(400, response)
+        self.assertEqual(
+            {
+                'created': ['Found read-only property in payload'],
+                'href': ['Found read-only property in payload']
+            },
+            response.json()['description'],
+            msg='Unexpected error message',
+        )
 
         # Make sure that the asset is not found in DB
         self.assertFalse(
@@ -237,6 +248,16 @@ class AssetsWriteEndpointTestCase(StacBaseTestCase):
             path, data=asset.get_json('post'), content_type="application/json"
         )
         self.assertStatusCode(400, response)
+        self.assertEqual(
+            {
+                'eo:gsd': ['A valid number is required.'],
+                'geoadmin:lang': ['"12" is not a valid choice.'],
+                'proj:epsg': ['A valid integer is required.'],
+                'type': ['"dummy" is not a valid choice.']
+            },
+            response.json()['description'],
+            msg='Unexpected error message',
+        )
 
         # Make sure that the asset is not found in DB
         self.assertFalse(
@@ -268,6 +289,17 @@ class AssetsWriteEndpointTestCase(StacBaseTestCase):
             path, data=asset.get_json('post'), content_type="application/json"
         )
         self.assertStatusCode(400, response)
+        self.assertEqual(
+            {
+                'geoadmin:variant': [
+                    'Invalid geoadmin:variant, special characters beside one '
+                    'space are not allowed',
+                    'Ensure this field has no more than 25 characters.'
+                ]
+            },
+            response.json()['description'],
+            msg='Unexpected error message',
+        )
 
 
 class AssetsWriteEndpointAssetFileTestCase(StacBaseTestCase):
@@ -537,6 +569,9 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
             path, data=changed_asset.get_json('put'), content_type="application/json"
         )
         self.assertStatusCode(400, response)
+        self.assertEqual({'extra_attribute': ['Unexpected property in payload']},
+                         response.json()['description'],
+                         msg='Unexpected error message')
 
     def test_asset_endpoint_put_read_only_in_payload(self):
         collection_name = self.collection['name']
@@ -558,6 +593,9 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
             content_type="application/json"
         )
         self.assertStatusCode(400, response)
+        self.assertEqual({'created': ['Found read-only property in payload']},
+                         response.json()['description'],
+                         msg='Unexpected error message')
 
     def test_asset_endpoint_put_rename_asset(self):
         collection_name = self.collection['name']
@@ -639,6 +677,9 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
             path, data=changed_asset.get_json('patch'), content_type="application/json"
         )
         self.assertStatusCode(400, response)
+        self.assertEqual({'extra_payload': ['Unexpected property in payload']},
+                         response.json()['description'],
+                         msg='Unexpected error message')
 
     def test_asset_endpoint_patch_read_only_in_payload(self):
         collection_name = self.collection['name']
@@ -658,6 +699,9 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
             content_type="application/json"
         )
         self.assertStatusCode(400, response)
+        self.assertEqual({'created': ['Found read-only property in payload']},
+                         response.json()['description'],
+                         msg='Unexpected error message')
 
 
 class AssetsDeleteEndpointTestCase(StacBaseTestCase):

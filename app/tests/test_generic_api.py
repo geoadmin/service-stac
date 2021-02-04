@@ -46,19 +46,27 @@ class ApiPaginationTestCase(StacBaseTestCase):
     def test_invalid_limit_query(self):
         response = self.client.get(f"/{API_BASE}/collections?limit=0")
         self.assertStatusCode(400, response)
+        self.assertEqual(['limit query parameter to small, must be in range 1..100'],
+                         response.json()['description'],
+                         msg='Unexpected error message')
 
         response = self.client.get(f"/{API_BASE}/collections?limit=test")
         self.assertStatusCode(400, response)
+        self.assertEqual(['invalid limit query parameter: must be an integer'],
+                         response.json()['description'],
+                         msg='Unexpected error message')
 
         response = self.client.get(f"/{API_BASE}/collections?limit=-1")
         self.assertStatusCode(400, response)
+        self.assertEqual(['limit query parameter to small, must be in range 1..100'],
+                         response.json()['description'],
+                         msg='Unexpected error message')
 
         response = self.client.get(f"/{API_BASE}/collections?limit=1000")
         self.assertStatusCode(400, response)
-
-    def test_http_error_invalid_query_param(self):
-        response = self.client.get(f"/{API_BASE}/collections?limit=0")
-        self.assertStatusCode(400, response)
+        self.assertEqual(['limit query parameter to big, must be in range 1..100'],
+                         response.json()['description'],
+                         msg='Unexpected error message')
 
     def test_pagination(self):
 
