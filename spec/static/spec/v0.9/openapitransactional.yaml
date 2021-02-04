@@ -26,6 +26,62 @@ tags:
 - description: Extension to OGC API - Features to support STAC metadata model and
     search API
   name: STAC
+- description: |
+    All write requests require authentication. The currently available options for a user to
+    authenticate himself are described below.
+
+    # Session authentication
+    When using the browsable API the user can simply use the admin interface for logging in.
+    Once logged in, the browsable API can be used to perform write requests.
+
+    # Basic authentication
+    The username and password for authentication can be added to every write request the user wants to perform.
+    Here is an example of posting an asset using curl (_username_="MickeyMouse", _password_="I_love_Minnie_Mouse"):
+    ```
+    curl --request POST \
+      --user MickeyMouse:I_love_Minnie_Mouse \
+      --url https://service-stac.dev.bgdi.ch/api/stac/v0.9/collections/ch.swisstopo.swisstlmregio/items/swisstlmregio-2020/assets \
+      --header 'Content-Type: application/json' \
+      --data '{
+        "id": "fancy_unique_id",
+        "item": "swisstlmregio-2020",
+        "title": "My title",
+        "type": "application/x.filegdb+zip",
+        "description": "My description",
+        "proj:epsg": 2056,
+        "checksum:multihash": "01205c3fd6978a7d0b051efaa4263a04"
+    }'
+    ```
+
+    # Token authentication
+    A user specific token for authentication can be added to every write request the user wants to perform.
+    Here is an example of posting an asset using curl:
+    ```
+    curl --request POST \
+      --url https://service-stac.dev.bgdi.ch/api/stac/v0.9/collections/ch.swisstopo.swisstlmregio/items/swisstlmregio-2020/assets \
+      --header 'Authorization: Token ccecf40693bfc52ba090cd46eb7f19e723fe831f' \
+      --header 'Content-Type: application/json' \
+      --data '{
+        "id": "fancy_unique_id",
+        "item": "swisstlmregio-2020",
+        "title": "My title",
+        "type": "application/x.filegdb+zip",
+        "description": "My description",
+        "proj:epsg": 2056,
+        "checksum:multihash": "01205c3fd6978a7d0b051efaa4263a04"
+    }'
+    ```
+    Tokens can either be generated in the admin interface or existing users can perform a POST request
+    on the get-token endpoint to request a token (also see description of the get-token POST endpoint
+    at the bottom).
+    Here is an example using curl:
+    ```
+    curl --request POST \
+      --url https://service-stac.dev.bgdi.ch/api/stac/v0.9/get-token \
+      --header 'Content-Type: application/json' \
+      --data '{"username": "MickeyMouse", "password": "I_love_Minnie_Mouse"}'
+    ```
+  name: Data Management
 components:
   parameters:
     bbox:
@@ -235,6 +291,29 @@ components:
         status, without a body, which tells the client that the cached version of
         the response is not good to use anymore.
       example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
+    assetId:
+      name: assetId
+      in: path
+      description: Local identifier of a asset
+      required: true
+      schema:
+        type: string
+    IfMatchWrite:
+      name: If-Match
+      in: header
+      schema:
+        type: string
+      description: >-
+        The RFC7232 `If-Match` header field makes the PUT/PATCH/DEL request method
+        conditional. It is composed of a comma separated list of ETags or value "*".
+
+
+        The server compares the client's ETags (sent with `If-Match`) with the ETag
+        for its current version of the resource, and if both values don't match (that
+        is, the resource has changed), the server sends back a `412 Precondition Failed`
+        status, without a body, which tells the client that he would overwrite another
+        changes of the resource.
+      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
   responses:
     Collection:
       headers:
@@ -423,6 +502,69 @@ components:
           example:
             code: 500
             description: "Internal server error"
+    Assets:
+      description: >-
+        The response is a document consisting of all assets of the feature.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/assets"
+    Asset:
+      description: >-
+        The response is a document consisting of one asset of the feature.
+      headers:
+        ETag:
+          $ref: "#/components/schemas/ETag"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/itemAsset"
+    DeletedResource:
+      description: Status of the delete resource
+      content:
+        application/json:
+          schema:
+            description: >-
+              Information about the deleted resource and a link to the parent resource
+            type: object
+            properties:
+              code:
+                type: int
+                example: 200
+              description:
+                type: string
+                example: Resource successfully deleted
+              links:
+                type: array
+                items:
+                  $ref: "#/components/schemas/link"
+                description: >-
+                  The array contain at least a link to the parent resource (`rel:
+                  parent`).
+                example:
+                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items
+                  rel: parent
+            required:
+            - code
+            - links
+    BadRequest:
+      description: The request was malformed or semantically invalid
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/exception"
+          example:
+            code: 400
+            description: "Invalid parameter"
+    PermissionDenied:
+      description: No Permission for this request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/exception"
+          example:
+            code: 403
+            description: "Permission denied"
   schemas:
     bbox:
       description: >-
@@ -473,6 +615,12 @@ components:
         bbox:
           $ref: "#/components/schemas/bbox"
       type: object
+      example:
+        bbox:
+        - 5.96
+        - 45.82
+        - 10.49
+        - 47.81
     checksum:multihash:
       description: >-
         `sha2-256` or `md5` checksum of the asset in [multihash](https://multiformats.io/multihash/)
@@ -659,6 +807,10 @@ components:
         collections:
           $ref: "#/components/schemas/collectionsArray"
       type: object
+      example:
+        collections:
+        - ch.swisstopo.swisstlmregio
+        - ch.bfe.energieschweiz
     confClasses:
       properties:
         conformsTo:
@@ -680,8 +832,8 @@ components:
       type: object
     description:
       description: >-
-        Detailed multi-line description to fully explain the catalog or collection.
-
+        Detailed multi-line description to fully explain the object (collection, item,
+        asset, ...).
 
         [CommonMark 0.29](http://commonmark.org/) syntax MAY be used for rich text
         representation.
@@ -863,12 +1015,22 @@ components:
         ids:
           $ref: "#/components/schemas/ids"
       type: object
+      example:
+        ids:
+        - swisstlmregio-2019
+        - swisstlmregio-2020
     intersectsFilter:
       description: Only returns items that intersect with the provided polygon.
       properties:
         intersects:
           $ref: https://geojson.org/schema/Geometry.json
       type: object
+      example:
+        intersects:
+          type: "Point"
+          coordinates:
+          - 7
+          - 46
     itemBase:
       description: >-
         A GeoJSON Feature augmented with foreign members that contain values relevant
@@ -972,13 +1134,6 @@ components:
             example: http://cool-sat.com/catalog/collections/cs/items/CS3-20160503_132130_04/thumb.png
             format: url
             type: string
-          roles:
-            description: Purposes of the asset
-            example:
-            - thumbnail
-            items:
-              type: string
-            type: array
           title:
             description: Displayed title
             example: Thumbnail
@@ -1001,7 +1156,6 @@ components:
         - type
         - created
         - updated
-        - id
         type: object
       type: object
       readOnly: true
@@ -1148,10 +1302,17 @@ components:
       type: string
     limit:
       default: 10
-      description: The maximum number of results to return (page size). Defaults to
-        10
+      description: >-
+        The optional limit parameter limits the number of collections that are presented
+        in the response document.
+
+
+        To retrieve the next collections result, uses the `next` link from the response.
+
+
+        Minimum = 1. Maximum = 100. Default = 100.
       example: 20
-      maximum: 10000
+      maximum: 100
       minimum: 1
       type: integer
     limitFilter:
@@ -1375,18 +1536,22 @@ components:
 
               * licensor: The organization that is licensing the dataset under
 
+
                 the license specified in the collection's license field.
 
               * producer: The producer of the data is the provider that
+
 
                 initially captured and processed the source data, e.g. ESA for
                 Sentinel-2 data.
 
               * processor: A processor is any provider who processed data to a
 
+
                 derived product.
 
               * host: The host is the actual provider offering the data on their
+
 
                 storage. There should be no more than one host, specified as last
                 element of the list.
@@ -1420,8 +1585,11 @@ components:
         $ref: "#/components/schemas/queryProp"
       description: Define which properties to query and the operations to apply
       example:
-        property:
-          eq: ""
+        title:
+          eq: "Swissregio"
+          contains: "Swiss"
+        datetime:
+          lte: "2021-01-01T00:00:00.000Z"
       type: object
     queryFilter:
       description: Allows users to query properties for specific values
@@ -1564,6 +1732,286 @@ components:
         possibly prefixed by a weakness indicator.
       example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
       required: true
+    assetId:
+      type: string
+      pattern: ^[a-z0-9.-_]+$
+      title: asset id
+      description: >-
+        The asset id uniquely identifies the asset for an item
+
+
+        **Note**: `id` must be unique for the item and must be identical to the filename.
+      example: smr50-263-2016-2056-kgrs-2.5.tiff
+    updateAssetId:
+      type: string
+      pattern: ^[a-z0-9.-_]+$
+      title: asset id
+      description: >-
+        The asset id uniquely identifies the asset for an item
+
+
+        **Note**: `id` must be unique for the item and must be identical to the filename.
+        When the `id` doesn't match the parameter `assetId`, the asset is renamed,
+        renaming also the object itself on S3.
+      example: smr50-263-2016-2056-kgrs-2.5.tiff
+    assets:
+      type: object
+      properties:
+        assets:
+          items:
+            $ref: "#/components/schemas/itemAsset"
+          type: array
+        links:
+          items:
+            $ref: "#/components/schemas/link"
+          type: array
+          example:
+          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets
+            rel: self
+          - href: https://data.geo.admin.ch/api/stac/v0.9/
+            rel: root
+          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019
+            rel: parent
+          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019
+            rel: item
+          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+            rel: collection
+    assetBase:
+      type: object
+      required:
+      - created
+      - updated
+      properties:
+        id:
+          $ref: "#/components/schemas/assetId"
+        title:
+          $ref: "#/components/schemas/title"
+        description:
+          $ref: "#/components/schemas/description"
+        type:
+          $ref: "#/components/schemas/type"
+        geoadmin:variant:
+          $ref: "#/components/schemas/geoadmin:variant"
+        geoadmin:lang:
+          $ref: "#/components/schemas/geoadmin:lang"
+        proj:epsg:
+          $ref: "#/components/schemas/proj:epsg"
+        eo:gsd:
+          $ref: "#/components/schemas/eo:gsd"
+        created:
+          $ref: "#/components/schemas/created"
+        updated:
+          $ref: "#/components/schemas/updated"
+    itemAsset:
+      allOf:
+      - $ref: "#/components/schemas/assetBase"
+      - type: object
+        required:
+        - id
+        - type
+        - href
+        - checksum:multihash
+        - links
+        properties:
+          checksum:multihash:
+            $ref: "#/components/schemas/checksum:multihash"
+          href:
+            $ref: "#/components/schemas/href"
+          links:
+            items:
+              $ref: "#/components/schemas/link"
+            type: array
+            example:
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets/smr50-263-2016-2056-kgrs-2.5.tiff
+              rel: self
+            - href: https://data.geo.admin.ch/api/stac/v0.9/
+              rel: root
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets
+              rel: parent
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019
+              rel: item
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+              rel: collection
+    itemAssetWrite:
+      allOf:
+      - $ref: "#/components/schemas/assetBase"
+      - type: object
+        required:
+        - id
+        - type
+        properties:
+          checksum:multihash:
+            $ref: "#/components/schemas/writeChecksumMultihash"
+    itemAssetUpdate:
+      allOf:
+      - $ref: "#/components/schemas/assetBase"
+      - type: object
+        required:
+        - id
+        - type
+        properties:
+          id:
+            $ref: "#/components/schemas/updateAssetId"
+    itemAssetPartialUpdate:
+      allOf:
+      - $ref: "#/components/schemas/assetBase"
+      - type: object
+        properties:
+          id:
+            $ref: "#/components/schemas/updateAssetId"
+    writeChecksumMultihash:
+      description: >-
+        `sha2-256` or `md5` checksum of the asset in [multihash](https://multiformats.io/multihash/)
+        format.
+
+
+        When provided the asset Object located at href will be checked against this
+        checksum and the request is rejected if the checksum don't match.
+      example: 90e402107a7f2588a85362b9beea2a12d4514d45
+      pattern: ^[a-f0-9]+$
+      title: Multihash
+      type: string,
+    writeHref:
+      type: string
+      format: url
+      description: >-
+        URL of the current location of the asset object.
+
+
+        The url must be publicly accessible. If the URL corresponds already to the
+        correct location of the asset object on s3, the checksum of the payload and
+        the object on s3 are compared and if matching the request will be accepted.
+
+
+        If the URL is different from the location that the asset object should have
+        according to the the pattern `/<collection_id>/<item_id>/<asset_id>`, the
+        service will move the asset from this temporary location to the correct one.
+      default: https://data.geo.admin.ch/<collection-id>/<item-id>/<asset-id>
+      example: >-
+        http://data.geo.admin.ch/tmp/gdwh/ch.swisstopo.swissimage/CS3-20160503_132130_04.png
+    href:
+      type: string
+      format: url
+      description: Link to the asset object
+      example: >-
+        http://data.geo.admin.ch/ch.swisstopo.swissimage/collections/cs/items/CS3-20160503_132130_04/thumb.png
+    writeItem:
+      allOf:
+      - $ref: "#/components/schemas/itemBase"
+      - type: object
+        properties:
+          links:
+            items:
+              $ref: "#/components/schemas/link"
+            type: array
+            description: >-
+              Add additional link to the generated ones (`self`, `root`, `parent`,
+              `items`, `collection`, `next`, `previous`)
+    createItem:
+      allOf:
+      - type: object
+        required:
+        - id
+        properties:
+          id:
+            $ref: "#/components/schemas/itemId"
+      - $ref: "#/components/schemas/writeItem"
+    updateItem:
+      allOf:
+      - type: object
+        required:
+        - id
+        properties:
+          id:
+            $ref: "#/components/schemas/itemIdUpdate"
+      - $ref: "#/components/schemas/writeItem"
+    partialItem:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/itemIdUpdate"
+        geometry:
+          $ref: "https://geojson.org/schema/Geometry.json"
+        properties:
+          $ref: "#/components/schemas/itemProperties"
+        links:
+          type: array
+          items:
+            $ref: "#/components/schemas/link"
+          description: >-
+            Add/update additional link to the generated ones (`self`, `root`, `parent`,
+            `items`, `collection`, `next`, `previous`)
+      example:
+        properties:
+          datetime: "2016-05-03T13:22:30.040Z"
+    partialCollection:
+      type: object
+      description: Allows for a set of partial metadata fields for a collection
+      properties:
+        id:
+          description: Identifier of the collection used, for example, in URIs
+          type: string
+          example: ch.swisstopo.pixelkarte-farbe-pk200.noscale
+        title:
+          description: Human readable title of the collection
+          type: string
+          example: National Map 1:200'000
+        description:
+          description: A description of the features in the collection
+          type: string
+          example: The National Map 1:200,000 is a topographic map giving an overview
+            of Switzerland.
+        links:
+          type: array
+          items:
+            $ref: "#/components/schemas/link"
+          example:
+          - href: http://data.example.com/buildings
+            rel: item
+          - href: http://example.com/concepts/buildings.html
+            rel: describedBy
+            type: text/html
+        extent:
+          $ref: "#/components/schemas/extent"
+        itemType:
+          description: >-
+            Indicator about the type of the items in the collection (the default value
+            is 'feature').
+          type: string
+          default: feature
+        crs:
+          description: The list of coordinate reference systems supported by the service
+          type: array
+          items:
+            type: string
+          default:
+          - http://www.opengis.net/def/crs/OGC/1.3/CRS84
+          example:
+          - http://www.opengis.net/def/crs/OGC/1.3/CRS84
+          - http://www.opengis.net/def/crs/EPSG/0/4326
+        example:
+          title: The new title of the collection
+    roles:
+      type: array
+      items:
+        type: string
+      description: Purposes of the asset
+      example:
+      - thumbnail
+    title:
+      type: string
+      description: Displayed title
+      example: Thumbnail
+    type:
+      type: string
+      description: Media type of the asset
+      example: image/png
+    itemIdUpdate:
+      description: >-
+        Item identifier (unique per collection. If it doesn't match the `featureId`
+        in path parameters, then the Item is renamed.
+      example: smr200-200-4-2019
+      type: string
 paths:
   /:
     get:
@@ -1592,6 +2040,55 @@ paths:
       summary: The feature collections in the dataset
       tags:
       - Data
+    post:
+      tags:
+      - Data Management
+      summary: >-
+        Create a new collection
+      operationId: createCollection
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/collection"
+            example:
+              description: The National Map 1:200,000 is a topographic map giving
+                an overview of Switzerland.
+              id: ch.swisstopo.pixelkarte-farbe-pk200.noscale
+              license: proprietary
+              links:
+              - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
+                rel: license
+                title: Licence for the free geodata of the Federal Office of Topography
+                  swisstopo
+              - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
+                rel: describedby
+              providers:
+              - name: Federal Office of Topography - swisstopo
+                roles:
+                - producer
+                - licensor
+                url: https://www.swisstopo.admin.ch
+              title: National Map 1:200'000
+      responses:
+        "201":
+          description: Returns the created Collection
+          headers:
+            Location:
+              description: A link to the collection
+              schema:
+                type: string
+                format: url
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/collection"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
   /collections/{collectionId}:
     get:
       operationId: describeCollection
@@ -1613,6 +2110,102 @@ paths:
       summary: Describe the feature collection with id `collectionId`
       tags:
       - Data
+    put:
+      tags:
+      - Data Management
+      summary: >-
+        Update an existing collection with Id `collectionId` with a complete collection
+        definition
+      operationId: updateCollection
+      parameters:
+      - $ref: "#/components/parameters/collectionId"
+      - $ref: "#/components/parameters/IfMatchWrite"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/collection"
+            example:
+              description: The National Map 1:200,000 is a topographic map giving
+                an overview of Switzerland.
+              id: ch.swisstopo.pixelkarte-farbe-pk200.noscale
+              license: proprietary
+              links:
+              - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
+                rel: license
+                title: Licence for the free geodata of the Federal Office of Topography
+                  swisstopo
+              - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
+                rel: describedby
+              providers:
+              - name: Federal Office of Topography - swisstopo
+                roles:
+                - producer
+                - licensor
+                url: https://www.swisstopo.admin.ch
+              title: National Map 1:200'000
+      responses:
+        "200":
+          description: Returns the updated Collection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/collection"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    patch:
+      tags:
+      - Data Management
+      summary: >-
+        Update an existing collection with Id `collectionId` with a partial collection
+        definition
+      operationId: partialUpdateCollection
+      parameters:
+      - $ref: "#/components/parameters/collectionId"
+      - $ref: "#/components/parameters/IfMatch"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/collection"
+            example:
+              id: ch.swisstopo.pixelkarte-farbe-pk200.noscale
+              license: proprietary
+              links:
+              - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
+                rel: license
+                title: Licence for the free geodata of the Federal Office of Topography
+                  swisstopo
+              - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
+                rel: describedby
+              providers:
+              - name: Federal Office of Topography - swisstopo
+                roles:
+                - producer
+                - licensor
+                url: https://www.swisstopo.admin.ch
+              title: National Map 1:200'000
+      responses:
+        "200":
+          description: Returns the updated Collection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/collection"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "#/components/responses/ServerError"
   /collections/{collectionId}/items:
     get:
       description: >-
@@ -1643,6 +2236,79 @@ paths:
       summary: Fetch features
       tags:
       - Data
+    post:
+      summary: Add a new feature to a collection
+      description: Create a new feature/item in a specific collection
+      operationId: postFeature
+      tags:
+      - Data Management
+      parameters:
+      - $ref: "#/components/parameters/collectionId"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/createItem"
+            example:
+              type: Feature
+              id: CS3-20160503_132131_05
+              geometry:
+                type: Polygon
+                coordinates:
+                - - - -122.308150179
+                    - 37.488035566
+                  - - -122.597502109
+                    - 37.538869539
+                  - - -122.576687533
+                    - 37.613537207
+                  - - -122.2880486
+                    - 37.562818007
+                  - - -122.308150179
+                    - 37.488035566
+              properties:
+                datetime: "2016-05-03T13:22:30.040Z"
+                title: A CS3 item
+                license: PDDL-1.0
+                providers:
+                - name: CoolSat
+                  roles:
+                  - producer
+                  - licensor
+                  url: https://cool-sat.com/
+                view:sun_azimuth: 168.7
+                eo:cloud_cover: 0.12
+                view:off_nadir: 1.4
+                platform: coolsat2
+                instruments:
+                - cool_sensor_v1
+                view:sun_elevation: 33.4
+              collection: CS3
+              links:
+              - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
+                rel: license
+                title: Licence for the free geodata of the Federal Office of Topography
+                  swisstopo
+              - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
+                rel: describedby
+      responses:
+        "201":
+          description: Return the created Item.
+          headers:
+            Location:
+              description: A link to the item
+              schema:
+                type: string
+                format: url
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/item"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        5XX:
+          $ref: "#/components/responses/ServerError"
   /collections/{collectionId}/items/{featureId}:
     get:
       description: >-
@@ -1670,6 +2336,141 @@ paths:
       summary: Fetch a single feature
       tags:
       - Data
+    put:
+      summary: Update an existing feature by Id with a complete item definition
+      description: >-
+        Use this method to update an existing feature. Requires the entire JSON description
+        be submitted.
+
+
+        *NOTE: Optional fields that are not part of the PUT payload, will be erased
+        in the resource. For example if the resource as a properties.title and the
+        PUT payload doesn't, then the resource properties.title will be removed.*
+      operationId: putFeature
+      tags:
+      - Data Management
+      parameters:
+      - $ref: "#/components/parameters/collectionId"
+      - $ref: "#/components/parameters/featureId"
+      - $ref: "#/components/parameters/IfMatchWrite"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/updateItem"
+            example:
+              type: Feature
+              id: CS3-20160503_132131_05
+              geometry:
+                type: Polygon
+                coordinates:
+                - - - -122.308150179
+                    - 37.488035566
+                  - - -122.597502109
+                    - 37.538869539
+                  - - -122.576687533
+                    - 37.613537207
+                  - - -122.2880486
+                    - 37.562818007
+                  - - -122.308150179
+                    - 37.488035566
+              properties:
+                datetime: "2016-05-03T13:22:30.040Z"
+                title: A CS3 item
+                license: PDDL-1.0
+                providers:
+                - name: CoolSat
+                  roles:
+                  - producer
+                  - licensor
+                  url: https://cool-sat.com/
+                view:sun_azimuth: 168.7
+                eo:cloud_cover: 0.12
+                view:off_nadir: 1.4
+                platform: coolsat2
+                instruments:
+                - cool_sensor_v1
+                view:sun_elevation: 33.4
+              collection: CS3
+              links:
+              - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
+                rel: license
+                title: Licence for the free geodata of the Federal Office of Topography
+                  swisstopo
+              - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
+                rel: describedby
+      responses:
+        "200":
+          description: Returns the updated Item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/item"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        5XX:
+          $ref: "#/components/responses/ServerError"
+    patch:
+      summary: Update an existing feature by Id with a partial item definition
+      description: >-
+        Use this method to update an existing feature. Requires a JSON fragment (containing
+        the fields to be updated) be submitted.
+      operationId: patchFeature
+      tags:
+      - Data Management
+      parameters:
+      - $ref: "#/components/parameters/collectionId"
+      - $ref: "#/components/parameters/featureId"
+      - $ref: "#/components/parameters/IfMatchWrite"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/partialItem"
+      responses:
+        "200":
+          description: Returns the updated Item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/item"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        5XX:
+          $ref: "#/components/responses/ServerError"
+    delete:
+      summary: Delete an existing feature by Id
+      description: Use this method to delete an existing feature/item.
+      operationId: deleteFeature
+      tags:
+      - Data Management
+      parameters:
+      - $ref: "#/components/parameters/collectionId"
+      - $ref: "#/components/parameters/featureId"
+      - $ref: "#/components/parameters/IfMatchWrite"
+      responses:
+        "200":
+          $ref: "#/components/responses/DeletedResource"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        5XX:
+          $ref: "#/components/responses/ServerError"
   /conformance:
     get:
       description: >-
@@ -1688,16 +2489,6 @@ paths:
     get:
       description: >-
         Retrieve Items matching filters. Intended as a shorthand API for simple queries.
-
-
-        This method is optional, but you MUST implement `POST /search` if you want
-        to implement this method.
-
-
-        If this endpoint is implemented on a server, it is required to add a link
-        referring to this endpoint with `rel` set to `search` to the `links` array
-        in `GET /`. As `GET` is the default method, the `method` may not be set explicitly
-        in the link.
       operationId: getSearchSTAC
       parameters:
       - $ref: "#/components/parameters/query"
@@ -1725,12 +2516,6 @@ paths:
       description: >-
         Retrieve items matching filters. Intended as the standard, full-featured query
         API.
-
-
-        This method is mandatory to implement if `GET /search` is implemented. If
-        this endpoint is implemented on a server, it is required to add a link referring
-        to this endpoint with `rel` set to `search` and `method` set to `POST` to
-        the `links` array in `GET /`.
       operationId: postSearchSTAC
       requestBody:
         content:
@@ -1752,3 +2537,235 @@ paths:
       summary: Search STAC items with full-featured filtering.
       tags:
       - STAC
+  /collections/{collectionId}/items/{featureId}/assets:
+    get:
+      description: >-
+        Fetch assets of the item with id `featureId`.
+
+        Every asset belongs to an item.
+      operationId: getAssets
+      parameters:
+      - $ref: "#/components/parameters/collectionId"
+      - $ref: "#/components/parameters/featureId"
+      responses:
+        "200":
+          $ref: "#/components/responses/Assets"
+        "400":
+          $ref: "#/components/responses/InvalidParameter"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      summary: Fetch all assets for a feature
+      tags:
+      - Data
+    post:
+      summary: Add a new asset to a feature
+      description: >-
+        Create a new asset for a specific feature.
+
+
+        When creating a new asset for a feature, the metadata of the asset is posted
+        to the API. The Asset object itself must be already publicly available at
+        the following URL: https://data.geo.admin.ch/{collectionId}/{featureId}/{assetId}
+
+        Optionally the Asset object multihash can be given for sanity check.
+      operationId: postAsset
+      tags:
+      - Data Management
+      parameters:
+      - $ref: "#/components/parameters/collectionId"
+      - $ref: "#/components/parameters/featureId"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/itemAssetWrite"
+      responses:
+        "201":
+          description: Return the created Asset
+          headers:
+            Location:
+              description: A link to the asset
+              schema:
+                type: string
+                format: url
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/itemAsset"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        5XX:
+          $ref: "#/components/responses/ServerError"
+  /collections/{collectionId}/items/{featureId}/assets/{assetId}:
+    get:
+      description: >-
+        Fetch the asset with id `assetId` of the feature with id `featureId` in the
+        feature collection with id `collectionId`.
+      operationId: getAsset
+      parameters:
+      - $ref: "#/components/parameters/collectionId"
+      - $ref: "#/components/parameters/featureId"
+      - $ref: "#/components/parameters/assetId"
+      - $ref: "#/components/parameters/IfMatch"
+      - $ref: "#/components/parameters/IfNoneMatch"
+      responses:
+        "200":
+          $ref: "#/components/responses/Asset"
+        "304":
+          $ref: "#/components/responses/NotModified"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      summary: Fetch a single asset
+      tags:
+      - Data
+    put:
+      summary: Update an existing asset by Id with a complete asset definition
+      description: >-
+        Use this method to update an existing asset. Requires the entire JSON  description
+        be submitted.
+      operationId: putAsset
+      tags:
+      - Data Management
+      parameters:
+      - $ref: "#/components/parameters/collectionId"
+      - $ref: "#/components/parameters/featureId"
+      - $ref: "#/components/parameters/assetId"
+      - $ref: "#/components/parameters/IfMatchWrite"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/itemAssetUpdate"
+      responses:
+        "200":
+          description: Status of the update request.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/itemAsset"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        5XX:
+          $ref: "#/components/responses/ServerError"
+    patch:
+      summary: Update an existing asset by Id with a partial asset definition
+      description: >-
+        Use this method to update an existing asset. Requires a JSON fragment (containing
+        the fields to be updated) be submitted.
+      operationId: patchAsset
+      tags:
+      - Data Management
+      parameters:
+      - $ref: "#/components/parameters/collectionId"
+      - $ref: "#/components/parameters/featureId"
+      - $ref: "#/components/parameters/assetId"
+      - $ref: "#/components/parameters/IfMatchWrite"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/itemAssetPartialUpdate"
+      responses:
+        "200":
+          description: Status of the update request.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/itemAsset"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        5XX:
+          $ref: "#/components/responses/ServerError"
+    delete:
+      summary: Delete an existing asset by Id
+      description: >-
+        Use this method to delete an existing asset.
+
+
+        **NOTE: Asset file on S3 will be also removed !**
+      operationId: deleteAsset
+      tags:
+      - Data Management
+      parameters:
+      - $ref: "#/components/parameters/collectionId"
+      - $ref: "#/components/parameters/featureId"
+      - $ref: "#/components/parameters/assetId"
+      - $ref: "#/components/parameters/IfMatchWrite"
+      responses:
+        "200":
+          $ref: "#/components/responses/DeletedResource"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        5XX:
+          $ref: "#/components/responses/ServerError"
+  /get-token:
+    post:
+      tags:
+      - Data Management
+      summary: >-
+        Request token for token authentication.
+      operationId: getToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  decscription: name of user for whom token is requested
+                password:
+                  type: string
+                  description: password of user for whom token is requested
+              required:
+              - username
+              - password
+            example:
+              username: "Mickey Mouse"
+              password: "I_love_Minnie_Mouse"
+      responses:
+        "200":
+          description: Returns the token for the specified user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: generated token for specified user
+              example:
+                token: ccecf40693bfc52ba090cd46eb7f19e723fe831f
+        "400":
+          description: Wrong credentials were provided.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  description:
+                    type: string
+              example:
+                code: 400
+                description: "Unable to log in with provided credentials."

@@ -13,8 +13,9 @@ PARTS = base.yml \
 
 PARTS_TRANSACTIONAL = transaction/transaction.yml
 
-OPENAPI = static/openapi.yaml
-OPENAPI_TRANSACTIONAL = static/openapitransactional.yaml
+STATIC_BASE_DIR = static/spec/v0.9
+OPENAPI = $(STATIC_BASE_DIR)/openapi.yaml
+OPENAPI_TRANSACTIONAL = $(STATIC_BASE_DIR)/openapitransactional.yaml
 
 # AWS_ACCOUNT = swisstopo-3d
 
@@ -36,5 +37,5 @@ build-specs: $(OPENAPI_TRANSACTIONAL)
 serve-spec: $(OPENAPI_TRANSACTIONAL)
 	@echo "Serving http://0.0.0.0:$(SPEC_HTTP_PORT)/api.html"
 	@echo "Serving http://0.0.0.0:$(SPEC_HTTP_PORT)/apitransactional.html"
-	cd static && python3 -m http.server $(SPEC_HTTP_PORT)
+	cd $(STATIC_BASE_DIR) && python3 -m http.server $(SPEC_HTTP_PORT)
 

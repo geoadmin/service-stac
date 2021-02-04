@@ -1,6 +1,8 @@
 import functools
+import hashlib
 import logging
 import time
+from io import BytesIO
 
 import botocore
 from moto import mock_s3
@@ -93,6 +95,33 @@ def mock_s3_asset_file(test_function):
         test_function(*args, **kwargs)
 
     return wrapper
+
+
+def upload_file_on_s3(file_path, file, params=None):
+    '''Upload a file on S3 using boto3
+
+    Args:
+        file_path: string
+            file path on S3 (key)
+        file: bytes | BytesIO | File
+            file to upload
+        params: None | dict
+            parameters to path to boto3.upload_fileobj() as ExtraArgs
+    '''
+    s3 = get_s3_resource()
+    obj = s3.Object(settings.AWS_STORAGE_BUCKET_NAME, file_path)
+    if isinstance(file, bytes):
+        file = BytesIO(file)
+    if params is not None:
+        extra_args = params
+    else:
+        extra_args = {
+            'Metadata': {
+                'sha256': hashlib.sha256(file.read()).hexdigest()
+            },
+            "CacheControl": f"max-age={settings.STORAGE_ASSETS_CACHE_SECONDS}, public"
+        }
+    obj.upload_fileobj(file, ExtraArgs=extra_args)
 
 
 def mock_requests_asset_file(mocker, asset, **kwargs):

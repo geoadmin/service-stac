@@ -8,7 +8,7 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 """
 
 import os
-from distutils.util import strtobool
+import os.path
 from pathlib import Path
 
 import yaml
@@ -16,8 +16,11 @@ from dotenv import load_dotenv
 
 from .version import APP_VERSION  # pylint: disable=unused-import
 
+STAC_VERSION = "0.9.0"
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
+os.environ['BASE_DIR'] = str(BASE_DIR)
 print(f"BASE_DIR is {BASE_DIR}")
 
 # Determine the application environment (dev|int|prod)
@@ -31,7 +34,7 @@ if APP_ENV.lower() in ['local', 'default']:
     print("Running locally hence injecting env vars from {}".format(BASE_DIR / f'.env.{APP_ENV}'))
     # set the APP_ENV to local (in case it was set from default above)
     os.environ['APP_ENV'] = APP_ENV
-    load_dotenv(BASE_DIR / f'.env.{APP_ENV}')
+    load_dotenv(BASE_DIR / f'.env.{APP_ENV}', override=True, verbose=True)
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('SECRET_KEY', None)
@@ -43,7 +46,10 @@ DEBUG = False
 # https://docs.djangoproject.com/en/dev/ref/settings/#secure-proxy-ssl-header
 SECURE_PROXY_SSL_HEADER = ('HTTP_CLOUDFRONT_FORWARDED_PROTO', 'https')
 
-ALLOWED_HOSTS = []
+# We need to have the IP of the Pod/localhost in ALLOWED_HOSTS
+# as well to be able to scrape prometheus /metrics
+# see kubernetes config on how `THIS_POD_IP` is obtained
+ALLOWED_HOSTS = [os.getenv('THIS_POD_IP')]
 ALLOWED_HOSTS += os.getenv('ALLOWED_HOSTS', '').split(',')
 
 # SERVICE_HOST = os.getenv('SERVICE_HOST', '127.0.0.1:8000')
@@ -68,11 +74,17 @@ INSTALLED_APPS = [
     'solo.apps.SoloAppConfig',
     'storages',
     'whitenoise.runserver_nostatic',
+    'django_prometheus',
     'config.apps.StacAdminConfig',
     'stac_api.apps.StacApiConfig',
 ]
 
+# Middlewares are executed in order, once for the incoming
+# request top-down, once for the outgoing response bottom up
+# Note: The prometheus middlewares should always be first and
+# last, put everything else inbetween
 MIDDLEWARE = [
+    'django_prometheus.middleware.PrometheusBeforeMiddleware',
     'middleware.logging.RequestResponseLoggingMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
@@ -83,7 +95,14 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'middleware.logging.ExceptionLoggingMiddleware',
+    'middleware.cache_headers.CacheHeadersMiddleware',
+    'django_prometheus.middleware.PrometheusAfterMiddleware',
 ]
+
+try:
+    CACHE_MIDDLEWARE_SECONDS = int(os.environ.get('HTTP_CACHE_SECONDS', '600'))
+except ValueError as error:
+    raise ValueError('Invalid HTTP_CACHE_SECONDS environment value: must be an integer')
 
 ROOT_URLCONF = 'config.urls'
 API_BASE = 'api/stac/v0.9'
@@ -160,10 +179,15 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
 STATIC_HOST = os.environ.get('DJANGO_STATIC_HOST', '')
-STATIC_URL = STATIC_HOST + '/api/stac/v0.9/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'var/www/stac_api/static_files')
-STATICFILES_DIRS = [BASE_DIR / "spec/static", BASE_DIR / "app/stac_api/templates"]
+STATIC_URL = f'{STATIC_HOST}/api/stac/static/'
+STATIC_SPEC_URL = f'{STATIC_URL}spec/v0.9/'
+STATIC_ROOT = BASE_DIR / 'var' / 'www' / 'stac_api' / 'static_files'
+STATICFILES_DIRS = [BASE_DIR / "spec" / "static", BASE_DIR / "app" / "stac_api" / "templates"]
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+try:
+    WHITENOISE_MAX_AGE = int(os.environ.get('HTTP_STATIC_CACHE_SECONDS', '3600'))
+except ValueError as error:
+    raise ValueError('Invalid HTTP_STATIC_CACHE_SECONDS environment value: must be an integer')
 
 # Media files (i.e. uploaded content=assets in this project)
 UPLOAD_FILE_CHUNK_SIZE = 1024 * 1024  # Size in Bytes
@@ -189,6 +213,12 @@ try:
 except KeyError as err:
     raise KeyError(f'AWS configuration {err} missing') from err
 
+# Configure the admin upload caching
+try:
+    STORAGE_ASSETS_CACHE_SECONDS = int(os.environ.get('HTTP_ASSETS_CACHE_SECONDS', '7200'))
+except ValueError as err:
+    raise ValueError('Invalid HTTP_ASSETS_CACHE_SECONDS, must be an integer')
+
 # Logging
 # https://docs.djangoproject.com/en/3.1/topics/logging/
 
@@ -200,16 +230,16 @@ def get_logging_config():
     LOGGING_CFG and return it as dictionary
     Note: LOGGING_CFG is relative to the root of the repo
     '''
+    log_config_file = os.getenv('LOGGING_CFG', 'app/config/logging-cfg-local.yml')
+    if log_config_file.lower() in ['none', '0', '', 'false', 'no']:
+        return {}
     log_config = {}
-    with open(BASE_DIR / os.getenv('LOGGING_CFG', 'app/config/logging-cfg-local.yml'), 'rt') as fd:
-        log_config = yaml.safe_load(fd.read())
+    with open(BASE_DIR / log_config_file, 'rt') as fd:
+        log_config = yaml.safe_load(os.path.expandvars(fd.read()))
     return log_config
 
 
-if strtobool(os.getenv('DISABLE_LOGGING', 'False')):
-    LOGGING = None
-else:
-    LOGGING = get_logging_config()
+LOGGING = get_logging_config()
 
 # Testing
 
@@ -225,8 +255,8 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PAGINATION_CLASS': 'stac_api.apps.CursorPagination',
-    'PAGE_SIZE': 100,
-    'PAGE_SIZE_LIMIT': 100,
+    'PAGE_SIZE': os.environ.get('PAGE_SIZE', 100),
+    'PAGE_SIZE_LIMIT': os.environ.get('PAGE_SIZE_LIMIT', 100),
     'EXCEPTION_HANDLER': 'stac_api.apps.custom_exception_handler',
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly',
@@ -244,3 +274,7 @@ DEBUG_PROPAGATE_API_EXCEPTIONS = False
 # Timeout in seconds for call to external services, e.g. HTTP HEAD request to
 # data.geo.admin.ch/collection/item/asset to check if asset exists.
 EXTERNAL_SERVICE_TIMEOUT = 3
+
+# By default django_promtheus tracks the number of migrations
+# This causes troubles in various places so we disable it
+PROMETHEUS_EXPORT_MIGRATIONS = False

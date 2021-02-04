@@ -1,5 +1,6 @@
 import logging
 from collections import OrderedDict
+from urllib.parse import urlparse
 
 from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry
@@ -29,12 +30,9 @@ from stac_api.validators import validate_item_properties_datetimes
 from stac_api.validators import validate_name
 from stac_api.validators_serializer import validate_and_parse_href_url
 from stac_api.validators_serializer import validate_asset_file
-from stac_api.validators_serializer import validate_asset_href_path
 from stac_api.validators_serializer import validate_json_payload
 
 logger = logging.getLogger(__name__)
-
-STAC_VERSION = "0.9.0"
 
 
 def create_or_update_str(created):
@@ -192,12 +190,14 @@ class LandingPageSerializer(serializers.ModelSerializer):
     stac_version = serializers.SerializerMethodField()
 
     def get_stac_version(self, obj):
-        return STAC_VERSION
+        return settings.STAC_VERSION
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         api_base = settings.API_BASE
         request = self.context.get("request")
+
+        spec_base = urlparse(settings.STATIC_SPEC_URL).path.strip('/')
         # Add auto links
         # We use OrderedDict, although it is not necessary, because the default serializer/model for
         # links already uses OrderedDict, this way we keep consistency between auto link and user
@@ -211,13 +211,13 @@ class LandingPageSerializer(serializers.ModelSerializer):
             ]),
             OrderedDict([
                 ("rel", "service-doc"),
-                ("href", request.build_absolute_uri(f"/{api_base}/static/api.html")),
+                ("href", request.build_absolute_uri(f"/{spec_base}/api.html")),
                 ("type", "text/html"),
                 ("title", "The API documentation"),
             ]),
             OrderedDict([
                 ("rel", "service-desc"),
-                ("href", request.build_absolute_uri(f"/{api_base}/static/openapi.yaml")),
+                ("href", request.build_absolute_uri(f"/{spec_base}/openapi.yaml")),
                 ("type", "application/vnd.oai.openapi+yaml;version=3.0"),
                 ("title", "The OPENAPI description of the service"),
             ]),
@@ -236,6 +236,14 @@ class LandingPageSerializer(serializers.ModelSerializer):
             OrderedDict([
                 ("href", request.build_absolute_uri(f"/{api_base}/search")),
                 ("rel", "search"),
+                ("method", "GET"),
+                ("type", "application/json"),
+                ("title", "Search across feature collections"),
+            ]),
+            OrderedDict([
+                ("href", request.build_absolute_uri(f"/{api_base}/search")),
+                ("rel", "search"),
+                ("method", "POST"),
                 ("type", "application/json"),
                 ("title", "Search across feature collections"),
             ]),
@@ -337,11 +345,13 @@ class CollectionSerializer(NonNullModelSerializer):
         source="name",
         validators=[validate_name, UniqueValidator(queryset=Collection.objects.all())]
     )
+    title = serializers.CharField(required=False, allow_blank=False, default=None, max_length=255)
     # Also links are required in the spec, the main links (self, root, items) are automatically
     # generated hence here it is set to required=False which allows to add optional links that
     # are not generated
     links = CollectionLinkSerializer(required=False, many=True)
     providers = ProviderSerializer(required=False, many=True)
+
     # read only fields
     crs = serializers.SerializerMethodField(read_only=True)
     created = serializers.DateTimeField(read_only=True)
@@ -350,7 +360,6 @@ class CollectionSerializer(NonNullModelSerializer):
     summaries = serializers.JSONField(read_only=True)
     stac_extensions = serializers.SerializerMethodField(read_only=True)
     stac_version = serializers.SerializerMethodField(read_only=True)
-    title = serializers.CharField(required=False, allow_blank=False, default=None, max_length=255)
     itemType = serializers.ReadOnlyField(default="Feature")  # pylint: disable=invalid-name
 
     def get_crs(self, obj):
@@ -360,7 +369,7 @@ class CollectionSerializer(NonNullModelSerializer):
         return list()
 
     def get_stac_version(self, obj):
-        return STAC_VERSION
+        return settings.STAC_VERSION
 
     def _update_or_create_providers(self, collection, providers_data):
         provider_ids = []
@@ -512,11 +521,16 @@ class BboxSerializer(gis_serializers.GeoFeatureModelSerializer):
 
 
 class AssetsDictSerializer(DictSerializer):
+    '''Assets serializer list to dictionary
+
+    This serializer returns an asset dictionary with the asset name as keys.
+    '''
     # pylint: disable=abstract-method
     key_identifier = 'id'
 
 
 class HrefField(serializers.Field):
+    '''Special Href field for Assets'''
 
     def to_representation(self, value):
         # build an absolute URL from the file path
@@ -534,11 +548,12 @@ class HrefField(serializers.Field):
         return url.path[1:]  # strip the leading '/'
 
 
-class AssetSerializer(NonNullModelSerializer):
+class AssetBaseSerializer(NonNullModelSerializer):
+    '''Asset serializer base class
+    '''
 
     class Meta:
         model = Asset
-        list_serializer_class = AssetsDictSerializer
         fields = [
             'id',
             'item',
@@ -569,9 +584,6 @@ class AssetSerializer(NonNullModelSerializer):
         required=False, max_length=255, allow_null=True, allow_blank=False
     )
     description = serializers.CharField(required=False, allow_blank=False, allow_null=True)
-    # The href is only for POST request and is ignored for PUT requests this is done by dynamically
-    # removing the field with the serializer hide_fields parameter in the view
-    href = HrefField(source='file', required=False)
     type = serializers.ChoiceField(
         source='media_type',
         required=True,
@@ -591,7 +603,7 @@ class AssetSerializer(NonNullModelSerializer):
     )
     geoadmin_variant = serializers.CharField(
         source='geoadmin_variant',
-        max_length=15,
+        max_length=25,
         allow_blank=False,
         allow_null=True,
         required=False,
@@ -606,35 +618,25 @@ class AssetSerializer(NonNullModelSerializer):
         validators=[validate_asset_multihash]
     )
     # read only fields
+    href = HrefField(source='file', read_only=True)
     created = serializers.DateTimeField(read_only=True)
     updated = serializers.DateTimeField(read_only=True)
-
-    def __init__(self, *args, **kwargs):
-        hide_fields = kwargs.pop('hide_fields', [])
-
-        super().__init__(*args, **kwargs)
-
-        # Remove fields that should be hidden
-        for field_name in hide_fields:
-            self.fields.pop(field_name)
 
     def validate(self, attrs):
         validate_json_payload(self)
 
-        # validate the file path, although this is a field validation, it requires object values
-        # therefore it is placed in object validate method.
-        if 'file' in attrs:
-            # href is optional
-            validate_asset_href_path(attrs['item'], attrs['name'], attrs['file'])
-        elif not self.partial:
+        if not self.partial:
             attrs['file'] = get_asset_path(attrs['item'], attrs['name'])
 
         # Check if the asset exits for non partial update or when the checksum is available
         if not self.partial or 'checksum_multihash' in attrs:
-            path = get_asset_path(attrs['item'], attrs['name'])
+            original_name = attrs['name']
+            if self.instance:
+                original_name = self.instance.name
+            path = get_asset_path(attrs['item'], original_name)
             request = self.context.get("request")
             href = build_asset_href(request, path)
-            attrs = validate_asset_file(href, attrs)
+            attrs = validate_asset_file(href, original_name, attrs)
 
         return attrs
 
@@ -647,6 +649,87 @@ class AssetSerializer(NonNullModelSerializer):
         fields['geoadmin:lang'] = fields.pop('geoadmin_lang')
         fields['checksum:multihash'] = fields.pop('checksum_multihash')
         return fields
+
+
+class AssetSerializer(AssetBaseSerializer):
+    '''Asset serializer for the asset views
+
+    This serializer adds the links list attribute.
+    '''
+
+    def to_representation(self, instance):
+        collection = instance.item.collection.name
+        item = instance.item.name
+        name = instance.name
+        api = settings.API_BASE
+        request = self.context.get("request")
+        representation = super().to_representation(instance)
+        # Add auto links
+        # We use OrderedDict, although it is not necessary, because the default serializer/model for
+        # links already uses OrderedDict, this way we keep consistency between auto link and user
+        # link
+        representation['links'] = [
+            OrderedDict([
+                ('rel', 'self'),
+                (
+                    'href',
+                    request.build_absolute_uri(
+                        f'/{api}/collections/{collection}/items/{item}/assets/{name}'
+                    )
+                ),
+            ]),
+            OrderedDict([
+                ('rel', 'root'),
+                ('href', request.build_absolute_uri(f'/{api}/')),
+            ]),
+            OrderedDict([
+                ('rel', 'parent'),
+                (
+                    'href',
+                    request.
+                    build_absolute_uri(f'/{api}/collections/{collection}/items/{item}/assets')
+                ),
+            ]),
+            OrderedDict([
+                ('rel', 'item'),
+                (
+                    'href',
+                    request.build_absolute_uri(f'/{api}/collections/{collection}/items/{item}')
+                ),
+            ]),
+            OrderedDict([
+                ('rel', 'collection'),
+                ('href', request.build_absolute_uri(f'/{api}/collections/{collection}')),
+            ])
+        ]
+        return representation
+
+
+class AssetsForItemSerializer(AssetBaseSerializer):
+    '''Assets serializer for nesting them inside the item
+
+    Assets should be nested inside their item but using a dictionary instead of a list and without
+    links.
+    '''
+
+    class Meta:
+        model = Asset
+        list_serializer_class = AssetsDictSerializer
+        fields = [
+            'id',
+            'item',
+            'title',
+            'type',
+            'href',
+            'description',
+            'eo_gsd',
+            'geoadmin_lang',
+            'geoadmin_variant',
+            'proj_epsg',
+            'checksum_multihash',
+            'created',
+            'updated'
+        ]
 
 
 class ItemSerializer(NonNullModelSerializer):
@@ -679,17 +762,20 @@ class ItemSerializer(NonNullModelSerializer):
     geometry = gis_serializers.GeometryField(required=True)
     links = ItemLinkSerializer(required=False, many=True)
     # read only fields
-    type = serializers.ReadOnlyField(default='Feature')
+    type = serializers.SerializerMethodField()
     bbox = BboxSerializer(source='*', read_only=True)
-    assets = AssetSerializer(many=True, read_only=True)
+    assets = AssetsForItemSerializer(many=True, read_only=True)
     stac_extensions = serializers.SerializerMethodField()
     stac_version = serializers.SerializerMethodField()
+
+    def get_type(self, obj):
+        return 'Feature'
 
     def get_stac_extensions(self, obj):
         return list()
 
     def get_stac_version(self, obj):
-        return STAC_VERSION
+        return settings.STAC_VERSION
 
     def to_representation(self, instance):
         collection = instance.collection.name

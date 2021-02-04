@@ -1,20 +1,18 @@
 import logging
-
-import requests_mock
+from datetime import datetime
+from datetime import timedelta
 
 from django.conf import settings
 from django.test import Client
+from django.test import override_settings
 
 from stac_api.utils import get_link
 
 from tests.base_test import StacBaseTestCase
-from tests.data_factory import AssetSample
 from tests.data_factory import Factory
 from tests.utils import client_login
 from tests.utils import get_http_error_description
-from tests.utils import mock_requests_asset_file
-from tests.utils import mock_s3
-from tests.utils import mock_s3_bucket
+from tests.utils import mock_s3_asset_file
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +38,7 @@ class ApiPaginationTestCase(StacBaseTestCase):
 
     @classmethod
     def setUpTestData(cls):
-        collections = Factory().create_collection_samples(3, db_create=True)
+        Factory().create_collection_samples(3, db_create=True)
 
     def setUp(self):
         self.client = Client()
@@ -48,19 +46,27 @@ class ApiPaginationTestCase(StacBaseTestCase):
     def test_invalid_limit_query(self):
         response = self.client.get(f"/{API_BASE}/collections?limit=0")
         self.assertStatusCode(400, response)
+        self.assertEqual(['limit query parameter to small, must be in range 1..100'],
+                         response.json()['description'],
+                         msg='Unexpected error message')
 
         response = self.client.get(f"/{API_BASE}/collections?limit=test")
         self.assertStatusCode(400, response)
+        self.assertEqual(['invalid limit query parameter: must be an integer'],
+                         response.json()['description'],
+                         msg='Unexpected error message')
 
         response = self.client.get(f"/{API_BASE}/collections?limit=-1")
         self.assertStatusCode(400, response)
+        self.assertEqual(['limit query parameter to small, must be in range 1..100'],
+                         response.json()['description'],
+                         msg='Unexpected error message')
 
         response = self.client.get(f"/{API_BASE}/collections?limit=1000")
         self.assertStatusCode(400, response)
-
-    def test_http_error_invalid_query_param(self):
-        response = self.client.get(f"/{API_BASE}/collections?limit=0")
-        self.assertStatusCode(400, response)
+        self.assertEqual(['limit query parameter to big, must be in range 1..100'],
+                         response.json()['description'],
+                         msg='Unexpected error message')
 
     def test_pagination(self):
 
@@ -125,20 +131,30 @@ class ApiPaginationTestCase(StacBaseTestCase):
 
 class ApiETagPreconditionTestCase(StacBaseTestCase):
 
-    @classmethod
-    @mock_s3
-    def setUpTestData(cls):
-        mock_s3_bucket()
-        cls.factory = Factory()
-        cls.collection = cls.factory.create_collection_sample(name='collection-1').model
-        cls.item = cls.factory.create_item_sample(collection=cls.collection, name='item-1').model
-        cls.asset = cls.factory.create_asset_sample(item=cls.item, name='asset-1').model
+    @mock_s3_asset_file
+    def setUp(self):
+        self.factory = Factory()
+        self.collection = self.factory.create_collection_sample(
+            name='collection-1',
+            db_create=True,
+        )
+        self.item = self.factory.create_item_sample(
+            collection=self.collection.model,
+            name='item-1',
+            db_create=True,
+        )
+        self.asset = self.factory.create_asset_sample(
+            item=self.item.model,
+            name='asset-1',
+            db_create=True,
+        )
 
     def test_get_precondition(self):
         for endpoint in [
-            'collections/collection-1',
-            'collections/collection-1/items/item-1',
-            'collections/collection-1/items/item-1/assets/asset-1'
+            f'collections/{self.collection["name"]}',
+            f'collections/{self.collection["name"]}/items/{self.item["name"]}',
+            f'collections/{self.collection["name"]}/items/{self.item["name"]}'
+            f'/assets/{self.asset["name"]}'
         ]:
             with self.subTest(endpoint=endpoint):
                 response1 = self.client.get(f"/{API_BASE}/{endpoint}")
@@ -162,29 +178,32 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
                 response4 = self.client.get(f"/{API_BASE}/{endpoint}", HTTP_IF_MATCH='"abcd"')
                 self.assertStatusCode(412, response4)
 
-    @requests_mock.Mocker(kw='requests_mocker')
-    def test_put_precondition(self, requests_mocker):
+    def test_put_precondition(self):
         client_login(self.client)
         for (endpoint, sample) in [
             (
-                'collections/collection-1',
+                f'collections/{self.collection["name"]}',
                 self.factory.create_collection_sample(
-                    name=self.collection.name, sample='collection-2'
+                    name=self.collection["name"],
+                    sample='collection-2',
                 )
             ),
             (
-                'collections/collection-1/items/item-1',
+                f'collections/{self.collection["name"]}/items/{self.item["name"]}',
                 self.factory.create_item_sample(
-                    collection=self.collection, name=self.item.name, sample='item-2'
+                    collection=self.collection.model,
+                    name=self.item["name"],
+                    sample='item-2',
                 )
             ),
             (
-                'collections/collection-1/items/item-1/assets/asset-1',
+                f'collections/{self.collection["name"]}/items/{self.item["name"]}'
+                f'/assets/{self.asset["name"]}',
                 self.factory.create_asset_sample(
-                    item=self.item,
-                    name=self.asset.name,
+                    item=self.item.model,
+                    name=self.asset["name"],
                     sample='asset-1-updated',
-                    checksum_multihash=self.asset.checksum_multihash
+                    checksum_multihash=self.asset.model.checksum_multihash
                 )
             ),
         ]:
@@ -197,12 +216,9 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
                 self.check_header_etag(None, response)
                 etag1 = response['ETag']
 
-                if isinstance(sample, AssetSample):
-                    mock_requests_asset_file(requests_mocker, sample)
-
                 response = self.client.put(
                     f"/{API_BASE}/{endpoint}",
-                    sample.json,
+                    sample.get_json('put'),
                     content_type="application/json",
                     HTTP_IF_MATCH='"abc"'
                 )
@@ -210,7 +226,7 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
 
                 response = self.client.put(
                     f"/{API_BASE}/{endpoint}",
-                    sample.json,
+                    sample.get_json('put'),
                     content_type="application/json",
                     HTTP_IF_MATCH=etag1
                 )
@@ -220,13 +236,13 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
         client_login(self.client)
         for (endpoint, data) in [
             (
-                'collections/collection-1',
+                f'collections/{self.collection["name"]}',
                 {
                     'title': 'New title patched'
                 },
             ),
             (
-                'collections/collection-1/items/item-1',
+                f'collections/{self.collection["name"]}/items/{self.item["name"]}',
                 {
                     'properties': {
                         'title': 'New title patched'
@@ -234,7 +250,8 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
                 },
             ),
             (
-                'collections/collection-1/items/item-1/assets/asset-1',
+                f'collections/{self.collection["name"]}/items/{self.item["name"]}'
+                f'/assets/{self.asset["name"]}',
                 {
                     'title': 'New title patched'
                 },
@@ -268,8 +285,10 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
     def test_delete_precondition(self):
         client_login(self.client)
         for endpoint in [
-            'collections/collection-1/items/item-1/assets/asset-1',
-            'collections/collection-1/items/item-1',  # 'collections/collection-1',
+            f'collections/{self.collection["name"]}/items/{self.item["name"]}'
+            f'/assets/{self.asset["name"]}',
+            f'collections/{self.collection["name"]}/items/{self.item["name"]}',
+            # f'collections/{self.collection["name"]}',
         ]:
             with self.subTest(endpoint=endpoint):
                 # Get first the ETag
@@ -293,3 +312,91 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
                     f"/{API_BASE}/{endpoint}", content_type="application/json", HTTP_IF_MATCH=etag1
                 )
                 self.assertStatusCode(200, response)
+
+
+class ApiCacheHeaderTestCase(StacBaseTestCase):
+
+    @classmethod
+    @mock_s3_asset_file
+    def setUpTestData(cls):
+        cls.factory = Factory()
+        cls.collection = cls.factory.create_collection_sample(
+            name='collection-1',
+            db_create=True,
+        )
+        cls.item = cls.factory.create_item_sample(
+            collection=cls.collection.model,
+            name='item-1',
+            db_create=True,
+        )
+        cls.asset = cls.factory.create_asset_sample(
+            item=cls.item.model,
+            name='asset-1',
+            db_create=True,
+        )
+
+    @override_settings(CACHE_MIDDLEWARE_SECONDS=3600)
+    def test_get_cache_header(self):
+        for endpoint in [
+            '',  # landing page
+            'conformance',
+            'search',
+            'search?ids=item-1',
+            f'collections/{self.collection["name"]}',
+            f'collections/{self.collection["name"]}/items/{self.item["name"]}',
+            f'collections/{self.collection["name"]}/items/{self.item["name"]}'
+            f'/assets/{self.asset["name"]}'
+        ]:
+            with self.subTest(endpoint=endpoint):
+                now = datetime.now()
+                response = self.client.get(f"/{API_BASE}/{endpoint}")
+                self.assertStatusCode(200, response)
+
+                self.assertTrue(
+                    response.has_header('Cache-Control'), msg="Cache-Control header missing"
+                )
+                self.assertEqual(
+                    response['Cache-Control'],
+                    'max-age=3600, public',
+                    msg='Wrong cache-control values'
+                )
+
+                self.assertTrue(response.has_header('Expires'), msg="Expires header missing")
+
+                expires = datetime.strptime(response['Expires'], '%a, %d %b %Y %H:%M:%S GMT')
+                self.assertAlmostEqual((expires - now).total_seconds(),
+                                       timedelta(seconds=3600).total_seconds(),
+                                       delta=2)
+
+    @override_settings(CACHE_MIDDLEWARE_SECONDS=3600)
+    def test_head_cache_header(self):
+        for endpoint in [
+            '',  # landing page
+            'conformance',
+            'search',
+            'search?ids=item-1',
+            f'collections/{self.collection["name"]}',
+            f'collections/{self.collection["name"]}/items/{self.item["name"]}',
+            f'collections/{self.collection["name"]}/items/{self.item["name"]}'
+            f'/assets/{self.asset["name"]}'
+        ]:
+            with self.subTest(endpoint=endpoint):
+                now = datetime.now()
+                response = self.client.head(f"/{API_BASE}/{endpoint}")
+                self.assertStatusCode(200, response)
+
+                self.assertTrue(
+                    response.has_header('Cache-Control'), msg="Cache-Control header missing"
+                )
+                self.assertEqual(
+                    response['Cache-Control'],
+                    'max-age=3600, public',
+                    msg='Wrong cache-control values'
+                )
+
+                self.assertTrue(response.has_header('Expires'), msg="Expires header missing")
+
+                expires = datetime.strptime(response['Expires'], '%a, %d %b %Y %H:%M:%S GMT')
+                self.assertAlmostEqual((expires - now).total_seconds(),
+                                       timedelta(seconds=3600).total_seconds(),
+                                       delta=2)

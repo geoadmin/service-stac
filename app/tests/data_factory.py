@@ -81,10 +81,12 @@ or the `sample.get_json()` method or `sample.json` property (alias for
    stac_api.serializer.ItemSerializer(data=sample.get_json(method='deserialize'))
 
    response = client.get(path_to_item)
-   self.check_stac_item(sample.json, response.json())
+   self.check_stac_item(sample.json, response.json(), 'collection-1')
 
 '''
 # pylint: disable=too-many-lines, arguments-differ
+import copy
+import hashlib
 import logging
 import re
 from datetime import datetime
@@ -92,6 +94,7 @@ from datetime import datetime
 from django.conf import settings
 from django.contrib.gis.db import models
 from django.contrib.gis.geos import GEOSGeometry
+from django.core.files.base import File
 from django.core.files.uploadedfile import SimpleUploadedFile
 
 from stac_api.models import Asset
@@ -100,6 +103,7 @@ from stac_api.models import CollectionLink
 from stac_api.models import Item
 from stac_api.models import ItemLink
 from stac_api.models import Provider
+from stac_api.utils import get_s3_resource
 from stac_api.utils import get_sha256_multihash
 from stac_api.utils import isoformat
 
@@ -121,6 +125,7 @@ class SampleData:
     samples_dict = {}
     key_mapping = {}
     optional_fields = []
+    read_only_fields = []
 
     def __init__(self, sample, required_only=False, **kwargs):
         self.sample = sample
@@ -240,7 +245,15 @@ class SampleData:
         self.model_instance.save()
         return self.model_instance
 
-    def get_json(self, method='get'):
+    def copy(self):
+        '''Returns a copy of the sample
+
+        Returns:
+            A copy of the sample
+        '''
+        return copy.copy(self)
+
+    def get_json(self, method='get', keep_read_only=False):
         '''Returns a json serializable representation of the sample data
 
         This json payload can then be used in the write API payload (with method='post', 'put' or
@@ -251,14 +264,19 @@ class SampleData:
             method: string
                 Method for which the JSON would be used; 'get', 'post', 'put', 'patch', 'serialize',
                 'deserialize'.
+            keep_read_only: bool
+                keep read only fields in the json output. By default they are removed if the method
+                is 'post', 'put' or 'patch'.
 
         Returns
             A dictionary with the sample data.
         '''
         self._check_get_json_method(method)
         return {
-            self.key_mapped(key): value for key,
+            self.key_mapped(key): value
+            for key,
             value in self.get_attributes(remove_relations=False).items()
+            if keep_read_only or self._filter_read_only_field(method, self.key_mapped(key))
         }
 
     @property
@@ -298,6 +316,17 @@ class SampleData:
     def _check_get_json_method(self, method):
         if method not in ['get', 'post', 'put', 'patch', 'serialize', 'deserialize']:
             raise ValueError(f'Invalid get_json() method parameter: {method}')
+
+    def _filter_read_only_field(self, method, field):
+        '''Returns True if the field needs to be added to the json output, False otherwise
+        '''
+        # return always read only fields for GET method
+        if method in ['get', 'serialize']:
+            return True
+        if field in self.read_only_fields:
+            # do not add read only fields to the json output for POST/PUT/PATCH/DEL and deserialize
+            return False
+        return True
 
 
 class LinkSample(SampleData):
@@ -342,6 +371,16 @@ class CollectionSample(SampleData):
     samples_dict = collection_samples
     key_mapping = {'name': 'id'}
     optional_fields = ['title', 'providers', 'links']
+    read_only_fields = [
+        'crs',
+        'created',
+        'updated',
+        'extent',
+        'summaries',
+        'stac_extensions',
+        'stac_version',
+        'itemType'
+    ]
 
     def __init__(self, sample='collection-1', name=None, required_only=False, **kwargs):
         '''Create a collection sample data
@@ -404,7 +443,7 @@ class CollectionSample(SampleData):
             self._create_model_links(links)
         return self.model_instance
 
-    def get_json(self, method='get'):
+    def get_json(self, method='get', keep_read_only=False):
         '''Returns a json serializable representation of the sample data
 
         This json payload can then be used in the write API payload (with method='post', 'put' or
@@ -415,11 +454,14 @@ class CollectionSample(SampleData):
             method: string
                 Method for which the JSON would be used; 'get', 'post', 'put', 'patch', 'serialize',
                 'deserialize'.
+            keep_read_only: bool
+                keep read only fields in the json output. By default they are removed if the method
+                is 'post', 'put' or 'patch'.
 
         Returns
             A dictionary with the sample data.
         '''
-        json_data = super().get_json(method)
+        json_data = super().get_json(method, keep_read_only)
         providers = json_data.pop('providers', [])
         links = json_data.pop('links', [])
         if providers:
@@ -500,6 +542,15 @@ class ItemSample(SampleData):
     samples_dict = item_samples
     key_mapping = {'name': 'id'}
     optional_fields = ['properties_title', 'links']
+    read_only_fields = [
+        'type',
+        'bbox',
+        'assets',
+        'stac_extensions',
+        'stac_version',
+        'properties_created',
+        'properties_updated'
+    ]
 
     def __init__(self, collection, sample='item-1', name=None, required_only=False, **kwargs):
         '''Create a item sample data
@@ -544,7 +595,7 @@ class ItemSample(SampleData):
             attributes['links'] = [link.attributes for link in links]
         return attributes
 
-    def get_json(self, method='get'):
+    def get_json(self, method='get', keep_read_only=False):
         '''Returns a json serializable representation of the sample data
 
         This json payload can then be used in the write API payload (with method='post', 'put' or
@@ -555,13 +606,18 @@ class ItemSample(SampleData):
             method: string
                 Method for which the JSON would be used; 'get', 'post', 'put', 'patch', 'serialize',
                 'deserialize'.
+            keep_read_only: bool
+                keep read only fields in the json output. By default they are removed if the method
+                is 'post', 'put' or 'patch'.
 
         Returns
             A dictionary with the sample data.
         '''
         json_data = {
-            key: value for key,
-            value in super().get_json(method).items() if not key.startswith('properties_')
+            key: value
+            for key,
+            value in super().get_json(method, keep_read_only).items()
+            if not key.startswith('properties_')
         }
         collection = json_data.pop('collection')
         if method in ['get', 'serialize', 'deserialize']:
@@ -645,7 +701,8 @@ class AssetSample(SampleData):
         'geoadmin_lang': 'geoadmin:lang',
         'proj_epsg': 'proj:epsg',
         'media_type': 'type',
-        'checksum_multihash': 'checksum:multihash'
+        'checksum_multihash': 'checksum:multihash',
+        'file': 'href'
     }
     optional_fields = [
         'title',
@@ -654,11 +711,23 @@ class AssetSample(SampleData):
         'geoadmin_variant',
         'geoadmin_lang',
         'proj_epsg',
-        'file',
         'checksum_multihash'
     ]
+    read_only_fields = [
+        'created',
+        'updated',
+        'href',
+    ]
 
-    def __init__(self, item, sample='asset-1', name=None, required_only=False, **kwargs):
+    def __init__(
+        self,
+        item,
+        sample='asset-1',
+        name=None,
+        required_only=False,
+        create_asset_file=False,
+        **kwargs
+    ):
         '''Create a item sample data
 
         Args:
@@ -670,6 +739,8 @@ class AssetSample(SampleData):
                 Overwrite the sample name.
             required_only: bool
                 Return only attributes that are required (minimum sample data).
+            create_asset_file: bool
+                Create asset file on S3
             **kwargs:
                 Any parameter will overwrite existing attributes.
         '''
@@ -677,13 +748,16 @@ class AssetSample(SampleData):
         super().__init__(sample, item=item, name=name, required_only=required_only, **kwargs)
 
         file = getattr(self, 'attr_file', None)
+        file_path = f'{item.collection.name}/{item.name}/{self.attr_name}'
         if isinstance(file, bytes):
             self.attr_checksum_multihash = get_sha256_multihash(file)
-            self.attr_file = SimpleUploadedFile(
-                f'{item.collection.name}/{item.name}/{self.attr_name}', file
-            )
+            self.attr_file = SimpleUploadedFile(file_path, file)
+        if create_asset_file:
+            if file is None:
+                raise ValueError('Cannot create Asset file on S3 when attribute file is None')
+            self._create_file_on_s3(file_path, self.attr_file)
 
-    def get_json(self, method='get'):
+    def get_json(self, method='get', keep_read_only=False):
         '''Returns a json serializable representation of the sample data
 
         This json payload can then be used in the write API payload (with method='post', 'put' or
@@ -694,19 +768,34 @@ class AssetSample(SampleData):
             method: string
                 Method for which the JSON would be used; 'get', 'post', 'put', 'patch', 'serialize',
                 'deserialize'.
+            keep_read_only: bool
+                keep read only fields in the json output. By default they are removed if the method
+                is 'post', 'put' or 'patch'
 
         Returns
             A dictionary with the sample data.
         '''
-        data = super().get_json(method)
+        data = super().get_json(method, keep_read_only)
         item = data.pop('item')
         if method in ['get', 'serialize', 'deserialize']:
             data['item'] = item.name
-        file = data.pop('file', None)
-        if file:
+        if 'href' in data and isinstance(data['href'], File):
             data['href'] = \
-                f'http://{settings.AWS_S3_CUSTOM_DOMAIN}/{item.collection.name}/{item.name}/{file.name}'
+                f'http://{settings.AWS_S3_CUSTOM_DOMAIN}/{item.collection.name}/{item.name}/{data["href"].name}'
         return data
+
+    def _create_file_on_s3(self, file_path, file):
+        s3 = get_s3_resource()
+        obj = s3.Object(settings.AWS_STORAGE_BUCKET_NAME, file_path)
+        obj.upload_fileobj(
+            file,
+            ExtraArgs={
+                'Metadata': {
+                    'sha256': hashlib.sha256(file.read()).hexdigest()
+                },
+                "CacheControl": f"max-age={settings.STORAGE_ASSETS_CACHE_SECONDS}, public"
+            }
+        )
 
 
 class FactoryBase:
@@ -954,7 +1043,14 @@ class AssetFactory(FactoryBase):
     sample_class = AssetSample
 
     def create_sample(
-        self, item, name=None, sample='asset-1', db_create=False, required_only=False, **kwargs
+        self,
+        item,
+        name=None,
+        sample='asset-1',
+        db_create=False,
+        required_only=False,
+        create_asset_file=False,
+        **kwargs
     ):
         '''Create an Asset data sample
 
@@ -969,22 +1065,30 @@ class AssetFactory(FactoryBase):
                 dictionary.
             required_only: bool
                 Return only attributes that are required (minimum sample data).
+            create_asset_file: bool
+                Create the asset file on S3.
             **kwargs:
                 Key/value pairs used to overwrite arbitrary attribute in the sample.
 
         Returns:
             The data sample
         '''
+        if db_create and create_asset_file:
+            raise ValueError(
+                'Cannot have db_create=True and create_asset_file=True, db_create=True implicitely '
+                'create the asset file when the "file" attribute is present'
+            )
         return super().create_sample(
             sample,
             name=name,
             item=item,
             db_create=db_create,
             required_only=required_only,
+            create_asset_file=create_asset_file,
             **kwargs
         )
 
-    def create_samples(self, samples, item, db_create=False, **kwargs):
+    def create_samples(self, samples, item, db_create=False, create_asset_file=False, **kwargs):
         '''Creates several Asset samples
 
         Args:
@@ -996,13 +1100,17 @@ class AssetFactory(FactoryBase):
             kwargs_list: bool
                 If set to true, then kwargs with list values are distributed over the samples,
                 otherwise the kwargs are passed as is to the sample.
+            create_asset_file: bool
+                Create the asset file on S3.
             **kwargs:
                 Key/value pairs used to overwrite arbitrary attribute in the sample.
 
         Returns:
             Array with the DB samples.
         '''
-        return super().create_samples(samples, item=item, db_create=db_create, **kwargs)
+        return super().create_samples(
+            samples, item=item, db_create=db_create, create_asset_file=create_asset_file, **kwargs
+        )
 
 
 class Factory:
@@ -1122,7 +1230,14 @@ class Factory:
         return self.items.create_samples(samples, collection, db_create=db_create, **kwargs)
 
     def create_asset_sample(
-        self, item, name=None, sample='asset-1', db_create=False, required_only=False, **kwargs
+        self,
+        item,
+        name=None,
+        sample='asset-1',
+        db_create=False,
+        required_only=False,
+        create_asset_file=False,
+        **kwargs
     ):
         '''Create an Asset data sample
 
@@ -1137,6 +1252,8 @@ class Factory:
                 dictionary.
             required_only: bool
                 Return only attributes that are required (minimum sample data).
+            create_asset_file: bool
+                Create the asset file on S3.
             **kwargs:
                 Key/value pairs used to overwrite arbitrary attribute in the sample.
 
@@ -1149,10 +1266,13 @@ class Factory:
             sample=sample,
             db_create=db_create,
             required_only=required_only,
+            create_asset_file=create_asset_file,
             **kwargs
         )
 
-    def create_asset_samples(self, samples, item, db_create=False, **kwargs):
+    def create_asset_samples(
+        self, samples, item, db_create=False, create_asset_file=False, **kwargs
+    ):
         '''Creates several Asset samples
 
         Args:
@@ -1164,10 +1284,14 @@ class Factory:
             kwargs_list: bool
                 If set to true, then kwargs with list values are distributed over the samples,
                 otherwise the kwargs are passed as is to the sample.
+            create_asset_file: bool
+                Create the asset file on S3.
             **kwargs:
                 Key/value pairs used to overwrite arbitrary attribute in the sample.
 
         Returns:
             Array with the DB samples-.
         '''
-        return self.assets.create_samples(samples, item, db_create=db_create, **kwargs)
+        return self.assets.create_samples(
+            samples, item, db_create=db_create, create_asset_file=create_asset_file, **kwargs
+        )

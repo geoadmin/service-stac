@@ -6,15 +6,12 @@ from datetime import datetime
 from datetime import timedelta
 from pprint import pformat
 
-import requests_mock
-
 from django.conf import settings
 
 from rest_framework.exceptions import ValidationError
 from rest_framework.renderers import JSONRenderer
 from rest_framework.test import APIRequestFactory
 
-from stac_api.serializers import STAC_VERSION
 from stac_api.serializers import AssetSerializer
 from stac_api.serializers import CollectionSerializer
 from stac_api.serializers import ItemSerializer
@@ -24,7 +21,6 @@ from stac_api.utils import utc_aware
 
 from tests.base_test import StacBaseTestCase
 from tests.data_factory import Factory
-from tests.utils import mock_requests_asset_file
 from tests.utils import mock_s3_asset_file
 
 logger = logging.getLogger(__name__)
@@ -127,7 +123,7 @@ class CollectionSerializationTestCase(StacBaseTestCase):
                 'view',
                 'https://data.geo.admin.ch/stac/geoadmin-extension/1.0/schema.json'
             ],
-            'stac_version': STAC_VERSION,
+            'stac_version': settings.STAC_VERSION,
             'summaries': {
                 'eo:gsd': [3.4],
                 'geoadmin:variant': ['kgrs'],
@@ -277,40 +273,16 @@ class ItemSerializationTestCase(StacBaseTestCase):
                 self.asset['name']: expected_asset
             },
             'bbox': (5.644711, 46.775054, 7.602408, 49.014995),
-            'links': [
-                OrderedDict([
-                    ('rel', 'self'),
-                    (
-                        'href',
-                        f'http://testserver/api/stac/v0.9/collections/{collection_name}/items/{item_name}'
-                    ),
-                ]),
-                OrderedDict([
-                    ('rel', 'root'),
-                    ('href', 'http://testserver/api/stac/v0.9/'),
-                ]),
-                OrderedDict([
-                    ('rel', 'parent'),
-                    (
-                        'href',
-                        f'http://testserver/api/stac/v0.9/collections/{collection_name}/items'
-                    ),
-                ]),
-                OrderedDict([
-                    ('rel', 'collection'),
-                    ('href', f'http://testserver/api/stac/v0.9/collections/{collection_name}'),
-                ]),
-            ],
             'stac_extensions': [
                 'eo',
                 'proj',
                 'view',
                 'https://data.geo.admin.ch/stac/geoadmin-extension/1.0/schema.json'
             ],
-            'stac_version': STAC_VERSION,
+            'stac_version': settings.STAC_VERSION,
             'type': 'Feature'
         })
-        self.check_stac_item(expected, python_native)
+        self.check_stac_item(expected, python_native, collection_name)
 
     def test_item_serialization_datetime_range(self):
         sample = self.data_factory.create_item_sample(
@@ -337,7 +309,7 @@ class ItemSerializationTestCase(StacBaseTestCase):
             set(),
             msg="These required fields by the STAC API spec are missing"
         )
-        self.check_stac_item(sample.json, python_native)
+        self.check_stac_item(sample.json, python_native, self.collection["name"])
 
 
 class ItemDeserializationTestCase(StacBaseTestCase):
@@ -369,7 +341,7 @@ class ItemDeserializationTestCase(StacBaseTestCase):
         }
         serializer = ItemSerializer(item, context=context)
         python_native = serializer.data
-        self.check_stac_item(sample.json, python_native)
+        self.check_stac_item(sample.json, python_native, self.collection["name"])
 
     def test_item_deserialization_create_only_required_2(self):
         sample = self.data_factory.create_item_sample(
@@ -390,7 +362,7 @@ class ItemDeserializationTestCase(StacBaseTestCase):
         }
         serializer = ItemSerializer(item, context=context)
         python_native = serializer.data
-        self.check_stac_item(sample.json, python_native)
+        self.check_stac_item(sample.json, python_native, self.collection["name"])
 
     def test_item_deserialization_create_full(self):
         sample = self.data_factory.create_item_sample(
@@ -411,7 +383,7 @@ class ItemDeserializationTestCase(StacBaseTestCase):
         }
         serializer = ItemSerializer(item, context=context)
         python_native = serializer.data
-        self.check_stac_item(sample.json, python_native)
+        self.check_stac_item(sample.json, python_native, self.collection["name"])
 
     def test_item_deserialization_update(self):
         original_sample = self.data_factory.create_item_sample(
@@ -433,7 +405,7 @@ class ItemDeserializationTestCase(StacBaseTestCase):
         }
         serializer = ItemSerializer(item, context=context)
         python_native = serializer.data
-        self.check_stac_item(sample.json, python_native)
+        self.check_stac_item(sample.json, python_native, self.collection["name"])
         self.assertIsNone(
             get_link(python_native['links'], 'describedBy'),
             msg='Link describedBy was not removed in update'
@@ -462,7 +434,7 @@ class ItemDeserializationTestCase(StacBaseTestCase):
         }
         serializer = ItemSerializer(item, context=context)
         python_native = serializer.data
-        self.check_stac_item(sample.json, python_native)
+        self.check_stac_item(sample.json, python_native, self.collection["name"])
         self.assertNotIn('title', python_native['properties'].keys(), msg="Title was not removed")
 
     def test_item_deserialization_missing_required(self):
@@ -552,10 +524,11 @@ class AssetSerializationTestCase(StacBaseTestCase):
         json_string = JSONRenderer().render(python_native, renderer_context={'indent': 2})
         logger.debug('json string: %s', json_string.decode("utf-8"))
 
-        self.check_stac_asset(self.asset.json, python_native, ignore=["item"])
+        self.check_stac_asset(
+            self.asset.json, python_native, collection_name, item_name, ignore=["item"]
+        )
 
 
-@requests_mock.Mocker(kw='requests_mocker')
 class AssetDeserializationTestCase(StacBaseTestCase):
 
     @classmethod
@@ -570,8 +543,8 @@ class AssetDeserializationTestCase(StacBaseTestCase):
     def setUp(self):  # pylint: disable=invalid-name
         self.maxDiff = None  # pylint: disable=invalid-name
 
-    def test_asset_deserialization_create(self, requests_mocker):
-        sample = self.data_factory.create_asset_sample(item=self.item.model)
+    def test_asset_deserialization_create(self):
+        sample = self.data_factory.create_asset_sample(item=self.item.model, create_asset_file=True)
 
         # serialize the object and test it against the one above
         # mock a request needed for the serialization of links
@@ -581,7 +554,7 @@ class AssetDeserializationTestCase(StacBaseTestCase):
         request_mocker = api_request_mocker.get(
             f'{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
         )
-        mock_requests_asset_file(requests_mocker, sample)
+
         serializer = AssetSerializer(
             data=sample.get_json('deserialize'), context={'request': request_mocker}
         )
@@ -593,10 +566,14 @@ class AssetDeserializationTestCase(StacBaseTestCase):
 
         # ignoring item below, as it is a "write_only" field in the asset's serializer.
         # it will not be present in the mocked request's data.
-        self.check_stac_asset(sample.json, python_native, ignore=['item'])
+        self.check_stac_asset(
+            sample.json, python_native, collection_name, item_name, ignore=['item']
+        )
 
-    def test_asset_deserialization_create_required_fields_only(self, requests_mocker):
-        sample = self.data_factory.create_asset_sample(item=self.item.model, required_only=True)
+    def test_asset_deserialization_create_required_fields_only(self):
+        sample = self.data_factory.create_asset_sample(
+            item=self.item.model, required_only=True, create_asset_file=True, file=b'dummy-asset'
+        )
 
         # mock a request needed for the serialization of links
         collection_name = self.collection['name']
@@ -605,7 +582,6 @@ class AssetDeserializationTestCase(StacBaseTestCase):
         request_mocker = api_request_mocker.get(
             f'{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
         )
-        mock_requests_asset_file(requests_mocker, sample)
 
         serializer = AssetSerializer(
             data=sample.get_json('deserialize'), context={'request': request_mocker}
@@ -627,9 +603,11 @@ class AssetDeserializationTestCase(StacBaseTestCase):
 
         # ignoring item below, as it is a "write_only" field in the asset's serializer.
         # it will not be present in the mocked request's data.
-        self.check_stac_asset(sample.json, python_native, ignore=['item'])
+        self.check_stac_asset(
+            sample.json, python_native, collection_name, item_name, ignore=['item']
+        )
 
-    def test_asset_deserialization_create_invalid_data(self, requests_mocker):
+    def test_asset_deserialization_create_invalid_data(self):
         sample = self.data_factory.create_asset_sample(item=self.item.model, sample='asset-invalid')
 
         collection_name = self.collection['name']
@@ -638,7 +616,6 @@ class AssetDeserializationTestCase(StacBaseTestCase):
         request_mocker = api_request_mocker.get(
             f'{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
         )
-        mock_requests_asset_file(requests_mocker, sample)
 
         serializer = AssetSerializer(
             data=sample.get_json('deserialize'), context={'request': request_mocker}
@@ -646,7 +623,7 @@ class AssetDeserializationTestCase(StacBaseTestCase):
         with self.assertRaises(ValidationError):
             serializer.is_valid(raise_exception=True)
 
-    def test_asset_deserialization_invalid_proj_epsg(self, requests_mocker):
+    def test_asset_deserialization_invalid_proj_epsg(self):
         sample = self.data_factory.create_asset_sample(item=self.item.model, proj_epsg=2056.1)
         # mock a request needed for the serialization of links
         collection_name = self.collection['name']
@@ -655,7 +632,6 @@ class AssetDeserializationTestCase(StacBaseTestCase):
         request_mocker = api_request_mocker.get(
             f'{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
         )
-        mock_requests_asset_file(requests_mocker, sample)
 
         serializer = AssetSerializer(
             data=sample.get_json('deserialize'), context={'request': request_mocker}
@@ -663,7 +639,7 @@ class AssetDeserializationTestCase(StacBaseTestCase):
         with self.assertRaises(ValidationError):
             serializer.is_valid(raise_exception=True)
 
-    def test_asset_deserialization_missing_required_item(self, requests_mocker):
+    def test_asset_deserialization_missing_required_item(self):
         sample = self.data_factory.create_asset_sample(
             item=self.item.model, sample='asset-missing-required'
         )

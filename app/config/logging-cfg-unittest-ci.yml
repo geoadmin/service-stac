@@ -4,22 +4,26 @@ disable_existing_loggers: False # this allow to get logger at module level
 root:
   handlers:
     - console
-    - file-standard
-    - file-json
   level: DEBUG
   propagate: True
 
 loggers:
+  tests:
+    level: WARNING
+  botocore:
+    level: INFO
+  boto3:
+    level: INFO
+  s3transfer:
+    level: INFO
   stac_api:
     level: DEBUG
   middleware:
     level: DEBUG
-  rest_framework:
-    level: DEBUG
-  django.db:
-    level: DEBUG
   django:
-    level: DEBUG
+    level: INFO
+  django.db:
+    level: INFO
   django.utils.autoreload:
     level: INFO
   gunicorn.error:
@@ -44,22 +48,13 @@ filters:
       - request.headers.Authorization
       - request.headers.Proxy-Authorization
       - request.headers.Cookie
-  console_django_filter_info:
-    (): logging_utilities.filters.LevelFilter
-    level: "INFO"
-    logger: django
 
 formatters:
   standard:
     (): logging_utilities.formatters.extra_formatter.ExtraFormatter
     format: "[%(utc_isotime)s] %(levelname)-8s - %(name)-26s : %(message)s"
-    # extra_fmt: " - extra: %s"
+    extra_fmt: " - collection: %(collection)s - item: %(item)s - asset: %(asset)s - duration: %(duration)s"
     # extra_pretty_print: True
-  standard-file:
-    (): logging_utilities.formatters.extra_formatter.ExtraFormatter
-    format: "[%(utc_isotime)s] %(levelname)-8s - %(name)-26s : %(message)s"
-    extra_fmt: " - extra:\n%s"
-    extra_pretty_print: True
   json:
     (): logging_utilities.formatters.json_formatter.JsonFormatter
     add_always_extra: True
@@ -82,25 +77,6 @@ handlers:
     class: logging.StreamHandler
     formatter: standard
     stream: ext://sys.stdout
-    filters:
-      - isotime
-      - django
-      - console_django_filter_info
-  file-standard:
-    level: DEBUG
-    class: logging.FileHandler
-    formatter: standard-file
-    filename: ${BASE_DIR}/logs/server-standard-logs.txt
-    mode: w
-    filters:
-      - isotime
-      - django
-  file-json:
-    level: DEBUG
-    class: logging.FileHandler
-    formatter: json
-    filename: ${BASE_DIR}/logs/server-json-logs.json
-    mode: w
     filters:
       - isotime
       - django

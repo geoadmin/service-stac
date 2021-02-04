@@ -50,15 +50,27 @@ class CollectionsEndpointTestCase(StacBaseTestCase):
 
         response = self.client.get(f"/{API_BASE}/collections?limit=0")
         self.assertStatusCode(400, response)
+        self.assertEqual(['limit query parameter to small, must be in range 1..100'],
+                         response.json()['description'],
+                         msg='Unexpected error message')
 
         response = self.client.get(f"/{API_BASE}/collections?limit=test")
         self.assertStatusCode(400, response)
+        self.assertEqual(['invalid limit query parameter: must be an integer'],
+                         response.json()['description'],
+                         msg='Unexpected error message')
 
         response = self.client.get(f"/{API_BASE}/collections?limit=-1")
         self.assertStatusCode(400, response)
+        self.assertEqual(['limit query parameter to small, must be in range 1..100'],
+                         response.json()['description'],
+                         msg='Unexpected error message')
 
         response = self.client.get(f"/{API_BASE}/collections?limit=1000")
         self.assertStatusCode(400, response)
+        self.assertEqual(['limit query parameter to big, must be in range 1..100'],
+                         response.json()['description'],
+                         msg='Unexpected error message')
 
 
 class CollectionsWriteEndpointTestCase(StacBaseTestCase):
@@ -91,6 +103,9 @@ class CollectionsWriteEndpointTestCase(StacBaseTestCase):
             content_type='application/json'
         )
         self.assertStatusCode(400, response)
+        self.assertEqual({'id': ['This field must be unique.']},
+                         response.json()['description'],
+                         msg='Unexpected error message')
 
     def test_collections_post_extra_payload(self):
         collection = self.collection_factory.create_sample(extra_payload='not allowed')
@@ -101,16 +116,22 @@ class CollectionsWriteEndpointTestCase(StacBaseTestCase):
             content_type='application/json'
         )
         self.assertStatusCode(400, response)
+        self.assertEqual({'extra_payload': ['Unexpected property in payload']},
+                         response.json()['description'],
+                         msg='Unexpected error message')
 
     def test_collections_post_read_only_in_payload(self):
         collection = self.collection_factory.create_sample(created=utc_aware(datetime.utcnow()))
 
         response = self.client.post(
             f"/{API_BASE}/collections",
-            data=collection.get_json('post'),
+            data=collection.get_json('post', keep_read_only=True),
             content_type='application/json'
         )
         self.assertStatusCode(400, response)
+        self.assertEqual({'created': ['Found read-only property in payload']},
+                         response.json()['description'],
+                         msg='Unexpected error message')
 
     def test_invalid_collections_post(self):
         # the dataset already exists in the database
@@ -122,6 +143,9 @@ class CollectionsWriteEndpointTestCase(StacBaseTestCase):
             content_type='application/json'
         )
         self.assertStatusCode(400, response)
+        self.assertEqual({'license': ['Not a valid string.']},
+                         response.json()['description'],
+                         msg='Unexpected error message')
 
     def test_collections_min_mandatory_post(self):
         # a post with the absolute valid minimum
@@ -151,6 +175,14 @@ class CollectionsWriteEndpointTestCase(StacBaseTestCase):
             content_type='application/json'
         )
         self.assertStatusCode(400, response)
+        self.assertEqual(
+            {
+                'description': ['This field is required.'],
+                'license': ['This field is required.'],
+            },
+            response.json()['description'],
+            msg='Unexpected error message',
+        )
 
 
 class CollectionsUpdateEndpointTestCase(StacBaseTestCase):
@@ -203,6 +235,9 @@ class CollectionsUpdateEndpointTestCase(StacBaseTestCase):
             content_type='application/json'
         )
         self.assertStatusCode(400, response)
+        self.assertEqual({'extra_payload': ['Unexpected property in payload']},
+                         response.json()['description'],
+                         msg='Unexpected error message')
 
     def test_collections_put_read_only_in_payload(self):
         sample = self.collection_factory.create_sample(
@@ -211,10 +246,13 @@ class CollectionsUpdateEndpointTestCase(StacBaseTestCase):
 
         response = self.client.put(
             f"/{API_BASE}/collections/{sample['name']}",
-            data=sample.get_json('put'),
+            data=sample.get_json('put', keep_read_only=True),
             content_type='application/json'
         )
         self.assertStatusCode(400, response)
+        self.assertEqual({'created': ['Found read-only property in payload']},
+                         response.json()['description'],
+                         msg='Unexpected error message')
 
     def test_collection_put_change_id(self):
         sample = self.collection_factory.create_sample(
@@ -290,6 +328,9 @@ class CollectionsUpdateEndpointTestCase(StacBaseTestCase):
             content_type='application/json'
         )
         self.assertStatusCode(400, response)
+        self.assertEqual({'extra_payload': ['Unexpected property in payload']},
+                         response.json()['description'],
+                         msg='Unexpected error message')
 
     def test_collection_patch_read_only_in_payload(self):
         collection_name = self.collection.name  # get a name that is registered in the service
@@ -302,6 +343,9 @@ class CollectionsUpdateEndpointTestCase(StacBaseTestCase):
             content_type='application/json'
         )
         self.assertStatusCode(400, response)
+        self.assertEqual({'created': ['Found read-only property in payload']},
+                         response.json()['description'],
+                         msg='Unexpected error message')
 
     def test_authorized_collection_delete(self):
         path = f'/{API_BASE}/collections/{self.collection.name}'
