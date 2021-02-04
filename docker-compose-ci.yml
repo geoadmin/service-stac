@@ -21,13 +21,12 @@ services:
       - db
     environment:
       - DEBUG=True
-      - LOGGING_CFG=/app/config/logging-cfg-local.yml
+      - LOGGING_CFG=/app/config/logging-cfg-unittest-ci.yml
       - DB_USER=postgres
       - DB_PW=postgres
       - DB_NAME=service_stac
       - DB_HOST=db
       - APP_ENV=ci
-      - TEST_ENABLE_LOGGING=1
       - AWS_ACCESS_KEY_ID=
       - AWS_SECRET_ACCESS_KEY=
       - AWS_STORAGE_BUCKET_NAME=bigbag

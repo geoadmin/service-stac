@@ -8,7 +8,7 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 """
 
 import os
-from distutils.util import strtobool
+import os.path
 from pathlib import Path
 
 import yaml
@@ -20,6 +20,7 @@ STAC_VERSION = "0.9.0"
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
+os.environ['BASE_DIR'] = str(BASE_DIR)
 print(f"BASE_DIR is {BASE_DIR}")
 
 # Determine the application environment (dev|int|prod)
@@ -33,7 +34,7 @@ if APP_ENV.lower() in ['local', 'default']:
     print("Running locally hence injecting env vars from {}".format(BASE_DIR / f'.env.{APP_ENV}'))
     # set the APP_ENV to local (in case it was set from default above)
     os.environ['APP_ENV'] = APP_ENV
-    load_dotenv(BASE_DIR / f'.env.{APP_ENV}')
+    load_dotenv(BASE_DIR / f'.env.{APP_ENV}', override=True, verbose=True)
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('SECRET_KEY', None)
@@ -229,16 +230,16 @@ def get_logging_config():
     LOGGING_CFG and return it as dictionary
     Note: LOGGING_CFG is relative to the root of the repo
     '''
+    log_config_file = os.getenv('LOGGING_CFG', 'app/config/logging-cfg-local.yml')
+    if log_config_file.lower() in ['none', '0', '', 'false', 'no']:
+        return {}
     log_config = {}
-    with open(BASE_DIR / os.getenv('LOGGING_CFG', 'app/config/logging-cfg-local.yml'), 'rt') as fd:
-        log_config = yaml.safe_load(fd.read())
+    with open(BASE_DIR / log_config_file, 'rt') as fd:
+        log_config = yaml.safe_load(os.path.expandvars(fd.read()))
     return log_config
 
 
-if strtobool(os.getenv('DISABLE_LOGGING', 'False')):
-    LOGGING = None
-else:
-    LOGGING = get_logging_config()
+LOGGING = get_logging_config()
 
 # Testing
 

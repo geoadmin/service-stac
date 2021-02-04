@@ -193,15 +193,7 @@ of the code.
 By default only `WARNING` logs of the `tests` module is printed in the console during unit testing.
 All logs are also added to two logs files; `app/tests/logs/unittest-json-logs.json` and `app/tests/logs/unittest-standard-logs.txt`.
 
-To enable all logs on the console simply set the `TEST_ENABLE_LOGGING=1` environment variable.
-
-```bash
-TEST_ENABLE_LOGGING=1 ./manage.py test
-```
-
-or set the environment variable directly in the `.venv.local` file.
-
-Alternatively for a finer logging granularity during unit test, a new logging configuration base on `app/config/logging-cfg-test.yml` can be generated and set via `LOGGING_CFG` environment variable.
+Alternatively for a finer logging granularity during unit test, a new logging configuration base on `app/config/logging-cfg-unittest.yml` can be generated and set via `LOGGING_CFG` environment variable or logging can be completely disabled by setting `LOGGING_CFG=0`.
 
 ### Using Django shell
 
@@ -211,10 +203,10 @@ Django shell can be use for development purpose (see [Django: Playing with the A
 ./manage.py shell
 ```
 
-You can disable totally logging while playing with the shell as follow:
+Logging is then redireted by default to the log files `logs/management-standard-logs.txt` and `logs/management-json-logs.json`. Only error logs are printed to the console. You can disable totally logging while playing with the shell as follow:
 
 ```bash
-DISABLE_LOGGING=1 ./manage.py shell
+LOGGING_CFG=0 ./manage.py shell
 ```
 
 **NOTE:** the environment variable can also be set in the `.venv.local` file.
@@ -377,7 +369,7 @@ The service is configured by Environment Variable:
 | Env         | Default               | Description                            |
 |-------------|-----------------------|----------------------------------------|
 | APP_ENV | `'local'` | Determine the application environment (local|dev|int|prod) |
-| LOGGING_CFG | `'logging-cfg-local.yml'` | Logging configuration file             |
+| LOGGING_CFG | `'logging-cfg-local.yml'` | Logging configuration file or '0' to disable logging             |
 | SECRET_KEY | - | Secret key for django |
 | ALLOWED_HOSTS | `''` | See django ALLOWED_HOSTS. On local development and DEV staging this is overwritten with `'*'` |
 | THIS_POD_IP | No default | The IP of the POD the service is running on |
@@ -385,7 +377,6 @@ The service is configured by Environment Variable:
 | HTTP_STATIC_CACHE_SECONDS | `3600` | Sets the `Cache-Control: max-age` header of GET, HEAD requests to the static files. |
 | STORAGE_ASSETS_CACHE_SECONDS | `7200` | Sets the `Cache-Control: max-age` and `Expires` headers of the GET and HEAD on the assets file uploaded via admin page. |
 | DJANGO_STATIC_HOST | `''` | See [Whitenoise use CDN](http://whitenoise.evans.io/en/stable/django.html#use-a-content-delivery-network). |
-| DISABLE_LOGGING | `False` | Disable all logging |
 | TEST_ENABLE_LOGGING | `False` | Enable logging in unittest |
 | PAGE_SIZE | `100` | Default page size |
 | PAGE_SIZE_LIMIT | `100` | Maximum page size allowed |

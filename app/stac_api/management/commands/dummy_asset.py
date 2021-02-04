@@ -7,6 +7,7 @@ from io import BytesIO
 from django.conf import settings
 from django.core.management.base import BaseCommand
 
+from stac_api.utils import CommandHandler
 from stac_api.utils import get_s3_resource
 from stac_api.utils import get_sha256_multihash
 from stac_api.validators import MEDIA_TYPES
@@ -14,6 +15,54 @@ from stac_api.validators import MEDIA_TYPES
 logger = logging.getLogger(__name__)
 
 PREFIX = 'dummy-obj-'
+
+
+class DummyAssetHandler(CommandHandler):
+
+    def clean(self):
+        self.print_warning("Deleting all assets with prefix %s on S3...", PREFIX)
+        s3 = get_s3_resource()
+        obj_iter = s3.Bucket(settings.AWS_STORAGE_BUCKET_NAME).objects.filter(Prefix=PREFIX)
+        for obj in obj_iter:
+            obj.delete()
+        self.print_success('Done')
+
+    def upload(self):
+        number_of_assets = (
+            self.options['collections'] * self.options['items'] * self.options['assets']
+        )
+        self.print_warning("Uploading %s assets on S3...", number_of_assets)
+        self.print('-' * 100, level=2)
+        s3 = get_s3_resource()
+        for collection_id in map(
+            lambda i: f'{PREFIX}collection-{i}', range(1, self.options['collections'] + 1)
+        ):
+            for item_id in map(lambda i: f'{PREFIX}item-{i}', range(1, self.options['items'] + 1)):
+                for asset_id in map(
+                    lambda i: f'{PREFIX}asset-{i}', range(1, self.options['assets'] + 1)
+                ):
+                    if self.options['assets'] == 1:
+                        media_extension = '.txt'
+                    else:
+                        media_extension = random.choice(random.choice(MEDIA_TYPES)[2])
+
+                    file = f'{collection_id}/{item_id}/{asset_id}{media_extension}'
+                    obj = s3.Object(settings.AWS_STORAGE_BUCKET_NAME, file)
+                    content = f'Dummy Asset data: {uuid.uuid4()}'.encode()
+                    filelike = BytesIO(content)
+                    obj.upload_fileobj(
+                        filelike,
+                        ExtraArgs={
+                            'Metadata': {
+                                'sha256': hashlib.sha256(content).hexdigest()
+                            },
+                            "CacheControl":
+                                f"max-age={settings.STORAGE_ASSETS_CACHE_SECONDS}, public"
+                        }
+                    )
+                    self.print('%s,%s', file, get_sha256_multihash(content), level=2)
+        self.print('-' * 100, level=2)
+        self.print_success('Done')
 
 
 class Command(BaseCommand):
@@ -57,55 +106,9 @@ class Command(BaseCommand):
             '--assets', type=int, default=1, help="Number of assets per item to create (default 1)"
         )
 
-    def print(self, options, message, level=1):
-        if options['verbosity'] >= level:
-            self.stdout.write(message)
-
-    def print_warning(self, options, message, level=1):
-        if options['verbosity'] >= level:
-            self.stdout.write(self.style.WARNING(message))
-
-    def print_success(self, options, message, level=1):
-        if options['verbosity'] >= level:
-            self.stdout.write(self.style.SUCCESS(message))
-
     def handle(self, *args, **options):
-        s3 = get_s3_resource()
+        handler = DummyAssetHandler(self, options)
         if options['action'] == 'clean':
-            self.print_warning(options, f"Deleting all assets with prefix {PREFIX} on S3...")
-            obj_iter = s3.Bucket(settings.AWS_STORAGE_BUCKET_NAME).objects.filter(Prefix=PREFIX)
-            for obj in obj_iter:
-                obj.delete()
+            handler.clean()
         elif options['action'] == 'upload':
-            number_of_assets = options['collections'] * options['items'] * options['assets']
-            self.print_warning(options, f"Uploading {number_of_assets} assets on S3...")
-            self.print(options, '-' * 100, level=2)
-            for collection_id in map(
-                lambda i: f'{PREFIX}collection-{i}', range(1, options['collections'] + 1)
-            ):
-                for item_id in map(lambda i: f'{PREFIX}item-{i}', range(1, options['items'] + 1)):
-                    for asset_id in map(
-                        lambda i: f'{PREFIX}asset-{i}', range(1, options['assets'] + 1)
-                    ):
-                        if options['assets'] == 1:
-                            media_extension = '.txt'
-                        else:
-                            media_extension = random.choice(random.choice(MEDIA_TYPES)[2])
-
-                        file = f'{collection_id}/{item_id}/{asset_id}{media_extension}'
-                        obj = s3.Object(settings.AWS_STORAGE_BUCKET_NAME, file)
-                        content = f'Dummy Asset data: {uuid.uuid4()}'.encode()
-                        filelike = BytesIO(content)
-                        obj.upload_fileobj(
-                            filelike,
-                            ExtraArgs={
-                                'Metadata': {
-                                    'sha256': hashlib.sha256(content).hexdigest()
-                                },
-                                "CacheControl":
-                                    f"max-age={settings.STORAGE_ASSETS_CACHE_SECONDS}, public"
-                            }
-                        )
-                        self.print(options, f'{file},{get_sha256_multihash(content)}', level=2)
-        self.print(options, '-' * 100, level=2)
-        self.print_success(options, 'Done')
+            handler.upload()

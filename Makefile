@@ -111,7 +111,7 @@ setup: $(SETTINGS_TIMESTAMP)
 	mkdir -p .volumes/minio/service-stac-local
 	mkdir -p .volumes/postgresql
 	# create directory for unittests logs
-	mkdir -p app/tests/logs
+	mkdir -p logs
 	docker-compose up &
 
 
@@ -140,7 +140,7 @@ format:
 .PHONY: lint
 lint:
 	@echo "Run pylint..."
-	DJANGO_SETTINGS_MODULE=config.settings $(PYLINT) $(PYTHON_FILES)
+	LOGGING_CFG=0 DJANGO_SETTINGS_MODULE=config.settings $(PYLINT) $(PYTHON_FILES)
 
 
 # Running tests locally
