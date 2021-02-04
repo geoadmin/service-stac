@@ -10,6 +10,12 @@ root:
 loggers:
   tests:
     level: WARNING
+  botocore:
+    level: INFO
+  boto3:
+    level: INFO
+  s3transfer:
+    level: INFO
   stac_api:
     level: DEBUG
   middleware:
@@ -17,7 +23,7 @@ loggers:
   django:
     level: INFO
   django.db:
-    level: DEBUG
+    level: INFO
   django.utils.autoreload:
     level: INFO
   gunicorn.error:

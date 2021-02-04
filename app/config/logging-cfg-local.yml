@@ -55,6 +55,11 @@ formatters:
     format: "[%(utc_isotime)s] %(levelname)-8s - %(name)-26s : %(message)s"
     # extra_fmt: " - extra: %s"
     # extra_pretty_print: True
+  standard-file:
+    (): logging_utilities.formatters.extra_formatter.ExtraFormatter
+    format: "[%(utc_isotime)s] %(levelname)-8s - %(name)-26s : %(message)s"
+    extra_fmt: " - extra:\n%s"
+    extra_pretty_print: True
   json:
     (): logging_utilities.formatters.json_formatter.JsonFormatter
     add_always_extra: True
@@ -84,7 +89,7 @@ handlers:
   file-standard:
     level: DEBUG
     class: logging.FileHandler
-    formatter: standard
+    formatter: standard-file
     filename: ${BASE_DIR}/logs/server-standard-logs.txt
     mode: w
     filters:
