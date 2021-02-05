@@ -235,7 +235,13 @@ LOGGING_CFG=0 ./manage.py shell
 
 **NOTE:** the environment variable can also be set in the `.venv.local` file.
 
-#### Migrate DB with Django shell
+For local development (or whenever you have a `*-dev` docker image deployed), there's `shell_plus` available (part of the package `django_extensions`), a shell on steroids that automatically pre-imports e.g. all model definitions and makes working with the Django API much easier
+
+```bash
+./manage.py shell_plus
+```
+
+### Migrate DB with Django
 
 With the Django shell ist is possible to migrate the state of the database according to the code base. Please consider following principles:
 
