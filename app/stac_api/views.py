@@ -6,7 +6,6 @@ from datetime import datetime
 from django.conf import settings
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
-
 from rest_framework import generics
 from rest_framework import mixins
 from rest_framework.permissions import AllowAny
@@ -181,7 +180,7 @@ class ItemsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
-
+        get_object_or_404(queryset)
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
@@ -363,7 +362,7 @@ class AssetsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
 
     def get(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
-
+        get_object_or_404(queryset)
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
