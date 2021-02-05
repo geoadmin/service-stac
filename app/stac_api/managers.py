@@ -1,7 +1,9 @@
 import logging
 from datetime import datetime
+from decimal import Decimal
 
 from django.contrib.gis.db import models
+from django.contrib.gis.geos import GEOSGeometry
 from django.contrib.gis.geos import Point
 from django.contrib.gis.geos import Polygon
 from django.db.models import Q
@@ -19,7 +21,7 @@ class ItemQuerySet(models.QuerySet):
     def filter_by_bbox(self, bbox):
         '''Filter a querystring with a given bbox
 
-        This function is a helper function, for some views, to add a bbox filter to the queryset.
+        This function adds a bbox filter to the queryset.
 
         Args:
             queryset:
@@ -38,8 +40,8 @@ class ItemQuerySet(models.QuerySet):
             logger.debug('Query parameter bbox = %s', bbox)
             list_bbox_values = bbox.split(',')
             if (
-                list_bbox_values[0] == list_bbox_values[2] and
-                list_bbox_values[1] == list_bbox_values[3]
+                Decimal(list_bbox_values[0]) == Decimal(list_bbox_values[2]) and
+                Decimal(list_bbox_values[1]) == Decimal(list_bbox_values[3])
             ):
                 bbox_geometry = Point(float(list_bbox_values[0]), float(list_bbox_values[1]))
             else:
@@ -70,6 +72,7 @@ class ItemQuerySet(models.QuerySet):
                  A django queryset (https://docs.djangoproject.com/en/3.0/ref/models/querysets/)
             date_time:
                 A string
+
         Returns:
             The queryset filtered by date_time
         '''
@@ -103,7 +106,7 @@ class ItemQuerySet(models.QuerySet):
             # open end range
             return self.filter(
                 Q(properties_datetime__gte=start_datetime) |
-                Q(properties_end_datetime__gte=start_datetime)
+                Q(properties_start_datetime__gte=start_datetime)
             )
             # else fixed range
         return self.filter(
@@ -116,11 +119,17 @@ class ItemQuerySet(models.QuerySet):
     def _parse_datetime_query(self, date_time):
         '''Parse the datetime query as specified in the api-spec.md.
 
-        Returns one of the following
-            datetime, None
-            datetime, '..'
-            '..', datetime
-            datetime, datetime
+        A helper function of filter_by_datetime
+
+        Args:
+            date_time: string
+                Datetime as string (should be in isoformat)
+
+        Returns:
+            queryset filtered by datetime
+
+        Raises:
+            ValidationError: When the date_time string is not a valid isoformat
         '''
         start, sep, end = date_time.partition('/')
         try:
@@ -153,6 +162,67 @@ class ItemQuerySet(models.QuerySet):
             )
         return start, end
 
+    def filter_by_item_name(self, item_names_array):
+        '''Filter by item names parameter
+
+        Args:
+            item_names_array: list[string]
+                An array of ids (string)
+
+        Returns:
+            queryset filtered by a list of ids
+        '''
+        return self.filter(name__in=item_names_array)
+
+    def filter_by_collections(self, collections_array):
+        '''Filter by collections parameter
+
+        Args:
+            collections_array: list[string]
+                An array of collections (string)
+
+        Returns:
+            queryset filtered by a list of collections
+        '''
+        return self.filter(collection__name__in=collections_array)
+
+    def filter_by_intersects(self, intersects):
+        '''Filter by intersects parameter
+
+        Args:
+            intersects: string
+                Is a geojson formatted string
+
+        Returns:
+            queryset filtered by intersects
+
+        Raises:
+            ValueError or GDALException: When the Geojson is not a valid geometry
+        '''
+        the_geom = GEOSGeometry(intersects)
+        return self.filter(geometry__intersects=the_geom)
+
+    def filter_by_query(self, query):
+        '''Filter by the query parameter
+
+        Args:
+            query: dict
+                {"attribute": {"operator": "value"}}
+        Returns:
+            queryset filtered by query
+        '''
+        for attribute in query:
+            for operator in query[attribute]:
+                value = query[attribute][operator]  # get the values given by the operator
+
+                # __eq does not exist, but = does it as well
+                if operator == 'eq':
+                    query_filter = f"properties_{attribute}"
+                else:
+                    query_filter = f"properties_{attribute}__{operator.lower()}"
+
+                return self.filter(**{query_filter: value})
+
 
 class ItemManager(models.Manager):
 
@@ -164,3 +234,12 @@ class ItemManager(models.Manager):
 
     def filter_by_datetime(self, date_time):
         return self.get_queryset().filter_by_datetime(date_time)
+
+    def filter_by_collections(self, collections_array):
+        return self.get_queryset().filter_by_collections(collections_array)
+
+    def filter_by_item_name(self, item_name_array):
+        return self.get_queryset().filter_by_item_name(item_name_array)
+
+    def filter_by_query(self, query):
+        return self.get_queryset().filter_by_query(query)

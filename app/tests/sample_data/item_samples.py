@@ -51,6 +51,15 @@ geometries = {
             '2.8317994373671462 48.52233957365349,'
             '1.6892213123671462 48.52233957365349,'
             '1.6892213123671462 49.086733408488925))'
+        ),
+    'covers-switzerland':
+        GEOSGeometry(
+            'SRID=4326;POLYGON(('
+            '4.96 44.82,'
+            '11.49 44.82,'
+            '11.49 49.81,'
+            '4.96 49.81,'
+            '4.96 44.82))'
         )
 }
 
@@ -169,6 +178,11 @@ items = {
     'item-paris': {
         'name': 'item-paris',
         'geometry': geometries['paris'],
+        'properties_datetime': fromisoformat('2020-10-28T13:05:10Z')
+    },
+    'item-covers-switzerland': {
+        'name': 'item-covers_switzerland',
+        'geometry': geometries['covers-switzerland'],
         'properties_datetime': fromisoformat('2020-10-28T13:05:10Z')
     }
 }

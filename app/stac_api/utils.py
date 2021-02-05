@@ -1,4 +1,5 @@
 import hashlib
+import json
 from datetime import datetime
 from datetime import timezone
 
@@ -189,3 +190,57 @@ def create_multihash_string(digest, hash_code):
         multihash string
     '''
     return multihash.to_hex_string(multihash.encode(digest, hash_code))
+
+
+def harmonize_post_get_for_search(request):
+    '''Harmonizes the request of GET and POST for the search endpoint
+
+    Args:
+        request: QueryDict
+
+    Returns: Copy of the harmonized QueryDict
+    '''
+    # POST
+    if request.method == 'POST':
+        query_param = request.data.copy()
+        if 'bbox' in query_param:
+            query_param['bbox'] = json.dumps(query_param['bbox']).strip('[]')  # to string
+        if 'query' in query_param:
+            query_param['query'] = json.dumps(query_param['query'])  # to string
+    # GET
+    else:
+        query_param = request.GET.copy()
+        if 'ids' in query_param:
+            query_param['ids'] = query_param['ids'].split(',')  # to array
+        if 'collections' in query_param:
+            query_param['collections'] = query_param['collections'].split(',')  # to array
+    return query_param
+
+
+class CommandHandler():
+    '''Base class for management command handler
+
+    This class add proper support for printing to the console for management command
+    '''
+
+    def __init__(self, command, options):
+        self.options = options
+        self.verbosity = options['verbosity']
+        self.stdout = command.stdout
+        self.stderr = command.stderr
+        self.style = command.style
+
+    def print(self, message, *args, level=2):
+        if self.verbosity >= level:
+            self.stdout.write(message % (args))
+
+    def print_warning(self, message, *args, level=1):
+        if self.verbosity >= level:
+            self.stdout.write(self.style.WARNING(message % (args)))
+
+    def print_success(self, message, *args, level=1):
+        if self.verbosity >= level:
+            self.stdout.write(self.style.SUCCESS(message % (args)))
+
+    def print_error(self, message, *args):
+        self.stderr.write(self.style.ERROR(message % (args)))

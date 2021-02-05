@@ -1,5 +1,10 @@
 {% extends "rest_framework/base.html" %}
+{% load static %}
 
+{% block style %}
+{{ block.super }}
+<link rel="icon" href="{% static 'favicon.ico' %}">
+{% endblock %}
 {% block title %}geoadmin STAC API{% endblock %}
 
 {% block branding %}

@@ -110,6 +110,8 @@ setup: $(SETTINGS_TIMESTAMP)
 	# Note that the '/service_stac_local' part is already the bucket name
 	mkdir -p .volumes/minio/service-stac-local
 	mkdir -p .volumes/postgresql
+	# create directory for unittests logs
+	mkdir -p logs
 	docker-compose up &
 
 
@@ -128,14 +130,17 @@ format:
 	$(ISORT) $(PYTHON_FILES)
 
 
-# make sure that the code conforms to the style guide
-# The DJANGO_SETTINGS module must be made available to pylint
-# to support e.g. string model referencec (see
-# https://github.com/PyCQA/pylint-django#usage)
+# make sure that the code conforms to the style guide. Note that
+# - the DJANGO_SETTINGS module must be made available to pylint
+#   to support e.g. string model referencec (see
+#   https://github.com/PyCQA/pylint-django#usage)
+# - export of migrations for prometheus stats must be disabled,
+#   otherwise it's attempted to connect to the db during linting
+#   (which is not available)
 .PHONY: lint
 lint:
 	@echo "Run pylint..."
-	DJANGO_SETTINGS_MODULE=config.settings $(PYLINT) $(PYTHON_FILES)
+	LOGGING_CFG=0 DJANGO_SETTINGS_MODULE=config.settings $(PYLINT) $(PYTHON_FILES)
 
 
 # Running tests locally

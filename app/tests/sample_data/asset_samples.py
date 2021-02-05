@@ -64,5 +64,27 @@ assets = {
     },
     'asset-missing-required': {
         'name': 'asset-missing-required',
+    },
+    'asset-valid-geoadmin-variant': {
+        'name': 'geodadmin-variant',
+        'title': 'Asset Variant',
+        'description': 'This asset should pass the test',
+        'eo_gsd': 4,
+        'geoadmin_lang': 'de',
+        'geoadmin_variant': 'twenty5 characters with s',
+        'proj_epsg': 2056,
+        'media_type': "text/plain",
+        'file': b'Asset with long geoadmin:variant'
+    },
+    'asset-invalid-geoadmin-variant': {
+        'name': 'invalid-geodadmin-variant',
+        'title': 'Asset Variant Testing',
+        'description': 'This asset shouldn\'t pass the test',
+        'eo_gsd': 4,
+        'geoadmin_lang': 'de',
+        'geoadmin_variant': 'more than twenty-five characters with s',
+        'proj_epsg': 2056,
+        'media_type': "text/plain",
+        'file': b'Asset with invalid geoadmin:variant'
     }
 }

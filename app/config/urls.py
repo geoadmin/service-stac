@@ -21,6 +21,7 @@ from django.urls import path
 urlpatterns = [
     path('', include('stac_api.urls')),
     path('api/stac/admin/', admin.site.urls),
+    path('', include('django_prometheus.urls')),
 ]
 
 if settings.DEBUG:
