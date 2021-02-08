@@ -4,6 +4,7 @@ from collections import OrderedDict
 from datetime import datetime
 
 from django.conf import settings
+from django.http import Http404
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 
@@ -167,7 +168,6 @@ class ItemsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
         # filter based on the url
         queryset = Item.objects.filter(collection__name=self.kwargs['collection_name']
                                       ).prefetch_related('assets', 'links')
-
         bbox = self.request.query_params.get('bbox', None)
         date_time = self.request.query_params.get('datetime', None)
 
@@ -180,8 +180,10 @@ class ItemsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
         return queryset
 
     def list(self, request, *args, **kwargs):
+        if not Collection.objects.filter(name=self.kwargs['collection_name']).exists():
+            logger.error("The collection %s does not exist", self.kwargs['collection_name'])
+            raise Http404(f"The collection {self.kwargs['collection_name']} does not exists.")
         queryset = self.filter_queryset(self.get_queryset())
-
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
@@ -362,8 +364,21 @@ class AssetsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
         )
 
     def get(self, request, *args, **kwargs):
-        queryset = self.filter_queryset(self.get_queryset())
+        if not Collection.objects.filter(name=self.kwargs['collection_name']).exists():
+            logger.error("The collection %s does not exist", self.kwargs['collection_name'])
+            raise Http404(f"The collection {self.kwargs['collection_name']} does not exist")
+        if not Item.objects.filter(name=self.kwargs['item_name']).exists():
+            logger.error(
+                "The item %s is not part of the collection, %s",
+                self.kwargs['item_name'],
+                self.kwargs['collection_name']
+            )
+            raise Http404(
+                f"The item {self.kwargs['item_name']} is not part of the collection "
+                f"{self.kwargs['collection_name']}"
+            )
 
+        queryset = self.filter_queryset(self.get_queryset())
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
