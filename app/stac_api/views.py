@@ -181,7 +181,7 @@ class ItemsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
-        if not queryset.exists():
+        if not Collection.objects.filter(name=self.kwargs['collection_name']).exists():
             raise Http404("This collection does not exists.")
         page = self.paginate_queryset(queryset)
         if page is not None:
@@ -364,7 +364,8 @@ class AssetsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
 
     def get(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
-        if not queryset.exists():
+        if not Collection.objects.filter(name=self.kwargs['collection_name']).exists() or \
+                not Item.objects.filter(name=self.kwargs['item_name']).exists():
             raise Http404("This collection does not exists.")
         page = self.paginate_queryset(queryset)
         if page is not None:
