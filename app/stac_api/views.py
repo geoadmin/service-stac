@@ -4,9 +4,9 @@ from collections import OrderedDict
 from datetime import datetime
 
 from django.conf import settings
+from django.http import Http404
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
-from django.http import Http404
 
 from rest_framework import generics
 from rest_framework import mixins
@@ -181,8 +181,8 @@ class ItemsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
 
     def list(self, request, *args, **kwargs):
         if not Collection.objects.filter(name=self.kwargs['collection_name']).exists():
-            logger.error("The collection %s does not exist", self.kwargs['collection_name'])
-            raise Http404("This collection does not exists.")
+            logger.error("The collection, %s, does not exist", self.kwargs['collection_name'])
+            raise Http404(f"This collection, {self.kwargs['collection_name']}, does not exists.")
         queryset = self.filter_queryset(self.get_queryset())
         page = self.paginate_queryset(queryset)
         if page is not None:
@@ -364,11 +364,19 @@ class AssetsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
         )
 
     def get(self, request, *args, **kwargs):
-        if (not Collection.objects.filter(name=self.kwargs['collection_name']).exists() or
-                not Item.objects.filter(name=self.kwargs['item_name']).exists()):
-            logger.error("Either the collection (%s) or the item (%s) do not exist",
-                         self.kwargs['collection_name'], self.kwargs['item_name'])
+        if not Collection.objects.filter(name=self.kwargs['collection_name']).exists():
+            logger.error("The collection, %s, does not exist", self.kwargs['collection_name'])
             raise Http404("This collection does not exists.")
+        if not Item.objects.filter(name=self.kwargs['item_name']).exists():
+            logger.error(
+                "The item, %s, is not part of the collection, %s",
+                self.kwargs['item_name'],
+                self.kwargs['collection_name']
+            )
+            raise Http404(
+                f"The item {self.kwargs['item_name']} is not part of the collection "
+                f"{self.kwargs['collection_name']}"
+            )
 
         queryset = self.filter_queryset(self.get_queryset())
         page = self.paginate_queryset(queryset)
