@@ -6,7 +6,7 @@ from datetime import datetime
 from django.conf import settings
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
-
+from django.http import Http404
 from rest_framework import generics
 from rest_framework import mixins
 from rest_framework.permissions import AllowAny
@@ -167,7 +167,6 @@ class ItemsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
         # filter based on the url
         queryset = Item.objects.filter(collection__name=self.kwargs['collection_name']
                                       ).prefetch_related('assets', 'links')
-
         bbox = self.request.query_params.get('bbox', None)
         date_time = self.request.query_params.get('datetime', None)
 
@@ -181,7 +180,8 @@ class ItemsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
-        get_object_or_404(queryset)
+        if not queryset.exists():
+            raise Http404("This collection does not exists.")
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
@@ -363,7 +363,10 @@ class AssetsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
 
     def get(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
-        get_object_or_404(queryset)
+        logger.error(" THIS IS WHERE WE NEED TO BE ATTENTIVE")
+        logger.error(str(queryset.exists()))
+        if not queryset.exists():
+            raise Http404("This collection does not exists.")
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
