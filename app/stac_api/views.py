@@ -180,9 +180,10 @@ class ItemsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
         return queryset
 
     def list(self, request, *args, **kwargs):
-        queryset = self.filter_queryset(self.get_queryset())
         if not Collection.objects.filter(name=self.kwargs['collection_name']).exists():
+            logger.error("The collection %s does not exist", self.kwargs['collection_name'])
             raise Http404("This collection does not exists.")
+        queryset = self.filter_queryset(self.get_queryset())
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
@@ -363,10 +364,13 @@ class AssetsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
         )
 
     def get(self, request, *args, **kwargs):
-        queryset = self.filter_queryset(self.get_queryset())
-        if not Collection.objects.filter(name=self.kwargs['collection_name']).exists() or \
-                not Item.objects.filter(name=self.kwargs['item_name']).exists():
+        if (not Collection.objects.filter(name=self.kwargs['collection_name']).exists() or
+                not Item.objects.filter(name=self.kwargs['item_name']).exists()):
+            logger.error("Either the collection (%s) or the item (%s) do not exist",
+                         self.kwargs['collection_name'], self.kwargs['item_name'])
             raise Http404("This collection does not exists.")
+
+        queryset = self.filter_queryset(self.get_queryset())
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
