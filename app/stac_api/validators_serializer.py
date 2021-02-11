@@ -257,7 +257,9 @@ class ValidateSearchRequest:
         self.max_times_same_query_attribute = 20
         self.max_query_attributes = 50
 
-        self.queriabel_date_fields = ['datetime', 'created', 'updated']
+        # Note: if these values are adapted, don't forget to
+        # update the spec accordingly.
+        self.queriabel_date_fields = ['created', 'updated']
         self.queriabel_str_fields = ['title']
 
     def validate(self, request):
@@ -393,12 +395,11 @@ class ValidateSearchRequest:
                               f"a string operator." \
                               f"For numbers use one of these {int_operators}"
                     self.errors[f"query-operator-{operator}"] = _(message)
+                self._query_validate_in_operator(attribute, value)
             else:
                 message = f"Invalid operator in query argument. The operator {operator} " \
                           f"is not supported. Use: {operators}"
                 self.errors[f"query-operator-{operator}"] = _(message)
-
-            self._query_validate_in_operator(attribute, value)
 
     def _query_validate_in_operator(self, attribute, value):
         '''

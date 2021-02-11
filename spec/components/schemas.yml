@@ -95,14 +95,10 @@ components:
         (east-most box edge).
 
 
-        If a feature has multiple spatial geometry properties, it is the
-        decision of the server whether only a single spatial geometry property
-        is used to determine the extent or all relevant geometries.
-
         Example: The bounding box of Switzerland in
         WGS 84 (from 5.96°E to 10.49°E and from 45.82°N to 47.81°N) would be
         represented in JSON as `[5.96, 45.82, 10.49, 47.81]` and in a query as
-        `bbox=5.96, 45.82, 10.49, 47.81`."
+        `bbox=5.96,45.82,10.49,47.81`."
       example:
         - 5.96
         - 45.82
@@ -115,17 +111,9 @@ components:
       type: array
       readOnly: true
     bboxFilter:
-      description: Only return items that intersect the provided bounding box.
       properties:
         bbox:
           $ref: "#/components/schemas/bbox"
-      type: object
-      example:
-        bbox:
-          - 5.96
-          - 45.82
-          - 10.49
-          - 47.81
     checksum:multihash:
       description: >-
         `sha2-256` or `md5` checksum of the asset in [multihash](https://multiformats.io/multihash/)
@@ -329,12 +317,32 @@ components:
       description: RFC 3339 compliant datetime string
       example: 2018-02-12T23:20:50Z
       type: string
+    datetimeQuery:
+      description: >-
+        Either a date-time or an interval, open or closed. Date and time expressions
+        adhere to RFC 3339. Open intervals are expressed using double-dots.
+
+        Examples:
+
+
+        * A date-time: "2018-02-12T23:20:50Z"
+
+        * A closed interval: "2018-02-12T00:00:00Z/2018-03-18T12:31:12Z"
+
+        * Open intervals: "2018-02-12T00:00:00Z/.." or "../2018-03-18T12:31:12Z"
+
+
+        Only features that have a temporal property that intersects the value of
+        `datetime` are selected.
+
+
+        When used as URL query argument, the value must be correctly url-encoded.
+      example: 2018-02-12T00:00:00Z/2018-03-18T12:31:12Z
+      type: string
     datetimeFilter:
-      description: An object representing a date+time based filter.
       properties:
         datetime:
-          $ref: "#/components/schemas/datetime"
-      type: object
+          $ref: "#/components/schemas/datetimeQuery"
     description:
       description: >-
         Detailed multi-line description to fully explain the catalog or
@@ -822,13 +830,14 @@ components:
       example: proprietary
       type: string
     limit:
-      default: 10
+      default: 100
       description: >-
-        The optional limit parameter limits the number of collections that are presented
-        in the response document.
+        The `limit` parameter limits the number of results that are included
+        in the response.
 
 
-        To retrieve the next collections result, uses the `next` link from the response.
+        To retrieve the next bunch of result, use the `next` link in the `links`
+        section of the response.
 
 
         Minimum = 1. Maximum = 100. Default = 100.
@@ -1217,7 +1226,9 @@ components:
                 comparison must be performed.
               type: string
           type: object
-      description: Apply query operations to a specific property
+      description: >-
+        Apply query operations to a specific property. The following properties
+        are currently supported: `created`, `updated`, `title`.
     searchBody:
       allOf:
         #        - $ref: "#/components/schemas/assetQueryFilter"
