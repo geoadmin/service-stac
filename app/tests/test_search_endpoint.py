@@ -75,6 +75,62 @@ class SearchEndpointTestCaseOne(StacBaseTestCase):
             json_data_post['features'][0]['properties']['title']
         )
 
+    def test_query_created(self):
+        # get match
+        query = '{"created": {"lte": "9999-12-31T09:07:39.399892Z"}}'
+        response = self.client.get(f"/{API_BASE}/search" f"?query={query}&limit=1")
+        self.assertStatusCode(200, response)
+        json_data_get = response.json()
+        self.assertEqual(len(json_data_get['features']), 1)
+
+        # post match
+        payload = """
+        {"query":
+            {"created":
+                {"lte":"9999-12-31T09:07:39.399892Z"}
+            },
+            "limit": 1
+        }
+        """
+        response = self.client.post(self.path, data=payload, content_type="application/json")
+        self.assertStatusCode(200, response)
+        json_data_post = response.json()
+        self.assertEqual(len(json_data_post['features']), 1)
+        # compare get and post
+        self.assertEqual(
+            json_data_get['features'][0]['properties']['created'],
+            json_data_post['features'][0]['properties']['created'],
+            msg="GET and POST responses do not match when filtering for date created"
+        )
+
+    def test_query_updated(self):
+        # get match
+        query = '{"updated": {"lte": "9999-12-31T09:07:39.399892Z"}}'
+        response = self.client.get(f"/{API_BASE}/search" f"?query={query}&limit=1")
+        self.assertStatusCode(200, response)
+        json_data_get = response.json()
+        self.assertEqual(len(json_data_get['features']), 1)
+
+        # post match
+        payload = """
+        {"query":
+            {"updated":
+                {"lte":"9999-12-31T09:07:39.399892Z"}
+            },
+            "limit": 1
+        }
+        """
+        response = self.client.post(self.path, data=payload, content_type="application/json")
+        self.assertStatusCode(200, response)
+        json_data_post = response.json()
+        self.assertEqual(len(json_data_post['features']), 1)
+        # compare get and post
+        self.assertEqual(
+            json_data_get['features'][0]['properties']['updated'],
+            json_data_post['features'][0]['properties']['updated'],
+            msg="GET and POST responses do not match when filtering for date updated"
+        )
+
     def test_query_data_in(self):
         payload = """
         {"query":
