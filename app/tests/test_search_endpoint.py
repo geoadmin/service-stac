@@ -206,22 +206,22 @@ class SearchEndpointTestCaseOne(StacBaseTestCase):
     def test_query_data_in(self):
         payload = """
         {"query":
-            {"datetime":
-                {"in":["2020-10-28T13:05:10Z","2525-10-19T00:00:00Z"]}
+            {"title":
+                {"in":["My item 1","My item 2"]}
             }
         }
         """
         response = self.client.post(self.path, data=payload, content_type="application/json")
         json_data = response.json()
-        list_expected_items = ['item-1', 'item-3']
+        list_expected_items = ['item-1', 'item-2']
         self.assertIn(json_data['features'][0]['id'], list_expected_items)
         self.assertIn(json_data['features'][1]['id'], list_expected_items)
 
     def test_post_pagination(self):
         data = """
         {"query":
-            {"datetime":
-                {"lt":"2525-01-02T00:00:00Z"}
+             {"title":
+                {"startsWith":"My item"}
             },
          "limit": 1
         }
