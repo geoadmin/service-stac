@@ -10,7 +10,16 @@
 </head>
 
 <body>
-    <div id="content"></div>
+
+        <div class="clearfix">
+        <div class="container container-main nav-open">
+        <header style="border-bottom:4px solid #dc0018;">
+        <a href="#" class="brand hidden-xs" title="Back to home">
+          <img src="/api/stac/static/style/img/logo-CH.svg" onerror="this.onerror=null; this.src='/api/stac/static/style/img/logo-CH.png'" alt="Back to home" />
+          <h1>data.geo.admin.ch STAC API</h1>
+        </a>
+        </header>
+    <div id="content" class="row"></div>
     <script src="https://cdn.jsdelivr.net/npm/redoc@next/bundles/redoc.standalone.js"> </script>
     <script type="text/javascript">
         Redoc.init('openapitransactional.yaml', {
