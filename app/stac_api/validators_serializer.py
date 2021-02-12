@@ -5,6 +5,7 @@ from urllib.parse import urlparse
 
 import botocore
 import multihash
+import numpy as np
 from multihash import from_hex_string
 from multihash import to_hex_string
 
@@ -276,6 +277,20 @@ class ValidateSearchRequest:
         '''
         # harmonize GET and POST
         query_param = harmonize_post_get_for_search(request)
+        queried_parameters = list(query_param.keys())
+        accepted_query_parameters = [
+            "bbox", "collections", "cursor", "datetime", "ids", "intersects", "limit", "query"
+        ]
+        # make sure that all queried_parameters are in the accepted_query_parameters
+        if not all(parameter in accepted_query_parameters for parameter in queried_parameters):
+            wrong_query_parameters = np.setdiff1d(queried_parameters,
+                                                  accepted_query_parameters).tolist()
+            logger.error(
+                'Query contains the non-allowed parameter(s): %s', str(wrong_query_parameters)
+            )
+            message = f"The query contains the following non-queriable" \
+            f"parameter(s): {str(wrong_query_parameters)}."
+            raise ValidationError(code='query-invalid', detail=_(message))
 
         if 'bbox' in query_param:
             self.validate_bbox(query_param['bbox'])
@@ -421,7 +436,7 @@ class ValidateSearchRequest:
             else:
                 if not isinstance(value, str):
                     message = f"{message} The values have to be strings." \
-                              f" The value {val} is not a string"
+                              f" The value {value} is not a string"
             if message != '':
                 self.errors[f"query-attributes-{attribute}"] = _(message)
 
