@@ -1,15 +1,17 @@
 {% extends "rest_framework/base.html" %}
 {% load static %}
-
+{% block bootstrap_theme %}
+    <link rel="stylesheet" href="{% static 'style/css/admin.css' %}" type="text/css">
+{% endblock %}
 {% block style %}
 {{ block.super }}
-<link rel="icon" href="{% static 'favicon.ico' %}">
+    <link rel="icon" href="{% static 'style/img/ico/favicon.ico' %}">
 {% endblock %}
-{% block title %}geoadmin STAC API{% endblock %}
+{% block title %}Geoadmin STAC API{% endblock %}
 
 {% block branding %}
 <a class='navbar-brand' rel="nofollow" href={{ request.scheme }}://{{ request.get_host }}/{{ SETTINGS_API_BASE }}>
-    Geoadmin STAC API
+    data.geo.admin.ch STAC API
 </a>
 {% endblock %}
 

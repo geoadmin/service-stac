@@ -70,3 +70,6 @@ nose2-junit.xml
 .env.*local
 .volumes
 **/logs
+
+# Node modules
+node_modules/*
