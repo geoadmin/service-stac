@@ -15,6 +15,8 @@ from .settings_prod import *  # pylint: disable=wildcard-import, unused-wildcard
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = bool(strtobool(os.getenv('DEBUG', 'False')))
+if DEBUG:
+    print('WARNING - running in debug mode !')
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.1/howto/deployment/checklist/
