@@ -188,6 +188,12 @@ try:
     WHITENOISE_MAX_AGE = int(os.environ.get('HTTP_STATIC_CACHE_SECONDS', '3600'))
 except ValueError as error:
     raise ValueError('Invalid HTTP_STATIC_CACHE_SECONDS environment value: must be an integer')
+WHITENOISE_MIMETYPES = {
+    # These sets the mime types for the api/stac/static/spec/v0.9/openapi.yaml static file
+    # otherwise a default application/octet-stream is used.
+    '.yaml': 'application/vnd.oai.openapi+yaml;version=3.0',
+    '.yml': 'application/vnd.oai.openapi+yaml;version=3.0'
+}
 
 # Media files (i.e. uploaded content=assets in this project)
 UPLOAD_FILE_CHUNK_SIZE = 1024 * 1024  # Size in Bytes
