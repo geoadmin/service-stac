@@ -328,7 +328,8 @@ class Item(models.Model):
         return instance
 
     def __str__(self):
-        return self.name
+        # This is used in the admin page in the autocomplete_fields of the Asset page
+        return f"{self.collection.name}/{self.name}"
 
     def update_etag(self):
         '''Update the ETag with a new UUID

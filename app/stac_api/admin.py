@@ -18,29 +18,6 @@ from stac_api.models import Provider
 from stac_api.utils import build_asset_href
 
 
-@admin.register(Asset)
-class AssetAdmin(admin.ModelAdmin):
-    readonly_fields = ['href', 'checksum_multihash']
-
-    def save_model(self, request, obj, form, change):
-        if obj.description == '':
-            # The admin interface with TextArea uses empty string instead
-            # of None. We use None for empty value, None value are stripped
-            # then in the output will empty string not.
-            obj.description = None
-        super().save_model(request, obj, form, change)
-
-    # Note: this is a bit hacky and only required to get access
-    # to the request object in 'href' method.
-    def get_form(self, request, obj=None, **kwargs):  # pylint: disable=arguments-differ
-        self.request = request  # pylint: disable=attribute-defined-outside-init
-        return super().get_form(request, obj, **kwargs)
-
-    def href(self, instance):
-        path = instance.file.name
-        return build_asset_href(self.request, path)
-
-
 class LandingPageLinkInline(admin.TabularInline):
     model = LandingPageLink
     extra = 0
@@ -86,6 +63,13 @@ class CollectionAdmin(admin.ModelAdmin):
     ]
     inlines = [ProviderInline, CollectionLinkInline]
     search_fields = ['name']
+    list_display = ['name']
+
+    def get_search_results(self, request, queryset, search_term):
+        queryset, use_distinct = super().get_search_results(request, queryset, search_term)
+        if search_term.startswith('"') and search_term.endswith('"'):
+            queryset |= self.model.objects.filter(name__exact=search_term.strip('"'))
+        return queryset, use_distinct
 
 
 class ItemLinkInline(admin.TabularInline):
@@ -97,7 +81,7 @@ class ItemLinkInline(admin.TabularInline):
 class ItemAdmin(admin.GeoModelAdmin):
     inlines = [ItemLinkInline]
     autocomplete_fields = ['collection']
-    search_fields = ['name']
+    search_fields = ['name', 'collection__name']
     fieldsets = (
         (None, {
             'fields': ('name', 'collection', 'geometry')
@@ -118,3 +102,94 @@ class ItemAdmin(admin.GeoModelAdmin):
     map_template = finders.find('admin/ol_swisstopo.html')  # custom swisstopo
     wms_layer = 'ch.swisstopo.pixelkarte-farbe-pk1000.noscale'
     wms_url = 'https://wms.geo.admin.ch/'
+    list_display = ['name', 'collection']
+
+    def get_search_results(self, request, queryset, search_term):
+        queryset, use_distinct = super().get_search_results(request, queryset, search_term)
+        if search_term.startswith('"') and search_term.endswith('"'):
+            search_terms = search_term.strip('"').split('/', maxsplit=2)
+            if len(search_terms) == 2:
+                collection_name = search_terms[0]
+                item_name = search_terms[1]
+            else:
+                collection_name = None
+                item_name = search_terms[0]
+            queryset |= self.model.objects.filter(name__exact=item_name)
+            if collection_name:
+                queryset &= self.model.objects.filter(collection__name__exact=collection_name)
+        return queryset, use_distinct
+
+
+@admin.register(Asset)
+class AssetAdmin(admin.ModelAdmin):
+    autocomplete_fields = ['item']
+    search_fields = ['name', 'item__name', 'item__collection__name']
+    readonly_fields = ['item_name', 'collection', 'href', 'checksum_multihash']
+    list_display = ['name', 'item_name', 'collection']
+    fieldsets = (
+        (None, {
+            'fields': ('name', 'item', 'item_name', 'collection')
+        }),
+        ('File', {
+            'fields': ('file', 'media_type', 'href', 'checksum_multihash')
+        }),
+        ('Description', {
+            'fields': ('title', 'description')
+        }),
+        ('Attributes', {
+            'fields': ('eo_gsd', 'proj_epsg', 'geoadmin_variant', 'geoadmin_lang')
+        }),
+    )
+
+    def get_search_results(self, request, queryset, search_term):
+        queryset, use_distinct = super().get_search_results(request, queryset, search_term)
+        if search_term.startswith('"') and search_term.endswith('"'):
+            search_terms = search_term.strip('"').split('/', maxsplit=3)
+            if len(search_terms) == 3:
+                collection_name = search_terms[0]
+                item_name = search_terms[1]
+                asset_name = search_terms[2]
+            elif len(search_terms) == 2:
+                collection_name = None
+                item_name = search_terms[0]
+                asset_name = search_terms[1]
+            else:
+                collection_name = None
+                item_name = None
+                asset_name = search_terms[0]
+            queryset |= self.model.objects.filter(name__exact=asset_name)
+            if item_name:
+                queryset &= self.model.objects.filter(item__name__exact=item_name)
+            if collection_name:
+                queryset &= self.model.objects.filter(item__collection__name__exact=collection_name)
+        return queryset, use_distinct
+
+    def collection(self, instance):
+        return instance.item.collection
+
+    collection.admin_order_field = 'item__collection'
+    collection.short_description = 'Collection Id'
+
+    def item_name(self, instance):
+        return instance.item.name
+
+    item_name.admin_order_field = 'item__name'
+    item_name.short_description = 'Item Id'
+
+    def save_model(self, request, obj, form, change):
+        if obj.description == '':
+            # The admin interface with TextArea uses empty string instead
+            # of None. We use None for empty value, None value are stripped
+            # then in the output will empty string not.
+            obj.description = None
+        super().save_model(request, obj, form, change)
+
+    # Note: this is a bit hacky and only required to get access
+    # to the request object in 'href' method.
+    def get_form(self, request, obj=None, **kwargs):  # pylint: disable=arguments-differ
+        self.request = request  # pylint: disable=attribute-defined-outside-init
+        return super().get_form(request, obj, **kwargs)
+
+    def href(self, instance):
+        path = instance.file.name
+        return build_asset_href(self.request, path)
