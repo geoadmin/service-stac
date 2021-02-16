@@ -6,6 +6,7 @@
     <meta http-equiv="x-ua-compatible" content="ie=edge">
     <link rel="stylesheet" href="/api/stac/static/style/css/admin.css" type="text/css">
     <link rel="icon" href="/api/stac/static/style/img/ico/favicon.ico">
+    <!-- We need to override some of the bund css comportment. -->
     <style>
         html, body {
             overflow-x:visible;
@@ -13,6 +14,28 @@
         #content, .row {
             margin-right: 0px;
             margin-left: 0px;
+        }
+        .btn.active:focus,
+        .btn:focus,
+        .carousel-control:focus,
+        .chosen-container-active .chosen-single,
+        .dropdown-toggle:focus,
+        .form-control:focus,
+        :not([class*=col-]):focus,
+        a:focus,
+        button:focus,
+        input[type=checkbox]:focus,
+        input[type=file]:focus,
+        input[type=radio]:focus {
+            outline:0px;
+        }
+        code {
+            background-color: rgb(17, 23, 26);
+            color: white;
+        }
+        div[class*="col-"] {
+	        margin-bottom: 1em;
+	        margin-top: 1em;
         }
     </style>
     <title>data.geo.admin.ch STAC API</title>
