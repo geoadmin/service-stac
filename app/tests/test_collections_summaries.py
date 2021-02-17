@@ -173,3 +173,12 @@ class CollectionsSummariesTestCase(TestCase):
             "Collection's summaries[proj:epsg] has not been correctly "
             "updated after asset has been inserted."
         )
+
+    def test_update_collection_summaries_none_variant(self):
+        # update a variant, that as been None as a start value
+        collection = self.data_factory.create_collection_sample().model
+        item = self.data_factory.create_item_sample(collection=collection, name='base-bbox').model
+        asset = self.add_asset(item, 'har', None, None, None)
+        asset.geoadmin_variant = "krel"
+        asset.full_clean()
+        asset.save()
