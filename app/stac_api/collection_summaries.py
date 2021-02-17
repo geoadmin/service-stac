@@ -213,10 +213,10 @@ class CollectionSummariesMixin():
 
         # check if the asset's original value is still present in other
         # assets and can remain in the summaries or has to be deleted:
-        if (
+        if ((
             not assets.exists() or
             not assets.filter(geoadmin_variant=original_geoadmin_variant).exists()
-        ):
+        ) and original_geoadmin_variant is not None):
             logger.info(
                 'Removes original geoadmin:variant value %s from collection summaries',
                 original_geoadmin_variant,
