@@ -16,7 +16,7 @@ from tests.utils import mock_s3_asset_file
 
 logger = logging.getLogger(__name__)
 
-API_BASE = settings.API_BASE
+STAC_BASE_V = settings.STAC_BASE_V
 
 
 class ApiGenericTestCase(StacBaseTestCase):
@@ -25,7 +25,7 @@ class ApiGenericTestCase(StacBaseTestCase):
         self.client = Client()
 
     def test_http_error_collection_not_found(self):
-        response = self.client.get(f"/{API_BASE}/collections/not-found")
+        response = self.client.get(f"/{STAC_BASE_V}/collections/not-found")
         self.assertStatusCode(404, response)
 
     def test_http_error_500_exception(self):
@@ -44,25 +44,25 @@ class ApiPaginationTestCase(StacBaseTestCase):
         self.client = Client()
 
     def test_invalid_limit_query(self):
-        response = self.client.get(f"/{API_BASE}/collections?limit=0")
+        response = self.client.get(f"/{STAC_BASE_V}/collections?limit=0")
         self.assertStatusCode(400, response)
         self.assertEqual(['limit query parameter to small, must be in range 1..100'],
                          response.json()['description'],
                          msg='Unexpected error message')
 
-        response = self.client.get(f"/{API_BASE}/collections?limit=test")
+        response = self.client.get(f"/{STAC_BASE_V}/collections?limit=test")
         self.assertStatusCode(400, response)
         self.assertEqual(['invalid limit query parameter: must be an integer'],
                          response.json()['description'],
                          msg='Unexpected error message')
 
-        response = self.client.get(f"/{API_BASE}/collections?limit=-1")
+        response = self.client.get(f"/{STAC_BASE_V}/collections?limit=-1")
         self.assertStatusCode(400, response)
         self.assertEqual(['limit query parameter to small, must be in range 1..100'],
                          response.json()['description'],
                          msg='Unexpected error message')
 
-        response = self.client.get(f"/{API_BASE}/collections?limit=1000")
+        response = self.client.get(f"/{STAC_BASE_V}/collections?limit=1000")
         self.assertStatusCode(400, response)
         self.assertEqual(['limit query parameter to big, must be in range 1..100'],
                          response.json()['description'],
@@ -70,7 +70,7 @@ class ApiPaginationTestCase(StacBaseTestCase):
 
     def test_pagination(self):
 
-        response = self.client.get(f"/{API_BASE}/collections?limit=1")
+        response = self.client.get(f"/{STAC_BASE_V}/collections?limit=1")
         json_data = response.json()
         self.assertEqual(200, response.status_code, msg=get_http_error_description(json_data))
 
@@ -157,25 +157,25 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
             f'/assets/{self.asset["name"]}'
         ]:
             with self.subTest(endpoint=endpoint):
-                response1 = self.client.get(f"/{API_BASE}/{endpoint}")
+                response1 = self.client.get(f"/{STAC_BASE_V}/{endpoint}")
                 self.assertStatusCode(200, response1)
                 # The ETag change between each test call due to the created, updated time that are
                 # in the hash computation of the ETag
                 self.check_header_etag(None, response1)
 
                 response2 = self.client.get(
-                    f"/{API_BASE}/{endpoint}", HTTP_IF_NONE_MATCH=response1['ETag']
+                    f"/{STAC_BASE_V}/{endpoint}", HTTP_IF_NONE_MATCH=response1['ETag']
                 )
                 self.assertEqual(response1['ETag'], response2['ETag'])
                 self.assertStatusCode(304, response2)
 
                 response3 = self.client.get(
-                    f"/{API_BASE}/{endpoint}", HTTP_IF_MATCH=response1['ETag']
+                    f"/{STAC_BASE_V}/{endpoint}", HTTP_IF_MATCH=response1['ETag']
                 )
                 self.assertEqual(response1['ETag'], response3['ETag'])
                 self.assertStatusCode(200, response3)
 
-                response4 = self.client.get(f"/{API_BASE}/{endpoint}", HTTP_IF_MATCH='"abcd"')
+                response4 = self.client.get(f"/{STAC_BASE_V}/{endpoint}", HTTP_IF_MATCH='"abcd"')
                 self.assertStatusCode(412, response4)
 
     def test_put_precondition(self):
@@ -209,7 +209,7 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
         ]:
             with self.subTest(endpoint=endpoint):
                 # Get first the ETag
-                response = self.client.get(f"/{API_BASE}/{endpoint}")
+                response = self.client.get(f"/{STAC_BASE_V}/{endpoint}")
                 self.assertStatusCode(200, response)
                 # The ETag change between each test call due to the created, updated time that are
                 # in the hash computation of the ETag
@@ -217,7 +217,7 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
                 etag1 = response['ETag']
 
                 response = self.client.put(
-                    f"/{API_BASE}/{endpoint}",
+                    f"/{STAC_BASE_V}/{endpoint}",
                     sample.get_json('put'),
                     content_type="application/json",
                     HTTP_IF_MATCH='"abc"'
@@ -225,7 +225,7 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
                 self.assertStatusCode(412, response)
 
                 response = self.client.put(
-                    f"/{API_BASE}/{endpoint}",
+                    f"/{STAC_BASE_V}/{endpoint}",
                     sample.get_json('put'),
                     content_type="application/json",
                     HTTP_IF_MATCH=etag1
@@ -259,7 +259,7 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
         ]:
             with self.subTest(endpoint=endpoint):
                 # Get first the ETag
-                response = self.client.get(f"/{API_BASE}/{endpoint}")
+                response = self.client.get(f"/{STAC_BASE_V}/{endpoint}")
                 self.assertStatusCode(200, response)
                 # The ETag change between each test call due to the created, updated time that are
                 # in the hash computation of the ETag
@@ -267,7 +267,7 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
                 etag1 = response['ETag']
 
                 response = self.client.patch(
-                    f"/{API_BASE}/{endpoint}",
+                    f"/{STAC_BASE_V}/{endpoint}",
                     data,
                     content_type="application/json",
                     HTTP_IF_MATCH='"abc"'
@@ -275,7 +275,7 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
                 self.assertStatusCode(412, response)
 
                 response = self.client.patch(
-                    f"/{API_BASE}/{endpoint}",
+                    f"/{STAC_BASE_V}/{endpoint}",
                     data,
                     content_type="application/json",
                     HTTP_IF_MATCH=etag1
@@ -292,7 +292,7 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
         ]:
             with self.subTest(endpoint=endpoint):
                 # Get first the ETag
-                response = self.client.get(f"/{API_BASE}/{endpoint}")
+                response = self.client.get(f"/{STAC_BASE_V}/{endpoint}")
                 self.assertStatusCode(200, response)
                 # The ETag change between each test call due to the created, updated time that are
                 # in the hash computation of the ETag
@@ -300,7 +300,7 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
                 etag1 = response['ETag']
 
                 response = self.client.delete(
-                    f"/{API_BASE}/{endpoint}",
+                    f"/{STAC_BASE_V}/{endpoint}",
                     content_type="application/json",
                     HTTP_IF_MATCH='"abc"'
                 )
@@ -309,7 +309,9 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
                 )
 
                 response = self.client.delete(
-                    f"/{API_BASE}/{endpoint}", content_type="application/json", HTTP_IF_MATCH=etag1
+                    f"/{STAC_BASE_V}/{endpoint}",
+                    content_type="application/json",
+                    HTTP_IF_MATCH=etag1
                 )
                 self.assertStatusCode(200, response)
 
@@ -349,7 +351,7 @@ class ApiCacheHeaderTestCase(StacBaseTestCase):
         ]:
             with self.subTest(endpoint=endpoint):
                 now = datetime.now()
-                response = self.client.get(f"/{API_BASE}/{endpoint}")
+                response = self.client.get(f"/{STAC_BASE_V}/{endpoint}")
                 self.assertStatusCode(200, response)
 
                 self.assertTrue(
@@ -382,7 +384,7 @@ class ApiCacheHeaderTestCase(StacBaseTestCase):
         ]:
             with self.subTest(endpoint=endpoint):
                 now = datetime.now()
-                response = self.client.head(f"/{API_BASE}/{endpoint}")
+                response = self.client.head(f"/{STAC_BASE_V}/{endpoint}")
                 self.assertStatusCode(200, response)
 
                 self.assertTrue(

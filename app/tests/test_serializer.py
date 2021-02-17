@@ -24,7 +24,7 @@ from tests.data_factory import Factory
 from tests.utils import mock_s3_asset_file
 
 logger = logging.getLogger(__name__)
-API_BASE = settings.API_BASE
+STAC_BASE_V = settings.STAC_BASE_V
 
 api_request_mocker = APIRequestFactory()
 
@@ -48,7 +48,9 @@ class CollectionSerializationTestCase(StacBaseTestCase):
     def test_collection_serialization(self):
         collection_name = self.collection.model.name
         # mock a request needed for the serialization of links
-        context = {'request': api_request_mocker.get(f'{API_BASE}/collections/{collection_name}')}
+        context = {
+            'request': api_request_mocker.get(f'{STAC_BASE_V}/collections/{collection_name}')
+        }
 
         # transate to Python native:
         serializer = CollectionSerializer(self.collection.model, context=context)
@@ -150,7 +152,9 @@ class CollectionDeserializationTestCase(StacBaseTestCase):
         collection = serializer.save()
 
         # mock a request needed for the serialization of links
-        context = {'request': api_request_mocker.get(f'{API_BASE}/collections/{collection.name}')}
+        context = {
+            'request': api_request_mocker.get(f'{STAC_BASE_V}/collections/{collection.name}')
+        }
         serializer = CollectionSerializer(collection, context=context)
         python_native = serializer.data
         self.check_stac_collection(sample.json, python_native)
@@ -163,7 +167,9 @@ class CollectionDeserializationTestCase(StacBaseTestCase):
 
         # serialize the object and test it against the one above
         # mock a request needed for the serialization of links
-        context = {'request': api_request_mocker.get(f'{API_BASE}/collections/{collection.name}')}
+        context = {
+            'request': api_request_mocker.get(f'{STAC_BASE_V}/collections/{collection.name}')
+        }
         serializer = CollectionSerializer(collection, context=context)
         python_native = serializer.data
         self.check_stac_collection(sample.json, python_native)
@@ -176,7 +182,9 @@ class CollectionDeserializationTestCase(StacBaseTestCase):
         sample = self.data_factory.create_collection_sample(
             sample='collection-4', name=collection.name
         )
-        context = {'request': api_request_mocker.get(f'{API_BASE}/collections/{collection.name}')}
+        context = {
+            'request': api_request_mocker.get(f'{STAC_BASE_V}/collections/{collection.name}')
+        }
         serializer = CollectionSerializer(
             collection, data=sample.get_json('deserialize'), context=context
         )
@@ -243,8 +251,9 @@ class ItemSerializationTestCase(StacBaseTestCase):
 
         context = {
             'request':
-                api_request_mocker.
-                get(f'{API_BASE}/collections/{self.collection["name"]}/items/{self.item["name"]}')
+                api_request_mocker.get(
+                    f'{STAC_BASE_V}/collections/{self.collection["name"]}/items/{self.item["name"]}'
+                )
         }
         serializer = ItemSerializer(self.item.model, context=context)
         python_native = serializer.data
@@ -292,7 +301,7 @@ class ItemSerializationTestCase(StacBaseTestCase):
         context = {
             'request':
                 api_request_mocker.
-                get(f'{API_BASE}/collections/{self.collection["name"]}/items/{sample["name"]}')
+                get(f'{STAC_BASE_V}/collections/{self.collection["name"]}/items/{sample["name"]}')
         }
         serializer = ItemSerializer(sample.model, context=context)
         python_native = serializer.data
@@ -337,7 +346,7 @@ class ItemDeserializationTestCase(StacBaseTestCase):
         context = {
             'request':
                 api_request_mocker.
-                get(f'{API_BASE}/collections/{self.collection["name"]}/items/{sample["name"]}')
+                get(f'{STAC_BASE_V}/collections/{self.collection["name"]}/items/{sample["name"]}')
         }
         serializer = ItemSerializer(item, context=context)
         python_native = serializer.data
@@ -358,7 +367,7 @@ class ItemDeserializationTestCase(StacBaseTestCase):
         context = {
             'request':
                 api_request_mocker.
-                get(f'{API_BASE}/collections/{self.collection["name"]}/items/{sample["name"]}')
+                get(f'{STAC_BASE_V}/collections/{self.collection["name"]}/items/{sample["name"]}')
         }
         serializer = ItemSerializer(item, context=context)
         python_native = serializer.data
@@ -379,7 +388,7 @@ class ItemDeserializationTestCase(StacBaseTestCase):
         context = {
             'request':
                 api_request_mocker.
-                get(f'{API_BASE}/collections/{self.collection["name"]}/items/{sample["name"]}')
+                get(f'{STAC_BASE_V}/collections/{self.collection["name"]}/items/{sample["name"]}')
         }
         serializer = ItemSerializer(item, context=context)
         python_native = serializer.data
@@ -401,7 +410,7 @@ class ItemDeserializationTestCase(StacBaseTestCase):
         context = {
             'request':
                 api_request_mocker.
-                get(f'{API_BASE}/collections/{self.collection["name"]}/items/{sample["name"]}')
+                get(f'{STAC_BASE_V}/collections/{self.collection["name"]}/items/{sample["name"]}')
         }
         serializer = ItemSerializer(item, context=context)
         python_native = serializer.data
@@ -430,7 +439,7 @@ class ItemDeserializationTestCase(StacBaseTestCase):
         context = {
             'request':
                 api_request_mocker.
-                get(f'{API_BASE}/collections/{self.collection["name"]}/items/{sample["name"]}')
+                get(f'{STAC_BASE_V}/collections/{self.collection["name"]}/items/{sample["name"]}')
         }
         serializer = ItemSerializer(item, context=context)
         python_native = serializer.data
@@ -510,7 +519,7 @@ class AssetSerializationTestCase(StacBaseTestCase):
 
         # mock a request needed for the serialization of links
         request_mocker = api_request_mocker.get(
-            f'{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
+            f'{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
         )
 
         # translate to Python native:
@@ -552,7 +561,7 @@ class AssetDeserializationTestCase(StacBaseTestCase):
         item_name = self.item['name']
         asset_name = sample['name']
         request_mocker = api_request_mocker.get(
-            f'{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
+            f'{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
         )
 
         serializer = AssetSerializer(
@@ -580,7 +589,7 @@ class AssetDeserializationTestCase(StacBaseTestCase):
         item_name = self.item['name']
         asset_name = sample['name']
         request_mocker = api_request_mocker.get(
-            f'{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
+            f'{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
         )
 
         serializer = AssetSerializer(
@@ -595,7 +604,7 @@ class AssetDeserializationTestCase(StacBaseTestCase):
         item_name = self.item['name']
         asset_name = sample['name']
         request_mocker = api_request_mocker.get(
-            f'{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
+            f'{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
         )
 
         serializer = AssetSerializer(asset, context={'request': request_mocker})
@@ -614,7 +623,7 @@ class AssetDeserializationTestCase(StacBaseTestCase):
         item_name = self.item['name']
         asset_name = sample['name']
         request_mocker = api_request_mocker.get(
-            f'{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
+            f'{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
         )
 
         serializer = AssetSerializer(
@@ -630,7 +639,7 @@ class AssetDeserializationTestCase(StacBaseTestCase):
         item_name = self.item['name']
         asset_name = sample['name']
         request_mocker = api_request_mocker.get(
-            f'{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
+            f'{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
         )
 
         serializer = AssetSerializer(
@@ -648,7 +657,7 @@ class AssetDeserializationTestCase(StacBaseTestCase):
         item_name = self.item['name']
         asset_name = sample['name']
         request_mocker = api_request_mocker.get(
-            f'{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
+            f'{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
         )
 
         serializer = AssetSerializer(

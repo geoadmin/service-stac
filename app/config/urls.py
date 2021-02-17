@@ -15,13 +15,24 @@ Including another URLconf
 """
 from django.conf import settings
 from django.contrib import admin
+from django.http import JsonResponse
 from django.urls import include
 from django.urls import path
 
+STAC_BASE = settings.STAC_BASE
+
+
+def checker(request):
+    data = {"success": True, "message": "OK"}
+
+    return JsonResponse(data)
+
+
 urlpatterns = [
-    path('', include('stac_api.urls')),
-    path('api/stac/admin/', admin.site.urls),
     path('', include('django_prometheus.urls')),
+    path('checker', checker, name='checker'),
+    path(f'{STAC_BASE}/', include('stac_api.urls')),
+    path(f'{STAC_BASE}/admin/', admin.site.urls),
 ]
 
 if settings.DEBUG:

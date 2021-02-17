@@ -1,4 +1,5 @@
 import logging
+import re
 from urllib.parse import urlparse
 
 from django.conf import settings
@@ -8,11 +9,14 @@ from django.utils.cache import patch_response_headers
 
 logger = logging.getLogger(__name__)
 
+STAC_BASE = settings.STAC_BASE
+STAC_BASE_V = settings.STAC_BASE_V
+
 
 class CacheHeadersMiddleware:
     '''Middleware that adds appropriate cache headers to GET and HEAD methods.
 
-    NOTE: /checker and /get-token endpoints are marked as never cache.
+    NOTE: /checker, /get-token, /metrics and /{healthcheck} endpoints are marked as never cache.
     '''
 
     def __init__(self, get_response):
@@ -26,9 +30,9 @@ class CacheHeadersMiddleware:
 
         # Code to be executed for each request/response after
         # the view is called.
-
-        if request.path in ['/checker', '/get-token']:
-            # never cache the /checker and /get-token endpoints.
+        # match /xxx or /api/stac/xxx
+        # f.ex. /metrics, /checker, /api/stac/{healthcheck}, /api/stac/get-token
+        if re.match(fr'^(/{STAC_BASE})?/\w+$', request.path):
             add_never_cache_headers(response)
         elif (
             request.method in ('GET', 'HEAD') and

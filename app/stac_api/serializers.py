@@ -192,7 +192,7 @@ class LandingPageSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
-        api_base = settings.API_BASE
+        stac_base_v = settings.STAC_BASE_V
         request = self.context.get("request")
 
         spec_base = urlparse(settings.STATIC_SPEC_URL).path.strip('/')
@@ -203,7 +203,7 @@ class LandingPageSerializer(serializers.ModelSerializer):
         representation['links'][:0] = [
             OrderedDict([
                 ('rel', 'self'),
-                ('href', request.build_absolute_uri(f'/{api_base}/')),
+                ('href', request.build_absolute_uri(f'/{stac_base_v}/')),
                 ("type", "application/json"),
                 ("title", "This document"),
             ]),
@@ -221,25 +221,25 @@ class LandingPageSerializer(serializers.ModelSerializer):
             ]),
             OrderedDict([
                 ("rel", "conformance"),
-                ("href", request.build_absolute_uri(f'/{api_base}/conformance')),
+                ("href", request.build_absolute_uri(f'/{stac_base_v}/conformance')),
                 ("type", "application/json"),
                 ("title", "OGC API conformance classes implemented by this server"),
             ]),
             OrderedDict([
                 ('rel', 'data'),
-                ('href', request.build_absolute_uri(f'/{api_base}/collections')),
+                ('href', request.build_absolute_uri(f'/{stac_base_v}/collections')),
                 ("type", "application/json"),
                 ("title", "Information about the feature collections"),
             ]),
             OrderedDict([
-                ("href", request.build_absolute_uri(f"/{api_base}/search")),
+                ("href", request.build_absolute_uri(f"/{stac_base_v}/search")),
                 ("rel", "search"),
                 ("method", "GET"),
                 ("type", "application/json"),
                 ("title", "Search across feature collections"),
             ]),
             OrderedDict([
-                ("href", request.build_absolute_uri(f"/{api_base}/search")),
+                ("href", request.build_absolute_uri(f"/{stac_base_v}/search")),
                 ("rel", "search"),
                 ("method", "POST"),
                 ("type", "application/json"),
@@ -439,7 +439,7 @@ class CollectionSerializer(NonNullModelSerializer):
 
     def to_representation(self, instance):
         name = instance.name
-        api_base = settings.API_BASE
+        stac_base_v = settings.STAC_BASE_V
         request = self.context.get("request")
         representation = super().to_representation(instance)
         # Add auto links
@@ -449,19 +449,19 @@ class CollectionSerializer(NonNullModelSerializer):
         representation['links'][:0] = [
             OrderedDict([
                 ('rel', 'self'),
-                ('href', request.build_absolute_uri(f'/{api_base}/collections/{name}')),
+                ('href', request.build_absolute_uri(f'/{stac_base_v}/collections/{name}')),
             ]),
             OrderedDict([
                 ('rel', 'root'),
-                ('href', request.build_absolute_uri(f'/{api_base}/')),
+                ('href', request.build_absolute_uri(f'/{stac_base_v}/')),
             ]),
             OrderedDict([
                 ('rel', 'parent'),
-                ('href', request.build_absolute_uri(f'/{api_base}/collections')),
+                ('href', request.build_absolute_uri(f'/{stac_base_v}/collections')),
             ]),
             OrderedDict([
                 ('rel', 'items'),
-                ('href', request.build_absolute_uri(f'/{api_base}/collections/{name}/items')),
+                ('href', request.build_absolute_uri(f'/{stac_base_v}/collections/{name}/items')),
             ])
         ]
         return representation
@@ -653,7 +653,7 @@ class AssetSerializer(AssetBaseSerializer):
         collection = instance.item.collection.name
         item = instance.item.name
         name = instance.name
-        api = settings.API_BASE
+        api = settings.STAC_BASE_V
         request = self.context.get("request")
         representation = super().to_representation(instance)
         # Add auto links
@@ -772,7 +772,7 @@ class ItemSerializer(NonNullModelSerializer):
     def to_representation(self, instance):
         collection = instance.collection.name
         name = instance.name
-        api = settings.API_BASE
+        api = settings.STAC_BASE_V
         request = self.context.get("request")
         representation = super().to_representation(instance)
         # Add auto links
