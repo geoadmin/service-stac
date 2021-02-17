@@ -21,14 +21,12 @@ from stac_api.models import LandingPageLink
 from stac_api.models import Provider
 from stac_api.models import get_asset_path
 from stac_api.utils import build_asset_href
-from stac_api.utils import build_asset_href_prefix
 from stac_api.utils import isoformat
 from stac_api.validators import MEDIA_TYPES_MIMES
 from stac_api.validators import validate_asset_multihash
 from stac_api.validators import validate_geoadmin_variant
 from stac_api.validators import validate_item_properties_datetimes
 from stac_api.validators import validate_name
-from stac_api.validators_serializer import validate_and_parse_href_url
 from stac_api.validators_serializer import validate_asset_file
 from stac_api.validators_serializer import validate_json_payload
 
@@ -532,20 +530,14 @@ class AssetsDictSerializer(DictSerializer):
 class HrefField(serializers.Field):
     '''Special Href field for Assets'''
 
+    # pylint: disable=abstract-method
+
     def to_representation(self, value):
         # build an absolute URL from the file path
         request = self.context.get("request")
         path = value.name
 
         return build_asset_href(request, path)
-
-    def to_internal_value(self, data):
-        # extract the file path part from the
-        # provided URL and do some sanity checks
-        request = self.context.get("request")
-        url = validate_and_parse_href_url(build_asset_href_prefix(request), data)
-
-        return url.path[1:]  # strip the leading '/'
 
 
 class AssetBaseSerializer(NonNullModelSerializer):

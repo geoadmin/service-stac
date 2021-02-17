@@ -100,30 +100,6 @@ def get_s3_resource():
     )
 
 
-def build_asset_href_prefix(request):
-    '''Build the asset href prefix based on the settings or request
-
-    This prefix can be then used for domain validation.
-
-    Args:
-        request: HttpRequest
-            Request object
-
-    Returns:
-        The asset href prefix either from settings.AWS_S3_CUSTOM_DOMAIN or from the request
-    '''
-    # Assets file are served by an AWS S3 services. This service uses the same domain as
-    # the API but could defer, especially for local development, so check first
-    # AWS_S3_CUSTOM_DOMAIN
-    if settings.AWS_S3_CUSTOM_DOMAIN:
-        # By definition we should not mixed up HTTP Scheme (HTTP/HTTPS) within our service,
-        # although the Assets file are not served by django we configure it with the same scheme
-        # as django that's why it is kind of safe to use the django scheme.
-        return f'{request.scheme if request.scheme else "https"}://{settings.AWS_S3_CUSTOM_DOMAIN}'
-
-    return request.build_absolute_uri('/')
-
-
 def build_asset_href(request, path):
     '''Build asset href
 

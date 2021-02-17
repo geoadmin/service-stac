@@ -1,7 +1,6 @@
 import json
 import logging
 from decimal import Decimal
-from urllib.parse import urlparse
 
 import botocore
 import multihash
@@ -85,38 +84,6 @@ def validate_asset_href_path(item, asset_name, path):
         raise ValidationError({
             'href': _(f"Invalid path; should be {expected_path} but got {path}")
         })
-
-
-def validate_and_parse_href_url(url_prefix, href):
-    '''Parse and validate href URL
-
-    Validate the given href which needs to ba a valid URL with the same domain as the given prefix
-
-    Args:
-        url_prefix:
-            URL prefix to use for domain validation
-        href: string
-            href url string to parse and validate
-
-    Returns:
-        Parse url object
-
-    Raises:
-        ValidationError in case of invalid href
-    '''
-    logger.debug('Validate and parse href url %s, url_prefix=%s', href, url_prefix)
-    url_prefix = urlparse(url_prefix)
-    try:
-        url = urlparse(href)
-    except ValueError as error:
-        logger.error('Invalid href %s, must be a valid URL', href)
-        raise ValidationError({'href': _('Invalid value, must be a valid URL')}) from error
-
-    # the asset should come from the same host
-    if url.netloc != url_prefix.netloc:
-        logger.error('Invalid href %s, must be on domain %s', href, url_prefix.netloc)
-        raise ValidationError({'href': _(f'Invalid value, must be on domain {url_prefix.netloc}')})
-    return url
 
 
 def validate_asset_file(href, original_name, attrs):

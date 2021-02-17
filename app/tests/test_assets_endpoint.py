@@ -308,8 +308,8 @@ class AssetsWriteEndpointTestCase(StacBaseTestCase):
         self.assertEqual(
             {
                 'geoadmin:variant': [
-                    'Invalid geoadmin:variant, special characters beside one '
-                    'space are not allowed',
+                    'Invalid geoadmin:variant "more than twenty-five characters with s", '
+                    'special characters beside one space are not allowed',
                     'Ensure this field has no more than 25 characters.'
                 ]
             },
