@@ -78,7 +78,11 @@ class CollectionSummariesMixin():
                                    ('proj:epsg', 'proj_epsg'),
                                    ('eo:gsd', 'eo_gsd')]:
                 attribute_value = getattr(asset, attribute)
-                if not assets.filter(**{attribute: attribute_value}).exists():
+                if (
+                    not assets.filter(**{
+                        attribute: attribute_value
+                    }).exists() and attribute_value is not None
+                ):
                     logger.info(
                         'Removing %s %s from collection summaries',
                         key,
@@ -271,7 +275,9 @@ class CollectionSummariesMixin():
             self.summaries["proj:epsg"].append(proj_epsg)
             updated |= True
 
-        if not assets.exists() or not assets.filter(proj_epsg=original_proj_epsg).exists():
+        if (
+            not assets.exists() or not assets.filter(proj_epsg=original_proj_epsg).exists()
+        ) and original_proj_epsg is not None:
             logger.info(
                 'Removes original proj:epsg value %s from collection summaries',
                 original_proj_epsg,
@@ -326,7 +332,9 @@ class CollectionSummariesMixin():
             self.summaries["eo:gsd"].append(eo_gsd)
             updated |= True
 
-        if not assets.exists() or not assets.filter(eo_gsd=original_eo_gsd).exists():
+        if (
+            not assets.exists() or not assets.filter(eo_gsd=original_eo_gsd).exists()
+        ) and original_eo_gsd is not None:
             logger.info(
                 'Removes original eo:gsd value %s from collection summaries',
                 original_eo_gsd,
