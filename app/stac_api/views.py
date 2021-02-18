@@ -44,6 +44,18 @@ def get_collection_etag(request, *args, **kwargs):
     The ETag is an UUID4 computed on each object changes (including relations; provider and links)
     '''
     tag = get_etag(Collection.objects.filter(name=kwargs['collection_name']))
+
+    if settings.DEBUG_ENABLE_DB_EXPLAIN_ANALYZE:
+        logger.debug(
+            "Output of EXPLAIN.. ANALYZE from get_collection_etag():\n%s",
+            Collection.objects.filter(name=kwargs['collection_name']
+                                     ).explain(verbose=True, analyze=True)
+        )
+        logger.debug(
+            "The corresponding SQL statement:\n%s",
+            Collection.objects.filter(name=kwargs['collection_name']).query
+        )
+
     return tag
 
 
@@ -55,6 +67,21 @@ def get_item_etag(request, *args, **kwargs):
     tag = get_etag(
         Item.objects.filter(collection__name=kwargs['collection_name'], name=kwargs['item_name'])
     )
+
+    if settings.DEBUG_ENABLE_DB_EXPLAIN_ANALYZE:
+        logger.debug(
+            "Output of EXPLAIN.. ANALYZE from get_item_etag():\n%s",
+            Item.objects.filter(
+                collection__name=kwargs['collection_name'], name=kwargs['item_name']
+            ).explain(verbose=True, analyze=True)
+        )
+        logger.debug(
+            "The corresponding SQL statement:\n%s",
+            Item.objects.filter(
+                collection__name=kwargs['collection_name'], name=kwargs['item_name']
+            ).query
+        )
+
     return tag
 
 
@@ -64,6 +91,18 @@ def get_asset_etag(request, *args, **kwargs):
     The ETag is an UUID4 computed on each object changes
     '''
     tag = get_etag(Asset.objects.filter(item__name=kwargs['item_name'], name=kwargs['asset_name']))
+
+    if settings.DEBUG_ENABLE_DB_EXPLAIN_ANALYZE:
+        logger.debug(
+            "Output of EXPLAIN.. ANALYZE from get_asset_etag():\n%s",
+            Asset.objects.filter(item__name=kwargs['item_name'],
+                                 name=kwargs['asset_name']).explain(verbose=True, analyze=True)
+        )
+        logger.debug(
+            "The corresponding SQL statement:\n%s",
+            Asset.objects.filter(item__name=kwargs['item_name'], name=kwargs['asset_name']).query
+        )
+
     return tag
 
 
@@ -177,6 +216,13 @@ class ItemsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
         if date_time:
             queryset = queryset.filter_by_datetime(date_time)
 
+        if settings.DEBUG_ENABLE_DB_EXPLAIN_ANALYZE:
+            logger.debug(
+                "Output of EXPLAIN.. ANALYZE from ItemList() view:\n%s",
+                queryset.explain(verbose=True, analyze=True)
+            )
+            logger.debug("The corresponding SQL statement:\n%s", queryset.query)
+
         return queryset
 
     def list(self, request, *args, **kwargs):
@@ -234,6 +280,14 @@ class ItemDetail(
         # filter based on the url
         queryset = Item.objects.filter(collection__name=self.kwargs['collection_name']
                                       ).prefetch_related('assets', 'links')
+
+        if settings.DEBUG_ENABLE_DB_EXPLAIN_ANALYZE:
+            logger.debug(
+                "Output of EXPLAIN.. ANALYZE from ItemDetail() view:\n%s",
+                queryset.explain(verbose=True, analyze=True)
+            )
+            logger.debug("The corresponding SQL statement:\n%s", queryset.query)
+
         return queryset
 
     def get_write_request_data(self, request, *args, partial=False, **kwargs):
@@ -293,6 +347,13 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
                 queryset = queryset.filter_by_query(dict_query)
             if 'intersects' in query_param:
                 queryset = queryset.filter_by_intersects(json.dumps(query_param['intersects']))
+
+        if settings.DEBUG_ENABLE_DB_EXPLAIN_ANALYZE:
+            logger.debug(
+                "Output of EXPLAIN.. ANALYZE from SearchList() view:\n%s",
+                queryset.explain(verbose=True, analyze=True)
+            )
+            logger.debug("The corresponding SQL statement:\n%s", queryset.query)
 
         return queryset
 

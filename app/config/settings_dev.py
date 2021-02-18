@@ -15,6 +15,11 @@ from .settings_prod import *  # pylint: disable=wildcard-import, unused-wildcard
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = bool(strtobool(os.getenv('DEBUG', 'False')))
+
+# If set to True, this will enable logger.debug prints of the output of
+# EXPLAIN.. ANALYZE of certain queries and the corresponding SQL statement.
+DEBUG_ENABLE_DB_EXPLAIN_ANALYZE = False
+
 if DEBUG:
     print('WARNING - running in debug mode !')
 
