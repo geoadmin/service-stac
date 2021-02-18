@@ -88,14 +88,14 @@ class CollectionSpatialExtentMixin():
                         },
                     )
                     start = time.time()
-                    qs_bbox_other_items = type(item).objects.filter(collection_id=self.pk).exclude(
+                    bbox_other_items = type(item).objects.filter(collection_id=self.pk).exclude(
                         id=item.pk
                     ).only('geometry', 'collection').aggregate(Extent('geometry'))
                     geometry_updated_item = GEOSGeometry(geometry)
 
-                    if bool(qs_bbox_other_items['geometry__extent']):
+                    if bool(bbox_other_items['geometry__extent']):
                         geometry_other_items = GEOSGeometry(
-                            Polygon.from_bbox(qs_bbox_other_items['geometry__extent'])
+                            Polygon.from_bbox(bbox_other_items['geometry__extent'])
                         )
                         self.extent_geometry = Polygon.from_bbox(
                             geometry_updated_item.union(geometry_other_items).extent
@@ -123,12 +123,12 @@ class CollectionSpatialExtentMixin():
                     },
                 )
                 start = time.time()
-                qs_bbox_other_items = type(item).objects.filter(collection_id=self.pk).exclude(
+                bbox_other_items = type(item).objects.filter(collection_id=self.pk).exclude(
                     id=item.pk
                 ).only('geometry', 'collection').aggregate(Extent('geometry'))
-                if bool(qs_bbox_other_items['geometry__extent']):
+                if bool(bbox_other_items['geometry__extent']):
                     self.extent_geometry = GEOSGeometry(
-                        Polygon.from_bbox(qs_bbox_other_items['geometry__extent'])
+                        Polygon.from_bbox(bbox_other_items['geometry__extent'])
                     )
                 else:
                     self.extent_geometry = None
