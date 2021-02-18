@@ -42,6 +42,10 @@ SECRET_KEY = os.getenv('SECRET_KEY', None)
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
+# If set to True, this will enable logger.debug prints of the output of
+# EXPLAIN.. ANALYZE of certain queries and the corresponding SQL statement.
+DEBUG_ENABLE_DB_EXPLAIN_ANALYZE = False
+
 # SECURITY:
 # https://docs.djangoproject.com/en/dev/ref/settings/#secure-proxy-ssl-header
 SECURE_PROXY_SSL_HEADER = ('HTTP_CLOUDFRONT_FORWARDED_PROTO', 'https')
