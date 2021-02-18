@@ -179,6 +179,8 @@ class CollectionsSummariesTestCase(TestCase):
         collection = self.data_factory.create_collection_sample().model
         item = self.data_factory.create_item_sample(collection=collection, name='base-bbox').model
         asset = self.add_asset(item, 'har', None, None, None)
+        self.assertEqual(collection.summaries["geoadmin:variant"], [])
         asset.geoadmin_variant = "krel"
         asset.full_clean()
         asset.save()
+        self.assertEqual(collection.summaries["geoadmin:variant"], ["krel"])
