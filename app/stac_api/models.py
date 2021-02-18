@@ -274,11 +274,6 @@ ITEM_KEEP_ORIGINAL_FIELDS = [
 
 
 class Item(models.Model):
-    name = models.CharField('id', blank=False, max_length=255, validators=[validate_name])
-    collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
-    geometry = models.PolygonField(
-        null=False, blank=False, default=BBOX_CH, srid=4326, validators=[validate_geometry]
-    )
 
     class Meta:
         unique_together = (('collection', 'name'),)
@@ -293,8 +288,6 @@ class Item(models.Model):
             models.Index(fields=['created'], name='item_created_idx'),
             models.Index(fields=['updated'], name='item_updated_idx'),
             models.Index(fields=['properties_title'], name='item_title_idx'),
-            # geometry is used in "filter_by_intersects", views.py:415 and filtering for bbox
-            models.Index(fields=['geometry'], name='item_geometry_idx'),
             # combination of datetime and start_ and end_datetimes are used in
             # managers.py:110 and following
             models.Index(
@@ -305,6 +298,11 @@ class Item(models.Model):
             ),
         ]
 
+    name = models.CharField('id', blank=False, max_length=255, validators=[validate_name])
+    collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
+    geometry = models.PolygonField(
+        null=False, blank=False, default=BBOX_CH, srid=4326, validators=[validate_geometry]
+    )
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
     # after discussion with Chris and Tobias: for the moment only support
