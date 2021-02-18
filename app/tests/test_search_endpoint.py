@@ -75,25 +75,153 @@ class SearchEndpointTestCaseOne(StacBaseTestCase):
             json_data_post['features'][0]['properties']['title']
         )
 
+    def test_query_non_allowed_parameters(self):
+        # get match
+        query = '{"created": {"lte": "9999-12-31T09:07:39.399892Z"}}'
+        wrong_query_parameter = "cherry"
+        response = self.client.get(
+            f"/{API_BASE}/search"
+            f"?{wrong_query_parameter}={query}&limit=1"
+        )
+        self.assertStatusCode(400, response)
+        json_data_get = response.json()
+        self.assertIn(
+            wrong_query_parameter,
+            str(json_data_get['description']),
+            msg=f"Wrong query parameter {wrong_query_parameter} not found in error message"
+        )
+        # self.assertEqual(len(json_data_get['features']), 1)
+
+        # post match
+        payload = f"""
+        {{"{wrong_query_parameter}":
+            {{"created":
+                {{"lte":"9999-12-31T09:07:39.399892Z"}}
+            }},
+            "limit": 1
+        }}
+        """
+        response = self.client.post(self.path, data=payload, content_type="application/json")
+        self.assertStatusCode(400, response)
+        json_data_post = response.json()
+        self.assertIn(
+            wrong_query_parameter,
+            str(json_data_post['description']),
+            msg=f"Wrong query parameter {wrong_query_parameter} not found in error message"
+        )
+
+    def test_query_multiple_non_allowed_parameters(self):
+        # get match
+        query = '{"created": {"lte": "9999-12-31T09:07:39.399892Z"}}'
+        wrong_query_parameter1 = "cherry"
+        wrong_query_parameter2 = "no_limits"
+        response = self.client.get(
+            f"/{API_BASE}/search"
+            f"?{wrong_query_parameter1}={query}&{wrong_query_parameter2}=1"
+        )
+        self.assertStatusCode(400, response)
+        json_data_get = response.json()
+        for wrong_par in [wrong_query_parameter1, wrong_query_parameter2]:
+            self.assertIn(
+                wrong_par,
+                str(json_data_get['description']),
+                msg=f"Wrong query parameter {wrong_par} not found in error message"
+            )
+
+        # post match
+        payload = f"""
+        {{"{wrong_query_parameter1}":
+            {{"created":
+                {{"lte":"9999-12-31T09:07:39.399892Z"}}
+            }},
+            "{wrong_query_parameter2}": 1
+        }}
+        """
+        response = self.client.post(self.path, data=payload, content_type="application/json")
+        self.assertStatusCode(400, response)
+        json_data_post = response.json()
+        for wrong_par in [wrong_query_parameter1, wrong_query_parameter2]:
+            self.assertIn(
+                wrong_par,
+                str(json_data_post['description']),
+                msg=f"Wrong query parameter {wrong_par} not found in error message"
+            )
+
+    def test_query_created(self):
+        # get match
+        query = '{"created": {"lte": "9999-12-31T09:07:39.399892Z"}}'
+        response = self.client.get(f"/{API_BASE}/search" f"?query={query}&limit=1")
+        self.assertStatusCode(200, response)
+        json_data_get = response.json()
+        self.assertEqual(len(json_data_get['features']), 1)
+
+        # post match
+        payload = """
+        {"query":
+            {"created":
+                {"lte":"9999-12-31T09:07:39.399892Z"}
+            },
+            "limit": 1
+        }
+        """
+        response = self.client.post(self.path, data=payload, content_type="application/json")
+        self.assertStatusCode(200, response)
+        json_data_post = response.json()
+        self.assertEqual(len(json_data_post['features']), 1)
+        # compare get and post
+        self.assertEqual(
+            json_data_get['features'][0]['properties']['created'],
+            json_data_post['features'][0]['properties']['created'],
+            msg="GET and POST responses do not match when filtering for date created"
+        )
+
+    def test_query_updated(self):
+        # get match
+        query = '{"updated": {"lte": "9999-12-31T09:07:39.399892Z"}}'
+        response = self.client.get(f"/{API_BASE}/search" f"?query={query}&limit=1")
+        self.assertStatusCode(200, response)
+        json_data_get = response.json()
+        self.assertEqual(len(json_data_get['features']), 1)
+
+        # post match
+        payload = """
+        {"query":
+            {"updated":
+                {"lte":"9999-12-31T09:07:39.399892Z"}
+            },
+            "limit": 1
+        }
+        """
+        response = self.client.post(self.path, data=payload, content_type="application/json")
+        self.assertStatusCode(200, response)
+        json_data_post = response.json()
+        self.assertEqual(len(json_data_post['features']), 1)
+        # compare get and post
+        self.assertEqual(
+            json_data_get['features'][0]['properties']['updated'],
+            json_data_post['features'][0]['properties']['updated'],
+            msg="GET and POST responses do not match when filtering for date updated"
+        )
+
     def test_query_data_in(self):
         payload = """
         {"query":
-            {"datetime":
-                {"in":["2020-10-28T13:05:10Z","2525-10-19T00:00:00Z"]}
+            {"title":
+                {"in":["My item 1","My item 2"]}
             }
         }
         """
         response = self.client.post(self.path, data=payload, content_type="application/json")
         json_data = response.json()
-        list_expected_items = ['item-1', 'item-3']
+        list_expected_items = ['item-1', 'item-2']
         self.assertIn(json_data['features'][0]['id'], list_expected_items)
         self.assertIn(json_data['features'][1]['id'], list_expected_items)
 
     def test_post_pagination(self):
         data = """
         {"query":
-            {"datetime":
-                {"lt":"2525-01-02T00:00:00Z"}
+             {"title":
+                {"startsWith":"My item"}
             },
          "limit": 1
         }

@@ -17,7 +17,7 @@ paths:
     get:
       operationId: getCollections
       parameters:
-        - $ref: "#/components/parameters/collectionsLimit"
+        - $ref: "#/components/parameters/limit"
       responses:
         "200":
           $ref: "#/components/responses/Collections"
@@ -62,7 +62,7 @@ paths:
       operationId: getFeatures
       parameters:
         - $ref: "#/components/parameters/collectionId"
-        - $ref: "#/components/parameters/itemsLimit"
+        - $ref: "#/components/parameters/limit"
         - $ref: "#/components/parameters/bbox"
         - $ref: "#/components/parameters/datetime"
       responses:
@@ -128,7 +128,8 @@ paths:
       operationId: getSearchSTAC
       parameters:
         # - $ref: "#/components/parameters/assetQuery"
-        - $ref: "#/components/parameters/query"
+        # Note: this is commented here since not part of the official spec
+        # - $ref: "#/components/parameters/query"
         - $ref: "#/components/parameters/bbox"
         - $ref: "#/components/parameters/datetime"
         - $ref: "#/components/parameters/limit"

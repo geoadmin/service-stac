@@ -4,20 +4,77 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta http-equiv="x-ua-compatible" content="ie=edge">
-    <link rel="icon" href="/api/stac/static/favicon.ico">
-    <title>STAC API</title>
+    <link rel="stylesheet" href="/api/stac/static/style/css/admin.css" type="text/css">
+    <link rel="icon" href="/api/stac/static/style/img/ico/favicon.ico">
+    <!-- We need to override some of the bund css comportment. -->
+    <style>
+        html, body {
+            overflow-x:visible;
+        }
+        #content, .row {
+            margin-right: 0px;
+            margin-left: 0px;
+        }
+        .btn.active:focus,
+        .btn:focus,
+        .carousel-control:focus,
+        .chosen-container-active .chosen-single,
+        .dropdown-toggle:focus,
+        .form-control:focus,
+        :not([class*=col-]):focus,
+        a:focus,
+        button:focus,
+        input[type=checkbox]:focus,
+        input[type=file]:focus,
+        input[type=radio]:focus {
+            outline:0px;
+        }
+        code {
+            background-color: rgb(17, 23, 26);
+            color: white;
+        }
+        div[class*="col-"] {
+	        margin-bottom: 1em;
+	        margin-top: 1em;
+        }
+    </style>
+    <title>data.geo.admin.ch STAC API</title>
 </head>
 
 <body>
-    <div id="content"></div>
-    <script src="https://cdn.jsdelivr.net/npm/redoc@next/bundles/redoc.standalone.js"> </script>
-    <script type="text/javascript">
-        Redoc.init('openapitransactional.yaml', {
-            expandResponses: "200,201,202,203,204",
-            pathInMiddlePanel: true,
-            hideDownloadButton: true
-        }, document.getElementById('content'));
-    </script>
+    <header style="border-bottom:4px solid #dc0018;">
+        <a href="#" class="brand hidden-xs" title="Back to home">
+            <img src="/api/stac/static/style/img/logo-CH.svg" onerror="this.onerror=null; this.src='/api/stac/static/style/img/logo-CH.png'" alt="Back to home" />
+            <h1>data.geo.admin.ch STAC API</h1>
+        </a>
+    </header>
+
+    <div id="content" class="row" style="background-color:white;">
+        <script src="https://cdn.jsdelivr.net/npm/redoc@next/bundles/redoc.standalone.js"> </script>
+        <script type="text/javascript">
+               Redoc.init('openapitransactional.yaml', {
+                   expandResponses: "200,201,202,203,204",
+                   pathInMiddlePanel: true,
+                   hideDownloadButton: true
+               }, document.getElementById('content'));
+        </script>
+    </div>
+    <footer>
+        <div id="footer" class="row">
+            <div class="col-md-6">
+                <p>
+                    <a href="https://www.geo.admin.ch/de/ueber-geo-admin/organisation.html">geo.admin.ch</a> |
+                    <a href="https://www.geo.admin.ch/de/ueber-geo-admin/impressum.html">Rechtliches</a> -
+                    <a href="https://www.geo.admin.ch/fr/geo-admin-ch/impressum.html"><i>Conditions d'utilisation</i></a>
+                </p>
+            </div>
+            <div class="col-md-6 text-right">
+                <p>
+                    <a href="http://www.disclaimer.admin.ch">www.disclaimer.admin.ch</a>
+                </p>
+            </div>
+        </div>
+    </footer>
 </body>
 
 </html>

@@ -10,44 +10,14 @@ components:
     #  schema:
     #    type: string
     bbox:
-      description: >-
-        Only features that have a geometry that intersects the bounding box are selected.
-        The bounding box is provided as four numbers:
-
-
-        * Lower left corner, coordinate axis 1
-
-        * Lower left corner, coordinate axis 2
-
-        * Upper right corner, coordinate axis 1
-
-        * Upper right corner, coordinate axis 2
-
-
-        The coordinate reference system of the values is WGS 84 longitude/latitude
-        (http://www.opengis.net/def/crs/OGC/1.3/CRS84).
-
-
-        For WGS 84 longitude/latitude the values are in most cases the sequence of
-        minimum longitude, minimum latitude, maximum longitude and maximum latitude.
-        However, in cases where the box spans the antimeridian the first value
-        (west-most box edge) is larger than the third value (east-most box edge).
-
-
-        If a feature has multiple spatial geometry properties, it is the decision of the
-        server whether only a single spatial geometry property is used to determine
-        the extent or all relevant geometries.
       explode: false
       in: query
       name: bbox
       required: false
       schema:
-        items:
-          type: number
-        maxItems: 4
-        minItems: 4
-        type: array
+        $ref: "#/components/schemas/bbox"
       style: form
+      example:
     collectionId:
       description: Local identifier of a collection
       in: path
@@ -56,9 +26,6 @@ components:
       schema:
         type: string
     collectionsArray:
-      description: >-
-        Array of Collection IDs to include in the search for items.
-        Only Items in one of the provided Collections will be searched
       explode: false
       in: query
       name: collections
@@ -66,33 +33,13 @@ components:
       schema:
         $ref: "#/components/schemas/collectionsArray"
     datetime:
-      description: >-
-        Either a date-time or an interval, open or closed. Date and time expressions
-        adhere to RFC 3339. Open intervals are expressed using double-dots.
-
-        Examples:
-
-
-        * A date-time: "2018-02-12T23:20:50Z"
-
-        * A closed interval: "2018-02-12T00:00:00Z/2018-03-18T12:31:12Z"
-
-        * Open intervals: "2018-02-12T00:00:00Z/.." or "../2018-03-18T12:31:12Z"
-
-
-        Only features that have a temporal property that intersects the value of
-        `datetime` are selected.
-
-
-        If a feature has multiple temporal properties, it is the decision of the
-        server whether only a single temporal property is used to determine
-        the extent or all relevant temporal properties.
       explode: false
       in: query
       name: datetime
       required: false
       schema:
-        type: string
+        $ref: "#/components/schemas/datetimeQuery"
+      example: 2018-02-12T00%3A00%3A00Z%2F2018-03-18T12%3A31%3A12Z
       style: form
     featureId:
       description: Local identifier of a feature
@@ -111,78 +58,21 @@ components:
       required: false
       schema:
         $ref: "#/components/schemas/ids"
-    collectionsLimit:
-      description: >-
-        The optional limit parameter limits the number of collections that are presented in the response
-        document.
-
-
-        To retrieve the next collections result, uses the `next` link from the response.
-
-
-        Minimum = 1. Maximum = 100. Default = 100.
-      explode: false
-      in: query
-      name: limit
-      required: false
-      schema:
-        default: 100
-        maximum: 100
-        minimum: 1
-        type: integer
-      style: form
-    itemsLimit:
-      description: >-
-        The optional limit parameter limits the number of items that are presented in the response
-        document.
-
-
-        Only items are counted that are on the first level of the collection in the response
-        document. Nested objects contained within the explicitly requested items shall not be
-        counted.
-
-
-        To retrieve the next items result, uses the `next` link from the response.
-
-
-        Minimum = 1. Maximum = 100. Default = 100.
-      explode: false
-      in: query
-      name: limit
-      required: false
-      schema:
-        default: 100
-        maximum: 100
-        minimum: 1
-        type: integer
-      style: form
     limit:
-      description: >-
-        The optional limit parameter limits the number of results that are presented in the response
-        document.
-
-
-        To retrieve the next result, uses the `next` link from the response.
-
-
-        Minimum = 1. Maximum = 100. Default = 100.
       explode: false
       in: query
       name: limit
       required: false
       schema:
-        default: 100
-        maximum: 100
-        minimum: 1
-        type: integer
+        $ref: "#/components/schemas/limit"
       style: form
-    query:
-      description: Query for properties in items. Use the JSON form of the queryFilter used in POST.
-      in: query
-      name: query
-      required: false
-      schema:
-        type: string
+    # query:
+    #   description: Query for properties in items. Use the JSON form of the queryFilter used in POST.
+    #   in: query
+    #   name: query
+    #   required: false
+    #   schema:
+    #     type: string
     IfNoneMatch:
       name: If-None-Match
       in: header

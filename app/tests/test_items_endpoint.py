@@ -76,6 +76,10 @@ class ItemsReadEndpointTestCase(StacBaseTestCase):
                 msg=f"The field {date_field} has an invalid date"
             )
 
+    def test_items_endpoint_non_existing_collection(self):
+        response = self.client.get(f"/{API_BASE}/collections/non-existing-collection/items")
+        self.assertStatusCode(404, response)
+
 
 class ItemsDatetimeQueryEndpointTestCase(StacBaseTestCase):
 

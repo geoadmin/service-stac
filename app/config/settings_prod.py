@@ -42,6 +42,10 @@ SECRET_KEY = os.getenv('SECRET_KEY', None)
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
+# If set to True, this will enable logger.debug prints of the output of
+# EXPLAIN.. ANALYZE of certain queries and the corresponding SQL statement.
+DEBUG_ENABLE_DB_EXPLAIN_ANALYZE = False
+
 # SECURITY:
 # https://docs.djangoproject.com/en/dev/ref/settings/#secure-proxy-ssl-header
 SECURE_PROXY_SSL_HEADER = ('HTTP_CLOUDFRONT_FORWARDED_PROTO', 'https')
@@ -188,6 +192,12 @@ try:
     WHITENOISE_MAX_AGE = int(os.environ.get('HTTP_STATIC_CACHE_SECONDS', '3600'))
 except ValueError as error:
     raise ValueError('Invalid HTTP_STATIC_CACHE_SECONDS environment value: must be an integer')
+WHITENOISE_MIMETYPES = {
+    # These sets the mime types for the api/stac/static/spec/v0.9/openapi.yaml static file
+    # otherwise a default application/octet-stream is used.
+    '.yaml': 'application/vnd.oai.openapi+yaml;version=3.0',
+    '.yml': 'application/vnd.oai.openapi+yaml;version=3.0'
+}
 
 # Media files (i.e. uploaded content=assets in this project)
 UPLOAD_FILE_CHUNK_SIZE = 1024 * 1024  # Size in Bytes

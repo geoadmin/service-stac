@@ -87,12 +87,13 @@ def validate_geoadmin_variant(variant):
     '''
     if not re.match('^([a-zA-Z0-9]+\\s)*[a-zA-Z0-9]+$', variant):
         logger.error(
-            "Invalid geoadmin:variant property %s, special characters not allowed." \
+            "Invalid geoadmin:variant property \"%s\", special characters not allowed." \
             "One space in between is the exception.",
             variant
         )
         raise ValidationError(
-            _("Invalid geoadmin:variant, special characters beside one space are not allowed"),
+            _(f'Invalid geoadmin:variant "{variant}", '
+              'special characters beside one space are not allowed'),
             code="geoadmin:variant"
         )
 

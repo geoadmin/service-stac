@@ -1,10 +1,10 @@
 import json
 import logging
 from decimal import Decimal
-from urllib.parse import urlparse
 
 import botocore
 import multihash
+import numpy as np
 from multihash import from_hex_string
 from multihash import to_hex_string
 
@@ -84,38 +84,6 @@ def validate_asset_href_path(item, asset_name, path):
         raise ValidationError({
             'href': _(f"Invalid path; should be {expected_path} but got {path}")
         })
-
-
-def validate_and_parse_href_url(url_prefix, href):
-    '''Parse and validate href URL
-
-    Validate the given href which needs to ba a valid URL with the same domain as the given prefix
-
-    Args:
-        url_prefix:
-            URL prefix to use for domain validation
-        href: string
-            href url string to parse and validate
-
-    Returns:
-        Parse url object
-
-    Raises:
-        ValidationError in case of invalid href
-    '''
-    logger.debug('Validate and parse href url %s, url_prefix=%s', href, url_prefix)
-    url_prefix = urlparse(url_prefix)
-    try:
-        url = urlparse(href)
-    except ValueError as error:
-        logger.error('Invalid href %s, must be a valid URL', href)
-        raise ValidationError({'href': _('Invalid value, must be a valid URL')}) from error
-
-    # the asset should come from the same host
-    if url.netloc != url_prefix.netloc:
-        logger.error('Invalid href %s, must be on domain %s', href, url_prefix.netloc)
-        raise ValidationError({'href': _(f'Invalid value, must be on domain {url_prefix.netloc}')})
-    return url
 
 
 def validate_asset_file(href, original_name, attrs):
@@ -256,7 +224,9 @@ class ValidateSearchRequest:
         self.max_times_same_query_attribute = 20
         self.max_query_attributes = 50
 
-        self.queriabel_date_fields = ['datetime', 'created', 'updated']
+        # Note: if these values are adapted, don't forget to
+        # update the spec accordingly.
+        self.queriabel_date_fields = ['created', 'updated']
         self.queriabel_str_fields = ['title']
 
     def validate(self, request):
@@ -276,6 +246,20 @@ class ValidateSearchRequest:
         '''
         # harmonize GET and POST
         query_param = harmonize_post_get_for_search(request)
+        queried_parameters = list(query_param.keys())
+        accepted_query_parameters = [
+            "bbox", "collections", "cursor", "datetime", "ids", "intersects", "limit", "query"
+        ]
+        # make sure that all queried_parameters are in the accepted_query_parameters
+        if not all(parameter in accepted_query_parameters for parameter in queried_parameters):
+            wrong_query_parameters = np.setdiff1d(queried_parameters,
+                                                  accepted_query_parameters).tolist()
+            logger.error(
+                'Query contains the non-allowed parameter(s): %s', str(wrong_query_parameters)
+            )
+            message = f"The query contains the following non-queriable" \
+            f"parameter(s): {str(wrong_query_parameters)}."
+            raise ValidationError(code='query-invalid', detail=_(message))
 
         if 'bbox' in query_param:
             self.validate_bbox(query_param['bbox'])
@@ -378,12 +362,11 @@ class ValidateSearchRequest:
                               f"a string operator." \
                               f"For numbers use one of these {int_operators}"
                     self.errors[f"query-operator-{operator}"] = _(message)
+                self._query_validate_in_operator(attribute, value)
             else:
                 message = f"Invalid operator in query argument. The operator {operator} " \
                           f"is not supported. Use: {operators}"
                 self.errors[f"query-operator-{operator}"] = _(message)
-
-            self._query_validate_in_operator(attribute, value)
 
     def _query_validate_in_operator(self, attribute, value):
         '''
@@ -421,7 +404,7 @@ class ValidateSearchRequest:
             else:
                 if not isinstance(value, str):
                     message = f"{message} The values have to be strings." \
-                              f" The value {val} is not a string"
+                              f" The value {value} is not a string"
             if message != '':
                 self.errors[f"query-attributes-{attribute}"] = _(message)
 

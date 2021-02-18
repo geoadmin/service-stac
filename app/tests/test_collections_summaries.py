@@ -145,6 +145,47 @@ class CollectionsSummariesTestCase(TestCase):
             "after asset has been deleted."
         )
 
+    def test_update_collection_summaries_empty_asset_delete(self):
+        # This test has been introduced due to a bug when removing an asset without eo:gsd,
+        # proj:espg and geoadmin:variant from a collections with summaries
+        self.assertEqual(
+            self.collection.summaries, {
+                'eo:gsd': [], 'proj:epsg': [], 'geoadmin:variant': []
+            }
+        )
+        item = self.data_factory.create_item_sample(collection=self.collection).model
+        asset = self.data_factory.create_asset_sample(
+            item=item, required_only=True, geoadmin_variant=None, eo_gsd=None, proj_epsg=None
+        ).model
+        self.assertEqual(
+            self.collection.summaries, {
+                'eo:gsd': [], 'proj:epsg': [], 'geoadmin:variant': []
+            }
+        )
+        asset2 = self.data_factory.create_asset_sample(
+            item=item, required_only=True, geoadmin_variant='krel', eo_gsd=2, proj_epsg=2056
+        ).model
+        self.assertIsNone(asset.geoadmin_variant)
+        self.assertEqual(
+            self.collection.summaries, {
+                'eo:gsd': [2], 'proj:epsg': [2056], 'geoadmin:variant': ['krel']
+            }
+        )
+
+        asset.delete()
+        self.assertEqual(
+            self.collection.summaries, {
+                'eo:gsd': [2], 'proj:epsg': [2056], 'geoadmin:variant': ['krel']
+            }
+        )
+
+        asset2.delete()
+        self.assertEqual(
+            self.collection.summaries, {
+                'eo:gsd': [], 'proj:epsg': [], 'geoadmin:variant': []
+            }
+        )
+
     def test_update_collection_summaries_asset_update(self):
         # Tests if collection's summaries are updated correctly after an
         # asset was updated
@@ -172,4 +213,25 @@ class CollectionsSummariesTestCase(TestCase):
             self.collection.summaries["proj:epsg"], [4321, 9999],
             "Collection's summaries[proj:epsg] has not been correctly "
             "updated after asset has been inserted."
+        )
+
+    def test_update_collection_summaries_none_values(self):
+        # update a variant, that as been None as a start value
+        item = self.data_factory.create_item_sample(collection=self.collection).model
+        asset = self.add_asset(item, 'asset-1', None, None, None)
+        self.assertEqual(
+            self.collection.summaries, {
+                'eo:gsd': [], 'proj:epsg': [], 'geoadmin:variant': []
+            }
+        )
+        asset.geoadmin_variant = "krel"
+        asset.eo_gsd = 2
+        asset.proj_epsg = 2056
+        asset.full_clean()
+        asset.save()
+
+        self.assertEqual(
+            self.collection.summaries, {
+                'eo:gsd': [2.0], 'proj:epsg': [2056], 'geoadmin:variant': ['krel']
+            }
         )

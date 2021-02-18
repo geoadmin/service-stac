@@ -58,6 +58,22 @@ class AssetsEndpointTestCase(StacBaseTestCase):
                 asset.json, json_data['assets'][i], collection_name, item_name, ignore=['item']
             )
 
+    def test_assets_endpoint_collection_does_not_exist(self):
+        collection_name = "non-existent"
+        item_name = self.item.name
+        response = self.client.get(
+            f"/{API_BASE}/collections/{collection_name}/items/{item_name}/assets"
+        )
+        self.assertStatusCode(404, response)
+
+    def test_assets_endpoint_item_does_not_exist(self):
+        collection_name = self.collection.name
+        item_name = "non-existent"
+        response = self.client.get(
+            f"/{API_BASE}/collections/{collection_name}/items/{item_name}/assets"
+        )
+        self.assertStatusCode(404, response)
+
     def test_single_asset_endpoint(self):
         collection_name = self.collection.name
         item_name = self.item.name
@@ -292,8 +308,8 @@ class AssetsWriteEndpointTestCase(StacBaseTestCase):
         self.assertEqual(
             {
                 'geoadmin:variant': [
-                    'Invalid geoadmin:variant, special characters beside one '
-                    'space are not allowed',
+                    'Invalid geoadmin:variant "more than twenty-five characters with s", '
+                    'special characters beside one space are not allowed',
                     'Ensure this field has no more than 25 characters.'
                 ]
             },

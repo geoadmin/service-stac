@@ -71,14 +71,19 @@ class CollectionSummariesMixin():
             bool: True if the collection summaries has been updated, false otherwise
         '''
         updated = False
-        assets = type(asset).objects.filter(item__collection_id=self.pk).exclude(id=asset.id)
-
+        assets = type(asset).objects.filter(item__collection_id=self.pk).exclude(
+            id=asset.id
+        ).only('geoadmin_variant', 'proj_epsg', 'eo_gsd')
         if assets.exists():
             for key, attribute in [('geoadmin:variant', 'geoadmin_variant'),
                                    ('proj:epsg', 'proj_epsg'),
                                    ('eo:gsd', 'eo_gsd')]:
                 attribute_value = getattr(asset, attribute)
-                if not assets.filter(**{attribute: attribute_value}).exists():
+                if (
+                    not assets.filter(**{
+                        attribute: attribute_value
+                    }).exists() and attribute_value is not None
+                ):
                     logger.info(
                         'Removing %s %s from collection summaries',
                         key,
@@ -213,10 +218,10 @@ class CollectionSummariesMixin():
 
         # check if the asset's original value is still present in other
         # assets and can remain in the summaries or has to be deleted:
-        if (
+        if ((
             not assets.exists() or
             not assets.filter(geoadmin_variant=original_geoadmin_variant).exists()
-        ):
+        ) and original_geoadmin_variant is not None):
             logger.info(
                 'Removes original geoadmin:variant value %s from collection summaries',
                 original_geoadmin_variant,
@@ -271,7 +276,9 @@ class CollectionSummariesMixin():
             self.summaries["proj:epsg"].append(proj_epsg)
             updated |= True
 
-        if not assets.exists() or not assets.filter(proj_epsg=original_proj_epsg).exists():
+        if (
+            not assets.exists() or not assets.filter(proj_epsg=original_proj_epsg).exists()
+        ) and original_proj_epsg is not None:
             logger.info(
                 'Removes original proj:epsg value %s from collection summaries',
                 original_proj_epsg,
@@ -326,7 +333,9 @@ class CollectionSummariesMixin():
             self.summaries["eo:gsd"].append(eo_gsd)
             updated |= True
 
-        if not assets.exists() or not assets.filter(eo_gsd=original_eo_gsd).exists():
+        if (
+            not assets.exists() or not assets.filter(eo_gsd=original_eo_gsd).exists()
+        ) and original_eo_gsd is not None:
             logger.info(
                 'Removes original eo:gsd value %s from collection summaries',
                 original_eo_gsd,
@@ -365,8 +374,9 @@ class CollectionSummariesMixin():
         original_geoadmin_variant = old_values[1]
         original_proj_epsg = old_values[2]
 
-        assets = type(asset).objects.filter(item__collection_id=self.pk).exclude(id=asset.id)
-
+        assets = type(asset).objects.filter(item__collection_id=self.pk).exclude(
+            id=asset.id
+        ).only('geoadmin_variant', 'proj_epsg', 'eo_gsd')
         if original_geoadmin_variant != asset.geoadmin_variant:
             updated |= self._update_summaries_geoadmin_variant_on_update(
                 assets, asset, asset.geoadmin_variant, original_geoadmin_variant

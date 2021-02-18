@@ -215,12 +215,16 @@ class ItemQuerySet(models.QuerySet):
             for operator in query[attribute]:
                 value = query[attribute][operator]  # get the values given by the operator
 
+                if attribute in ["updated", "created"]:
+                    prefix = ""
+                else:
+                    prefix = "properties_"
+
                 # __eq does not exist, but = does it as well
                 if operator == 'eq':
-                    query_filter = f"properties_{attribute}"
+                    query_filter = f"{prefix}{attribute}"
                 else:
-                    query_filter = f"properties_{attribute}__{operator.lower()}"
-
+                    query_filter = f"{prefix}{attribute}__{operator.lower()}"
                 return self.filter(**{query_filter: value})
 
 

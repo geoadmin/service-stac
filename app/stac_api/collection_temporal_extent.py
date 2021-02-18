@@ -190,7 +190,7 @@ class CollectionTemporalExtentMixin():
                 start = time.time()
                 qs_other_items_with_properties_start_datetime = qs_other_items.filter(
                     properties_start_datetime__isnull=False
-                )
+                ).only('properties_start_datetime', 'collection')
                 if qs_other_items_with_properties_start_datetime.exists():
                     earliest_properties_start_datetime = (
                         qs_other_items_with_properties_start_datetime.
@@ -215,7 +215,7 @@ class CollectionTemporalExtentMixin():
                 # but the one currently updated and new_start_datetime)
                 qs_other_items_with_properties_datetime = qs_other_items.filter(
                     properties_datetime__isnull=False
-                )
+                ).only('properties_datetime', 'collection')
                 if qs_other_items_with_properties_datetime.exists():
                     other_items_earliest_properties_datetime = (
                         qs_other_items_with_properties_datetime.earliest('properties_datetime'
@@ -342,7 +342,7 @@ class CollectionTemporalExtentMixin():
                 start = time.time()
                 qs_other_items_with_properties_end_datetime = qs_other_items.filter(
                     properties_end_datetime__isnull=False
-                )
+                ).only('properties_end_datetime', 'collection')
                 if qs_other_items_with_properties_end_datetime.exists():
                     item_latest_end_datetime = (
                         qs_other_items_with_properties_end_datetime.
@@ -386,7 +386,7 @@ class CollectionTemporalExtentMixin():
                 if qs_other_items_with_properties_datetime is None:
                     qs_other_items_with_properties_datetime = qs_other_items.filter(
                         properties_datetime__isnull=False
-                    )
+                    ).only('properties_datetime', 'collection')
                 if qs_other_items_with_properties_datetime.exists():
                     item_latest_properties_datetime = (
                         qs_other_items_with_properties_datetime.latest('properties_datetime')
@@ -503,7 +503,7 @@ class CollectionTemporalExtentMixin():
             # get earliest start_datetime or none, in case none exists
             qs_other_items_with_properties_start_datetime = qs_other_items.filter(
                 properties_start_datetime__isnull=False
-            )
+            ).only('properties_start_datetime', 'collection')
             if qs_other_items_with_properties_start_datetime.exists():
                 earliest_start_datetime = qs_other_items_with_properties_start_datetime.earliest(
                     'properties_start_datetime'
@@ -523,7 +523,7 @@ class CollectionTemporalExtentMixin():
             start = time.time()
             qs_other_items_with_properties_datetime = qs_other_items.filter(
                 properties_datetime__isnull=False
-            )
+            ).only('properties_datetime', 'collection')
             if qs_other_items_with_properties_datetime.exists():
                 earliest_datetime = qs_other_items_with_properties_datetime.earliest(
                     'properties_datetime'
@@ -618,7 +618,7 @@ class CollectionTemporalExtentMixin():
             # get latest end_datetime or none, in case none exists
             qs_other_items_with_properties_end_datetime = qs_other_items.filter(
                 properties_end_datetime__isnull=False
-            )
+            ).only('properties_end_datetime', 'collection')
             if qs_other_items_with_properties_end_datetime.exists():
                 latest_end_datetime = qs_other_items_with_properties_end_datetime.latest(
                     'properties_end_datetime'
@@ -641,7 +641,7 @@ class CollectionTemporalExtentMixin():
             if qs_other_items_with_properties_datetime is None:
                 qs_other_items_with_properties_datetime = qs_other_items.filter(
                     properties_datetime__isnull=False
-                )
+                ).only('properties_datetime', 'collection')
             if qs_other_items_with_properties_datetime.exists():
                 latest_datetime = qs_other_items_with_properties_datetime.latest(
                     'properties_datetime'

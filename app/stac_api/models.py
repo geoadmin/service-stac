@@ -198,6 +198,10 @@ class Collection(
     CollectionSummariesMixin,
     CollectionTemporalExtentMixin
 ):
+
+    class Meta:
+        indexes = [models.Index(fields=['name'], name='collection_name_idx')]
+
     # using "name" instead of "id", as "id" has a default meaning in django
     name = models.CharField('id', unique=True, max_length=255, validators=[validate_name])
     created = models.DateTimeField(auto_now_add=True)
@@ -211,7 +215,6 @@ class Collection(
         null=True,
         validators=[validate_geometry]
     )
-
     extent_start_datetime = models.DateTimeField(editable=False, null=True, blank=True)
     extent_end_datetime = models.DateTimeField(editable=False, null=True, blank=True)
 
@@ -271,12 +274,35 @@ ITEM_KEEP_ORIGINAL_FIELDS = [
 
 
 class Item(models.Model):
+
+    class Meta:
+        unique_together = (('collection', 'name'),)
+        indexes = [
+            models.Index(fields=['name'], name='item_name_idx'),
+            # the following 3 indices are used e.g. in collection_temporal_extent
+            models.Index(fields=['properties_datetime'], name='item_datetime_idx'),
+            models.Index(fields=['properties_start_datetime'], name='item_start_datetime_idx'),
+            models.Index(fields=['properties_end_datetime'], name='item_end_datetime_idx'),
+            # created, updated, and title are "queriable" in the search endpoint
+            # see: views.py:322 and 323
+            models.Index(fields=['created'], name='item_created_idx'),
+            models.Index(fields=['updated'], name='item_updated_idx'),
+            models.Index(fields=['properties_title'], name='item_title_idx'),
+            # combination of datetime and start_ and end_datetimes are used in
+            # managers.py:110 and following
+            models.Index(
+                fields=[
+                    'properties_datetime', 'properties_start_datetime', 'properties_end_datetime'
+                ],
+                name='item_dttme_start_end_dttm_idx'
+            ),
+        ]
+
     name = models.CharField('id', blank=False, max_length=255, validators=[validate_name])
     collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
     geometry = models.PolygonField(
         null=False, blank=False, default=BBOX_CH, srid=4326, validators=[validate_geometry]
     )
-
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
     # after discussion with Chris and Tobias: for the moment only support
@@ -307,9 +333,6 @@ class Item(models.Model):
     # Custom Manager that preselects the collection
     objects = ItemManager()
 
-    class Meta:
-        unique_together = (('collection', 'name'),)
-
     def __init__(self, *args, **kwargs):
         self._original_values = {}
         super().__init__(*args, **kwargs)
@@ -328,7 +351,8 @@ class Item(models.Model):
         return instance
 
     def __str__(self):
-        return self.name
+        # This is used in the admin page in the autocomplete_fields of the Asset page
+        return f"{self.collection.name}/{self.name}"
 
     def update_etag(self):
         '''Update the ETag with a new UUID
@@ -440,6 +464,10 @@ def upload_asset_to_path_hook(instance, filename=None):
 
 
 class Asset(models.Model):
+
+    class Meta:
+        unique_together = (('item', 'name'),)
+
     # using BigIntegerField as primary_key to deal with the expected large number of assets.
     id = models.BigAutoField(primary_key=True)
     item = models.ForeignKey(
@@ -486,9 +514,6 @@ class Asset(models.Model):
 
     # hidden ETag field
     etag = models.CharField(blank=False, null=False, editable=False, max_length=56)
-
-    class Meta:
-        unique_together = (('item', 'name'),)
 
     def __init__(self, *args, **kwargs):
         self._original_values = {}

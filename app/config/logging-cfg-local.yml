@@ -53,7 +53,7 @@ formatters:
   standard:
     (): logging_utilities.formatters.extra_formatter.ExtraFormatter
     format: "[%(utc_isotime)s] %(levelname)-8s - %(name)-26s : %(message)s"
-    # extra_fmt: " - extra: %s"
+    extra_fmt: " - duration: %(duration)s"
     # extra_pretty_print: True
   standard-file:
     (): logging_utilities.formatters.extra_formatter.ExtraFormatter
