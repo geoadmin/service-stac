@@ -12,7 +12,7 @@ from tests.utils import client_login
 
 logger = logging.getLogger(__name__)
 
-API_BASE = settings.API_BASE
+STAC_BASE_V = settings.STAC_BASE_V
 
 
 class CollectionsEndpointTestCase(StacBaseTestCase):
@@ -25,7 +25,7 @@ class CollectionsEndpointTestCase(StacBaseTestCase):
         self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_collections_endpoint(self):
-        response = self.client.get(f"/{API_BASE}/collections")
+        response = self.client.get(f"/{STAC_BASE_V}/collections")
         response_json = response.json()
         self.assertStatusCode(200, response)
 
@@ -34,7 +34,7 @@ class CollectionsEndpointTestCase(StacBaseTestCase):
 
     def test_single_collection_endpoint(self):
         collection_name = self.collection_1.attributes['name']
-        response = self.client.get(f"/{API_BASE}/collections/{collection_name}")
+        response = self.client.get(f"/{STAC_BASE_V}/collections/{collection_name}")
         response_json = response.json()
         self.assertStatusCode(200, response)
         # The ETag change between each test call due to the created, updated time that are in the
@@ -44,29 +44,29 @@ class CollectionsEndpointTestCase(StacBaseTestCase):
         self.check_stac_collection(self.collection_1.json, response_json)
 
     def test_collections_limit_query(self):
-        response = self.client.get(f"/{API_BASE}/collections?limit=1")
+        response = self.client.get(f"/{STAC_BASE_V}/collections?limit=1")
         self.assertStatusCode(200, response)
         self.assertLessEqual(1, len(response.json()['collections']))
 
-        response = self.client.get(f"/{API_BASE}/collections?limit=0")
+        response = self.client.get(f"/{STAC_BASE_V}/collections?limit=0")
         self.assertStatusCode(400, response)
         self.assertEqual(['limit query parameter to small, must be in range 1..100'],
                          response.json()['description'],
                          msg='Unexpected error message')
 
-        response = self.client.get(f"/{API_BASE}/collections?limit=test")
+        response = self.client.get(f"/{STAC_BASE_V}/collections?limit=test")
         self.assertStatusCode(400, response)
         self.assertEqual(['invalid limit query parameter: must be an integer'],
                          response.json()['description'],
                          msg='Unexpected error message')
 
-        response = self.client.get(f"/{API_BASE}/collections?limit=-1")
+        response = self.client.get(f"/{STAC_BASE_V}/collections?limit=-1")
         self.assertStatusCode(400, response)
         self.assertEqual(['limit query parameter to small, must be in range 1..100'],
                          response.json()['description'],
                          msg='Unexpected error message')
 
-        response = self.client.get(f"/{API_BASE}/collections?limit=1000")
+        response = self.client.get(f"/{STAC_BASE_V}/collections?limit=1000")
         self.assertStatusCode(400, response)
         self.assertEqual(['limit query parameter to big, must be in range 1..100'],
                          response.json()['description'],
@@ -84,21 +84,21 @@ class CollectionsWriteEndpointTestCase(StacBaseTestCase):
     def test_valid_collections_post(self):
         collection = self.collection_factory.create_sample()
 
-        path = f"/{API_BASE}/collections"
+        path = f"/{STAC_BASE_V}/collections"
         response = self.client.post(
             path, data=collection.get_json('post'), content_type='application/json'
         )
         self.assertStatusCode(201, response)
         self.check_header_location(f'{path}/{collection.json["id"]}', response)
 
-        response = self.client.get(f"/{API_BASE}/collections/{collection.json['id']}")
+        response = self.client.get(f"/{STAC_BASE_V}/collections/{collection.json['id']}")
         response_json = response.json()
         self.assertEqual(response_json['id'], collection.json['id'])
         self.check_stac_collection(collection.json, response.json())
 
         # the dataset already exists in the database
         response = self.client.post(
-            f"/{API_BASE}/collections",
+            f"/{STAC_BASE_V}/collections",
             data=collection.get_json('post'),
             content_type='application/json'
         )
@@ -111,7 +111,7 @@ class CollectionsWriteEndpointTestCase(StacBaseTestCase):
         collection = self.collection_factory.create_sample(extra_payload='not allowed')
 
         response = self.client.post(
-            f"/{API_BASE}/collections",
+            f"/{STAC_BASE_V}/collections",
             data=collection.get_json('post'),
             content_type='application/json'
         )
@@ -124,7 +124,7 @@ class CollectionsWriteEndpointTestCase(StacBaseTestCase):
         collection = self.collection_factory.create_sample(created=utc_aware(datetime.utcnow()))
 
         response = self.client.post(
-            f"/{API_BASE}/collections",
+            f"/{STAC_BASE_V}/collections",
             data=collection.get_json('post', keep_read_only=True),
             content_type='application/json'
         )
@@ -138,7 +138,7 @@ class CollectionsWriteEndpointTestCase(StacBaseTestCase):
         collection = self.collection_factory.create_sample(sample='collection-invalid')
 
         response = self.client.post(
-            f"/{API_BASE}/collections",
+            f"/{STAC_BASE_V}/collections",
             data=collection.get_json('post'),
             content_type='application/json'
         )
@@ -151,7 +151,7 @@ class CollectionsWriteEndpointTestCase(StacBaseTestCase):
         # a post with the absolute valid minimum
         collection = self.collection_factory.create_sample(required_only=True)
 
-        path = f"/{API_BASE}/collections"
+        path = f"/{STAC_BASE_V}/collections"
         response = self.client.post(
             path, data=collection.get_json('post'), content_type='application/json'
         )
@@ -170,7 +170,7 @@ class CollectionsWriteEndpointTestCase(StacBaseTestCase):
         )
 
         response = self.client.post(
-            f"/{API_BASE}/collections",
+            f"/{STAC_BASE_V}/collections",
             data=collection.get_json('post'),
             content_type='application/json'
         )
@@ -199,7 +199,7 @@ class CollectionsUpdateEndpointTestCase(StacBaseTestCase):
 
         # the dataset to update does not exist yet
         response = self.client.put(
-            f"/{API_BASE}/collections/{sample['name']}",
+            f"/{STAC_BASE_V}/collections/{sample['name']}",
             data=sample.get_json('put'),
             content_type='application/json'
         )
@@ -211,7 +211,7 @@ class CollectionsUpdateEndpointTestCase(StacBaseTestCase):
         )
 
         response = self.client.put(
-            f"/{API_BASE}/collections/{sample['name']}",
+            f"/{STAC_BASE_V}/collections/{sample['name']}",
             data=sample.get_json('put'),
             content_type='application/json'
         )
@@ -219,7 +219,7 @@ class CollectionsUpdateEndpointTestCase(StacBaseTestCase):
         self.assertStatusCode(200, response)
 
         # is it persistent?
-        response = self.client.get(f"/{API_BASE}/collections/{sample['name']}")
+        response = self.client.get(f"/{STAC_BASE_V}/collections/{sample['name']}")
 
         self.assertStatusCode(200, response)
         self.check_stac_collection(sample.json, response.json())
@@ -230,7 +230,7 @@ class CollectionsUpdateEndpointTestCase(StacBaseTestCase):
         )
 
         response = self.client.put(
-            f"/{API_BASE}/collections/{sample['name']}",
+            f"/{STAC_BASE_V}/collections/{sample['name']}",
             data=sample.get_json('put'),
             content_type='application/json'
         )
@@ -245,7 +245,7 @@ class CollectionsUpdateEndpointTestCase(StacBaseTestCase):
         )
 
         response = self.client.put(
-            f"/{API_BASE}/collections/{sample['name']}",
+            f"/{STAC_BASE_V}/collections/{sample['name']}",
             data=sample.get_json('put', keep_read_only=True),
             content_type='application/json'
         )
@@ -262,19 +262,19 @@ class CollectionsUpdateEndpointTestCase(StacBaseTestCase):
         # for the start, the id have to be different
         self.assertNotEqual(self.collection.name, sample['name'])
         response = self.client.put(
-            f"/{API_BASE}/collections/{self.collection.name}",
+            f"/{STAC_BASE_V}/collections/{self.collection.name}",
             data=sample.get_json('put'),
             content_type='application/json'
         )
         self.assertStatusCode(200, response)
 
         # check if id changed
-        response = self.client.get(f"/{API_BASE}/collections/{sample['name']}")
+        response = self.client.get(f"/{STAC_BASE_V}/collections/{sample['name']}")
         self.assertStatusCode(200, response)
         self.check_stac_collection(sample.json, response.json())
 
         # the old collection shouldn't exist any more
-        response = self.client.get(f"/{API_BASE}/collections/{self.collection.name}")
+        response = self.client.get(f"/{STAC_BASE_V}/collections/{self.collection.name}")
         self.assertStatusCode(404, response)
 
     def test_collection_put_remove_optional_fields(self):
@@ -286,7 +286,7 @@ class CollectionsUpdateEndpointTestCase(StacBaseTestCase):
         # for the start, the collection[1] has to have a title
         self.assertNotEqual('', f'{self.collection.title}')
         response = self.client.put(
-            f"/{API_BASE}/collections/{sample['name']}",
+            f"/{STAC_BASE_V}/collections/{sample['name']}",
             data=sample.get_json('put'),
             content_type='application/json'
         )
@@ -304,7 +304,7 @@ class CollectionsUpdateEndpointTestCase(StacBaseTestCase):
         self.assertNotIn('title', payload_json.keys())
 
         response = self.client.patch(
-            f"/{API_BASE}/collections/{collection_name}",
+            f"/{STAC_BASE_V}/collections/{collection_name}",
             data=payload_json,
             content_type='application/json'
         )
@@ -323,7 +323,7 @@ class CollectionsUpdateEndpointTestCase(StacBaseTestCase):
         self.assertNotEqual(self.collection.license, payload_json['license'])
         # for start the payload has no description
         response = self.client.patch(
-            f"/{API_BASE}/collections/{collection_name}",
+            f"/{STAC_BASE_V}/collections/{collection_name}",
             data=payload_json,
             content_type='application/json'
         )
@@ -338,7 +338,7 @@ class CollectionsUpdateEndpointTestCase(StacBaseTestCase):
         # for the start, the collection[1] has to have a different licence than the payload
         self.assertNotEqual(self.collection.license, payload_json['license'])
         response = self.client.patch(
-            f"/{API_BASE}/collections/{collection_name}",
+            f"/{STAC_BASE_V}/collections/{collection_name}",
             data=payload_json,
             content_type='application/json'
         )
@@ -348,7 +348,7 @@ class CollectionsUpdateEndpointTestCase(StacBaseTestCase):
                          msg='Unexpected error message')
 
     def test_authorized_collection_delete(self):
-        path = f'/{API_BASE}/collections/{self.collection.name}'
+        path = f'/{STAC_BASE_V}/collections/{self.collection.name}'
         response = self.client.delete(path)
         # Collection delete is not implemented (and currently not foreseen), hence
         # the status code should be 405. If it should get implemented in future
@@ -370,7 +370,7 @@ class CollectionsUnauthorizeEndpointTestCase(StacBaseTestCase):
         sample = self.collection_factory.create_sample(sample='collection-2')
 
         response = self.client.post(
-            f"/{API_BASE}/collections",
+            f"/{STAC_BASE_V}/collections",
             data=sample.get_json('post'),
             content_type='application/json'
         )
@@ -381,7 +381,7 @@ class CollectionsUnauthorizeEndpointTestCase(StacBaseTestCase):
             name=self.collection.name, sample='collection-2'
         )
         response = self.client.put(
-            f"/{API_BASE}/collections/{self.collection.name}",
+            f"/{STAC_BASE_V}/collections/{self.collection.name}",
             data=sample.get_json('put'),
             content_type='application/json'
         )
@@ -389,14 +389,14 @@ class CollectionsUnauthorizeEndpointTestCase(StacBaseTestCase):
 
         # make sure PATCH fails for anonymous user:
         response = self.client.patch(
-            f"/{API_BASE}/collections/{self.collection.name}",
+            f"/{STAC_BASE_V}/collections/{self.collection.name}",
             data=sample.get_json('patch'),
             content_type='application/json'
         )
         self.assertStatusCode(401, response, msg="Unauthorized patch was permitted.")
 
     def test_unauthorized_collection_delete(self):
-        path = f'/{API_BASE}/collections/{self.collection.name}'
+        path = f'/{STAC_BASE_V}/collections/{self.collection.name}'
         response = self.client.delete(path)
         # Collection delete is not implemented (and currently not foreseen).
         # Status code here is 401, as user is unauthorized for write requests.

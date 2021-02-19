@@ -1,4 +1,3 @@
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
@@ -7,8 +6,6 @@ from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
 
 from tests.utils import get_http_error_description
-
-API_BASE = settings.API_BASE
 
 
 class GetTokenEndpointTestCase(TestCase):

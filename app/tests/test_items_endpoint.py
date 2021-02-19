@@ -19,7 +19,7 @@ from tests.utils import client_login
 
 logger = logging.getLogger(__name__)
 
-API_BASE = settings.API_BASE
+STAC_BASE_V = settings.STAC_BASE_V
 
 
 class ItemsReadEndpointTestCase(StacBaseTestCase):
@@ -34,7 +34,7 @@ class ItemsReadEndpointTestCase(StacBaseTestCase):
         self.client = Client()
 
     def test_items_endpoint(self):
-        response = self.client.get(f"/{API_BASE}/collections/{self.collection.name}/items")
+        response = self.client.get(f"/{STAC_BASE_V}/collections/{self.collection.name}/items")
         self.assertStatusCode(200, response)
         json_data = response.json()
 
@@ -44,7 +44,9 @@ class ItemsReadEndpointTestCase(StacBaseTestCase):
         self.check_stac_item(self.items[1].json, json_data['features'][1], self.collection.name)
 
     def test_items_endpoint_with_limit(self):
-        response = self.client.get(f"/{API_BASE}/collections/{self.collection.name}/items?limit=1")
+        response = self.client.get(
+            f"/{STAC_BASE_V}/collections/{self.collection.name}/items?limit=1"
+        )
         self.assertStatusCode(200, response)
         json_data = response.json()
 
@@ -58,7 +60,9 @@ class ItemsReadEndpointTestCase(StacBaseTestCase):
     def test_single_item_endpoint(self):
         collection_name = self.collection.name
         item_name = self.items[0].model.name
-        response = self.client.get(f"/{API_BASE}/collections/{collection_name}/items/{item_name}")
+        response = self.client.get(
+            f"/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}"
+        )
         json_data = response.json()
         self.assertStatusCode(200, response)
 
@@ -77,7 +81,7 @@ class ItemsReadEndpointTestCase(StacBaseTestCase):
             )
 
     def test_items_endpoint_non_existing_collection(self):
-        response = self.client.get(f"/{API_BASE}/collections/non-existing-collection/items")
+        response = self.client.get(f"/{STAC_BASE_V}/collections/non-existing-collection/items")
         self.assertStatusCode(404, response)
 
 
@@ -116,7 +120,7 @@ class ItemsDatetimeQueryEndpointTestCase(StacBaseTestCase):
 
     def test_items_endpoint_datetime_query(self):
         response = self.client.get(
-            f"/{API_BASE}/collections/{self.collection.name}/items"
+            f"/{STAC_BASE_V}/collections/{self.collection.name}/items"
             f"?datetime={isoformat(self.now)}&limit=100"
         )
         json_data = response.json()
@@ -126,7 +130,7 @@ class ItemsDatetimeQueryEndpointTestCase(StacBaseTestCase):
 
     def test_items_endpoint_datetime_range_query(self):
         response = self.client.get(
-            f"/{API_BASE}/collections/{self.collection.name}/items"
+            f"/{STAC_BASE_V}/collections/{self.collection.name}/items"
             f"?datetime={isoformat(self.yesterday)}/{isoformat(self.now)}&limit=100"
         )
         json_data = response.json()
@@ -138,7 +142,7 @@ class ItemsDatetimeQueryEndpointTestCase(StacBaseTestCase):
     def test_items_endpoint_datetime_open_end_range_query(self):
         # test open end query
         response = self.client.get(
-            f"/{API_BASE}/collections/{self.collection.name}/items"
+            f"/{STAC_BASE_V}/collections/{self.collection.name}/items"
             f"?datetime={isoformat(self.yesterday)}/..&limit=100"
         )
         json_data = response.json()
@@ -150,7 +154,7 @@ class ItemsDatetimeQueryEndpointTestCase(StacBaseTestCase):
     def test_items_endpoint_datetime_open_start_range_query(self):
         # test open start query
         response = self.client.get(
-            f"/{API_BASE}/collections/{self.collection.name}/items"
+            f"/{STAC_BASE_V}/collections/{self.collection.name}/items"
             f"?datetime=../{isoformat(self.yesterday)}&limit=100"
         )
         json_data = response.json()
@@ -162,35 +166,35 @@ class ItemsDatetimeQueryEndpointTestCase(StacBaseTestCase):
     def test_items_endpoint_datetime_invalid_range_query(self):
         # test open start and end query
         response = self.client.get(
-            f"/{API_BASE}/collections/{self.collection.name}/items"
+            f"/{STAC_BASE_V}/collections/{self.collection.name}/items"
             f"?datetime=../..&limit=100"
         )
         self.assertStatusCode(400, response)
 
         # invalid datetime
         response = self.client.get(
-            f"/{API_BASE}/collections/{self.collection.name}/items"
+            f"/{STAC_BASE_V}/collections/{self.collection.name}/items"
             f"?datetime=2019&limit=100"
         )
         self.assertStatusCode(400, response)
 
         # invalid start
         response = self.client.get(
-            f"/{API_BASE}/collections/{self.collection.name}/items"
+            f"/{STAC_BASE_V}/collections/{self.collection.name}/items"
             f"?datetime=2019/..&limit=100"
         )
         self.assertStatusCode(400, response)
 
         # invalid end
         response = self.client.get(
-            f"/{API_BASE}/collections/{self.collection.name}/items"
+            f"/{STAC_BASE_V}/collections/{self.collection.name}/items"
             f"?datetime=../2019&limit=100"
         )
         self.assertStatusCode(400, response)
 
         # invalid start and end
         response = self.client.get(
-            f"/{API_BASE}/collections/{self.collection.name}/items"
+            f"/{STAC_BASE_V}/collections/{self.collection.name}/items"
             f"?datetime=2019/2019&limit=100"
         )
         self.assertStatusCode(400, response)
@@ -276,7 +280,7 @@ class ItemsDatetimeQueryPaginationEndpointTestCase(StacBaseTestCase):
 
     def test_items_endpoint_datetime_query(self):
         response = self.client.get(
-            f"/{API_BASE}/collections/{self.collection.name}/items"
+            f"/{STAC_BASE_V}/collections/{self.collection.name}/items"
             f"?datetime={isoformat(self.now)}&limit=1"
         )
         json_data = response.json()
@@ -290,7 +294,7 @@ class ItemsDatetimeQueryPaginationEndpointTestCase(StacBaseTestCase):
 
     def test_items_endpoint_datetime_range_query(self):
         response = self.client.get(
-            f"/{API_BASE}/collections/{self.collection.name}/items"
+            f"/{STAC_BASE_V}/collections/{self.collection.name}/items"
             f"?datetime={isoformat(self.yesterday)}/{isoformat(self.now)}&limit=1"
         )
         json_data = response.json()
@@ -309,7 +313,7 @@ class ItemsDatetimeQueryPaginationEndpointTestCase(StacBaseTestCase):
     def test_items_endpoint_datetime_open_end_range_query(self):
         # test open end query
         response = self.client.get(
-            f"/{API_BASE}/collections/{self.collection.name}/items"
+            f"/{STAC_BASE_V}/collections/{self.collection.name}/items"
             f"?datetime={isoformat(self.yesterday)}/..&limit=1"
         )
         json_data = response.json()
@@ -328,7 +332,7 @@ class ItemsDatetimeQueryPaginationEndpointTestCase(StacBaseTestCase):
     def test_items_endpoint_datetime_open_start_range_query(self):
         # test open start query
         response = self.client.get(
-            f"/{API_BASE}/collections/{self.collection.name}/items"
+            f"/{STAC_BASE_V}/collections/{self.collection.name}/items"
             f"?datetime=../{isoformat(self.yesterday)}&limit=1"
         )
         json_data = response.json()
@@ -371,7 +375,7 @@ class ItemsBboxQueryEndpointTestCase(StacBaseTestCase):
         # test bbox
         ch_bbox = ','.join(map(str, GEOSGeometry(BBOX_CH).extent))
         response = self.client.get(
-            f"/{API_BASE}/collections/{self.collection.name}/items"
+            f"/{STAC_BASE_V}/collections/{self.collection.name}/items"
             f"?bbox={ch_bbox}&limit=100"
         )
         json_data = response.json()
@@ -381,20 +385,20 @@ class ItemsBboxQueryEndpointTestCase(StacBaseTestCase):
     def test_items_endpoint_bbox_invalid_query(self):
         # test invalid bbox
         response = self.client.get(
-            f"/{API_BASE}/collections/{self.collection.name}/items"
+            f"/{STAC_BASE_V}/collections/{self.collection.name}/items"
             f"?bbox=5.96,45.82,10.49,47.81,screw;&limit=100"
         )
         self.assertStatusCode(400, response)
 
         response = self.client.get(
-            f"/{API_BASE}/collections/{self.collection.name}/items"
+            f"/{STAC_BASE_V}/collections/{self.collection.name}/items"
             f"?bbox=5.96,45.82,10.49,47.81,42,42&limit=100"
         )
         self.assertStatusCode(400, response)
 
     def test_items_endpoint_bbox_from_pseudo_point(self):
         response = self.client.get(
-            f"/{API_BASE}/collections/{self.collection.name}/items"
+            f"/{STAC_BASE_V}/collections/{self.collection.name}/items"
             f"?bbox=5.96,45.82,5.97,45.83&limit=100"
         )
         json_data = response.json()
@@ -402,7 +406,7 @@ class ItemsBboxQueryEndpointTestCase(StacBaseTestCase):
         nb_features_polygon = len(json_data['features'])
 
         response = self.client.get(
-            f"/{API_BASE}/collections/{self.collection.name}/items"
+            f"/{STAC_BASE_V}/collections/{self.collection.name}/items"
             f"?bbox=5.96,45.82,5.96,45.82&limit=100"
         )
         json_data = response.json()
@@ -426,7 +430,7 @@ class ItemsWriteEndpointTestCase(StacBaseTestCase):
 
     def test_item_endpoint_post_only_required(self):
         sample = self.factory.create_item_sample(self.collection, required_only=True)
-        path = f'/{API_BASE}/collections/{self.collection.name}/items'
+        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items'
         response = self.client.post(
             path, data=sample.get_json('post'), content_type="application/json"
         )
@@ -444,20 +448,20 @@ class ItemsWriteEndpointTestCase(StacBaseTestCase):
 
     def test_item_endpoint_post_extra_payload(self):
         data = self.factory.create_item_sample(self.collection, extra_payload=True).get_json('post')
-        path = f'/{API_BASE}/collections/{self.collection.name}/items'
+        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items'
         response = self.client.post(path, data=data, content_type="application/json")
         self.assertStatusCode(400, response)
 
     def test_item_endpoint_post_read_only_in_payload(self):
         data = self.factory.create_item_sample(self.collection,
                                                created=datetime.today()).get_json('post')
-        path = f'/{API_BASE}/collections/{self.collection.name}/items'
+        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items'
         response = self.client.post(path, data=data, content_type="application/json")
         self.assertStatusCode(400, response)
 
     def test_item_endpoint_post_full(self):
         sample = self.factory.create_item_sample(self.collection)
-        path = f'/{API_BASE}/collections/{self.collection.name}/items'
+        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items'
         response = self.client.post(
             path, data=sample.get_json('post'), content_type="application/json"
         )
@@ -476,7 +480,7 @@ class ItemsWriteEndpointTestCase(StacBaseTestCase):
     def test_item_endpoint_post_invalid_data(self):
         data = self.factory.create_item_sample(self.collection,
                                                sample='item-invalid').get_json('post')
-        path = f'/{API_BASE}/collections/{self.collection.name}/items'
+        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items'
         response = self.client.post(path, data=data, content_type="application/json")
         self.assertStatusCode(400, response)
 
@@ -493,7 +497,7 @@ class ItemsWriteEndpointTestCase(StacBaseTestCase):
             properties_start_datetime=None,
             properties_end_datetime=None
         ).get_json('post')
-        path = f'/{API_BASE}/collections/{self.collection.name}/items'
+        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items'
         response = self.client.post(path, data=data, content_type="application/json")
         self.assertStatusCode(400, response)
 
@@ -520,7 +524,7 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
         sample = self.factory.create_item_sample(
             self.collection, sample='item-2', name=self.item.name
         )
-        path = f'/{API_BASE}/collections/{self.collection.name}/items/{self.item.name}'
+        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{self.item.name}'
         response = self.client.put(
             path, data=sample.get_json('put'), content_type="application/json"
         )
@@ -538,7 +542,7 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
         sample = self.factory.create_item_sample(
             self.collection, sample='item-2', name=self.item.name, extra_payload='invalid'
         )
-        path = f'/{API_BASE}/collections/{self.collection.name}/items/{self.item.name}'
+        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{self.item.name}'
         response = self.client.put(
             path, data=sample.get_json('put'), content_type="application/json"
         )
@@ -548,7 +552,7 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
         data = self.factory.create_item_sample(
             self.collection, sample='item-2', name=self.item.name, created=datetime.now()
         ).get_json('put')
-        path = f'/{API_BASE}/collections/{self.collection.name}/items/{self.item.name}'
+        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{self.item.name}'
         response = self.client.put(path, data=data, content_type="application/json")
         self.assertStatusCode(400, response)
 
@@ -562,7 +566,7 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
                 "end_datetime": "2020-10-19T00:00:00Z",
             }
         )
-        path = f'/{API_BASE}/collections/{self.collection.name}/items/{self.item.name}'
+        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{self.item.name}'
         response = self.client.put(
             path, data=sample.get_json('put'), content_type="application/json"
         )
@@ -584,7 +588,7 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
             sample='item-2',
             name=f'new-{self.item.name}',
         )
-        path = f'/{API_BASE}/collections/{self.collection.name}/items/{self.item.name}'
+        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{self.item.name}'
         response = self.client.put(
             path, data=sample.get_json('put'), content_type="application/json"
         )
@@ -597,7 +601,7 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
         self.assertStatusCode(404, response, msg="Renamed item still available on old name")
 
         # Check the data by reading it back
-        path = f'/{API_BASE}/collections/{self.collection.name}/items/{sample.json["id"]}'
+        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{sample.json["id"]}'
         response = self.client.get(path)
         json_data = response.json()
         self.assertStatusCode(200, response)
@@ -606,7 +610,7 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
 
     def test_item_endpoint_patch(self):
         data = {"properties": {"title": "patched title"}}
-        path = f'/{API_BASE}/collections/{self.collection.name}/items/{self.item.name}'
+        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{self.item.name}'
         response = self.client.patch(path, data=data, content_type="application/json")
         json_data = response.json()
         self.assertStatusCode(200, response)
@@ -622,19 +626,19 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
 
     def test_item_endpoint_patch_extra_payload(self):
         data = {"crazy:stuff": "not allowed"}
-        path = f'/{API_BASE}/collections/{self.collection.name}/items/{self.item.name}'
+        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{self.item.name}'
         response = self.client.patch(path, data=data, content_type="application/json")
         self.assertStatusCode(400, response)
 
     def test_item_endpoint_patch_read_only_in_payload(self):
         data = {"created": utc_aware(datetime.utcnow())}
-        path = f'/{API_BASE}/collections/{self.collection.name}/items/{self.item.name}'
+        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{self.item.name}'
         response = self.client.patch(path, data=data, content_type="application/json")
         self.assertStatusCode(400, response)
 
     def test_item_endpoint_patch_invalid_datetimes(self):
         data = {"properties": {"datetime": "patched title",}}
-        path = f'/{API_BASE}/collections/{self.collection.name}/items/{self.item.name}'
+        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{self.item.name}'
         response = self.client.patch(path, data=data, content_type="application/json")
         self.assertStatusCode(400, response)
 
@@ -646,7 +650,7 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
         data = {
             "id": f'new-{self.item.name}',
         }
-        path = f'/{API_BASE}/collections/{self.collection.name}/items/{self.item.name}'
+        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{self.item.name}'
         response = self.client.patch(path, data=data, content_type="application/json")
         json_data = response.json()
         self.assertStatusCode(200, response)
@@ -657,7 +661,7 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
         self.assertStatusCode(404, response, msg="Renamed item still available on old name")
 
         # Check the data by reading it back
-        path = f'/{API_BASE}/collections/{self.collection.name}/items/{data["id"]}'
+        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{data["id"]}'
         response = self.client.get(path)
         json_data = response.json()
         self.assertStatusCode(200, response)
@@ -677,7 +681,7 @@ class ItemsDeleteEndpointTestCase(StacBaseTestCase):
         client_login(self.client)
 
     def test_item_endpoint_delete_item(self):
-        path = f'/{API_BASE}/collections/{self.collection.name}/items/{self.item.name}'
+        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{self.item.name}'
         response = self.client.delete(path)
         self.assertStatusCode(200, response)
 
@@ -691,7 +695,7 @@ class ItemsDeleteEndpointTestCase(StacBaseTestCase):
         )
 
     def test_item_endpoint_delete_item_invalid_name(self):
-        path = f'/{API_BASE}/collections/{self.collection.name}/items/unknown-item'
+        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/unknown-item'
         response = self.client.delete(path)
         self.assertStatusCode(404, response)
 
@@ -710,7 +714,7 @@ class ItemsUnauthorizeEndpointTestCase(StacBaseTestCase):
     def test_unauthorized_item_post_put_patch_delete(self):
         # make sure POST fails for anonymous user:
         sample = self.factory.create_item_sample(self.collection)
-        path = f'/{API_BASE}/collections/{self.collection.name}/items'
+        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items'
         response = self.client.post(
             path, data=sample.get_json('post'), content_type="application/json"
         )
@@ -718,7 +722,7 @@ class ItemsUnauthorizeEndpointTestCase(StacBaseTestCase):
 
         # make sure PUT fails for anonymous user:
         sample = self.factory.create_item_sample(self.collection, name=self.item.name)
-        path = f'/{API_BASE}/collections/{self.collection.name}/items/{self.item.name}'
+        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{self.item.name}'
         response = self.client.put(
             path, data=sample.get_json('put'), content_type="application/json"
         )
@@ -726,11 +730,11 @@ class ItemsUnauthorizeEndpointTestCase(StacBaseTestCase):
 
         # make sure PATCH fails for anonymous user:
         data = {"properties": {"title": "patched title"}}
-        path = f'/{API_BASE}/collections/{self.collection.name}/items/{self.item.name}'
+        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{self.item.name}'
         response = self.client.patch(path, data=data, content_type="application/json")
         self.assertStatusCode(401, response, msg="Unauthorized patch was permitted.")
 
         # make sure DELETE fails for anonymous user:
-        path = f'/{API_BASE}/collections/{self.collection.name}/items/{self.item.name}'
+        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{self.item.name}'
         response = self.client.delete(path)
         self.assertStatusCode(401, response, msg="Unauthorized delete was permitted.")

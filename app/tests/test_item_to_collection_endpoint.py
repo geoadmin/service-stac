@@ -10,7 +10,7 @@ from tests.utils import client_login
 
 logger = logging.getLogger(__name__)
 
-API_BASE = settings.API_BASE
+STAC_BASE_V = settings.STAC_BASE_V
 
 
 class OneItemSpatialTestCase(StacBaseTestCase):
@@ -28,10 +28,10 @@ class OneItemSpatialTestCase(StacBaseTestCase):
         collection_name = self.collection.name
         item_name = self.items[0].model.name
         response_item = self.client.get(
-            f"/{API_BASE}/collections/{collection_name}/items/{item_name}"
+            f"/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}"
         )
         response_item_json = response_item.json()
-        response_collection = self.client.get(f"/{API_BASE}/collections/{collection_name}")
+        response_collection = self.client.get(f"/{STAC_BASE_V}/collections/{collection_name}")
         response_collection_json = response_collection.json()
 
         bbox_collection = response_collection_json['extent']['spatial']['bbox'][0]
@@ -43,11 +43,11 @@ class OneItemSpatialTestCase(StacBaseTestCase):
         collection_name = self.collection.name
         item_name = self.items[0].model.name
         # delete the item
-        path = f'/{API_BASE}/collections/{self.collection.name}/items/{item_name}'
+        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{item_name}'
         response = self.client.delete(path)
         self.assertStatusCode(200, response)
 
-        response_collection = self.client.get(f"/{API_BASE}/collections/{collection_name}")
+        response_collection = self.client.get(f"/{STAC_BASE_V}/collections/{collection_name}")
         response_collection_json = response_collection.json()
 
         bbox_collection = response_collection_json['extent']['spatial']['bbox'][0]
@@ -73,14 +73,14 @@ class TwoItemsSpatialTestCase(StacBaseTestCase):
         collection_name = self.collection.name
         item_west = self.items[0].model.name
         response_item_west = self.client.get(
-            f"/{API_BASE}/collections/{collection_name}/items/{item_west}"
+            f"/{STAC_BASE_V}/collections/{collection_name}/items/{item_west}"
         )
         item_east = self.items[1].model.name
         response_item_east = self.client.get(
-            f"/{API_BASE}/collections/{collection_name}/items/{item_east}"
+            f"/{STAC_BASE_V}/collections/{collection_name}/items/{item_east}"
         )
 
-        response_collection = self.client.get(f"/{API_BASE}/collections/{collection_name}")
+        response_collection = self.client.get(f"/{STAC_BASE_V}/collections/{collection_name}")
         response_collection_json = response_collection.json()
 
         bbox_collection = response_collection.json()['extent']['spatial']['bbox'][0]
@@ -121,15 +121,15 @@ class TwoItemsSpatialTestCase(StacBaseTestCase):
         item_east = self.items[1].model.name
 
         # delete the eastern item
-        path = f'/{API_BASE}/collections/{self.collection.name}/items/{item_east}'
+        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{item_east}'
         response = self.client.delete(path)
         self.assertStatusCode(200, response)
 
-        response_collection = self.client.get(f"/{API_BASE}/collections/{collection_name}")
+        response_collection = self.client.get(f"/{STAC_BASE_V}/collections/{collection_name}")
         bbox_collection = response_collection.json()['extent']['spatial']['bbox'][0]
 
         response_item_west = self.client.get(
-            f"/{API_BASE}/collections/{collection_name}/items/{item_west}"
+            f"/{STAC_BASE_V}/collections/{collection_name}/items/{item_west}"
         )
         bbox_item_west = response_item_west.json()['bbox']
 
@@ -145,17 +145,17 @@ class TwoItemsSpatialTestCase(StacBaseTestCase):
         sample = self.factory.create_item_sample(
             self.collection, sample='item-covers-switzerland', name=item_name
         )
-        path = f'/{API_BASE}/collections/{self.collection.name}/items/{item_name}'
+        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{item_name}'
         response = self.client.put(
             path, data=sample.get_json('put'), content_type="application/json"
         )
 
         response_item = self.client.get(
-            f"/{API_BASE}/collections/{collection_name}/items/{item_name}"
+            f"/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}"
         )
         bbox_item = response_item.json()['bbox']
 
-        response_collection = self.client.get(f"/{API_BASE}/collections/{collection_name}")
+        response_collection = self.client.get(f"/{STAC_BASE_V}/collections/{collection_name}")
         bbox_collection = response_collection.json()['extent']['spatial']['bbox'][0]
 
         self.assertEqual(
@@ -166,13 +166,13 @@ class TwoItemsSpatialTestCase(StacBaseTestCase):
 
     def test_add_covering_item(self):
         collection_name = self.collection.name
-        response_collection = self.client.get(f"/{API_BASE}/collections/{collection_name}")
+        response_collection = self.client.get(f"/{STAC_BASE_V}/collections/{collection_name}")
         bbox_collection_ch = response_collection.json()['extent']['spatial']['bbox'][0]
 
         sample = self.factory.create_item_sample(
             self.collection, sample='item-covers-switzerland', db_create=True
         ).model
-        response_collection = self.client.get(f"/{API_BASE}/collections/{collection_name}")
+        response_collection = self.client.get(f"/{STAC_BASE_V}/collections/{collection_name}")
         bbox_collection_covers_ch = response_collection.json()['extent']['spatial']['bbox'][0]
 
         self.assertNotEqual(
@@ -192,13 +192,13 @@ class TwoItemsSpatialTestCase(StacBaseTestCase):
 
     def test_add_another_item(self):
         collection_name = self.collection.name
-        response_collection = self.client.get(f"/{API_BASE}/collections/{collection_name}")
+        response_collection = self.client.get(f"/{STAC_BASE_V}/collections/{collection_name}")
         bbox_collection_ch = response_collection.json()['extent']['spatial']['bbox'][0]
 
         sample = self.factory.create_item_sample(
             self.collection, sample='item-paris', db_create=True
         ).model
-        response_collection = self.client.get(f"/{API_BASE}/collections/{collection_name}")
+        response_collection = self.client.get(f"/{STAC_BASE_V}/collections/{collection_name}")
         bbox_collection_paris = response_collection.json()['extent']['spatial']['bbox'][0]
 
         self.assertNotEqual(
