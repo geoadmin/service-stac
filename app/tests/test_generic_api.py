@@ -402,3 +402,104 @@ class ApiCacheHeaderTestCase(StacBaseTestCase):
                 self.assertAlmostEqual((expires - now).total_seconds(),
                                        timedelta(seconds=3600).total_seconds(),
                                        delta=2)
+
+
+class ApiCORSHeaderTestCase(StacBaseTestCase):
+
+    @classmethod
+    @mock_s3_asset_file
+    def setUpTestData(cls):
+        cls.factory = Factory()
+        cls.collection = cls.factory.create_collection_sample(db_create=True,)
+        cls.item = cls.factory.create_item_sample(
+            collection=cls.collection.model,
+            db_create=True,
+        )
+        cls.asset = cls.factory.create_asset_sample(
+            item=cls.item.model,
+            db_create=True,
+        )
+
+    def test_get_cors_header(self):
+        for endpoint in [
+            '',  # landing page
+            'conformance',
+            'collections',
+            f'collections/{self.collection["name"]}',
+            f'collections/{self.collection["name"]}/items',
+            f'collections/{self.collection["name"]}/items/{self.item["name"]}',
+            f'collections/{self.collection["name"]}/items/{self.item["name"]}'
+            f'/assets',
+            f'collections/{self.collection["name"]}/items/{self.item["name"]}'
+            f'/assets/{self.asset["name"]}'
+        ]:
+            with self.subTest(endpoint=endpoint):
+                response = self.client.get(f"/{STAC_BASE_V}/{endpoint}")
+                self.assertStatusCode(200, response)
+
+                self.assertTrue(
+                    response.has_header('Access-Control-Allow-Origin'),
+                    msg="CORS header allow-origin missing"
+                )
+                self.assertEqual(
+                    response['Access-Control-Allow-Origin'],
+                    '*',
+                    msg='Wrong CORS allow-origin value'
+                )
+
+                self.assertTrue(
+                    response.has_header('Access-Control-Allow-Methods'),
+                    msg="CORS header allow-methods missing"
+                )
+
+                self.assertEqual(
+                    response['Access-Control-Allow-Methods'],
+                    'GET,HEAD',
+                    msg='Wrong CORS allow-methods value'
+                )
+
+                self.assertTrue(
+                    response.has_header('Access-Control-Allow-Headers'),
+                    msg="CORS header allow-Headers missing"
+                )
+
+                self.assertEqual(
+                    response['Access-Control-Allow-Headers'],
+                    'Content-Type,Accept',
+                    msg='Wrong CORS allow-Headers value'
+                )
+
+    def test_get_cors_header_search(self):
+        response = self.client.get(f"/{STAC_BASE_V}/search")
+        self.assertStatusCode(200, response)
+
+        self.assertTrue(
+            response.has_header('Access-Control-Allow-Origin'),
+            msg="CORS header allow-origin missing"
+        )
+
+        self.assertEqual(
+            response['Access-Control-Allow-Origin'], '*', msg='Wrong CORS allow-origin value'
+        )
+
+        self.assertTrue(
+            response.has_header('Access-Control-Allow-Methods'),
+            msg="CORS header allow-methods missing"
+        )
+
+        self.assertEqual(
+            response['Access-Control-Allow-Methods'],
+            'GET,HEAD,POST',
+            msg='Wrong CORS allow-methods value'
+        )
+
+        self.assertTrue(
+            response.has_header('Access-Control-Allow-Headers'),
+            msg="CORS header allow-Headers missing"
+        )
+
+        self.assertEqual(
+            response['Access-Control-Allow-Headers'],
+            'Content-Type,Accept',
+            msg='Wrong CORS allow-Headers value'
+        )
