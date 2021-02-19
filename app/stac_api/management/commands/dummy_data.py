@@ -69,20 +69,24 @@ class DummyDataHandler(CommandHandler):
         )
 
         errors = 0
-        with ThreadPoolExecutor(max_workers=self.options['parallel_collections']) as executor:
-            futures_to_id = {
-                executor.submit(self.create_collection, collection_id, items, assets): collection_id
-                for collection_id in collections
-            }
-            for future in as_completed(futures_to_id):
-                collection_id = futures_to_id[future]
-                try:
-                    future.result()
-                except Exception as exc:  # pylint: disable=broad-except
-                    self.print_error(
-                        'Create collection %s generated an exception: %s', collection_id, exc
-                    )
-                    errors += 1
+        if self.options['parallel_collections'] > 1:
+            with ThreadPoolExecutor(max_workers=self.options['parallel_collections']) as executor:
+                futures_to_id = {
+                    executor.submit(self.create_collection, collection_id, items, assets):
+                    collection_id for collection_id in collections
+                }
+                for future in as_completed(futures_to_id):
+                    collection_id = futures_to_id[future]
+                    try:
+                        future.result()
+                    except Exception as exc:  # pylint: disable=broad-except
+                        self.print_error(
+                            'Create collection %s generated an exception: %s', collection_id, exc
+                        )
+                        errors += 1
+        else:
+            for collection_id in collections:
+                self.create_collection(collection_id, items, assets)
 
         duration = time.time() - start
         if errors:
@@ -107,22 +111,30 @@ class DummyDataHandler(CommandHandler):
         )
 
         errors = 0
-        with ThreadPoolExecutor(max_workers=self.options['parallel_items']) as executor:
-            futures_to_id = {
-                executor.submit(self.create_item, collection, item_id, assets): item_id
-                for item_id in items
-            }
-            for future in as_completed(futures_to_id):
-                item_id = futures_to_id[future]
-                try:
-                    future.result()
-                except Exception as exc:  # pylint: disable=broad-except
-                    self.print_error(
-                        'Create item %s/%s generated an exception: %s', collection_id, item_id, exc
-                    )
-                    errors += 1
-        if errors:
-            raise Exception(f'Failed to create collection\'s items: {errors} errors')
+        if self.options['parallel_items'] > 1:
+            with ThreadPoolExecutor(max_workers=self.options['parallel_items']) as executor:
+                futures_to_id = {
+                    executor.submit(self.create_item, collection, item_id, assets): item_id
+                    for item_id in items
+                }
+                for future in as_completed(futures_to_id):
+                    item_id = futures_to_id[future]
+                    try:
+                        future.result()
+                    except Exception as exc:  # pylint: disable=broad-except
+                        self.print_error(
+                            'Create item %s/%s generated an exception: %s',
+                            collection_id,
+                            item_id,
+                            exc
+                        )
+                        errors += 1
+
+            if errors:
+                raise Exception(f'Failed to create collection\'s items: {errors} errors')
+        else:
+            for item_id in items:
+                self.create_item(collection, item_id, assets)
 
         self.print('collection %s created', collection_id)
 
