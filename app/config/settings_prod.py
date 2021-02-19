@@ -87,7 +87,7 @@ INSTALLED_APPS = [
 # Middlewares are executed in order, once for the incoming
 # request top-down, once for the outgoing response bottom up
 # Note: The prometheus middlewares should always be first and
-# last, put everything else inbetween
+# last, put everything else in between
 MIDDLEWARE = [
     'django_prometheus.middleware.PrometheusBeforeMiddleware',
     'middleware.logging.RequestResponseLoggingMiddleware',
@@ -101,6 +101,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'middleware.logging.ExceptionLoggingMiddleware',
     'middleware.cache_headers.CacheHeadersMiddleware',
+    'middleware.cors.CORSHeadersMiddleware',
     'django_prometheus.middleware.PrometheusAfterMiddleware',
 ]
 
