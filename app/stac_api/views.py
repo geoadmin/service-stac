@@ -319,7 +319,7 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
     serializer_class = ItemSerializer
 
     def get_queryset(self):
-        queryset = Item.objects.all()
+        queryset = Item.objects.all().prefetch_related('assets', 'links')
         # harmonize GET and POST query
         query_param = harmonize_post_get_for_search(self.request)
 
