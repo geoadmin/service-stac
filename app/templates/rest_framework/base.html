@@ -1,15 +1,43 @@
 {% extends "rest_framework/base.html" %}
 {% load static %}
-
 {% block style %}
 {{ block.super }}
-<link rel="icon" href="{% static 'favicon.ico' %}">
+    <link rel="icon" href="{% static 'style/favicon.ico' %}">
+    <link rel="stylesheet" href="{% static 'style/stac.css' %}" type="text/css">
 {% endblock %}
-{% block title %}geoadmin STAC API{% endblock %}
+{% block title %}Geoadmin STAC API{% endblock %}
+
+{% block content %}
+
+    <header>
+        <a href="#" class="brand hidden-xs" title="Back to home">
+            <img src="/api/stac/static/style/img/logo-CH.svg" onerror="this.onerror=null; this.src='/api/stac/static/style/img/logo-CH.png'" alt="Back to home" />
+            <h1>data.geo.admin.ch STAC API</h1>
+        </a>
+    </header>
+
+    {{ block.super }}
+
+    <div id="footer" class="row">
+        <div class="col-md-6">
+            <p>
+                <a href="https://www.geo.admin.ch/de/ueber-geo-admin/organisation.html">geo.admin.ch</a> |
+                <a href="https://www.geo.admin.ch/de/ueber-geo-admin/impressum.html">Rechtliches</a> -
+                <a href="https://www.geo.admin.ch/fr/geo-admin-ch/impressum.html"><i>Conditions d'utilisation</i></a>
+            </p>
+        </div>
+        <div class="col-md-6 text-right">
+            <p>
+                <a href="http://www.disclaimer.admin.ch">www.disclaimer.admin.ch</a>
+            </p>
+        </div>
+    </div>
+
+{% endblock %}
 
 {% block branding %}
 <a class='navbar-brand' rel="nofollow" href={{ request.scheme }}://{{ request.get_host }}/{{ SETTINGS_API_BASE }}>
-    Geoadmin STAC API
+    data.geo.admin.ch STAC API
 </a>
 {% endblock %}
 
