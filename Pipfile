@@ -16,6 +16,7 @@ tblib = "*"  # needed for traceback when running tests in parallel
 responses = "!=0.12.1" # skip version 0.12.1 which has a bug see https://github.com/getsentry/responses/issues/358
 moto = {extras = [ "s3",], version = "*"}
 requests-mock = "*"
+cryptography = "~=3.3.2"
 
 [packages]
 gevent = "~=20.12.0"
