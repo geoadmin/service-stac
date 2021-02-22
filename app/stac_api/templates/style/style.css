@@ -41,6 +41,9 @@ header::after {
 header a.brand {
     width: 100%;
     display: flex;
+}
+
+header a.justified {
     justify-content: space-between;
 }
 
@@ -82,4 +85,18 @@ header a.brand {
 .no-margin {
     margin-right: 0px;
     margin-left: 0px;
+}
+
+.footer-columns {
+    position: relative;
+    min-height: 1px;
+    padding-right: 15px;
+    padding-left: 15px;
+    width: 50%;
+    float: left;
+    box-sizing: border-box;
+}
+
+.right {
+    text-align: right;
 }
