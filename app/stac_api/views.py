@@ -165,7 +165,7 @@ class CollectionList(generics.GenericAPIView, views_mixins.CreateModelMixin):
 class CollectionDetail(generics.GenericAPIView, mixins.RetrieveModelMixin, mixins.UpdateModelMixin):
     serializer_class = CollectionSerializer
     lookup_url_kwarg = "collection_name"
-    queryset = Collection.objects.all()
+    queryset = Collection.objects.all().prefetch_related('providers', 'links')
 
     @etag(get_collection_etag)
     def get(self, request, *args, **kwargs):
@@ -319,7 +319,7 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
     serializer_class = ItemSerializer
 
     def get_queryset(self):
-        queryset = Item.objects.all()
+        queryset = Item.objects.all().prefetch_related('assets', 'links')
         # harmonize GET and POST query
         query_param = harmonize_post_get_for_search(self.request)
 
