@@ -12,13 +12,23 @@
     <header>
         <a href="/api/stac/v0.9/" class="brand hidden-xs" title="Back to home">
             <img src="/api/stac/static/style/logo-CH.svg" onerror="this.onerror=null; this.src='/api/stac/static/style/logo-CH.png'" alt="Back to home" />
-            <h1>data.geo.admin.ch STAC API</h1>
+            <h1 class="col-md-6">data.geo.admin.ch STAC API</h1> <h1 class="col-md-6 text-right">{{ SETTINGS_APP_VERSION }}</h1>
         </a>
     </header>
 
+     <ul class="breadcrumb">
+    {% for breadcrumb_name, breadcrumb_url in breadcrumblist %}
+      {% if forloop.last %}
+        <li class="active"><a href="{{ breadcrumb_url }}">{{ breadcrumb_name }}</a></li>
+      {% else %}
+        <li><a href="{{ breadcrumb_url }}">{{ breadcrumb_name }}</a></li>
+      {% endif %}
+    {% endfor %}
+  </ul>
+
     {{ block.super }}
 
-    <div id="footer" class="row">
+    <div id="footer" class="row no-margin">
         <div class="col-md-6">
             <p>
                 <a href="https://www.geo.admin.ch/de/ueber-geo-admin/organisation.html">geo.admin.ch</a> |
@@ -26,7 +36,7 @@
                 <a href="https://www.geo.admin.ch/fr/geo-admin-ch/impressum.html"><i>Conditions d'utilisation</i></a>
             </p>
         </div>
-        <div class="col-md-6 text-right">
+        <div class="col-md-6 text-right no-margin">
             <p>
                 <a href="http://www.disclaimer.admin.ch">www.disclaimer.admin.ch</a>
             </p>
@@ -36,12 +46,13 @@
 {% endblock %}
 
 {% block branding %}
-<a class='navbar-brand' rel="nofollow" href={{ request.scheme }}://{{ request.get_host }}/{{ SETTINGS_API_BASE }}>
-    data.geo.admin.ch STAC API
-</a>
+
+{% endblock %}
+
+{% block breadcrumbs %}
+
 {% endblock %}
 
 {% block userlinks %}
-    {{ block.super }}
-    <li class="navbar-text grey">{{ SETTINGS_APP_VERSION }}</li>
+
 {% endblock %}
