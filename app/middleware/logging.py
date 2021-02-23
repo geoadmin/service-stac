@@ -17,7 +17,12 @@ class RequestResponseLoggingMiddleware:
         # Code to be executed for each request before
         # the view (and later middleware) are called.
         logger.info(
-            "Request %s %s", request.method.upper(), request.path, extra={"request": request}
+            "Request %s %s",
+            request.method.upper(),
+            request.path,
+            extra={
+                "request": request, "requestPayload": str(request.body[:200])
+            }
         )
         start = time.time()
 
@@ -35,7 +40,7 @@ class RequestResponseLoggingMiddleware:
         # HttpResponse and JSONResponse sure have
         # (e.g. WhiteNoiseFileResponse doesn't)
         if isinstance(response, (HttpResponse, JsonResponse)):
-            extra["response"]["content"] = str(response.content)[:200]
+            extra["response"]["payload"] = str(response.content)[:200]
 
         logger.info("Response %s", response.status_code, extra=extra)
         # Code to be executed for each request/response after

@@ -112,11 +112,13 @@ def custom_exception_handler(exc, context):
     response = exception_handler(exc, context)
 
     if response is not None:
+        extra = {"request": context['request']._request, "requestPayload": context['request'].data}  # pylint: disable=protected-access
+        logger.error(repr(exc), extra=extra)
         response.data = {'code': response.status_code, 'description': response.data}
         return response
 
     # If we don't have a response that's means that we have an unhandled exception that needs to
-    # return a 500. We need to log the exception here as it might not be re-raised.ma
+    # return a 500. We need to log the exception here as it might not be re-raised.
     extra = {"request": context['request']._request}  # pylint: disable=protected-access
     logger.critical(repr(exc), extra=extra, exc_info=sys.exc_info())
 
