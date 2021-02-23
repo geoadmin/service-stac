@@ -5,11 +5,11 @@
     <link rel="icon" href="{% static 'style/favicon.ico' %}">
     <link rel="stylesheet" href="{% static 'style/style.css' %}" type="text/css">
 {% endblock %}
-{% block title %}Geoadmin STAC API{% endblock %}
+{% block title %}data.geo.admin.ch STAC API{% endblock %}
 
 {% block content %}
 
-    <header>
+    <header class="rounded">
         <a href="/api/stac/v0.9/" class="brand hidden-xs justified" title="Back to home">
             <img src="/api/stac/static/style/logo-CH.svg" onerror="this.onerror=null; this.src='/api/stac/static/style/logo-CH.png'" alt="Back to home" />
             <h1 class="col-md-6">data.geo.admin.ch STAC API</h1> <h1 class="col-md-6 text-right">{{ SETTINGS_APP_VERSION }}</h1>
@@ -17,26 +17,26 @@
     </header>
 
      <ul class="breadcrumb">
-    {% for breadcrumb_name, breadcrumb_url in breadcrumblist %}
-      {% if forloop.last %}
-        <li class="active"><a href="{{ breadcrumb_url }}">{{ breadcrumb_name }}</a></li>
-      {% else %}
-        <li><a href="{{ breadcrumb_url }}">{{ breadcrumb_name }}</a></li>
-      {% endif %}
-    {% endfor %}
-  </ul>
+        {% for breadcrumb_name, breadcrumb_url in breadcrumblist %}
+          {% if forloop.last %}
+            <li class="active"><a href="{{ breadcrumb_url }}">{{ breadcrumb_name }}</a></li>
+          {% else %}
+            <li><a href="{{ breadcrumb_url }}">{{ breadcrumb_name }}</a></li>
+          {% endif %}
+        {% endfor %}
+    </ul>
 
     {{ block.super }}
 
-    <div id="footer" class="row no-margin">
-        <div class="col-md-6">
+    <div id="footer" class="row no-margin rounded">
+        <div class="col-md-6 footer-columns">
             <p>
                 <a href="https://www.geo.admin.ch/de/ueber-geo-admin/organisation.html">geo.admin.ch</a> |
                 <a href="https://www.geo.admin.ch/de/ueber-geo-admin/impressum.html">Rechtliches</a> -
                 <a href="https://www.geo.admin.ch/fr/geo-admin-ch/impressum.html"><i>Conditions d'utilisation</i></a>
             </p>
         </div>
-        <div class="col-md-6 text-right no-margin">
+        <div class="col-md-6 text-right no-margin footer-columns">
             <p>
                 <a href="http://www.disclaimer.admin.ch">www.disclaimer.admin.ch</a>
             </p>

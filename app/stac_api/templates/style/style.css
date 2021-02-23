@@ -4,7 +4,6 @@ header, footer {
     line-height: 1.6;
     color: #454545;
     box-sizing: border-box;
-    border-radius: 4px;
 }
 
 ul.breadcrumb {
@@ -74,7 +73,6 @@ header a.justified {
 
 #footer {
     background-color: #e5e5e5;
-    margin-bottom: 1em;
     margin-top: 1em;
 }
 
@@ -95,8 +93,14 @@ header a.justified {
     width: 50%;
     float: left;
     box-sizing: border-box;
+    background-color: #e5e5e5;
+    margin-top: 1em;
 }
 
 .right {
     text-align: right;
+}
+
+.rounded {
+    border-radius: 4px;
 }
