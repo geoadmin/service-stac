@@ -4,6 +4,7 @@ header, footer {
     line-height: 1.6;
     color: #454545;
     box-sizing: border-box;
+    display: block;
 }
 
 ul.breadcrumb {
@@ -17,7 +18,6 @@ ul.breadcrumb {
 }
 
 header {
-    display: block;
     background: linear-gradient(to bottom,#f5f5f5 0,#fff 7%,#fff 100%);
     position: relative;
     margin: 10px 0 0 0;
@@ -73,7 +73,7 @@ header a.justified {
 
 #footer {
     background-color: #e5e5e5;
-    margin-top: 1em;
+    margin-bottom: 1em;
 }
 
 #footer a {
@@ -85,7 +85,7 @@ header a.justified {
     margin-left: 0px;
 }
 
-.footer-columns {
+.footer-columns{
     position: relative;
     min-height: 1px;
     padding-right: 15px;
@@ -93,8 +93,15 @@ header a.justified {
     width: 50%;
     float: left;
     box-sizing: border-box;
-    background-color: #e5e5e5;
+}
+
+.footer-columns-adaptation-rest {
     margin-top: 1em;
+}
+
+.footer-columns-adaptation-api {
+    margin-bottom: 1em;
+    background-color: #e5e5e5;
 }
 
 .right {
