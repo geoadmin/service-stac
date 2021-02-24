@@ -1,15 +1,12 @@
 import logging
+import sys
 
 import django.core.exceptions
 from django.apps import AppConfig
 from django.conf import settings
-from django.http import Http404
 from django.utils.translation import gettext_lazy as _
 
 from rest_framework import pagination
-from rest_framework.exceptions import APIException
-from rest_framework.exceptions import NotFound
-from rest_framework.exceptions import PermissionDenied
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import exception_handler
@@ -99,15 +96,7 @@ class CursorPagination(pagination.CursorPagination):
 
 
 def custom_exception_handler(exc, context):
-    # Call REST framework's default exception handler first,
-    # to get the standard error response.
-    response = exception_handler(exc, context)
-
-    if isinstance(exc, Http404):
-        exc = NotFound()
-    elif isinstance(exc, django.core.exceptions.PermissionDenied):
-        exc = PermissionDenied()
-    elif isinstance(exc, django.core.exceptions.ValidationError):
+    if isinstance(exc, django.core.exceptions.ValidationError):
         # Translate django ValidationError to Rest Framework ValidationError,
         # this is required because some validation cannot be done in the Rest
         # framework serializer but must be left to the model, like for instance
@@ -117,25 +106,24 @@ def custom_exception_handler(exc, context):
             message %= exc.params
         exc = ValidationError(exc.message, exc.code)
 
-    if isinstance(exc, APIException):
-        status_code = exc.status_code
-        description = exc.detail
-    elif settings.DEBUG and not settings.DEBUG_PROPAGATE_API_EXCEPTIONS:
+    # Then call REST framework's default exception handler, to get the standard error response.
+    response = exception_handler(exc, context)
+
+    if response is not None:
+        response.data = {'code': response.status_code, 'description': response.data}
+        return response
+
+    # If we don't have a response that's means that we have an unhandled exception that needs to
+    # return a 500. We need to log the exception here as it might not be re-raised.ma
+    extra = {"request": context['request']._request}  # pylint: disable=protected-access
+    logger.critical(repr(exc), extra=extra, exc_info=sys.exc_info())
+
+    if settings.DEBUG and not settings.DEBUG_PROPAGATE_API_EXCEPTIONS:
         # Other exceptions are left to Django to handle in DEBUG mode, this allow django
         # to set a nice HTML output with backtrace when DEBUG_PROPAGATE_EXCEPTIONS is false
         # With DEBUG_PROPAGATE_API_EXCEPTIONS with can disable this behavior for testing purpose
         return None
-    else:
-        # Make sure to use a JSON output for other exceptions in production
-        description = str(exc)
-        status_code = 500
 
-    data = {"code": status_code, "description": description}
-
-    if response is not None:
-        # Overwrite the response data
-        response.data = data
-    else:
-        response = Response(data, status=status_code)
-
-    return response
+    # In production make sure to always return a proper REST Framework response, either a json or an
+    # html response.
+    return Response({'code': 500, 'description': repr(exc)}, status=500)

@@ -99,7 +99,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'middleware.logging.ExceptionLoggingMiddleware',
     'middleware.cache_headers.CacheHeadersMiddleware',
     'middleware.cors.CORSHeadersMiddleware',
     'django_prometheus.middleware.PrometheusAfterMiddleware',
