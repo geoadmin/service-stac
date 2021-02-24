@@ -1,6 +1,6 @@
 import logging
 import time
-import traceback
+import sys
 
 from django.http import HttpResponse
 from django.http import JsonResponse
@@ -64,6 +64,6 @@ class ExceptionLoggingMiddleware:
 
     def process_exception(self, request, exception):
         extra = {
-            "request": request, "exception": repr(exception), "traceback": traceback.format_exc()
+            "request": request
         }
-        logger.critical(repr(exception), extra=extra)
+        logger.critical(repr(exception), extra=extra, exc_info=sys.exc_info())
