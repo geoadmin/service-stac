@@ -96,6 +96,8 @@ class CursorPagination(pagination.CursorPagination):
 
 
 def custom_exception_handler(exc, context):
+    # NOTE: this exception handler is only called for REST Framework endpoints. Other endpoints
+    # exception are handled via middleware.exception.
     if isinstance(exc, django.core.exceptions.ValidationError):
         # Translate django ValidationError to Rest Framework ValidationError,
         # this is required because some validation cannot be done in the Rest
