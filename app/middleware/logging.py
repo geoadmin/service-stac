@@ -17,7 +17,9 @@ class RequestResponseLoggingMiddleware:
     def __call__(self, request):
         # Code to be executed for each request before
         # the view (and later middleware) are called.
-        logger.info("request", extra={"request": request})
+        logger.info(
+            "Request %s %s", request.method.upper(), request.path, extra={"request": request}
+        )
         start = time.time()
 
         response = self.get_response(request)
@@ -36,7 +38,7 @@ class RequestResponseLoggingMiddleware:
         if isinstance(response, (HttpResponse, JsonResponse)):
             extra["response"]["content"] = str(response.content)[:200]
 
-        logger.info("request-response", extra=extra)
+        logger.info("Response %s", response.status_code, extra=extra)
         # Code to be executed for each request/response after
         # the view is called.
 
