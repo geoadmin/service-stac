@@ -1074,10 +1074,9 @@ class AssetFactory(FactoryBase):
             The data sample
         '''
         if db_create and create_asset_file:
-            raise ValueError(
-                'Cannot have db_create=True and create_asset_file=True, db_create=True implicitely '
-                'create the asset file when the "file" attribute is present'
-            )
+            # the asset file are automatically created by the model when creating the model
+            # therefore here correct the `create_asset_file` to false to avoid issues
+            create_asset_file = False
         return super().create_sample(
             sample,
             name=name,
