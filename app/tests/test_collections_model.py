@@ -66,7 +66,7 @@ class CollectionsModelTestCase(TestCase):
         # try to create a valid collection with only the required attributes.
         # Should not raise any errors.
         CollectionFactory().create_sample(
-            name="collection-links-providers",
+            name="collection-required-only",
             sample="collection-1",
             db_create=True,
             required_only=True

@@ -45,7 +45,7 @@ class AssetsModelTestCase(TestCase):
             asset.save()
 
     def test_create_asset_missing_mandatory_fields(self):
-        # try to create a asset with missing mandatory attributes.
+        # try to create an asset with missing mandatory attributes.
         with self.assertRaises(
             ValidationError, msg="asset with missing mandatory fields was accepted."
         ):
@@ -57,7 +57,7 @@ class AssetsModelTestCase(TestCase):
             )
 
     def test_create_asset_valid_geoadmin_variant(self):
-        # try to create a asset with valid geoadmin variant. This should not raise any error.
+        # try to create an asset with valid geoadmin variant. This should not raise any error.
         self.factory.create_asset_sample(
             item=self.item,
             sample="asset-valid-geoadmin-variant",
@@ -66,11 +66,25 @@ class AssetsModelTestCase(TestCase):
         )
 
     def test_create_asset_invalid_geoadmin_variant(self):
-        # try to create a asset with invalid geoadmin variant.
-        with self.assertRaises(ValidationError, msg="asset with invalid geoadmin variant."):
+        # try to create an asset with invalid geoadmin variant.
+        with self.assertRaises(
+            ValidationError, msg="asset with invalid geoadmin variant was accepted."
+        ):
             self.factory.create_asset_sample(
                 item=self.item,
                 sample="asset-invalid-geoadmin-variant",
                 db_create=True,
                 create_asset_file=False
             )
+
+    def test_create_asset_only_required_attributes(self):
+        # try to create an asset with with only the required attributes.
+        # Should not raise any errors.
+        self.factory.create_asset_sample(
+            item=self.item,
+            name="asset-required-only",
+            sample="asset-valid-geoadmin-variant",
+            db_create=True,
+            create_asset_file=False,
+            required_only=True
+        )
