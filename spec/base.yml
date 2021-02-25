@@ -7,10 +7,6 @@ info:
     This is an OpenAPI definition of the API to query and access federal geodata on
     data.geo.admin.ch. The API is based on the core SpatioTemporal Asset Catalog API specification
     [STAC](http://stacspec.org) and adds two extensions for extended searching possibilities.
-
-
-    **Note:** The API is _not_ productively accessible yet, this is a preliminary outlook of how it
-    will look like. Minor changes are possible and will be reflected in this document.
   title: The SpatioTemporal Asset Catalog API for data.geo.admin.ch
   version: 0.9.0
 servers:
