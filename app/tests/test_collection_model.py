@@ -26,10 +26,7 @@ class CollectionsModelTestCase(TestCase):
     def test_create_collection_invalid_name(self):
         # try to create a collection with invalid collection name
         with self.assertRaises(ValidationError, msg="Collection with invalid name was accepted."):
-            collection_data = CollectionFactory().create_sample(sample="collection-invalid")
-            collection = Collection(**collection_data.attributes)
-            collection.full_clean()
-            collection.save()
+            CollectionFactory().create_sample(sample="collection-invalid", db_create=True)
 
     def test_create_collection_missing_mandatory_fields(self):
         # try to create a collection with invalid collection name
