@@ -19,7 +19,7 @@ from tests.utils import upload_file_on_s3
 
 logger = logging.getLogger(__name__)
 
-API_BASE = settings.API_BASE
+STAC_BASE_V = settings.STAC_BASE_V
 
 
 def to_dict(input_ordered_dict):
@@ -43,7 +43,7 @@ class AssetsEndpointTestCase(StacBaseTestCase):
         asset_2 = self.factory.create_asset_sample(item=self.item, sample='asset-2', db_create=True)
         asset_3 = self.factory.create_asset_sample(item=self.item, sample='asset-3', db_create=True)
         response = self.client.get(
-            f"/{API_BASE}/collections/{collection_name}/items/{item_name}/assets"
+            f"/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets"
         )
         self.assertStatusCode(200, response)
         json_data = response.json()
@@ -62,7 +62,7 @@ class AssetsEndpointTestCase(StacBaseTestCase):
         collection_name = "non-existent"
         item_name = self.item.name
         response = self.client.get(
-            f"/{API_BASE}/collections/{collection_name}/items/{item_name}/assets"
+            f"/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets"
         )
         self.assertStatusCode(404, response)
 
@@ -70,7 +70,7 @@ class AssetsEndpointTestCase(StacBaseTestCase):
         collection_name = self.collection.name
         item_name = "non-existent"
         response = self.client.get(
-            f"/{API_BASE}/collections/{collection_name}/items/{item_name}/assets"
+            f"/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets"
         )
         self.assertStatusCode(404, response)
 
@@ -79,7 +79,7 @@ class AssetsEndpointTestCase(StacBaseTestCase):
         item_name = self.item.name
         asset_name = self.asset_1["name"]
         response = self.client.get(
-            f"/{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}"
+            f"/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets/{asset_name}"
         )
         json_data = response.json()
         self.assertStatusCode(200, response)
@@ -112,7 +112,7 @@ class AssetsWriteEndpointTestCase(StacBaseTestCase):
             item=self.item, required_only=True, create_asset_file=True, file=b'Dummy file content'
         )
 
-        path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets'
+        path = f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets'
         response = self.client.post(
             path, data=asset.get_json('post'), content_type="application/json"
         )
@@ -140,7 +140,7 @@ class AssetsWriteEndpointTestCase(StacBaseTestCase):
         item_name = self.item.name
         asset = self.factory.create_asset_sample(item=self.item, create_asset_file=True)
 
-        path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets'
+        path = f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets'
         response = self.client.post(
             path, data=asset.get_json('post'), content_type="application/json"
         )
@@ -168,7 +168,7 @@ class AssetsWriteEndpointTestCase(StacBaseTestCase):
             create_asset_file=True
         )
 
-        path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets'
+        path = f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets'
         response = self.client.post(
             path, data=asset.get_json('post'), content_type="application/json"
         )
@@ -184,7 +184,7 @@ class AssetsWriteEndpointTestCase(StacBaseTestCase):
             item=self.item, extra_attribute='not allowed', create_asset_file=True
         )
 
-        path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets'
+        path = f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets'
         response = self.client.post(
             path, data=asset.get_json('post'), content_type="application/json"
         )
@@ -206,7 +206,7 @@ class AssetsWriteEndpointTestCase(StacBaseTestCase):
             item=self.item, created=utc_aware(datetime.utcnow()), create_asset_file=True
         )
 
-        path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets'
+        path = f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets'
         response = self.client.post(
             path, data=asset.get_json('post', keep_read_only=True), content_type="application/json"
         )
@@ -233,7 +233,7 @@ class AssetsWriteEndpointTestCase(StacBaseTestCase):
             item=self.item, href='https://testserver/test.txt', create_asset_file=True
         )
 
-        path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets'
+        path = f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets'
         response = self.client.post(
             path, data=asset.get_json('post', keep_read_only=True), content_type="application/json"
         )
@@ -259,7 +259,7 @@ class AssetsWriteEndpointTestCase(StacBaseTestCase):
             item=self.item, sample='asset-invalid', create_asset_file=True
         )
 
-        path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets'
+        path = f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets'
         response = self.client.post(
             path, data=asset.get_json('post'), content_type="application/json"
         )
@@ -289,7 +289,7 @@ class AssetsWriteEndpointTestCase(StacBaseTestCase):
             item=self.item, sample='asset-valid-geoadmin-variant', create_asset_file=True
         )
 
-        path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets'
+        path = f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets'
         response = self.client.post(
             path, data=asset.get_json('post'), content_type="application/json"
         )
@@ -300,7 +300,7 @@ class AssetsWriteEndpointTestCase(StacBaseTestCase):
             item=self.item, sample='asset-invalid-geoadmin-variant', create_asset_file=True
         )
 
-        path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets'
+        path = f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets'
         response = self.client.post(
             path, data=asset.get_json('post'), content_type="application/json"
         )
@@ -334,7 +334,7 @@ class AssetsWriteEndpointAssetFileTestCase(StacBaseTestCase):
         item_name = self.item.name
         asset = self.factory.create_asset_sample(item=self.item, create_asset_file=False)
 
-        path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets'
+        path = f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets'
         response = self.client.post(
             path, data=asset.get_json('post'), content_type="application/json"
         )
@@ -359,7 +359,7 @@ class AssetsWriteEndpointAssetFileTestCase(StacBaseTestCase):
     #     item_name = self.item.name
     #     asset = self.factory.create_asset_sample(item=self.item)
 
-    #     path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets'
+    #     path = f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets'
     #     response = self.client.post(
     #         path, data=asset.get_json('post'), content_type="application/json"
     #     )
@@ -385,7 +385,7 @@ class AssetsWriteEndpointAssetFileTestCase(StacBaseTestCase):
             f'{collection_name}/{item_name}/{asset["name"]}', asset["file"], params={}
         )
 
-        path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets'
+        path = f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets'
         response = self.client.post(
             path, data=asset.get_json('post'), content_type="application/json"
         )
@@ -414,7 +414,7 @@ class AssetsWriteEndpointAssetFileTestCase(StacBaseTestCase):
             b'new dummy content that do not match real checksum'
         )
 
-        path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets'
+        path = f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets'
         response = self.client.post(path, data=asset_json, content_type="application/json")
         self.assertStatusCode(400, response)
         description = response.json()['description']
@@ -462,7 +462,7 @@ class AssetsUpdateEndpointAssetFileTestCase(StacBaseTestCase):
         patch_asset = self.asset.copy()
         patch_asset['checksum_multihash'] = new_multihash
 
-        path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
+        path = f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
         response = self.client.patch(path, data=patch_payload, content_type="application/json")
         self.assertStatusCode(200, response)
         json_data = response.json()
@@ -488,7 +488,7 @@ class AssetsUpdateEndpointAssetFileTestCase(StacBaseTestCase):
         put_payload['href'] = 'https://testserver/non-existing-asset'
         patch_payload = {'href': 'https://testserver/non-existing-asset'}
 
-        path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
+        path = f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
         response = self.client.patch(path, data=patch_payload, content_type="application/json")
         self.assertStatusCode(400, response)
         description = response.json()['description']
@@ -533,7 +533,8 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
 
         # the dataset to update does not exist yet
         path = \
-          f"/{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{payload_json['id']}"
+          (f"/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets/"
+          f"{payload_json['id']}")
         response = self.client.put(path, data=payload_json, content_type='application/json')
         self.assertStatusCode(404, response)
 
@@ -549,7 +550,7 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
             create_asset_file=False
         )
 
-        path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
+        path = f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
         response = self.client.put(
             path, data=changed_asset.get_json('put'), content_type="application/json"
         )
@@ -580,7 +581,7 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
             create_asset_file=False
         )
 
-        path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
+        path = f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
         response = self.client.put(
             path, data=changed_asset.get_json('put'), content_type="application/json"
         )
@@ -602,7 +603,7 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
             create_asset_file=False
         )
 
-        path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
+        path = f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
         response = self.client.put(
             path,
             data=changed_asset.get_json('put', keep_read_only=True),
@@ -625,7 +626,7 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
             checksum_multihash=self.asset['checksum_multihash']
         )
 
-        path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
+        path = f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
         response = self.client.put(
             path, data=changed_asset.get_json('put'), content_type="application/json"
         )
@@ -638,7 +639,8 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
 
         # Check the data by reading it back
         response = self.client.get(
-            f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{new_asset_name}'
+            f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}'
+            f'/assets/{new_asset_name}'
         )
         json_data = response.json()
         self.assertStatusCode(200, response)
@@ -655,7 +657,7 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
             item=self.item.model, name=new_asset_name, sample='asset-1-updated'
         )
 
-        path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
+        path = f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
         response = self.client.patch(
             path, data=changed_asset.get_json('patch'), content_type="application/json"
         )
@@ -668,7 +670,8 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
 
         # Check the data by reading it back
         response = self.client.get(
-            f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{new_asset_name}'
+            f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}'
+            f'/assets/{new_asset_name}'
         )
         json_data = response.json()
         self.assertStatusCode(200, response)
@@ -688,7 +691,7 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
             extra_payload='invalid'
         )
 
-        path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
+        path = f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
         response = self.client.patch(
             path, data=changed_asset.get_json('patch'), content_type="application/json"
         )
@@ -708,7 +711,7 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
             created=utc_aware(datetime.utcnow())
         )
 
-        path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
+        path = f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
         response = self.client.patch(
             path,
             data=changed_asset.get_json('patch', keep_read_only=True),
@@ -736,7 +739,7 @@ class AssetsDeleteEndpointTestCase(StacBaseTestCase):
         collection_name = self.collection.name
         item_name = self.item.name
         asset_name = self.asset.name
-        path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
+        path = f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
         response = self.client.delete(path)
         self.assertStatusCode(200, response)
 
@@ -754,7 +757,7 @@ class AssetsDeleteEndpointTestCase(StacBaseTestCase):
         collection_name = self.collection.name
         item_name = self.item.name
         path = (
-            f"/{API_BASE}/collections/{collection_name}"
+            f"/{STAC_BASE_V}/collections/{collection_name}"
             f"/items/{item_name}/assets/non-existent-asset"
         )
         response = self.client.delete(path)
@@ -782,22 +785,22 @@ class AssetsEndpointUnauthorizedTestCase(StacBaseTestCase):
         ).get_json('post')
 
         # make sure POST fails for anonymous user:
-        path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets'
+        path = f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets'
         response = self.client.post(path, data=new_asset, content_type="application/json")
         self.assertStatusCode(401, response, msg="Unauthorized post was permitted.")
 
         # make sure PUT fails for anonymous user:
 
-        path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
+        path = f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
         response = self.client.put(path, data=updated_asset, content_type="application/json")
         self.assertStatusCode(401, response, msg="Unauthorized put was permitted.")
 
         # make sure PATCH fails for anonymous user:
-        path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
+        path = f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
         response = self.client.patch(path, data=updated_asset, content_type="application/json")
         self.assertStatusCode(401, response, msg="Unauthorized patch was permitted.")
 
         # make sure DELETE fails for anonymous user:
-        path = f'/{API_BASE}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
+        path = f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
         response = self.client.delete(path)
         self.assertStatusCode(401, response, msg="Unauthorized del was permitted.")

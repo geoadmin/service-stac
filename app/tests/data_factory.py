@@ -719,15 +719,7 @@ class AssetSample(SampleData):
         'href',
     ]
 
-    def __init__(
-        self,
-        item,
-        sample='asset-1',
-        name=None,
-        required_only=False,
-        create_asset_file=False,
-        **kwargs
-    ):
+    def __init__(self, item, sample='asset-1', name=None, required_only=False, **kwargs):
         '''Create a item sample data
 
         Args:
@@ -739,8 +731,6 @@ class AssetSample(SampleData):
                 Overwrite the sample name.
             required_only: bool
                 Return only attributes that are required (minimum sample data).
-            create_asset_file: bool
-                Create asset file on S3
             **kwargs:
                 Any parameter will overwrite existing attributes.
         '''
@@ -752,10 +742,6 @@ class AssetSample(SampleData):
         if isinstance(file, bytes):
             self.attr_checksum_multihash = get_sha256_multihash(file)
             self.attr_file = SimpleUploadedFile(file_path, file)
-        if create_asset_file:
-            if file is None:
-                raise ValueError('Cannot create Asset file on S3 when attribute file is None')
-            self._create_file_on_s3(file_path, self.attr_file)
 
     def get_json(self, method='get', keep_read_only=False):
         '''Returns a json serializable representation of the sample data
@@ -783,6 +769,18 @@ class AssetSample(SampleData):
             data['href'] = \
                 f'http://{settings.AWS_S3_CUSTOM_DOMAIN}/{item.collection.name}/{item.name}/{data["href"].name}'
         return data
+
+    def create_asset_file(self):
+        '''Create the asset File on S3 based on the binary content of attribute file
+
+        NOTE: This method will overwrite any existing file on S3
+        '''
+        item = getattr(self, 'attr_item')
+        file = getattr(self, 'attr_file', None)
+        file_path = f'{item.collection.name}/{item.name}/{self.attr_name}'
+        if file is None:
+            raise ValueError('Cannot create Asset file on S3 when attribute file is None')
+        self._create_file_on_s3(file_path, self.attr_file)
 
     def _create_file_on_s3(self, file_path, file):
         s3 = get_s3_resource()
@@ -1073,20 +1071,19 @@ class AssetFactory(FactoryBase):
         Returns:
             The data sample
         '''
-        if db_create and create_asset_file:
-            raise ValueError(
-                'Cannot have db_create=True and create_asset_file=True, db_create=True implicitely '
-                'create the asset file when the "file" attribute is present'
-            )
-        return super().create_sample(
+        sample = super().create_sample(
             sample,
             name=name,
             item=item,
             db_create=db_create,
             required_only=required_only,
-            create_asset_file=create_asset_file,
             **kwargs
         )
+        if not db_create and create_asset_file:
+            # when db_create is true, the asset file automatically created therefore it is not
+            # necessary to explicitely create it again.
+            sample.create_asset_file()
+        return sample
 
     def create_samples(self, samples, item, db_create=False, create_asset_file=False, **kwargs):
         '''Creates several Asset samples

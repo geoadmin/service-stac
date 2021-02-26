@@ -16,7 +16,7 @@ from tests.utils import mock_s3_asset_file
 
 logger = logging.getLogger(__name__)
 
-API_BASE = settings.API_BASE
+STAC_BASE_V = settings.STAC_BASE_V
 DATADIR = settings.BASE_DIR / 'app/stac_api/sample_data/'
 
 
@@ -42,7 +42,7 @@ class SampleDataTestCase(StacBaseTestCase):
         with open(collection_dir / 'collection.json') as fd:
             collection_dict = json.load(fd)
 
-        response = self.client.get(f"/{API_BASE}/collections/{collection.name}")
+        response = self.client.get(f"/{STAC_BASE_V}/collections/{collection.name}")
         payload = response.json()
         logger.debug('Collection %s payload:\n%s', collection.name, pformat(payload))
         self.assertEqual(200, response.status_code, msg=get_http_error_description(payload))
@@ -64,7 +64,7 @@ class SampleDataTestCase(StacBaseTestCase):
             item_dict = json.load(fd)
 
         response = self.client.get(
-            f"/{API_BASE}/collections/{collection_name}/items/{item_dict['id']}"
+            f"/{STAC_BASE_V}/collections/{collection_name}/items/{item_dict['id']}"
         )
         payload = response.json()
         logger.debug('Item %s.%s payload:\n%s', collection_name, item_dict['id'], pformat(payload))

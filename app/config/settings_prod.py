@@ -17,6 +17,7 @@ from dotenv import load_dotenv
 from .version import APP_VERSION  # pylint: disable=unused-import
 
 STAC_VERSION = "0.9.0"
+STAC_VERSION_SHORT = 'v0.9'
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
@@ -86,7 +87,7 @@ INSTALLED_APPS = [
 # Middlewares are executed in order, once for the incoming
 # request top-down, once for the outgoing response bottom up
 # Note: The prometheus middlewares should always be first and
-# last, put everything else inbetween
+# last, put everything else in between
 MIDDLEWARE = [
     'django_prometheus.middleware.PrometheusBeforeMiddleware',
     'middleware.logging.RequestResponseLoggingMiddleware',
@@ -98,8 +99,9 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'middleware.logging.ExceptionLoggingMiddleware',
     'middleware.cache_headers.CacheHeadersMiddleware',
+    'middleware.cors.CORSHeadersMiddleware',
+    'middleware.exception.ExceptionLoggingMiddleware',
     'django_prometheus.middleware.PrometheusAfterMiddleware',
 ]
 
@@ -109,7 +111,9 @@ except ValueError as error:
     raise ValueError('Invalid HTTP_CACHE_SECONDS environment value: must be an integer')
 
 ROOT_URLCONF = 'config.urls'
-API_BASE = 'api/stac/v0.9'
+API_BASE = 'api'
+STAC_BASE = f'{API_BASE}/stac'
+STAC_BASE_V = f'{STAC_BASE}/{STAC_VERSION_SHORT}'
 LOGIN_URL = "/api/stac/admin/login/"
 
 TEMPLATES = [
@@ -188,6 +192,8 @@ STATIC_SPEC_URL = f'{STATIC_URL}spec/v0.9/'
 STATIC_ROOT = BASE_DIR / 'var' / 'www' / 'stac_api' / 'static_files'
 STATICFILES_DIRS = [BASE_DIR / "spec" / "static", BASE_DIR / "app" / "stac_api" / "templates"]
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+HEALTHCHECK_ENDPOINT = os.environ.get('HEALTHCHECK_ENDPOINT', 'healthcheck')
+
 try:
     WHITENOISE_MAX_AGE = int(os.environ.get('HTTP_STATIC_CACHE_SECONDS', '3600'))
 except ValueError as error:

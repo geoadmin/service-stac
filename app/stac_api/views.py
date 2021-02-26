@@ -5,7 +5,6 @@ from datetime import datetime
 
 from django.conf import settings
 from django.http import Http404
-from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 
 from rest_framework import generics
@@ -106,12 +105,6 @@ def get_asset_etag(request, *args, **kwargs):
     return tag
 
 
-def checker(request):
-    data = {"success": True, "message": "OK"}
-
-    return JsonResponse(data)
-
-
 class LandingPageDetail(generics.RetrieveAPIView):
     serializer_class = LandingPageSerializer
     queryset = LandingPage.objects.all()
@@ -155,7 +148,7 @@ class CollectionList(generics.GenericAPIView, views_mixins.CreateModelMixin):
                 ]),
                 OrderedDict([
                     ('rel', 'root'),
-                    ('href', request.build_absolute_uri(f'/{settings.API_BASE}/')),
+                    ('href', request.build_absolute_uri(f'/{settings.STAC_BASE_V}/')),
                 ]),
                 OrderedDict([
                     ('rel', 'parent'),
@@ -172,7 +165,7 @@ class CollectionList(generics.GenericAPIView, views_mixins.CreateModelMixin):
 class CollectionDetail(generics.GenericAPIView, mixins.RetrieveModelMixin, mixins.UpdateModelMixin):
     serializer_class = CollectionSerializer
     lookup_url_kwarg = "collection_name"
-    queryset = Collection.objects.all()
+    queryset = Collection.objects.all().prefetch_related('providers', 'links')
 
     @etag(get_collection_etag)
     def get(self, request, *args, **kwargs):
@@ -247,7 +240,7 @@ class ItemsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
                 ]),
                 OrderedDict([
                     ('rel', 'root'),
-                    ('href', request.build_absolute_uri(f'/{settings.API_BASE}/')),
+                    ('href', request.build_absolute_uri(f'/{settings.STAC_BASE_V}/')),
                 ]),
                 OrderedDict([
                     ('rel', 'parent'),
@@ -326,7 +319,7 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
     serializer_class = ItemSerializer
 
     def get_queryset(self):
-        queryset = Item.objects.all()
+        queryset = Item.objects.all().prefetch_related('assets', 'links')
         # harmonize GET and POST query
         query_param = harmonize_post_get_for_search(self.request)
 
@@ -381,7 +374,7 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
                 ]),
                 OrderedDict([
                     ('rel', 'root'),
-                    ('href', request.build_absolute_uri(f'/{settings.API_BASE}/')),
+                    ('href', request.build_absolute_uri(f'/{settings.STAC_BASE_V}/')),
                 ]),
                 OrderedDict([
                     ('rel', 'parent'),
@@ -455,7 +448,7 @@ class AssetsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
                 ]),
                 OrderedDict([
                     ('rel', 'root'),
-                    ('href', request.build_absolute_uri(f'/{settings.API_BASE}/')),
+                    ('href', request.build_absolute_uri(f'/{settings.STAC_BASE_V}/')),
                 ]),
                 OrderedDict([
                     ('rel', 'parent'),

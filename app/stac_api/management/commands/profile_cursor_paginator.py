@@ -14,7 +14,7 @@ from stac_api.utils import CommandHandler
 
 logger = logging.getLogger(__name__)
 
-API_BASE = settings.API_BASE
+STAC_BASE_V = settings.STAC_BASE_V
 
 
 class Handler(CommandHandler):
@@ -25,7 +25,7 @@ class Handler(CommandHandler):
         qs = Item.objects.filter(collection__name=collection_id).prefetch_related('assets', 'links')
         request = Request(
             APIRequestFactory().
-            get(f'{API_BASE}/collections/{collection_id}/items?limit={self.options["limit"]}')
+            get(f'{STAC_BASE_V}/collections/{collection_id}/items?limit={self.options["limit"]}')
         )
         paginator = CursorPagination()
 
