@@ -112,8 +112,15 @@ def custom_exception_handler(exc, context):
     response = exception_handler(exc, context)
 
     if response is not None:
-        extra = {"request": context['request']._request, "requestPayload": context['request'].data}  # pylint: disable=protected-access
-        logger.error(repr(exc), extra=extra)
+        if context['request']._request.method.upper() in ["PATCH", "POST", "PUT"]:  # pylint: disable=protected-access
+            extra = {
+                "request": context['request']._request,  # pylint: disable=protected-access
+                "requestPayload":
+                    context['request'].data  # pylint: disable=protected-access
+            }
+        else:
+            extra = {"request": context['request']._request}  # pylint: disable=protected-access
+        logger.error("Response %s: %s", response.status_code, response.data, extra=extra)
         response.data = {'code': response.status_code, 'description': response.data}
         return response
 

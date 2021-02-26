@@ -16,14 +16,12 @@ class RequestResponseLoggingMiddleware:
     def __call__(self, request):
         # Code to be executed for each request before
         # the view (and later middleware) are called.
-        logger.info(
-            "Request %s %s",
-            request.method.upper(),
-            request.path,
-            extra={
-                "request": request, "requestPayload": str(request.body[:200])
-            }
-        )
+        if request.method.upper() in ["PATCH", "POST", "PUT"]:
+            extra = {"request": request, "requestPayload": str(request.body[:200])}
+        else:
+            extra = {"request": request}
+
+        logger.info("Request %s %s", request.method.upper(), request.path, extra=extra)
         start = time.time()
 
         response = self.get_response(request)
