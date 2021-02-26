@@ -72,7 +72,7 @@ tags:
     Here is an example using curl:
     ```
     curl --request POST \
-      --url https://service-stac.dev.bgdi.ch/api/stac/v0.9/get-token \
+      --url https://service-stac.dev.bgdi.ch/api/stac/get-token \
       --header 'Content-Type: application/json' \
       --data '{"username": "MickeyMouse", "password": "I_love_Minnie_Mouse"}'
     ```
@@ -2643,6 +2643,8 @@ paths:
         5XX:
           $ref: "#/components/responses/ServerError"
   /get-token:
+    servers:
+    - url: http://data.geo.admin.ch/api/stac/
     post:
       tags:
       - Data Management
