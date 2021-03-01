@@ -84,6 +84,20 @@ class ItemsReadEndpointTestCase(StacBaseTestCase):
         response = self.client.get(f"/{STAC_BASE_V}/collections/non-existing-collection/items")
         self.assertStatusCode(404, response)
 
+    def test_item_non_allowed_parameters(self):
+        non_allowed_parameter = "no_limits"
+        value = 100
+        response = self.client.get(
+            f"/{STAC_BASE_V}/collections/{self.collection.name}/items?{non_allowed_parameter}=100"
+        )
+        self.assertStatusCode(400, response)
+        json_data = response.json()
+        self.assertIn(
+            non_allowed_parameter,
+            str(json_data['description']),
+            msg=f"Wrong query parameter {non_allowed_parameter} not found in error message"
+        )
+
 
 class ItemsDatetimeQueryEndpointTestCase(StacBaseTestCase):
 

@@ -27,6 +27,7 @@ from stac_api.serializers import LandingPageSerializer
 from stac_api.utils import harmonize_post_get_for_search
 from stac_api.utils import utc_aware
 from stac_api.validators_serializer import ValidateSearchRequest
+from stac_api.validators_serializer import validate_collection_item_endpoint_get_requests
 
 logger = logging.getLogger(__name__)
 
@@ -133,6 +134,7 @@ class CollectionList(generics.GenericAPIView, views_mixins.CreateModelMixin):
 
     def get(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
+        validate_collection_item_endpoint_get_requests(self, request)
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
@@ -254,6 +256,7 @@ class ItemsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
         return Response(data)
 
     def get(self, request, *args, **kwargs):
+        validate_collection_item_endpoint_get_requests(self, request)
         return self.list(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):

@@ -208,6 +208,25 @@ def _validate_asset_file_checksum(href, expected_multihash, asset_multihash):
         )
 
 
+def validate_collection_item_endpoint_get_requests(view, request):
+
+    queried_parameters = list(request.GET.copy().keys())
+
+    if type(view).__name__ == "CollectionList":
+        accepted_query_parameters = ['cursor', 'limit']
+    elif type(view).__name__ == "ItemsList":
+        accepted_query_parameters = ['bbox', 'cursor', 'datetime', 'limit']
+
+    # make sure that all queried_parameters are in the accepted_query_parameters
+    if not all(parameter in accepted_query_parameters for parameter in queried_parameters):
+        wrong_query_parameters = np.setdiff1d(queried_parameters,
+                                              accepted_query_parameters).tolist()
+        logger.error('Query contains the non-allowed parameter(s): %s', str(wrong_query_parameters))
+        message = f"The query contains the following non-queriable" \
+        f"parameter(s): {str(wrong_query_parameters)}."
+        raise ValidationError(code='query-invalid', detail=_(message))
+
+
 class ValidateSearchRequest:
     '''Validates the query parameter for the search endpoint.
 
