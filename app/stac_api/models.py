@@ -41,6 +41,74 @@ _BBOX_CH.srid = 4326
 # 'SRID=4326;POLYGON ((5.96 45.82, 5.96 47.81, 10.49 47.81, 10.49 45.82, 5.96 45.82))'
 BBOX_CH = str(_BBOX_CH)
 
+SEARCH_TEXT_HELP_ITEM = '''
+    <div class=SearchUsage> 
+        Search Usage: 
+        <ul>
+            <li> 
+                <i>arg</i> will make a non exact search checking if <i>>arg</i>  
+                is part of the Item path 
+            </li>
+            <li> 
+                Multiple <i>arg</i>  can be used, separated by spaces. This will search 
+                for all elements containing all arguments in their path 
+            </li>
+            <li> 
+                <i>"collectionID/itemID"</i> will make an exact search for the specified item. 
+             </li> 
+        </ul> 
+        Examples : 
+        <ul>
+            <li> 
+                Searching for <i>pixelkarte</i> will return all items which have
+                pixelkarte as a part of either their collection ID or their item ID
+            </li>
+            <li> 
+                Searching for <i>pixelkarte 2016 4</i> will return all items
+                which have pixelkarte, 2016 AND 4 as part of their collection ID or
+                item ID 
+            </li>
+            <li>
+                Searching for <i>"ch.swisstopo.pixelkarte.example/item2016-4-example"</i> 
+                will yield only this item, if this item exists.
+            </li>
+        </ul>
+    </div>'''
+
+SEARCH_TEXT_HELP_COLLECTION = '''
+    <div class=SearchUsage> 
+        Search Usage: 
+        <ul> 
+            <li>
+                <i>arg</i> will make a non exact search checking if <i>arg</i> is part of 
+                the collection ID 
+            </li>
+            <li>
+                Multiple <i>arg</i> can be used, separated by spaces. This will search for all 
+                collections ID containing all rguments.
+            </li>
+            <li>
+                <i>"collectionID"</i> will make an exact search for the specified collection.
+            </li>
+        </ul>
+        Examples :
+        <ul> 
+            <li>
+                Searching for <i>pixelkarte</i> will return all collections which have
+                pixelkarte as a part of their collection ID 
+            </li> 
+            <li>
+                Searching for <i>pixelkarte 2016 4</i> will return all collection 
+                which have pixelkarte, 2016 AND 4 as part of their collection ID
+            </li>
+            <li> 
+                Searching for <i>ch.swisstopo.pixelkarte.example</i> will yield only this 
+                collection, if this collection exists. Please note that it would not return 
+                a collection named ch.swisstopo.pixelkarte.example.2.
+            </li> 
+        </ul>
+    </div>'''
+
 
 def get_default_extent_value():
     return dict({"spatial": {"bbox": [[None]]}, "temporal": {"interval": [[None, None]]}})
@@ -299,7 +367,9 @@ class Item(models.Model):
         ]
 
     name = models.CharField('id', blank=False, max_length=255, validators=[validate_name])
-    collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
+    collection = models.ForeignKey(
+        Collection, on_delete=models.CASCADE, help_text=_(SEARCH_TEXT_HELP_COLLECTION)
+    )
     geometry = models.PolygonField(
         null=False, blank=False, default=BBOX_CH, srid=4326, validators=[validate_geometry]
     )
@@ -471,7 +541,11 @@ class Asset(models.Model):
     # using BigIntegerField as primary_key to deal with the expected large number of assets.
     id = models.BigAutoField(primary_key=True)
     item = models.ForeignKey(
-        Item, related_name='assets', related_query_name='asset', on_delete=models.CASCADE
+        Item,
+        related_name='assets',
+        related_query_name='asset',
+        on_delete=models.CASCADE,
+        help_text=_(SEARCH_TEXT_HELP_ITEM)
     )
     # using "name" instead of "id", as "id" has a default meaning in django
     name = models.CharField('id', max_length=255, validators=[validate_name])
