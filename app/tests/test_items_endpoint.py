@@ -88,7 +88,8 @@ class ItemsReadEndpointTestCase(StacBaseTestCase):
         non_allowed_parameter = "no_limits"
         value = 100
         response = self.client.get(
-            f"/{STAC_BASE_V}/collections/{self.collection.name}/items?{non_allowed_parameter}=100"
+            f"/{STAC_BASE_V}/collections/{self.collection.name}/items"
+            f"?{non_allowed_parameter}={value}"
         )
         self.assertStatusCode(400, response)
         json_data = response.json()

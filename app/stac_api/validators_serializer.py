@@ -209,6 +209,18 @@ def _validate_asset_file_checksum(href, expected_multihash, asset_multihash):
 
 
 def validate_collection_item_endpoint_get_requests(view, request):
+    '''Check GET requests on the collections and items endpoints (for the
+    CollectionList and ItemsList view) for invalid query parameters. Raise a
+    Validation error in case of invalid parameters.
+    Args:
+        view: view instance
+            view instance of the calling view
+        request: RequestDict
+            The GET request of the calling endpoint/view
+
+    Raises:
+        ValidationError
+    '''
 
     queried_parameters = list(request.GET.copy().keys())
 

@@ -75,7 +75,7 @@ class CollectionsEndpointTestCase(StacBaseTestCase):
     def test_collection_non_allowed_parameters(self):
         non_allowed_parameter = "no_limits"
         value = 100
-        response = self.client.get(f"/{STAC_BASE_V}/collections?{non_allowed_parameter}=100")
+        response = self.client.get(f"/{STAC_BASE_V}/collections?{non_allowed_parameter}={value}")
         self.assertStatusCode(400, response)
         json_data = response.json()
         self.assertIn(
