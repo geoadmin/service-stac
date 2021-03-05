@@ -75,6 +75,83 @@ class SearchEndpointTestCaseOne(StacBaseTestCase):
             json_data_post['features'][0]['properties']['title']
         )
 
+    def test_query_non_allowed_parameters(self):
+        wrong_query_parameter = "cherry"
+        payload = f"""
+        {{"{wrong_query_parameter}":
+            {{"created":
+                {{"lte":"9999-12-31T09:07:39.399892Z"}}
+            }},
+            "limit": 1
+        }}
+        """
+        response = self.client.post(self.path, data=payload, content_type="application/json")
+        self.assertStatusCode(400, response)
+        json_data = response.json()
+        self.assertIn(
+            wrong_query_parameter,
+            str(json_data['description']),
+            msg=f"Wrong query parameter {wrong_query_parameter} not found in error message"
+        )
+
+    def test_query_multiple_non_allowed_parameters(self):
+        wrong_query_parameter1 = "cherry"
+        wrong_query_parameter2 = "no_limits"
+        payload = f"""
+        {{"{wrong_query_parameter1}":
+            {{"created":
+                {{"lte":"9999-12-31T09:07:39.399892Z"}}
+            }},
+            "{wrong_query_parameter2}": 1
+        }}
+        """
+        response = self.client.post(self.path, data=payload, content_type="application/json")
+        self.assertStatusCode(400, response)
+        json_data = response.json()
+        for wrong_par in [wrong_query_parameter1, wrong_query_parameter2]:
+            self.assertIn(
+                wrong_par,
+                str(json_data['description']),
+                msg=f"Wrong query parameter {wrong_par} not found in error message"
+            )
+
+    def test_limit_in_post(self):
+        # limit in payload
+        limit = 1
+        payload = f"""
+        {{"query":
+            {{"created":
+                {{"lte":"9999-12-31T09:07:39.399892Z"}}
+            }},
+            "limit": {limit}
+        }}
+        """
+        response = self.client.post(self.path, data=payload, content_type="application/json")
+        self.assertStatusCode(200, response)
+        json_data_payload = response.json()
+        self.assertEqual(len(json_data_payload['features']), 1, msg="More than one item returned.")
+
+        # limit in url
+        payload = """
+        {"query":
+            {"created":
+                {"lte":"9999-12-31T09:07:39.399892Z"}
+            }
+        }
+        """
+        response = self.client.post(
+            f"{self.path}?limit={limit}", data=payload, content_type="application/json"
+        )
+        self.assertStatusCode(200, response)
+        json_data_url = response.json()
+
+        # compare limit in payload and limit in url
+        self.assertEqual(
+            json_data_payload['features'][0]['properties']['created'],
+            json_data_url['features'][0]['properties']['created'],
+            msg="Limit parameter in payload and in URL yielded different responses."
+        )
+
     def test_query_created(self):
         # get match
         query = '{"created": {"lte": "9999-12-31T09:07:39.399892Z"}}'
