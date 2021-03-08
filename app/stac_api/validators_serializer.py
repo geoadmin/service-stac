@@ -537,7 +537,8 @@ class ValidateSearchRequest:
                     wrong_query_param:
                     _(
                         f"The query contains the following non-queriable parameter: " \
-                            f" {wrong_query_param}.")
-                            for wrong_query_param in list(wrong_query_parameters)
-                            }
-                            )
+                            f" {wrong_query_param}."
+                    )
+                    for wrong_query_param in list(wrong_query_parameters)
+                }
+            )
