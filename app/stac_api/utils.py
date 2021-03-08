@@ -6,13 +6,9 @@ from datetime import timezone
 
 import boto3
 import multihash
-import numpy as np
 from botocore.client import Config
 
 from django.conf import settings
-from django.utils.translation import gettext_lazy as _
-
-from rest_framework.exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -190,24 +186,6 @@ def harmonize_post_get_for_search(request):
             query_param['bbox'] = json.dumps(query_param['bbox']).strip('[]')  # to string
         if 'query' in query_param:
             query_param['query'] = json.dumps(query_param['query'])  # to string
-
-        accepted_query_parameters = [
-            "bbox", "collections", "datetime", "ids", "intersects", "limit", "query"
-        ]
-        # make sure that all queried parameters (list(query_param.keys())) are in
-        # the accepted_query_parameters
-        if not all(
-            parameter in accepted_query_parameters for parameter in list(query_param.keys())
-        ):
-            wrong_query_parameters = np.setdiff1d(
-                list(query_param.keys()), accepted_query_parameters
-            ).tolist()
-            logger.error(
-                'Query contains the non-allowed parameter(s): %s', str(wrong_query_parameters)
-            )
-            message = f"The query contains the following non-queriable" \
-            f"parameter(s): {str(wrong_query_parameters)}."
-            raise ValidationError(code='query-invalid', detail=_(message))
 
     # GET
     else:

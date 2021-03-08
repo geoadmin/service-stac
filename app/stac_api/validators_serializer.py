@@ -246,6 +246,9 @@ class ValidateSearchRequest:
         # harmonize GET and POST
         query_param = harmonize_post_get_for_search(request)
 
+        if request.method == "POST":
+            self.validate_query_parameters_post_search(query_param)
+
         if 'bbox' in query_param:
             self.validate_bbox(query_param['bbox'])
         if 'datetime' in query_param:
@@ -506,3 +509,35 @@ class ValidateSearchRequest:
             message = f"Invalid query: " \
                 f"Could not transform {geojson} to a geometry; {error}"
             self.errors['intersects'] = _(message)
+
+    def validate_query_parameters_post_search(self, query_param):
+        '''Validates the query parameters for POST requests on the search endpoint.
+        If any invalid query parameters are found, the dict self.errors will be extended
+        with the corresponding message.
+
+        Args:
+            query_param: dict
+                Copy of the harmonized QueryDict
+        '''
+        accepted_query_parameters = [
+            "bbox", "collections", "datetime", "ids", "intersects", "limit", "query"
+        ]
+        # make sure that all queried parameters (list(query_param.keys())) are in
+        # the accepted_query_parameters
+        if not all(
+            parameter in accepted_query_parameters for parameter in list(query_param.keys())
+        ):
+            wrong_query_parameters = set(list(query_param.keys())
+                                        ).difference(set(accepted_query_parameters))
+            logger.error(
+                'Query contains the non-allowed parameter(s): %s', list(wrong_query_parameters)
+            )
+            self.errors.update(
+                {
+                    wrong_query_param:
+                    _(
+                        f"The query contains the following non-queriable parameter: " \
+                            f" {wrong_query_param}.")
+                            for wrong_query_param in list(wrong_query_parameters)
+                            }
+                            )
