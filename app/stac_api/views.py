@@ -122,6 +122,87 @@ class ConformancePageDetail(generics.RetrieveAPIView):
         return ConformancePage.get_solo()
 
 
+class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
+    permission_classes = [AllowAny]
+    serializer_class = ItemSerializer
+    pagination_class = GetPostCursorPagination
+
+    def get_queryset(self):
+        queryset = Item.objects.all().prefetch_related('assets', 'links')
+        # harmonize GET and POST query
+        query_param = harmonize_post_get_for_search(self.request)
+
+        # build queryset
+
+        # if ids, then the other params will be ignored
+        if 'ids' in query_param:
+            queryset = queryset.filter_by_item_name(query_param['ids'])
+        else:
+            if 'bbox' in query_param:
+                queryset = queryset.filter_by_bbox(query_param['bbox'])
+            if 'datetime' in query_param:
+                queryset = queryset.filter_by_datetime(query_param['datetime'])
+            if 'collections' in query_param:
+                queryset = queryset.filter_by_collections(query_param['collections'])
+            if 'query' in query_param:
+                dict_query = json.loads(query_param['query'])
+                queryset = queryset.filter_by_query(dict_query)
+            if 'intersects' in query_param:
+                queryset = queryset.filter_by_intersects(json.dumps(query_param['intersects']))
+
+        if settings.DEBUG_ENABLE_DB_EXPLAIN_ANALYZE:
+            logger.debug(
+                "Output of EXPLAIN.. ANALYZE from SearchList() view:\n%s",
+                queryset.explain(verbose=True, analyze=True)
+            )
+            logger.debug("The corresponding SQL statement:\n%s", queryset.query)
+
+        return queryset
+
+    def list(self, request, *args, **kwargs):
+
+        validate_search_request = ValidateSearchRequest()
+        validate_search_request.validate(request)  # validate the search request
+        queryset = self.filter_queryset(self.get_queryset())
+
+        page = self.paginate_queryset(queryset)
+
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+        else:
+            serializer = self.get_serializer(queryset, many=True)
+
+        data = {
+            'type': 'FeatureCollection',
+            'timeStamp': utc_aware(datetime.utcnow()),
+            'features': serializer.data,
+            'links': [
+                OrderedDict([
+                    ('rel', 'self'),
+                    ('href', request.build_absolute_uri()),
+                ]),
+                OrderedDict([
+                    ('rel', 'root'),
+                    ('href', request.build_absolute_uri(f'/{settings.STAC_BASE_V}/')),
+                ]),
+                OrderedDict([
+                    ('rel', 'parent'),
+                    ('href', request.build_absolute_uri('.').rstrip('/')),
+                ])
+            ]
+        }
+
+        if page is not None:
+            return self.paginator.get_paginated_response(data, request)
+        return Response(data)
+
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
+
+
 class CollectionList(generics.GenericAPIView, views_mixins.CreateModelMixin):
     serializer_class = CollectionSerializer
     # prefetch_related is a performance optimization to reduce the number
@@ -313,87 +394,6 @@ class ItemDetail(
     @etag(get_item_etag)
     def delete(self, request, *args, **kwargs):
         return self.destroy(request, *args, **kwargs)
-
-
-class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
-    permission_classes = [AllowAny]
-    serializer_class = ItemSerializer
-    pagination_class = GetPostCursorPagination
-
-    def get_queryset(self):
-        queryset = Item.objects.all().prefetch_related('assets', 'links')
-        # harmonize GET and POST query
-        query_param = harmonize_post_get_for_search(self.request)
-
-        # build queryset
-
-        # if ids, then the other params will be ignored
-        if 'ids' in query_param:
-            queryset = queryset.filter_by_item_name(query_param['ids'])
-        else:
-            if 'bbox' in query_param:
-                queryset = queryset.filter_by_bbox(query_param['bbox'])
-            if 'datetime' in query_param:
-                queryset = queryset.filter_by_datetime(query_param['datetime'])
-            if 'collections' in query_param:
-                queryset = queryset.filter_by_collections(query_param['collections'])
-            if 'query' in query_param:
-                dict_query = json.loads(query_param['query'])
-                queryset = queryset.filter_by_query(dict_query)
-            if 'intersects' in query_param:
-                queryset = queryset.filter_by_intersects(json.dumps(query_param['intersects']))
-
-        if settings.DEBUG_ENABLE_DB_EXPLAIN_ANALYZE:
-            logger.debug(
-                "Output of EXPLAIN.. ANALYZE from SearchList() view:\n%s",
-                queryset.explain(verbose=True, analyze=True)
-            )
-            logger.debug("The corresponding SQL statement:\n%s", queryset.query)
-
-        return queryset
-
-    def list(self, request, *args, **kwargs):
-
-        validate_search_request = ValidateSearchRequest()
-        validate_search_request.validate(request)  # validate the search request
-        queryset = self.filter_queryset(self.get_queryset())
-
-        page = self.paginate_queryset(queryset)
-
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-        else:
-            serializer = self.get_serializer(queryset, many=True)
-
-        data = {
-            'type': 'FeatureCollection',
-            'timeStamp': utc_aware(datetime.utcnow()),
-            'features': serializer.data,
-            'links': [
-                OrderedDict([
-                    ('rel', 'self'),
-                    ('href', request.build_absolute_uri()),
-                ]),
-                OrderedDict([
-                    ('rel', 'root'),
-                    ('href', request.build_absolute_uri(f'/{settings.STAC_BASE_V}/')),
-                ]),
-                OrderedDict([
-                    ('rel', 'parent'),
-                    ('href', request.build_absolute_uri('.').rstrip('/')),
-                ])
-            ]
-        }
-
-        if page is not None:
-            return self.paginator.get_paginated_response(data, request)
-        return Response(data)
-
-    def get(self, request, *args, **kwargs):
-        return self.list(request, *args, **kwargs)
-
-    def post(self, request, *args, **kwargs):
-        return self.list(request, *args, **kwargs)
 
 
 class AssetsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
