@@ -1184,8 +1184,10 @@ components:
           eq: "Swissregio"
         title:
           contains: "Swiss"
-        datetime:
+        created:
           lte: "2021-01-01T00:00:00.000Z"
+        updated:
+          gte: "2020-01-01T00:00:00.000Z"
       type: object
     queryFilter:
       description: Allows users to query properties for specific values
