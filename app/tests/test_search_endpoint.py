@@ -22,7 +22,6 @@ class SearchEndpointTestCaseOne(StacBaseTestCase):
     @classmethod
     def setUpTestData(cls):
         cls.factory = Factory()
-        cls.maxDiff = None
         cls.collection = cls.factory.create_collection_sample().model
         cls.items = cls.factory.create_item_samples(
             [
