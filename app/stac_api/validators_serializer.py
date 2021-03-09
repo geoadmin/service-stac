@@ -226,8 +226,8 @@ class ValidateSearchRequest:
 
         # Note: if these values are adapted, don't forget to
         # update the spec accordingly.
-        self.queriabel_date_fields = ['created', 'updated']
-        self.queriabel_str_fields = ['title']
+        self.queriable_date_fields = ['created', 'updated']
+        self.queriable_str_fields = ['title']
 
     def validate(self, request):
         '''Validates the request of the search endpoint
@@ -291,7 +291,7 @@ class ValidateSearchRequest:
                 The query parameter to be validated.
         '''
         # summing up the fields based of different types
-        queriabel_fields = self.queriabel_date_fields + self.queriabel_str_fields
+        queriable_fields = self.queriable_date_fields + self.queriable_str_fields
 
         # validate json
         try:
@@ -304,9 +304,9 @@ class ValidateSearchRequest:
 
         self._query_validate_length_of_query(query_dict)
         for attribute in query_dict:
-            if not attribute in queriabel_fields:
+            if not attribute in queriable_fields:
                 message = f"Invalid field in query argument. The field {attribute} is not " \
-                          f"a propertie. Use one of these {queriabel_fields}"
+                          f"a propertie. Use one of these {queriable_fields}"
                 self.errors[f"query-attributes-{attribute}"] = _(message)
 
             # validate operators
@@ -381,7 +381,7 @@ class ValidateSearchRequest:
                 The value to be tested (string or datetime)
         '''
         # validate date
-        if attribute in self.queriabel_date_fields:
+        if attribute in self.queriable_date_fields:
             try:
                 if isinstance(value, list):
                     self.validate_list_length(value, 'query')
@@ -393,7 +393,7 @@ class ValidateSearchRequest:
                 self.errors[f"query-attributes-{attribute}"] = _(message)
 
         # validate str
-        if attribute in self.queriabel_str_fields:
+        if attribute in self.queriable_str_fields:
             message = ''
             if isinstance(value, list):
                 self.validate_list_length(value, 'query')
