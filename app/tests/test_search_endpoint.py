@@ -134,8 +134,8 @@ class SearchEndpointTestCaseOne(StacBaseTestCase):
 
         # compare limit in payload and limit in url
         self.assertEqual(
-            json_data_payload['features'][0]['id'],
-            json_data_url['features'][0]['id'],
+            json_data_payload['features'],
+            json_data_url['features'],
             msg="Limit parameter in payload and in URL yielded different responses."
         )
 

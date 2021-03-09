@@ -522,16 +522,8 @@ class ValidateSearchRequest:
         accepted_query_parameters = [
             "bbox", "collections", "datetime", "ids", "intersects", "limit", "query"
         ]
-        # make sure that all queried parameters (list(query_param.keys())) are in
-        # the accepted_query_parameters
-        if not all(
-            parameter in accepted_query_parameters for parameter in list(query_param.keys())
-        ):
-            wrong_query_parameters = set(list(query_param.keys())
-                                        ).difference(set(accepted_query_parameters))
-            logger.error(
-                'Query contains the non-allowed parameter(s): %s', list(wrong_query_parameters)
-            )
+        wrong_query_parameters = set(query_param.keys()).difference(set(accepted_query_parameters))
+        if wrong_query_parameters:
             self.errors.update(
                 {
                     wrong_query_param:
@@ -539,6 +531,9 @@ class ValidateSearchRequest:
                         f"The query contains the following non-queriable parameter: " \
                             f" {wrong_query_param}."
                     )
-                    for wrong_query_param in list(wrong_query_parameters)
+                    for wrong_query_param in wrong_query_parameters
                 }
+            )
+            logger.error(
+                'Query contains the non-allowed parameter(s): %s', list(wrong_query_parameters)
             )
