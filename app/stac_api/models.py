@@ -42,70 +42,70 @@ _BBOX_CH.srid = 4326
 BBOX_CH = str(_BBOX_CH)
 
 SEARCH_TEXT_HELP_ITEM = '''
-    <div class=SearchUsage> 
-        Search Usage: 
+    <div class=SearchUsage>
+        Search Usage:
         <ul>
-            <li> 
-                <i>arg</i> will make a non exact search checking if <i>>arg</i>  
-                is part of the Item path 
+            <li>
+                <i>arg</i> will make a non exact search checking if <i>>arg</i>
+                is part of the Item path
             </li>
-            <li> 
-                Multiple <i>arg</i>  can be used, separated by spaces. This will search 
-                for all elements containing all arguments in their path 
+            <li>
+                Multiple <i>arg</i>  can be used, separated by spaces. This will search
+                for all elements containing all arguments in their path
             </li>
-            <li> 
-                <i>"collectionID/itemID"</i> will make an exact search for the specified item. 
-             </li> 
-        </ul> 
-        Examples : 
+            <li>
+                <i>"collectionID/itemID"</i> will make an exact search for the specified item.
+             </li>
+        </ul>
+        Examples :
         <ul>
-            <li> 
+            <li>
                 Searching for <i>pixelkarte</i> will return all items which have
                 pixelkarte as a part of either their collection ID or their item ID
             </li>
-            <li> 
+            <li>
                 Searching for <i>pixelkarte 2016 4</i> will return all items
                 which have pixelkarte, 2016 AND 4 as part of their collection ID or
-                item ID 
+                item ID
             </li>
             <li>
-                Searching for <i>"ch.swisstopo.pixelkarte.example/item2016-4-example"</i> 
+                Searching for <i>"ch.swisstopo.pixelkarte.example/item2016-4-example"</i>
                 will yield only this item, if this item exists.
             </li>
         </ul>
     </div>'''
 
 SEARCH_TEXT_HELP_COLLECTION = '''
-    <div class=SearchUsage> 
-        Search Usage: 
-        <ul> 
+    <div class=SearchUsage>
+        Search Usage:
+        <ul>
             <li>
-                <i>arg</i> will make a non exact search checking if <i>arg</i> is part of 
-                the collection ID 
+                <i>arg</i> will make a non exact search checking if <i>arg</i> is part of
+                the collection ID
             </li>
             <li>
-                Multiple <i>arg</i> can be used, separated by spaces. This will search for all 
-                collections ID containing all rguments.
+                Multiple <i>arg</i> can be used, separated by spaces. This will search for all
+                collections ID containing all arguments.
             </li>
             <li>
                 <i>"collectionID"</i> will make an exact search for the specified collection.
             </li>
         </ul>
         Examples :
-        <ul> 
+        <ul>
             <li>
                 Searching for <i>pixelkarte</i> will return all collections which have
-                pixelkarte as a part of their collection ID 
-            </li> 
+                pixelkarte as a part of their collection ID
+            </li>
             <li>
-                Searching for <i>pixelkarte 2016 4</i> will return all collection 
+                Searching for <i>pixelkarte 2016 4</i> will return all collection
                 which have pixelkarte, 2016 AND 4 as part of their collection ID
             </li>
-            <li> 
-                Searching for <i>ch.swisstopo.pixelkarte.example</i> will yield only this 
-                collection, if this collection exists. Please note that it would not return 
+            <li>
+                Searching for <i>ch.swisstopo.pixelkarte.example</i> will yield only this
+                collection, if this collection exists. Please note that it would not return
                 a collection named ch.swisstopo.pixelkarte.example.2.
-            </li> 
+            </li>
         </ul>
     </div>'''
 

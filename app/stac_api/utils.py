@@ -1,5 +1,6 @@
 import hashlib
 import json
+import logging
 from datetime import datetime
 from datetime import timezone
 
@@ -8,6 +9,8 @@ import multihash
 from botocore.client import Config
 
 from django.conf import settings
+
+logger = logging.getLogger(__name__)
 
 
 def isoformat(date_time):
@@ -183,6 +186,7 @@ def harmonize_post_get_for_search(request):
             query_param['bbox'] = json.dumps(query_param['bbox']).strip('[]')  # to string
         if 'query' in query_param:
             query_param['query'] = json.dumps(query_param['query'])  # to string
+
     # GET
     else:
         query_param = request.GET.copy()
