@@ -32,6 +32,7 @@ class ApiGenericTestCase(StacBaseTestCase):
         with self.settings(DEBUG_PROPAGATE_API_EXCEPTIONS=True):
             response = self.client.get("/tests/test_http_500")
             self.assertStatusCode(500, response)
+            self.assertEqual(response.json()['description'], "AttributeError('test exception')")
 
 
 class ApiPaginationTestCase(StacBaseTestCase):
