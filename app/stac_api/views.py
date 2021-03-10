@@ -433,11 +433,7 @@ class AssetsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
             )
 
         queryset = self.filter_queryset(self.get_queryset())
-        page = self.paginate_queryset(queryset)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-        else:
-            serializer = self.get_serializer(queryset, many=True)
+        serializer = self.get_serializer(queryset, many=True)
 
         data = {
             'assets': serializer.data,
@@ -464,9 +460,6 @@ class AssetsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
                 ])
             ]
         }
-
-        if page is not None:
-            return self.get_paginated_response(data)
         return Response(data)
 
 
