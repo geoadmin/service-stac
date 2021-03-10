@@ -3,6 +3,7 @@ import json
 import logging
 from datetime import datetime
 from datetime import timezone
+from urllib import parse
 
 import boto3
 import multihash
@@ -195,6 +196,22 @@ def harmonize_post_get_for_search(request):
         if 'collections' in query_param:
             query_param['collections'] = query_param['collections'].split(',')  # to array
     return query_param
+
+
+def get_query_param(url, key):
+    '''Get an URL query parameter by key
+
+    Args:
+        url: string
+            url to parse and retrieve query parameter
+        key: string
+            query parameter key to retrieve
+    Returns: string
+        Query parameter value
+    '''
+    (scheme, netloc, path, query, fragment) = parse.urlsplit(url)
+    query_dict = parse.parse_qs(query, keep_blank_values=True)
+    return query_dict.pop(key, None)
 
 
 class CommandHandler():

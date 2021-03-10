@@ -19,6 +19,7 @@ from stac_api.models import Collection
 from stac_api.models import ConformancePage
 from stac_api.models import Item
 from stac_api.models import LandingPage
+from stac_api.pagination import GetPostCursorPagination
 from stac_api.serializers import AssetSerializer
 from stac_api.serializers import CollectionSerializer
 from stac_api.serializers import ConformancePageSerializer
@@ -317,6 +318,7 @@ class ItemDetail(
 class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
     permission_classes = [AllowAny]
     serializer_class = ItemSerializer
+    pagination_class = GetPostCursorPagination
 
     def get_queryset(self):
         queryset = Item.objects.all().prefetch_related('assets', 'links')
@@ -384,7 +386,7 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
         }
 
         if page is not None:
-            return self.get_paginated_response(data)
+            return self.paginator.get_paginated_response(data, request)
         return Response(data)
 
     def get(self, request, *args, **kwargs):
