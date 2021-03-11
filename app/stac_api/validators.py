@@ -60,7 +60,9 @@ MEDIA_TYPES = [
     ('text/plain', 'Text', ['.txt']),
     ('text/x.plain+zip', 'Zipped text', ['.zip']),
 ]
-MEDIA_TYPES_MIMES = [x[0] for x in iter(MEDIA_TYPES)]
+MEDIA_TYPES_MIMES = [x[0] for x in MEDIA_TYPES]
+MEDIA_TYPES_EXTENSIONS = [ext for media_type in MEDIA_TYPES for ext in media_type[2]]
+MEDIA_TYPES_BY_TYPE = {media[0]: media for media in MEDIA_TYPES}
 
 
 def validate_name(name):
@@ -69,7 +71,45 @@ def validate_name(name):
     if not re.match(r'^[0-9a-z-_.]+$', name):
         logger.error('Invalid name %s, only the following characters are allowed: 0-9a-z-_.', name)
         raise ValidationError(
-            _('Invalid name, only the following characters are allowed: 0-9a-z-_.'),
+            _('Invalid id, only the following characters are allowed: 0-9a-z-_.'),
+            code='id'
+        )
+
+
+def validate_asset_name(name):
+    '''Validate Asset name used in URL
+    '''
+    if not name:
+        logger.error('Invalid asset name, must not be empty')
+        raise ValidationError({'id': _("Invalid id must not be empty")}, code='id')
+    validate_name(name)
+    ext = name.rsplit('.', maxsplit=1)[-1]
+    if f'.{ext}' not in MEDIA_TYPES_EXTENSIONS:
+        logger.error(
+            'Invalid name %s extension %s, name must ends with a valid file extension', name, ext
+        )
+        raise ValidationError(
+            _(f"Invalid id extension '.{ext}', id must have a valid file extension"),
+            code='id'
+        )
+
+
+def validate_asset_name_with_media_type(name, media_type):
+    '''Validate Asset name against the media type
+    '''
+    ext = f".{name.rsplit('.', maxsplit=1)[-1]}"
+    if media_type not in MEDIA_TYPES_BY_TYPE:
+        logger.error("Invalid media_type %s for asset %s", media_type, name)
+        raise ValidationError(_(f"Invalid media type {media_type}"), code='type')
+    if ext not in MEDIA_TYPES_BY_TYPE[media_type][2]:
+        logger.error(
+            "Invalid name %s extension %s, don't match the media type %s",
+            name,
+            ext,
+            MEDIA_TYPES_BY_TYPE[media_type],
+        )
+        raise ValidationError(
+            _(f"Invalid id extension '{ext}', id must match its media type {media_type}"),
             code='id'
         )
 

@@ -189,7 +189,7 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
         )
         self.asset = self.factory.create_asset_sample(
             item=self.item.model,
-            name='asset-1',
+            name='asset-1.tiff',
             db_create=True,
         )
 
@@ -247,7 +247,8 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
                     item=self.item.model,
                     name=self.asset["name"],
                     sample='asset-1-updated',
-                    checksum_multihash=self.asset.model.checksum_multihash
+                    media_type=self.asset['media_type'],
+                    checksum_multihash=self.asset["checksum_multihash"]
                 )
             ),
         ]:
@@ -377,7 +378,6 @@ class ApiCacheHeaderTestCase(StacBaseTestCase):
         )
         cls.asset = cls.factory.create_asset_sample(
             item=cls.item.model,
-            name='asset-1',
             db_create=True,
         )
 

@@ -226,7 +226,7 @@ class AdminBaseTestCase(TestCase):
 
         data = {
             "item": item.id,
-            "name": "test_asset",
+            "name": "test_asset.zip",
             "description": "This is a description",
             "eo_gsd": 10,
             "geoadmin_lang": "en",

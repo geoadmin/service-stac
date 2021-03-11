@@ -106,6 +106,7 @@ from stac_api.models import Provider
 from stac_api.utils import get_s3_resource
 from stac_api.utils import get_sha256_multihash
 from stac_api.utils import isoformat
+from stac_api.validators import MEDIA_TYPES_BY_TYPE
 
 from tests.sample_data.asset_samples import assets as asset_samples
 from tests.sample_data.collection_samples import collections as collection_samples
@@ -806,13 +807,15 @@ class FactoryBase:
         self.last = None
 
     @classmethod
-    def get_last_name(cls, last):
+    def get_last_name(cls, last, extension=''):
         '''Return a factory name incremented by one (e.g. 'collection-1')
         '''
         if last is None:
-            last = f'{cls.factory_name}-0'
-        last = '{}-{}'.format(
-            cls.factory_name, int(re.match(fr"{cls.factory_name}-(\d+)", last).group(1)) + 1
+            last = f'{cls.factory_name}-0{extension}'
+        last = '{}-{}{}'.format(
+            cls.factory_name,
+            int(re.match(fr"{cls.factory_name}-(\d+)(\.\w+)?", last).group(1)) + 1,
+            extension
         )
         return last
 
@@ -1071,19 +1074,22 @@ class AssetFactory(FactoryBase):
         Returns:
             The data sample
         '''
-        sample = super().create_sample(
-            sample,
-            name=name,
-            item=item,
-            db_create=db_create,
-            required_only=required_only,
-            **kwargs
-        )
+        if name:
+            data_sample = AssetSample(
+                item, sample=sample, name=name, required_only=required_only, **kwargs
+            )
+        else:
+            self.last = self.get_last_name(self.last, extension=self.get_extension(sample, kwargs))
+            data_sample = AssetSample(
+                item, sample=sample, name=self.last, required_only=required_only, **kwargs
+            )
+        if db_create:
+            data_sample.create()
         if not db_create and create_asset_file:
             # when db_create is true, the asset file automatically created therefore it is not
             # necessary to explicitely create it again.
-            sample.create_asset_file()
-        return sample
+            data_sample.create_asset_file()
+        return data_sample
 
     def create_samples(self, samples, item, db_create=False, create_asset_file=False, **kwargs):
         '''Creates several Asset samples
@@ -1108,6 +1114,21 @@ class AssetFactory(FactoryBase):
         return super().create_samples(
             samples, item=item, db_create=db_create, create_asset_file=create_asset_file, **kwargs
         )
+
+    def get_extension(self, sample_name, kwargs):
+        media = 'text/plain'
+        if 'media_type' in kwargs:
+            media = kwargs['media_type']
+        else:
+            try:
+                sample = AssetSample.samples_dict[sample_name]
+            except KeyError as error:
+                raise KeyError(f'Unknown {sample_name} sample: {error}')
+            if 'media_type' in sample:
+                media = sample['media_type']
+        if media not in MEDIA_TYPES_BY_TYPE:
+            media = 'text/plain'
+        return MEDIA_TYPES_BY_TYPE[media][2][0]
 
 
 class Factory:

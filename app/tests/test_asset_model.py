@@ -71,7 +71,6 @@ class AssetsModelTestCase(TestCase):
         # Should not raise any errors.
         self.factory.create_asset_sample(
             item=self.item,
-            name="asset-required-only",
             sample="asset-valid-geoadmin-variant",
             db_create=True,
             required_only=True
