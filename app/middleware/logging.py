@@ -8,6 +8,8 @@ logger = logging.getLogger(__name__)
 
 
 class RequestResponseLoggingMiddleware:
+    # characters that should not be urlencoded in the log statements
+    url_safe = ',:/'
 
     def __init__(self, get_response):
         self.get_response = get_response
@@ -16,12 +18,21 @@ class RequestResponseLoggingMiddleware:
     def __call__(self, request):
         # Code to be executed for each request before
         # the view (and later middleware) are called.
-        if request.method.upper() in ["PATCH", "POST", "PUT"]:
-            extra = {"request": request, "requestPayload": str(request.body[:200])}
-        else:
-            extra = {"request": request}
+        extra = {
+            "request": request,
+            "request.query": request.GET.urlencode(RequestResponseLoggingMiddleware.url_safe)
+        }
 
-        logger.info("Request %s %s", request.method.upper(), request.path, extra=extra)
+        if request.method.upper() in ["PATCH", "POST", "PUT"]:
+            extra["request.payload"] = str(request.body[:200])
+
+        logger.info(
+            "Request %s %s?%s",
+            request.method.upper(),
+            request.path,
+            request.GET.urlencode(RequestResponseLoggingMiddleware.url_safe),
+            extra=extra
+        )
         start = time.time()
 
         response = self.get_response(request)

@@ -1,13 +1,17 @@
 import hashlib
 import json
+import logging
 from datetime import datetime
 from datetime import timezone
+from urllib import parse
 
 import boto3
 import multihash
 from botocore.client import Config
 
 from django.conf import settings
+
+logger = logging.getLogger(__name__)
 
 
 def isoformat(date_time):
@@ -183,6 +187,7 @@ def harmonize_post_get_for_search(request):
             query_param['bbox'] = json.dumps(query_param['bbox']).strip('[]')  # to string
         if 'query' in query_param:
             query_param['query'] = json.dumps(query_param['query'])  # to string
+
     # GET
     else:
         query_param = request.GET.copy()
@@ -191,6 +196,48 @@ def harmonize_post_get_for_search(request):
         if 'collections' in query_param:
             query_param['collections'] = query_param['collections'].split(',')  # to array
     return query_param
+
+
+def get_query_params(url, keys):
+    '''Get URL query parameters by keys
+
+    Args:
+        url: string
+            url to parse and retrieve query parameter
+        keys: string | [string]
+            query parameter key(s) to retrieve
+    Returns: string | [string]
+        Query parameter value(s)
+    '''
+    (scheme, netloc, path, query, fragment) = parse.urlsplit(url)
+    query_dict = parse.parse_qs(query, keep_blank_values=True)
+    if isinstance(keys, str):
+        return query_dict.get(keys, None)
+    return [query_dict.get(key, None) for key in keys if key]
+
+
+def remove_query_params(url, keys):
+    """
+    Given a URL and a key/val pair, remove an item(s) in the query
+    parameters of the URL, and return the new URL.
+
+    Args:
+        url: string
+            url to parse and retrieve query parameter
+        keys: string | [string]
+            query parameter key(s) to remove
+    Returns: string
+        New URL string
+    """
+    (scheme, netloc, path, query, fragment) = parse.urlsplit(url)
+    query_dict = parse.parse_qs(query, keep_blank_values=True)
+    if isinstance(keys, str):
+        query_dict.pop(keys, None)
+    else:
+        [query_dict.pop(key, None) for key in keys if key]  # pylint: disable=expression-not-assigned
+
+    query = parse.urlencode(sorted(query_dict.items()), doseq=True)
+    return parse.urlunsplit((scheme, netloc, path, query, fragment))
 
 
 class CommandHandler():

@@ -58,6 +58,11 @@ class CollectionLinkInline(admin.TabularInline):
 
 @admin.register(Collection)
 class CollectionAdmin(admin.ModelAdmin):
+
+    class Media:
+        js = ('js/admin/collection_help_search.js',)
+        css = {'all': ('style/hover.css',)}
+
     readonly_fields = [
         'extent_start_datetime', 'extent_end_datetime', 'summaries', 'extent_geometry'
     ]
@@ -79,6 +84,11 @@ class ItemLinkInline(admin.TabularInline):
 
 @admin.register(Item)
 class ItemAdmin(admin.GeoModelAdmin):
+
+    class Media:
+        js = ('js/admin/item_help_search.js',)
+        css = {'all': ('style/hover.css',)}
+
     inlines = [ItemLinkInline]
     autocomplete_fields = ['collection']
     search_fields = ['name', 'collection__name']
@@ -122,6 +132,11 @@ class ItemAdmin(admin.GeoModelAdmin):
 
 @admin.register(Asset)
 class AssetAdmin(admin.ModelAdmin):
+
+    class Media:
+        js = ('js/admin/asset_help_search.js',)
+        css = {'all': ('style/hover.css',)}
+
     autocomplete_fields = ['item']
     search_fields = ['name', 'item__name', 'item__collection__name']
     readonly_fields = ['item_name', 'collection', 'href', 'checksum_multihash']

@@ -157,17 +157,14 @@ DATABASES = {
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'
+    }, {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'
+    }, {
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'
+    }, {
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'
+    }
 ]
 
 # Internationalization
@@ -265,12 +262,13 @@ TEST_RUNNER = 'tests.runner.TestRunner'
 # set authentication schemes
 
 REST_FRAMEWORK = {
+    'DEFAULT_RENDERER_CLASSES': ['rest_framework.renderers.JSONRenderer'],
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.BasicAuthentication',
         'rest_framework.authentication.TokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ],
-    'DEFAULT_PAGINATION_CLASS': 'stac_api.apps.CursorPagination',
+    'DEFAULT_PAGINATION_CLASS': 'stac_api.pagination.CursorPagination',
     'PAGE_SIZE': os.environ.get('PAGE_SIZE', 100),
     'PAGE_SIZE_LIMIT': os.environ.get('PAGE_SIZE_LIMIT', 100),
     'EXCEPTION_HANDLER': 'stac_api.apps.custom_exception_handler',

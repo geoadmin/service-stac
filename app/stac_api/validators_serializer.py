@@ -4,7 +4,6 @@ from decimal import Decimal
 
 import botocore
 import multihash
-import numpy as np
 from multihash import from_hex_string
 from multihash import to_hex_string
 
@@ -226,8 +225,8 @@ class ValidateSearchRequest:
 
         # Note: if these values are adapted, don't forget to
         # update the spec accordingly.
-        self.queriabel_date_fields = ['created', 'updated']
-        self.queriabel_str_fields = ['title']
+        self.queriable_date_fields = ['created', 'updated']
+        self.queriable_str_fields = ['title']
 
     def validate(self, request):
         '''Validates the request of the search endpoint
@@ -246,20 +245,9 @@ class ValidateSearchRequest:
         '''
         # harmonize GET and POST
         query_param = harmonize_post_get_for_search(request)
-        queried_parameters = list(query_param.keys())
-        accepted_query_parameters = [
-            "bbox", "collections", "cursor", "datetime", "ids", "intersects", "limit", "query"
-        ]
-        # make sure that all queried_parameters are in the accepted_query_parameters
-        if not all(parameter in accepted_query_parameters for parameter in queried_parameters):
-            wrong_query_parameters = np.setdiff1d(queried_parameters,
-                                                  accepted_query_parameters).tolist()
-            logger.error(
-                'Query contains the non-allowed parameter(s): %s', str(wrong_query_parameters)
-            )
-            message = f"The query contains the following non-queriable" \
-            f"parameter(s): {str(wrong_query_parameters)}."
-            raise ValidationError(code='query-invalid', detail=_(message))
+
+        if request.method == "POST":
+            self.validate_query_parameters_post_search(query_param)
 
         if 'bbox' in query_param:
             self.validate_bbox(query_param['bbox'])
@@ -291,7 +279,7 @@ class ValidateSearchRequest:
                 The query parameter to be validated.
         '''
         # summing up the fields based of different types
-        queriabel_fields = self.queriabel_date_fields + self.queriabel_str_fields
+        queriable_fields = self.queriable_date_fields + self.queriable_str_fields
 
         # validate json
         try:
@@ -304,9 +292,9 @@ class ValidateSearchRequest:
 
         self._query_validate_length_of_query(query_dict)
         for attribute in query_dict:
-            if not attribute in queriabel_fields:
+            if not attribute in queriable_fields:
                 message = f"Invalid field in query argument. The field {attribute} is not " \
-                          f"a propertie. Use one of these {queriabel_fields}"
+                          f"a propertie. Use one of these {queriable_fields}"
                 self.errors[f"query-attributes-{attribute}"] = _(message)
 
             # validate operators
@@ -381,7 +369,7 @@ class ValidateSearchRequest:
                 The value to be tested (string or datetime)
         '''
         # validate date
-        if attribute in self.queriabel_date_fields:
+        if attribute in self.queriable_date_fields:
             try:
                 if isinstance(value, list):
                     self.validate_list_length(value, 'query')
@@ -393,7 +381,7 @@ class ValidateSearchRequest:
                 self.errors[f"query-attributes-{attribute}"] = _(message)
 
         # validate str
-        if attribute in self.queriabel_str_fields:
+        if attribute in self.queriable_str_fields:
             message = ''
             if isinstance(value, list):
                 self.validate_list_length(value, 'query')
@@ -521,3 +509,31 @@ class ValidateSearchRequest:
             message = f"Invalid query: " \
                 f"Could not transform {geojson} to a geometry; {error}"
             self.errors['intersects'] = _(message)
+
+    def validate_query_parameters_post_search(self, query_param):
+        '''Validates the query parameters for POST requests on the search endpoint.
+        If any invalid query parameters are found, the dict self.errors will be extended
+        with the corresponding message.
+
+        Args:
+            query_param: dict
+                Copy of the harmonized QueryDict
+        '''
+        accepted_query_parameters = [
+            "bbox", "collections", "datetime", "ids", "intersects", "limit", "cursor", "query"
+        ]
+        wrong_query_parameters = set(query_param.keys()).difference(set(accepted_query_parameters))
+        if wrong_query_parameters:
+            self.errors.update(
+                {
+                    wrong_query_param:
+                    _(
+                        f"The query contains the following non-queriable parameter: " \
+                            f" {wrong_query_param}."
+                    )
+                    for wrong_query_param in wrong_query_parameters
+                }
+            )
+            logger.error(
+                'Query contains the non-allowed parameter(s): %s', list(wrong_query_parameters)
+            )

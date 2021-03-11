@@ -1,0 +1,32 @@
+.NameHighlights {
+    position:relative;
+}
+.NameHighlights div.SearchUsage {
+    display: none;
+}
+.NameHighlightsHover {
+    position:relative;
+}
+.NameHighlightsHover div.SearchUsage {
+    display:block;
+    position:absolute;
+    width: 70em;
+    top:4em;
+    left:70px;
+    z-index:1000;
+    background-color: #DDD;
+    padding: 5px;
+    border-radius: 4px;
+}
+
+
+
+.SearchUsage ul li {
+list-style-type: "- " !important;
+list-style-position: inside !important;
+margin-left: 1em !important;
+}
+
+.SearchUsage ul li i {
+font-family: monospace;
+}
