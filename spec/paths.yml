@@ -140,10 +140,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/itemCollection"
-            text/html:
-              schema:
-                type: string
+                $ref: "#/components/schemas/itemsSearchGet"
           description: A feature collection.
         "500":
           $ref: "#/components/responses/ServerError"
@@ -166,10 +163,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/itemCollection"
-            text/html:
-              schema:
-                type: string
+                $ref: "#/components/schemas/itemsSearchPost"
           description: A feature collection.
         "500":
           $ref: "#/components/responses/ServerError"

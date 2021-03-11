@@ -1,3 +1,4 @@
+import json
 import logging
 from datetime import datetime
 from datetime import timedelta
@@ -5,6 +6,8 @@ from datetime import timedelta
 from django.conf import settings
 from django.test import Client
 
+from stac_api.utils import fromisoformat
+from stac_api.utils import get_link
 from stac_api.utils import isoformat
 from stac_api.utils import utc_aware
 
@@ -15,6 +18,153 @@ from tests.utils import client_login
 logger = logging.getLogger(__name__)
 
 STAC_BASE_V = settings.STAC_BASE_V
+
+
+class SearchEndpointPaginationTestCase(StacBaseTestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.title_for_query = 'Item for pagination test'
+        cls.factory = Factory()
+        cls.collection = cls.factory.create_collection_sample().model
+        cls.items = cls.factory.create_item_samples(
+            [
+                'item-1',
+                'item-2',
+                'item-switzerland',
+                'item-switzerland-west',
+                'item-switzerland-east',
+                'item-switzerland-north',
+                'item-switzerland-south',
+                'item-paris'
+            ],
+            cls.collection,
+            properties_title=[
+                'My item',
+                cls.title_for_query,
+                None,
+                'My item',
+                'My item',
+                cls.title_for_query,
+                'My item',
+                cls.title_for_query
+            ],
+            db_create=True,
+        )
+
+    def setUp(self):  # pylint: disable=invalid-name
+        self.client = Client()
+        client_login(self.client)
+        self.path = f'/{STAC_BASE_V}/search'
+        self.maxDiff = None  # pylint: disable=invalid-name
+
+    def test_get_pagination(self):
+        limit = 1
+        query = {
+            "ids": ','.join([self.items[1]['name'], self.items[4]['name'], self.items[6]['name']]),
+            "limit": limit
+        }
+        response = self.client.get(self.path, query)
+        self.assertStatusCode(200, response)
+        json_data = response.json()
+        self.assertEqual(len(json_data['features']), limit)
+        # get the next link
+        next_link = get_link(json_data['links'], 'next')
+        self.assertIsNotNone(next_link, msg='No next link found')
+        self.assertEqual(next_link.get('method', 'GET'), 'GET')
+        self.assertNotIn('body', next_link)
+        self.assertNotIn('merge', next_link)
+
+        # Get the next page
+        query_next = query.copy()
+        response = self.client.get(next_link['href'])
+        self.assertStatusCode(200, response)
+        json_data_next = response.json()
+        self.assertEqual(len(json_data_next['features']), limit)
+
+        # make sure the next page is different than the original
+        self.assertNotEqual(
+            json_data['features'],
+            json_data_next['features'],
+            msg='Next page should not be the same as the first one'
+        )
+
+        # get the previous link
+        previous_link = get_link(json_data_next['links'], 'previous')
+        self.assertIsNotNone(previous_link, msg='No previous link found')
+        self.assertEqual(previous_link.get('method', 'GET'), 'GET')
+        self.assertNotIn('body', previous_link)
+        self.assertNotIn('merge', previous_link)
+
+        # Get the previous page
+        response = self.client.get(previous_link['href'])
+        self.assertStatusCode(200, response)
+        json_data_previous = response.json()
+        self.assertEqual(len(json_data_previous['features']), limit)
+
+        # make sure the previous data is identical to the first page
+        self.assertEqual(
+            json_data_previous['features'],
+            json_data['features'],
+            msg='previous page should be the same as the first one'
+        )
+
+    def test_post_pagination(self):
+        limit = 1
+        query = {"query": {"title": {"startsWith": self.title_for_query}}, "limit": limit}
+        response = self.client.post(self.path, data=query, content_type="application/json")
+        self.assertStatusCode(200, response)
+        json_data = response.json()
+        self.assertEqual(len(json_data['features']), limit)
+        # get the next link
+        next_link = get_link(json_data['links'], 'next')
+        self.assertIsNotNone(next_link, msg='No next link found')
+        self.assertEqual(next_link.get('method', 'POST'), 'POST')
+        self.assertIn('body', next_link)
+        self.assertIn('merge', next_link)
+
+        # Get the next page
+        query_next = query.copy()
+        if next_link['merge'] and next_link['body']:
+            query_next.update(next_link['body'])
+        response = self.client.post(
+            next_link['href'], data=query_next, content_type="application/json"
+        )
+        self.assertStatusCode(200, response)
+        json_data_next = response.json()
+        self.assertEqual(len(json_data_next['features']), limit)
+
+        # make sure the next page is different than the original
+        self.assertNotEqual(
+            json_data['features'],
+            json_data_next['features'],
+            msg='Next page should not be the same as the first one'
+        )
+
+        # get the previous link
+        previous_link = get_link(json_data_next['links'], 'previous')
+        self.assertIsNotNone(previous_link, msg='No previous link found')
+        self.assertEqual(previous_link.get('method', 'POST'), 'POST')
+        self.assertIn('body', previous_link)
+        self.assertIn('merge', previous_link)
+
+        # Get the previous page
+        query_previous = query.copy()
+        if previous_link['merge'] and previous_link['body']:
+            query_previous.update(previous_link['body'])
+        response = self.client.post(
+            previous_link['href'], data=query_previous, content_type="application/json"
+        )
+        self.assertStatusCode(200, response)
+        json_data_previous = response.json()
+        self.assertEqual(len(json_data_previous['features']), limit)
+
+        # make sure the previous data is identical to the first page
+        self.assertEqual(
+            json_data_previous['features'],
+            json_data['features'],
+            msg='previous page should be the same as the first one'
+        )
 
 
 class SearchEndpointTestCaseOne(StacBaseTestCase):
@@ -44,47 +194,41 @@ class SearchEndpointTestCaseOne(StacBaseTestCase):
         self.client = Client()
         client_login(self.client)
         self.path = f'/{STAC_BASE_V}/search'
+        self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_query(self):
         # get match
         title = "My item 1"
-        query = '{"title":{"eq":"%s"}}' % title
-        response = self.client.get(f"/{STAC_BASE_V}/search" f"?query={query}&limit=100")
+        query = {"title": {"eq": title}}
+        response = self.client.get(f"{self.path}?query={json.dumps(query)}")
         self.assertStatusCode(200, response)
         json_data_get = response.json()
-        self.assertEqual(json_data_get['features'][0]['properties']['title'], title)
+        for feature in json_data_get['features']:
+            self.assertEqual(feature['properties']['title'], title)
         self.assertEqual(len(json_data_get['features']), 1)
 
         # post match
-        payload = """
-        {"query":
-            {"title":
-                {"eq":"My item 1"}
-            }
-        }
-        """
+        payload = {"query": {"title": {"eq": "My item 1"}}}
         response = self.client.post(self.path, data=payload, content_type="application/json")
         self.assertStatusCode(200, response)
         json_data_post = response.json()
-        self.assertEqual(json_data_post['features'][0]['properties']['title'], title)
         self.assertEqual(len(json_data_post['features']), 1)
 
         # compare get and post
-        self.assertEqual(
-            json_data_get['features'][0]['properties']['title'],
-            json_data_post['features'][0]['properties']['title']
-        )
+        self.assertEqual(json_data_get['features'], json_data_post['features'])
+
+        for feature in json_data_post['features']:
+            self.assertEqual(feature['properties']['title'], title)
 
     def test_query_non_allowed_parameters(self):
         wrong_query_parameter = "cherry"
-        payload = f"""
-        {{"{wrong_query_parameter}":
-            {{"created":
-                {{"lte":"9999-12-31T09:07:39.399892Z"}}
-            }},
-            "limit": 1
-        }}
-        """
+        payload = {
+            wrong_query_parameter: {
+                "created": {
+                    "lte": "9999-12-31T09:07:39.399892Z"
+                }
+            }, "limit": 1
+        }
         response = self.client.post(self.path, data=payload, content_type="application/json")
         self.assertStatusCode(400, response)
         json_data = response.json()
@@ -97,14 +241,15 @@ class SearchEndpointTestCaseOne(StacBaseTestCase):
     def test_query_multiple_non_allowed_parameters(self):
         wrong_query_parameter1 = "cherry"
         wrong_query_parameter2 = "no_limits"
-        payload = f"""
-        {{"{wrong_query_parameter1}":
-            {{"created":
-                {{"lte":"9999-12-31T09:07:39.399892Z"}}
-            }},
-            "{wrong_query_parameter2}": 1
-        }}
-        """
+        payload = {
+            wrong_query_parameter1: {
+                "created": {
+                    "lte": "9999-12-31T09:07:39.399892Z"
+                }
+            },
+            wrong_query_parameter2: 1
+        }
+
         response = self.client.post(self.path, data=payload, content_type="application/json")
         self.assertStatusCode(400, response)
         json_data = response.json()
@@ -122,176 +267,113 @@ class SearchEndpointTestCaseOne(StacBaseTestCase):
         response = self.client.post(self.path, data=payload, content_type="application/json")
         self.assertStatusCode(200, response)
         json_data_payload = response.json()
-        self.assertEqual(len(json_data_payload['features']), 1, msg="More than one item returned.")
-
-        # limit in url
-        payload.pop('limit')
-        response = self.client.post(
-            f"{self.path}?limit={limit}", data=payload, content_type="application/json"
-        )
-        self.assertStatusCode(200, response)
-        json_data_url = response.json()
-
-        # compare limit in payload and limit in url
         self.assertEqual(
-            json_data_payload['features'],
-            json_data_url['features'],
-            msg="Limit parameter in payload and in URL yielded different responses."
+            len(json_data_payload['features']), limit, msg=f"More than {limit} item(s) returned."
         )
 
     def test_query_created(self):
+        limit = 1
         # get match
-        query = '{"created": {"lte": "9999-12-31T09:07:39.399892Z"}}'
-        response = self.client.get(f"/{STAC_BASE_V}/search" f"?query={query}&limit=1")
+        query = {"created": {"lte": "9999-12-31T09:07:39.399892Z"}}
+        response = self.client.get(
+            f"/{STAC_BASE_V}/search"
+            f"?query={json.dumps(query)}&limit={limit}"
+        )
         self.assertStatusCode(200, response)
         json_data_get = response.json()
-        self.assertEqual(len(json_data_get['features']), 1)
+        self.assertEqual(len(json_data_get['features']), limit)
 
         # post match
-        payload = """
-        {"query":
-            {"created":
-                {"lte":"9999-12-31T09:07:39.399892Z"}
-            },
-            "limit": 1
-        }
-        """
+        payload = {"query": query, "limit": limit}
         response = self.client.post(self.path, data=payload, content_type="application/json")
         self.assertStatusCode(200, response)
         json_data_post = response.json()
-        self.assertEqual(len(json_data_post['features']), 1)
+        self.assertEqual(len(json_data_post['features']), limit)
         # compare get and post
         self.assertEqual(
-            json_data_get['features'][0]['properties']['created'],
-            json_data_post['features'][0]['properties']['created'],
+            json_data_get['features'],
+            json_data_post['features'],
             msg="GET and POST responses do not match when filtering for date created"
         )
+        for feature in json_data_get['features']:
+            self.assertLessEqual(
+                fromisoformat(feature['properties']['created']),
+                fromisoformat(query['created']['lte'])
+            )
 
     def test_query_updated(self):
+        limit = 1
         # get match
-        query = '{"updated": {"lte": "9999-12-31T09:07:39.399892Z"}}'
-        response = self.client.get(f"/{STAC_BASE_V}/search" f"?query={query}&limit=1")
+        query = {"updated": {"lte": "9999-12-31T09:07:39.399892Z"}}
+        response = self.client.get(f"{self.path}?query={json.dumps(query)}&limit={limit}")
         self.assertStatusCode(200, response)
         json_data_get = response.json()
-        self.assertEqual(len(json_data_get['features']), 1)
+        self.assertEqual(len(json_data_get['features']), limit)
 
         # post match
-        payload = """
-        {"query":
-            {"updated":
-                {"lte":"9999-12-31T09:07:39.399892Z"}
-            },
-            "limit": 1
-        }
-        """
+        payload = {"query": query, "limit": limit}
         response = self.client.post(self.path, data=payload, content_type="application/json")
         self.assertStatusCode(200, response)
         json_data_post = response.json()
-        self.assertEqual(len(json_data_post['features']), 1)
+        self.assertEqual(len(json_data_post['features']), limit)
         # compare get and post
         self.assertEqual(
-            json_data_get['features'][0]['properties']['updated'],
-            json_data_post['features'][0]['properties']['updated'],
+            json_data_get['features'],
+            json_data_post['features'],
             msg="GET and POST responses do not match when filtering for date updated"
         )
 
+        for feature in json_data_get['features']:
+            self.assertLessEqual(
+                fromisoformat(feature['properties']['updated']),
+                fromisoformat(query['updated']['lte'])
+            )
+
     def test_query_data_in(self):
-        payload = """
-        {"query":
-            {"title":
-                {"in":["My item 1","My item 2"]}
-            }
-        }
-        """
+        titles = ["My item 1", "My item 2"]
+        payload = {"query": {"title": {"in": titles}}}
         response = self.client.post(self.path, data=payload, content_type="application/json")
-        json_data = response.json()
-        list_expected_items = ['item-1', 'item-2']
-        self.assertIn(json_data['features'][0]['id'], list_expected_items)
-        self.assertIn(json_data['features'][1]['id'], list_expected_items)
-
-    def test_post_pagination(self):
-        data = """
-        {"query":
-             {"title":
-                {"startsWith":"My item"}
-            },
-         "limit": 1
-        }
-        """
-        response = self.client.post(self.path, data=data, content_type="application/json")
         self.assertStatusCode(200, response)
         json_data = response.json()
-        links = json_data['links']
-        # get the curser value of next
-        for link in links:
-            if link['rel'] == 'next':
-                cursor = link['href'].split('?')[1]
-        item_id1 = json_data['features'][0]['id']
-
-        # pagination
-        response = self.client.get(f"{self.path}?{cursor}")
-        self.assertStatusCode(200, response)
-        json_data = response.json()
-        item_id2 = json_data['features'][0]['id']
-        self.assertNotEqual(item_id1, item_id2)
+        for feature in json_data['features']:
+            self.assertIn(feature['properties']['title'], titles)
 
     def test_post_intersects_valid(self):
-        data = """
-        { "intersects":
-            { "type": "POINT",
-              "coordinates": [6, 47]
-            }
-        }
-        """
-        response = self.client.post(f"{self.path}", data=data, content_type="application/json")
+        data = {"intersects": {"type": "POINT", "coordinates": [6, 47]}}
+        response = self.client.post(self.path, data=data, content_type="application/json")
         json_data = response.json()
         self.assertEqual(json_data['features'][0]['id'], 'item-3')
 
     def test_post_intersects_invalid(self):
-        data = """
-        { "intersects":
-            { "type": "POINT",
-              "coordinates": [6, 47, "kaputt"]
-            }
-        }
-        """
-        response = self.client.post(f"{self.path}", data=data, content_type="application/json")
+        data = {"intersects": {"type": "POINT", "coordinates": [6, 47, "kaputt"]}}
+        response = self.client.post(self.path, data=data, content_type="application/json")
         self.assertStatusCode(400, response)
 
     def test_collections_get(self):
         # match
-        response = self.client.get(f"/{STAC_BASE_V}/search" f"?collections=collection-1,har")
+        collections = ['collection-1', 'har']
+        response = self.client.get(f"{self.path}?collections={','.join(collections)}")
         self.assertStatusCode(200, response)
         json_data = response.json()
         for feature in json_data['features']:
-            self.assertEqual(feature['collection'], 'collection-1')
+            self.assertIn(feature['collection'], collections)
         # no match
-        response = self.client.get(f"/{STAC_BASE_V}/search" f"?collections=collection-11,har")
+        response = self.client.get(f"{self.path}?collections=collection-11,har")
         self.assertStatusCode(200, response)
         json_data = response.json()
         self.assertEqual(len(json_data['features']), 0)
 
     def test_collections_post_valid(self):
-        payload = """
-           { "collections": [
-              "collection-1"
-               ]
-           }
-           """
-        response = self.client.post(f"{self.path}", data=payload, content_type="application/json")
+        collections = ["collection-1"]
+        payload = {"collections": collections}
+        response = self.client.post(self.path, data=payload, content_type="application/json")
         json_data = response.json()
         for feature in json_data['features']:
-            self.assertEqual(feature['collection'], 'collection-1')
+            self.assertIn(feature['collection'], collections)
 
     def test_collections_post_invalid(self):
-        payload = """
-           { "collections": [
-              "collection-1",
-              9999
-               ]
-           }
-           """
-        response = self.client.post(f"{self.path}", data=payload, content_type="application/json")
+        payload = {"collections": ["collection-1", 9999]}
+        response = self.client.post(self.path, data=payload, content_type="application/json")
         self.assertStatusCode(400, response)
 
 
@@ -322,163 +404,106 @@ class SearchEndpointTestCaseTwo(StacBaseTestCase):
         self.client = Client()
         client_login(self.client)
         self.path = f'/{STAC_BASE_V}/search'
+        self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_ids_get_valid(self):
-        response = self.client.get(f"/{STAC_BASE_V}/search" f"?ids=item-1,item-2")
+        items = ['item-1', 'item-2']
+        response = self.client.get(f"{self.path}?ids={','.join(items)}")
         self.assertStatusCode(200, response)
         json_data = response.json()
-        list_expected_items = ['item-1', 'item-2']
-        self.assertIn(json_data['features'][0]['id'], list_expected_items)
-        self.assertIn(json_data['features'][1]['id'], list_expected_items)
+        for feature in json_data['features']:
+            self.assertIn(feature['id'], items)
 
     def test_ids_post_valid(self):
-        payload = """
-                  { "ids": [
-                    "item-1",
-                    "item-2"
-                      ]
-                  }
-        """
-        response = self.client.post(f"{self.path}", data=payload, content_type="application/json")
+        items = ['item-1', 'item-2']
+        payload = {"ids": items}
+        response = self.client.post(self.path, data=payload, content_type="application/json")
         json_data = response.json()
-        list_expected_items = ['item-1', 'item-2']
-        self.assertIn(json_data['features'][0]['id'], list_expected_items)
-        self.assertIn(json_data['features'][1]['id'], list_expected_items)
+        for feature in json_data['features']:
+            self.assertIn(feature['id'], items)
 
     def test_ids_post_invalid(self):
-        payload = """
-                  { "ids": [
-                    "item-1",
-                    "item-2",
-                    1
-                      ]
-                  }
-        """
-        response = self.client.post(f"{self.path}", data=payload, content_type="application/json")
+        payload = {"ids": ["item-1", "item-2", 1]}
+        response = self.client.post(self.path, data=payload, content_type="application/json")
         self.assertStatusCode(400, response)
 
     def test_ids_first_and_only_prio(self):
-        response = self.client.get(
-            f"/{STAC_BASE_V}/search"
-            f"?ids=item-1,item-2&collections=not_exist"
-        )
+        items = ['item-1', 'item-2']
+        response = self.client.get(f"{self.path}?ids={','.join(items)}&collections=not_exist")
         self.assertStatusCode(200, response)
         json_data = response.json()
-        list_expected_items = ['item-1', 'item-2']
-        self.assertIn(json_data['features'][0]['id'], list_expected_items)
-        self.assertIn(json_data['features'][1]['id'], list_expected_items)
+
+        for feature in json_data['features']:
+            self.assertIn(feature['id'], items)
 
     def test_bbox_valid(self):
-        payload = """
-        { "bbox": [
-            6,
-            47,
-            6.5,
-            47.5
-            ]
-        }
-        """
-        response = self.client.post(f"{self.path}", data=payload, content_type="application/json")
+        payload = {"bbox": [6, 47, 6.5, 47.5]}
+        response = self.client.post(self.path, data=payload, content_type="application/json")
         json_data_post = response.json()
         list_expected_items = ['item-1', 'item-2']
         self.assertIn(json_data_post['features'][0]['id'], list_expected_items)
         self.assertIn(json_data_post['features'][1]['id'], list_expected_items)
 
-        response = self.client.get(f"/{STAC_BASE_V}/search" f"?bbox=6,47,6.5,47.5&limit=100")
+        response = self.client.get(f"{self.path}?bbox={','.join(map(str, payload['bbox']))}")
         json_data_get = response.json()
         self.assertStatusCode(200, response)
-        self.assertEqual(json_data_get['features'][0]['id'], json_data_post['features'][0]['id'])
+        self.assertEqual(json_data_get['features'], json_data_post['features'])
 
     def test_bbox_as_point(self):
         # bbox as a point
-        payload = """
-        { "bbox": [
-            6.1,
-            47.1,
-            6.1,
-            47.1
-            ],
-          "limit": 100
-        }
-        """
-        response = self.client.post(f"{self.path}", data=payload, content_type="application/json")
+        payload = {"bbox": [6.1, 47.1, 6.1, 47.1]}
+        response = self.client.post(self.path, data=payload, content_type="application/json")
         json_data_post = response.json()
         list_expected_items = ['item-3', 'item-4', 'item-6']
         self.assertIn(json_data_post['features'][0]['id'], list_expected_items)
         self.assertIn(json_data_post['features'][1]['id'], list_expected_items)
         self.assertIn(json_data_post['features'][2]['id'], list_expected_items)
 
-        response = self.client.get(f"/{STAC_BASE_V}/search" f"?bbox=6.1,47.1,6.1,47.1&limit=100")
+        response = self.client.get(f"{self.path}?bbox={','.join(map(str, payload['bbox']))}")
         json_data_get = response.json()
         self.assertStatusCode(200, response)
-
-        self.assertIn(json_data_get['features'][0]['id'], list_expected_items)
-        self.assertIn(json_data_get['features'][1]['id'], list_expected_items)
-        self.assertIn(json_data_get['features'][2]['id'], list_expected_items)
-        self.assertEqual(json_data_get['features'][0]['id'], json_data_post['features'][0]['id'])
+        self.assertEqual(json_data_get['features'], json_data_post['features'])
 
     def test_bbox_post_invalid(self):
-        payload = """
-        { "bbox": [
-            6,
-            47,
-            6.5,
-            47.5,
-            5.5
-            ]
-        }
-        """
-        response = self.client.post(f"{self.path}", data=payload, content_type="application/json")
+        payload = {"bbox": [6, 47, 6.5, 47.5, 5.5]}
+        response = self.client.post(self.path, data=payload, content_type="application/json")
         self.assertStatusCode(400, response)
 
     def test_bbox_get_invalid(self):
-        response = self.client.get(f"/{STAC_BASE_V}/search" f"?bbox=6,47,6.5,47.5,5.5")
+        response = self.client.get(f"{self.path}?bbox=6,47,6.5,47.5,5.5")
         self.assertStatusCode(400, response)
 
     def test_datetime_open_end_range_query_get(self):
-        response = self.client.get(
-            f"/{STAC_BASE_V}/search"
-            f"?datetime={isoformat(self.yesterday)}/..&limit=100"
-        )
+        response = self.client.get(f"{self.path}?datetime={isoformat(self.yesterday)}/..&limit=100")
         json_data = response.json()
         self.assertStatusCode(200, response)
         self.assertEqual(0, len(json_data['features']))
 
     def test_datetime_open_start_range_query(self):
-        response = self.client.get(
-            f"/{STAC_BASE_V}/search"
-            f"?datetime=../{isoformat(self.yesterday)}&limit=100"
-        )
+        response = self.client.get(f"{self.path}?datetime=../{isoformat(self.yesterday)}&limit=100")
         json_data = response.json()
         self.assertStatusCode(200, response)
-        self.assertEqual(8, len(json_data['features']), msg="More than two item found")
+        self.assertEqual(8, len(json_data['features']), msg="Not 8 items found")
         self.assertEqual('item-1', json_data['features'][0]['id'])
         self.assertEqual('item-8', json_data['features'][7]['id'])
 
-        payload = """
-        { "datetime": "../%s"
-        }
-        """ % isoformat(self.yesterday)
-        json_data = response.json()
+        payload = {"datetime": f"../{isoformat(self.yesterday)}"}
+        response = self.client.post(self.path, data=payload, content_type="application/json")
         self.assertStatusCode(200, response)
-        self.assertEqual(8, len(json_data['features']), msg="More than two item found")
-        self.assertEqual('item-1', json_data['features'][0]['id'])
-        self.assertEqual('item-8', json_data['features'][7]['id'])
+        json_data_post = response.json()
+        self.assertEqual(json_data_post["features"], json_data["features"])
 
     def test_datetime_invalid_range_query_get(self):
-        response = self.client.get(f"/{STAC_BASE_V}/search" f"?datetime=../..&limit=100")
+        response = self.client.get(f"{self.path}?datetime=../..&limit=100")
         self.assertStatusCode(400, response)
 
     def test_datetime_exact_query_get(self):
-        response = self.client.get(
-            f"/{STAC_BASE_V}/search"
-            f"?datetime=2020-10-28T13:05:10Z&limit=100"
-        )
+        response = self.client.get(f"{self.path}?datetime=2020-10-28T13:05:10Z&limit=100")
+        self.assertStatusCode(200, response)
         json_data = response.json()
         self.assertEqual(7, len(json_data['features']), msg="Seven items Found")
         self.assertEqual('item-1', json_data['features'][0]['id'])
         self.assertEqual('item-8', json_data['features'][6]['id'])
-        self.assertStatusCode(200, response)
 
     def test_datetime_invalid_format_query_get(self):
         response = self.client.get(f"/{STAC_BASE_V}/search?datetime=NotADate&limit=100")

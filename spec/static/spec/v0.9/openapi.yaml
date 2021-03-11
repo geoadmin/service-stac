@@ -969,7 +969,7 @@ components:
           proj:epsg: "2056"
           type: image/tiff; application=geotiff
           updated: "2020-07-14T12:30:00Z"
-    itemCollection:
+    itemsSearch:
       description: >-
         A GeoJSON FeatureCollection augmented with foreign members that contain values
         relevant to a STAC entity
@@ -978,8 +978,6 @@ components:
           items:
             $ref: "#/components/schemas/item"
           type: array
-        links:
-          $ref: "#/components/schemas/itemCollectionLinks"
         type:
           enum:
           - FeatureCollection
@@ -988,7 +986,21 @@ components:
       - features
       - type
       type: object
-    itemCollectionLinks:
+    itemsSearchGet:
+      allOf:
+      - $ref: "#/components/schemas/itemsSearch"
+      - type: object
+        properties:
+          links:
+            $ref: "#/components/schemas/itemsSearchLinks"
+    itemsSearchPost:
+      allOf:
+      - $ref: "#/components/schemas/itemsSearch"
+      - type: object
+        properties:
+          links:
+            $ref: "#/components/schemas/itemsSearchPostLinks"
+    itemsSearchLinks:
       description: >-
         An array of links. Can be used for pagination, e.g. by providing a link with
         the `next` relation type.
@@ -999,6 +1011,21 @@ components:
         rel: next
       items:
         $ref: "#/components/schemas/link"
+      type: array
+    itemsSearchPostLinks:
+      description: >-
+        An array of links. Can be used for pagination, e.g. by providing a link with
+        the `next` relation type.
+      example:
+      - href: https://data.geo.admin.ch/api/stac/v0.9/search
+        rel: self
+      - href: https://data.geo.admin.ch/api/stac/v0.9/search?cursor=10ab
+        rel: next
+        method: POST
+        body: {}
+        merge: true
+      items:
+        $ref: "#/components/schemas/linkPostSearch"
       type: array
     itemId:
       description: Item identifier (unique per collection)
@@ -1144,11 +1171,39 @@ components:
           description: The media type of the link target
           example: application/geo+json
           type: string
+        method:
+          default: GET
+          description: Specifies the HTTP method that the link expects
+          enum:
+          - GET
+          - POST
+          type: string
       required:
       - href
       - rel
       title: Link
       type: object
+    linkPostSearch:
+      allOf:
+      - $ref: "#/components/schemas/link"
+      - type: object
+        properties:
+          body:
+            default: {}
+            description: For `POST /search` requests, the link can specify the HTTP
+              body as a JSON object.
+            type: object
+          merge:
+            default: false
+            description: >-
+              This is only valid when the server is responding to `POST /search `request.
+
+
+              If merge is true, the client is expected to merge the body value into
+              the current request body before following the link. This avoids passing
+              large post bodies back and forth when following links, particularly
+              for navigating pages through the `POST /search` endpoint.
+            type: boolean
     multilinestringGeoJSON:
       properties:
         coordinates:
@@ -1651,10 +1706,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/itemCollection"
-            text/html:
-              schema:
-                type: string
+                $ref: "#/components/schemas/itemsSearchGet"
           description: A feature collection.
         "500":
           $ref: "#/components/responses/ServerError"
@@ -1676,10 +1728,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/itemCollection"
-            text/html:
-              schema:
-                type: string
+                $ref: "#/components/schemas/itemsSearchPost"
           description: A feature collection.
         "500":
           $ref: "#/components/responses/ServerError"

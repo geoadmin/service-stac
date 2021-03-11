@@ -32,6 +32,7 @@ class ApiGenericTestCase(StacBaseTestCase):
         with self.settings(DEBUG_PROPAGATE_API_EXCEPTIONS=True):
             response = self.client.get("/tests/test_http_500")
             self.assertStatusCode(500, response)
+            self.assertEqual(response.json()['description'], "AttributeError('test exception')")
 
 
 class ApiPaginationTestCase(StacBaseTestCase):
@@ -46,7 +47,7 @@ class ApiPaginationTestCase(StacBaseTestCase):
     def test_invalid_limit_query(self):
         response = self.client.get(f"/{STAC_BASE_V}/collections?limit=0")
         self.assertStatusCode(400, response)
-        self.assertEqual(['limit query parameter to small, must be in range 1..100'],
+        self.assertEqual(['limit query parameter too small, must be in range 1..100'],
                          response.json()['description'],
                          msg='Unexpected error message')
 
@@ -58,13 +59,13 @@ class ApiPaginationTestCase(StacBaseTestCase):
 
         response = self.client.get(f"/{STAC_BASE_V}/collections?limit=-1")
         self.assertStatusCode(400, response)
-        self.assertEqual(['limit query parameter to small, must be in range 1..100'],
+        self.assertEqual(['limit query parameter too small, must be in range 1..100'],
                          response.json()['description'],
                          msg='Unexpected error message')
 
         response = self.client.get(f"/{STAC_BASE_V}/collections?limit=1000")
         self.assertStatusCode(400, response)
-        self.assertEqual(['limit query parameter to big, must be in range 1..100'],
+        self.assertEqual(['limit query parameter too big, must be in range 1..100'],
                          response.json()['description'],
                          msg='Unexpected error message')
 
