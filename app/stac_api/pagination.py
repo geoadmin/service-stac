@@ -9,9 +9,9 @@ from rest_framework import pagination
 from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
-from rest_framework.utils.urls import remove_query_param
 
-from stac_api.utils import get_query_param
+from stac_api.utils import get_query_params
+from stac_api.utils import remove_query_params
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +77,7 @@ class CursorPagination(pagination.CursorPagination):
                 extra={'request': request}
             )
             raise ValidationError(
-                _('limit query parameter to small, must be in range 1..%d') % (self.max_page_size),
+                _('limit query parameter too small, must be in range 1..%d') % (self.max_page_size),
                 code='limit'
             )
         if self.max_page_size and page_size > self.max_page_size:
@@ -88,7 +88,7 @@ class CursorPagination(pagination.CursorPagination):
                 extra={'request': request}
             )
             raise ValidationError(
-                _('limit query parameter to big, must be in range 1..%d') % (self.max_page_size),
+                _('limit query parameter too big, must be in range 1..%d') % (self.max_page_size),
                 code='limit'
             )
 
@@ -135,12 +135,17 @@ class GetPostCursorPagination(CursorPagination):
 
     def patch_link(self, link, request):
         if link and request and request.method == 'POST':
-            cursor = get_query_param(link['href'], self.cursor_query_param)
-            limit = get_query_param(link['href'], self.page_size_query_param)
-            if cursor:
-                link['href'] = remove_query_param(link['href'], self.cursor_query_param)
-            if limit:
-                link['href'] = remove_query_param(link['href'], self.page_size_query_param)
+            cursor, limit = get_query_params(
+                link['href'], [self.cursor_query_param, self.page_size_query_param]
+            )
+            if cursor or limit:
+                link['href'] = remove_query_params(
+                    link['href'],
+                    [
+                        self.page_size_query_param if limit else None,
+                        self.cursor_query_param if cursor else None
+                    ]
+                )
             body = {}
             if limit:
                 body['limit'] = limit[0]

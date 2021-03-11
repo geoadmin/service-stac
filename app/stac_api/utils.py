@@ -198,20 +198,46 @@ def harmonize_post_get_for_search(request):
     return query_param
 
 
-def get_query_param(url, key):
-    '''Get an URL query parameter by key
+def get_query_params(url, keys):
+    '''Get URL query parameters by keys
 
     Args:
         url: string
             url to parse and retrieve query parameter
-        key: string
-            query parameter key to retrieve
-    Returns: string
-        Query parameter value
+        keys: string | [string]
+            query parameter key(s) to retrieve
+    Returns: string | [string]
+        Query parameter value(s)
     '''
     (scheme, netloc, path, query, fragment) = parse.urlsplit(url)
     query_dict = parse.parse_qs(query, keep_blank_values=True)
-    return query_dict.pop(key, None)
+    if isinstance(keys, str):
+        return query_dict.get(keys, None)
+    return [query_dict.get(key, None) for key in keys if key]
+
+
+def remove_query_params(url, keys):
+    """
+    Given a URL and a key/val pair, remove an item(s) in the query
+    parameters of the URL, and return the new URL.
+
+    Args:
+        url: string
+            url to parse and retrieve query parameter
+        keys: string | [string]
+            query parameter key(s) to remove
+    Returns: string
+        New URL string
+    """
+    (scheme, netloc, path, query, fragment) = parse.urlsplit(url)
+    query_dict = parse.parse_qs(query, keep_blank_values=True)
+    if isinstance(keys, str):
+        query_dict.pop(keys, None)
+    else:
+        [query_dict.pop(key, None) for key in keys if key]  # pylint: disable=expression-not-assigned
+
+    query = parse.urlencode(sorted(query_dict.items()), doseq=True)
+    return parse.urlunsplit((scheme, netloc, path, query, fragment))
 
 
 class CommandHandler():

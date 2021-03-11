@@ -268,7 +268,7 @@ class SearchEndpointTestCaseOne(StacBaseTestCase):
         self.assertStatusCode(200, response)
         json_data_payload = response.json()
         self.assertEqual(
-            len(json_data_payload['features']), limit, msg="More than one item returned."
+            len(json_data_payload['features']), limit, msg=f"More than {limit} item(s) returned."
         )
 
     def test_query_created(self):
