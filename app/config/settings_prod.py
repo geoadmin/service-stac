@@ -82,6 +82,7 @@ INSTALLED_APPS = [
     'django_prometheus',
     'config.apps.StacAdminConfig',
     'stac_api.apps.StacApiConfig',
+    'admin_auto_filters',
 ]
 
 # Middlewares are executed in order, once for the incoming
