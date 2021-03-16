@@ -76,13 +76,13 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     #  Note: If you use TokenAuthentication in production you must ensure
     #  that your API is only available over https.
+    'admin_auto_filters',
     'solo.apps.SoloAppConfig',
     'storages',
     'whitenoise.runserver_nostatic',
     'django_prometheus',
     'config.apps.StacAdminConfig',
     'stac_api.apps.StacApiConfig',
-    'admin_auto_filters',
 ]
 
 # Middlewares are executed in order, once for the incoming
