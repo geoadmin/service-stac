@@ -14,6 +14,7 @@ from stac_api.models import Item
 from stac_api.models import ItemLink
 from stac_api.models import Provider
 
+from tests.data_factory import Factory
 from tests.utils import S3TestMixin
 from tests.utils import mock_s3_asset_file
 
@@ -25,6 +26,7 @@ logger = logging.getLogger(__name__)
 class AdminBaseTestCase(TestCase):
 
     def setUp(self):
+        self.factory = Factory()
         self.password = 'sesame'
         self.username = 'admin_user'
         self.admin_user = get_user_model().objects.create_superuser(
@@ -236,6 +238,8 @@ class AdminBaseTestCase(TestCase):
             "media_type": "application/x.filegdb+zip",
             "file": filelike
         }
+        if extra:
+            data.update(extra)
         response = self.client.post(reverse('admin:stac_api_asset_add'), data)
         logger.debug('Asset created in %fs', time.time() - start)
 
@@ -692,3 +696,19 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
         )
 
         # self.assertS3ObjectNotExists(path) # Un-comment with BGDIINF_SB-1625
+
+    @mock_s3_asset_file
+    def test_add_update_asset_invalid_media_type(self):
+        sample = self.factory.create_asset_sample(
+            self.item, name='asset.txt', media_type='image/tiff; application=geotiff'
+        ).attributes
+        # Admin page doesn't uses the name for foreign key but the internal db id.
+        sample['item'] = self.item.id
+        response = self.client.post(reverse('admin:stac_api_asset_add'), sample)
+        # Status code for unsuccessful creation is 200, since in the admin UI
+        # is returning an error message
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(
+            Asset.objects.filter(item=self.item, name=sample["name"]).exists(),
+            msg="Asset with invalid data has been added to db"
+        )
