@@ -1,3 +1,5 @@
+from admin_auto_filters.filters import AutocompleteFilter
+
 from django.contrib.gis import admin
 from django.contrib.postgres.fields import ArrayField
 from django.contrib.staticfiles import finders
@@ -16,7 +18,6 @@ from stac_api.models import LandingPage
 from stac_api.models import LandingPageLink
 from stac_api.models import Provider
 from stac_api.utils import build_asset_href
-from admin_auto_filters.filters import AutocompleteFilter
 
 
 class LandingPageLinkInline(admin.TabularInline):
