@@ -76,7 +76,7 @@ class AdminBaseTestCase(TestCase):
             })
         if extra is not None:
             data.update(extra)
-        response = self.client.post("/api/stac/admin/stac_api/collection/add/", data)
+        response = self.client.post(reverse('admin:stac_api_collection_add'), data)
 
         # Status code for successful creation is 302, since in the admin UI
         # you're redirected to the list view after successful creation
@@ -134,7 +134,7 @@ class AdminBaseTestCase(TestCase):
             })
         if extra:
             data.update(extra)
-        response = self.client.post("/api/stac/admin/stac_api/item/add/", data)
+        response = self.client.post(reverse('admin:stac_api_item_add'), data)
 
         # Status code for successful creation is 302, since in the admin UI
         # you're redirected to the list view after successful creation
@@ -187,7 +187,7 @@ class AdminBaseTestCase(TestCase):
             "file": filelike
         }
 
-        response = self.client.post("/api/stac/admin/stac_api/asset/add/", data)
+        response = self.client.post(reverse('admin:stac_api_asset_add'), data)
         logger.debug('Asset created in %fs', time.time() - start)
 
         # Status code for successful creation is 302, since in the admin UI
@@ -236,7 +236,7 @@ class AdminBaseTestCase(TestCase):
             "media_type": "application/x.filegdb+zip",
             "file": filelike
         }
-        response = self.client.post("/api/stac/admin/stac_api/asset/add/", data)
+        response = self.client.post(reverse('admin:stac_api_asset_add'), data)
         logger.debug('Asset created in %fs', time.time() - start)
 
         # Status code for successful creation is 302, since in the admin UI
@@ -295,7 +295,7 @@ class AdminCollectionTestCase(AdminBaseTestCase):
         # update some data
         data['title'] = "New title"
         response = self.client.post(
-            f"/api/stac/admin/stac_api/collection/{collection.id}/change/", data
+            reverse('admin:stac_api_collection_change', args=[collection.id]), data
         )
 
         # Status code for successful creation is 302, since in the admin UI
@@ -318,7 +318,7 @@ class AdminCollectionTestCase(AdminBaseTestCase):
         data["providers-0-collection"] = collection.id
         data["providers-0-roles"] = "licensor,producer"
         response = self.client.post(
-            f"/api/stac/admin/stac_api/collection/{collection.id}/change/", data
+            reverse('admin:stac_api_collection_change', args=[collection.id]), data
         )
 
         # Status code for successful creation is 302, since in the admin UI
@@ -344,7 +344,7 @@ class AdminCollectionTestCase(AdminBaseTestCase):
         data["links-0-collection"] = collection.id
         data["links-0-title"] = "New Title"
         response = self.client.post(
-            f"/api/stac/admin/stac_api/collection/{collection.id}/change/", data
+            reverse('admin:stac_api_collection_change', args=[collection.id]), data
         )
 
         # Status code for successful update is 302, since in the admin UI
@@ -377,7 +377,7 @@ class AdminCollectionTestCase(AdminBaseTestCase):
             "links-0-link_type": "example",
             "links-0-title": "Example test",
         }
-        response = self.client.post("/api/stac/admin/stac_api/collection/add/", data)
+        response = self.client.post(reverse('admin:stac_api_collection_add'), data)
 
         # Status code for unsuccessful creation is 200, since in the admin UI
         # is returning an error message
@@ -399,7 +399,7 @@ class AdminCollectionTestCase(AdminBaseTestCase):
         data["providers-0-collection"] = collection.id
         data["providers-0-DELETE"] = "on"
         response = self.client.post(
-            f"/api/stac/admin/stac_api/collection/{collection.id}/change/", data
+            reverse('admin:stac_api_collection_change', args=[collection.id]), data
         )
 
         # Status code for successful creation is 302, since in the admin UI
@@ -422,7 +422,7 @@ class AdminCollectionTestCase(AdminBaseTestCase):
         data["links-0-collection"] = collection.id
         data["links-0-DELETE"] = "on"
         response = self.client.post(
-            f"/api/stac/admin/stac_api/collection/{collection.id}/change/", data
+            reverse('admin:stac_api_collection_change', args=[collection.id]), data
         )
 
         # Status code for successful creation is 302, since in the admin UI
@@ -447,7 +447,7 @@ class AdminCollectionTestCase(AdminBaseTestCase):
 
         # remove collection with links and providers
         response = self.client.post(
-            f"/api/stac/admin/stac_api/collection/{collection.id}/delete/", {"post": "yes"}
+            reverse('admin:stac_api_collection_delete', args=[collection.id]), {"post": "yes"}
         )
 
         # Status code for successful creation is 302, since in the admin UI
@@ -491,7 +491,7 @@ class AdminItemTestCase(AdminBaseTestCase):
 
         # update some data
         data['properties_title'] = "New title"
-        response = self.client.post(f"/api/stac/admin/stac_api/item/{item.id}/change/", data)
+        response = self.client.post(reverse('admin:stac_api_item_change', args=[item.id]), data)
 
         # Status code for successful creation is 302, since in the admin UI
         # you're redirected to the list view after successful creation
@@ -511,7 +511,7 @@ class AdminItemTestCase(AdminBaseTestCase):
 
         # remove the title
         data['properties_title'] = ""
-        response = self.client.post(f"/api/stac/admin/stac_api/item/{item.id}/change/", data)
+        response = self.client.post(reverse('admin:stac_api_item_change', args=[item.id]), data)
 
         # Status code for successful creation is 302, since in the admin UI
         # you're redirected to the list view after successful creation
@@ -533,7 +533,7 @@ class AdminItemTestCase(AdminBaseTestCase):
         data["links-0-id"] = link.id
         data["links-0-item"] = item.id
         data["links-0-link_type"] = "New type"
-        response = self.client.post(f"/api/stac/admin/stac_api/item/{item.id}/change/", data)
+        response = self.client.post(reverse('admin:stac_api_item_change', args=[item.id]), data)
 
         # Status code for successful creation is 302, since in the admin UI
         # you're redirected to the list view after successful creation
@@ -564,7 +564,7 @@ class AdminItemTestCase(AdminBaseTestCase):
             "links-TOTAL_FORMS": "0",
             "links-INITIAL_FORMS": "0",
         }
-        response = self.client.post("/api/stac/admin/stac_api/item/add/", data)
+        response = self.client.post(reverse('admin:stac_api_item_add'), data)
 
         # Status code for unsuccessful creation is 200, since in the admin UI
         # is returning an error message
@@ -585,7 +585,7 @@ class AdminItemTestCase(AdminBaseTestCase):
         data["links-0-id"] = link.id
         data["links-0-item"] = item.id
         data["links-0-DELETE"] = "on"
-        response = self.client.post(f"/api/stac/admin/stac_api/item/{item.id}/change/", data)
+        response = self.client.post(reverse('admin:stac_api_item_change', args=[item.id]), data)
 
         # Status code for successful creation is 302, since in the admin UI
         # you're redirected to the list view after successful creation
@@ -605,7 +605,7 @@ class AdminItemTestCase(AdminBaseTestCase):
 
         # remove item with links
         response = self.client.post(
-            f"/api/stac/admin/stac_api/item/{item.id}/delete/", {"post": "yes"}
+            reverse('admin:stac_api_item_delete', args=[item.id]), {"post": "yes"}
         )
 
         # Status code for successful creation is 302, since in the admin UI
@@ -657,7 +657,7 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
         data["title"] = "New Asset for test"
         data["media_type"] = "application/x.ascii-grid+zip"
         data["file"] = filelike
-        response = self.client.post(f"/api/stac/admin/stac_api/asset/{asset.id}/change/", data)
+        response = self.client.post(reverse('admin:stac_api_asset_change', args=[asset.id]), data)
 
         # Status code for successful creation is 302, since in the admin UI
         # you're redirected to the list view after successful creation
@@ -703,7 +703,7 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
             "item": self.item.id,
             "name": "test asset invalid name",
         }
-        response = self.client.post("/api/stac/admin/stac_api/asset/add/", data)
+        response = self.client.post(reverse('admin:stac_api_asset_add'), data)
 
         # Status code for unsuccessful creation is 200, since in the admin UI
         # is returning an error message
