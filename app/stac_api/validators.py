@@ -56,7 +56,7 @@ MEDIA_TYPES = [
     ('application/x.netcdf+zip', 'Zipped NetCDF', ['.zip']),
     ('application/xml', 'XML', ['.xml']),
     ('application/x.xml+zip', 'Zipped XML', ['.zip']),
-    ('application/vnd.mapbox-vector-tile', 'mbtiles', ['???']),
+    ('application/vnd.mapbox-vector-tile', 'mbtiles', ['.mvt']),
     ('text/plain', 'Text', ['.txt']),
     ('text/x.plain+zip', 'Zipped text', ['.zip']),
 ]
