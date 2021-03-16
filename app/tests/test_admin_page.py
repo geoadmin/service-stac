@@ -286,10 +286,11 @@ class AdminTestCase(AdminBaseTestCase):
 
 class AdminCollectionTestCase(AdminBaseTestCase):
 
-    def test_add_update_collection(self):
-        # Login the user first
+    def setUp(self):
+        super().setUp()
         self.client.login(username=self.username, password=self.password)
 
+    def test_add_update_collection(self):
         collection, data = self._create_collection()[:2]
 
         # update some data
@@ -307,9 +308,6 @@ class AdminCollectionTestCase(AdminBaseTestCase):
         )
 
     def test_add_update_collection_with_provider(self):
-        # Login the user first
-        self.client.login(username=self.username, password=self.password)
-
         collection, data, link, provider = self._create_collection(with_provider=True)
 
         # update some data in provider
@@ -333,9 +331,6 @@ class AdminCollectionTestCase(AdminBaseTestCase):
         )
 
     def test_add_update_collection_with_link(self):
-        # Login the user first
-        self.client.login(username=self.username, password=self.password)
-
         collection, data, link = self._create_collection(with_link=True)[:3]
 
         # update some data in link
@@ -357,9 +352,6 @@ class AdminCollectionTestCase(AdminBaseTestCase):
         )
 
     def test_add_collection_with_invalid_data(self):
-        # Login the user first
-        self.client.login(username=self.username, password=self.password)
-
         # Post data to create a new collection
         # Note: the *-*_FORMS fields are necessary management form fields
         # originating from the AdminInline and must be present
@@ -388,9 +380,6 @@ class AdminCollectionTestCase(AdminBaseTestCase):
         )
 
     def test_add_update_collection_remove_provider(self):
-        # Login the user first
-        self.client.login(username=self.username, password=self.password)
-
         collection, data, link, provider = self._create_collection(with_provider=True)
 
         # remove provider
@@ -411,9 +400,6 @@ class AdminCollectionTestCase(AdminBaseTestCase):
         )
 
     def test_add_update_collection_remove_link(self):
-        # Login the user first
-        self.client.login(username=self.username, password=self.password)
-
         collection, data, link = self._create_collection(with_link=True)[:3]
 
         # remove provider
@@ -435,9 +421,6 @@ class AdminCollectionTestCase(AdminBaseTestCase):
 
     @mock_s3_asset_file
     def test_add_remove_collection(self):
-        # Login the user first
-        self.client.login(username=self.username, password=self.password)
-
         collection, data, link, provider = self._create_collection(
             with_link=True,
             with_provider=True,
@@ -482,11 +465,9 @@ class AdminItemTestCase(AdminBaseTestCase):
     def setUp(self):
         super().setUp()
         self._setup(create_collection=True)
-
-    def test_add_update_item(self):
-        # Login the user first
         self.client.login(username=self.username, password=self.password)
 
+    def test_add_update_item(self):
         item, data = self._create_item(self.collection)[:2]
 
         # update some data
@@ -504,9 +485,6 @@ class AdminItemTestCase(AdminBaseTestCase):
         )
 
     def test_add_update_item_remove_title(self):
-        # Login the user first
-        self.client.login(username=self.username, password=self.password)
-
         item, data = self._create_item(self.collection)[:2]
 
         # remove the title
@@ -522,9 +500,6 @@ class AdminItemTestCase(AdminBaseTestCase):
         )
 
     def test_add_update_item_with_link(self):
-        # Login the user first
-        self.client.login(username=self.username, password=self.password)
-
         item, data, link = self._create_item(self.collection, with_link=True)
 
         # update some data
@@ -552,9 +527,6 @@ class AdminItemTestCase(AdminBaseTestCase):
         )
 
     def test_add_item_with_invalid_data(self):
-        # Login the user first
-        self.client.login(username=self.username, password=self.password)
-
         # Post data to create a new item
         # Note: the *-*_FORMS fields are necessary management form fields
         # originating from the AdminInline and must be present
@@ -575,9 +547,6 @@ class AdminItemTestCase(AdminBaseTestCase):
         )
 
     def test_add_update_item_remove_link(self):
-        # Login the user first
-        self.client.login(username=self.username, password=self.password)
-
         item, data, link = self._create_item(self.collection, with_link=True)
 
         # remove provider
@@ -597,9 +566,6 @@ class AdminItemTestCase(AdminBaseTestCase):
 
     @mock_s3_asset_file
     def test_add_remove_item(self):
-        # Login the user first
-        self.client.login(username=self.username, password=self.password)
-
         item, data, link = self._create_item(self.collection, with_link=True)
         asset = self._create_asset(item)[0]
 
@@ -630,17 +596,14 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
         super().setUp()
         self._setup(create_collection=True, create_item=True)
 
-    @mock_s3_asset_file
-    def test_add_asset_minimal(self):
-        # Login the user first
         self.client.login(username=self.username, password=self.password)
 
+    @mock_s3_asset_file
+    def test_add_asset_minimal(self):
         self._create_asset_minimal(self.item)
 
     @mock_s3_asset_file
     def test_add_update_asset(self):
-        # Login the user first
-        self.client.login(username=self.username, password=self.password)
 
         asset, data = self._create_asset(self.item)
 
@@ -673,8 +636,6 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
             self.assertEqual(filecontent, fd.read())
 
     def test_rename_asset(self):
-        # Login the user first
-        self.client.login(username=self.username, password=self.password)
 
         asset, data = self._create_asset(self.item)
 
@@ -696,8 +657,6 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
         # self.assertEqual(asset.file.name, new_path)
 
     def test_add_asset_with_invalid_data(self):
-        # Login the user first
-        self.client.login(username=self.username, password=self.password)
 
         data = {
             "item": self.item.id,
@@ -715,8 +674,6 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
 
     @mock_s3_asset_file
     def test_add_remove_asset(self):
-        # Login the user first
-        self.client.login(username=self.username, password=self.password)
 
         asset, data = self._create_asset(self.item)
         path = f"{asset.item.collection.name}/{asset.item.name}/{data['name']}"
