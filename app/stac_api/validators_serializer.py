@@ -1,6 +1,5 @@
 import json
 import logging
-from decimal import Decimal
 
 import botocore
 import multihash
@@ -10,8 +9,6 @@ from multihash import to_hex_string
 from django.conf import settings
 from django.contrib.gis.gdal.error import GDALException
 from django.contrib.gis.geos import GEOSGeometry
-from django.contrib.gis.geos import Point
-from django.contrib.gis.geos import Polygon
 from django.utils.translation import gettext_lazy as _
 
 from rest_framework.exceptions import APIException
@@ -20,6 +17,7 @@ from rest_framework.exceptions import ValidationError
 from stac_api.utils import create_multihash
 from stac_api.utils import create_multihash_string
 from stac_api.utils import fromisoformat
+from stac_api.utils import geometry_from_bbox
 from stac_api.utils import get_asset_path
 from stac_api.utils import get_s3_resource
 from stac_api.utils import harmonize_post_get_for_search
@@ -288,7 +286,7 @@ class ValidateSearchRequest:
             message = f"The application could not decode the query parameter" \
                       f"Please check the syntax ({error})." \
                       f"{query}"
-            raise ValidationError(code='query-invalid', detail=_(message))
+            raise ValidationError(code='query-invalid', detail=_(message)) from None
 
         self._query_validate_length_of_query(query_dict)
         for attribute in query_dict:
@@ -477,15 +475,7 @@ class ValidateSearchRequest:
                 float values. F. ex.: 5.96,45.82,10.49,47.81
         '''
         try:
-            list_bbox_values = bbox.split(',')
-            if (
-                Decimal(list_bbox_values[0]) == Decimal(list_bbox_values[2]) and
-                Decimal(list_bbox_values[1]) == Decimal(list_bbox_values[3])
-            ):
-                bbox_geometry = Point(float(list_bbox_values[0]), float(list_bbox_values[1]))
-            else:
-                bbox_geometry = Polygon.from_bbox(list_bbox_values)
-            validate_geometry(bbox_geometry)
+            validate_geometry(geometry_from_bbox(bbox))
 
         except (ValueError, ValidationError, IndexError, GDALException) as error:
             message = f"Invalid bbox query parameter: " \

@@ -36,6 +36,7 @@ class Handler(CommandHandler):
             f'{settings.BASE_DIR}/logs/stats-file',
             sort=self.options['sort']
         )
+        # pylint: disable=duplicate-code
         stats = pstats.Stats(f'{settings.BASE_DIR}/logs/stats-file')
         stats.sort_stats(self.options['sort']).print_stats()
 

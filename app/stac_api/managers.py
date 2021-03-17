@@ -1,16 +1,14 @@
 import logging
 from datetime import datetime
-from decimal import Decimal
 
 from django.contrib.gis.db import models
 from django.contrib.gis.geos import GEOSGeometry
-from django.contrib.gis.geos import Point
-from django.contrib.gis.geos import Polygon
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
 from rest_framework.exceptions import ValidationError
 
+from stac_api.utils import geometry_from_bbox
 from stac_api.validators import validate_geometry
 
 logger = logging.getLogger(__name__)
@@ -38,14 +36,7 @@ class ItemQuerySet(models.QuerySet):
         '''
         try:
             logger.debug('Query parameter bbox = %s', bbox)
-            list_bbox_values = bbox.split(',')
-            if (
-                Decimal(list_bbox_values[0]) == Decimal(list_bbox_values[2]) and
-                Decimal(list_bbox_values[1]) == Decimal(list_bbox_values[3])
-            ):
-                bbox_geometry = Point(float(list_bbox_values[0]), float(list_bbox_values[1]))
-            else:
-                bbox_geometry = Polygon.from_bbox(list_bbox_values)
+            bbox_geometry = geometry_from_bbox(bbox)
             validate_geometry(bbox_geometry)
 
         except (ValueError, ValidationError, IndexError) as error:
@@ -60,7 +51,7 @@ class ItemQuerySet(models.QuerySet):
                 _('Invalid bbox query parameter, '
                   ' has to contain 4 values. f.ex. bbox=5.96,45.82,10.49,47.81'),
                 code='bbox-invalid'
-            )
+            ) from None
 
         return self.filter(geometry__intersects=bbox_geometry)
 
@@ -144,7 +135,7 @@ class ItemQuerySet(models.QuerySet):
             raise ValidationError(
                 _('Invalid datetime query parameter, must be isoformat'),
                 code='datetime'
-            )
+            ) from None
 
         if end == '':
             end = None

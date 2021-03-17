@@ -159,5 +159,5 @@ class CollectionSpatialExtentMixin():
             raise GEOSException(
                 f'Failed to update spatial extend in colletion {self.name} with item '
                 f'{item.name}: {error}'
-            )
+            ) from error
         return updated

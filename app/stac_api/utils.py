@@ -3,6 +3,7 @@ import json
 import logging
 from datetime import datetime
 from datetime import timezone
+from decimal import Decimal
 from urllib import parse
 
 import boto3
@@ -10,6 +11,8 @@ import multihash
 from botocore.client import Config
 
 from django.conf import settings
+from django.contrib.gis.geos import Point
+from django.contrib.gis.geos import Polygon
 
 logger = logging.getLogger(__name__)
 
@@ -267,3 +270,27 @@ class CommandHandler():
 
     def print_error(self, message, *args):
         self.stderr.write(self.style.ERROR(message % (args)))
+
+
+def geometry_from_bbox(bbox):
+    '''Returns a Geometry from a bbox
+
+    Args:
+        bbox: string
+            bbox as string comma separated or as float list
+
+    Returns:
+        Geometry
+
+    Raises:
+        ValueError, IndexError, GDALException
+    '''
+    list_bbox_values = bbox.split(',')
+    if (
+        Decimal(list_bbox_values[0]) == Decimal(list_bbox_values[2]) and
+        Decimal(list_bbox_values[1]) == Decimal(list_bbox_values[3])
+    ):
+        bbox_geometry = Point(float(list_bbox_values[0]), float(list_bbox_values[1]))
+    else:
+        bbox_geometry = Polygon.from_bbox(list_bbox_values)
+    return bbox_geometry

@@ -39,95 +39,116 @@ class ApiPaginationTestCase(StacBaseTestCase):
 
     @classmethod
     def setUpTestData(cls):
-        Factory().create_collection_samples(3, db_create=True)
+        cls.factory = Factory()
+        cls.collections = cls.factory.create_collection_samples(3, db_create=True)
 
     def setUp(self):
         self.client = Client()
 
     def test_invalid_limit_query(self):
-        response = self.client.get(f"/{STAC_BASE_V}/collections?limit=0")
-        self.assertStatusCode(400, response)
-        self.assertEqual(['limit query parameter too small, must be in range 1..100'],
-                         response.json()['description'],
-                         msg='Unexpected error message')
+        items = self.factory.create_item_samples(3, self.collections[0].model, db_create=True)
+        for endpoint in ['collections', f'collections/{self.collections[0]["name"]}/items']:
+            with self.subTest(endpoint=endpoint):
+                response = self.client.get(f"/{STAC_BASE_V}/{endpoint}?limit=0")
+                self.assertStatusCode(400, response)
+                self.assertEqual(['limit query parameter too small, must be in range 1..100'],
+                                 response.json()['description'],
+                                 msg='Unexpected error message')
 
-        response = self.client.get(f"/{STAC_BASE_V}/collections?limit=test")
-        self.assertStatusCode(400, response)
-        self.assertEqual(['invalid limit query parameter: must be an integer'],
-                         response.json()['description'],
-                         msg='Unexpected error message')
+                response = self.client.get(f"/{STAC_BASE_V}/{endpoint}?limit=test")
+                self.assertStatusCode(400, response)
+                self.assertEqual(['invalid limit query parameter: must be an integer'],
+                                 response.json()['description'],
+                                 msg='Unexpected error message')
 
-        response = self.client.get(f"/{STAC_BASE_V}/collections?limit=-1")
-        self.assertStatusCode(400, response)
-        self.assertEqual(['limit query parameter too small, must be in range 1..100'],
-                         response.json()['description'],
-                         msg='Unexpected error message')
+                response = self.client.get(f"/{STAC_BASE_V}/{endpoint}?limit=-1")
+                self.assertStatusCode(400, response)
+                self.assertEqual(['limit query parameter too small, must be in range 1..100'],
+                                 response.json()['description'],
+                                 msg='Unexpected error message')
 
-        response = self.client.get(f"/{STAC_BASE_V}/collections?limit=1000")
-        self.assertStatusCode(400, response)
-        self.assertEqual(['limit query parameter too big, must be in range 1..100'],
-                         response.json()['description'],
-                         msg='Unexpected error message')
+                response = self.client.get(f"/{STAC_BASE_V}/{endpoint}?limit=1000")
+                self.assertStatusCode(400, response)
+                self.assertEqual(['limit query parameter too big, must be in range 1..100'],
+                                 response.json()['description'],
+                                 msg='Unexpected error message')
 
     def test_pagination(self):
+        items = self.factory.create_item_samples(3, self.collections[0].model, db_create=True)
+        for endpoint in [
+            'collections',
+            f'collections/{self.collections[0]["name"]}/items',
+        ]:
+            with self.subTest(endpoint=endpoint):
+                response = self.client.get(f"/{STAC_BASE_V}/{endpoint}?limit=1")
+                json_data = response.json()
+                self.assertEqual(
+                    200, response.status_code, msg=get_http_error_description(json_data)
+                )
 
-        response = self.client.get(f"/{STAC_BASE_V}/collections?limit=1")
-        json_data = response.json()
-        self.assertEqual(200, response.status_code, msg=get_http_error_description(json_data))
+                # Check next link
+                next_link = get_link(json_data['links'], 'next')
+                self.assertIsNotNone(next_link, msg='Pagination next link missing')
+                self.assertTrue(isinstance(next_link['href'], str), msg='href is not a string')
+                self.assertTrue(
+                    next_link['href'].
+                    startswith(f'http://testserver/api/stac/v0.9/{endpoint}?cursor='),
+                    msg='Invalid href link pagination string'
+                )
 
-        # Check next link
-        next_link = get_link(json_data['links'], 'next')
-        self.assertIsNotNone(next_link, msg='Pagination next link missing')
-        self.assertTrue(isinstance(next_link['href'], str), msg='href is not a string')
-        self.assertTrue(
-            next_link['href'].startswith('http://testserver/api/stac/v0.9/collections?cursor='),
-            msg='Invalid href link pagination string'
-        )
+                # Check previous link
+                previous_link = get_link(json_data['links'], 'previous')
+                self.assertIsNone(
+                    previous_link, msg='Pagination previous link present for initial query'
+                )
 
-        # Check previous link
-        previous_link = get_link(json_data['links'], 'previous')
-        self.assertIsNone(previous_link, msg='Pagination previous link present for initial query')
+                # Get the next page
+                response = self.client.get(next_link['href'].replace('http://testserver', ''))
+                json_data = response.json()
+                self.assertEqual(
+                    200, response.status_code, msg=get_http_error_description(json_data)
+                )
 
-        # Get the next page
-        response = self.client.get(next_link['href'].replace('http://testserver', ''))
-        json_data = response.json()
-        self.assertEqual(200, response.status_code, msg=get_http_error_description(json_data))
+                # Check next link
+                next_link = get_link(json_data['links'], 'next')
+                self.assertIsNotNone(next_link, msg='Pagination next link missing')
+                self.assertTrue(isinstance(next_link['href'], str), msg='href is not a string')
+                self.assertTrue(
+                    next_link['href'].
+                    startswith(f'http://testserver/api/stac/v0.9/{endpoint}?cursor='),
+                    msg='Invalid href link pagination string'
+                )
 
-        # Check next link
-        next_link = get_link(json_data['links'], 'next')
-        self.assertIsNotNone(next_link, msg='Pagination next link missing')
-        self.assertTrue(isinstance(next_link['href'], str), msg='href is not a string')
-        self.assertTrue(
-            next_link['href'].startswith('http://testserver/api/stac/v0.9/collections?cursor='),
-            msg='Invalid href link pagination string'
-        )
+                # Check previous link
+                previous_link = get_link(json_data['links'], 'previous')
+                self.assertIsNotNone(previous_link, msg='Pagination previous link is missing')
+                self.assertTrue(isinstance(previous_link['href'], str), msg='href is not a string')
+                self.assertTrue(
+                    previous_link['href'].
+                    startswith(f'http://testserver/api/stac/v0.9/{endpoint}?cursor='),
+                    msg='Invalid href link pagination string'
+                )
 
-        # Check previous link
-        previous_link = get_link(json_data['links'], 'previous')
-        self.assertIsNotNone(previous_link, msg='Pagination previous link is missing')
-        self.assertTrue(isinstance(previous_link['href'], str), msg='href is not a string')
-        self.assertTrue(
-            previous_link['href'].startswith('http://testserver/api/stac/v0.9/collections?cursor='),
-            msg='Invalid href link pagination string'
-        )
+                # Get the next page
+                response = self.client.get(next_link['href'].replace('http://testserver', ''))
+                json_data = response.json()
+                self.assertEqual(
+                    200, response.status_code, msg=get_http_error_description(json_data)
+                )
 
-        # Get the next page
-        response = self.client.get(next_link['href'].replace('http://testserver', ''))
-        json_data = response.json()
-        self.assertEqual(200, response.status_code, msg=get_http_error_description(json_data))
+                # Check next link
+                next_link = get_link(json_data['links'], 'next')
+                self.assertIsNone(next_link, msg='Pagination next link is present')
 
-        # Check next link
-        next_link = get_link(json_data['links'], 'next')
-        self.assertIsNone(next_link, msg='Pagination next link is present')
-
-        # Check previous link
-        previous_link = get_link(json_data['links'], 'previous')
-        self.assertIsNotNone(previous_link, msg='Pagination previous link is missing')
-        self.assertTrue(isinstance(previous_link['href'], str), msg='href is not a string')
-        self.assertTrue(
-            previous_link['href'].startswith('http://testserver/api/stac/v0.9/collections?cursor='),
-            msg='Invalid href link pagination string'
-        )
+                # Check previous link
+                previous_link = get_link(json_data['links'], 'previous')
+                self.assertIsNotNone(previous_link, msg='Pagination previous link is missing')
+                self.assertTrue(isinstance(previous_link['href'], str), msg='href is not a string')
+                self.assertTrue(
+                    previous_link['href'].
+                    startswith(f'http://testserver/api/stac/v0.9/{endpoint}?cursor='),
+                    msg='Invalid href link pagination string'
+                )
 
 
 class ApiETagPreconditionTestCase(StacBaseTestCase):

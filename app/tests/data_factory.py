@@ -132,7 +132,7 @@ class SampleData:
         try:
             sample = self.samples_dict[sample]
         except KeyError as error:
-            raise KeyError(f'Unknown {self.sample_name} sample: {error}')
+            raise KeyError(f'Unknown {self.sample_name} sample: {error}') from None
 
         # Sets attributes from sample
         for key, value in sample.items():
