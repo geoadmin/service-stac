@@ -342,7 +342,7 @@ class AssetsWriteEndpointAssetFileTestCase(StacBaseTestCase):
         description = response.json()['description']
         self.assertIn('href', description, msg=f'Unexpected field error {description}')
         self.assertEqual(
-            "Asset doesn't exists at href http://testserver/collection-1/item-1/asset-1",
+            "Asset doesn't exists at href http://testserver/collection-1/item-1/asset-1.tiff",
             description['href'][0],
             msg="Unexpected error message"
         )
@@ -393,8 +393,8 @@ class AssetsWriteEndpointAssetFileTestCase(StacBaseTestCase):
         description = response.json()['description']
         self.assertIn('non_field_errors', description, msg=f'Unexpected field error {description}')
         self.assertEqual(
-            "Asset at href http://testserver/collection-1/item-1/asset-1 has a md5 multihash while "
-            "a sha2-256 multihash is defined in the checksum:multihash attribute",
+            "Asset at href http://testserver/collection-1/item-1/asset-1.tiff has a md5 multihash "
+            "while a sha2-256 multihash is defined in the checksum:multihash attribute",
             description['non_field_errors'][0],
             msg="Unexpected error message"
         )
@@ -420,7 +420,7 @@ class AssetsWriteEndpointAssetFileTestCase(StacBaseTestCase):
         description = response.json()['description']
         self.assertIn('non_field_errors', description, msg=f'Unexpected field error {description}')
         self.assertEqual(
-            "Asset at href http://testserver/collection-1/item-1/asset-1 with sha2-256 hash "
+            "Asset at href http://testserver/collection-1/item-1/asset-1.tiff with sha2-256 hash "
             "a7f5e7ca03b0f80a2fcfe5142642377e7654df2dfa736fe4d925322d8a651efe doesn't match the "
             "checksum:multihash 3db85f41709d08bf1f2907042112bf483b28e12db4b3ffb5428a1f28308847ba",
             description['non_field_errors'][0],
@@ -546,6 +546,7 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
             item=self.item.model,
             name=asset_name,
             sample='asset-1-updated',
+            media_type=self.asset['media_type'],
             checksum_multihash=self.asset['checksum_multihash'],
             create_asset_file=False
         )
@@ -576,6 +577,7 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
             item=self.item.model,
             name=asset_name,
             sample='asset-1-updated',
+            media_type=self.asset['media_type'],
             checksum_multihash=self.asset['checksum_multihash'],
             extra_attribute='not allowed',
             create_asset_file=False
@@ -599,6 +601,7 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
             name=asset_name,
             checksum_multihash=self.asset['checksum_multihash'],
             sample='asset-1-updated',
+            media_type=self.asset['media_type'],
             created=utc_aware(datetime.utcnow()),
             create_asset_file=False
         )
@@ -618,7 +621,7 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
         collection_name = self.collection['name']
         item_name = self.item['name']
         asset_name = self.asset['name']
-        new_asset_name = "new-asset-name"
+        new_asset_name = "new-asset-name.txt"
         changed_asset = self.factory.create_asset_sample(
             item=self.item.model,
             name=new_asset_name,
@@ -652,7 +655,7 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
         collection_name = self.collection['name']
         item_name = self.item['name']
         asset_name = self.asset['name']
-        new_asset_name = "new-asset-name"
+        new_asset_name = "new-asset-name.txt"
         changed_asset = self.factory.create_asset_sample(
             item=self.item.model, name=new_asset_name, sample='asset-1-updated'
         )
@@ -688,6 +691,7 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
             item=self.item.model,
             name=asset_name,
             sample='asset-1-updated',
+            media_type=self.asset['media_type'],
             extra_payload='invalid'
         )
 
@@ -708,6 +712,7 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
             item=self.item.model,
             name=asset_name,
             sample='asset-1-updated',
+            media_type=self.asset['media_type'],
             created=utc_aware(datetime.utcnow())
         )
 

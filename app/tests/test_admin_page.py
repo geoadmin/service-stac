@@ -14,6 +14,7 @@ from stac_api.models import Item
 from stac_api.models import ItemLink
 from stac_api.models import Provider
 
+from tests.data_factory import Factory
 from tests.utils import S3TestMixin
 from tests.utils import mock_s3_asset_file
 
@@ -25,6 +26,7 @@ logger = logging.getLogger(__name__)
 class AdminBaseTestCase(TestCase):
 
     def setUp(self):
+        self.factory = Factory()
         self.password = 'sesame'
         self.username = 'admin_user'
         self.admin_user = get_user_model().objects.create_superuser(
@@ -76,7 +78,7 @@ class AdminBaseTestCase(TestCase):
             })
         if extra is not None:
             data.update(extra)
-        response = self.client.post("/api/stac/admin/stac_api/collection/add/", data)
+        response = self.client.post(reverse('admin:stac_api_collection_add'), data)
 
         # Status code for successful creation is 302, since in the admin UI
         # you're redirected to the list view after successful creation
@@ -134,7 +136,7 @@ class AdminBaseTestCase(TestCase):
             })
         if extra:
             data.update(extra)
-        response = self.client.post("/api/stac/admin/stac_api/item/add/", data)
+        response = self.client.post(reverse('admin:stac_api_item_add'), data)
 
         # Status code for successful creation is 302, since in the admin UI
         # you're redirected to the list view after successful creation
@@ -187,7 +189,7 @@ class AdminBaseTestCase(TestCase):
             "file": filelike
         }
 
-        response = self.client.post("/api/stac/admin/stac_api/asset/add/", data)
+        response = self.client.post(reverse('admin:stac_api_asset_add'), data)
         logger.debug('Asset created in %fs', time.time() - start)
 
         # Status code for successful creation is 302, since in the admin UI
@@ -226,7 +228,7 @@ class AdminBaseTestCase(TestCase):
 
         data = {
             "item": item.id,
-            "name": "test_asset",
+            "name": "test_asset.zip",
             "description": "This is a description",
             "eo_gsd": 10,
             "geoadmin_lang": "en",
@@ -236,7 +238,9 @@ class AdminBaseTestCase(TestCase):
             "media_type": "application/x.filegdb+zip",
             "file": filelike
         }
-        response = self.client.post("/api/stac/admin/stac_api/asset/add/", data)
+        if extra:
+            data.update(extra)
+        response = self.client.post(reverse('admin:stac_api_asset_add'), data)
         logger.debug('Asset created in %fs', time.time() - start)
 
         # Status code for successful creation is 302, since in the admin UI
@@ -286,16 +290,17 @@ class AdminTestCase(AdminBaseTestCase):
 
 class AdminCollectionTestCase(AdminBaseTestCase):
 
-    def test_add_update_collection(self):
-        # Login the user first
+    def setUp(self):
+        super().setUp()
         self.client.login(username=self.username, password=self.password)
 
+    def test_add_update_collection(self):
         collection, data = self._create_collection()[:2]
 
         # update some data
         data['title'] = "New title"
         response = self.client.post(
-            f"/api/stac/admin/stac_api/collection/{collection.id}/change/", data
+            reverse('admin:stac_api_collection_change', args=[collection.id]), data
         )
 
         # Status code for successful creation is 302, since in the admin UI
@@ -307,9 +312,6 @@ class AdminCollectionTestCase(AdminBaseTestCase):
         )
 
     def test_add_update_collection_with_provider(self):
-        # Login the user first
-        self.client.login(username=self.username, password=self.password)
-
         collection, data, link, provider = self._create_collection(with_provider=True)
 
         # update some data in provider
@@ -318,7 +320,7 @@ class AdminCollectionTestCase(AdminBaseTestCase):
         data["providers-0-collection"] = collection.id
         data["providers-0-roles"] = "licensor,producer"
         response = self.client.post(
-            f"/api/stac/admin/stac_api/collection/{collection.id}/change/", data
+            reverse('admin:stac_api_collection_change', args=[collection.id]), data
         )
 
         # Status code for successful creation is 302, since in the admin UI
@@ -333,9 +335,6 @@ class AdminCollectionTestCase(AdminBaseTestCase):
         )
 
     def test_add_update_collection_with_link(self):
-        # Login the user first
-        self.client.login(username=self.username, password=self.password)
-
         collection, data, link = self._create_collection(with_link=True)[:3]
 
         # update some data in link
@@ -344,7 +343,7 @@ class AdminCollectionTestCase(AdminBaseTestCase):
         data["links-0-collection"] = collection.id
         data["links-0-title"] = "New Title"
         response = self.client.post(
-            f"/api/stac/admin/stac_api/collection/{collection.id}/change/", data
+            reverse('admin:stac_api_collection_change', args=[collection.id]), data
         )
 
         # Status code for successful update is 302, since in the admin UI
@@ -357,9 +356,6 @@ class AdminCollectionTestCase(AdminBaseTestCase):
         )
 
     def test_add_collection_with_invalid_data(self):
-        # Login the user first
-        self.client.login(username=self.username, password=self.password)
-
         # Post data to create a new collection
         # Note: the *-*_FORMS fields are necessary management form fields
         # originating from the AdminInline and must be present
@@ -377,7 +373,7 @@ class AdminCollectionTestCase(AdminBaseTestCase):
             "links-0-link_type": "example",
             "links-0-title": "Example test",
         }
-        response = self.client.post("/api/stac/admin/stac_api/collection/add/", data)
+        response = self.client.post(reverse('admin:stac_api_collection_add'), data)
 
         # Status code for unsuccessful creation is 200, since in the admin UI
         # is returning an error message
@@ -388,9 +384,6 @@ class AdminCollectionTestCase(AdminBaseTestCase):
         )
 
     def test_add_update_collection_remove_provider(self):
-        # Login the user first
-        self.client.login(username=self.username, password=self.password)
-
         collection, data, link, provider = self._create_collection(with_provider=True)
 
         # remove provider
@@ -399,7 +392,7 @@ class AdminCollectionTestCase(AdminBaseTestCase):
         data["providers-0-collection"] = collection.id
         data["providers-0-DELETE"] = "on"
         response = self.client.post(
-            f"/api/stac/admin/stac_api/collection/{collection.id}/change/", data
+            reverse('admin:stac_api_collection_change', args=[collection.id]), data
         )
 
         # Status code for successful creation is 302, since in the admin UI
@@ -411,9 +404,6 @@ class AdminCollectionTestCase(AdminBaseTestCase):
         )
 
     def test_add_update_collection_remove_link(self):
-        # Login the user first
-        self.client.login(username=self.username, password=self.password)
-
         collection, data, link = self._create_collection(with_link=True)[:3]
 
         # remove provider
@@ -422,7 +412,7 @@ class AdminCollectionTestCase(AdminBaseTestCase):
         data["links-0-collection"] = collection.id
         data["links-0-DELETE"] = "on"
         response = self.client.post(
-            f"/api/stac/admin/stac_api/collection/{collection.id}/change/", data
+            reverse('admin:stac_api_collection_change', args=[collection.id]), data
         )
 
         # Status code for successful creation is 302, since in the admin UI
@@ -435,9 +425,6 @@ class AdminCollectionTestCase(AdminBaseTestCase):
 
     @mock_s3_asset_file
     def test_add_remove_collection(self):
-        # Login the user first
-        self.client.login(username=self.username, password=self.password)
-
         collection, data, link, provider = self._create_collection(
             with_link=True,
             with_provider=True,
@@ -447,7 +434,7 @@ class AdminCollectionTestCase(AdminBaseTestCase):
 
         # remove collection with links and providers
         response = self.client.post(
-            f"/api/stac/admin/stac_api/collection/{collection.id}/delete/", {"post": "yes"}
+            reverse('admin:stac_api_collection_delete', args=[collection.id]), {"post": "yes"}
         )
 
         # Status code for successful creation is 302, since in the admin UI
@@ -482,16 +469,14 @@ class AdminItemTestCase(AdminBaseTestCase):
     def setUp(self):
         super().setUp()
         self._setup(create_collection=True)
-
-    def test_add_update_item(self):
-        # Login the user first
         self.client.login(username=self.username, password=self.password)
 
+    def test_add_update_item(self):
         item, data = self._create_item(self.collection)[:2]
 
         # update some data
         data['properties_title'] = "New title"
-        response = self.client.post(f"/api/stac/admin/stac_api/item/{item.id}/change/", data)
+        response = self.client.post(reverse('admin:stac_api_item_change', args=[item.id]), data)
 
         # Status code for successful creation is 302, since in the admin UI
         # you're redirected to the list view after successful creation
@@ -504,14 +489,11 @@ class AdminItemTestCase(AdminBaseTestCase):
         )
 
     def test_add_update_item_remove_title(self):
-        # Login the user first
-        self.client.login(username=self.username, password=self.password)
-
         item, data = self._create_item(self.collection)[:2]
 
         # remove the title
         data['properties_title'] = ""
-        response = self.client.post(f"/api/stac/admin/stac_api/item/{item.id}/change/", data)
+        response = self.client.post(reverse('admin:stac_api_item_change', args=[item.id]), data)
 
         # Status code for successful creation is 302, since in the admin UI
         # you're redirected to the list view after successful creation
@@ -522,9 +504,6 @@ class AdminItemTestCase(AdminBaseTestCase):
         )
 
     def test_add_update_item_with_link(self):
-        # Login the user first
-        self.client.login(username=self.username, password=self.password)
-
         item, data, link = self._create_item(self.collection, with_link=True)
 
         # update some data
@@ -533,7 +512,7 @@ class AdminItemTestCase(AdminBaseTestCase):
         data["links-0-id"] = link.id
         data["links-0-item"] = item.id
         data["links-0-link_type"] = "New type"
-        response = self.client.post(f"/api/stac/admin/stac_api/item/{item.id}/change/", data)
+        response = self.client.post(reverse('admin:stac_api_item_change', args=[item.id]), data)
 
         # Status code for successful creation is 302, since in the admin UI
         # you're redirected to the list view after successful creation
@@ -552,9 +531,6 @@ class AdminItemTestCase(AdminBaseTestCase):
         )
 
     def test_add_item_with_invalid_data(self):
-        # Login the user first
-        self.client.login(username=self.username, password=self.password)
-
         # Post data to create a new item
         # Note: the *-*_FORMS fields are necessary management form fields
         # originating from the AdminInline and must be present
@@ -564,7 +540,7 @@ class AdminItemTestCase(AdminBaseTestCase):
             "links-TOTAL_FORMS": "0",
             "links-INITIAL_FORMS": "0",
         }
-        response = self.client.post("/api/stac/admin/stac_api/item/add/", data)
+        response = self.client.post(reverse('admin:stac_api_item_add'), data)
 
         # Status code for unsuccessful creation is 200, since in the admin UI
         # is returning an error message
@@ -575,9 +551,6 @@ class AdminItemTestCase(AdminBaseTestCase):
         )
 
     def test_add_update_item_remove_link(self):
-        # Login the user first
-        self.client.login(username=self.username, password=self.password)
-
         item, data, link = self._create_item(self.collection, with_link=True)
 
         # remove provider
@@ -585,7 +558,7 @@ class AdminItemTestCase(AdminBaseTestCase):
         data["links-0-id"] = link.id
         data["links-0-item"] = item.id
         data["links-0-DELETE"] = "on"
-        response = self.client.post(f"/api/stac/admin/stac_api/item/{item.id}/change/", data)
+        response = self.client.post(reverse('admin:stac_api_item_change', args=[item.id]), data)
 
         # Status code for successful creation is 302, since in the admin UI
         # you're redirected to the list view after successful creation
@@ -597,15 +570,12 @@ class AdminItemTestCase(AdminBaseTestCase):
 
     @mock_s3_asset_file
     def test_add_remove_item(self):
-        # Login the user first
-        self.client.login(username=self.username, password=self.password)
-
         item, data, link = self._create_item(self.collection, with_link=True)
         asset = self._create_asset(item)[0]
 
         # remove item with links
         response = self.client.post(
-            f"/api/stac/admin/stac_api/item/{item.id}/delete/", {"post": "yes"}
+            reverse('admin:stac_api_item_delete', args=[item.id]), {"post": "yes"}
         )
 
         # Status code for successful creation is 302, since in the admin UI
@@ -630,17 +600,14 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
         super().setUp()
         self._setup(create_collection=True, create_item=True)
 
-    @mock_s3_asset_file
-    def test_add_asset_minimal(self):
-        # Login the user first
         self.client.login(username=self.username, password=self.password)
 
+    @mock_s3_asset_file
+    def test_add_asset_minimal(self):
         self._create_asset_minimal(self.item)
 
     @mock_s3_asset_file
     def test_add_update_asset(self):
-        # Login the user first
-        self.client.login(username=self.username, password=self.password)
 
         asset, data = self._create_asset(self.item)
 
@@ -657,7 +624,7 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
         data["title"] = "New Asset for test"
         data["media_type"] = "application/x.ascii-grid+zip"
         data["file"] = filelike
-        response = self.client.post(f"/api/stac/admin/stac_api/asset/{asset.id}/change/", data)
+        response = self.client.post(reverse('admin:stac_api_asset_change', args=[asset.id]), data)
 
         # Status code for successful creation is 302, since in the admin UI
         # you're redirected to the list view after successful creation
@@ -673,8 +640,6 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
             self.assertEqual(filecontent, fd.read())
 
     def test_rename_asset(self):
-        # Login the user first
-        self.client.login(username=self.username, password=self.password)
 
         asset, data = self._create_asset(self.item)
 
@@ -696,14 +661,12 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
         # self.assertEqual(asset.file.name, new_path)
 
     def test_add_asset_with_invalid_data(self):
-        # Login the user first
-        self.client.login(username=self.username, password=self.password)
 
         data = {
             "item": self.item.id,
             "name": "test asset invalid name",
         }
-        response = self.client.post("/api/stac/admin/stac_api/asset/add/", data)
+        response = self.client.post(reverse('admin:stac_api_asset_add'), data)
 
         # Status code for unsuccessful creation is 200, since in the admin UI
         # is returning an error message
@@ -715,8 +678,6 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
 
     @mock_s3_asset_file
     def test_add_remove_asset(self):
-        # Login the user first
-        self.client.login(username=self.username, password=self.password)
 
         asset, data = self._create_asset(self.item)
         path = f"{asset.item.collection.name}/{asset.item.name}/{data['name']}"
@@ -735,3 +696,19 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
         )
 
         # self.assertS3ObjectNotExists(path) # Un-comment with BGDIINF_SB-1625
+
+    @mock_s3_asset_file
+    def test_add_update_asset_invalid_media_type(self):
+        sample = self.factory.create_asset_sample(
+            self.item, name='asset.txt', media_type='image/tiff; application=geotiff'
+        ).attributes
+        # Admin page doesn't uses the name for foreign key but the internal db id.
+        sample['item'] = self.item.id
+        response = self.client.post(reverse('admin:stac_api_asset_add'), sample)
+        # Status code for unsuccessful creation is 200, since in the admin UI
+        # is returning an error message
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(
+            Asset.objects.filter(item=self.item, name=sample["name"]).exists(),
+            msg="Asset with invalid data has been added to db"
+        )

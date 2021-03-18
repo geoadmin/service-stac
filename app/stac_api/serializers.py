@@ -24,6 +24,8 @@ from stac_api.utils import build_asset_href
 from stac_api.utils import isoformat
 from stac_api.validators import MEDIA_TYPES_MIMES
 from stac_api.validators import validate_asset_multihash
+from stac_api.validators import validate_asset_name
+from stac_api.validators import validate_asset_name_with_media_type
 from stac_api.validators import validate_geoadmin_variant
 from stac_api.validators import validate_item_properties_datetimes
 from stac_api.validators import validate_name
@@ -570,7 +572,7 @@ class AssetBaseSerializer(NonNullModelSerializer):
     id = serializers.CharField(
         source='name',
         max_length=255,
-        validators=[validate_name, UniqueValidator(queryset=Asset.objects.all())]
+        validators=[validate_asset_name, UniqueValidator(queryset=Asset.objects.all())]
     )
     title = serializers.CharField(
         required=False, max_length=255, allow_null=True, allow_blank=False
@@ -615,6 +617,14 @@ class AssetBaseSerializer(NonNullModelSerializer):
     updated = serializers.DateTimeField(read_only=True)
 
     def validate(self, attrs):
+        if not self.partial:
+            validate_asset_name_with_media_type(attrs.get('name'), attrs.get('media_type'))
+        if self.partial and ('name' in attrs or 'media_type' in attrs):
+            validate_asset_name_with_media_type(
+                attrs.get('name', self.instance.name),
+                attrs.get('media_type', self.instance.media_type)
+            )
+
         validate_json_payload(self)
 
         if not self.partial:

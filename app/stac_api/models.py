@@ -25,6 +25,8 @@ from stac_api.managers import ItemManager
 from stac_api.utils import get_asset_path
 # from stac_api.utils import get_s3_resource # Un-comment with BGDIINF_SB-1625
 from stac_api.validators import MEDIA_TYPES
+from stac_api.validators import validate_asset_name
+from stac_api.validators import validate_asset_name_with_media_type
 from stac_api.validators import validate_geoadmin_variant
 from stac_api.validators import validate_geometry
 from stac_api.validators import validate_item_properties_datetimes
@@ -548,7 +550,7 @@ class Asset(models.Model):
         help_text=_(SEARCH_TEXT_HELP_ITEM)
     )
     # using "name" instead of "id", as "id" has a default meaning in django
-    name = models.CharField('id', max_length=255, validators=[validate_name])
+    name = models.CharField('id', max_length=255, validators=[validate_asset_name])
     file = models.FileField(upload_to=upload_asset_to_path_hook, max_length=255)
 
     @property
@@ -733,3 +735,6 @@ class Asset(models.Model):
             self.item.collection.save()
         self.item.save()  # We save the item to update its ETag
         super().delete(*args, **kwargs)
+
+    def clean(self):
+        validate_asset_name_with_media_type(self.name, self.media_type)
