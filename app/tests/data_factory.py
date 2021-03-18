@@ -1079,7 +1079,7 @@ class AssetFactory(FactoryBase):
                 item, sample=sample, name=name, required_only=required_only, **kwargs
             )
         else:
-            self.last = self.get_last_name(self.last, extension=self.get_extension(sample, kwargs))
+            self.last = self.get_last_name(self.last, extension=self._get_extension(sample, kwargs))
             data_sample = AssetSample(
                 item, sample=sample, name=self.last, required_only=required_only, **kwargs
             )
@@ -1115,7 +1115,7 @@ class AssetFactory(FactoryBase):
             samples, item=item, db_create=db_create, create_asset_file=create_asset_file, **kwargs
         )
 
-    def get_extension(self, sample_name, kwargs):
+    def _get_extension(self, sample_name, kwargs):
         media = 'text/plain'
         if 'media_type' in kwargs:
             media = kwargs['media_type']
