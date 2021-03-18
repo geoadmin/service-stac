@@ -45,7 +45,7 @@ class StandaloneApplication(BaseApplication):  # pylint: disable=abstract-method
     def __init__(self, app, options=None):  # pylint: disable=redefined-outer-name
         self.options = options or {}
         self.application = app
-        super(StandaloneApplication, self).__init__()
+        super().__init__()
 
     def load_config(self):
         config = {

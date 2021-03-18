@@ -108,7 +108,7 @@ MIDDLEWARE = [
 try:
     CACHE_MIDDLEWARE_SECONDS = int(os.environ.get('HTTP_CACHE_SECONDS', '600'))
 except ValueError as error:
-    raise ValueError('Invalid HTTP_CACHE_SECONDS environment value: must be an integer')
+    raise ValueError('Invalid HTTP_CACHE_SECONDS environment value: must be an integer') from error
 
 ROOT_URLCONF = 'config.urls'
 API_BASE = 'api'
@@ -194,7 +194,9 @@ HEALTHCHECK_ENDPOINT = os.environ.get('HEALTHCHECK_ENDPOINT', 'healthcheck')
 try:
     WHITENOISE_MAX_AGE = int(os.environ.get('HTTP_STATIC_CACHE_SECONDS', '3600'))
 except ValueError as error:
-    raise ValueError('Invalid HTTP_STATIC_CACHE_SECONDS environment value: must be an integer')
+    raise ValueError(
+        'Invalid HTTP_STATIC_CACHE_SECONDS environment value: must be an integer'
+    ) from error
 WHITENOISE_MIMETYPES = {
     # These sets the mime types for the api/stac/static/spec/v0.9/openapi.yaml static file
     # otherwise a default application/octet-stream is used.
@@ -230,7 +232,7 @@ except KeyError as err:
 try:
     STORAGE_ASSETS_CACHE_SECONDS = int(os.environ.get('HTTP_ASSETS_CACHE_SECONDS', '7200'))
 except ValueError as err:
-    raise ValueError('Invalid HTTP_ASSETS_CACHE_SECONDS, must be an integer')
+    raise ValueError('Invalid HTTP_ASSETS_CACHE_SECONDS, must be an integer') from err
 
 # Logging
 # https://docs.djangoproject.com/en/3.1/topics/logging/

@@ -226,4 +226,4 @@ def validate_asset_multihash(value):
             code='checksum:multihash',
             message=_('Invalid multihash value; %(error)s'),
             params={'error': error}
-        )
+        ) from None

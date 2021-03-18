@@ -43,35 +43,6 @@ class CollectionsEndpointTestCase(StacBaseTestCase):
 
         self.check_stac_collection(self.collection_1.json, response_json)
 
-    def test_collections_limit_query(self):
-        response = self.client.get(f"/{STAC_BASE_V}/collections?limit=1")
-        self.assertStatusCode(200, response)
-        self.assertLessEqual(1, len(response.json()['collections']))
-
-        response = self.client.get(f"/{STAC_BASE_V}/collections?limit=0")
-        self.assertStatusCode(400, response)
-        self.assertEqual(['limit query parameter too small, must be in range 1..100'],
-                         response.json()['description'],
-                         msg='Unexpected error message')
-
-        response = self.client.get(f"/{STAC_BASE_V}/collections?limit=test")
-        self.assertStatusCode(400, response)
-        self.assertEqual(['invalid limit query parameter: must be an integer'],
-                         response.json()['description'],
-                         msg='Unexpected error message')
-
-        response = self.client.get(f"/{STAC_BASE_V}/collections?limit=-1")
-        self.assertStatusCode(400, response)
-        self.assertEqual(['limit query parameter too small, must be in range 1..100'],
-                         response.json()['description'],
-                         msg='Unexpected error message')
-
-        response = self.client.get(f"/{STAC_BASE_V}/collections?limit=1000")
-        self.assertStatusCode(400, response)
-        self.assertEqual(['limit query parameter too big, must be in range 1..100'],
-                         response.json()['description'],
-                         msg='Unexpected error message')
-
 
 class CollectionsWriteEndpointTestCase(StacBaseTestCase):
 

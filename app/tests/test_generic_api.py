@@ -39,95 +39,138 @@ class ApiPaginationTestCase(StacBaseTestCase):
 
     @classmethod
     def setUpTestData(cls):
-        Factory().create_collection_samples(3, db_create=True)
+        cls.factory = Factory()
+        cls.collections = cls.factory.create_collection_samples(3, db_create=True)
 
     def setUp(self):
         self.client = Client()
+        self.maxDiff = None  # pylint: disable=invalid-name
+
+    def _get_check_link(self, links, rel, endpoint):
+        link = get_link(links, rel)
+        self.assertIsNotNone(link, msg=f'Pagination {rel} link missing')
+        self.assertTrue(isinstance(link['href'], str), msg='href is not a string')
+        self.assertTrue(
+            link['href'].startswith(f'http://testserver/api/stac/v0.9/{endpoint}?cursor='),
+            msg='Invalid href link pagination string'
+        )
+        return link
+
+    def _read_link(self, link, rel, other_pages, result_attribute):
+        # Read the link page
+        response = self.client.get(link['href'].replace('http://testserver', ''))
+        json_data = response.json()
+        self.assertEqual(200, response.status_code, msg=get_http_error_description(json_data))
+
+        # Make sure next page is different from others
+        for page in other_pages:
+            self.assertNotEqual(
+                page[result_attribute],
+                json_data[result_attribute],
+                msg=f"{rel} page is not different from initial"
+            )
+        return json_data
 
     def test_invalid_limit_query(self):
-        response = self.client.get(f"/{STAC_BASE_V}/collections?limit=0")
-        self.assertStatusCode(400, response)
-        self.assertEqual(['limit query parameter too small, must be in range 1..100'],
-                         response.json()['description'],
-                         msg='Unexpected error message')
+        items = self.factory.create_item_samples(3, self.collections[0].model, db_create=True)
+        for endpoint in ['collections', f'collections/{self.collections[0]["name"]}/items']:
+            with self.subTest(endpoint=endpoint):
+                response = self.client.get(f"/{STAC_BASE_V}/{endpoint}?limit=0")
+                self.assertStatusCode(400, response)
+                self.assertEqual(['limit query parameter too small, must be in range 1..100'],
+                                 response.json()['description'],
+                                 msg='Unexpected error message')
 
-        response = self.client.get(f"/{STAC_BASE_V}/collections?limit=test")
-        self.assertStatusCode(400, response)
-        self.assertEqual(['invalid limit query parameter: must be an integer'],
-                         response.json()['description'],
-                         msg='Unexpected error message')
+                response = self.client.get(f"/{STAC_BASE_V}/{endpoint}?limit=test")
+                self.assertStatusCode(400, response)
+                self.assertEqual(['invalid limit query parameter: must be an integer'],
+                                 response.json()['description'],
+                                 msg='Unexpected error message')
 
-        response = self.client.get(f"/{STAC_BASE_V}/collections?limit=-1")
-        self.assertStatusCode(400, response)
-        self.assertEqual(['limit query parameter too small, must be in range 1..100'],
-                         response.json()['description'],
-                         msg='Unexpected error message')
+                response = self.client.get(f"/{STAC_BASE_V}/{endpoint}?limit=-1")
+                self.assertStatusCode(400, response)
+                self.assertEqual(['limit query parameter too small, must be in range 1..100'],
+                                 response.json()['description'],
+                                 msg='Unexpected error message')
 
-        response = self.client.get(f"/{STAC_BASE_V}/collections?limit=1000")
-        self.assertStatusCode(400, response)
-        self.assertEqual(['limit query parameter too big, must be in range 1..100'],
-                         response.json()['description'],
-                         msg='Unexpected error message')
+                response = self.client.get(f"/{STAC_BASE_V}/{endpoint}?limit=1000")
+                self.assertStatusCode(400, response)
+                self.assertEqual(['limit query parameter too big, must be in range 1..100'],
+                                 response.json()['description'],
+                                 msg='Unexpected error message')
 
     def test_pagination(self):
+        # pylint: disable=too-many-locals
+        items = self.factory.create_item_samples(3, self.collections[0].model, db_create=True)
+        for endpoint, result_attribute in [
+            ('collections', 'collections'),
+            (f'collections/{self.collections[0]["name"]}/items', 'features')
+        ]:
+            with self.subTest(endpoint=endpoint):
+                # Page 1:
+                response = self.client.get(f"/{STAC_BASE_V}/{endpoint}?limit=1")
+                page_1 = response.json()
+                self.assertEqual(200, response.status_code, msg=get_http_error_description(page_1))
 
-        response = self.client.get(f"/{STAC_BASE_V}/collections?limit=1")
-        json_data = response.json()
-        self.assertEqual(200, response.status_code, msg=get_http_error_description(json_data))
+                # Make sure previous link is not present
+                self.assertIsNone(
+                    get_link(page_1['links'], 'previous'),
+                    msg='Pagination previous link present for initial query'
+                )
 
-        # Check next link
-        next_link = get_link(json_data['links'], 'next')
-        self.assertIsNotNone(next_link, msg='Pagination next link missing')
-        self.assertTrue(isinstance(next_link['href'], str), msg='href is not a string')
-        self.assertTrue(
-            next_link['href'].startswith('http://testserver/api/stac/v0.9/collections?cursor='),
-            msg='Invalid href link pagination string'
-        )
+                # Get and check next link
+                next_link_2 = self._get_check_link(page_1['links'], 'next', endpoint)
 
-        # Check previous link
-        previous_link = get_link(json_data['links'], 'previous')
-        self.assertIsNone(previous_link, msg='Pagination previous link present for initial query')
+                # PAGE 2:
+                # Read the next page
+                page_2 = self._read_link(next_link_2, 'next', [page_1], result_attribute)
 
-        # Get the next page
-        response = self.client.get(next_link['href'].replace('http://testserver', ''))
-        json_data = response.json()
-        self.assertEqual(200, response.status_code, msg=get_http_error_description(json_data))
+                # get and check next link
+                next_link_3 = self._get_check_link(page_2['links'], 'next', endpoint)
 
-        # Check next link
-        next_link = get_link(json_data['links'], 'next')
-        self.assertIsNotNone(next_link, msg='Pagination next link missing')
-        self.assertTrue(isinstance(next_link['href'], str), msg='href is not a string')
-        self.assertTrue(
-            next_link['href'].startswith('http://testserver/api/stac/v0.9/collections?cursor='),
-            msg='Invalid href link pagination string'
-        )
+                # Get and check previous link
+                previous_link_1 = self._get_check_link(page_2['links'], 'previous', endpoint)
 
-        # Check previous link
-        previous_link = get_link(json_data['links'], 'previous')
-        self.assertIsNotNone(previous_link, msg='Pagination previous link is missing')
-        self.assertTrue(isinstance(previous_link['href'], str), msg='href is not a string')
-        self.assertTrue(
-            previous_link['href'].startswith('http://testserver/api/stac/v0.9/collections?cursor='),
-            msg='Invalid href link pagination string'
-        )
+                # PAGE 3:
+                # Read the next page
+                page_3 = self._read_link(next_link_3, 'next', [page_1, page_2], result_attribute)
 
-        # Get the next page
-        response = self.client.get(next_link['href'].replace('http://testserver', ''))
-        json_data = response.json()
-        self.assertEqual(200, response.status_code, msg=get_http_error_description(json_data))
+                # Make sure next link is not present
+                self.assertIsNone(
+                    get_link(page_3['links'], 'next'),
+                    msg='Pagination next link present for last page'
+                )
 
-        # Check next link
-        next_link = get_link(json_data['links'], 'next')
-        self.assertIsNone(next_link, msg='Pagination next link is present')
+                # Get and check previous link
+                previous_link_2 = self._get_check_link(page_3['links'], 'previous', endpoint)
 
-        # Check previous link
-        previous_link = get_link(json_data['links'], 'previous')
-        self.assertIsNotNone(previous_link, msg='Pagination previous link is missing')
-        self.assertTrue(isinstance(previous_link['href'], str), msg='href is not a string')
-        self.assertTrue(
-            previous_link['href'].startswith('http://testserver/api/stac/v0.9/collections?cursor='),
-            msg='Invalid href link pagination string'
-        )
+                # Navigate back with previous links
+                # PAGE: 2
+                _page_2 = self._read_link(
+                    previous_link_2, 'previous', [page_1, page_3], result_attribute
+                )
+
+                self.assertEqual(
+                    page_2[result_attribute],
+                    _page_2[result_attribute],
+                    msg="Previous link for page 2 is not equal to next link to page 2"
+                )
+
+                # get and check next link
+                _next_link_3 = self._get_check_link(_page_2['links'], 'next', endpoint)
+
+                # Get and check previous link
+                _previous_link_1 = self._get_check_link(_page_2['links'], 'previous', endpoint)
+
+                # PAGE 1:
+                _page_1 = self._read_link(
+                    _previous_link_1, 'previous', [_page_2, page_2, page_3], result_attribute
+                )
+                self.assertEqual(
+                    page_1[result_attribute],
+                    _page_1[result_attribute],
+                    msg="Previous link for page 1 is not equal to initial page 1"
+                )
 
 
 class ApiETagPreconditionTestCase(StacBaseTestCase):

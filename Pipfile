@@ -5,14 +5,14 @@ verify_ssl = true
 
 [dev-packages]
 yapf = "~=0.30.0"
-pylint = "~=2.5.3"
 isort = "~=4.3.21"
-pylint-django = "~=2.3.0"
-django-extensions = "~=3.0.9"
-pip = "*"
+pylint = "!=2.7.2,!=2.7.1,!=2.7.0" # These version of pylint have issues with similarities config
+pylint-django = "*"
+django-extensions = "*"
 django-debug-toolbar = "*"
-mock = "==4.0.2"
+pip = "*"
 tblib = "*"  # needed for traceback when running tests in parallel
+mock = "~=4.0.2"
 responses = "!=0.12.1" # skip version 0.12.1 which has a bug see https://github.com/getsentry/responses/issues/358
 moto = {extras = [ "s3",], version = "*"}
 requests-mock = "*"

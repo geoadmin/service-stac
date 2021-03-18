@@ -99,7 +99,7 @@ class CollectionSerializationTestCase(StacBaseTestCase):
                     ('href', 'https://www.example.com/described-by'),
                     ('rel', 'describedBy'),
                     ('type', 'description'),
-                    ('title', 'This is an extra link'),
+                    ('title', 'This is an extra collection link'),
                 ])
             ],
             'providers': [

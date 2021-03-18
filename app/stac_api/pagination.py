@@ -68,7 +68,7 @@ class CursorPagination(pagination.CursorPagination):
             raise ValidationError(
                 _('invalid limit query parameter: must be an integer'),
                 code='limit'
-            )
+            ) from None
 
         if page_size <= 0:
             logger.error(

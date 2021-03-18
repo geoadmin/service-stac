@@ -67,13 +67,14 @@ links = {
     'link-1': {
         'rel': 'describedBy',
         'href': 'https://www.example.com/described-by',
-        'title': 'This is an extra link',
+        'title': 'This is an extra item link',
         'link_type': 'description'
     }
 }
 
 links_invalid = {
     'link-invalid': {
+        'title': 'invalid item link relation',
         'rel': 'invalid relation',
         'href': 'not a url',
     }

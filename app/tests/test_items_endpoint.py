@@ -362,7 +362,7 @@ class ItemsBboxQueryEndpointTestCase(StacBaseTestCase):
                 'item-switzerland-east',
                 'item-switzerland-north',
                 'item-switzerland-south',
-                'item-paris'
+                'item-paris',
             ],
             cls.collection,
             db_create=True,
