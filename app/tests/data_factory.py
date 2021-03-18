@@ -1123,7 +1123,7 @@ class AssetFactory(FactoryBase):
             try:
                 sample = AssetSample.samples_dict[sample_name]
             except KeyError as error:
-                raise KeyError(f'Unknown {sample_name} sample: {error}')
+                raise KeyError(f'Unknown {sample_name} sample: {error}') from None
             if 'media_type' in sample:
                 media = sample['media_type']
         if media not in MEDIA_TYPES_BY_TYPE:
