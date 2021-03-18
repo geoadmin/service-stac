@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "f697d717d9aab05ad9a74092f464fb51906de745d7500cfe240fad81a0b59742"
+            "sha256": "a7fcba27d693e9f1b737e27611e9755be5102950979660ce0eb4afcdf1ed38e6"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -66,6 +66,14 @@
             ],
             "index": "pypi",
             "version": "==3.1.7"
+        },
+        "django-admin-autocomplete-filter": {
+            "hashes": [
+                "sha256:0358594110e5e498306388a9e4a0a2b57dde3abd302f9945337396003345af04",
+                "sha256:5016a8cb9aff7a7e7a796870ac572ac248a17d36339215878df9ba24761ce65f"
+            ],
+            "index": "pypi",
+            "version": "==0.6.1"
         },
         "django-prometheus": {
             "hashes": [
@@ -841,11 +849,11 @@
         },
         "responses": {
             "hashes": [
-                "sha256:27d8822d65dc8875a039301831de8ac17db2473ae2a8fabd4e6599b25ce2f353",
-                "sha256:a4a90c8244006c01f4246aecf532fbb5429c4031df4adcc7638061f0f3ce4ceb"
+                "sha256:3b1ea9cf026edaaf25e853abc4d3b2687d25467e9d8d41e77ee525cad0673f3e",
+                "sha256:cf62ab0f4119b81d485521b2c950d8aa55a885c90126488450b7acb8ee3f77ac"
             ],
             "index": "pypi",
-            "version": "==0.13.0"
+            "version": "==0.13.1"
         },
         "s3transfer": {
             "hashes": [

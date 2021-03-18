@@ -38,6 +38,7 @@ requests = "~=2.25.0"
 py-multihash = "~=2.0.1"
 pypatch = "*"
 django-prometheus = "*"
+django-admin-autocomplete-filter = "~=0.6.1"
 
 [requires]
 python_version = "3.7"

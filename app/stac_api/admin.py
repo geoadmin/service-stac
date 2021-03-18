@@ -1,3 +1,5 @@
+from admin_auto_filters.filters import AutocompleteFilter
+
 from django.contrib.gis import admin
 from django.contrib.postgres.fields import ArrayField
 from django.contrib.staticfiles import finders
@@ -82,6 +84,11 @@ class ItemLinkInline(admin.TabularInline):
     extra = 0
 
 
+class CollectionFilter(AutocompleteFilter):
+    title = 'Collection name'  # display title
+    field_name = 'collection'  # name of the foreign key field
+
+
 @admin.register(Item)
 class ItemAdmin(admin.GeoModelAdmin):
 
@@ -113,6 +120,7 @@ class ItemAdmin(admin.GeoModelAdmin):
     wms_layer = 'ch.swisstopo.pixelkarte-farbe-pk1000.noscale'
     wms_url = 'https://wms.geo.admin.ch/'
     list_display = ['name', 'collection']
+    list_filter = [CollectionFilter]
 
     def get_search_results(self, request, queryset, search_term):
         queryset, use_distinct = super().get_search_results(request, queryset, search_term)
