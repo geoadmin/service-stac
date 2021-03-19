@@ -134,11 +134,11 @@ class ItemAdmin(admin.GeoModelAdmin):
         # make sense.
 
         # this asserts that the request comes from the autocomplete filters.
-        if "autocomplete" in request.__dict__['environ']['PATH_INFO']:
-            if "item__collection" in request.__dict__['environ']['HTTP_REFERER']:
-                current_collection_pk = request.__dict__['environ']['HTTP_REFERER'].split(
-                    'item__collection='
-                )[1].split("&")[0]
+        environ = request.environ.copy()
+        if "autocomplete" in environ['PATH_INFO']:
+            if "item__collection" in environ['HTTP_REFERER']:
+                current_collection_pk = environ['HTTP_REFERER'].split('item__collection='
+                                                                     )[1].split("&")[0]
                 queryset = self.model.objects.filter(collection__pk__exact=current_collection_pk)
         elif search_term.startswith('"') and search_term.endswith('"'):
             search_terms = search_term.strip('"').split('/', maxsplit=2)
