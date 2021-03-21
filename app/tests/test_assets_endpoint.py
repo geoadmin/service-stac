@@ -445,19 +445,38 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
         client_login(self.client)
         self.maxDiff = None  # pylint: disable=invalid-name
 
-    def test_asset_put_dont_exists(self):
-        collection_name = self.collection['name']
-        item_name = self.item['name']
-        payload_json = self.factory.create_asset_sample(
-            item=self.item.model, sample='asset-2', create_asset_file=False
-        ).get_json('put')
+    def test_put_non_existing_asset(self):
+        collection = self.collection.model
+        item = self.item.model
+        asset = self.factory.create_asset_sample(item=item, create_asset_file=True)
+        asset_name = asset['name']
+        print(asset)
 
-        # the dataset to update does not exist yet
-        path = \
-          (f"/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets/"
-          f"{payload_json['id']}")
-        response = self.client.put(path, data=payload_json, content_type='application/json')
+        path = f'/{STAC_BASE_V}/collections/{collection.name}/items/{item.name}/assets/{asset_name}'
+
+        # Check that assert does not exist already
+        response = self.client.get(path)
         self.assertStatusCode(404, response)
+
+        # Check also, that the asset does not exist in the DB already
+        self.assertFalse(
+            Asset.objects.filter(name=asset_name).exists(), msg="Deleted asset still found in DB"
+        )
+
+        # Now use upsert to create the new assert
+        response = self.client.put(
+            path, data=asset.get_json('post'), content_type="application/json"
+        )
+        json_data = response.json()
+        self.assertStatusCode(201, response)
+        self.check_header_location(f"{path}", response)
+        self.check_stac_asset(asset.json, json_data, collection.name, item.name, ignore=['item'])
+
+        # Check the data by reading it back
+        response = self.client.get(response['Location'])
+        json_data = response.json()
+        self.assertStatusCode(200, response)
+        self.check_stac_asset(asset.json, json_data, collection.name, item.name, ignore=['item'])
 
     def test_asset_endpoint_put(self):
         collection_name = self.collection['name']

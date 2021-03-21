@@ -3,8 +3,10 @@ from datetime import datetime
 from datetime import timedelta
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.contrib.gis.geos.geometry import GEOSGeometry
 from django.test import Client
+from django.urls import reverse
 
 from stac_api.models import BBOX_CH
 from stac_api.models import Item
@@ -14,8 +16,10 @@ from stac_api.utils import isoformat
 from stac_api.utils import utc_aware
 
 from tests.base_test import StacBaseTestCase
+from tests.base_test import StacBaseTransactionTestCase
 from tests.data_factory import Factory
 from tests.utils import client_login
+from tests.utils import disableLogger
 
 logger = logging.getLogger(__name__)
 
@@ -666,6 +670,20 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
         json_data = response.json()
         self.assertStatusCode(200, response)
         self.assertEqual(data['id'], json_data['id'])
+
+    def test_item_upsert_create(self):
+
+        sample = self.factory.create_item_sample(self.collection, required_only=True)
+        print(sample.json["id"])
+        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{sample.json["id"]}'
+        print(sample.get_json('post'))
+        response = self.client.put(
+            path, data=sample.get_json('post'), content_type="application/json"
+        )
+        json_data = response.json()
+        print(json_data)
+        self.assertStatusCode(201, response)
+        self.check_stac_item(sample.json, json_data, self.collection.name)
 
 
 class ItemsDeleteEndpointTestCase(StacBaseTestCase):

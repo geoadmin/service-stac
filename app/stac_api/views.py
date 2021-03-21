@@ -379,7 +379,7 @@ class ItemDetail(
     # Here the etag is only added to support pre-conditional If-Match and If-Not-Match
     @etag(get_item_etag)
     def put(self, request, *args, **kwargs):
-        return self.update(request, *args, **kwargs)
+        return self.upsert(request, *args, **kwargs)
 
     # Here the etag is only added to support pre-conditional If-Match and If-Not-Match
     @etag(get_item_etag)
@@ -488,7 +488,7 @@ class AssetDetail(
     # Here the etag is only added to support pre-conditional If-Match and If-Not-Match
     @etag(get_asset_etag)
     def put(self, request, *args, **kwargs):
-        return self.update(request, *args, **kwargs)
+        return self.upsert(request, *args, **kwargs)
 
     # Here the etag is only added to support pre-conditional If-Match and If-Not-Match
     @etag(get_asset_etag)

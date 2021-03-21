@@ -616,7 +616,7 @@ class HrefField(serializers.Field):
         return build_asset_href(request, path)
 
 
-class AssetBaseSerializer(NonNullModelSerializer):
+class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
     '''Asset serializer base class
     '''
 
@@ -643,11 +643,7 @@ class AssetBaseSerializer(NonNullModelSerializer):
     item = serializers.SlugRelatedField(
         slug_field='name', write_only=True, queryset=Item.objects.all()
     )
-    id = serializers.CharField(
-        source='name',
-        max_length=255,
-        validators=[validate_asset_name, UniqueValidator(queryset=Asset.objects.all())]
-    )
+    id = serializers.CharField(source='name', max_length=255, validators=[validate_asset_name])
     title = serializers.CharField(
         required=False, max_length=255, allow_null=True, allow_blank=False
     )
@@ -689,6 +685,26 @@ class AssetBaseSerializer(NonNullModelSerializer):
     href = HrefField(source='file', read_only=True)
     created = serializers.DateTimeField(read_only=True)
     updated = serializers.DateTimeField(read_only=True)
+
+    def create(self, validated_data):
+        asset = validate_uniqueness_and_create(Asset, validated_data)
+        return asset
+
+    def update_or_create(self, validated_data, **kwargs):
+        """
+        Update or create the asset object selected by kwargs and return the instance.
+        When no asset object matching the kwargs selection, a new asset is created.
+        Args:
+            validated_data: dict
+                Copy of the validated_data to use for update
+            kwargs: dict
+                Object selection arguments (NOTE: the selection arguments must match a unique
+                object in DB otherwise an IntegrityError will be raised)
+        Returns: tuple
+            Asset instance and True if created otherwise false
+        """
+        asset, created = Asset.objects.update_or_create(**kwargs, defaults=validated_data)
+        return asset, created
 
     def validate(self, attrs):
         if not self.partial:
@@ -775,7 +791,7 @@ class AssetsForItemSerializer(AssetBaseSerializer):
         ]
 
 
-class ItemSerializer(NonNullModelSerializer):
+class ItemSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
 
     class Meta:
         model = Item
@@ -796,10 +812,7 @@ class ItemSerializer(NonNullModelSerializer):
     # in model !
     collection = serializers.SlugRelatedField(slug_field='name', queryset=Collection.objects.all())
     id = serializers.CharField(
-        source='name',
-        required=True,
-        max_length=255,
-        validators=[validate_name, UniqueValidator(queryset=Collection.objects.all())]
+        source='name', required=True, max_length=255, validators=[validate_name]
     )
     properties = ItemsPropertiesSerializer(source='*', required=True)
     geometry = gis_serializers.GeometryField(required=True)
@@ -841,7 +854,7 @@ class ItemSerializer(NonNullModelSerializer):
 
     def create(self, validated_data):
         links_data = validated_data.pop('links', [])
-        item = Item.objects.create(**validated_data)
+        item = validate_uniqueness_and_create(Item, validated_data)
         update_or_create_links(
             instance_type="item", model=ItemLink, instance=item, links_data=links_data
         )
@@ -853,6 +866,26 @@ class ItemSerializer(NonNullModelSerializer):
             instance_type="item", model=ItemLink, instance=instance, links_data=links_data
         )
         return super().update(instance, validated_data)
+
+    def update_or_create(self, validated_data, **kwargs):
+        """
+        Update or create the item object selected by kwargs and return the instance.
+        When no item object matching the kwargs selection, a new item is created.
+        Args:
+            validated_data: dict
+                Copy of the validated_data to use for update
+            kwargs: dict
+                Object selection arguments (NOTE: the selection arguments must match a unique
+                object in DB otherwise an IntegrityError will be raised)
+        Returns: tuple
+            Item instance and True if created otherwise false
+        """
+        links_data = validated_data.pop('links', [])
+        item, created = Item.objects.update_or_create(**kwargs, defaults=validated_data)
+        update_or_create_links(
+            instance_type="item", model=ItemLink, instance=item, links_data=links_data
+        )
+        return item, created
 
     def validate(self, attrs):
         if (
