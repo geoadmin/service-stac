@@ -520,12 +520,3 @@ class AssetDetail(
     @etag(get_asset_etag)
     def delete(self, request, *args, **kwargs):
         return self.destroy(request, *args, **kwargs)
-
-
-class TestHttp500(generics.GenericAPIView):
-    queryset = LandingPage.objects.all()
-
-    def get(self, request, *args, **kwargs):
-        logger.debug('Test request that raises an exception')
-
-        raise AttributeError('test exception')

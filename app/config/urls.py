@@ -37,7 +37,7 @@ urlpatterns = [
 
 if settings.DEBUG:
     import debug_toolbar
-    from stac_api.views import TestHttp500
+    from stac_api.views_test import TestHttp500
 
     urlpatterns = [
         path('__debug__/', include(debug_toolbar.urls)),
