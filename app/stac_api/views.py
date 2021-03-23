@@ -5,7 +5,6 @@ from datetime import datetime
 
 from django.conf import settings
 from django.http import Http404
-from django.shortcuts import get_object_or_404
 
 from rest_framework import generics
 from rest_framework import mixins
@@ -244,9 +243,12 @@ class CollectionList(generics.GenericAPIView, views_mixins.CreateModelMixin):
         return Response(data)
 
 
-class CollectionDetail(generics.GenericAPIView, mixins.RetrieveModelMixin, mixins.UpdateModelMixin):
+class CollectionDetail(
+    generics.GenericAPIView, mixins.RetrieveModelMixin, views_mixins.UpdateInsertModelMixin
+):
     serializer_class = CollectionSerializer
     lookup_url_kwarg = "collection_name"
+    lookup_field = "name"
     queryset = Collection.objects.all().prefetch_related('providers', 'links')
 
     @etag(get_collection_etag)
@@ -256,18 +258,12 @@ class CollectionDetail(generics.GenericAPIView, mixins.RetrieveModelMixin, mixin
     # Here the etag is only added to support pre-conditional If-Match and If-Not-Match
     @etag(get_collection_etag)
     def put(self, request, *args, **kwargs):
-        return self.update(request, *args, **kwargs)
+        return self.upsert(request, *args, **kwargs)
 
     # Here the etag is only added to support pre-conditional If-Match and If-Not-Match
     @etag(get_collection_etag)
     def patch(self, request, *args, **kwargs):
         return self.partial_update(request, *args, **kwargs)
-
-    def get_object(self):
-        collection_name = self.kwargs.get(self.lookup_url_kwarg)
-        queryset = self.get_queryset().filter(name=collection_name)
-        obj = get_object_or_404(queryset)
-        return obj
 
 
 class ItemsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
@@ -345,11 +341,12 @@ class ItemsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
 class ItemDetail(
     generics.GenericAPIView,
     mixins.RetrieveModelMixin,
-    views_mixins.UpdateModelMixin,
+    views_mixins.UpdateInsertModelMixin,
     views_mixins.DestroyModelMixin
 ):
     serializer_class = ItemSerializer
     lookup_url_kwarg = "item_name"
+    lookup_field = "name"
 
     def get_queryset(self):
         # filter based on the url
@@ -369,12 +366,6 @@ class ItemDetail(
         data = request.data.copy()
         data['collection'] = kwargs['collection_name']
         return data
-
-    def get_object(self):
-        item_name = self.kwargs.get(self.lookup_url_kwarg)
-        queryset = self.get_queryset().filter(name=item_name)
-        obj = get_object_or_404(queryset)
-        return obj
 
     @etag(get_item_etag)
     def get(self, request, *args, **kwargs):
@@ -468,11 +459,12 @@ class AssetsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
 class AssetDetail(
     generics.GenericAPIView,
     mixins.RetrieveModelMixin,
-    views_mixins.UpdateModelMixin,
+    views_mixins.UpdateInsertModelMixin,
     views_mixins.DestroyModelMixin
 ):
     serializer_class = AssetSerializer
     lookup_url_kwarg = "asset_name"
+    lookup_field = "name"
 
     def get_write_request_data(self, request, *args, partial=False, **kwargs):
         data = request.data.copy()
@@ -490,12 +482,6 @@ class AssetDetail(
             item__collection__name=self.kwargs['collection_name'],
             item__name=self.kwargs['item_name']
         )
-
-    def get_object(self):
-        asset_name = self.kwargs.get(self.lookup_url_kwarg)
-        queryset = self.get_queryset().filter(name=asset_name)
-        obj = get_object_or_404(queryset)
-        return obj
 
     def get_serializer(self, *args, **kwargs):
         serializer_class = self.get_serializer_class()

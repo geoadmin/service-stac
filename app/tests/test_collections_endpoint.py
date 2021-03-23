@@ -1,11 +1,8 @@
 import logging
-from concurrent.futures import ThreadPoolExecutor
-from concurrent.futures import as_completed
 from datetime import datetime
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.db import connections
 from django.test import Client
 from django.urls import reverse
 
@@ -51,7 +48,7 @@ class CollectionsEndpointTestCase(StacBaseTestCase):
         self.check_stac_collection(self.collection_1.json, response_json)
 
 
-class CollectionsWriteEndpointTestCase(StacBaseTransactionTestCase):
+class CollectionsWriteEndpointTestCase(StacBaseTestCase):
 
     def setUp(self):  # pylint: disable=invalid-name
         self.client = Client()
@@ -380,23 +377,17 @@ class CollectionsUpdateEndpointTestCase(StacBaseTestCase):
         self.check_stac_collection(self.collection.json, response.json())
 
 
-class CollectionUpsertAtomicTest(StacBaseTransactionTestCase):
+class CollectionRaceConditionTest(StacBaseTransactionTestCase):
 
     def setUp(self):
         self.username = 'user'
         self.password = 'dummy-password'
         get_user_model().objects.create_superuser(self.username, password=self.password)
 
-    def test_collection_atomic_upsert(self):
-        workers = 10
+    def test_collection_upsert_race_condition(self):
+        workers = 5
         status_201 = 0
         sample = CollectionFactory().create_sample(sample='collection-2')
-
-        def on_done(future):
-            # Because each thread has a db connection, we call close_all() when the thread is
-            # terminated. This is needed because the thread are not managed by django here but
-            # by us.
-            connections.close_all()
 
         def collection_atomic_upsert_test(worker):
             # This method run on separate thread therefore it requires to create a new client and
@@ -411,27 +402,7 @@ class CollectionUpsertAtomicTest(StacBaseTransactionTestCase):
 
         # We call the PUT collection several times in parallel with the same data to make sure
         # that we don't have any race condition.
-        errors = []
-        responses = []
-        with ThreadPoolExecutor(max_workers=workers) as executor:
-            futures = {}
-            for worker in range(workers):
-                future = executor.submit(collection_atomic_upsert_test, worker)
-                future.add_done_callback(on_done)
-                futures[future] = worker
-            for future in as_completed(futures):
-                try:
-                    response = future.result()
-                except Exception as exc:  # pylint: disable=broad-except
-                    errors.append((futures[future], str(exc)))
-                else:
-                    responses.append((futures[future], response))
-
-        self.assertEqual(
-            len(responses) + len(errors),
-            workers,
-            msg='Number of responses/errors doesn\'t match the number of worker'
-        )
+        responses, errors = self.run_parallel(workers, collection_atomic_upsert_test)
 
         for worker, response in responses:
             if response.status_code == 201:
@@ -442,8 +413,36 @@ class CollectionUpsertAtomicTest(StacBaseTransactionTestCase):
             )
             self.check_stac_collection(sample.json, response.json())
         self.assertEqual(status_201, 1, msg="Not only one upsert did a create !")
-        for worker, error in errors:
-            self.fail(msg=f'Worker {worker} failed: {error}')
+
+    def test_collection_post_race_condition(self):
+        workers = 5
+        status_201 = 0
+        sample = CollectionFactory().create_sample(sample='collection-2')
+
+        def collection_atomic_post_test(worker):
+            # This method run on separate thread therefore it requires to create a new client and
+            # to login it for each call.
+            client = Client()
+            client.login(username=self.username, password=self.password)
+            return client.post(
+                reverse('collection-list'),
+                data=sample.get_json('post'),
+                content_type='application/json'
+            )
+
+        # We call the PUT collection several times in parallel with the same data to make sure
+        # that we don't have any race condition.
+        responses, errors = self.run_parallel(workers, collection_atomic_post_test)
+
+        for worker, response in responses:
+            self.assertIn(response.status_code, [201, 400])
+            if response.status_code == 201:
+                self.check_stac_collection(sample.json, response.json())
+                status_201 += 1
+            else:
+                self.assertIn('id', response.json()['description'].keys())
+                self.assertIn('This field must be unique.', response.json()['description']['id'])
+        self.assertEqual(status_201, 1, msg="Not only one POST was successfull")
 
 
 class CollectionsUnauthorizeEndpointTestCase(StacBaseTestCase):

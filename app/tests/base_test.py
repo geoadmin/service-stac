@@ -1,10 +1,13 @@
 import json
 import logging
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import as_completed
 from datetime import timedelta
 from pprint import pformat
 from urllib.parse import urlparse
 
 from django.contrib.gis.geos.geometry import GEOSGeometry
+from django.db import connections
 from django.test import TestCase
 from django.test import TransactionTestCase
 
@@ -419,3 +422,38 @@ class StacBaseTestCase(TestCase, StacTestMixin):
 class StacBaseTransactionTestCase(TransactionTestCase, StacTestMixin):
     """Django TransactionTestCase with additional STAC check methods
     """
+
+    @staticmethod
+    def on_done(future):
+        # Because each thread has a db connection, we call close_all() when the thread is
+        # terminated. This is needed because the thread are not managed by django here but
+        # by us.
+        connections.close_all()
+
+    def run_parallel(self, workers, func):
+        errors = []
+        responses = []
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            futures = {}
+            for worker in range(workers):
+                future = executor.submit(func, worker)
+                future.add_done_callback(self.on_done)
+                futures[future] = worker
+            for future in as_completed(futures):
+                try:
+                    response = future.result()
+                except Exception as exc:  # pylint: disable=broad-except
+                    errors.append((futures[future], str(exc)))
+                else:
+                    responses.append((futures[future], response))
+
+        self.assertEqual(
+            len(responses) + len(errors),
+            workers,
+            msg='Number of responses/errors doesn\'t match the number of worker'
+        )
+
+        for worker, error in errors:
+            self.fail(msg=f'Worker {worker} failed: {error}')
+
+        return responses, errors
