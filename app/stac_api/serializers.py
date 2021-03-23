@@ -463,7 +463,19 @@ class CollectionSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
 
     def update_or_create(self, validated_data, **kwargs):
         """
-        Create and return a new `Collection` instance, given the validated data.
+        Update or create the collection object selected by kwargs and return the instance.
+
+        When no collection object matching the kwargs selection, a new object is created.
+
+        Args:
+            validated_data: dict
+                Copy of the validated_data to use for update
+            kwargs: dict
+                Object selection arguments (NOTE: the selection arguments must match a unique
+                object in DB otherwise an IntegrityError will be raised)
+
+        Returns: tuple
+            Collection instance and True if created otherwise false
         """
         providers_data = validated_data.pop('providers', [])
         links_data = validated_data.pop('links', [])
