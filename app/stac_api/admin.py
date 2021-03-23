@@ -19,6 +19,7 @@ from stac_api.models import LandingPage
 from stac_api.models import LandingPageLink
 from stac_api.models import Provider
 from stac_api.utils import build_asset_href
+from stac_api.utils import get_query_params
 
 
 class LandingPageLinkInline(admin.TabularInline):
@@ -87,7 +88,7 @@ class ItemLinkInline(admin.TabularInline):
 
 class CollectionFilterForItems(AutocompleteFilter):
     title = 'Collection name'  # display title
-    field_name = 'collection'  # name of the foreign key field
+    field_name = 'collection'  # name of the foreign key
 
 
 @admin.register(Item)
@@ -134,13 +135,13 @@ class ItemAdmin(admin.GeoModelAdmin):
         # make sense.
 
         # this asserts that the request comes from the autocomplete filters.
-        environ = request.environ.copy()
-        if "autocomplete" in environ['PATH_INFO']:
-            if "item__collection" in environ['HTTP_REFERER']:
-                current_collection_pk = environ['HTTP_REFERER'].split('item__collection='
-                                                                     )[1].split("&")[0]
-                queryset = self.model.objects.filter(collection__pk__exact=current_collection_pk)
-        elif search_term.startswith('"') and search_term.endswith('"'):
+        if request.path.endswith("/autocomplete/"):
+            collection_filter_param = get_query_params(
+                request.headers['Referer'], 'item__collection'
+            )
+            if collection_filter_param:
+                queryset = queryset.filter(collection__pk__exact=collection_filter_param[0])
+        if search_term.startswith('"') and search_term.endswith('"'):
             search_terms = search_term.strip('"').split('/', maxsplit=2)
             if len(search_terms) == 2:
                 collection_name = search_terms[0]
