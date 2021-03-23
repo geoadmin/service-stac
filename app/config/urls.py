@@ -37,9 +37,15 @@ urlpatterns = [
 
 if settings.DEBUG:
     import debug_toolbar
-    from stac_api.views import TestHttp500
+    from stac_api.views_test import TestHttp500
+    from stac_api.views_test import TestCollectionUpsertHttp500
 
     urlpatterns = [
         path('__debug__/', include(debug_toolbar.urls)),
         path('tests/test_http_500', TestHttp500.as_view()),
+        path(
+            'tests/test_collection_upsert_http_500/<collection_name>',
+            TestCollectionUpsertHttp500.as_view(),
+            name='test-collection-detail-http-500'
+        ),
     ] + urlpatterns

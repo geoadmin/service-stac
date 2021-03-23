@@ -9,6 +9,8 @@ from multihash import to_hex_string
 from django.conf import settings
 from django.contrib.gis.gdal.error import GDALException
 from django.contrib.gis.geos import GEOSGeometry
+from django.db import IntegrityError
+from django.db import transaction
 from django.utils.translation import gettext_lazy as _
 
 from rest_framework.exceptions import APIException
@@ -527,3 +529,33 @@ class ValidateSearchRequest:
             logger.error(
                 'Query contains the non-allowed parameter(s): %s', list(wrong_query_parameters)
             )
+
+
+def validate_uniqueness_and_create(model_class, validated_data):
+    """Validate for uniqueness and create object
+
+    Try to create an object and if it fails with db IntegrityError due to non unique object by name
+    re-raise a ValidationError(), otherwise re-raise the IntegrityError
+
+    Args:
+        model_class: Model
+            A model Class to use for the create()
+        validated_data: dict
+            Validated data to use for the create method
+
+    Returns:
+        the object created
+
+    Raises:
+        ValidationError: when the new object is not unique by name in db.
+        IntegrityError: for any other DB errors
+    """
+    try:
+        with transaction.atomic():
+            return model_class.objects.create(**validated_data)
+    except IntegrityError as error:
+        if model_class.objects.all().filter(name=validated_data['name']).exists():
+            raise ValidationError(
+                code='unique', detail={'id': ['This field must be unique.']}
+            ) from None
+        raise

@@ -31,6 +31,7 @@ from stac_api.validators import validate_item_properties_datetimes
 from stac_api.validators import validate_name
 from stac_api.validators_serializer import validate_asset_file
 from stac_api.validators_serializer import validate_json_payload
+from stac_api.validators_serializer import validate_uniqueness_and_create
 
 logger = logging.getLogger(__name__)
 
@@ -88,6 +89,30 @@ def update_or_create_links(model, instance, instance_type, links_data):
         instance.name,
         extra={instance_type: instance}
     )
+
+
+class UpsertModelSerializerMixin:
+    """Add support for Upsert in serializer
+    """
+
+    def upsert(self, **kwargs):
+        """
+        Update or insert an instance and return it.
+        """
+        self.instance, created = self.update_or_create(self.validated_data.copy(), **kwargs)
+        return self.instance, created
+
+    def update_or_create(self, validated_data, **kwargs):
+        """This method must be implemented by the serializer and must make use of the DB
+        objects.update_or_create() method.
+
+        Args:
+            validated_data: dict
+                Copy of the validated_data to be used in the objects.update_or_create() method.
+            **kwargs:
+                Must be a unique query to be used in the objects.update_or_create() method.
+        """
+        raise NotImplementedError("update_or_create() not implemented")
 
 
 class NonNullModelSerializer(serializers.ModelSerializer):
@@ -315,7 +340,7 @@ class CollectionLinkSerializer(NonNullModelSerializer):
     )
 
 
-class CollectionSerializer(NonNullModelSerializer):
+class CollectionSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
 
     class Meta:
         model = Collection
@@ -340,10 +365,7 @@ class CollectionSerializer(NonNullModelSerializer):
     # NOTE: when explicitely declaring fields, we need to add the validation as for the field
     # in model !
     id = serializers.CharField(
-        required=True,
-        max_length=255,
-        source="name",
-        validators=[validate_name, UniqueValidator(queryset=Collection.objects.all())]
+        required=True, max_length=255, source="name", validators=[validate_name]
     )
     title = serializers.CharField(required=False, allow_blank=False, default=None, max_length=255)
     # Also links are required in the spec, the main links (self, root, items) are automatically
@@ -414,7 +436,7 @@ class CollectionSerializer(NonNullModelSerializer):
         """
         providers_data = validated_data.pop('providers', [])
         links_data = validated_data.pop('links', [])
-        collection = Collection.objects.create(**validated_data)
+        collection = validate_uniqueness_and_create(Collection, validated_data)
         self._update_or_create_providers(collection=collection, providers_data=providers_data)
         update_or_create_links(
             instance_type="collection",
@@ -438,6 +460,34 @@ class CollectionSerializer(NonNullModelSerializer):
             links_data=links_data
         )
         return super().update(instance, validated_data)
+
+    def update_or_create(self, validated_data, **kwargs):
+        """
+        Update or create the collection object selected by kwargs and return the instance.
+
+        When no collection object matching the kwargs selection, a new object is created.
+
+        Args:
+            validated_data: dict
+                Copy of the validated_data to use for update
+            kwargs: dict
+                Object selection arguments (NOTE: the selection arguments must match a unique
+                object in DB otherwise an IntegrityError will be raised)
+
+        Returns: tuple
+            Collection instance and True if created otherwise false
+        """
+        providers_data = validated_data.pop('providers', [])
+        links_data = validated_data.pop('links', [])
+        collection, created = Collection.objects.update_or_create(**kwargs, defaults=validated_data)
+        self._update_or_create_providers(collection=collection, providers_data=providers_data)
+        update_or_create_links(
+            instance_type="collection",
+            model=CollectionLink,
+            instance=collection,
+            links_data=links_data
+        )
+        return collection, created
 
     def to_representation(self, instance):
         name = instance.name
