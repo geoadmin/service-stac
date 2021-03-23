@@ -11,6 +11,7 @@ from stac_api.utils import get_link
 from tests.base_test import StacBaseTestCase
 from tests.data_factory import Factory
 from tests.utils import client_login
+from tests.utils import disableLogger
 from tests.utils import get_http_error_description
 from tests.utils import mock_s3_asset_file
 
@@ -29,7 +30,7 @@ class ApiGenericTestCase(StacBaseTestCase):
         self.assertStatusCode(404, response)
 
     def test_http_error_500_exception(self):
-        with self.settings(DEBUG_PROPAGATE_API_EXCEPTIONS=True):
+        with self.settings(DEBUG_PROPAGATE_API_EXCEPTIONS=True), disableLogger('stac_api.apps'):
             response = self.client.get("/tests/test_http_500")
             self.assertStatusCode(500, response)
             self.assertEqual(response.json()['description'], "AttributeError('test exception')")
