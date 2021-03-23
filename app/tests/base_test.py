@@ -6,6 +6,7 @@ from urllib.parse import urlparse
 
 from django.contrib.gis.geos.geometry import GEOSGeometry
 from django.test import TestCase
+from django.test import TransactionTestCase
 
 from stac_api.utils import fromisoformat
 from stac_api.utils import get_link
@@ -19,7 +20,9 @@ TEST_LINK_ROOT_HREF = 'http://testserver/api/stac/v0.9'
 TEST_LINK_ROOT = {'rel': 'root', 'href': f'{TEST_LINK_ROOT_HREF}/'}
 
 
-class StacBaseTestCase(TestCase):
+class StacTestMixin:
+    """Adds some useful checks for STAC API unittesting
+    """
 
     # we keep the TestCase nomenclature here therefore we disable the pylint invalid-name
     def assertStatusCode(self, code, response, msg=None):  # pylint: disable=invalid-name
@@ -407,3 +410,12 @@ class StacBaseTestCase(TestCase):
             self.assertEqual(
                 value, current[key], msg=f'{path}: current value is not equal to the expected'
             )
+
+
+class StacBaseTestCase(TestCase, StacTestMixin):
+    """Django TestCase with additional STAC check methods"""
+
+
+class StacBaseTransactionTestCase(TransactionTestCase, StacTestMixin):
+    """Django TransactionTestCase with additional STAC check methods
+    """
