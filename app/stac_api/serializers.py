@@ -29,7 +29,6 @@ from stac_api.validators import validate_asset_name_with_media_type
 from stac_api.validators import validate_geoadmin_variant
 from stac_api.validators import validate_item_properties_datetimes
 from stac_api.validators import validate_name
-from stac_api.validators_serializer import validate_asset_file
 from stac_api.validators_serializer import validate_json_payload
 from stac_api.validators_serializer import validate_uniqueness_and_create
 
@@ -679,16 +678,6 @@ class AssetBaseSerializer(NonNullModelSerializer):
 
         if not self.partial:
             attrs['file'] = get_asset_path(attrs['item'], attrs['name'])
-
-        # Check if the asset exits for non partial update or when the checksum is available
-        if not self.partial or 'checksum_multihash' in attrs:
-            original_name = attrs['name']
-            if self.instance:
-                original_name = self.instance.name
-            path = get_asset_path(attrs['item'], original_name)
-            request = self.context.get("request")
-            href = build_asset_href(request, path)
-            attrs = validate_asset_file(href, original_name, attrs)
 
         return attrs
 

@@ -329,30 +329,6 @@ class AssetsWriteEndpointAssetFileTestCase(StacBaseTestCase):
         client_login(self.client)
         self.maxDiff = None  # pylint: disable=invalid-name
 
-    def test_asset_endpoint_post_asset_file_dont_exists(self):
-        collection_name = self.collection.name
-        item_name = self.item.name
-        asset = self.factory.create_asset_sample(item=self.item, create_asset_file=False)
-
-        path = f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets'
-        response = self.client.post(
-            path, data=asset.get_json('post'), content_type="application/json"
-        )
-        self.assertStatusCode(400, response)
-        description = response.json()['description']
-        self.assertIn('href', description, msg=f'Unexpected field error {description}')
-        self.assertEqual(
-            "Asset doesn't exists at href http://testserver/collection-1/item-1/asset-1.tiff",
-            description['href'][0],
-            msg="Unexpected error message"
-        )
-
-        # Make sure that the asset is not found in DB
-        self.assertFalse(
-            Asset.objects.filter(name=asset.json['id']).exists(),
-            msg="Invalid asset has been created in DB"
-        )
-
     # NOTE: Unfortunately this test cannot be done with the moto mocking.
     # def test_asset_endpoint_post_s3_not_answering(self):
     #     collection_name = self.collection.name
@@ -375,63 +351,6 @@ class AssetsWriteEndpointAssetFileTestCase(StacBaseTestCase):
     #         Asset.objects.filter(name=asset.json['id']).exists(),
     #         msg="Invalid asset has been created in DB"
     #     )
-
-    def test_asset_endpoint_post_s3_without_sha256(self):
-        collection_name = self.collection.name
-        item_name = self.item.name
-        asset = self.factory.create_asset_sample(item=self.item, create_asset_file=False)
-
-        upload_file_on_s3(
-            f'{collection_name}/{item_name}/{asset["name"]}', asset["file"], params={}
-        )
-
-        path = f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets'
-        response = self.client.post(
-            path, data=asset.get_json('post'), content_type="application/json"
-        )
-        self.assertStatusCode(400, response)
-        description = response.json()['description']
-        self.assertIn('non_field_errors', description, msg=f'Unexpected field error {description}')
-        self.assertEqual(
-            "Asset at href http://testserver/collection-1/item-1/asset-1.tiff has a md5 multihash "
-            "while a sha2-256 multihash is defined in the checksum:multihash attribute",
-            description['non_field_errors'][0],
-            msg="Unexpected error message"
-        )
-
-        # Make sure that the asset is not found in DB
-        self.assertFalse(
-            Asset.objects.filter(name=asset.json['id']).exists(),
-            msg="Invalid asset has been created in DB"
-        )
-
-    def test_asset_endpoint_post_wrong_checksum(self):
-        collection_name = self.collection.name
-        item_name = self.item.name
-        asset = self.factory.create_asset_sample(item=self.item, create_asset_file=True)
-        asset_json = asset.get_json('post')
-        asset_json['checksum:multihash'] = get_sha256_multihash(
-            b'new dummy content that do not match real checksum'
-        )
-
-        path = f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets'
-        response = self.client.post(path, data=asset_json, content_type="application/json")
-        self.assertStatusCode(400, response)
-        description = response.json()['description']
-        self.assertIn('non_field_errors', description, msg=f'Unexpected field error {description}')
-        self.assertEqual(
-            "Asset at href http://testserver/collection-1/item-1/asset-1.tiff with sha2-256 hash "
-            "a7f5e7ca03b0f80a2fcfe5142642377e7654df2dfa736fe4d925322d8a651efe doesn't match the "
-            "checksum:multihash 3db85f41709d08bf1f2907042112bf483b28e12db4b3ffb5428a1f28308847ba",
-            description['non_field_errors'][0],
-            msg="Unexpected error message"
-        )
-
-        # Make sure that the asset is not found in DB
-        self.assertFalse(
-            Asset.objects.filter(name=asset.json['id']).exists(),
-            msg="Invalid asset has been created in DB"
-        )
 
 
 class AssetsUpdateEndpointAssetFileTestCase(StacBaseTestCase):
