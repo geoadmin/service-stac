@@ -53,8 +53,10 @@ paths:
     put:
       tags:
         - Data Management
-      summary: >-
-        Update an existing collection with Id `collectionId` with a complete collection definition
+      summary: Update or create a collection
+      description: >-
+        Update or create a collection with Id `collectionId` with a complete collection definition.
+        If the collection doesn't exists it is then created.
       operationId: updateCollection
       parameters:
         - $ref: "#/components/parameters/collectionId"
@@ -82,6 +84,18 @@ paths:
                   url: https://www.swisstopo.admin.ch
               title: National Map 1:200'000
       responses:
+        "201":
+          description: Returns the created Collection
+          headers:
+            Location:
+              description: A link to the collection
+              schema:
+                type: string
+                format: url
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/collection"
         "200":
           description: Returns the updated Collection
           content:
@@ -99,7 +113,8 @@ paths:
     patch:
       tags:
         - Data Management
-      summary: >-
+      summary: Partial update of a collection
+      description: >-
         Update an existing collection with Id `collectionId` with a partial collection definition
       operationId: partialUpdateCollection
       parameters:

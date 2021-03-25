@@ -2021,7 +2021,8 @@ paths:
           $ref: "#/components/responses/Collections"
         "500":
           $ref: "#/components/responses/ServerError"
-      summary: The feature collections in the dataset
+      summary: Fetch collections
+      description: The feature collections in the dataset
       tags:
       - Data
     post:
@@ -2091,15 +2092,17 @@ paths:
           $ref: "#/components/responses/PreconditionFailed"
         "500":
           $ref: "#/components/responses/ServerError"
-      summary: Describe the feature collection with id `collectionId`
+      summary: Fetch a single collection
+      description: Describe the feature collection with id `collectionId`
       tags:
       - Data
     put:
       tags:
       - Data Management
-      summary: >-
-        Update an existing collection with Id `collectionId` with a complete collection
-        definition
+      summary: Update or create a collection
+      description: >-
+        Update or create a collection with Id `collectionId` with a complete collection
+        definition. If the collection doesn't exists it is then created.
       operationId: updateCollection
       parameters:
       - $ref: "#/components/parameters/collectionId"
@@ -2129,6 +2132,18 @@ paths:
                 url: https://www.swisstopo.admin.ch
               title: National Map 1:200'000
       responses:
+        "201":
+          description: Returns the created Collection
+          headers:
+            Location:
+              description: A link to the collection
+              schema:
+                type: string
+                format: url
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/collection"
         "200":
           description: Returns the updated Collection
           content:
@@ -2146,7 +2161,8 @@ paths:
     patch:
       tags:
       - Data Management
-      summary: >-
+      summary: Partial update of a collection
+      description: >-
         Update an existing collection with Id `collectionId` with a partial collection
         definition
       operationId: partialUpdateCollection

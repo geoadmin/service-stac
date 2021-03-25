@@ -1595,7 +1595,8 @@ paths:
           $ref: "#/components/responses/Collections"
         "500":
           $ref: "#/components/responses/ServerError"
-      summary: The feature collections in the dataset
+      summary: Fetch collections
+      description: The feature collections in the dataset
       tags:
       - Data
   /collections/{collectionId}:
@@ -1616,7 +1617,8 @@ paths:
           $ref: "#/components/responses/PreconditionFailed"
         "500":
           $ref: "#/components/responses/ServerError"
-      summary: Describe the feature collection with id `collectionId`
+      summary: Fetch a single collection
+      description: Describe the feature collection with id `collectionId`
       tags:
       - Data
   /collections/{collectionId}/items:
