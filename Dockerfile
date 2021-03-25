@@ -17,9 +17,9 @@ RUN groupadd -r geoadmin \
     && pip3 install pipenv \
     && pipenv --version
 
-COPY Pipfile* multihash.patch /tmp/
+COPY Pipfile* /tmp/
 RUN cd /tmp && \
-    pipenv install --system --deploy --ignore-pipfile && \
+    pipenv install --system --deploy --ignore-pipfile
 
 # Set the working dir and copy the app
 WORKDIR /app
