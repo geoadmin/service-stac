@@ -425,7 +425,7 @@ class CollectionRaceConditionTest(StacBaseTransactionTestCase):
             client = Client()
             client.login(username=self.username, password=self.password)
             return client.post(
-                reverse('collection-list'),
+                reverse('collections-list'),
                 data=sample.get_json('post'),
                 content_type='application/json'
             )

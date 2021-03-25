@@ -4,6 +4,7 @@ from urllib.parse import urlparse
 
 from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry
+from django.urls import reverse
 
 from rest_framework import serializers
 from rest_framework.utils.serializer_helpers import ReturnDict
@@ -88,6 +89,44 @@ def update_or_create_links(model, instance, instance_type, links_data):
         instance.name,
         extra={instance_type: instance}
     )
+
+
+def get_relation_links(request, view, view_args):
+    '''Returns a list of auto generated relation links
+
+    Returns the self, root and parent auto generated links.
+
+    Args:
+        request: HttpRequest
+            request object
+        view: string
+            name of the view that originate the call
+        view_args: list
+            args to construct the view path
+
+    Returns: list
+        List of auto generated links
+    '''
+    self_url = request.build_absolute_uri(reverse(view, args=view_args))
+    return [
+        OrderedDict([
+            ('rel', 'self'),
+            ('href', self_url),
+        ]),
+        OrderedDict([
+            ('rel', 'root'),
+            ('href', request.build_absolute_uri(reverse('landing-page'))),
+        ]),
+        OrderedDict([
+            ('rel', 'parent'),
+            ('href', self_url.rsplit('/', maxsplit=1)[0]),
+        ]),
+    ]
+
+
+def get_url(request, view, args=None):
+    '''Get an full url based on a view name'''
+    return request.build_absolute_uri(reverse(view, args=args))
 
 
 class UpsertModelSerializerMixin:
@@ -218,7 +257,6 @@ class LandingPageSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
-        stac_base_v = settings.STAC_BASE_V
         request = self.context.get("request")
 
         spec_base = urlparse(settings.STATIC_SPEC_URL).path.strip('/')
@@ -229,7 +267,7 @@ class LandingPageSerializer(serializers.ModelSerializer):
         representation['links'][:0] = [
             OrderedDict([
                 ('rel', 'self'),
-                ('href', request.build_absolute_uri(f'/{stac_base_v}/')),
+                ('href', get_url(request, 'landing-page')),
                 ("type", "application/json"),
                 ("title", "This document"),
             ]),
@@ -247,25 +285,25 @@ class LandingPageSerializer(serializers.ModelSerializer):
             ]),
             OrderedDict([
                 ("rel", "conformance"),
-                ("href", request.build_absolute_uri(f'/{stac_base_v}/conformance')),
+                ("href", get_url(request, 'conformance')),
                 ("type", "application/json"),
                 ("title", "OGC API conformance classes implemented by this server"),
             ]),
             OrderedDict([
                 ('rel', 'data'),
-                ('href', request.build_absolute_uri(f'/{stac_base_v}/collections')),
+                ('href', get_url(request, 'collections-list')),
                 ("type", "application/json"),
                 ("title", "Information about the feature collections"),
             ]),
             OrderedDict([
-                ("href", request.build_absolute_uri(f"/{stac_base_v}/search")),
+                ("href", get_url(request, 'search-list')),
                 ("rel", "search"),
                 ("method", "GET"),
                 ("type", "application/json"),
                 ("title", "Search across feature collections"),
             ]),
             OrderedDict([
-                ("href", request.build_absolute_uri(f"/{stac_base_v}/search")),
+                ("href", get_url(request, 'search-list')),
                 ("rel", "search"),
                 ("method", "POST"),
                 ("type", "application/json"),
@@ -497,22 +535,10 @@ class CollectionSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         # We use OrderedDict, although it is not necessary, because the default serializer/model for
         # links already uses OrderedDict, this way we keep consistency between auto link and user
         # link
-        representation['links'][:0] = [
-            OrderedDict([
-                ('rel', 'self'),
-                ('href', request.build_absolute_uri(f'/{stac_base_v}/collections/{name}')),
-            ]),
-            OrderedDict([
-                ('rel', 'root'),
-                ('href', request.build_absolute_uri(f'/{stac_base_v}/')),
-            ]),
-            OrderedDict([
-                ('rel', 'parent'),
-                ('href', request.build_absolute_uri(f'/{stac_base_v}/collections')),
-            ]),
+        representation['links'][:0] = get_relation_links(request, 'collection-detail', [name]) + [
             OrderedDict([
                 ('rel', 'items'),
-                ('href', request.build_absolute_uri(f'/{stac_base_v}/collections/{name}/items')),
+                ('href', get_url(request, 'items-list', [name])),
             ])
         ]
         return representation
@@ -702,47 +728,24 @@ class AssetSerializer(AssetBaseSerializer):
         collection = instance.item.collection.name
         item = instance.item.name
         name = instance.name
-        api = settings.STAC_BASE_V
         request = self.context.get("request")
         representation = super().to_representation(instance)
         # Add auto links
         # We use OrderedDict, although it is not necessary, because the default serializer/model for
         # links already uses OrderedDict, this way we keep consistency between auto link and user
         # link
-        representation['links'] = [
-            OrderedDict([
-                ('rel', 'self'),
-                (
-                    'href',
-                    request.build_absolute_uri(
-                        f'/{api}/collections/{collection}/items/{item}/assets/{name}'
-                    )
-                ),
-            ]),
-            OrderedDict([
-                ('rel', 'root'),
-                ('href', request.build_absolute_uri(f'/{api}/')),
-            ]),
-            OrderedDict([
-                ('rel', 'parent'),
-                (
-                    'href',
-                    request.
-                    build_absolute_uri(f'/{api}/collections/{collection}/items/{item}/assets')
-                ),
-            ]),
-            OrderedDict([
-                ('rel', 'item'),
-                (
-                    'href',
-                    request.build_absolute_uri(f'/{api}/collections/{collection}/items/{item}')
-                ),
-            ]),
-            OrderedDict([
-                ('rel', 'collection'),
-                ('href', request.build_absolute_uri(f'/{api}/collections/{collection}')),
-            ])
-        ]
+        representation['links'] = \
+            get_relation_links(request, 'asset-detail', [collection, item, name]) \
+            + [
+                OrderedDict([
+                    ('rel', 'item'),
+                    ('href', get_url(request, 'item-detail', [collection, item])),
+                ]),
+                OrderedDict([
+                    ('rel', 'collection'),
+                    ('href', get_url(request, 'collection-detail', [collection])),
+                ])
+            ]
         return representation
 
 
@@ -821,34 +824,20 @@ class ItemSerializer(NonNullModelSerializer):
     def to_representation(self, instance):
         collection = instance.collection.name
         name = instance.name
-        api = settings.STAC_BASE_V
         request = self.context.get("request")
         representation = super().to_representation(instance)
         # Add auto links
         # We use OrderedDict, although it is not necessary, because the default serializer/model for
         # links already uses OrderedDict, this way we keep consistency between auto link and user
         # link
-        representation['links'][:0] = [
-            OrderedDict([
-                ('rel', 'self'),
-                (
-                    'href',
-                    request.build_absolute_uri(f'/{api}/collections/{collection}/items/{name}')
-                ),
-            ]),
-            OrderedDict([
-                ('rel', 'root'),
-                ('href', request.build_absolute_uri(f'/{api}/')),
-            ]),
-            OrderedDict([
-                ('rel', 'parent'),
-                ('href', request.build_absolute_uri(f'/{api}/collections/{collection}/items')),
-            ]),
-            OrderedDict([
-                ('rel', 'collection'),
-                ('href', request.build_absolute_uri(f'/{api}/collections/{collection}')),
-            ])
-        ]
+        representation['links'][:0] = \
+            get_relation_links(request, 'item-detail', [collection, name]) \
+            + [
+                OrderedDict([
+                    ('rel', 'collection'),
+                    ('href', get_url(request, 'collection-detail', [collection])),
+                ])
+            ]
         return representation
 
     def create(self, validated_data):
