@@ -22,7 +22,7 @@ urlpatterns = [
     path(f"{STAC_VERSION_SHORT}/", LandingPageDetail.as_view(), name='landing-page'),
     path(f"{STAC_VERSION_SHORT}/conformance", ConformancePageDetail.as_view(), name='conformance'),
     path(f"{STAC_VERSION_SHORT}/search", SearchList.as_view(), name='search-list'),
-    path(f"{STAC_VERSION_SHORT}/collections", CollectionList.as_view(), name='collection-list'),
+    path(f"{STAC_VERSION_SHORT}/collections", CollectionList.as_view(), name='collections-list'),
     path(
         f"{STAC_VERSION_SHORT}/collections/<collection_name>",
         CollectionDetail.as_view(),
