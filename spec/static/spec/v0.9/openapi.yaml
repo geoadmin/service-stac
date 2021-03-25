@@ -390,7 +390,7 @@ components:
       example: 90e402107a7f2588a85362b9beea2a12d4514d45
       pattern: ^[a-f0-9]+$
       title: Multihash
-      type: string,
+      type: string
     created:
       description: RFC 3339 compliant datetime string, time when the object was created
       example: 2018-02-12T23:20:50Z
@@ -646,7 +646,7 @@ components:
         Information about the exception: an error code plus an optional description.
       properties:
         code:
-          type: int
+          type: integer
           example: 500
         description:
           anyOf:
@@ -1342,9 +1342,7 @@ components:
         there is no valid EPSG code.
       example: 2056
       title: EPSG code.
-      type:
-      - integer
-      - null
+      type: integer
     providers:
       description: >-
         A list of providers, which may include all organizations capturing or processing

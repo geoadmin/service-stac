@@ -800,7 +800,7 @@ components:
       example: 90e402107a7f2588a85362b9beea2a12d4514d45
       pattern: ^[a-f0-9]+$
       title: Multihash
-      type: string,
+      type: string
     writeHref:
       type: string
       format: url
@@ -985,7 +985,7 @@ components:
             type: object
             properties:
               code:
-                type: int
+                type: integer
                 example: 200
               description:
                 type: string
