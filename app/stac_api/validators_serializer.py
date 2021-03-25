@@ -129,12 +129,13 @@ def validate_asset_file(href, original_name, attrs):
 
     if asset_multihash is None:
         logger.error(
-            f"Asset at href {href} doesn't provide a mandatory checksum header "
+            "Asset at href %s doesn't provide a mandatory checksum header "
             "(x-amz-meta-sha256) for validation",
             href
         )
-        raise ValidationError(code='query-invalid', detail=_(f"Asset at href {href} doesn't provide a mandatory checksum header "
-                                                             "(x-amz-meta-sha256) for validation")) from None
+        raise ValidationError(code='query-invalid', detail=_(
+            f"Asset at href {href} doesn't provide a mandatory checksum header "
+            "(x-amz-meta-sha256) for validation")) from None
 
     expected_multihash = attrs.get('checksum_multihash', None)
     if expected_multihash is None:
