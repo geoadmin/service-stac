@@ -20,8 +20,6 @@ RUN groupadd -r geoadmin \
 COPY Pipfile* multihash.patch /tmp/
 RUN cd /tmp && \
     pipenv install --system --deploy --ignore-pipfile && \
-    # Patch multihash for md5 support
-    pipenv run pypatch apply ./multihash.patch multihash
 
 # Set the working dir and copy the app
 WORKDIR /app

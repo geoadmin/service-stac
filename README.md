@@ -101,7 +101,7 @@ These steps will ensure you have everything needed to start working locally.
   ```
 
 An alternative to ```pipenv install``` is to use the ```make setup``` command, which will install the environment,
-apply a patch to the multihash package to support md5, create the volumes needed by the Postgres and MinIO containers
+create the volumes needed by the Postgres and MinIO containers
 and run those containers. ```Make setup``` assume a standard local installation with a dev environment.
 
 ### Setting up the local database

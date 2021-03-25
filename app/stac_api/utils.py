@@ -153,7 +153,7 @@ def create_multihash(digest, hash_type):
     Args:
         digest: string
         hash_type: string
-            hash type (sha2-256, md5, ...)
+            hash type sha2-256
 
     Returns: multihash
         multihash
@@ -167,7 +167,7 @@ def create_multihash_string(digest, hash_code):
     Args:
         digest: string
         hash_code: string | int
-            hash code (sha2-256, md5, ...)
+            hash code sha2-256
 
     Returns: string
         multihash string
