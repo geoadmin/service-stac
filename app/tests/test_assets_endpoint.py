@@ -747,8 +747,8 @@ class AssetRaceConditionTest(StacBaseTransactionTestCase):
         workers = 5
         status_201 = 0
         collection_sample = CollectionFactory().create_sample(sample='collection-2')
-        item_sample = ItemFactory().create_sample(collection_sample.model, sample='item-1')
-        asset_sample = AssetFactory().create_sample(item_sample.model, sample='asset-1')
+        item_sample = ItemFactory().create_sample(collection_sample.model, sample='item-2')
+        asset_sample = AssetFactory().create_sample(item_sample.model, sample='asset-2')
 
         def asset_atomic_upsert_test(worker):
             # This method run on separate thread therefore it requires to create a new client and
@@ -788,8 +788,8 @@ class AssetRaceConditionTest(StacBaseTransactionTestCase):
         workers = 5
         status_201 = 0
         collection_sample = CollectionFactory().create_sample(sample='collection-2')
-        item_sample = ItemFactory().create_sample(collection_sample.model, sample='item-1')
-        asset_sample = AssetFactory().create_sample(item_sample.model, sample='asset-1')
+        item_sample = ItemFactory().create_sample(collection_sample.model, sample='item-2')
+        asset_sample = AssetFactory().create_sample(item_sample.model, sample='asset-2')
 
         def asset_atomic_post_test(worker):
             # This method run on separate thread therefore it requires to create a new client and
