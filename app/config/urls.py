@@ -39,6 +39,8 @@ if settings.DEBUG:
     import debug_toolbar
     from stac_api.views_test import TestHttp500
     from stac_api.views_test import TestCollectionUpsertHttp500
+    from stac_api.views_test import TestItemUpsertHttp500
+    from stac_api.views_test import TestAssetUpsertHttp500
 
     urlpatterns = [
         path('__debug__/', include(debug_toolbar.urls)),
@@ -47,5 +49,15 @@ if settings.DEBUG:
             'tests/test_collection_upsert_http_500/<collection_name>',
             TestCollectionUpsertHttp500.as_view(),
             name='test-collection-detail-http-500'
+        ),
+        path(
+            'tests/test_item_upsert_http_500/<collection_name>/<item_name>',
+            TestItemUpsertHttp500.as_view(),
+            name='test-item-detail-http-500'
+        ),
+        path(
+            'tests/test_asset_upsert_http_500/<collection_name>/<item_name>/<asset_name>',
+            TestAssetUpsertHttp500.as_view(),
+            name='test-asset-detail-http-500'
         ),
     ] + urlpatterns
