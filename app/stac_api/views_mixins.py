@@ -1,7 +1,6 @@
 import logging
 
 from django.db import transaction
-from django.http import Http404
 
 from rest_framework import status
 from rest_framework.response import Response
@@ -87,12 +86,8 @@ class UpdateInsertModelMixin:
     @transaction.atomic
     def upsert(self, request, *args, **kwargs):
         data = self.get_write_request_data(request, *args, **kwargs)
-        try:
+        if self.check_existence():
             instance = self.get_object()
-        except Http404:
-            instance = None
-
-        if instance:
             partial = kwargs.pop('partial', False)
             serializer_kwargs = {'partial': partial}
             serializer = self.get_serializer(instance, data=data, **serializer_kwargs)
