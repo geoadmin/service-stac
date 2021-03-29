@@ -398,6 +398,9 @@ class CollectionSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
             'itemType'
         ]
         # crs not in sample data, but in specs..
+        validators = []  # Remove a default "unique together" constraint.
+        # (see:
+        # https://www.django-rest-framework.org/api-guide/validators/#limitations-of-validators)
 
     # NOTE: when explicitely declaring fields, we need to add the validation as for the field
     # in model !
@@ -637,6 +640,9 @@ class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
             'created',
             'updated'
         ]
+        validators = []  # Remove a default "unique together" constraint.
+        # (see:
+        # https://www.django-rest-framework.org/api-guide/validators/#limitations-of-validators)
 
     # NOTE: when explicitely declaring fields, we need to add the validation as for the field
     # in model !
@@ -807,6 +813,9 @@ class ItemSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
             'links',
             'assets'
         ]
+        validators = []  # Remove a default "unique together" constraint.
+        # (see:
+        # https://www.django-rest-framework.org/api-guide/validators/#limitations-of-validators)
 
     # NOTE: when explicitely declaring fields, we need to add the validation as for the field
     # in model !

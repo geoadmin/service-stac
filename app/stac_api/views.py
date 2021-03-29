@@ -258,9 +258,6 @@ class CollectionDetail(
     lookup_field = "name"
     queryset = Collection.objects.all().prefetch_related('providers', 'links')
 
-    def check_existence(self):
-        return Collection.objects.filter(name=self.kwargs['collection_name'])
-
     @etag(get_collection_etag)
     def get(self, request, *args, **kwargs):
         return self.retrieve(request, *args, **kwargs)
@@ -370,9 +367,6 @@ class ItemDetail(
 
         return queryset
 
-    def check_existence(self):
-        return Item.objects.filter(name=self.kwargs['item_name'])
-
     def get_write_request_data(self, request, *args, partial=False, **kwargs):
         data = request.data.copy()
         data['collection'] = kwargs['collection_name']
@@ -481,9 +475,6 @@ class AssetDetail(
             item__collection__name=self.kwargs['collection_name'],
             item__name=self.kwargs['item_name']
         )
-
-    def check_existence(self):
-        return Asset.objects.filter(name=self.kwargs['asset_name'])
 
     def get_serializer(self, *args, **kwargs):
         serializer_class = self.get_serializer_class()

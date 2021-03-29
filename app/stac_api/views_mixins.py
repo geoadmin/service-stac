@@ -86,14 +86,7 @@ class UpdateInsertModelMixin:
     @transaction.atomic
     def upsert(self, request, *args, **kwargs):
         data = self.get_write_request_data(request, *args, **kwargs)
-        if self.check_existence():
-            instance = self.get_object()
-            partial = kwargs.pop('partial', False)
-            serializer_kwargs = {'partial': partial}
-            serializer = self.get_serializer(instance, data=data, **serializer_kwargs)
-        else:
-            serializer = self.get_serializer(data=data)
-
+        serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         lookup = {}
         if self.lookup_url_kwarg:
