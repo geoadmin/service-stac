@@ -1,4 +1,5 @@
 from admin_auto_filters.filters import AutocompleteFilter
+from admin_auto_filters.filters import AutocompleteFilterFactory
 
 from django.contrib.gis import admin
 from django.contrib.postgres.fields import ArrayField
@@ -18,6 +19,7 @@ from stac_api.models import LandingPage
 from stac_api.models import LandingPageLink
 from stac_api.models import Provider
 from stac_api.utils import build_asset_href
+from stac_api.utils import get_query_params
 
 
 class LandingPageLinkInline(admin.TabularInline):
@@ -84,9 +86,9 @@ class ItemLinkInline(admin.TabularInline):
     extra = 0
 
 
-class CollectionFilter(AutocompleteFilter):
+class CollectionFilterForItems(AutocompleteFilter):
     title = 'Collection name'  # display title
-    field_name = 'collection'  # name of the foreign key field
+    field_name = 'collection'  # name of the foreign key
 
 
 @admin.register(Item)
@@ -120,10 +122,25 @@ class ItemAdmin(admin.GeoModelAdmin):
     wms_layer = 'ch.swisstopo.pixelkarte-farbe-pk1000.noscale'
     wms_url = 'https://wms.geo.admin.ch/'
     list_display = ['name', 'collection']
-    list_filter = [CollectionFilter]
+    list_filter = [CollectionFilterForItems]
 
     def get_search_results(self, request, queryset, search_term):
         queryset, use_distinct = super().get_search_results(request, queryset, search_term)
+
+        # The following few lines are a bit hacky and are needed for the item dropdown list
+        # to depend on the currently selected collection in the collection dropdown filter.
+        # With this "hack", only those items appear in the "filter by item name" dropdown list,
+        # that belong to the currently selected collection in the "filter by collection name"
+        # dropdown list. Otherwise all items would appear in the dropdown list, which does not
+        # make sense.
+
+        # this asserts that the request comes from the autocomplete filters.
+        if request.path.endswith("/autocomplete/"):
+            collection_filter_param = get_query_params(
+                request.headers['Referer'], 'item__collection'
+            )
+            if collection_filter_param:
+                queryset = queryset.filter(collection__pk__exact=collection_filter_param[0])
         if search_term.startswith('"') and search_term.endswith('"'):
             search_terms = search_term.strip('"').split('/', maxsplit=2)
             if len(search_terms) == 2:
@@ -163,6 +180,10 @@ class AssetAdmin(admin.ModelAdmin):
             'fields': ('eo_gsd', 'proj_epsg', 'geoadmin_variant', 'geoadmin_lang')
         }),
     )
+    list_filter = [
+        AutocompleteFilterFactory('Item name', 'item', use_pk_exact=True),
+        AutocompleteFilterFactory('Collection name', 'item__collection', use_pk_exact=True)
+    ]
 
     def get_search_results(self, request, queryset, search_term):
         queryset, use_distinct = super().get_search_results(request, queryset, search_term)
