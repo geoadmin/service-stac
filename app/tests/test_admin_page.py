@@ -695,7 +695,7 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
             Asset.objects.filter(name=data["name"]).exists(), msg="Admin page asset still in DB"
         )
 
-        # self.assertS3ObjectNotExists(path) # Un-comment with BGDIINF_SB-1625
+        self.assertS3ObjectNotExists(path)
 
     @mock_s3_asset_file
     def test_add_update_asset_invalid_media_type(self):

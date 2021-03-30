@@ -8,12 +8,14 @@ from django.conf import settings
 from django.test import Client
 
 from stac_api.models import Asset
+from stac_api.utils import get_asset_path
 from stac_api.utils import get_sha256_multihash
 from stac_api.utils import utc_aware
 
 from tests.base_test import StacBaseTestCase
 from tests.data_factory import Factory
 from tests.utils import client_login
+from tests.utils import S3TestMixin
 from tests.utils import mock_s3_asset_file
 from tests.utils import upload_file_on_s3
 
@@ -647,7 +649,7 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
                          msg='Unexpected error message')
 
 
-class AssetsDeleteEndpointTestCase(StacBaseTestCase):
+class AssetsDeleteEndpointTestCase(StacBaseTestCase, S3TestMixin):
 
     @mock_s3_asset_file
     def setUp(self):  # pylint: disable=invalid-name
@@ -664,10 +666,13 @@ class AssetsDeleteEndpointTestCase(StacBaseTestCase):
         item_name = self.item.name
         asset_name = self.asset.name
         path = f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
+        s3_path = get_asset_path(self.item, asset_name)
+        self.assertS3ObjectExists(s3_path)
         response = self.client.delete(path)
         self.assertStatusCode(200, response)
 
         # Check that is has really been deleted
+        self.assertS3ObjectNotExists(s3_path)
         response = self.client.get(path)
         self.assertStatusCode(404, response)
 

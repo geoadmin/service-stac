@@ -1,4 +1,3 @@
-# Un-comment with BGDIINF_SB-1625
 import logging
 
 from django.db.models.signals import pre_delete
