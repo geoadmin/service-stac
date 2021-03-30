@@ -24,9 +24,9 @@ from stac_api.models import get_asset_path
 from stac_api.utils import build_asset_href
 from stac_api.utils import isoformat
 from stac_api.validators import MEDIA_TYPES_MIMES
-from stac_api.validators import validate_asset_multihash
 from stac_api.validators import validate_asset_name
 from stac_api.validators import validate_asset_name_with_media_type
+from stac_api.validators import validate_checksum_multihash_sha256
 from stac_api.validators import validate_geoadmin_variant
 from stac_api.validators import validate_item_properties_datetimes
 from stac_api.validators import validate_name
@@ -528,7 +528,6 @@ class CollectionSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
 
     def to_representation(self, instance):
         name = instance.name
-        stac_base_v = settings.STAC_BASE_V
         request = self.context.get("request")
         representation = super().to_representation(instance)
         # Add auto links
@@ -684,7 +683,7 @@ class AssetBaseSerializer(NonNullModelSerializer):
         max_length=255,
         required=False,
         allow_blank=False,
-        validators=[validate_asset_multihash]
+        validators=[validate_checksum_multihash_sha256]
     )
     # read only fields
     href = HrefField(source='file', read_only=True)

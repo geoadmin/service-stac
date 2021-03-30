@@ -3,6 +3,8 @@ import re
 from datetime import datetime
 
 import multihash
+from multihash.constants import CODE_HASHES
+from multihash.constants import HASH_CODES
 
 from django.contrib.gis.geos import GEOSGeometry
 from django.core.exceptions import ValidationError
@@ -72,7 +74,7 @@ def validate_name(name):
         logger.error('Invalid name %s, only the following characters are allowed: 0-9a-z-_.', name)
         raise ValidationError(
             _('Invalid id, only the following characters are allowed: 0-9a-z-_.'),
-            code='id'
+            code='invalid'
         )
 
 
@@ -81,7 +83,7 @@ def validate_asset_name(name):
     '''
     if not name:
         logger.error('Invalid asset name, must not be empty')
-        raise ValidationError({'id': _("Invalid id must not be empty")}, code='id')
+        raise ValidationError(_("Invalid id must not be empty"), code='missing')
     validate_name(name)
     ext = name.rsplit('.', maxsplit=1)[-1]
     if f'.{ext}' not in MEDIA_TYPES_EXTENSIONS:
@@ -89,8 +91,9 @@ def validate_asset_name(name):
             'Invalid name %s extension %s, name must ends with a valid file extension', name, ext
         )
         raise ValidationError(
-            _(f"Invalid id extension '.{ext}', id must have a valid file extension"),
-            code='id'
+            _("Invalid id extension '.%(ext)s', id must have a valid file extension"),
+            params={'ext': ext},
+            code='invalid'
         )
 
 
@@ -100,7 +103,11 @@ def validate_asset_name_with_media_type(name, media_type):
     ext = f".{name.rsplit('.', maxsplit=1)[-1]}"
     if media_type not in MEDIA_TYPES_BY_TYPE:
         logger.error("Invalid media_type %s for asset %s", media_type, name)
-        raise ValidationError(_(f"Invalid media type {media_type}"), code='type')
+        raise ValidationError(
+            _("Invalid media type %(media_type)s"),
+            params={'media_type': media_type},
+            code='invalid'
+        )
     if ext not in MEDIA_TYPES_BY_TYPE[media_type][2]:
         logger.error(
             "Invalid name %s extension %s, don't match the media type %s",
@@ -109,8 +116,9 @@ def validate_asset_name_with_media_type(name, media_type):
             MEDIA_TYPES_BY_TYPE[media_type],
         )
         raise ValidationError(
-            _(f"Invalid id extension '{ext}', id must match its media type {media_type}"),
-            code='id'
+            _("Invalid id extension '%(ext)s', id must match its media type %(media_type)s"),
+            params={'ext': ext, 'media_type': media_type},
+            code='invalid'
         )
 
 
@@ -132,9 +140,10 @@ def validate_geoadmin_variant(variant):
             variant
         )
         raise ValidationError(
-            _(f'Invalid geoadmin:variant "{variant}", '
+            _('Invalid geoadmin:variant "%(variant)s", '
               'special characters beside one space are not allowed'),
-            code="geoadmin:variant"
+            params={'variant': variant},
+            code="invalid"
         )
 
 
@@ -153,8 +162,9 @@ def validate_link_rel(value):
     if value in invalid_rel:
         logger.error("Link rel attribute %s is not allowed, it is a reserved attribute", value)
         raise ValidationError(
-            _(f'Invalid rel attribute, must not be in {invalid_rel}'),
-            code="rel"
+            _('Invalid rel attribute, must not be in %(invalid_rel)s'),
+            params={'invalid_rel': invalid_rel},
+            code="invalid"
         )
 
 
@@ -173,13 +183,15 @@ def validate_geometry(geometry):
     '''
     geos_geometry = GEOSGeometry(geometry)
     if geos_geometry.empty:
-        message = "The geometry is empty: %s" % geos_geometry.wkt
-        logger.error(message)
-        raise ValidationError(_(message), code='geometry')
+        message = "The geometry is empty: %(error)s"
+        params = {'error': geos_geometry.wkt}
+        logger.error(message, params)
+        raise ValidationError(_(message), params=params, code='invalid')
     if not geos_geometry.valid:
-        message = "The geometry is not valid: %s" % geos_geometry.valid_reason
-        logger.error(message)
-        raise ValidationError(_(message), code='geometry')
+        message = "The geometry is not valid: %s"
+        params = {'error': geos_geometry.valid_reason}
+        logger.error(message, params)
+        raise ValidationError(_(message), params=params, code='invalid')
     return geometry
 
 
@@ -208,29 +220,31 @@ def validate_item_properties_datetimes_dependencies(
             properties_end_datetime = fromisoformat(properties_end_datetime)
     except ValueError as error:
         logger.error("Invalid datetime string %s", error)
-        raise ValidationError(f'Invalid datetime string {error}') from error
+        raise ValidationError(
+            _('Invalid datetime string %(error)s'), params={'error': error}, code='invalid'
+        ) from error
 
     if properties_datetime is not None:
         if (properties_start_datetime is not None or properties_end_datetime is not None):
             message = 'Cannot provide together property datetime with datetime range ' \
                 '(start_datetime, end_datetime)'
             logger.error(message)
-            raise ValidationError(_(message))
+            raise ValidationError(_(message), code='invalid')
     else:
         if properties_end_datetime is None:
             message = "Property end_datetime can't be null when no property datetime is given"
             logger.error(message)
-            raise ValidationError(_(message))
+            raise ValidationError(_(message), code='invalid')
         if properties_start_datetime is None:
             message = "Property start_datetime can't be null when no property datetime is given"
             logger.error(message)
-            raise ValidationError(_(message))
+            raise ValidationError(_(message), code='invalid')
 
     if properties_datetime is None:
         if properties_end_datetime < properties_start_datetime:
             message = "Property end_datetime can't refer to a date earlier than property "\
             "start_datetime"
-            raise ValidationError(_(message))
+            raise ValidationError(_(message), code='invalid')
 
 
 def validate_item_properties_datetimes(
@@ -246,10 +260,10 @@ def validate_item_properties_datetimes(
     )
 
 
-def validate_asset_multihash(value):
-    '''Validate the Asset multihash field
+def validate_checksum_multihash_sha256(value):
+    '''Validate the checksum multihash field
 
-    The field value must be a multihash string
+    The field value must be a multihash sha256 string
 
     Args:
         value: string
@@ -260,10 +274,10 @@ def validate_asset_multihash(value):
     '''
     try:
         mhash = multihash.decode(multihash.from_hex_string(value))
-    except ValueError as error:
+    except (ValueError, TypeError) as error:
         logger.error("Invalid multihash %s; %s", value, error)
-        raise ValidationError(
-            code='checksum:multihash',
-            message=_('Invalid multihash value; %(error)s'),
-            params={'error': error}
-        ) from None
+        raise ValidationError(_('Invalid multihash value; %(error)s'),
+                              params={'error': error}, code='invalid') from None
+    if mhash.code != HASH_CODES['sha2-256']:
+        raise ValidationError(_('Invalid multihash value: must be sha2-256 but is %(code)s'),
+                              params={'code': CODE_HASHES[mhash.code]}, code='invalid')
