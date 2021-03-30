@@ -4,7 +4,6 @@ from collections import OrderedDict
 from datetime import datetime
 
 from django.conf import settings
-from django.http import Http404
 
 from rest_framework import generics
 from rest_framework import mixins
@@ -27,6 +26,8 @@ from stac_api.serializers import LandingPageSerializer
 from stac_api.utils import harmonize_post_get_for_search
 from stac_api.utils import utc_aware
 from stac_api.validators_serializer import ValidateSearchRequest
+from stac_api.validators_view import validate_collection
+from stac_api.validators_view import validate_item
 
 logger = logging.getLogger(__name__)
 
@@ -89,7 +90,13 @@ def get_asset_etag(request, *args, **kwargs):
 
     The ETag is an UUID4 computed on each object changes
     '''
-    tag = get_etag(Asset.objects.filter(item__name=kwargs['item_name'], name=kwargs['asset_name']))
+    tag = get_etag(
+        Asset.objects.filter(
+            item__collection__name=kwargs['collection_name'],
+            item__name=kwargs['item_name'],
+            name=kwargs['asset_name']
+        )
+    )
 
     if settings.DEBUG_ENABLE_DB_EXPLAIN_ANALYZE:
         logger.debug(
@@ -297,9 +304,7 @@ class ItemsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
         return queryset
 
     def list(self, request, *args, **kwargs):
-        if not Collection.objects.filter(name=self.kwargs['collection_name']).exists():
-            logger.error("The collection %s does not exist", self.kwargs['collection_name'])
-            raise Http404(f"The collection {self.kwargs['collection_name']} does not exists.")
+        validate_collection(self.kwargs)
         queryset = self.filter_queryset(self.get_queryset())
         page = self.paginate_queryset(queryset)
         if page is not None:
@@ -411,19 +416,7 @@ class AssetsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
         )
 
     def get(self, request, *args, **kwargs):
-        if not Collection.objects.filter(name=self.kwargs['collection_name']).exists():
-            logger.error("The collection %s does not exist", self.kwargs['collection_name'])
-            raise Http404(f"The collection {self.kwargs['collection_name']} does not exist")
-        if not Item.objects.filter(name=self.kwargs['item_name']).exists():
-            logger.error(
-                "The item %s is not part of the collection, %s",
-                self.kwargs['item_name'],
-                self.kwargs['collection_name']
-            )
-            raise Http404(
-                f"The item {self.kwargs['item_name']} is not part of the collection "
-                f"{self.kwargs['collection_name']}"
-            )
+        validate_item(self.kwargs)
 
         queryset = self.filter_queryset(self.get_queryset())
         serializer = self.get_serializer(queryset, many=True)
