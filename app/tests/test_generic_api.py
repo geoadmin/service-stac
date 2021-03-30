@@ -194,6 +194,15 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
             db_create=True,
         )
 
+    def get_etag(self, endpoint):
+        # Get first the ETag
+        _response = self.client.get(f"/{STAC_BASE_V}/{endpoint}")
+        self.assertStatusCode(200, _response)
+        # The ETag change between each test call due to the created,
+        # updated time that are in the hash computation of the ETag
+        self.check_header_etag(None, _response)
+        return _response['ETag']
+
     def test_get_precondition(self):
         for endpoint in [
             f'collections/{self.collection["name"]}',
@@ -254,13 +263,6 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
             ),
         ]:
             with self.subTest(endpoint=endpoint):
-                # Get first the ETag
-                response = self.client.get(f"/{STAC_BASE_V}/{endpoint}")
-                self.assertStatusCode(200, response)
-                # The ETag change between each test call due to the created, updated time that are
-                # in the hash computation of the ETag
-                self.check_header_etag(None, response)
-                etag1 = response['ETag']
 
                 response = self.client.put(
                     f"/{STAC_BASE_V}/{endpoint}",
@@ -274,9 +276,68 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
                     f"/{STAC_BASE_V}/{endpoint}",
                     sample.get_json('put'),
                     content_type="application/json",
-                    HTTP_IF_MATCH=etag1
+                    HTTP_IF_MATCH=self.get_etag(endpoint)
                 )
                 self.assertStatusCode(200, response)
+
+    def test_wrong_media_type(self):
+        client_login(self.client)
+
+        for (request_methods, endpoint, data) in [
+            (
+                ['put', 'patch'],
+                f'collections/{self.collection["name"]}',
+                {},
+            ),
+            (
+                ['put', 'patch'],
+                f'collections/{self.collection["name"]}/items/{self.item["name"]}',
+                {},
+            ),
+            (
+                ['post'],
+                'collections',
+                self.factory.create_collection_sample(
+                    name=self.collection["name"],
+                    sample='collection-2',
+                ),
+            ),
+            (
+                ['post'],
+                f'collections/{self.collection["name"]}/items',
+                self.factory.create_item_sample(
+                    collection=self.collection.model,
+                    name=self.item["name"],
+                    sample='item-2',
+                ),
+            ),
+            (
+                ['post'],
+                f'collections/{self.collection["name"]}/items/{self.item["name"]}'
+                f'/assets',
+                self.factory.create_asset_sample(
+                    item=self.item.model,
+                    name=self.asset["name"],
+                    sample='asset-1-updated',
+                    media_type=self.asset['media_type'],
+                    checksum_multihash=self.asset["checksum_multihash"]
+                ),
+            ),
+            (['post'], 'search', {
+                "query": {
+                    "title": {
+                        "eq": "My item 1"
+                    }
+                }
+            }),
+        ]:
+            with self.subTest(endpoint=endpoint):
+                client_requests = [getattr(self.client, method) for method in request_methods]
+                for client_request in client_requests:
+                    response = client_request(
+                        f"/{STAC_BASE_V}/{endpoint}", data=data, content_type="plain/text"
+                    )
+                    self.assertStatusCode(415, response)
 
     def test_patch_precondition(self):
         client_login(self.client)
@@ -304,13 +365,6 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
             ),
         ]:
             with self.subTest(endpoint=endpoint):
-                # Get first the ETag
-                response = self.client.get(f"/{STAC_BASE_V}/{endpoint}")
-                self.assertStatusCode(200, response)
-                # The ETag change between each test call due to the created, updated time that are
-                # in the hash computation of the ETag
-                self.check_header_etag(None, response)
-                etag1 = response['ETag']
 
                 response = self.client.patch(
                     f"/{STAC_BASE_V}/{endpoint}",
@@ -324,7 +378,7 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
                     f"/{STAC_BASE_V}/{endpoint}",
                     data,
                     content_type="application/json",
-                    HTTP_IF_MATCH=etag1
+                    HTTP_IF_MATCH=self.get_etag(endpoint)
                 )
                 self.assertStatusCode(200, response)
 
@@ -337,13 +391,7 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
             # f'collections/{self.collection["name"]}',
         ]:
             with self.subTest(endpoint=endpoint):
-                # Get first the ETag
-                response = self.client.get(f"/{STAC_BASE_V}/{endpoint}")
-                self.assertStatusCode(200, response)
-                # The ETag change between each test call due to the created, updated time that are
-                # in the hash computation of the ETag
-                self.check_header_etag(None, response)
-                etag1 = response['ETag']
+                etag1 = self.get_etag(endpoint)
 
                 response = self.client.delete(
                     f"/{STAC_BASE_V}/{endpoint}",
