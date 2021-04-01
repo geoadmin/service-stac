@@ -791,7 +791,7 @@ components:
               $ref: "#/components/schemas/updateAssetId"
     writeChecksumMultihash:
       description: >-
-        `sha2-256` or `md5` checksum of the asset in [multihash](https://multiformats.io/multihash/)
+        `sha2-256` checksum of the asset in [multihash](https://multiformats.io/multihash/)
         format.
 
 

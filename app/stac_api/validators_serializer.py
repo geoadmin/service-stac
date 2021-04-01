@@ -123,24 +123,19 @@ def validate_asset_file(href, original_name, attrs):
     # Get the hash from response
     asset_multihash = None
     asset_sha256 = obj.metadata.get('sha256', None)
-    asset_md5 = obj.e_tag.strip('"')
-    logger.debug(
-        'Asset file %s checksums from headers: sha256=%s, md5=%s', href, asset_sha256, asset_md5
-    )
+    logger.debug('Asset file %s checksums from headers: sha256=%s', href, asset_sha256)
     if asset_sha256:
         asset_multihash = create_multihash(asset_sha256, 'sha2-256')
-    elif asset_md5:
-        asset_multihash = create_multihash(asset_md5, 'md5')
 
     if asset_multihash is None:
         logger.error(
-            'Asset at href %s, doesn\'t provide a sha2-256 hash in header x-amz-meta-sha256 ' \
-            'or an ETag md5 checksum', href
+            "Asset at href %s doesn't provide a mandatory checksum header "
+            "(x-amz-meta-sha256) for validation",
+            href
         )
-        raise APIException({
-            'href': _(f"Asset at href {href} doesn't provide a valid checksum header "
-                      "(ETag or x-amz-meta-sha256) for validation")
-        })
+        raise ValidationError(code='query-invalid', detail=_(
+            f"Asset at href {href} doesn't provide a mandatory checksum header "
+            "(x-amz-meta-sha256) for validation")) from None
 
     expected_multihash = attrs.get('checksum_multihash', None)
     if expected_multihash is None:
