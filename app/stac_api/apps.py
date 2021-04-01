@@ -45,7 +45,10 @@ def custom_exception_handler(exc, context):
             "request.query": context['request']._request.GET.urlencode()
         }
 
-        if context['request']._request.method.upper() in ["PATCH", "POST", "PUT"]:
+        if (
+            context['request']._request.method.upper() in ["PATCH", "POST", "PUT"] and
+            'application/json' in context['request']._request.headers['content-type'].lower()
+        ):
             extra["request.payload"] = context['request'].data
 
         logger.error("Response %s: %s", response.status_code, response.data, extra=extra)
