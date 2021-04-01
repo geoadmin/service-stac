@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.urls import include
 from django.urls import path
 
 from rest_framework.authtoken.views import obtain_auth_token
@@ -16,36 +17,33 @@ from stac_api.views import SearchList
 STAC_VERSION_SHORT = settings.STAC_VERSION_SHORT
 HEALTHCHECK_ENDPOINT = settings.HEALTHCHECK_ENDPOINT
 
+asset_urls = [
+    path("<asset_name>", AssetDetail.as_view(), name='asset-detail'),
+]
+
+item_urls = [
+    path("<item_name>", ItemDetail.as_view(), name='item-detail'),
+    path("<item_name>/assets", AssetsList.as_view(), name='assets-list'),
+    path("<item_name>/assets/", include(asset_urls))
+]
+
+collection_urls = [
+    path("<collection_name>", CollectionDetail.as_view(), name='collection-detail'),
+    path("<collection_name>/items", ItemsList.as_view(), name='items-list'),
+    path("<collection_name>/items/", include(item_urls))
+]
+
 urlpatterns = [
     path(f"{HEALTHCHECK_ENDPOINT}", CollectionList.as_view(), name='health-check'),
     path("get-token", obtain_auth_token, name='get-token'),
-    path(f"{STAC_VERSION_SHORT}/", LandingPageDetail.as_view(), name='landing-page'),
-    path(f"{STAC_VERSION_SHORT}/conformance", ConformancePageDetail.as_view(), name='conformance'),
-    path(f"{STAC_VERSION_SHORT}/search", SearchList.as_view(), name='search-list'),
-    path(f"{STAC_VERSION_SHORT}/collections", CollectionList.as_view(), name='collections-list'),
     path(
-        f"{STAC_VERSION_SHORT}/collections/<collection_name>",
-        CollectionDetail.as_view(),
-        name='collection-detail'
-    ),
-    path(
-        f"{STAC_VERSION_SHORT}/collections/<collection_name>/items",
-        ItemsList.as_view(),
-        name='items-list'
-    ),
-    path(
-        f"{STAC_VERSION_SHORT}/collections/<collection_name>/items/<item_name>",
-        ItemDetail.as_view(),
-        name='item-detail'
-    ),
-    path(
-        f"{STAC_VERSION_SHORT}/collections/<collection_name>/items/<item_name>/assets",
-        AssetsList.as_view(),
-        name='assets-list'
-    ),
-    path(
-        f"{STAC_VERSION_SHORT}/collections/<collection_name>/items/<item_name>/assets/<asset_name>",
-        AssetDetail.as_view(),
-        name='asset-detail'
+        f"{STAC_VERSION_SHORT}/",
+        include([
+            path("", LandingPageDetail.as_view(), name='landing-page'),
+            path("conformance", ConformancePageDetail.as_view(), name='conformance'),
+            path("search", SearchList.as_view(), name='search-list'),
+            path("collections", CollectionList.as_view(), name='collections-list'),
+            path("collections/", include(collection_urls))
+        ])
     )
 ]
