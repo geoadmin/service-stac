@@ -20,7 +20,6 @@ from stac_api.models import ItemLink
 from stac_api.models import LandingPage
 from stac_api.models import LandingPageLink
 from stac_api.models import Provider
-from stac_api.models import get_asset_path
 from stac_api.utils import build_asset_href
 from stac_api.utils import isoformat
 from stac_api.validators import MEDIA_TYPES_MIMES
@@ -133,22 +132,33 @@ class UpsertModelSerializerMixin:
     """Add support for Upsert in serializer
     """
 
-    def upsert(self, **kwargs):
+    def upsert(self, look_up, **kwargs):
         """
         Update or insert an instance and return it.
+
+        Args:
+            look_up: dict
+                Must be a unique query to be used in the objects.update_or_create(**look_up) method.
+            **kwargs:
+                Extra key=value pairs to pass as validated_data to update_or_create(). For example
+                relationships that are not serialized but part of the request path can be given
+                as kwargs.
         """
-        self.instance, created = self.update_or_create(self.validated_data.copy(), **kwargs)
+        validated_data = {**self.validated_data, **kwargs}
+        self.instance, created = self.update_or_create(look_up, validated_data)
         return self.instance, created
 
-    def update_or_create(self, validated_data, **kwargs):
+    def update_or_create(self, look_up, validated_data):
         """This method must be implemented by the serializer and must make use of the DB
         objects.update_or_create() method.
 
         Args:
+           look_up: dict
+                Must be a unique query to be used in the objects.update_or_create(**look_up)
+                method.
             validated_data: dict
-                Copy of the validated_data to be used in the objects.update_or_create() method.
-            **kwargs:
-                Must be a unique query to be used in the objects.update_or_create() method.
+                Copy of the validated_data to be used as defaults in the
+                objects.update_or_create(defaults=validated_data) method.
         """
         raise NotImplementedError("update_or_create() not implemented")
 
@@ -501,7 +511,7 @@ class CollectionSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         )
         return super().update(instance, validated_data)
 
-    def update_or_create(self, validated_data, **kwargs):
+    def update_or_create(self, look_up, validated_data):
         """
         Update or create the collection object selected by kwargs and return the instance.
 
@@ -519,7 +529,9 @@ class CollectionSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         """
         providers_data = validated_data.pop('providers', [])
         links_data = validated_data.pop('links', [])
-        collection, created = Collection.objects.update_or_create(**kwargs, defaults=validated_data)
+        collection, created = Collection.objects.update_or_create(
+            **look_up, defaults=validated_data
+            )
         self._update_or_create_providers(collection=collection, providers_data=providers_data)
         update_or_create_links(
             instance_type="collection",
@@ -627,7 +639,6 @@ class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         model = Asset
         fields = [
             'id',
-            'item',
             'title',
             'type',
             'href',
@@ -646,9 +657,6 @@ class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
 
     # NOTE: when explicitely declaring fields, we need to add the validation as for the field
     # in model !
-    item = serializers.SlugRelatedField(
-        slug_field='name', write_only=True, queryset=Item.objects.all()
-    )
     id = serializers.CharField(source='name', max_length=255, validators=[validate_asset_name])
     title = serializers.CharField(
         required=False, max_length=255, allow_null=True, allow_blank=False
@@ -696,7 +704,7 @@ class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         asset = validate_uniqueness_and_create(Asset, validated_data)
         return asset
 
-    def update_or_create(self, validated_data, **kwargs):
+    def update_or_create(self, look_up, validated_data):
         """
         Update or create the asset object selected by kwargs and return the instance.
         When no asset object matching the kwargs selection, a new asset is created.
@@ -709,7 +717,7 @@ class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         Returns: tuple
             Asset instance and True if created otherwise false
         """
-        asset, created = Asset.objects.update_or_create(**kwargs, defaults=validated_data)
+        asset, created = Asset.objects.update_or_create(**look_up, defaults=validated_data)
         return asset, created
 
     def validate(self, attrs):
@@ -722,9 +730,6 @@ class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
             )
 
         validate_json_payload(self)
-
-        if not self.partial:
-            attrs['file'] = get_asset_path(attrs['item'], attrs['name'])
 
         return attrs
 
@@ -782,7 +787,6 @@ class AssetsForItemSerializer(AssetBaseSerializer):
         list_serializer_class = AssetsDictSerializer
         fields = [
             'id',
-            'item',
             'title',
             'type',
             'href',
@@ -819,7 +823,6 @@ class ItemSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
 
     # NOTE: when explicitely declaring fields, we need to add the validation as for the field
     # in model !
-    collection = serializers.SlugRelatedField(slug_field='name', queryset=Collection.objects.all())
     id = serializers.CharField(
         source='name', required=True, max_length=255, validators=[validate_name]
     )
@@ -828,6 +831,7 @@ class ItemSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
     links = ItemLinkSerializer(required=False, many=True)
     # read only fields
     type = serializers.SerializerMethodField()
+    collection = serializers.SlugRelatedField(slug_field='name', read_only=True)
     bbox = BboxSerializer(source='*', read_only=True)
     assets = AssetsForItemSerializer(many=True, read_only=True)
     stac_extensions = serializers.SerializerMethodField()
@@ -876,7 +880,7 @@ class ItemSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         )
         return super().update(instance, validated_data)
 
-    def update_or_create(self, validated_data, **kwargs):
+    def update_or_create(self, look_up, validated_data):
         """
         Update or create the item object selected by kwargs and return the instance.
         When no item object matching the kwargs selection, a new item is created.
@@ -890,7 +894,7 @@ class ItemSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
             Item instance and True if created otherwise false
         """
         links_data = validated_data.pop('links', [])
-        item, created = Item.objects.update_or_create(**kwargs, defaults=validated_data)
+        item, created = Item.objects.update_or_create(**look_up, defaults=validated_data)
         update_or_create_links(
             instance_type="item", model=ItemLink, instance=item, links_data=links_data
         )

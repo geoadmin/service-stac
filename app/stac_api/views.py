@@ -4,6 +4,8 @@ from collections import OrderedDict
 from datetime import datetime
 
 from django.conf import settings
+from django.http import Http404
+from django.shortcuts import get_object_or_404
 
 from rest_framework import generics
 from rest_framework import mixins
@@ -17,6 +19,7 @@ from stac_api.models import Collection
 from stac_api.models import ConformancePage
 from stac_api.models import Item
 from stac_api.models import LandingPage
+from stac_api.models import get_asset_path
 from stac_api.pagination import GetPostCursorPagination
 from stac_api.serializers import AssetSerializer
 from stac_api.serializers import CollectionSerializer
@@ -276,10 +279,11 @@ class CollectionDetail(
 class ItemsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
     serializer_class = ItemSerializer
 
-    def get_write_request_data(self, request, *args, **kwargs):
-        data = request.data.copy()
-        data['collection'] = kwargs['collection_name']
-        return data
+    def perform_create(self, serializer):
+        # this DB hit used to be done by the serializer due to the SlugRelatedField during
+        # deserialization
+        collection = get_object_or_404(Collection, name=self.kwargs['collection_name'])
+        serializer.save(collection=collection)
 
     def get_queryset(self):
         # filter based on the url
@@ -367,10 +371,13 @@ class ItemDetail(
 
         return queryset
 
-    def get_write_request_data(self, request, *args, partial=False, **kwargs):
-        data = request.data.copy()
-        data['collection'] = kwargs['collection_name']
-        return data
+    def perform_update(self, serializer):
+        collection = get_object_or_404(Collection, name=self.kwargs['collection_name'])
+        serializer.save(collection=collection)
+
+    def perform_upsert(self, serializer, lookup):
+        collection = get_object_or_404(Collection, name=self.kwargs['collection_name'])
+        return serializer.upsert(lookup, collection=collection)
 
     @etag(get_item_etag)
     def get(self, request, *args, **kwargs):
@@ -396,11 +403,6 @@ class AssetsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
     serializer_class = AssetSerializer
     pagination_class = None
 
-    def get_write_request_data(self, request, *args, **kwargs):
-        data = request.data.copy()
-        data['item'] = kwargs['item_name']
-        return data
-
     def get_success_headers(self, data):  # pylint: disable=arguments-differ
         asset_link_self = self.request.build_absolute_uri() + "/" + self.request.data["id"]
         return {'Location': asset_link_self}
@@ -414,6 +416,14 @@ class AssetsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
             item__collection__name=self.kwargs['collection_name'],
             item__name=self.kwargs['item_name']
         )
+
+    def perform_create(self, serializer):
+        # this DB hit used to done by the serializer due to the SlugRelatedField during
+        # deserialization
+        item = get_object_or_404(
+            Item, collection__name=self.kwargs['collection_name'], name=self.kwargs['item_name']
+        )
+        serializer.save(item=item, file=get_asset_path(item, serializer.validated_data['name']))
 
     def get(self, request, *args, **kwargs):
         validate_item(self.kwargs)
@@ -459,16 +469,6 @@ class AssetDetail(
     lookup_url_kwarg = "asset_name"
     lookup_field = "name"
 
-    def get_write_request_data(self, request, *args, partial=False, **kwargs):
-        data = request.data.copy()
-        data['item'] = kwargs['item_name']
-        if partial and not 'id' in data:
-            # Partial update for checksum:multihash requires the asset id in order to verify the
-            # file with the checksum, therefore if the id is missing in payload we take it from
-            # the request path.
-            data['id'] = kwargs['asset_name']
-        return data
-
     def get_queryset(self):
         # filter based on the url
         return Asset.objects.filter(
@@ -480,6 +480,20 @@ class AssetDetail(
         serializer_class = self.get_serializer_class()
         kwargs.setdefault('context', self.get_serializer_context())
         return serializer_class(*args, **kwargs)
+
+    def perform_update(self, serializer):
+        item = get_object_or_404(
+            Item, collection__name=self.kwargs['collection_name'], name=self.kwargs['item_name']
+        )
+        serializer.save(item=item, file=get_asset_path(item, self.kwargs['asset_name']))
+
+    def perform_upsert(self, serializer, lookup):
+        item = get_object_or_404(
+            Item, collection__name=self.kwargs['collection_name'], name=self.kwargs['item_name']
+        )
+        return serializer.upsert(
+            lookup, item=item, file=get_asset_path(item, self.kwargs['asset_name'])
+        )
 
     @etag(get_asset_etag)
     def get(self, request, *args, **kwargs):

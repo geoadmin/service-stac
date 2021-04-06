@@ -12,6 +12,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.renderers import JSONRenderer
 from rest_framework.test import APIRequestFactory
 
+from stac_api.models import get_asset_path
 from stac_api.serializers import AssetSerializer
 from stac_api.serializers import CollectionSerializer
 from stac_api.serializers import ItemSerializer
@@ -272,7 +273,6 @@ class ItemSerializationTestCase(StacBaseTestCase):
         )
 
         collection_name = self.collection.model.name
-        item_name = self.item.model.name
         expected_asset = self.asset.json
         expected_asset.pop('id')
         expected_asset.pop('item')
@@ -339,7 +339,7 @@ class ItemDeserializationTestCase(StacBaseTestCase):
         # translate to Python native:
         serializer = ItemSerializer(data=sample.get_json('deserialize'))
         serializer.is_valid(raise_exception=True)
-        item = serializer.save()
+        item = serializer.save(collection=self.collection.model)
 
         # serialize the object and test it against the one above
         # mock a request needed for the serialization of links
@@ -360,7 +360,7 @@ class ItemDeserializationTestCase(StacBaseTestCase):
         # translate to Python native:
         serializer = ItemSerializer(data=sample.get_json('deserialize'))
         serializer.is_valid(raise_exception=True)
-        item = serializer.save()
+        item = serializer.save(collection=self.collection.model)
 
         # serialize the object and test it against the one above
         # mock a request needed for the serialization of links
@@ -381,7 +381,7 @@ class ItemDeserializationTestCase(StacBaseTestCase):
         # translate to Python native:
         serializer = ItemSerializer(data=sample.get_json('deserialize'))
         serializer.is_valid(raise_exception=True)
-        item = serializer.save()
+        item = serializer.save(collection=self.collection.model)
 
         # serialize the object and test it against the one above
         # mock a request needed for the serialization of links
@@ -568,8 +568,10 @@ class AssetDeserializationTestCase(StacBaseTestCase):
             data=sample.get_json('deserialize'), context={'request': request_mocker}
         )
         serializer.is_valid(raise_exception=True)
-        asset = serializer.save()
-
+        asset = serializer.save(
+            item=self.item.model,
+            file=get_asset_path(self.item.model, serializer.validated_data['name'])
+        )
         serializer = AssetSerializer(asset, context={'request': request_mocker})
         python_native = serializer.data
 
@@ -596,7 +598,10 @@ class AssetDeserializationTestCase(StacBaseTestCase):
             data=sample.get_json('deserialize'), context={'request': request_mocker}
         )
         serializer.is_valid(raise_exception=True)
-        asset = serializer.save()
+        asset = serializer.save(
+            item=self.item.model,
+            file=get_asset_path(self.item.model, serializer.validated_data['name'])
+        )
 
         # serialize the object and test it against the one above
         # mock a request needed for the serialization of links
@@ -612,6 +617,7 @@ class AssetDeserializationTestCase(StacBaseTestCase):
 
         # ignoring item below, as it is a "write_only" field in the asset's serializer.
         # it will not be present in the mocked request's data.
+        print("*" * 80, sample.json, "*" * 40, python_native)
         self.check_stac_asset(
             sample.json, python_native, collection_name, item_name, ignore=['item']
         )

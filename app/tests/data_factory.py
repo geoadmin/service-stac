@@ -546,6 +546,7 @@ class ItemSample(SampleData):
     read_only_fields = [
         'type',
         'bbox',
+        'collection',
         'assets',
         'stac_extensions',
         'stac_version',
@@ -620,8 +621,8 @@ class ItemSample(SampleData):
             value in super().get_json(method, keep_read_only).items()
             if not key.startswith('properties_')
         }
-        collection = json_data.pop('collection')
-        if method in ['get', 'serialize', 'deserialize']:
+        if method in ['get', 'serialize']:
+            collection = self.get('collection')
             json_data['collection'] = collection.name
         if 'geometry' in json_data and isinstance(json_data['geometry'], GEOSGeometry):
             json_data['geometry'] = json_data['geometry'].json
@@ -764,7 +765,7 @@ class AssetSample(SampleData):
         '''
         data = super().get_json(method, keep_read_only)
         item = data.pop('item')
-        if method in ['get', 'serialize', 'deserialize']:
+        if method in ['get', 'serialize']:
             data['item'] = item.name
         if 'href' in data and isinstance(data['href'], File):
             data['href'] = \
