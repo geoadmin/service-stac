@@ -708,7 +708,7 @@ components:
             type: string
           type:
             description: Media type of the asset
-            example: image/png
+            example: image/tiff; application=geotiff
             type: string
           proj:epsg:
             $ref: "#/components/schemas/proj:epsg"
