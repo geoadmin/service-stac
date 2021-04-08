@@ -16,10 +16,7 @@ from stac_api.utils import utc_aware
 
 from tests.base_test import StacBaseTestCase
 from tests.base_test import StacBaseTransactionTestCase
-from tests.data_factory import AssetFactory
-from tests.data_factory import CollectionFactory
 from tests.data_factory import Factory
-from tests.data_factory import ItemFactory
 from tests.utils import S3TestMixin
 from tests.utils import client_login
 from tests.utils import disableLogger
@@ -458,10 +455,10 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
         asset = self.factory.create_asset_sample(item=item, create_asset_file=True)
         asset_name = asset['name']
 
-        path = f'/{STAC_BASE_V}/collections/{collection.name}/items/{item.name}/assets/{asset_name}'
-
+        response = self.client.get(
+            reverse('asset-detail', args=[collection.name, item.name, asset_name])
+        )
         # Check that assert does not exist already
-        response = self.client.get(path)
         self.assertStatusCode(404, response)
 
         # Check also, that the asset does not exist in the DB already
@@ -471,11 +468,15 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
 
         # Now use upsert to create the new assert
         response = self.client.put(
-            path, data=asset.get_json('post'), content_type="application/json"
+            reverse('asset-detail', args=[collection.name, item.name, asset_name]),
+            data=asset.get_json('post'),
+            content_type="application/json"
         )
         json_data = response.json()
         self.assertStatusCode(201, response)
-        self.check_header_location(f"{path}", response)
+        self.check_header_location(
+            reverse('asset-detail', args=[collection.name, item.name, asset_name]), response
+        )
         self.check_stac_asset(asset.json, json_data, collection.name, item.name, ignore=['item'])
 
         # Check the data by reading it back
@@ -794,13 +795,18 @@ class AssetRaceConditionTest(StacBaseTransactionTestCase):
         self.username = 'user'
         self.password = 'dummy-password'
         get_user_model().objects.create_superuser(self.username, password=self.password)
+        self.factory = Factory()
+        self.collection_sample = self.factory.create_collection_sample(
+            sample='collection-2', db_create=True
+        )
+        self.item_sample = self.factory.create_item_sample(
+            self.collection_sample.model, sample='item-2', db_create=True
+        )
 
     def test_asset_upsert_race_condition(self):
         workers = 5
         status_201 = 0
-        collection_sample = CollectionFactory().create_sample(sample='collection-2')
-        item_sample = ItemFactory().create_sample(collection_sample.model, sample='item-2')
-        asset_sample = AssetFactory().create_sample(item_sample.model, sample='asset-2')
+        asset_sample = self.factory.create_asset_sample(self.item_sample.model, sample='asset-2')
 
         def asset_atomic_upsert_test(worker):
             # This method run on separate thread therefore it requires to create a new client and
@@ -810,7 +816,11 @@ class AssetRaceConditionTest(StacBaseTransactionTestCase):
             return client.put(
                 reverse(
                     'asset-detail',
-                    args=[collection_sample['name'], item_sample['name'], asset_sample['name']]
+                    args=[
+                        self.collection_sample['name'],
+                        self.item_sample['name'],
+                        asset_sample['name']
+                    ]
                 ),
                 data=asset_sample.get_json('put'),
                 content_type='application/json'
@@ -830,8 +840,8 @@ class AssetRaceConditionTest(StacBaseTransactionTestCase):
             self.check_stac_asset(
                 asset_sample.json,
                 response.json(),
-                collection_sample['name'],
-                item_sample['name'],
+                self.collection_sample['name'],
+                self.item_sample['name'],
                 ignore=['item']
             )
         self.assertEqual(status_201, 1, msg="Not only one upsert did a create !")
@@ -839,9 +849,7 @@ class AssetRaceConditionTest(StacBaseTransactionTestCase):
     def test_asset_post_race_condition(self):
         workers = 5
         status_201 = 0
-        collection_sample = CollectionFactory().create_sample(sample='collection-2')
-        item_sample = ItemFactory().create_sample(collection_sample.model, sample='item-2')
-        asset_sample = AssetFactory().create_sample(item_sample.model, sample='asset-2')
+        asset_sample = self.factory.create_asset_sample(self.item_sample.model, sample='asset-2')
 
         def asset_atomic_post_test(worker):
             # This method run on separate thread therefore it requires to create a new client and
@@ -849,7 +857,9 @@ class AssetRaceConditionTest(StacBaseTransactionTestCase):
             client = Client()
             client.login(username=self.username, password=self.password)
             return client.post(
-                reverse('assets-list', args=[collection_sample['name'], item_sample['name']]),
+                reverse(
+                    'assets-list', args=[self.collection_sample['name'], self.item_sample['name']]
+                ),
                 data=asset_sample.get_json('post'),
                 content_type='application/json'
             )
@@ -864,8 +874,8 @@ class AssetRaceConditionTest(StacBaseTransactionTestCase):
                 self.check_stac_asset(
                     asset_sample.json,
                     response.json(),
-                    collection_sample['name'],
-                    item_sample['name'],
+                    self.collection_sample['name'],
+                    self.item_sample['name'],
                     ignore=['item']
                 )
                 status_201 += 1
