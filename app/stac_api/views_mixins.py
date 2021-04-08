@@ -108,7 +108,7 @@ class UpdateInsertModelMixin:
         serializer.save()
 
     def perform_upsert(self, serializer, lookup):
-        return serializer.upsert(**lookup)
+        return serializer.upsert(lookup)
 
     def partial_update(self, request, *args, **kwargs):
         kwargs['partial'] = True

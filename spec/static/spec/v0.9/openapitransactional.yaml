@@ -2132,6 +2132,12 @@ paths:
                 url: https://www.swisstopo.admin.ch
               title: National Map 1:200'000
       responses:
+        "200":
+          description: Returns the updated Collection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/collection"
         "201":
           description: Returns the created Collection
           headers:
@@ -2140,12 +2146,6 @@ paths:
               schema:
                 type: string
                 format: url
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/collection"
-        "200":
-          description: Returns the updated Collection
           content:
             application/json:
               schema:
@@ -2282,7 +2282,6 @@ paths:
                 instruments:
                 - cool_sensor_v1
                 view:sun_elevation: 33.4
-              collection: CS3
               links:
               - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
                 rel: license
@@ -2337,15 +2336,15 @@ paths:
       tags:
       - Data
     put:
-      summary: Update an existing feature by Id with a complete item definition
+      summary: Update or create a feature
       description: >-
-        Use this method to update an existing feature. Requires the entire JSON description
-        be submitted.
+        Update or create a feature with Id `featureId` with a complete feature definition.
+        If the feature doesn't exists it is then created.
 
 
         *NOTE: Optional fields that are not part of the PUT payload, will be erased
-        in the resource. For example if the resource as a properties.title and the
-        PUT payload doesn't, then the resource properties.title will be removed.*
+        in the resource. For example if the resource has a properties.title and the
+        PUT payload doesn't, then the resource's properties.title will be removed.*
       operationId: putFeature
       tags:
       - Data Management
@@ -2391,7 +2390,6 @@ paths:
                 instruments:
                 - cool_sensor_v1
                 view:sun_elevation: 33.4
-              collection: CS3
               links:
               - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
                 rel: license
@@ -2436,6 +2434,18 @@ paths:
       responses:
         "200":
           description: Returns the updated Item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/item"
+        "201":
+          description: Returns the created Item
+          headers:
+            Location:
+              description: A link to the item
+              schema:
+                type: string
+                format: url
           content:
             application/json:
               schema:
@@ -2618,10 +2628,10 @@ paths:
       tags:
       - Data
     put:
-      summary: Update an existing asset by Id with a complete asset definition
+      summary: Update or  create an asset
       description: >-
-        Use this method to update an existing asset. Requires the entire JSON  description
-        be submitted.
+        Update or create an asset with Id `assetId` with a complete asset definition.
+        If the asset doesn't exists it is then created.
       operationId: putAsset
       tags:
       - Data Management
@@ -2670,7 +2680,19 @@ paths:
               $ref: "#/components/schemas/itemAssetPartialUpdate"
       responses:
         "200":
-          description: Status of the update request.
+          description: Returns the updated Asset.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/itemAsset"
+        "201":
+          description: Returns the created Asset
+          headers:
+            Location:
+              description: A link to the asset
+              schema:
+                type: string
+                format: url
           content:
             application/json:
               schema:

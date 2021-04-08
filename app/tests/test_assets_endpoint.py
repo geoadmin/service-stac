@@ -5,7 +5,9 @@ from json import loads
 from pprint import pformat
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.test import Client
+from django.urls import reverse
 
 from stac_api.models import Asset
 from stac_api.utils import get_asset_path
@@ -13,9 +15,11 @@ from stac_api.utils import get_sha256_multihash
 from stac_api.utils import utc_aware
 
 from tests.base_test import StacBaseTestCase
+from tests.base_test import StacBaseTransactionTestCase
 from tests.data_factory import Factory
-from tests.utils import client_login
 from tests.utils import S3TestMixin
+from tests.utils import client_login
+from tests.utils import disableLogger
 from tests.utils import mock_s3_asset_file
 from tests.utils import upload_file_on_s3
 
@@ -445,18 +449,92 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
         client_login(self.client)
         self.maxDiff = None  # pylint: disable=invalid-name
 
-    def test_asset_put_dont_exists(self):
-        collection_name = self.collection['name']
-        item_name = self.item['name']
-        payload_json = self.factory.create_asset_sample(
-            item=self.item.model, sample='asset-2', create_asset_file=False
-        ).get_json('put')
+    def test_asset_upsert_create(self):
+        collection = self.collection.model
+        item = self.item.model
+        asset = self.factory.create_asset_sample(item=item, create_asset_file=True)
+        asset_name = asset['name']
 
-        # the dataset to update does not exist yet
-        path = \
-          (f"/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets/"
-          f"{payload_json['id']}")
-        response = self.client.put(path, data=payload_json, content_type='application/json')
+        response = self.client.get(
+            reverse('asset-detail', args=[collection.name, item.name, asset_name])
+        )
+        # Check that assert does not exist already
+        self.assertStatusCode(404, response)
+
+        # Check also, that the asset does not exist in the DB already
+        self.assertFalse(
+            Asset.objects.filter(name=asset_name).exists(), msg="Deleted asset still found in DB"
+        )
+
+        # Now use upsert to create the new assert
+        response = self.client.put(
+            reverse('asset-detail', args=[collection.name, item.name, asset_name]),
+            data=asset.get_json('post'),
+            content_type="application/json"
+        )
+        json_data = response.json()
+        self.assertStatusCode(201, response)
+        self.check_header_location(
+            reverse('asset-detail', args=[collection.name, item.name, asset_name]), response
+        )
+        self.check_stac_asset(asset.json, json_data, collection.name, item.name, ignore=['item'])
+
+        # Check the data by reading it back
+        response = self.client.get(response['Location'])
+        json_data = response.json()
+        self.assertStatusCode(200, response)
+        self.check_stac_asset(asset.json, json_data, collection.name, item.name, ignore=['item'])
+
+    def test_asset_upsert_create_non_existing_parent_item_in_path(self):
+        collection = self.collection.model
+        item = self.item.model
+        asset = self.factory.create_asset_sample(item=item, create_asset_file=True)
+        asset_name = asset['name']
+
+        path = (
+            f'/{STAC_BASE_V}/collections/{collection.name}/items/non-existing-item/assets/'
+            f'{asset_name}'
+        )
+
+        # Check that asset does not exist already
+        response = self.client.get(path)
+        self.assertStatusCode(404, response)
+
+        # Check also, that the asset does not exist in the DB already
+        self.assertFalse(
+            Asset.objects.filter(name=asset_name).exists(), msg="Deleted asset still found in DB"
+        )
+
+        # Now use upsert to create the new asset
+        response = self.client.put(
+            path, data=asset.get_json('post'), content_type="application/json"
+        )
+        self.assertStatusCode(404, response)
+
+    def test_asset_upsert_create_non_existing_parent_collection_in_path(self):
+        collection = self.collection.model
+        item = self.item.model
+        asset = self.factory.create_asset_sample(item=item, create_asset_file=True)
+        asset_name = asset['name']
+
+        path = (
+            f'/{STAC_BASE_V}/collections/non-existing-collection/items/{item.name}/assets/'
+            f'{asset_name}'
+        )
+
+        # Check that asset does not exist already
+        response = self.client.get(path)
+        self.assertStatusCode(404, response)
+
+        # Check also, that the asset does not exist in the DB already
+        self.assertFalse(
+            Asset.objects.filter(name=asset_name).exists(), msg="Deleted asset still found in DB"
+        )
+
+        # Now use upsert to create the new asset
+        response = self.client.put(
+            path, data=asset.get_json('post'), content_type="application/json"
+        )
         self.assertStatusCode(404, response)
 
     def test_asset_endpoint_put(self):
@@ -647,6 +725,164 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
         self.assertEqual({'created': ['Found read-only property in payload']},
                          response.json()['description'],
                          msg='Unexpected error message')
+
+    def test_asset_atomic_upsert_create_500(self):
+        sample = self.factory.create_asset_sample(self.item.model, create_asset_file=True)
+
+        # the dataset to update does not exist yet
+        with self.settings(DEBUG_PROPAGATE_API_EXCEPTIONS=True), disableLogger('stac_api.apps'):
+            response = self.client.put(
+                reverse(
+                    'test-asset-detail-http-500',
+                    args=[self.collection['name'], self.item['name'], sample['name']]
+                ),
+                data=sample.get_json('put'),
+                content_type='application/json'
+            )
+        self.assertStatusCode(500, response)
+        self.assertEqual(response.json()['description'], "AttributeError('test exception')")
+
+        # Make sure that the ressource has not been created
+        response = self.client.get(
+            reverse(
+                'asset-detail', args=[self.collection['name'], self.item['name'], sample['name']]
+            )
+        )
+        self.assertStatusCode(404, response)
+
+    def test_asset_atomic_upsert_update_500(self):
+        sample = self.factory.create_asset_sample(
+            self.item.model, name=self.asset['name'], create_asset_file=True
+        )
+
+        # Make sure samples is different from actual data
+        self.assertNotEqual(sample.attributes, self.asset.attributes)
+
+        # the dataset to update does not exist yet
+        with self.settings(DEBUG_PROPAGATE_API_EXCEPTIONS=True), disableLogger('stac_api.apps'):
+            # because we explicitely test a crash here we don't want to print a CRITICAL log on the
+            # console therefore disable it.
+            response = self.client.put(
+                reverse(
+                    'test-asset-detail-http-500',
+                    args=[self.collection['name'], self.item['name'], sample['name']]
+                ),
+                data=sample.get_json('put'),
+                content_type='application/json'
+            )
+        self.assertStatusCode(500, response)
+        self.assertEqual(response.json()['description'], "AttributeError('test exception')")
+
+        # Make sure that the ressource has not been created
+        response = self.client.get(
+            reverse(
+                'asset-detail', args=[self.collection['name'], self.item['name'], sample['name']]
+            )
+        )
+        self.assertStatusCode(200, response)
+        self.check_stac_asset(
+            self.asset.json,
+            response.json(),
+            self.collection['name'],
+            self.item['name'],
+            ignore=['item']
+        )
+
+
+class AssetRaceConditionTest(StacBaseTransactionTestCase):
+
+    def setUp(self):
+        self.username = 'user'
+        self.password = 'dummy-password'
+        get_user_model().objects.create_superuser(self.username, password=self.password)
+        self.factory = Factory()
+        self.collection_sample = self.factory.create_collection_sample(
+            sample='collection-2', db_create=True
+        )
+        self.item_sample = self.factory.create_item_sample(
+            self.collection_sample.model, sample='item-2', db_create=True
+        )
+
+    def test_asset_upsert_race_condition(self):
+        workers = 5
+        status_201 = 0
+        asset_sample = self.factory.create_asset_sample(self.item_sample.model, sample='asset-2')
+
+        def asset_atomic_upsert_test(worker):
+            # This method run on separate thread therefore it requires to create a new client and
+            # to login it for each call.
+            client = Client()
+            client.login(username=self.username, password=self.password)
+            return client.put(
+                reverse(
+                    'asset-detail',
+                    args=[
+                        self.collection_sample['name'],
+                        self.item_sample['name'],
+                        asset_sample['name']
+                    ]
+                ),
+                data=asset_sample.get_json('put'),
+                content_type='application/json'
+            )
+
+        # We call the PUT asset several times in parallel with the same data to make sure
+        # that we don't have any race condition.
+        responses, errors = self.run_parallel(workers, asset_atomic_upsert_test)
+
+        for worker, response in responses:
+            if response.status_code == 201:
+                status_201 += 1
+            self.assertIn(
+                response.status_code, [200, 201],
+                msg=f'Unexpected response status code {response.status_code} for worker {worker}'
+            )
+            self.check_stac_asset(
+                asset_sample.json,
+                response.json(),
+                self.collection_sample['name'],
+                self.item_sample['name'],
+                ignore=['item']
+            )
+        self.assertEqual(status_201, 1, msg="Not only one upsert did a create !")
+
+    def test_asset_post_race_condition(self):
+        workers = 5
+        status_201 = 0
+        asset_sample = self.factory.create_asset_sample(self.item_sample.model, sample='asset-2')
+
+        def asset_atomic_post_test(worker):
+            # This method run on separate thread therefore it requires to create a new client and
+            # to login it for each call.
+            client = Client()
+            client.login(username=self.username, password=self.password)
+            return client.post(
+                reverse(
+                    'assets-list', args=[self.collection_sample['name'], self.item_sample['name']]
+                ),
+                data=asset_sample.get_json('post'),
+                content_type='application/json'
+            )
+
+        # We call the PUT asset several times in parallel with the same data to make sure
+        # that we don't have any race condition.
+        responses, errors = self.run_parallel(workers, asset_atomic_post_test)
+
+        for worker, response in responses:
+            self.assertIn(response.status_code, [201, 400])
+            if response.status_code == 201:
+                self.check_stac_asset(
+                    asset_sample.json,
+                    response.json(),
+                    self.collection_sample['name'],
+                    self.item_sample['name'],
+                    ignore=['item']
+                )
+                status_201 += 1
+            else:
+                self.assertIn('id', response.json()['description'].keys())
+                self.assertIn('This field must be unique.', response.json()['description']['id'])
+        self.assertEqual(status_201, 1, msg="Not only one POST was successfull")
 
 
 class AssetsDeleteEndpointTestCase(StacBaseTestCase, S3TestMixin):
