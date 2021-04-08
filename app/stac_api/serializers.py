@@ -12,6 +12,7 @@ from rest_framework.validators import UniqueValidator
 from rest_framework_gis import serializers as gis_serializers
 
 from stac_api.models import Asset
+from stac_api.models import AssetUpload
 from stac_api.models import Collection
 from stac_api.models import CollectionLink
 from stac_api.models import ConformancePage
@@ -25,6 +26,7 @@ from stac_api.utils import isoformat
 from stac_api.validators import MEDIA_TYPES_MIMES
 from stac_api.validators import validate_asset_name
 from stac_api.validators import validate_asset_name_with_media_type
+from stac_api.validators import validate_checksum_multihash_sha256
 from stac_api.validators import validate_geoadmin_variant
 from stac_api.validators import validate_item_properties_datetimes
 from stac_api.validators import validate_name
@@ -913,3 +915,79 @@ class ItemSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         validate_json_payload(self)
 
         return attrs
+
+
+class AssetUploadListSerializer(serializers.ListSerializer):
+    # pylint: disable=abstract-method
+
+    def to_representation(self, data):
+        return {'uploads': super().to_representation(data)}
+
+    @property
+    def data(self):
+        ret = super(serializers.ListSerializer, self).data
+        return ReturnDict(ret, serializer=self)
+
+
+class UploadPartSerializer(serializers.Serializer):
+    # pylint: disable=abstract-method
+    etag = serializers.CharField(source='ETag', allow_blank=False, required=True)
+    part_number = serializers.IntegerField(
+        source='PartNumber', min_value=1, max_value=10000, required=True, allow_null=False
+    )
+
+
+class AssetUploadSerializer(NonNullModelSerializer):
+
+    class Meta:
+        model = AssetUpload
+        list_serializer_class = AssetUploadListSerializer
+        fields = [
+            'upload_id',
+            'status',
+            'created',
+            'checksum_multihash',
+            'completed',
+            'aborted',
+            'number_parts',
+            'urls',
+            'ended',
+            'parts'
+        ]
+
+    checksum_multihash = serializers.CharField(
+        source='checksum_multihash',
+        max_length=255,
+        required=True,
+        allow_blank=False,
+        validators=[validate_checksum_multihash_sha256]
+    )
+
+    # write only fields
+    ended = serializers.DateTimeField(write_only=True, required=False)
+    parts = serializers.ListField(
+        child=UploadPartSerializer(), write_only=True, allow_empty=False, required=False
+    )
+
+    # Read only fields
+    upload_id = serializers.CharField(read_only=True)
+    created = serializers.DateTimeField(read_only=True)
+    urls = serializers.JSONField(read_only=True)
+    completed = serializers.SerializerMethodField()
+    aborted = serializers.SerializerMethodField()
+
+    def get_completed(self, obj):
+        if obj.status == AssetUpload.Status.COMPLETED:
+            return isoformat(obj.ended)
+        return None
+
+    def get_aborted(self, obj):
+        if obj.status == AssetUpload.Status.ABORTED:
+            return isoformat(obj.ended)
+        return None
+
+    def get_fields(self):
+        fields = super().get_fields()
+        # This is a hack to allow fields with special characters
+        fields['checksum:multihash'] = fields.pop('checksum_multihash')
+        return fields

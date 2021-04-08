@@ -1,9 +1,6 @@
 import logging
 
 from django.http import Http404
-from django.utils.translation import gettext_lazy as _
-
-from rest_framework.exceptions import ValidationError
 
 from stac_api.models import Asset
 from stac_api.models import Collection
@@ -76,22 +73,6 @@ def validate_asset(kwargs):
             f"The asset {kwargs['asset_name']} is not part of "
             f"the item {kwargs['item_name']} in collection {kwargs['collection_name']}"
         )
-
-
-def validate_upload_parts(request):
-    '''Validate the multiparts upload parts from request
-    Args:
-        request: HttpRequest
-
-    '''
-    if 'parts' not in request.data:
-        message = 'Required "parts" attribute is missing'
-        logger.error(message, extra={'request': request})
-        raise ValidationError({'parts': _(message)}, code='missing')
-    if not isinstance(request.data['parts'], list):
-        message = f'Required "parts" must be a list, not a {type(request.data["parts"])}'
-        logger.error(message, extra={'request': request})
-        raise ValidationError({'parts': _(message)}, code='invalid')
 
 
 def validate_renaming(serializer, id_field='', original_id='', extra_log=None):

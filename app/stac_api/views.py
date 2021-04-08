@@ -4,30 +4,38 @@ from collections import OrderedDict
 from datetime import datetime
 
 from django.conf import settings
-from django.shortcuts import get_object_or_404
+from django.db import IntegrityError
+from django.db import transaction
+from django.utils.translation import gettext_lazy as _
 
 from rest_framework import generics
 from rest_framework import mixins
+from rest_framework.exceptions import ValidationError
+from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework_condition import etag
 
 from stac_api import views_mixins
 from stac_api.models import Asset
+from stac_api.models import AssetUpload
 from stac_api.models import Collection
 from stac_api.models import ConformancePage
 from stac_api.models import Item
 from stac_api.models import LandingPage
-from stac_api.models import get_asset_path
 from stac_api.pagination import GetPostCursorPagination
+from stac_api.s3_multipart_upload import MultipartUpload
 from stac_api.serializers import AssetSerializer
+from stac_api.serializers import AssetUploadSerializer
 from stac_api.serializers import CollectionSerializer
 from stac_api.serializers import ConformancePageSerializer
 from stac_api.serializers import ItemSerializer
 from stac_api.serializers import LandingPageSerializer
+from stac_api.utils import get_asset_path
 from stac_api.utils import harmonize_post_get_for_search
 from stac_api.utils import utc_aware
 from stac_api.validators_serializer import ValidateSearchRequest
+from stac_api.validators_view import validate_asset
 from stac_api.validators_view import validate_collection
 from stac_api.validators_view import validate_item
 from stac_api.validators_view import validate_renaming
@@ -113,6 +121,21 @@ def get_asset_etag(request, *args, **kwargs):
         )
 
     return tag
+
+
+def get_asset_upload_etag(request, *args, **kwargs):
+    '''Get the ETag for an asset upload object
+
+    The ETag is an UUID4 computed on each object changes
+    '''
+    return get_etag(
+        AssetUpload.objects.filter(
+            asset__item__collection__name=kwargs['collection_name'],
+            asset__item__name=kwargs['item_name'],
+            asset__name=kwargs['asset_name'],
+            upload_id=kwargs['upload_id']
+        )
+    )
 
 
 class LandingPageDetail(generics.RetrieveAPIView):
@@ -254,7 +277,10 @@ class CollectionList(generics.GenericAPIView, views_mixins.CreateModelMixin):
 
 
 class CollectionDetail(
-    generics.GenericAPIView, mixins.RetrieveModelMixin, views_mixins.UpdateInsertModelMixin
+    generics.GenericAPIView,
+    mixins.RetrieveModelMixin,
+    views_mixins.UpdateInsertModelMixin,
+    views_mixins.DestroyModelMixin
 ):
     serializer_class = CollectionSerializer
     lookup_url_kwarg = "collection_name"
@@ -274,6 +300,11 @@ class CollectionDetail(
     @etag(get_collection_etag)
     def patch(self, request, *args, **kwargs):
         return self.partial_update(request, *args, **kwargs)
+
+    # Here the etag is only added to support pre-conditional If-Match and If-Not-Match
+    # @etag(get_collection_etag)
+    # def delete(self, request, *args, **kwargs):
+    #     return self.destroy(request, *args, **kwargs)
 
 
 class ItemsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
@@ -525,3 +556,155 @@ class AssetDetail(
     @etag(get_asset_etag)
     def delete(self, request, *args, **kwargs):
         return self.destroy(request, *args, **kwargs)
+
+
+class AssetUploadBase(generics.GenericAPIView):
+    serializer_class = AssetUploadSerializer
+    lookup_url_kwarg = "upload_id"
+    lookup_field = "upload_id"
+
+    def get_queryset(self):
+        return AssetUpload.objects.filter(
+            asset__item__collection__name=self.kwargs['collection_name'],
+            asset__item__name=self.kwargs['item_name'],
+            asset__name=self.kwargs['asset_name']
+        ).prefetch_related('asset')
+
+    def get_in_progress_queryset(self):
+        return self.get_queryset().filter(status=AssetUpload.Status.IN_PROGRESS)
+
+    def get_asset_or_404(self):
+        return get_object_or_404(
+            Asset.objects.all(),
+            name=self.kwargs['asset_name'],
+            item__name=self.kwargs['item_name'],
+            item__collection__name=self.kwargs['collection_name']
+        )
+
+    def create_multipart_upload(self, executor, serializer, validated_data, asset):
+        key = get_asset_path(asset.item, asset.name)
+        upload_id = executor.create_multipart_upload(
+            key, asset, validated_data['checksum_multihash']
+        )
+        urls = []
+        for part in range(
+            1, (validated_data['number_parts'] if 'number_parts' in validated_data else 0) + 1
+        ):
+            urls.append(executor.create_presigned_url(key, asset, part, upload_id))
+
+        clean_up_required = False
+        try:
+            with transaction.atomic():
+                serializer.save(asset=asset, upload_id=upload_id, urls=urls)
+        except IntegrityError as error:
+            exception_handled = False
+            clean_up_required = True
+            logger.error(
+                'Failed to create asset upload multipart: %s',
+                error,
+                extra={
+                    'collection': asset.item.collection.name,
+                    'item': asset.item.name,
+                    'asset': asset.name
+                }
+            )
+            in_progress = self.get_in_progress_queryset()
+            if bool(in_progress):
+                # Abort the last upload in progress and retry
+                self.abort_multipart_upload(executor, in_progress.get(), asset)
+                # And retry to save the new upload
+                serializer.save(asset=asset, upload_id=upload_id, urls=urls)
+                exception_handled = True
+                clean_up_required = False
+            if not exception_handled:
+                raise
+        finally:
+            if clean_up_required:
+                executor.abort_multipart_upload(key, asset, upload_id)
+
+    def complete_multipart_upload(self, executor, validated_data, asset_upload, asset):
+        key = get_asset_path(asset.item, asset.name)
+        parts = validated_data.get('parts', None)
+        if parts is None:
+            raise ValidationError({'parts': _("Missing required field")}, code='missing')
+        if len(parts) > asset_upload.number_parts:
+            raise ValidationError({'parts': [_("Too many parts")]}, code='invalid')
+        if len(parts) < asset_upload.number_parts:
+            raise ValidationError({'parts': [_("Too few parts")]}, code='invalid')
+        executor.complete_multipart_upload(key, asset, parts, asset_upload.upload_id)
+        asset_upload.update_asset_checksum_multihash()
+        asset_upload.status = AssetUpload.Status.COMPLETED
+        asset_upload.ended = utc_aware(datetime.utcnow())
+        asset_upload.save()
+
+    def abort_multipart_upload(self, executor, asset_upload, asset):
+        key = get_asset_path(asset.item, asset.name)
+        executor.abort_multipart_upload(key, asset, asset_upload.upload_id)
+        asset_upload.status = AssetUpload.Status.ABORTED
+        asset_upload.ended = utc_aware(datetime.utcnow())
+        asset_upload.save()
+
+
+class AssetUploadsList(AssetUploadBase, mixins.ListModelMixin, views_mixins.CreateModelMixin):
+
+    def post(self, request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)
+
+    def get(self, request, *args, **kwargs):
+        validate_asset(self.kwargs)
+        return self.list(request, *args, **kwargs)
+
+    def get_success_headers(self, data):
+        return {'Location': '/'.join([self.request.build_absolute_uri(), data['upload_id']])}
+
+    def perform_create(self, serializer):
+        executor = MultipartUpload()
+        data = serializer.validated_data
+        asset = self.get_asset_or_404()
+        self.create_multipart_upload(executor, serializer, data, asset)
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+
+        status = self.request.query_params.get('status', None)
+        if status:
+            queryset = queryset.filter_by_status(status)
+
+        return queryset
+
+
+class AssetUploadDetail(AssetUploadBase, mixins.RetrieveModelMixin, views_mixins.DestroyModelMixin):
+
+    @etag(get_asset_upload_etag)
+    def get(self, request, *args, **kwargs):
+        return self.retrieve(request, *args, **kwargs)
+
+    # @etag(get_asset_upload_etag)
+    # def delete(self, request, *args, **kwargs):
+    #     return self.destroy(request, *args, **kwargs)
+
+
+class AssetUploadComplete(AssetUploadBase, views_mixins.UpdateInsertModelMixin):
+
+    def post(self, request, *args, **kwargs):
+        kwargs['partial'] = True
+        return self.update(request, *args, **kwargs)
+
+    def perform_update(self, serializer):
+        executor = MultipartUpload()
+        asset = serializer.instance.asset
+        self.complete_multipart_upload(
+            executor, serializer.validated_data, serializer.instance, asset
+        )
+
+
+class AssetUploadAbort(AssetUploadBase, views_mixins.UpdateInsertModelMixin):
+
+    def post(self, request, *args, **kwargs):
+        kwargs['partial'] = True
+        return self.update(request, *args, **kwargs)
+
+    def perform_update(self, serializer):
+        executor = MultipartUpload()
+        asset = serializer.instance.asset
+        self.abort_multipart_upload(executor, serializer.instance, asset)

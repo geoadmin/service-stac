@@ -238,3 +238,28 @@ class ItemManager(models.Manager):
 
     def filter_by_query(self, query):
         return self.get_queryset().filter_by_query(query)
+
+
+class AssetUploadQuerySet(models.QuerySet):
+
+    def filter_by_status(self, status):
+        '''Filter a query with a given status
+
+        Args:
+            status:
+                A string defining the status
+
+        Returns:
+            The queryset with the added status filter
+        '''
+
+        return self.filter(status=status)
+
+
+class AssetUploadManager(models.Manager):
+
+    def get_queryset(self):
+        return AssetUploadQuerySet(self.model, using=self._db).select_related('asset')
+
+    def filter_by_status(self, status):
+        return self.get_queryset().filter_by_status(status)

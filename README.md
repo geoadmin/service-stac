@@ -442,6 +442,7 @@ The service is configured by Environment Variable:
 | AWS_S3_REGION_NAME | - | |
 | AWS_S3_ENDPOINT_URL | `None` | |
 | AWS_S3_CUSTOM_DOMAIN | `None` | |
+| AWS_PRESIGNED_URL_EXPIRES | 3600 | AWS presigned url for asset upload expire time in seconds | 
 
 #### **Development settings (only for local environment and DEV staging)**
 
