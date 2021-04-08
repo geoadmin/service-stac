@@ -686,6 +686,15 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
         self.assertStatusCode(201, response)
         self.check_stac_item(sample.json, json_data, self.collection["name"])
 
+    def test_item_upsert_create_non_existing_parent_collection_in_path(self):
+
+        sample = self.factory.create_item_sample(self.collection.model, required_only=True)
+        path = f'/{STAC_BASE_V}/collections/non-existing-collection/items/{sample.json["id"]}'
+        response = self.client.put(
+            path, data=sample.get_json('post'), content_type="application/json"
+        )
+        self.assertStatusCode(404, response)
+
     def test_item_atomic_upsert_create_500(self):
         sample = self.factory.create_item_sample(self.collection.model, sample='item-2')
 

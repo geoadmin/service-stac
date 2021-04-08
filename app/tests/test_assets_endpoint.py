@@ -484,6 +484,58 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
         self.assertStatusCode(200, response)
         self.check_stac_asset(asset.json, json_data, collection.name, item.name, ignore=['item'])
 
+    def test_asset_upsert_create_non_existing_parent_item_in_path(self):
+        collection = self.collection.model
+        item = self.item.model
+        asset = self.factory.create_asset_sample(item=item, create_asset_file=True)
+        asset_name = asset['name']
+
+        path = (
+            f'/{STAC_BASE_V}/collections/{collection.name}/items/non-existing-item/assets/'
+            f'{asset_name}'
+        )
+
+        # Check that asset does not exist already
+        response = self.client.get(path)
+        self.assertStatusCode(404, response)
+
+        # Check also, that the asset does not exist in the DB already
+        self.assertFalse(
+            Asset.objects.filter(name=asset_name).exists(), msg="Deleted asset still found in DB"
+        )
+
+        # Now use upsert to create the new asset
+        response = self.client.put(
+            path, data=asset.get_json('post'), content_type="application/json"
+        )
+        self.assertStatusCode(404, response)
+
+    def test_asset_upsert_create_non_existing_parent_collection_in_path(self):
+        collection = self.collection.model
+        item = self.item.model
+        asset = self.factory.create_asset_sample(item=item, create_asset_file=True)
+        asset_name = asset['name']
+
+        path = (
+            f'/{STAC_BASE_V}/collections/non-existing-collection/items/{item.name}/assets/'
+            f'{asset_name}'
+        )
+
+        # Check that asset does not exist already
+        response = self.client.get(path)
+        self.assertStatusCode(404, response)
+
+        # Check also, that the asset does not exist in the DB already
+        self.assertFalse(
+            Asset.objects.filter(name=asset_name).exists(), msg="Deleted asset still found in DB"
+        )
+
+        # Now use upsert to create the new asset
+        response = self.client.put(
+            path, data=asset.get_json('post'), content_type="application/json"
+        )
+        self.assertStatusCode(404, response)
+
     def test_asset_endpoint_put(self):
         collection_name = self.collection['name']
         item_name = self.item['name']
