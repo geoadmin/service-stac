@@ -759,8 +759,6 @@ class AssetSample(SampleData):
         '''
         data = super().get_json(method, keep_read_only)
         item = data.pop('item')
-        if method in ['get', 'serialize']:
-            data['item'] = item.name
         if 'href' in data and isinstance(data['href'], File):
             data['href'] = \
                 f'http://{settings.AWS_S3_CUSTOM_DOMAIN}/{item.collection.name}/{item.name}/{data["href"].name}'
