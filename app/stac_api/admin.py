@@ -80,6 +80,14 @@ class CollectionAdmin(admin.ModelAdmin):
             queryset |= self.model.objects.filter(name__exact=search_term.strip('"'))
         return queryset, use_distinct
 
+    # We don't want to do a rename of the collection on S3
+    # That's why the field is set readonly here
+    # for update operation
+    def change_view(self, request, object_id, form_url='', extra_content=None):
+        self.readonly_fields = self.get_readonly_fields(request)
+        self.readonly_fields.extend(['name'])
+        return super().change_view(request, object_id, form_url, extra_content)
+
 
 class ItemLinkInline(admin.TabularInline):
     model = ItemLink
