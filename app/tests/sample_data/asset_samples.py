@@ -17,6 +17,17 @@ assets = {
         'checksum_multihash': get_sha256_multihash(FILE_CONTENT_1),
         'file': FILE_CONTENT_1
     },
+    'asset-no-checksum': {
+        'name': 'asset-1.tiff',
+        'title': 'Asset 1 Title',
+        'description': 'This is a full description of asset 1',
+        'eo_gsd': 3.4,
+        'geoadmin_lang': 'fr',
+        'geoadmin_variant': 'kgrs',
+        'proj_epsg': 2056,
+        'media_type': "image/tiff; application=geotiff; profile=cloud-optimized",
+        'file': FILE_CONTENT_1
+    },
     'asset-1-updated': {
         'name': 'asset-2.txt',
         'title': 'Asset 2 Title',
@@ -86,5 +97,17 @@ assets = {
         'proj_epsg': 2056,
         'media_type': "text/plain",
         'file': b'Asset with invalid geoadmin:variant'
-    }
+    },
+    'asset-no-file': {
+        'name': 'asset-1.tiff',
+        'title': 'Asset 1 Title',
+        'description': 'This is a full description of asset 1',
+        'eo_gsd': 3.4,
+        'geoadmin_lang': 'fr',
+        'geoadmin_variant': 'kgrs',
+        'proj_epsg': 2056,
+        'media_type': "image/tiff; application=geotiff; profile=cloud-optimized",
+        # use a path instead of a bytes object to avoid creating a file
+        'file': 'collection-1/item-1/asset-1.tiff'
+    },
 }

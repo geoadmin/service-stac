@@ -1823,9 +1823,6 @@ components:
         required:
         - id
         - type
-        properties:
-          checksum:multihash:
-            $ref: "#/components/schemas/writeChecksumMultihash"
     itemAssetUpdate:
       allOf:
       - $ref: "#/components/schemas/assetBase"

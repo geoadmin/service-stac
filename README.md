@@ -7,20 +7,30 @@
 
 ## Table of Content
 
+- [Table of Content](#table-of-content)
 - [Summary of the project](#summary-of-the-project)
-- [Specs](spec/README.md)
 - [Local development](#local-development)
   - [Dependencies](#dependencies)
+    - [Python3.7](#python37)
+    - [pipenv](#pipenv)
+  - [Using Postgres on local host](#using-postgres-on-local-host)
   - [Creating the local environment](#creating-the-local-environment)
   - [Setting up the local database](#setting-up-the-local-database)
   - [Using a local PostGres database instead of a container](#using-a-local-postgres-database-instead-of-a-container)
   - [Starting dev server](#starting-dev-server)
   - [Running tests](#running-tests)
+    - [Unit test logging](#unit-test-logging)
   - [Using Django shell](#using-django-shell)
+  - [Migrate DB with Django](#migrate-db-with-django)
   - [Linting and formatting your work](#linting-and-formatting-your-work)
+- [Initial Setup up the RDS database and the user](#initial-setup-up-the-rds-database-and-the-user)
 - [Deploying the project and continuous integration](#deploying-the-project-and-continuous-integration)
 - [Docker](#docker)
-- [Configuration](#configuration)
+  - [Configuration](#configuration)
+    - [**General settings**](#general-settings)
+    - [**Database settings**](#database-settings)
+    - [**Asset Storage settings (AWS S3)**](#asset-storage-settings-aws-s3)
+    - [**Development settings (only for local environment and DEV staging)**](#development-settings-only-for-local-environment-and-dev-staging)
 
 ## Summary of the project
 

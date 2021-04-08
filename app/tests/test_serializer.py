@@ -275,7 +275,6 @@ class ItemSerializationTestCase(StacBaseTestCase):
         collection_name = self.collection.model.name
         expected_asset = self.asset.json
         expected_asset.pop('id')
-        expected_asset.pop('item')
         expected = self.item.json
         expected.update({
             'assets': {
@@ -553,7 +552,9 @@ class AssetDeserializationTestCase(StacBaseTestCase):
         self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_asset_deserialization_create(self):
-        sample = self.data_factory.create_asset_sample(item=self.item.model, create_asset_file=True)
+        sample = self.data_factory.create_asset_sample(
+            sample='asset-no-checksum', item=self.item.model, create_asset_file=True
+        )
 
         # serialize the object and test it against the one above
         # mock a request needed for the serialization of links
@@ -577,9 +578,7 @@ class AssetDeserializationTestCase(StacBaseTestCase):
 
         # ignoring item below, as it is a "write_only" field in the asset's serializer.
         # it will not be present in the mocked request's data.
-        self.check_stac_asset(
-            sample.json, python_native, collection_name, item_name, ignore=['item']
-        )
+        self.check_stac_asset(sample.json, python_native, collection_name, item_name)
 
     def test_asset_deserialization_create_required_fields_only(self):
         sample = self.data_factory.create_asset_sample(
@@ -617,9 +616,7 @@ class AssetDeserializationTestCase(StacBaseTestCase):
 
         # ignoring item below, as it is a "write_only" field in the asset's serializer.
         # it will not be present in the mocked request's data.
-        self.check_stac_asset(
-            sample.json, python_native, collection_name, item_name, ignore=['item']
-        )
+        self.check_stac_asset(sample.json, python_native, collection_name, item_name)
 
     def test_asset_deserialization_create_invalid_data(self):
         sample = self.data_factory.create_asset_sample(item=self.item.model, sample='asset-invalid')

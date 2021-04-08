@@ -557,7 +557,9 @@ class Asset(models.Model):
     def filename(self):
         return os.path.basename(self.file.name)
 
-    checksum_multihash = models.CharField(editable=False, max_length=255, blank=True, default='')
+    checksum_multihash = models.CharField(
+        editable=False, max_length=255, blank=True, null=True, default=None
+    )
     # here we need to set blank=True otherwise the field is as required in the admin interface
     description = models.TextField(blank=True, null=True, default=None)
     eo_gsd = models.FloatField(null=True, blank=True)

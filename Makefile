@@ -5,7 +5,6 @@ SHELL = /bin/bash
 SERVICE_NAME := service-stac
 
 CURRENT_DIR := $(shell pwd)
-VENV := $(CURRENT_DIR)/.venv
 
 # Django specific
 APP_SRC_DIR := app

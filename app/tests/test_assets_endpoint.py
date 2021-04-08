@@ -11,7 +11,6 @@ from django.urls import reverse
 
 from stac_api.models import Asset
 from stac_api.utils import get_asset_path
-from stac_api.utils import get_sha256_multihash
 from stac_api.utils import utc_aware
 
 from tests.base_test import StacBaseTestCase
@@ -21,7 +20,6 @@ from tests.utils import S3TestMixin
 from tests.utils import client_login
 from tests.utils import disableLogger
 from tests.utils import mock_s3_asset_file
-from tests.utils import upload_file_on_s3
 
 logger = logging.getLogger(__name__)
 
@@ -57,12 +55,10 @@ class AssetsEndpointTestCase(StacBaseTestCase):
 
         self.assertIn('assets', json_data, msg='assets is missing in response')
         self.assertEqual(
-            3, len(json_data['assets']), msg='Number of assets doen\'t match the expected'
+            3, len(json_data['assets']), msg='Number of assets doesn\'t match the expected'
         )
         for i, asset in enumerate([self.asset_1, asset_2, asset_3]):
-            self.check_stac_asset(
-                asset.json, json_data['assets'][i], collection_name, item_name, ignore=['item']
-            )
+            self.check_stac_asset(asset.json, json_data['assets'][i], collection_name, item_name)
 
     def test_assets_endpoint_collection_does_not_exist(self):
         collection_name = "non-existent"
@@ -91,9 +87,7 @@ class AssetsEndpointTestCase(StacBaseTestCase):
         self.assertStatusCode(200, response)
         logger.debug('Response (%s):\n%s', type(json_data), pformat(json_data))
 
-        self.check_stac_asset(
-            self.asset_1.json, json_data, collection_name, item_name, ignore=['item']
-        )
+        self.check_stac_asset(self.asset_1.json, json_data, collection_name, item_name)
 
         # The ETag change between each test call due to the created, updated time that are in the
         # hash computation of the ETag
@@ -114,9 +108,7 @@ class AssetsWriteEndpointTestCase(StacBaseTestCase):
     def test_asset_endpoint_post_only_required(self):
         collection_name = self.collection.name
         item_name = self.item.name
-        asset = self.factory.create_asset_sample(
-            item=self.item, required_only=True, create_asset_file=True, file=b'Dummy file content'
-        )
+        asset = self.factory.create_asset_sample(item=self.item, required_only=True)
 
         path = f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets'
         response = self.client.post(
@@ -125,13 +117,13 @@ class AssetsWriteEndpointTestCase(StacBaseTestCase):
         json_data = response.json()
         self.assertStatusCode(201, response)
         self.check_header_location(f"{path}/{asset['name']}", response)
-        self.check_stac_asset(asset.json, json_data, collection_name, item_name, ignore=['item'])
+        self.check_stac_asset(asset.json, json_data, collection_name, item_name)
 
         # Check the data by reading it back
         response = self.client.get(response['Location'])
         json_data = response.json()
         self.assertStatusCode(200, response)
-        self.check_stac_asset(asset.json, json_data, collection_name, item_name, ignore=['item'])
+        self.check_stac_asset(asset.json, json_data, collection_name, item_name)
 
         # make sure that the optional fields are not present
         self.assertNotIn('geoadmin:lang', json_data)
@@ -140,11 +132,12 @@ class AssetsWriteEndpointTestCase(StacBaseTestCase):
         self.assertNotIn('eo:gsd', json_data)
         self.assertNotIn('description', json_data)
         self.assertNotIn('title', json_data)
+        self.assertNotIn('checksum:multihash', json_data)
 
     def test_asset_endpoint_post_full(self):
         collection_name = self.collection.name
         item_name = self.item.name
-        asset = self.factory.create_asset_sample(item=self.item, create_asset_file=True)
+        asset = self.factory.create_asset_sample(item=self.item, sample='asset-no-checksum')
 
         path = f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets'
         response = self.client.post(
@@ -153,13 +146,24 @@ class AssetsWriteEndpointTestCase(StacBaseTestCase):
         json_data = response.json()
         self.assertStatusCode(201, response)
         self.check_header_location(f"{path}/{asset['name']}", response)
-        self.check_stac_asset(asset.json, json_data, collection_name, item_name, ignore=['item'])
+        self.check_stac_asset(asset.json, json_data, collection_name, item_name)
+
+        # make sure that all optional fields are present
+        self.assertIn('geoadmin:lang', json_data)
+        self.assertIn('geoadmin:variant', json_data)
+        self.assertIn('proj:epsg', json_data)
+        self.assertIn('eo:gsd', json_data)
+        self.assertIn('description', json_data)
+        self.assertIn('title', json_data)
+
+        # Checksum multihash is set by the AssetUpload later on
+        self.assertNotIn('checksum:multihash', json_data)
 
         # Check the data by reading it back
         response = self.client.get(response['Location'])
         json_data = response.json()
         self.assertStatusCode(200, response)
-        self.check_stac_asset(asset.json, json_data, collection_name, item_name, ignore=['item'])
+        self.check_stac_asset(asset.json, json_data, collection_name, item_name)
 
     def test_asset_endpoint_post_empty_string(self):
         collection_name = self.collection.name
@@ -170,8 +174,7 @@ class AssetsWriteEndpointTestCase(StacBaseTestCase):
             description='',
             geoadmin_variant='',
             geoadmin_lang='',
-            title='',
-            create_asset_file=True
+            title=''
         )
 
         path = f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets'
@@ -186,9 +189,7 @@ class AssetsWriteEndpointTestCase(StacBaseTestCase):
     def test_asset_endpoint_post_extra_payload(self):
         collection_name = self.collection.name
         item_name = self.item.name
-        asset = self.factory.create_asset_sample(
-            item=self.item, extra_attribute='not allowed', create_asset_file=True
-        )
+        asset = self.factory.create_asset_sample(item=self.item, extra_attribute='not allowed')
 
         path = f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets'
         response = self.client.post(
@@ -209,7 +210,7 @@ class AssetsWriteEndpointTestCase(StacBaseTestCase):
         collection_name = self.collection.name
         item_name = self.item.name
         asset = self.factory.create_asset_sample(
-            item=self.item, created=utc_aware(datetime.utcnow()), create_asset_file=True
+            item=self.item, created=utc_aware(datetime.utcnow())
         )
 
         path = f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets'
@@ -219,6 +220,7 @@ class AssetsWriteEndpointTestCase(StacBaseTestCase):
         self.assertStatusCode(400, response)
         self.assertEqual(
             {
+                'checksum:multihash': ['Found read-only property in payload'],
                 'created': ['Found read-only property in payload'],
                 'href': ['Found read-only property in payload']
             },
@@ -235,9 +237,7 @@ class AssetsWriteEndpointTestCase(StacBaseTestCase):
     def test_asset_endpoint_post_read_only_href_in_payload(self):
         collection_name = self.collection.name
         item_name = self.item.name
-        asset = self.factory.create_asset_sample(
-            item=self.item, href='https://testserver/test.txt', create_asset_file=True
-        )
+        asset = self.factory.create_asset_sample(item=self.item, href='https://testserver/test.txt')
 
         path = f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets'
         response = self.client.post(
@@ -261,9 +261,7 @@ class AssetsWriteEndpointTestCase(StacBaseTestCase):
     def test_asset_endpoint_post_invalid_data(self):
         collection_name = self.collection.name
         item_name = self.item.name
-        asset = self.factory.create_asset_sample(
-            item=self.item, sample='asset-invalid', create_asset_file=True
-        )
+        asset = self.factory.create_asset_sample(item=self.item, sample='asset-invalid')
 
         path = f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets'
         response = self.client.post(
@@ -292,7 +290,7 @@ class AssetsWriteEndpointTestCase(StacBaseTestCase):
         collection_name = self.collection.name
         item_name = self.item.name
         asset = self.factory.create_asset_sample(
-            item=self.item, sample='asset-valid-geoadmin-variant', create_asset_file=True
+            item=self.item, sample='asset-valid-geoadmin-variant'
         )
 
         path = f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets'
@@ -303,7 +301,7 @@ class AssetsWriteEndpointTestCase(StacBaseTestCase):
 
         # invalid geoadmin:variant
         asset = self.factory.create_asset_sample(
-            item=self.item, sample='asset-invalid-geoadmin-variant', create_asset_file=True
+            item=self.item, sample='asset-invalid-geoadmin-variant'
         )
 
         path = f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets'
@@ -373,36 +371,6 @@ class AssetsUpdateEndpointAssetFileTestCase(StacBaseTestCase):
         client_login(self.client)
         self.maxDiff = None  # pylint: disable=invalid-name
 
-    def test_asset_endpoint_patch_checksum(self):
-        new_file_content = b'New file content'
-        new_multihash = get_sha256_multihash(new_file_content)
-        collection_name = self.collection['name']
-        item_name = self.item['name']
-        asset_name = self.asset['name']
-
-        # upload first a new file on S3
-        upload_file_on_s3(f'{collection_name}/{item_name}/{asset_name}', new_file_content)
-
-        patch_payload = {'checksum:multihash': new_multihash}
-        patch_asset = self.asset.copy()
-        patch_asset['checksum_multihash'] = new_multihash
-
-        path = f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
-        response = self.client.patch(path, data=patch_payload, content_type="application/json")
-        self.assertStatusCode(200, response)
-        json_data = response.json()
-        self.check_stac_asset(
-            patch_asset.json, json_data, collection_name, item_name, ignore=['item']
-        )
-
-        # Check the data by reading it back
-        response = self.client.get(path)
-        json_data = response.json()
-        self.assertStatusCode(200, response)
-        self.check_stac_asset(
-            patch_asset.json, json_data, collection_name, item_name, ignore=['item']
-        )
-
     def test_asset_endpoint_patch_put_href(self):
         collection_name = self.collection['name']
         item_name = self.item['name']
@@ -452,7 +420,9 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
     def test_asset_upsert_create(self):
         collection = self.collection.model
         item = self.item.model
-        asset = self.factory.create_asset_sample(item=item, create_asset_file=True)
+        asset = self.factory.create_asset_sample(
+            item=item, sample='asset-no-checksum', create_asset_file=False
+        )
         asset_name = asset['name']
 
         response = self.client.get(
@@ -462,14 +432,12 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
         self.assertStatusCode(404, response)
 
         # Check also, that the asset does not exist in the DB already
-        self.assertFalse(
-            Asset.objects.filter(name=asset_name).exists(), msg="Deleted asset still found in DB"
-        )
+        self.assertFalse(Asset.objects.filter(name=asset_name).exists(), msg="Asset already exists")
 
-        # Now use upsert to create the new assert
+        # Now use upsert to create the new asset
         response = self.client.put(
             reverse('asset-detail', args=[collection.name, item.name, asset_name]),
-            data=asset.get_json('post'),
+            data=asset.get_json('put'),
             content_type="application/json"
         )
         json_data = response.json()
@@ -477,18 +445,18 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
         self.check_header_location(
             reverse('asset-detail', args=[collection.name, item.name, asset_name]), response
         )
-        self.check_stac_asset(asset.json, json_data, collection.name, item.name, ignore=['item'])
+        self.check_stac_asset(asset.json, json_data, collection.name, item.name)
 
         # Check the data by reading it back
         response = self.client.get(response['Location'])
         json_data = response.json()
         self.assertStatusCode(200, response)
-        self.check_stac_asset(asset.json, json_data, collection.name, item.name, ignore=['item'])
+        self.check_stac_asset(asset.json, json_data, collection.name, item.name)
 
     def test_asset_upsert_create_non_existing_parent_item_in_path(self):
         collection = self.collection.model
         item = self.item.model
-        asset = self.factory.create_asset_sample(item=item, create_asset_file=True)
+        asset = self.factory.create_asset_sample(item=item, create_asset_file=False)
         asset_name = asset['name']
 
         path = (
@@ -507,14 +475,14 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
 
         # Now use upsert to create the new asset
         response = self.client.put(
-            path, data=asset.get_json('post'), content_type="application/json"
+            path, data=asset.get_json('put'), content_type="application/json"
         )
         self.assertStatusCode(404, response)
 
     def test_asset_upsert_create_non_existing_parent_collection_in_path(self):
         collection = self.collection.model
         item = self.item.model
-        asset = self.factory.create_asset_sample(item=item, create_asset_file=True)
+        asset = self.factory.create_asset_sample(item=item, create_asset_file=False)
         asset_name = asset['name']
 
         path = (
@@ -556,17 +524,13 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
         )
         json_data = response.json()
         self.assertStatusCode(200, response)
-        self.check_stac_asset(
-            changed_asset.json, json_data, collection_name, item_name, ignore=['item']
-        )
+        self.check_stac_asset(changed_asset.json, json_data, collection_name, item_name)
 
         # Check the data by reading it back
         response = self.client.get(path)
         json_data = response.json()
         self.assertStatusCode(200, response)
-        self.check_stac_asset(
-            changed_asset.json, json_data, collection_name, item_name, ignore=['item']
-        )
+        self.check_stac_asset(changed_asset.json, json_data, collection_name, item_name)
 
     def test_asset_endpoint_put_extra_payload(self):
         collection_name = self.collection['name']
@@ -598,11 +562,11 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
         changed_asset = self.factory.create_asset_sample(
             item=self.item.model,
             name=asset_name,
-            checksum_multihash=self.asset['checksum_multihash'],
             sample='asset-1-updated',
             media_type=self.asset['media_type'],
             created=utc_aware(datetime.utcnow()),
-            create_asset_file=False
+            create_asset_file=False,
+            checksum_multihash=self.asset['checksum_multihash'],
         )
 
         path = f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
@@ -612,7 +576,10 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
             content_type="application/json"
         )
         self.assertStatusCode(400, response)
-        self.assertEqual({'created': ['Found read-only property in payload']},
+        self.assertEqual({
+            'created': ['Found read-only property in payload'],
+            'checksum:multihash': ['Found read-only property in payload']
+        },
                          response.json()['description'],
                          msg='Unexpected error message')
 
@@ -635,9 +602,7 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
         self.assertStatusCode(200, response)
         json_data = response.json()
         self.assertEqual(changed_asset.json['id'], json_data['id'])
-        self.check_stac_asset(
-            changed_asset.json, json_data, collection_name, item_name, ignore=['item']
-        )
+        self.check_stac_asset(changed_asset.json, json_data, collection_name, item_name)
 
         # Check the data by reading it back
         response = self.client.get(
@@ -646,9 +611,7 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
         )
         json_data = response.json()
         self.assertStatusCode(200, response)
-        self.check_stac_asset(
-            changed_asset.json, json_data, collection_name, item_name, ignore=['item']
-        )
+        self.check_stac_asset(changed_asset.json, json_data, collection_name, item_name)
 
     def test_asset_endpoint_patch_rename_asset(self):
         collection_name = self.collection['name']
@@ -666,9 +629,7 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
         json_data = response.json()
         self.assertStatusCode(200, response)
         self.assertEqual(changed_asset.json['id'], json_data['id'])
-        self.check_stac_asset(
-            changed_asset.json, json_data, collection_name, item_name, ignore=['item']
-        )
+        self.check_stac_asset(changed_asset.json, json_data, collection_name, item_name)
 
         # Check the data by reading it back
         response = self.client.get(
@@ -678,9 +639,7 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
         json_data = response.json()
         self.assertStatusCode(200, response)
         self.assertEqual(changed_asset.json['id'], json_data['id'])
-        self.check_stac_asset(
-            changed_asset.json, json_data, collection_name, item_name, ignore=['item']
-        )
+        self.check_stac_asset(changed_asset.json, json_data, collection_name, item_name)
 
     def test_asset_endpoint_patch_extra_payload(self):
         collection_name = self.collection['name']
@@ -806,7 +765,10 @@ class AssetRaceConditionTest(StacBaseTransactionTestCase):
     def test_asset_upsert_race_condition(self):
         workers = 5
         status_201 = 0
-        asset_sample = self.factory.create_asset_sample(self.item_sample.model, sample='asset-2')
+        asset_sample = self.factory.create_asset_sample(
+            self.item_sample.model,
+            sample='asset-no-checksum',
+        )
 
         def asset_atomic_upsert_test(worker):
             # This method run on separate thread therefore it requires to create a new client and
@@ -849,7 +811,9 @@ class AssetRaceConditionTest(StacBaseTransactionTestCase):
     def test_asset_post_race_condition(self):
         workers = 5
         status_201 = 0
-        asset_sample = self.factory.create_asset_sample(self.item_sample.model, sample='asset-2')
+        asset_sample = self.factory.create_asset_sample(
+            self.item_sample.model, sample='asset-no-checksum'
+        )
 
         def asset_atomic_post_test(worker):
             # This method run on separate thread therefore it requires to create a new client and

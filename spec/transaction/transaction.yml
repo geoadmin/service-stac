@@ -407,15 +407,6 @@ paths:
         available at the following URL: https://data.geo.admin.ch/{collectionId}/{featureId}/{assetId}
 
         Optionally the Asset object multihash can be given for sanity check.
-      # description: >-
-      #   Create a new asset for a specific feature.
-
-      #   When creating a new asset for a feature, the metadata of
-      #   the asset along with a temporary url of the asset itself is
-      #   posted to the API.
-
-      #   The service is taking care of copying the asset from the temporary
-      #   location to correct one.
       operationId: postAsset
       tags:
         - Data Management
@@ -440,21 +431,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/itemAsset"
-        # "202":
-        #   description: Accepted create request
-        #   headers:
-        #     Location:
-        #       description: A link to the item
-        #       schema:
-        #         type: string
-        #         format: url
-        #   content:
-        #     application/json:
-        #       schema:
-        #         type: string
-        #     text/html:
-        #       schema:
-        #         type: string
         "400":
           $ref: "#/components/responses/BadRequest"
         "5XX":
@@ -789,11 +765,6 @@ components:
           required:
             - id
             - type
-          properties:
-            "checksum:multihash":
-              $ref: "#/components/schemas/writeChecksumMultihash"
-            # href:
-            #   $ref: "#/components/schemas/writeHref"
     itemAssetUpdate:
       allOf:
         - $ref: "#/components/schemas/assetBase"
