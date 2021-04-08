@@ -322,7 +322,7 @@ module-naming-style=snake_case
 
 # Regular expression matching correct module names. Overrides module-naming-
 # style.
-module-rgx=^(?:(?P<snake>[a-z]+[a-z_]*)|(?P<migration>\d+_[_a-z0-9]+))$
+module-rgx=^(?:(?P<snake>[a-z]+[a-z_\d]*)|(?P<migration>\d+_[_a-z0-9]+))$
 
 # Colon-delimited sets of names that determine each other's naming style when
 # the name regexes allow several styles.

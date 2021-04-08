@@ -51,7 +51,9 @@ class S3TestMixin():
 
     def assertS3ObjectNotExists(self, path):  # pylint: disable=invalid-name
         s3 = get_s3_resource()
-        with self.assertRaises(botocore.exceptions.ClientError) as exception_context:
+        with self.assertRaises(
+            botocore.exceptions.ClientError, msg=f'Object {path} found on S3'
+        ) as exception_context:
             s3.Object(settings.AWS_STORAGE_BUCKET_NAME, path).load()
         error = exception_context.exception
         self.assertEqual(error.response['Error']['Code'], "404")

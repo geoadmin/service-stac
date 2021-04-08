@@ -45,7 +45,7 @@ class CursorPagination(pagination.CursorPagination):
         if 'links' not in data and not links:
             data.update({'links': []})
         elif 'links' not in data and links:
-            data.update({'links': [links]})
+            data.update({'links': links})
         elif links:
             data['links'] += links
         return Response(data)
