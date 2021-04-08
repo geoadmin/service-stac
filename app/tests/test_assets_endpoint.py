@@ -20,8 +20,8 @@ from tests.data_factory import AssetFactory
 from tests.data_factory import CollectionFactory
 from tests.data_factory import Factory
 from tests.data_factory import ItemFactory
-from tests.utils import client_login
 from tests.utils import S3TestMixin
+from tests.utils import client_login
 from tests.utils import disableLogger
 from tests.utils import mock_s3_asset_file
 from tests.utils import upload_file_on_s3

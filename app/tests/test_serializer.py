@@ -617,7 +617,6 @@ class AssetDeserializationTestCase(StacBaseTestCase):
 
         # ignoring item below, as it is a "write_only" field in the asset's serializer.
         # it will not be present in the mocked request's data.
-        print("*" * 80, sample.json, "*" * 40, python_native)
         self.check_stac_asset(
             sample.json, python_native, collection_name, item_name, ignore=['item']
         )
