@@ -228,7 +228,7 @@ class StacTestMixin:
         self._check_stac_dictsubset('asset', expected, current, ignore=ignore)
 
         # check required fields
-        for key in ['links', 'id', 'type', 'checksum:multihash', 'href']:
+        for key in ['links', 'id', 'type', 'href']:
             self.assertIn(key, current, msg=f'Asset {key} is missing')
         for date_field in ['created', 'updated']:
             self.assertIn(date_field, current, msg=f'Asset {date_field} is missing')

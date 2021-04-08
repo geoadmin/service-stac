@@ -553,7 +553,9 @@ class AssetDeserializationTestCase(StacBaseTestCase):
         self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_asset_deserialization_create(self):
-        sample = self.data_factory.create_asset_sample(item=self.item.model, create_asset_file=True)
+        sample = self.data_factory.create_asset_sample(
+            sample='asset-no-checksum', item=self.item.model, create_asset_file=True
+        )
 
         # serialize the object and test it against the one above
         # mock a request needed for the serialization of links

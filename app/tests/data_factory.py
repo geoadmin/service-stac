@@ -104,7 +104,6 @@ from stac_api.models import Item
 from stac_api.models import ItemLink
 from stac_api.models import Provider
 from stac_api.utils import get_s3_resource
-from stac_api.utils import get_sha256_multihash
 from stac_api.utils import isoformat
 from stac_api.validators import MEDIA_TYPES_BY_TYPE
 
@@ -715,11 +714,7 @@ class AssetSample(SampleData):
         'proj_epsg',
         'checksum_multihash'
     ]
-    read_only_fields = [
-        'created',
-        'updated',
-        'href',
-    ]
+    read_only_fields = ['created', 'updated', 'href', 'checksum:multihash']
 
     def __init__(self, item, sample='asset-1', name=None, required_only=False, **kwargs):
         '''Create a item sample data
@@ -742,7 +737,6 @@ class AssetSample(SampleData):
         file = getattr(self, 'attr_file', None)
         file_path = f'{item.collection.name}/{item.name}/{self.attr_name}'
         if isinstance(file, bytes):
-            self.attr_checksum_multihash = get_sha256_multihash(file)
             self.attr_file = SimpleUploadedFile(file_path, file)
 
     def get_json(self, method='get', keep_read_only=False):
