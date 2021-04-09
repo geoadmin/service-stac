@@ -603,8 +603,6 @@ components:
           type: array
         providers:
           $ref: "#/components/schemas/providers"
-        stac_extensions:
-          $ref: "#/components/schemas/stac_extensions"
         stac_version:
           $ref: "#/components/schemas/stac_version"
         summaries:
@@ -968,8 +966,6 @@ components:
           $ref: "#/components/schemas/geometryGeoJSON"
         properties:
           $ref: "#/components/schemas/itemProperties"
-        stac_extensions:
-          $ref: "#/components/schemas/stac_extensions"
           readOnly: true
         stac_version:
           $ref: "#/components/schemas/stac_version"
@@ -1064,7 +1060,7 @@ components:
             type: string
           type:
             description: Media type of the asset
-            example: image/png
+            example: image/tiff; application=geotiff
             type: string
           proj:epsg:
             $ref: "#/components/schemas/proj:epsg"
@@ -1224,8 +1220,6 @@ components:
           items:
             $ref: "#/components/schemas/link"
           type: array
-        stac_extensions:
-          $ref: "#/components/schemas/stac_extensions"
         stac_version:
           $ref: "#/components/schemas/stac_version"
         title:
@@ -1672,22 +1666,6 @@ components:
       - $ref: "#/components/schemas/limitFilter"
       description: The search criteria
       type: object
-    stac_extensions:
-      items:
-        anyOf:
-        - format: uri
-          title: Reference to a JSON Schema
-          type: string
-        - title: Reference to a core extension
-          type: string
-      title: STAC extensions
-      type: array
-      uniqueItems: true
-      readOnly: true
-      example:
-      - proj
-      - eo
-      - https://data.geo.admin.ch/stac/v0.9/geoadmin-extension/1.0/schema.json
     stac_version:
       example: 0.9.0
       title: STAC version
@@ -1986,7 +1964,7 @@ components:
     type:
       type: string
       description: Media type of the asset
-      example: image/png
+      example: image/tiff; application=geotiff
     itemIdUpdate:
       description: >-
         Item identifier (unique per collection. If it doesn't match the `featureId`
@@ -2247,8 +2225,7 @@ paths:
             schema:
               $ref: "#/components/schemas/createItem"
             example:
-              type: Feature
-              id: CS3-20160503_132131_05
+              id: cs3-20160503_132131_05
               geometry:
                 type: Polygon
                 coordinates:
@@ -2265,20 +2242,6 @@ paths:
               properties:
                 datetime: "2016-05-03T13:22:30.040Z"
                 title: A CS3 item
-                license: PDDL-1.0
-                providers:
-                - name: CoolSat
-                  roles:
-                  - producer
-                  - licensor
-                  url: https://cool-sat.com/
-                view:sun_azimuth: 168.7
-                eo:cloud_cover: 0.12
-                view:off_nadir: 1.4
-                platform: coolsat2
-                instruments:
-                - cool_sensor_v1
-                view:sun_elevation: 33.4
               links:
               - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
                 rel: license
@@ -2355,8 +2318,7 @@ paths:
             schema:
               $ref: "#/components/schemas/updateItem"
             example:
-              type: Feature
-              id: CS3-20160503_132131_05
+              id: cs3-20160503_132131_05
               geometry:
                 type: Polygon
                 coordinates:
@@ -2373,20 +2335,6 @@ paths:
               properties:
                 datetime: "2016-05-03T13:22:30.040Z"
                 title: A CS3 item
-                license: PDDL-1.0
-                providers:
-                - name: CoolSat
-                  roles:
-                  - producer
-                  - licensor
-                  url: https://cool-sat.com/
-                view:sun_azimuth: 168.7
-                eo:cloud_cover: 0.12
-                view:off_nadir: 1.4
-                platform: coolsat2
-                instruments:
-                - cool_sensor_v1
-                view:sun_elevation: 33.4
               links:
               - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
                 rel: license

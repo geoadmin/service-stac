@@ -461,8 +461,6 @@ components:
           type: array
         providers:
           $ref: "#/components/schemas/providers"
-        stac_extensions:
-          $ref: "#/components/schemas/stac_extensions"
         stac_version:
           $ref: "#/components/schemas/stac_version"
         summaries:
@@ -826,8 +824,6 @@ components:
           $ref: "#/components/schemas/geometryGeoJSON"
         properties:
           $ref: "#/components/schemas/itemProperties"
-        stac_extensions:
-          $ref: "#/components/schemas/stac_extensions"
           readOnly: true
         stac_version:
           $ref: "#/components/schemas/stac_version"
@@ -922,7 +918,7 @@ components:
             type: string
           type:
             description: Media type of the asset
-            example: image/png
+            example: image/tiff; application=geotiff
             type: string
           proj:epsg:
             $ref: "#/components/schemas/proj:epsg"
@@ -1082,8 +1078,6 @@ components:
           items:
             $ref: "#/components/schemas/link"
           type: array
-        stac_extensions:
-          $ref: "#/components/schemas/stac_extensions"
         stac_version:
           $ref: "#/components/schemas/stac_version"
         title:
@@ -1526,22 +1520,6 @@ components:
       - $ref: "#/components/schemas/limitFilter"
       description: The search criteria
       type: object
-    stac_extensions:
-      items:
-        anyOf:
-        - format: uri
-          title: Reference to a JSON Schema
-          type: string
-        - title: Reference to a core extension
-          type: string
-      title: STAC extensions
-      type: array
-      uniqueItems: true
-      readOnly: true
-      example:
-      - proj
-      - eo
-      - https://data.geo.admin.ch/stac/v0.9/geoadmin-extension/1.0/schema.json
     stac_version:
       example: 0.9.0
       title: STAC version
