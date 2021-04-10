@@ -220,7 +220,7 @@ class MultipartUpload:
 
         Args:
             key: string
-                key on the S3 backend for which we want to complete the multipart upload
+                key on the S3 backend for which we want to abort the multipart upload
             asset: Asset
                 Asset metadata model associated with the S3 backend key
             upload_id: string
