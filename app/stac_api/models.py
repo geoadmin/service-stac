@@ -625,77 +625,6 @@ class Asset(models.Model):
         '''
         self.etag = compute_etag()
 
-    def move_asset(self, source, dest):
-        # Un-comment and remove the warning with BGDIINF_SB-1625
-        logger.warning(
-            'Asset %s has been renamed to %s, file needs to renamed on S3 as well !',
-            source,
-            dest,
-            extra={
-                'collection': self.item.collection.name, 'item': self.item.name, 'asset': self.name
-            }
-        )
-        # logger.info(
-        #     "Renaming asset on s3 from %s to %s",
-        #     source,
-        #     dest,
-        #     extra={
-        #         'collection': self.item.collection.name,
-        #         'item': self.item.name,
-        #         'asset': self.name
-        #     }
-        # )
-        # s3 = get_s3_resource()
-
-        # try:
-        #     s3.Object(settings.AWS_STORAGE_BUCKET_NAME,
-        #               dest).copy_from(CopySource=f'{settings.AWS_STORAGE_BUCKET_NAME}/{source}')
-        #     s3.Object(settings.AWS_STORAGE_BUCKET_NAME, source).delete()
-        #     self.file.name = dest
-        # except botocore.exceptions.ClientError as error:
-        #     logger.error(
-        #         'Failed to move asset %s from %s to %s: %s',
-        #         self.name,
-        #         source,
-        #         dest,
-        #         error,
-        #         extra={
-        #             'collection': self.item.collection.name,
-        #             'item': self.item.name,
-        #             'asset': self.name
-        #         }
-        #     )
-        #     raise error
-
-    # def remove_asset(self, source):
-    #     logger.info(
-    #         "Remove asset on s3 from %s",
-    #         source,
-    #         extra={
-    #             'collection': self.item.collection.name,
-    #             'item': self.item.name,
-    #             'asset': self.name
-    #         }
-    #     )
-    #     s3 = get_s3_resource()
-
-    #     try:
-    #         s3.Object(settings.AWS_STORAGE_BUCKET_NAME, source).delete()
-    #     except botocore.exceptions.ClientError as error:
-    #         logger.error(
-    #             'Failed to remove asset %s from %s: %s',
-    #             self.name,
-    #             source,
-    #             error,
-    #             extra={
-    #                 'collection': self.item.collection.name,
-    #                 'item': self.item.name,
-    #                 'asset': self.name
-    #             }
-    #         )
-    #     self.file.name = ''
-    #     self.checksum_multihash = ''
-
     # alter save-function, so that the corresponding collection of the parent item of the asset
     # is saved, too.
     def save(self, *args, **kwargs):  # pylint: disable=signature-differs
@@ -709,10 +638,8 @@ class Asset(models.Model):
 
         trigger = get_save_trigger(self)
 
-        if trigger == 'update' and self.name != self._original_values["name"]:
-            self.move_asset(self._original_values['path'], get_asset_path(self.item, self.name))
-
         old_values = [self._original_values.get(field, None) for field in UPDATE_SUMMARIES_FIELDS]
+
         if self.item.collection.update_summaries(self, trigger, old_values=old_values):
             self.item.collection.save()
 

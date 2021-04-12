@@ -226,6 +226,7 @@ class AssetAdmin(admin.ModelAdmin):
             # of None. We use None for empty value, None value are stripped
             # then in the output will empty string not.
             obj.description = None
+
         super().save_model(request, obj, form, change)
 
     # Note: this is a bit hacky and only required to get access
@@ -237,3 +238,12 @@ class AssetAdmin(admin.ModelAdmin):
     def href(self, instance):
         path = instance.file.name
         return build_asset_href(self.request, path)
+
+    # We don't want to move the assets on S3
+    # That's why some fields like the name of the asset are set readonly here
+    # for update operations
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        self.readonly_fields = self.get_readonly_fields(request)
+        self.readonly_fields.extend(['name', 'item'])
+
+        return super().change_view(request, object_id, form_url, extra_context)

@@ -92,3 +92,28 @@ def validate_upload_parts(request):
         message = f'Required "parts" must be a list, not a {type(request.data["parts"])}'
         logger.error(message, extra={'request': request})
         raise ValidationError({'parts': _(message)}, code='invalid')
+
+
+def validate_renaming(serializer, id_field='', original_id='', extra_log=None):
+    '''Validate that the asset name is not different from the one defined in
+       the data.
+
+    Args:
+        serializer: serializer object
+            The serializer to derive the data from
+        id_field: string
+            The key to get the name/id in the data dict
+        original_id: string
+            The id/name derived from the request kwargs
+        extra: djangoHttpRequest object
+            The request object for logging purposes
+
+    Raises:
+        Http400: when the asset will be renamed/moved
+    '''
+    data = serializer.validated_data
+    if id_field in data.keys():
+        if data[id_field] != original_id:
+            message = 'Renaming object is not allowed'
+            logger.error(message, extra={'request': extra_log})
+            raise ValidationError(_(message), code='invalid')
