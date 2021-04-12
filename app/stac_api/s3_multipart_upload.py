@@ -43,28 +43,19 @@ class MultipartUpload:
             Upload Id of the created multipart upload
         '''
         sha256 = to_hex_string(parse_multihash(checksum_multihash).digest)
-        try:
-            response = self.s3.create_multipart_upload(
-                Bucket=settings.AWS_STORAGE_BUCKET_NAME,
-                Key=key,
-                Metadata={'sha256': sha256},
-                CacheControl=', '.join([
-                    'public', f'max-age={settings.STORAGE_ASSETS_CACHE_SECONDS}'
-                ]),
-                ContentType=asset.media_type
-            )
-        except ClientError as error:
-            logger.error(
-                'Failed to create multipart upload: %s',
-                error,
-                extra={
-                    'collection': asset.item.collection.name,
-                    'item': asset.item.name,
-                    'asset': asset.name,
-                    's3_error': error.response
-                }
-            )
-            raise
+        response = self.call_s3_api(
+            self.s3.create_multipart_upload,
+            Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+            Key=key,
+            Metadata={'sha256': sha256},
+            CacheControl=', '.join(['public', f'max-age={settings.STORAGE_ASSETS_CACHE_SECONDS}']),
+            ContentType=asset.media_type,
+            log_extra={
+                'collection': asset.item.collection.name,
+                'item': asset.item.name,
+                'asset': asset.name
+            }
+        )
         logger.info(
             'S3 Multipart upload successfully created: upload_id=%s',
             response['UploadId'],
@@ -93,31 +84,25 @@ class MultipartUpload:
         expires = utc_aware(
             datetime.utcnow() + timedelta(seconds=settings.AWS_PRESIGNED_URL_EXPIRES)
         )
-        try:
-            url = self.s3.generate_presigned_url(
-                'upload_part',
-                Params={
-                    'Bucket': settings.AWS_STORAGE_BUCKET_NAME,
-                    'Key': key,
-                    'UploadId': upload_id,
-                    'PartNumber': part
-                },
-                ExpiresIn=settings.AWS_PRESIGNED_URL_EXPIRES,
-                HttpMethod='PUT'
-            )
-        except ClientError as error:
-            logger.error(
-                'Failed to create presigned url for upload part: %s',
-                error,
-                extra={
-                    'collection': asset.item.collection.name,
-                    'item': asset.item.name,
-                    'asset': asset.name,
-                    'upload_id': upload_id,
-                    's3_error': error.response
-                }
-            )
-            raise
+        url = self.call_s3_api(
+            self.s3.generate_presigned_url,
+            'upload_part',
+            Params={
+                'Bucket': settings.AWS_STORAGE_BUCKET_NAME,
+                'Key': key,
+                'UploadId': upload_id,
+                'PartNumber': part
+            },
+            ExpiresIn=settings.AWS_PRESIGNED_URL_EXPIRES,
+            HttpMethod='PUT',
+            log_extra={
+                'collection': asset.item.collection.name,
+                'item': asset.item.name,
+                'asset': asset.name,
+                'upload_id': upload_id
+            }
+        )
+
         logger.info(
             'Presigned url %s for %s part %s with expires %s created',
             url,
@@ -146,74 +131,32 @@ class MultipartUpload:
         Raises:
             ValidationError: when the parts are not valid
         '''
-        logger.debug(
-            'Sending complete mutlipart upload for %s',
-            key,
-            extra={
-                'parts': parts, 'upload_id': upload_id, 'asset': asset.name
-            },
-        )
         try:
-            started = time.time()
-            response = self.s3.complete_multipart_upload(
+            response = self.call_s3_api(
+                self.s3.complete_multipart_upload,
                 Bucket=settings.AWS_STORAGE_BUCKET_NAME,
                 Key=key,
                 MultipartUpload={'Parts': parts},
-                UploadId=upload_id
-            )
-        except ParamValidationError as error:
-            ended = time.time() - started
-            logger.error(
-                'Failed to complete multipart upload: %s',
-                error,
-                extra={
+                UploadId=upload_id,
+                log_extra={
+                    'parts': parts,
+                    'upload_id': upload_id,
                     'collection': asset.item.collection.name,
                     'item': asset.item.name,
-                    'asset': asset.name,
-                    'upload_id': upload_id,
-                    's3_error': error,
-                    'duration': ended
-                }
-            )
-            raise
-        except ClientError as error:
-            ended = time.time() - started
-            logger.error(
-                'Failed to complete multipart upload: %s',
-                error,
-                extra={
-                    'collection': asset.item.collection.name,
-                    'item': asset.item.name,
-                    'asset': asset.name,
-                    'upload_id': upload_id,
-                    's3_error': error.response,
-                    'duration': ended
-                }
-            )
-            raise ValidationError(str(error), code='invalid') from None
-        ended = time.time() - started
-        if 'Location' in response:
-            logger.info(
-                'Successfully complete a multipart asset upload: %s',
-                response['Location'],
-                extra={
-                    's3_response': response,
-                    'duration': ended,
-                    'upload_id': upload_id,
                     'asset': asset.name
+                }
+            )
+        except ClientError as error:
+            raise ValidationError(str(error), code='invalid') from None
+
+        if 'Location' not in response:
+            logger.error(
+                'Failed to complete a multipart asset upload',
+                extra={
+                    's3_response': response, 'upload_id': upload_id, 'asset': asset.name
                 },
             )
-            return
-        logger.error(
-            'Failed to complete a multipart asset upload',
-            extra={
-                's3_response': response,
-                'duration': ended,
-                'upload_id': upload_id,
-                'asset': asset.name
-            },
-        )
-        raise ValueError(response)
+            raise ValueError(response)
 
     def abort_multipart_upload(self, key, asset, upload_id):
         '''Abort a multipart upload on the backend
@@ -226,41 +169,110 @@ class MultipartUpload:
             upload_id: string
                 Upload ID
         '''
-        logger.debug(
-            'Aborting mutlipart upload for %s...',
-            key,
-            extra={
+        self.call_s3_api(
+            self.s3.abort_multipart_upload,
+            Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+            Key=key,
+            UploadId=upload_id,
+            log_extra={
                 'upload_id': upload_id, 'asset': asset.name
-            },
+            }
         )
+
+    def list_upload_parts(self, key, asset, upload_id, limit, offset):
+        '''List all actual part uploaded for a multipart upload
+
+        Args:
+            key: string
+                key on the S3 backend for which we want to complete the multipart upload
+            asset: Asset
+                Asset metadata model associated with the S3 backend key
+            upload_id: string
+                Upload ID
+            limit: int
+                Limit the number of result (for pagination)
+            offset: int
+                Start offset of the result list (for pagination)
+        Returns: dict
+            AWS S3 list parts answer
+
+        Raises:
+            ValueError: if AWS S3 return an HTTP Error code
+            ClientError: any S3 client error
+        '''
+        response = self.call_s3_api(
+            self.s3.list_parts,
+            Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+            Key=key,
+            UploadId=upload_id,
+            MaxParts=limit,
+            PartNumberMarker=offset,
+            log_extra={
+                'collection': asset.item.collection.name,
+                'item': asset.item.name,
+                'asset': asset.name,
+                'upload_id': upload_id
+            }
+        )
+        return response, response.get('IsTruncated', False)
+
+    def call_s3_api(self, func, *args, **kwargs):
+        '''Wrap a S3 API call with logging and generic error handling
+
+        Args:
+            func: callable
+                S3 client method to call
+            log_extra: dict
+                dictionary to pass as extra to the logger
+            *args:
+                Argument to pass to the S3 method call
+            **kwargs:
+                Keyword arguments to pass to the S3 method call
+
+        Response: dict
+            S3 client response
+        '''
+        log_extra = kwargs.pop('log_extra', {})
+        logger.debug('Calling S3 %s(%s, %s)', func.__name__, args, kwargs, extra=log_extra)
+        time_started = time.time()
         try:
-            started = time.time()
-            response = self.s3.abort_multipart_upload(
-                Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=key, UploadId=upload_id
-            )
-        except ClientError as error:
-            ended = time.time() - started
+            response = func(*args, **kwargs)
+        except (ClientError, ParamValidationError) as error:
+            log_extra.update({'duration': time.time() - time_started})
+            if isinstance(error, ClientError):
+                log_extra.update({'s3_response': error.response})
             logger.error(
-                'Failed to abort multipart upload: %s',
+                'Failed to call %s(args=%s, kwargs=%s): %s',
+                func.__name__,
+                args,
+                kwargs,
                 error,
-                extra={
-                    'collection': asset.item.collection.name,
-                    'item': asset.item.name,
-                    'asset': asset.name,
-                    'upload_id': upload_id,
-                    's3_error': error.response,
-                    'duration': ended
-                }
+                extra=log_extra
             )
             raise
-        ended = time.time() - started
-        logger.info(
-            'Successfully aborted a multipart asset upload: %s',
-            key,
-            extra={
-                's3_response': response,
-                'duration': ended,
-                'upload_id': upload_id,
-                'asset': asset.name
-            },
-        )
+        else:
+            log_extra.update({'duration': time.time() - time_started, 's3_response': response})
+            logger.debug(
+                'Successfully call %s(args=%s, kwargs=%s)',
+                func.__name__,
+                args,
+                kwargs,
+                extra=log_extra
+            )
+
+        if (
+            'ResponseMetadata' in response and 'HTTPStatusCode' in response['ResponseMetadata'] and
+            response['ResponseMetadata']['HTTPStatusCode'] not in [200, 201, 202, 204, 206]
+        ):
+            log_extra.update({'s3_response': response})
+            logger.error(
+                'S3 call %s(%s. %s) returned an error code: HTTP %d',
+                func.__name__,
+                args,
+                kwargs,
+                response['ResponseMetadata']['HTTPStatusCode'],
+                extra=log_extra
+            )
+            raise ValueError(f"S3 HTTP {response['ResponseMetadata']['HTTPStatusCode']}")
+
+        return response
