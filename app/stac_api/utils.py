@@ -290,6 +290,7 @@ class CommandHandler():
         self.stdout = command.stdout
         self.stderr = command.stderr
         self.style = command.style
+        self.command = command
 
     def print(self, message, *args, level=2):
         if self.verbosity >= level:
