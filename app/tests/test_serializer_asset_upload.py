@@ -37,8 +37,10 @@ class AssetUploadSerializationTestCase(StacBaseTestCase):
         upload_id = str(uuid4())
         checksum = get_sha256_multihash(b'Test')
         asset_upload = AssetUpload(
-            asset=self.asset, upload_id=upload_id, checksum_multihash=checksum
+            asset=self.asset, upload_id=upload_id, checksum_multihash=checksum, number_parts=1
         )
+        asset_upload.full_clean()
+        asset_upload.save()
 
         serializer = AssetUploadSerializer(asset_upload)
         data = serializer.data
@@ -80,7 +82,7 @@ class AssetUploadSerializationTestCase(StacBaseTestCase):
 
     def test_asset_upload_deserialization(self):
         checksum = get_sha256_multihash(b'Test')
-        serializer = AssetUploadSerializer(data={'checksum:multihash': checksum})
+        serializer = AssetUploadSerializer(data={'checksum:multihash': checksum, "number_parts": 1})
         serializer.is_valid(raise_exception=True)
         asset_upload = serializer.save(asset=self.asset)
         self.assertEqual(asset_upload.checksum_multihash, checksum)
@@ -93,7 +95,8 @@ class AssetUploadSerializationTestCase(StacBaseTestCase):
             data={
                 'status': 'completed',
                 'checksum:multihash': asset_upload.checksum_multihash,
-                'ended': isoformat(ended)
+                'ended': isoformat(ended),
+                "number_parts": 1
             }
         )
         serializer.is_valid(raise_exception=True)
@@ -109,11 +112,19 @@ class AssetUploadSerializationTestCase(StacBaseTestCase):
         serializer = AssetUploadSerializer(data={'checksum:multihash': ''})
         with self.assertRaises(ValidationError):
             serializer.is_valid(raise_exception=True)
-        now = datetime.now().isoformat()
+
         serializer = AssetUploadSerializer(
             data={
-                'checksum:multihash': get_sha256_multihash(b'Test'), 'created': now
+                'checksum:multihash': get_sha256_multihash(b'Test'), 'number_parts': 0
             }
         )
-        serializer.is_valid(raise_exception=True)
-        self.assertNotIn('created', serializer.validated_data)
+        with self.assertRaises(ValidationError):
+            serializer.is_valid(raise_exception=True)
+
+        serializer = AssetUploadSerializer(
+            data={
+                'checksum:multihash': get_sha256_multihash(b'Test'), 'number_parts': 10001
+            }
+        )
+        with self.assertRaises(ValidationError):
+            serializer.is_valid(raise_exception=True)

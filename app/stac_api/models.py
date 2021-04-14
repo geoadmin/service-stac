@@ -715,7 +715,6 @@ class AssetUpload(models.Model):
         choices=Status.choices, max_length=32, default=Status.IN_PROGRESS, blank=False, null=False
     )
     number_parts = models.IntegerField(
-        default=1,
         validators=[MinValueValidator(1), MaxValueValidator(100)],
         null=False,
         blank=False

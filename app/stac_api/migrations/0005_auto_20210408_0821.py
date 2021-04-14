@@ -33,7 +33,6 @@ class Migration(migrations.Migration):
                 (
                     'number_parts',
                     models.IntegerField(
-                        default=1,
                         validators=[
                             django.core.validators.MinValueValidator(1),
                             django.core.validators.MaxValueValidator(100)

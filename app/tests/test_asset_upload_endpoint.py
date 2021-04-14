@@ -257,6 +257,51 @@ class AssetUpload2PartEndpointTestCase(AssetUploadBaseTest):
 
 class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
 
+    def test_asset_upload_create_invalid(self):
+        response = self.client.post(
+            self.get_create_multipart_upload_path(), data={}, content_type="application/json"
+        )
+        self.assertStatusCode(400, response)
+        self.assertEqual(
+            response.json()['description'],
+            {
+                'checksum:multihash': ['This field is required.'],
+                'number_parts': ['This field is required.']
+            }
+        )
+
+        response = self.client.post(
+            self.get_create_multipart_upload_path(),
+            data={
+                'number_parts': 0, "checksum:multihash": 'abcdef'
+            },
+            content_type="application/json"
+        )
+        self.assertStatusCode(400, response)
+        self.assertEqual(
+            response.json()['description'],
+            {
+                'checksum:multihash': ['Invalid multihash value; Invalid varint provided'],
+                'number_parts': ['Ensure this value is greater than or equal to 1.']
+            }
+        )
+
+        response = self.client.post(
+            self.get_create_multipart_upload_path(),
+            data={
+                'number_parts': 101, "checksum:multihash": 'abcdef'
+            },
+            content_type="application/json"
+        )
+        self.assertStatusCode(400, response)
+        self.assertEqual(
+            response.json()['description'],
+            {
+                'checksum:multihash': ['Invalid multihash value; Invalid varint provided'],
+                'number_parts': ['Ensure this value is less than or equal to 100.']
+            }
+        )
+
     def test_asset_upload_2_parts_too_small(self):
         key = get_asset_path(self.item, self.asset.name)
         self.assertS3ObjectNotExists(key)

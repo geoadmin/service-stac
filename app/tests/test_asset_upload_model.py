@@ -25,6 +25,7 @@ class AssetUploadTestCaseMixin:
             asset=asset,
             upload_id=upload_id,
             checksum_multihash=get_sha256_multihash(b'Test'),
+            number_parts=1,
             **kwargs
         )
         asset_upload.full_clean()
@@ -73,7 +74,6 @@ class AssetUploadModelTestCase(TestCase, AssetUploadTestCaseMixin):
         asset_upload = self.create_asset_upload(self.asset_1, 'default-upload')
         self.assertEqual(asset_upload.urls, [], msg="Wrong default value")
         self.assertEqual(asset_upload.ended, None, msg="Wrong default value")
-        self.assertEqual(asset_upload.number_parts, 1, msg="Wrong default value")
         self.assertAlmostEqual(
             utc_aware(datetime.utcnow()).timestamp(),
             asset_upload.created.timestamp(),
@@ -121,6 +121,17 @@ class AssetUploadModelTestCase(TestCase, AssetUploadTestCaseMixin):
         asset_upload = self.update_asset_upload(asset_upload, status=AssetUpload.Status.ABORTED)
         self.check_etag(asset_upload.etag)
         self.assertNotEqual(asset_upload.etag, original_etag, msg='Etag was not updated')
+
+    def test_asset_upload_invalid_number_parts(self):
+        with self.assertRaises(ValidationError):
+            asset_upload = AssetUpload(
+                asset=self.asset_1,
+                upload_id='my-upload-id',
+                checksum_multihash=get_sha256_multihash(b'Test'),
+                number_parts=-1
+            )
+            asset_upload.full_clean()
+            asset_upload.save()
 
 
 class AssetUploadDeleteProtectModelTestCase(TransactionTestCase, AssetUploadTestCaseMixin):
