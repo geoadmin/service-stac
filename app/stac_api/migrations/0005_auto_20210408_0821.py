@@ -36,7 +36,7 @@ class Migration(migrations.Migration):
                         default=1,
                         validators=[
                             django.core.validators.MinValueValidator(1),
-                            django.core.validators.MaxValueValidator(10000)
+                            django.core.validators.MaxValueValidator(100)
                         ]
                     )
                 ),

@@ -716,7 +716,7 @@ class AssetUpload(models.Model):
     )
     number_parts = models.IntegerField(
         default=1,
-        validators=[MinValueValidator(1), MaxValueValidator(10000)],
+        validators=[MinValueValidator(1), MaxValueValidator(100)],
         null=False,
         blank=False
     )  # S3 doesn't support more that 10'000 parts

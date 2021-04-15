@@ -933,7 +933,7 @@ class UploadPartSerializer(serializers.Serializer):
     # pylint: disable=abstract-method
     etag = serializers.CharField(source='ETag', allow_blank=False, required=True)
     part_number = serializers.IntegerField(
-        source='PartNumber', min_value=1, max_value=10000, required=True, allow_null=False
+        source='PartNumber', min_value=1, max_value=100, required=True, allow_null=False
     )
 
 
