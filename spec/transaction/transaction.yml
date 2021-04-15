@@ -433,7 +433,7 @@ paths:
       tags:
         - Data
     put:
-      summary: Update or  create an asset
+      summary: Update or create an asset
       description: >-
         Update or create an asset with Id `assetId` with a complete asset definition.
         If the asset doesn't exists it is then created.
@@ -489,19 +489,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/itemAsset"
-        "201":
-          description: Returns the created Asset
-          headers:
-            Location:
-              description: A link to the asset
-              schema:
-                type: string
-                format: url
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/itemAsset"
+                $ref: "#/components/schemas/readUpdateAsset"
         "400":
           $ref: "#/components/responses/BadRequest"
         "404":
