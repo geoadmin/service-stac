@@ -22,6 +22,18 @@ tags:
     search API
   name: STAC
 components:
+  headers:
+    ETag:
+      schema:
+        type: string
+      description: >-
+        The RFC7232 ETag header field in a response provides the current entity- tag
+        for the selected resource. An entity-tag is an opaque identifier for different
+        versions of a resource over time, regardless whether multiple versions are
+        valid at the same time. An entity-tag consists of an opaque quoted string,
+        possibly prefixed by a weakness indicator.
+      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
+      required: true
   parameters:
     bbox:
       explode: false
@@ -116,7 +128,7 @@ components:
     Collection:
       headers:
         ETag:
-          $ref: "#/components/schemas/ETag"
+          $ref: "#/components/headers/ETag"
       content:
         application/json:
           schema:
@@ -199,7 +211,7 @@ components:
     Feature:
       headers:
         ETag:
-          $ref: "#/components/schemas/ETag"
+          $ref: "#/components/headers/ETag"
       content:
         application/json:
           schema:
@@ -286,6 +298,15 @@ components:
           example:
             code: 404
             description: "Resource not found"
+    BadRequest:
+      description: The request was malformed or semantically invalid
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/exception"
+          example:
+            code: 400
+            description: "Invalid parameter"
     PreconditionFailed:
       description: Some condition specified by the request could not be met in the
         server
@@ -301,6 +322,37 @@ components:
             code: 500
             description: "Internal server error"
   schemas:
+    assetBase:
+      title: Asset
+      description: The `property name` defines the ID of the Asset.
+      type: object
+      required:
+      - type
+      - created
+      - updated
+      properties:
+        title:
+          $ref: "#/components/schemas/title"
+        description:
+          $ref: "#/components/schemas/description"
+        type:
+          $ref: "#/components/schemas/type"
+        href:
+          $ref: "#/components/schemas/href"
+        checksum:multihash:
+          $ref: "#/components/schemas/checksumMultihashReadOnly"
+        geoadmin:variant:
+          $ref: "#/components/schemas/geoadminVariant"
+        geoadmin:lang:
+          $ref: "#/components/schemas/geoadminLang"
+        proj:epsg:
+          $ref: "#/components/schemas/projEpsg"
+        eo:gsd:
+          $ref: "#/components/schemas/eoGsd"
+        created:
+          $ref: "#/components/schemas/created"
+        updated:
+          $ref: "#/components/schemas/updated"
     bbox:
       description: >-
         Only features that have a geometry that intersects the bounding box are selected.
@@ -383,21 +435,29 @@ components:
       properties:
         bbox:
           $ref: "#/components/schemas/bboxfilter"
-    checksum:multihash:
+    checksumMultihash:
       description: >-
         `sha2-256` checksum of the asset in [multihash](https://multiformats.io/multihash/)
         format.
       example: 90e402107a7f2588a85362b9beea2a12d4514d45
       pattern: ^[a-f0-9]+$
       title: Multihash
-      type: string,
+      type: string
+    checksumMultihashReadOnly:
+      description: |
+        `sha2-256` checksum of the asset in [multihash](https://multiformats.io/multihash/) format.
+      example: 90e402107a7f2588a85362b9beea2a12d4514d45
+      pattern: ^[a-f0-9]+$
+      title: Multihash
+      type: string
+      readOnly: true
     created:
       description: RFC 3339 compliant datetime string, time when the object was created
       example: 2018-02-12T23:20:50Z
       type: string
       format: date-time
       readOnly: true
-    collection:
+    collectionBase:
       properties:
         crs:
           default:
@@ -410,8 +470,6 @@ components:
           type: array
           readOnly: true
         description:
-          schema:
-            $ref: "#/components/schemas/description"
           description: A description of the features in the collection
           example: >-
             Swiss Map Raster are a conversion of the map image into a digital form
@@ -440,25 +498,6 @@ components:
           readOnly: true
         license:
           $ref: "#/components/schemas/license"
-        links:
-          example:
-          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
-            rel: self
-          - href: https://data.geo.admin.ch/api/stac/v0.9/
-            rel: root
-          - href: https://data.geo.admin.ch/api/stac/v0.9/collections
-            rel: parent
-          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items
-            rel: items
-          - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
-            rel: license
-            title: Licence for the free geodata of the Federal Office of Topography
-              swisstopo
-          - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
-            rel: describedby
-          items:
-            $ref: "#/components/schemas/link"
-          type: array
         providers:
           $ref: "#/components/schemas/providers"
         stac_version:
@@ -524,7 +563,6 @@ components:
           $ref: "#/components/schemas/updated"
       required:
       - id
-      - links
       - stac_version
       - description
       - license
@@ -532,6 +570,49 @@ components:
       - created
       - updated
       type: object
+    collection:
+      allOf:
+      - $ref: "#/components/schemas/collectionBase"
+      - type: object
+        required:
+        - links
+        properties:
+          links:
+            type: array
+            items:
+              $ref: "#/components/schemas/link"
+            example:
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+              rel: self
+            - href: https://data.geo.admin.ch/api/stac/v0.9/
+              rel: root
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections
+              rel: parent
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items
+              rel: items
+            - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
+              rel: license
+              title: Licence for the free geodata of the Federal Office of Topography
+                swisstopo
+            - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
+              rel: describedby
+    collectionWrite:
+      title: collection
+      allOf:
+      - $ref: "#/components/schemas/collectionBase"
+      - type: object
+        properties:
+          links:
+            type: array
+            items:
+              $ref: "#/components/schemas/link"
+            example:
+            - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
+              rel: license
+              title: Licence for the free geodata of the Federal Office of Topography
+                swisstopo
+            - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
+              rel: describedby
     collections:
       properties:
         collections:
@@ -584,6 +665,7 @@ components:
       description: RFC 3339 compliant datetime string
       example: 2018-02-12T23:20:50Z
       type: string
+      format: date-time
     datetimeQuery:
       description: >-
         Either a date-time or an interval, open or closed. Date and time expressions
@@ -618,7 +700,7 @@ components:
         [CommonMark 0.29](http://commonmark.org/) syntax MAY be used for rich text
         representation.
       type: string
-    eo:gsd:
+    eoGsd:
       description: >-
         GSD is the nominal Ground Sample Distance for the data, as measured in meters
         on the ground.
@@ -644,7 +726,7 @@ components:
         Information about the exception: an error code plus an optional description.
       properties:
         code:
-          type: int
+          type: integer
           example: 500
         description:
           anyOf:
@@ -752,7 +834,7 @@ components:
       - temporal
       type: object
       readOnly: true
-    geoadmin:lang:
+    geoadminLang:
       enum:
       - de
       - it
@@ -761,7 +843,7 @@ components:
       - en
       title: Product language
       type: string
-    geoadmin:variant:
+    geoadminVariant:
       example: komb
       title: Product variants
       type: string
@@ -782,6 +864,13 @@ components:
       - type
       - geometries
       type: object
+    href:
+      type: string
+      format: url
+      description: Link to the asset object
+      readOnly: true
+      example: |
+        http://data.geo.admin.ch/ch.swisstopo.swissimage/collections/cs/items/CS3-20160503_132130_04/thumb.png
     ids:
       description: >-
         Array of Item ids to return. All other filter parameters that further restrict
@@ -894,47 +983,10 @@ components:
       - type
       type: object
     itemAssets:
+      title: Assets
+      description: List of Assets attached to this feature.
       additionalProperties:
-        properties:
-          created:
-            $ref: "#/components/schemas/created"
-          description:
-            description: >-
-              Multi-line description to explain the asset.
-
-
-              [CommonMark 0.29](http://commonmark.org/) syntax MAY be used for rich
-              text representation.
-            example: Small 256x256px PNG thumbnail for a preview.
-            type: string
-          href:
-            description: Link to the asset object
-            example: http://cool-sat.com/catalog/collections/cs/items/CS3-20160503_132130_04/thumb.png
-            format: url
-            type: string
-          title:
-            description: Displayed title
-            example: Thumbnail
-            type: string
-          type:
-            description: Media type of the asset
-            example: image/tiff; application=geotiff
-            type: string
-          proj:epsg:
-            $ref: "#/components/schemas/proj:epsg"
-          geoadmin:variant:
-            $ref: "#/components/schemas/geoadmin:variant"
-          eo:gsd:
-            $ref: "#/components/schemas/eo:gsd"
-          updated:
-            $ref: "#/components/schemas/created"
-        required:
-        - "checksum:multihash"
-        - href
-        - type
-        - created
-        - updated
-        type: object
+        $ref: "#/components/schemas/assetBase"
       type: object
       readOnly: true
       example:
@@ -1024,10 +1076,12 @@ components:
         $ref: "#/components/schemas/linkPostSearch"
       type: array
     itemId:
-      description: Item identifier (unique per collection)
+      title: ID
+      description: Feature identifier (unique per collection)
       example: smr200-200-4-2019
       type: string
     itemProperties:
+      title: Properties
       description: >-
         Provides the core metadata fields plus extensions
 
@@ -1060,6 +1114,7 @@ components:
       - updated
       type: object
     itemType:
+      title: type
       description: The GeoJSON type
       enum:
       - Feature
@@ -1326,7 +1381,7 @@ components:
           - - 7.242974548172171
             - 46.57310580640624
         type: Polygon
-    proj:epsg:
+    projEpsg:
       description: >-
         A Coordinate Reference System (CRS) is the data reference system (sometimes
         called a 'projection') used by the asset data, and can usually be referenced
@@ -1336,9 +1391,7 @@ components:
         there is no valid EPSG code.
       example: 2056
       title: EPSG code.
-      type:
-      - integer
-      - null
+      type: integer
     providers:
       description: >-
         A list of providers, which may include all organizations capturing or processing
@@ -1509,6 +1562,13 @@ components:
       description: >-
         Apply query operations to a specific property. The following properties are
         currently supported: `created`, `updated`, `title`.
+    roles:
+      type: array
+      items:
+        type: string
+      description: Purposes of the asset
+      example:
+      - thumbnail
     searchBody:
       allOf:
       - $ref: "#/components/schemas/queryFilter"
@@ -1531,23 +1591,20 @@ components:
       example: "2017-08-17T08:05:32Z"
       format: date-time
       type: string
+    title:
+      type: string
+      description: Displayed title
+      example: Thumbnail
+    type:
+      type: string
+      description: Media type of the asset
+      example: image/tiff; application=geotiff
     updated:
       description: RFC 3339 compliant datetime string, time when the object was updated
       example: 2018-02-12T23:20:50Z
       type: string
       format: date-time
       readOnly: true
-    ETag:
-      schema:
-        type: string
-      description: >-
-        The RFC7232 ETag header field in a response provides the current entity- tag
-        for the selected resource. An entity-tag is an opaque identifier for different
-        versions of a resource over time, regardless whether multiple versions are
-        valid at the same time. An entity-tag consists of an opaque quoted string,
-        possibly prefixed by a weakness indicator.
-      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
-      required: true
 paths:
   /:
     get:

@@ -368,7 +368,10 @@ paths:
         - Data
     post:
       summary: Add a new asset to a feature
-      description: Create a new asset for a specific feature.
+      description: |
+        Create a new asset for a specific feature.
+
+        *Note: to upload an asset file see [Asset Upload Management](#tag/Asset-Upload-Management)*
       operationId: postAsset
       tags:
         - Data Management
@@ -429,6 +432,9 @@ paths:
       description: >-
         Update or create an asset with Id `assetId` with a complete asset definition.
         If the asset doesn't exists it is then created.
+
+
+        *Note: to upload an asset file see [Asset Upload Management](#tag/Asset-Upload-Management)*
       operationId: putAsset
       tags:
         - Data Management
@@ -474,6 +480,9 @@ paths:
       description: >-
         Use this method to update an existing asset. Requires a JSON
         fragment (containing the fields to be updated) be submitted.
+
+
+        *Note: to upload an asset file see [Asset Upload Management](#tag/Asset-Upload-Management)*
       operationId: patchAsset
       tags:
         - Data Management
@@ -528,6 +537,286 @@ paths:
           $ref: "#/components/responses/PreconditionFailed"
         "5XX":
           $ref: "#/components/responses/ServerError"
+
+
+  "/collections/{collectionId}/items/{featureId}/assets/{assetId}/uploads":
+    parameters:
+      - $ref: "#/components/parameters/collectionId"
+      - $ref: "#/components/parameters/featureId"
+      - $ref: "#/components/parameters/assetId"
+    get:
+      tags:
+        - Asset Upload Management
+      summary: List all Asset's multipart uploads
+      description: >-
+        Return a list of all Asset's multipart uploads that are in progress and have been completed
+        or aborted.
+      operationId: getAssetUploads
+      parameters:
+        - name: status
+          in: query
+          description: Filter the list by status.
+          schema:
+            $ref: "#/components/schemas/status"
+      responses:
+        200:
+          description: List of Asset's uploads
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/assetUploads"
+              example:
+                uploads:
+                  - upload_id: KrFTuglD.N8ireqry_w3.oQqNwrYI7SfSXpVRiusKah0YigDnusebaJNIUZg4R_No0MMW9FLU2UG5anTW0boTUYVxKfBZWCFXqnQTpjnQEo1K7la39MYpjSTvIbZgnG
+                    status: in-progress
+                    number_parts: 1
+                    urls:
+                    - url: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-4-2019/smr50-263-2016-2056-kgrs-2.5.tiff?uploadId=d77UbNnEVTaqCAyAz61AVqy7uuTGJ_YOUyPOklcRMr4ZPBthON9p6cpMREx683yQ_oeGVmGE_yTg4cmnEz3mTErEPKn0_m.3LBjo6A88Qxlj4vFrAdU6YBuourb.IqFF&partNumber=1&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4HDUVYWAM6ZB6SWO%2F20210414%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20210414T112742Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=d12763467eaffa0c69d601297a661a05c9f414d4008b4148fa6ba604f203be01
+                      part: 1
+                      expires: '2019-08-24T14:15:22Z'
+                    created: '2019-08-24T14:15:22Z'
+                    checksum:multihash: 90e402107a7f2588a85362b9beea2a12d4514d45
+                  - upload_id: KrFTuglD.N8ireqry_w3.oQqNwrYI7SfSXpVRiusKah0YaaegJNIUZg4R_No0MMW9FLU2UG5anTW0boTUYVxKfBZWCFXqnQTpjnQEo1K7la39MYpjSTvIbZgnG
+                    status: completed
+                    number_parts: 1
+                    created: '2019-08-24T14:15:22Z'
+                    completed: '2019-08-24T14:15:22Z'
+                    checksum:multihash: 90e402107a7f2588a85362b9beea2a12d4514d45
+                  - upload_id: KrFTuglD.N8ireqry_w3.oQqNwrYI7SfSXpVRiusKah0YigDnuM06hfJNIUZg4R_No0MMW9FLU2UG5anTW0boTUYVxKfBZWCFXqnQTpjnQEo1K7la39MYpjSTvIbZgnG
+                    status: aborted
+                    number_parts: 1
+                    created: '2019-08-24T14:15:22Z'
+                    aborted: '2019-08-24T14:15:22Z'
+                    checksum:multihash: 90e402107a7f2588a85362b9beea2a12d4514d45
+                links:
+                  - rel: next
+                    href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets/smr50-263-2016-2056-kgrs-2.5.tiff/uploads?cursor=0d34
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "5XX":
+          $ref: "#/components/responses/ServerError"
+    post:
+      tags:
+        - Asset Upload Management
+      summary: Create a new Asset's multipart upload
+      description: |
+        Create a new Asset's multipart upload.
+      operationId: createAssetUpload
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/assetUploadCreate"
+      responses:
+        201:
+          description: Created Asset's multipart upload
+          headers:
+            Location:
+              description: A link to the Asset's multipart upload object
+              schema:
+                type: string
+                format: url
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/assetUploadCreate"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "5XX":
+          $ref: "#/components/responses/ServerError"
+  "/collections/{collectionId}/items/{featureId}/assets/{assetId}/uploads/{uploadId}":
+    parameters:
+      - $ref: "#/components/parameters/collectionId"
+      - $ref: "#/components/parameters/featureId"
+      - $ref: "#/components/parameters/assetId"
+      - $ref: "#/components/parameters/uploadId"
+    get:
+      tags:
+        - Asset Upload Management
+      summary: Get an Asset's multipart upload
+      description: |
+        Return an Asset's multipart upload.
+      operationId: getAssetUpload
+      parameters:
+        - $ref: "#/components/parameters/IfMatch"
+        - $ref: "#/components/parameters/IfNoneMatch"
+      responses:
+        "200":
+          description: Asset's multipart upload description.
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/assetUpload"
+              examples:
+                inprogress:
+                  $ref: "#/components/examples/inprogress"
+                completed:
+                  $ref: "#/components/examples/completed"
+                aborted:
+                  $ref: "#/components/examples/aborted"
+        "304":
+          $ref: "#/components/responses/NotModified"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "#/components/responses/ServerError"
+  "/{presignedUrl}":
+    servers:
+      - url: http://data.geo.admin.ch/
+    put:
+      tags:
+        - Asset Upload Management
+      summary: Upload asset file part
+      description: >-
+        Upload an Asset file part using the presigned url(s) returned by
+        [Create a new Asset's multipart upload](#operation/createAssetUpload).
+
+
+        Parts that have been uploaded but not completed can be checked using
+        [Get an Asset's multipart upload](#operation/getAssetUpload)
+
+
+        A file part must be at least 5 MB except for the last one and at most 5 GB, otherwise the
+        complete operation will fail.
+
+
+        *Note: this endpoint doesn't require any authentication as it is already part of the
+        presigned url*
+      operationId: uploadAssetFilePart
+      parameters:
+        - $ref: "#/components/parameters/presignedUrl"
+        - name: Content-MD5
+          in: header
+          description: Asset file part content MD5.
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Asset file uploaded part successfully
+          headers:
+            ETag:
+              schema:
+                type: string
+              description: >-
+                The RFC7232 ETag header field in a response provides the current entity-
+                tag for the selected resource.
+
+
+                This ETag is required in the complete multipart upload payload.
+
+
+                An entity-tag is an opaque identifier for
+                different versions of a resource over time, regardless whether multiple
+                versions are valid at the same time. An entity-tag consists of an opaque
+                quoted string.
+              example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
+              required: true
+  "/collections/{collectionId}/items/{featureId}/assets/{assetId}/uploads/{uploadId}/complete":
+    parameters:
+      - $ref: "#/components/parameters/collectionId"
+      - $ref: "#/components/parameters/featureId"
+      - $ref: "#/components/parameters/assetId"
+      - $ref: "#/components/parameters/uploadId"
+    post:
+      tags:
+        - Asset Upload Management
+      summary: Complete multipart upload
+      operationId: completeMultipartUpload
+      description: >-
+        Complete the multipart upload process. After completion, the Asset metadata are updated
+        with the new `checksum:multihash` from the upload and the parts are automatically deleted.
+        The Asset `href` field is also set if it was the first upload.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/assetCompleteUpload"
+      responses:
+        "200":
+          description: Asset multipart upload completed successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/assetUploadCompleted"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "5XX":
+          $ref: "#/components/responses/ServerError"
+  "/collections/{collectionId}/items/{featureId}/assets/{assetId}/uploads/{uploadId}/abort":
+    parameters:
+      - $ref: "#/components/parameters/collectionId"
+      - $ref: "#/components/parameters/featureId"
+      - $ref: "#/components/parameters/assetId"
+      - $ref: "#/components/parameters/uploadId"
+    post:
+      tags:
+        - Asset Upload Management
+      summary: Abort multipart upload
+      operationId: abortMultipartUpload
+      description: >-
+        Abort the multipart upload process. All already uploaded parts are automatically deleted.
+      responses:
+        "200":
+          description: Asset multipart upload aborted successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/assetUploadAborted"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "5XX":
+          $ref: "#/components/responses/ServerError"
+  "/collections/{collectionId}/items/{featureId}/assets/{assetId}/uploads/{uploadId}/parts":
+    parameters:
+      - $ref: "#/components/parameters/collectionId"
+      - $ref: "#/components/parameters/featureId"
+      - $ref: "#/components/parameters/assetId"
+      - $ref: "#/components/parameters/uploadId"
+    get:
+      tags:
+        - Asset Upload Management
+      summary: Get upload parts
+      operationId: getUploadParts
+      description: >-
+        Return the list of already uploaded parts.
+
+
+        ### Pagination
+
+        By default all parts are returned (maximum number of parts being 100). The user can
+        use pagination to reduce the number of returned parts. Pagination is done via the `limit`
+        query parameter (see below).
+      parameters:
+        - $ref: "#/components/parameters/limit"
+      responses:
+        "200":
+          description: List of parts already uploaded.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/assetUploadParts"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "5XX":
+          $ref: "#/components/responses/ServerError"
+
+
   "/get-token":
     servers:
       - url: http://data.geo.admin.ch/api/stac/
@@ -583,12 +872,58 @@ paths:
               example:
                 code: 400
                 description: "Unable to log in with provided credentials."
+
 components:
+  examples:
+    inprogress:
+      summary: In progress upload example
+      value:
+        upload_id: KrFTuglD.N8ireqry_w3.oQqNwrYI7SfSXpVRiusKah0YigDnuM06hfJNIUZg4R_No0MMW9FLU2UG5anTW0boTUYVxKfBZWCFXqnQTpjnQEo1K7la39MYpjSTvIbZgnG
+        status: in-progress
+        number_parts: 1
+        urls:
+        - url: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-4-2019/smr50-263-2016-2056-kgrs-2.5.tiff?uploadId=d77UbNnEVTaqCAyAz61AVqy7uuTGJ_YOUyPOklcRMr4ZPBthON9p6cpMREx683yQ_oeGVmGE_yTg4cmnEz3mTErEPKn0_m.3LBjo6A88Qxlj4vFrAdU6YBuourb.IqFF&partNumber=1&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4HDUVYWAM6ZB6SWO%2F20210414%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20210414T112742Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=d12763467eaffa0c69d601297a661a05c9f414d4008b4148fa6ba604f203be01
+          part: 1
+          expires: '2019-08-24T14:15:22Z'
+        created: '2019-08-24T14:15:22Z'
+        checksum:multihash: 90e402107a7f2588a85362b9beea2a12d4514d45
+    completed:
+      summary: Completed upload example
+      value:
+        upload_id: KrFTuglD.N8ireqry_w3.oQqNwrYI7SfSXpVRiusKah0YigDnuM06hfJNIUZg4R_No0MMW9FLU2UG5anTW0boTUYVxKfBZWCFXqnQTpjnQEo1K7la39MYpjSTvIbZgnG
+        status: completed
+        number_parts: 1
+        created: '2019-08-24T14:15:22Z'
+        completed: '2019-08-24T14:15:22Z'
+        checksum:multihash: 90e402107a7f2588a85362b9beea2a12d4514d45
+    aborted:
+      summary: Aborted upload example
+      value:
+        upload_id: KrFTuglD.N8ireqry_w3.oQqNwrYI7SfSXpVRiusKah0YigDnuM06hfJNIUZg4R_No0MMW9FLU2UG5anTW0boTUYVxKfBZWCFXqnQTpjnQEo1K7la39MYpjSTvIbZgnG
+        status: completed
+        number_parts: 1
+        created: '2019-08-24T14:15:22Z'
+        aborted: '2019-08-24T14:15:22Z'
+        checksum:multihash: 90e402107a7f2588a85362b9beea2a12d4514d45
   parameters:
     assetId:
       name: assetId
       in: path
-      description: Local identifier of a asset
+      description: Local identifier of an asset.
+      required: true
+      schema:
+        type: string
+    uploadId:
+      name: uploadId
+      in: path
+      description: Local identifier of an asset's upload.
+      required: true
+      schema:
+        type: string
+    presignedUrl:
+      name: presignedUrl
+      in: path
+      description: Presigned url returned by [Create a new Asset's multipart upload](#operation/createAssetUpload).
       required: true
       schema:
         type: string
@@ -795,6 +1130,282 @@ components:
         parameters, then the Item is renamed.
       example: smr200-200-4-2019
       type: string
+    uploadId:
+      title: ID
+      type: string
+      description: Unique Asset upload identifier
+      example: KrFTuglD.N8ireqry_w3.oQqNwrYI7SfSXpVRiusKah0YigDnuM06hfJNIUZg4R_No0MMW9FLU2UG5anTW0boTUYVxKfBZWCFXqnQTpjnQEo1K7la39MYpjSTvIbZgnG
+      readOnly: true
+    dtUploadCreated:
+      title: created
+      description: Date time when the Asset's upload has been created/started.
+      type: string
+      format: date-time
+      readOnly: true
+    dtUploadCompleted:
+      title: completed
+      description: |
+        Date time when the Asset's upload has been completed.
+
+        *Note: this property is mutually exclusive with `aborted`*
+      type: string
+      format: date-time
+      readOnly: true
+    dtUploadAborted:
+      title: aborted
+      description: |
+        Date time when the Asset's upload has been aborted.
+
+        *Note: this property is mutually exclusive with `completed`*
+      type: string
+      format: date-time
+      readOnly: true
+    assetUploads:
+      title: AssetUploads
+      type: object
+      required:
+        - uploads
+        - links
+      properties:
+        uploads:
+          description: List of uploads that are within the asset.
+          type: array
+          items:
+            $ref: "#/components/schemas/assetUpload"
+        links:
+          description: Next and/or previous links for the pagination.
+          type: array
+          items:
+            $ref: "#/components/schemas/link"
+          example:
+            - rel: next
+              href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets/smr50-263-2016-2056-kgrs-2.5.tiff/uploads?cursor=0d34
+    assetUpload:
+      title: AssetUpload
+      type: object
+      required:
+        - upload_id
+        - status
+        - created
+        - "checksum:multihash"
+        - number_parts
+      properties:
+        upload_id:
+          $ref: "#/components/schemas/uploadId"
+        status:
+          $ref: "#/components/schemas/status"
+        number_parts:
+          $ref: "#/components/schemas/number_parts"
+        urls:
+          type: array
+          description: |
+            Note: As soon as the multipart upload is completed or aborted, the `urls` property is removed.
+          items:
+            $ref: "#/components/schemas/multipartUploadUrl"
+          readOnly: true
+        created:
+          $ref: "#/components/schemas/dtUploadCreated"
+        completed:
+          $ref: "#/components/schemas/dtUploadCompleted"
+        aborted:
+          $ref: "#/components/schemas/dtUploadAborted"
+        "checksum:multihash":
+          $ref: "#/components/schemas/checksumMultihash"
+    assetUploadCreate:
+      title: AssetUpload
+      type: object
+      required:
+        - upload_id
+        - status
+        - created
+        - "checksum:multihash"
+        - number_parts
+      properties:
+        upload_id:
+          $ref: "#/components/schemas/uploadId"
+        status:
+          $ref: "#/components/schemas/status"
+        number_parts:
+          $ref: "#/components/schemas/number_parts"
+        urls:
+          type: array
+          description: |
+            Note: As soon as the multipart upload is completed or aborted, the `urls` property is removed.
+          items:
+            $ref: "#/components/schemas/multipartUploadUrl"
+          readOnly: true
+        created:
+          $ref: "#/components/schemas/dtUploadCreated"
+        "checksum:multihash":
+          $ref: "#/components/schemas/checksumMultihash"
+    assetCompleteUpload:
+      title: CompleteUpload
+      type: object
+      required:
+        - parts
+      properties:
+        parts:
+          type: array
+          description: Parts that have been uploaded
+          items:
+            title: File part that have been uploaded
+            type: object
+            required:
+              - etag
+              - part_number
+            properties:
+              etag:
+                title: ETag
+                type: string
+                description: >-
+                  ETag of the uploaded file part (returned in the header of the answer of
+                  [Upload asset file part](#operation/uploadAssetFilePart)).
+                example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
+              part_number:
+                $ref: "#/components/schemas/part_number"
+    assetUploadCompleted:
+      title: UploadCompleted
+      type: object
+      required:
+        - upload_id
+        - status
+        - number_parts
+        - created
+        - completed
+        - "checksum:multihash"
+      properties:
+        upload_id:
+          $ref: "#/components/schemas/uploadId"
+        status:
+          title: Status
+          description: Status of the Asset's multipart upload.
+          type: string
+          enum:
+            - completed
+          example:
+            completed
+        number_parts:
+          $ref: "#/components/schemas/number_parts"
+        created:
+          $ref: "#/components/schemas/dtUploadCreated"
+        completed:
+          $ref: "#/components/schemas/dtUploadCompleted"
+        "checksum:multihash":
+          $ref: "#/components/schemas/checksumMultihash"
+    assetUploadAborted:
+      title: UploadCompleted
+      type: object
+      required:
+        - upload_id
+        - status
+        - number_parts
+        - created
+        - aborted
+        - "checksum:multihash"
+      properties:
+        upload_id:
+          $ref: "#/components/schemas/uploadId"
+        status:
+          title: Status
+          description: Status of the Asset's multipart upload.
+          type: string
+          enum:
+            - aborted
+          example:
+            aborted
+        number_parts:
+          $ref: "#/components/schemas/number_parts"
+        created:
+          $ref: "#/components/schemas/dtUploadCreated"
+        aborted:
+          $ref: "#/components/schemas/dtUploadAborted"
+        "checksum:multihash":
+          $ref: "#/components/schemas/checksumMultihash"
+    assetUploadParts:
+      title: Parts
+      type: object
+      required:
+        - parts
+        - links
+      properties:
+        parts:
+          type: object
+          description: List of uploaded parts
+          required:
+            - etag
+            - part_number
+            - modified
+            - size
+          properties:
+            etag:
+              $ref: "#/components/schemas/uploadEtag"
+            part_number:
+              $ref: "#/components/schemas/part_number"
+            modified:
+              type: string
+              format: date-time
+              description: Date time when the part was added/modified
+            size:
+              type: integer
+              description: Part size in bytes
+              minimum: 0
+              example: 1024
+        links:
+          description: Next and/or previous links for the pagination.
+          type: array
+          items:
+            $ref: "#/components/schemas/link"
+          example:
+            - rel: next
+              href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets/smr50-263-2016-2056-kgrs-2.5.tiff/uploads/upload-id/parts?limit=50&offset=50
+    status:
+      title: Status
+      description: Status of the Asset's multipart upload.
+      type: string
+      enum:
+        - in-progress
+        - aborted
+        - completed
+      readOnly: true
+    number_parts:
+      description: Number of parts for the Asset's multipart upload.
+      type: integer
+      minimum: 1
+      maximum: 100
+    part_number:
+      description: Number of the part.
+      type: integer
+      minimum: 1
+      maximum: 100
+    multipartUploadUrl:
+      title: MultipartUploadUrl
+      description: Multipart upload url.
+      type: object
+      required:
+        - url
+        - part
+        - expires
+      properties:
+        url:
+          description: Presigned URL to use to upload the Asset File part using the PUT method.
+          type: string
+          format: url
+          example: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-4-2019/smr50-263-2016-2056-kgrs-2.5.tiff?uploadId=d77UbNnEVTaqCAyAz61AVqy7uuTGJ_YOUyPOklcRMr4ZPBthON9p6cpMREx683yQ_oeGVmGE_yTg4cmnEz3mTErEPKn0_m.3LBjo6A88Qxlj4vFrAdU6YBuourb.IqFF&partNumber=1&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4HDUVYWAM6ZB6SWO%2F20210414%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20210414T112742Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=d12763467eaffa0c69d601297a661a05c9f414d4008b4148fa6ba604f203be01
+        part:
+          description: Part number assigned to this presigned URL.
+          type: integer
+          minimum: 1
+          maximum: 100
+        expires:
+          description: Date time when this presigned URL expires and is not valid anymore.
+          type: string
+          format: date-time
+    uploadEtag:
+      title: ETag
+      type: string
+      description: The RFC7232 ETag for the specified uploaded part.
+      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
+
   responses:
     Assets:
       description: >-
@@ -868,6 +1479,53 @@ tags:
       Asset file can be uploaded via the STAC API using the following requests.
 
       *NOTE: the POST requests requires authentication as described in [here](#tag/Authentication).*
+
+      ### Example
+
+      ```python
+      import os
+      import hashlib
+
+      import requests
+      import multihash
+
+      # variables
+      scheme = 'https'
+      hostname = 'data.geo.admin.ch'
+      collection = 'ch.swisstopo.pixelkarte-farbe-pk200.noscale'
+      item = 'smr200-200-4-2016'
+      asset = 'smr200-200-4-2016-2056-kgrs-10.tiff'
+      asset_path = f'collections/{collection}/items/{item}/assets/{asset}'
+      user = os.environ.get('STAC_USER', 'unknown-user')
+      password = os.environ.get('STAC_PASSWORD', 'unknown-password')
+
+      with open('smr200-200-4-2016-2056-kgrs-10.tiff', 'rb') as fd:
+        data = fd.read()
+
+      checksum_multihash = multihash.to_hex_string(multihash.encode(hashlib.sha256(data).digest(), 'sha2-256'))
+
+      # 1. Create a multipart upload
+      response = requests.post(
+        f"{scheme}://{hostname}/api/stac/v0.9/{asset_path}/uploads",
+        auth=(user, password),
+        json={
+          "number_parts": 1,
+          "checksum:multihash": checksum_multihash
+        }
+      )
+      upload_id = response.json()['upload_id']
+
+      # 2. Upload the part using the presigned url
+      response = requests.put(response.json()['urls'][0]['url'], data=data)
+      etag = response.headers['ETag']
+
+      # 3. Complete the upload
+      response = requests.post(
+        f"{scheme}://{hostname}/api/stac/v0.9/{asset_path}/uploads/{upload_id}/complete",
+        auth=(user, password),
+        json={'parts': [{'etag': etag, 'part_number': 1}]}
+      )
+      ```
   - name: Authentication
     description: |
       All write requests require authentication. There is currently three type of supported authentications:
