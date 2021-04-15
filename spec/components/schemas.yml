@@ -69,6 +69,39 @@ components:
     #          type: string
     #      type: object
     #  description: Apply query operations to a specific property
+    assetBase:
+      title: Asset
+      description: The `property name` defines the ID of the Asset.
+      type: object
+      required:
+        - type
+        - created
+        - updated
+      properties:
+        title:
+          $ref: "#/components/schemas/title"
+        description:
+          $ref: "#/components/schemas/description"
+        type:
+          $ref: "#/components/schemas/type"
+        href:
+          $ref: "#/components/schemas/href"
+        checksum:multihash:
+          $ref: "#/components/schemas/checksumMultihashReadOnly"
+        # roles:
+        #   $ref: '#/components/schemas/roles'
+        "geoadmin:variant":
+          $ref: "#/components/schemas/geoadmin:variant"
+        "geoadmin:lang":
+          $ref: "#/components/schemas/geoadmin:lang"
+        "proj:epsg":
+          $ref: "#/components/schemas/proj:epsg"
+        "eo:gsd":
+          $ref: "#/components/schemas/eo:gsd"
+        created:
+          $ref: "#/components/schemas/created"
+        updated:
+          $ref: "#/components/schemas/updated"
     bbox:
       description: >-
         Only features that have a geometry that intersects the bounding box are selected.
@@ -163,7 +196,16 @@ components:
       example: 90e402107a7f2588a85362b9beea2a12d4514d45
       pattern: ^[a-f0-9]+$
       title: Multihash
-      type: string,
+      type: string
+    checksumMultihashReadOnly:
+      description: |
+        `sha2-256` checksum of the asset in [multihash](https://multiformats.io/multihash/) format.
+
+      example: 90e402107a7f2588a85362b9beea2a12d4514d45
+      pattern: ^[a-f0-9]+$
+      title: Multihash
+      type: string
+      readOnly: true
     created:
       description: RFC 3339 compliant datetime string, time when the object was created
       example: 2018-02-12T23:20:50Z
@@ -356,6 +398,7 @@ components:
       description: RFC 3339 compliant datetime string
       example: 2018-02-12T23:20:50Z
       type: string
+      format: date-time
     datetimeQuery:
       description: >-
         Either a date-time or an interval, open or closed. Date and time expressions
@@ -680,54 +723,10 @@ components:
         - type
       type: object
     itemAssets:
+      title: Assets
+      description: List of Assets attached to this feature.
       additionalProperties:
-        properties:
-          created:
-            $ref: "#/components/schemas/created"
-          description:
-            description: >-
-              Multi-line description to explain the asset.
-
-
-              [CommonMark 0.29](http://commonmark.org/) syntax MAY be used for
-              rich text representation.
-            example: Small 256x256px PNG thumbnail for a preview.
-            type: string
-          href:
-            description: Link to the asset object
-            example: http://cool-sat.com/catalog/collections/cs/items/CS3-20160503_132130_04/thumb.png
-            format: url
-            type: string
-          # roles:
-          #   description: Purposes of the asset
-          #   example:
-          #     - thumbnail
-          #   items:
-          #     type: string
-          #   type: array
-          title:
-            description: Displayed title
-            example: Thumbnail
-            type: string
-          type:
-            description: Media type of the asset
-            example: image/tiff; application=geotiff
-            type: string
-          proj:epsg:
-            $ref: "#/components/schemas/proj:epsg"
-          geoadmin:variant:
-            $ref: "#/components/schemas/geoadmin:variant"
-          eo:gsd:
-            $ref: "#/components/schemas/eo:gsd"
-          updated:
-            $ref: "#/components/schemas/created"
-        required:
-          - "checksum:multihash"
-          - href
-          - type
-          - created
-          - updated
-        type: object
+        $ref: "#/components/schemas/assetBase"
       type: object
       readOnly: true
       example:
@@ -817,10 +816,12 @@ components:
         $ref: "#/components/schemas/linkPostSearch"
       type: array
     itemId:
-      description: Item identifier (unique per collection)
+      title: ID
+      description: Feature identifier (unique per collection)
       example: smr200-200-4-2019
       type: string
     itemProperties:
+      title: Properties
       description: >-
         Provides the core metadata fields plus extensions
 
@@ -853,6 +854,7 @@ components:
         - updated
       type: object
     itemType:
+      title: type
       description: The GeoJSON type
       enum:
         - Feature

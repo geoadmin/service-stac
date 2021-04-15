@@ -368,15 +368,7 @@ paths:
         - Data
     post:
       summary: Add a new asset to a feature
-      description: >-
-        Create a new asset for a specific feature.
-
-
-        When creating a new asset for a feature, the metadata of
-        the asset is posted to the API. The Asset object itself must be already publicly
-        available at the following URL: https://data.geo.admin.ch/{collectionId}/{featureId}/{assetId}
-
-        Optionally the Asset object multihash can be given for sanity check.
+      description: Create a new asset for a specific feature.
       operationId: postAsset
       tags:
         - Data Management
@@ -387,7 +379,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/itemAssetWrite"
+              $ref: "#/components/schemas/createAsset"
       responses:
         "201":
           description: Return the created Asset
@@ -400,7 +392,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/itemAsset"
+                $ref: "#/components/schemas/createAsset"
         "400":
           $ref: "#/components/responses/BadRequest"
         "5XX":
@@ -449,14 +441,26 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/itemAssetUpdate"
+              $ref: "#/components/schemas/readUpdateAsset"
       responses:
         "200":
-          description: Status of the update request.
+          description: Asset has been successfully updated.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/itemAsset"
+                $ref: "#/components/schemas/readUpdateAsset"
+        "201":
+          description: Asset has been newly created.
+          headers:
+            Location:
+              description: A link to the asset
+              schema:
+                type: string
+                format: url
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/createAsset"
         "400":
           $ref: "#/components/responses/BadRequest"
         "404":
@@ -482,7 +486,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/itemAssetPartialUpdate"
+              $ref: "#/components/schemas/readUpdateAsset"
       responses:
         "200":
           description: Returns the updated Asset.
@@ -607,7 +611,7 @@ components:
     assetId:
       type: string
       pattern: ^[a-z0-9.-_]+$
-      title: asset id
+      title: ID
       description: >-
         The asset id uniquely identifies the asset for an item
 
@@ -615,24 +619,13 @@ components:
         **Note**: `id` must be unique for the item and must be identical to the
         filename.
       example: smr50-263-2016-2056-kgrs-2.5.tiff
-    updateAssetId:
-      type: string
-      pattern: ^[a-z0-9.-_]+$
-      title: asset id
-      description: >-
-        The asset id uniquely identifies the asset for an item
-
-
-        **Note**: `id` must be unique for the item and must be identical to the
-        filename. When the `id` doesn't match the parameter `assetId`, the asset is renamed,
-        renaming also the object itself on S3.
-      example: smr50-263-2016-2056-kgrs-2.5.tiff
     assets:
+      title: Assets
       type: object
       properties:
         assets:
           items:
-            $ref: "#/components/schemas/itemAsset"
+            $ref: "#/components/schemas/readUpdateAsset"
           type: array
         links:
           items:
@@ -649,54 +642,21 @@ components:
               rel: item
             - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
               rel: collection
-    assetBase:
-      type: object
-      required:
-        - created
-        - updated
-      properties:
-        id:
-          $ref: "#/components/schemas/assetId"
-        title:
-          $ref: "#/components/schemas/title"
-        description:
-          $ref: "#/components/schemas/description"
-        type:
-          $ref: "#/components/schemas/type"
-        # roles:
-        #   $ref: '#/components/schemas/roles'
-        "geoadmin:variant":
-          $ref: "#/components/schemas/geoadmin:variant"
-        "geoadmin:lang":
-          $ref: "#/components/schemas/geoadmin:lang"
-        "proj:epsg":
-          $ref: "#/components/schemas/proj:epsg"
-        "eo:gsd":
-          $ref: "#/components/schemas/eo:gsd"
-        created:
-          $ref: "#/components/schemas/created"
-        updated:
-          $ref: "#/components/schemas/updated"
-    # overwrites the STAC definition of itemAsset
-    itemAsset:
+    createAsset:
       allOf:
         - $ref: "#/components/schemas/assetBase"
         - type: object
           required:
             - id
-            - type
-            - href
-            - checksum:multihash
             - links
           properties:
-            "checksum:multihash":
-              $ref: "#/components/schemas/checksum:multihash"
-            href:
-              $ref: "#/components/schemas/href"
+            id:
+              $ref: "#/components/schemas/assetId"
             links:
               items:
                 $ref: "#/components/schemas/link"
               type: array
+              readOnly: true
               example:
                 - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets/smr50-263-2016-2056-kgrs-2.5.tiff
                   rel: self
@@ -708,60 +668,33 @@ components:
                   rel: item
                 - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
                   rel: collection
-    itemAssetWrite:
+    readUpdateAsset:
       allOf:
         - $ref: "#/components/schemas/assetBase"
         - type: object
           required:
             - id
-            - type
-    itemAssetUpdate:
-      allOf:
-        - $ref: "#/components/schemas/assetBase"
-        - type: object
-          required:
-            - id
-            - type
+            - links
           properties:
             id:
-              $ref: "#/components/schemas/updateAssetId"
-    itemAssetPartialUpdate:
-      allOf:
-        - $ref: "#/components/schemas/assetBase"
-        - type: object
-          properties:
-            id:
-              $ref: "#/components/schemas/updateAssetId"
-    writeChecksumMultihash:
-      description: >-
-        `sha2-256` checksum of the asset in [multihash](https://multiformats.io/multihash/)
-        format.
+              $ref: "#/components/schemas/assetId"
+            links:
+              items:
+                $ref: "#/components/schemas/link"
+              type: array
+              readOnly: true
+              example:
+                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets/smr50-263-2016-2056-kgrs-2.5.tiff
+                  rel: self
+                - href: https://data.geo.admin.ch/api/stac/v0.9/
+                  rel: root
+                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets
+                  rel: parent
+                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019
+                  rel: item
+                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+                  rel: collection
 
-
-        When provided the asset Object located at href will be checked against this checksum and the
-        request is rejected if the checksum don't match.
-      example: 90e402107a7f2588a85362b9beea2a12d4514d45
-      pattern: ^[a-f0-9]+$
-      title: Multihash
-      type: string,
-    writeHref:
-      type: string
-      format: url
-      description: >-
-        URL of the current location of the asset object.
-
-
-        The url must be publicly accessible. If the URL corresponds already to the correct location
-        of the asset object on s3, the checksum of the payload and the object on s3 are compared
-        and if matching the request will be accepted.
-
-
-        If the URL is different from the location that the asset object should have according to the
-        the pattern `/<collection_id>/<item_id>/<asset_id>`, the service will move the asset from this
-        temporary location to the correct one.
-      default: https://data.geo.admin.ch/<collection-id>/<item-id>/<asset-id>
-      example: >-
-        http://data.geo.admin.ch/tmp/gdwh/ch.swisstopo.swissimage/CS3-20160503_132130_04.png
     writeItem:
       allOf:
         - $ref: "#/components/schemas/itemBase"
@@ -879,7 +812,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/itemAsset"
+            $ref: "#/components/schemas/readUpdateAsset"
     DeletedResource:
       description: Status of the delete resource
       content:
