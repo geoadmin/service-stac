@@ -533,7 +533,7 @@ paths:
       - url: http://data.geo.admin.ch/api/stac/
     post:
       tags:
-        - Data Management
+        - Authentication
       summary: >-
         Request token for token authentication.
       operationId: getToken
@@ -546,7 +546,7 @@ paths:
               properties:
                 username:
                   type: string
-                  decscription: name of user for whom token is requested
+                  description: name of user for whom token is requested
                 password:
                   type: string
                   description: password of user for whom token is requested
@@ -849,28 +849,47 @@ components:
           example:
             code: 403
             description: "Permission denied"
-tags:
-  - description: Essential characteristics of this API
-    name: Capabilities
-  - description: Access to data (features)
-    name: Data
-  - description: Extension to OGC API - Features to support STAC metadata model and search API
-    name: STAC
-  - description: |
-      All write requests require authentication. The currently available options for a user to
-      authenticate himself are described below.
 
-      # Session authentication
+tags:
+  - name: Capabilities
+    description: Essential characteristics of this API
+  - name: Data
+    description: Access to data (features)
+  - name: STAC
+    description: Extension to OGC API - Features to support STAC metadata model and search API
+  - name: Data Management
+    description: |
+      Metadata management requests. Theses requests are used to create, update or delete the STAC
+      metadata.
+
+      *NOTE: these requests requires authentication as described in [here](#tag/Authentication).*
+  - name: Asset Upload Management
+    description: |
+      Asset file can be uploaded via the STAC API using the following requests.
+
+      *NOTE: the POST requests requires authentication as described in [here](#tag/Authentication).*
+  - name: Authentication
+    description: |
+      All write requests require authentication. There is currently three type of supported authentications:
+
+      * [Session authentication](#section/Session-authentication)
+      * [Basic authentication](#section/Basic-authentication)
+      * [Token authentication](#section/Token-authentication)
+
+      ## Session authentication
+
       When using the browsable API the user can simply use the admin interface for logging in.
       Once logged in, the browsable API can be used to perform write requests.
 
-      # Basic authentication
+      ## Basic authentication
+
       The username and password for authentication can be added to every write request the user wants to perform.
       Here is an example of posting an asset using curl (_username_="MickeyMouse", _password_="I_love_Minnie_Mouse"):
+
       ```
       curl --request POST \
         --user MickeyMouse:I_love_Minnie_Mouse \
-        --url https://service-stac.dev.bgdi.ch/api/stac/v0.9/collections/ch.swisstopo.swisstlmregio/items/swisstlmregio-2020/assets \
+        --url https://data.geoadmin.ch/api/stac/v0.9/collections/ch.swisstopo.swisstlmregio/items/swisstlmregio-2020/assets \
         --header 'Content-Type: application/json' \
         --data '{
           "id": "fancy_unique_id",
@@ -883,12 +902,14 @@ tags:
       }'
       ```
 
-      # Token authentication
+      ## Token authentication
+
       A user specific token for authentication can be added to every write request the user wants to perform.
       Here is an example of posting an asset using curl:
+
       ```
       curl --request POST \
-        --url https://service-stac.dev.bgdi.ch/api/stac/v0.9/collections/ch.swisstopo.swisstlmregio/items/swisstlmregio-2020/assets \
+        --url https://data.geoadmin.ch/api/stac/v0.9/collections/ch.swisstopo.swisstlmregio/items/swisstlmregio-2020/assets \
         --header 'Authorization: Token ccecf40693bfc52ba090cd46eb7f19e723fe831f' \
         --header 'Content-Type: application/json' \
         --data '{
@@ -901,14 +922,14 @@ tags:
           "checksum:multihash": "01205c3fd6978a7d0b051efaa4263a04"
       }'
       ```
+
       Tokens can either be generated in the admin interface or existing users can perform a POST request
-      on the get-token endpoint to request a token (also see description of the get-token POST endpoint
-      at the bottom).
+      on the get-token endpoint to request a token (also see [Request token for token authentication](#operation/getToken)).
       Here is an example using curl:
+
       ```
       curl --request POST \
-        --url https://service-stac.dev.bgdi.ch/api/stac/get-token \
+        --url https://data.geoadmin.ch/api/stac/get-token \
         --header 'Content-Type: application/json' \
         --data '{"username": "MickeyMouse", "password": "I_love_Minnie_Mouse"}'
       ```
-    name: Data Management
