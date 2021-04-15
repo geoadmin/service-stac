@@ -604,14 +604,6 @@ components:
         he would overwrite another changes of the resource.
       example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
   schemas:
-    description:
-      type: string
-      description: >-
-        Detailed multi-line description to fully explain the object (collection,
-        item, asset, ...).
-
-        [CommonMark 0.29](http://commonmark.org/) syntax MAY be used for rich
-        text representation.
     assetId:
       type: string
       pattern: ^[a-z0-9.-_]+$
@@ -770,12 +762,6 @@ components:
       default: https://data.geo.admin.ch/<collection-id>/<item-id>/<asset-id>
       example: >-
         http://data.geo.admin.ch/tmp/gdwh/ch.swisstopo.swissimage/CS3-20160503_132130_04.png
-    href:
-      type: string
-      format: url
-      description: Link to the asset object
-      example: >-
-        http://data.geo.admin.ch/ch.swisstopo.swissimage/collections/cs/items/CS3-20160503_132130_04/thumb.png
     writeItem:
       allOf:
         - $ref: "#/components/schemas/itemBase"
@@ -825,10 +811,6 @@ components:
       example:
         properties:
           datetime: "2016-05-03T13:22:30.040Z"
-        # assets:
-        #   analytic:
-        #     title: 1-Band Analytic
-        #     href: http://cool-sat.com/catalog/collections/cs/items/CS3-201605XX_132130_04/analytic-1.tif
     partialCollection:
       type: object
       description: Allows for a set of partial metadata fields for a collection
@@ -874,34 +856,6 @@ components:
             - http://www.opengis.net/def/crs/EPSG/0/4326
         example:
           title: The new title of the collection
-    roles:
-      type: array
-      items:
-        type: string
-      description: Purposes of the asset
-      example:
-        - thumbnail
-    title:
-      type: string
-      description: Displayed title
-      example: Thumbnail
-    type:
-      type: string
-      description: Media type of the asset
-      example: image/tiff; application=geotiff
-    # Overwrite the collection links examples
-    # collection:
-    #   properties:
-    #     links:
-    #       example:
-    #         - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
-    #           rel: license
-    #           title: Licence for the free geodata of the Federal Office of Topography swisstopo
-    #         - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
-    #           rel: describedby
-    #       items:
-    #         $ref: "#/components/schemas/link"
-    #       type: array
     itemIdUpdate:
       description: >-
         Item identifier (unique per collection. If it doesn't match the `featureId` in path
@@ -953,15 +907,6 @@ components:
             required:
               - code
               - links
-    BadRequest:
-      description: The request was malformed or semantically invalid
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/exception"
-          example:
-            code: 400
-            description: "Invalid parameter"
     PermissionDenied:
       description: No Permission for this request
       content:

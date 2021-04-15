@@ -557,6 +557,13 @@ components:
         - type
         - geometries
       type: object
+    href:
+      type: string
+      format: url
+      description: Link to the asset object
+      readOnly: true
+      example: |
+        http://data.geo.admin.ch/ch.swisstopo.swissimage/collections/cs/items/CS3-20160503_132130_04/thumb.png
     ids:
       description: >-
         Array of Item ids to return. All other filter parameters that further
@@ -1289,6 +1296,13 @@ components:
       description: >-
         Apply query operations to a specific property. The following properties
         are currently supported: `created`, `updated`, `title`.
+    roles:
+      type: array
+      items:
+        type: string
+      description: Purposes of the asset
+      example:
+        - thumbnail
     searchBody:
       allOf:
         #        - $ref: "#/components/schemas/assetQueryFilter"
@@ -1311,6 +1325,14 @@ components:
       example: "2017-08-17T08:05:32Z"
       format: date-time
       type: string
+    title:
+      type: string
+      description: Displayed title
+      example: Thumbnail
+    type:
+      type: string
+      description: Media type of the asset
+      example: image/tiff; application=geotiff
     updated:
       description: RFC 3339 compliant datetime string, time when the object was updated
       example: 2018-02-12T23:20:50Z
