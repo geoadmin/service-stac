@@ -212,7 +212,7 @@ components:
       type: string
       format: date-time
       readOnly: true
-    collection:
+    collectionBase:
       properties:
         crs:
           default:
@@ -253,24 +253,6 @@ components:
           readOnly: true
         license:
           $ref: "#/components/schemas/license"
-        links:
-          example:
-            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
-              rel: self
-            - href: https://data.geo.admin.ch/api/stac/v0.9/
-              rel: root
-            - href: https://data.geo.admin.ch/api/stac/v0.9/collections
-              rel: parent
-            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items
-              rel: items
-            - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
-              rel: license
-              title: Licence for the free geodata of the Federal Office of Topography swisstopo
-            - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
-              rel: describedby
-          items:
-            $ref: "#/components/schemas/link"
-          type: array
         providers:
           $ref: "#/components/schemas/providers"
         stac_version:
@@ -338,7 +320,6 @@ components:
           $ref: "#/components/schemas/updated"
       required:
         - id
-        - links
         - stac_version
         - description
         - license
@@ -346,6 +327,47 @@ components:
         - created
         - updated
       type: object
+    collection:
+      allOf:
+        - $ref: "#/components/schemas/collectionBase"
+        - type: object
+          required:
+            - links
+          properties:
+            links:
+              type: array
+              items:
+                $ref: "#/components/schemas/link"
+              example:
+                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+                  rel: self
+                - href: https://data.geo.admin.ch/api/stac/v0.9/
+                  rel: root
+                - href: https://data.geo.admin.ch/api/stac/v0.9/collections
+                  rel: parent
+                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items
+                  rel: items
+                - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
+                  rel: license
+                  title: Licence for the free geodata of the Federal Office of Topography swisstopo
+                - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
+                  rel: describedby
+    collectionWrite:
+      title: collection
+      allOf:
+        - $ref: "#/components/schemas/collectionBase"
+        - type: object
+          properties:
+            links:
+              type: array
+              items:
+                $ref: "#/components/schemas/link"
+              example:
+                - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
+                  rel: license
+                  title: Licence for the free geodata of the Federal Office of Topography swisstopo
+                - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
+                  rel: describedby
     collections:
       properties:
         collections:

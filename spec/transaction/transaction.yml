@@ -41,7 +41,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/collection"
+                $ref: "#/components/schemas/collectionWrite"
         "403":
           $ref: "#/components/responses/PermissionDenied"
         "404":
@@ -65,7 +65,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/collection"
+              $ref: "#/components/schemas/collectionWrite"
             example:
               description: The National Map 1:200,000 is a topographic map giving an overview of Switzerland.
               id: ch.swisstopo.pixelkarte-farbe-pk200.noscale
@@ -124,7 +124,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/collection"
+              $ref: "#/components/schemas/collectionWrite"
             example:
               id: ch.swisstopo.pixelkarte-farbe-pk200.noscale
               license: proprietary
