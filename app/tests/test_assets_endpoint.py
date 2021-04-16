@@ -584,6 +584,7 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
                          msg='Unexpected error message')
 
     def test_asset_endpoint_put_rename_asset(self):
+        # rename should not be allowed
         collection_name = self.collection['name']
         item_name = self.item['name']
         asset_name = self.asset['name']
@@ -599,21 +600,32 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
         response = self.client.put(
             path, data=changed_asset.get_json('put'), content_type="application/json"
         )
-        self.assertStatusCode(200, response)
-        json_data = response.json()
-        self.assertEqual(changed_asset.json['id'], json_data['id'])
-        self.check_stac_asset(changed_asset.json, json_data, collection_name, item_name)
+        self.assertStatusCode(400, response)
+        self.assertEqual(['Renaming object is not allowed'],
+                         response.json()['description'],
+                         msg='Unexpected error message')
 
         # Check the data by reading it back
         response = self.client.get(
             f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}'
-            f'/assets/{new_asset_name}'
+            f'/assets/{asset_name}'
         )
         json_data = response.json()
         self.assertStatusCode(200, response)
-        self.check_stac_asset(changed_asset.json, json_data, collection_name, item_name)
+
+        self.assertEqual(asset_name, json_data['id'])
+
+        # Check the data that no new entry exist
+        response = self.client.get(
+            f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}'
+            f'/assets/{new_asset_name}'
+        )
+
+        # 404 - not found
+        self.assertStatusCode(404, response)
 
     def test_asset_endpoint_patch_rename_asset(self):
+        # rename should not be allowed
         collection_name = self.collection['name']
         item_name = self.item['name']
         asset_name = self.asset['name']
@@ -626,20 +638,29 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
         response = self.client.patch(
             path, data=changed_asset.get_json('patch'), content_type="application/json"
         )
-        json_data = response.json()
-        self.assertStatusCode(200, response)
-        self.assertEqual(changed_asset.json['id'], json_data['id'])
-        self.check_stac_asset(changed_asset.json, json_data, collection_name, item_name)
+        self.assertStatusCode(400, response)
+        self.assertEqual(['Renaming object is not allowed'],
+                         response.json()['description'],
+                         msg='Unexpected error message')
 
         # Check the data by reading it back
         response = self.client.get(
             f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}'
-            f'/assets/{new_asset_name}'
+            f'/assets/{asset_name}'
         )
         json_data = response.json()
         self.assertStatusCode(200, response)
-        self.assertEqual(changed_asset.json['id'], json_data['id'])
-        self.check_stac_asset(changed_asset.json, json_data, collection_name, item_name)
+
+        self.assertEqual(asset_name, json_data['id'])
+
+        # Check the data that no new entry exist
+        response = self.client.get(
+            f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}'
+            f'/assets/{new_asset_name}'
+        )
+
+        # 404 - not found
+        self.assertStatusCode(404, response)
 
     def test_asset_endpoint_patch_extra_payload(self):
         collection_name = self.collection['name']

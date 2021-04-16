@@ -30,6 +30,7 @@ from stac_api.utils import utc_aware
 from stac_api.validators_serializer import ValidateSearchRequest
 from stac_api.validators_view import validate_collection
 from stac_api.validators_view import validate_item
+from stac_api.validators_view import validate_renaming
 
 logger = logging.getLogger(__name__)
 
@@ -484,11 +485,23 @@ class AssetDetail(
         item = get_object_or_404(
             Item, collection__name=self.kwargs['collection_name'], name=self.kwargs['item_name']
         )
+        validate_renaming(
+            serializer,
+            id_field='name',
+            original_id=self.kwargs['asset_name'],
+            extra_log=self.request
+        )
         serializer.save(item=item, file=get_asset_path(item, self.kwargs['asset_name']))
 
     def perform_upsert(self, serializer, lookup):
         item = get_object_or_404(
             Item, collection__name=self.kwargs['collection_name'], name=self.kwargs['item_name']
+        )
+        validate_renaming(
+            serializer,
+            id_field='name',
+            original_id=self.kwargs['asset_name'],
+            extra_log=self.request
         )
         return serializer.upsert(
             lookup, item=item, file=get_asset_path(item, self.kwargs['asset_name'])
