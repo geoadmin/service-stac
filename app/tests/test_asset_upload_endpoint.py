@@ -113,6 +113,42 @@ class AssetUploadBaseTest(StacBaseTestCase, S3TestMixin):
             except ValueError as error:
                 self.fail(msg=f"Invalid expires {expires} for part {part}: {error}")
 
+    def check_created_response(self, json_response):
+        self.assertNotIn('completed', json_response)
+        self.assertNotIn('aborted', json_response)
+        self.assertIn('upload_id', json_response)
+        self.assertIn('status', json_response)
+        self.assertIn('number_parts', json_response)
+        self.assertIn('checksum:multihash', json_response)
+        self.assertIn('urls', json_response)
+        self.assertEqual(json_response['status'], 'in-progress')
+
+    def check_completed_response(self, json_response):
+        self.assertNotIn('urls', json_response)
+        self.assertNotIn('aborted', json_response)
+        self.assertIn('upload_id', json_response)
+        self.assertIn('status', json_response)
+        self.assertIn('number_parts', json_response)
+        self.assertIn('checksum:multihash', json_response)
+        self.assertIn('completed', json_response)
+        self.assertEqual(json_response['status'], 'completed')
+        self.assertGreater(
+            fromisoformat(json_response['completed']), fromisoformat(json_response['created'])
+        )
+
+    def check_aborted_response(self, json_response):
+        self.assertNotIn('urls', json_response)
+        self.assertNotIn('completed', json_response)
+        self.assertIn('upload_id', json_response)
+        self.assertIn('status', json_response)
+        self.assertIn('number_parts', json_response)
+        self.assertIn('checksum:multihash', json_response)
+        self.assertIn('aborted', json_response)
+        self.assertEqual(json_response['status'], 'aborted')
+        self.assertGreater(
+            fromisoformat(json_response['aborted']), fromisoformat(json_response['created'])
+        )
+
 
 class AssetUploadCreateEndpointTestCase(AssetUploadBaseTest):
 
@@ -130,6 +166,7 @@ class AssetUploadCreateEndpointTestCase(AssetUploadBaseTest):
         )
         self.assertStatusCode(201, response)
         json_data = response.json()
+        self.check_created_response(json_data)
 
         self.check_urls_response(json_data['urls'], number_parts)
 
@@ -140,6 +177,7 @@ class AssetUploadCreateEndpointTestCase(AssetUploadBaseTest):
         )
         self.assertStatusCode(200, response)
         json_data = response.json()
+        self.check_aborted_response(json_data)
         self.assertFalse(
             self.get_asset_upload_queryset().filter(status=AssetUpload.Status.IN_PROGRESS).exists(),
             msg='In progress upload found'
@@ -167,6 +205,7 @@ class AssetUploadCreateEndpointTestCase(AssetUploadBaseTest):
         )
         self.assertStatusCode(201, response)
         json_data = response.json()
+        self.check_created_response(json_data)
         self.check_urls_response(json_data['urls'], number_parts)
 
         response = self.client.post(
@@ -211,6 +250,7 @@ class AssetUpload1PartEndpointTestCase(AssetUploadBaseTest):
         )
         self.assertStatusCode(201, response)
         json_data = response.json()
+        self.check_created_response(json_data)
         self.check_urls_response(json_data['urls'], number_parts)
 
         parts = self.s3_upload_parts(json_data['upload_id'], file_like, size, number_parts)
@@ -221,6 +261,7 @@ class AssetUpload1PartEndpointTestCase(AssetUploadBaseTest):
             content_type="application/json"
         )
         self.assertStatusCode(200, response)
+        self.check_completed_response(response.json())
         self.assertS3ObjectExists(key)
 
 
@@ -242,6 +283,7 @@ class AssetUpload2PartEndpointTestCase(AssetUploadBaseTest):
         )
         self.assertStatusCode(201, response)
         json_data = response.json()
+        self.check_created_response(json_data)
         self.check_urls_response(json_data['urls'], number_parts)
 
         parts = self.s3_upload_parts(json_data['upload_id'], file_like, size, number_parts)
@@ -252,6 +294,7 @@ class AssetUpload2PartEndpointTestCase(AssetUploadBaseTest):
             content_type="application/json"
         )
         self.assertStatusCode(200, response)
+        self.check_completed_response(response.json())
         self.assertS3ObjectExists(key)
 
 

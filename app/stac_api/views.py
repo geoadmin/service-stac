@@ -635,6 +635,7 @@ class AssetUploadBase(generics.GenericAPIView):
         asset_upload.update_asset_checksum_multihash()
         asset_upload.status = AssetUpload.Status.COMPLETED
         asset_upload.ended = utc_aware(datetime.utcnow())
+        asset_upload.urls = []
         asset_upload.save()
 
     def abort_multipart_upload(self, executor, asset_upload, asset):
@@ -642,6 +643,7 @@ class AssetUploadBase(generics.GenericAPIView):
         executor.abort_multipart_upload(key, asset, asset_upload.upload_id)
         asset_upload.status = AssetUpload.Status.ABORTED
         asset_upload.ended = utc_aware(datetime.utcnow())
+        asset_upload.urls = []
         asset_upload.save()
 
 

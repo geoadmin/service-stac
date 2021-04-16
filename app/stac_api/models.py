@@ -715,9 +715,7 @@ class AssetUpload(models.Model):
         choices=Status.choices, max_length=32, default=Status.IN_PROGRESS, blank=False, null=False
     )
     number_parts = models.IntegerField(
-        validators=[MinValueValidator(1), MaxValueValidator(100)],
-        null=False,
-        blank=False
+        validators=[MinValueValidator(1), MaxValueValidator(100)], null=False, blank=False
     )  # S3 doesn't support more that 10'000 parts
     urls = models.JSONField(default=list, encoder=DjangoJSONEncoder, blank=True)
     created = models.DateTimeField(auto_now_add=True)
