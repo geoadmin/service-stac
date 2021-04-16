@@ -229,6 +229,8 @@ try:
 except KeyError as err:
     raise KeyError(f'AWS configuration {err} missing') from err
 
+AWS_PRESIGNED_URL_EXPIRES = int(os.environ.get('AWS_PRESIGNED_URL_EXPIRES', '3600'))
+
 # Configure the admin upload caching
 try:
     STORAGE_ASSETS_CACHE_SECONDS = int(os.environ.get('HTTP_ASSETS_CACHE_SECONDS', '7200'))
@@ -292,6 +294,6 @@ DEBUG_PROPAGATE_API_EXCEPTIONS = False
 # data.geo.admin.ch/collection/item/asset to check if asset exists.
 EXTERNAL_SERVICE_TIMEOUT = 3
 
-# By default django_promtheus tracks the number of migrations
+# By default django_prometheus tracks the number of migrations
 # This causes troubles in various places so we disable it
 PROMETHEUS_EXPORT_MIGRATIONS = False

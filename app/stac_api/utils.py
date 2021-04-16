@@ -99,10 +99,27 @@ def get_asset_path(item, asset_name):
 def get_s3_resource():
     '''Returns an AWS S3 resource
 
+    The authentication with the S3 server is configured via the AWS_ACCESS_KEY_ID and
+    AWS_SECRET_ACCESS_KEY environment variables.
+
     Returns:
         AWS S3 resource
     '''
     return boto3.resource(
+        's3', endpoint_url=settings.AWS_S3_ENDPOINT_URL, config=Config(signature_version='s3v4')
+    )
+
+
+def get_s3_client():
+    '''Returns an AWS S3 client
+
+    The authentication with the S3 server is configured via the AWS_ACCESS_KEY_ID and
+    AWS_SECRET_ACCESS_KEY environment variables.
+
+    Returns:
+        AWS S3 client
+    '''
+    return boto3.client(
         's3', endpoint_url=settings.AWS_S3_ENDPOINT_URL, config=Config(signature_version='s3v4')
     )
 
@@ -173,6 +190,23 @@ def create_multihash_string(digest, hash_code):
         multihash string
     '''
     return multihash.to_hex_string(multihash.encode(digest, hash_code))
+
+
+def parse_multihash(multihash_string):
+    '''Parse a multihash string
+
+    Args:
+        multihash_string: string
+            multihash string to parse
+
+    Returns.
+        Multihash object
+
+    Raises:
+        TypeError: if incoming data is not a string
+        ValueError: if the incoming data is not a valid multihash
+    '''
+    return multihash.decode(multihash.from_hex_string(multihash_string))
 
 
 def harmonize_post_get_for_search(request):

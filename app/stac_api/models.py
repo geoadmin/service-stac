@@ -5,7 +5,8 @@ import time
 from uuid import uuid4
 
 # import botocore.exceptions # Un-comment with BGDIINF_SB-1625
-import multihash
+from multihash import encode as multihash_encode
+from multihash import to_hex_string
 
 from django.conf import settings
 from django.contrib.gis.db import models
@@ -13,6 +14,10 @@ from django.contrib.gis.geos import Polygon
 from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ValidationError
 from django.core.serializers.json import DjangoJSONEncoder
+from django.core.validators import MaxValueValidator
+from django.core.validators import MinValueValidator
+from django.db.models import Q
+from django.db.models.deletion import ProtectedError
 from django.utils.translation import gettext_lazy as _
 
 from solo.models import SingletonModel
@@ -21,6 +26,7 @@ from stac_api.collection_spatial_extent import CollectionSpatialExtentMixin
 from stac_api.collection_summaries import UPDATE_SUMMARIES_FIELDS
 from stac_api.collection_summaries import CollectionSummariesMixin
 from stac_api.collection_temporal_extent import CollectionTemporalExtentMixin
+from stac_api.managers import AssetUploadManager
 from stac_api.managers import ItemManager
 from stac_api.utils import get_asset_path
 # from stac_api.utils import get_s3_resource # Un-comment with BGDIINF_SB-1625
@@ -521,7 +527,7 @@ def upload_asset_to_path_hook(instance, filename=None):
     ctx = hashlib.sha256()
     for chunk in instance.file.chunks(settings.UPLOAD_FILE_CHUNK_SIZE):
         ctx.update(chunk)
-    mhash = multihash.to_hex_string(multihash.encode(ctx.digest(), 'sha2-256'))
+    mhash = to_hex_string(multihash_encode(ctx.digest(), 'sha2-256'))
     # set the hash to the storage to use it for upload signing, this temporary attribute is
     # then used by storages.S3Storage to set the MetaData.sha256
     setattr(instance.file.storage, '_tmp_sha256', ctx.hexdigest())
@@ -663,7 +669,92 @@ class Asset(models.Model):
         if self.item.collection.update_summaries(self, 'delete', old_values=None):
             self.item.collection.save()
         self.item.save()  # We save the item to update its ETag
-        super().delete(*args, **kwargs)
+        try:
+            super().delete(*args, **kwargs)
+        except ProtectedError as error:
+            logger.error(
+                'Cannot delete asset %s: %s',
+                self.name,
+                error,
+                extra={
+                    'collection': self.item.collection.name,
+                    'item': self.item.name,
+                    'asset': self.name
+                }
+            )
+            raise ValidationError(error.args[0]) from None
 
     def clean(self):
         validate_asset_name_with_media_type(self.name, self.media_type)
+
+
+class AssetUpload(models.Model):
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['asset', 'upload_id'], name='unique_together'),
+            # Make sure that there is only one asset upload in progress per asset
+            models.UniqueConstraint(
+                fields=['asset', 'status'],
+                condition=Q(status='in-progress'),
+                name='unique_in_progress'
+            )
+        ]
+
+    class Status(models.TextChoices):
+        # pylint: disable=invalid-name
+        IN_PROGRESS = 'in-progress'
+        COMPLETED = 'completed'
+        ABORTED = 'aborted'
+        __empty__ = ''
+
+    # using BigIntegerField as primary_key to deal with the expected large number of assets.
+    id = models.BigAutoField(primary_key=True)
+    asset = models.ForeignKey(Asset, related_name='+', on_delete=models.CASCADE)
+    upload_id = models.CharField(max_length=255, blank=False, null=False)
+    status = models.CharField(
+        choices=Status.choices, max_length=32, default=Status.IN_PROGRESS, blank=False, null=False
+    )
+    number_parts = models.IntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(100)], null=False, blank=False
+    )  # S3 doesn't support more that 10'000 parts
+    urls = models.JSONField(default=list, encoder=DjangoJSONEncoder, blank=True)
+    created = models.DateTimeField(auto_now_add=True)
+    ended = models.DateTimeField(blank=True, null=True, default=None)
+    checksum_multihash = models.CharField(max_length=255, blank=False, null=False)
+
+    # hidden ETag field
+    etag = models.CharField(blank=False, null=False, max_length=56, default=compute_etag)
+
+    # Custom Manager that preselects the collection
+    objects = AssetUploadManager()
+
+    def save(self, *args, **kwargs):  # pylint: disable=signature-differs
+        self.update_etag()
+        super().save(*args, **kwargs)
+
+    def update_etag(self):
+        '''Update the ETag with a new UUID
+        '''
+        self.etag = compute_etag()
+
+    def update_asset_checksum_multihash(self):
+        '''Updating the asset's checksum:multihash from the upload
+
+        When the upload is completed, the new checksum:multihash from the upload
+        is set to its asset parent.
+        '''
+        logger.debug(
+            'Updating asset %s checksum:multihash from %s to %s due to upload complete',
+            self.asset.name,
+            self.asset.checksum_multihash,
+            self.checksum_multihash,
+            extra={
+                'upload_id': self.upload_id,
+                'asset': self.asset.name,
+                'item': self.asset.item.name,
+                'collection': self.asset.item.collection.name
+            }
+        )
+        self.asset.checksum_multihash = self.checksum_multihash
+        self.asset.save()

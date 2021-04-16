@@ -6,6 +6,10 @@ from rest_framework.authtoken.views import obtain_auth_token
 
 from stac_api.views import AssetDetail
 from stac_api.views import AssetsList
+from stac_api.views import AssetUploadAbort
+from stac_api.views import AssetUploadComplete
+from stac_api.views import AssetUploadDetail
+from stac_api.views import AssetUploadsList
 from stac_api.views import CollectionDetail
 from stac_api.views import CollectionList
 from stac_api.views import ConformancePageDetail
@@ -17,8 +21,17 @@ from stac_api.views import SearchList
 STAC_VERSION_SHORT = settings.STAC_VERSION_SHORT
 HEALTHCHECK_ENDPOINT = settings.HEALTHCHECK_ENDPOINT
 
+asset_upload_urls = [
+    path("<upload_id>", AssetUploadDetail.as_view(), name='asset-upload-detail'),
+    # path("<upload_id>/parts/<part_number>", AssetUploadPart.as_view(), name='asset-upload-part'),
+    path("<upload_id>/complete", AssetUploadComplete.as_view(), name='asset-upload-complete'),
+    path("<upload_id>/abort", AssetUploadAbort.as_view(), name='asset-upload-abort')
+]
+
 asset_urls = [
     path("<asset_name>", AssetDetail.as_view(), name='asset-detail'),
+    path("<asset_name>/uploads", AssetUploadsList.as_view(), name='asset-uploads-list'),
+    path("<asset_name>/uploads/", include(asset_upload_urls))
 ]
 
 item_urls = [

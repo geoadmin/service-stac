@@ -6,7 +6,10 @@ from django.conf import settings
 from django.test import Client
 from django.test import override_settings
 
+from stac_api.models import AssetUpload
 from stac_api.utils import get_link
+from stac_api.utils import get_sha256_multihash
+from stac_api.utils import utc_aware
 
 from tests.base_test import StacBaseTestCase
 from tests.data_factory import Factory
@@ -100,18 +103,31 @@ class ApiPaginationTestCase(StacBaseTestCase):
                                  response.json()['description'],
                                  msg='Unexpected error message')
 
+    @mock_s3_asset_file
     def test_pagination(self):
         # pylint: disable=too-many-locals
         items = self.factory.create_item_samples(3, self.collections[0].model, db_create=True)
+        asset = self.factory.create_asset_sample(items[0].model, db_create=True)
+        for i in range(1, 4):
+            AssetUpload.objects.create(
+                asset=asset.model,
+                upload_id=f'upload-{i}',
+                status=AssetUpload.Status.ABORTED,
+                checksum_multihash=get_sha256_multihash(b'upload-%d' % i),
+                number_parts=2,
+                ended=utc_aware(datetime.utcnow())
+            )
         for endpoint, result_attribute in [
             ('collections', 'collections'),
-            (f'collections/{self.collections[0]["name"]}/items', 'features')
+            (f'collections/{self.collections[0]["name"]}/items', 'features'),
+            (f'collections/{self.collections[0]["name"]}/items/{items[0]["name"]}/'
+             f'assets/{asset["name"]}/uploads', 'uploads')
         ]:
             with self.subTest(endpoint=endpoint):
                 # Page 1:
                 response = self.client.get(f"/{STAC_BASE_V}/{endpoint}?limit=1")
+                self.assertStatusCode(200, response)
                 page_1 = response.json()
-                self.assertEqual(200, response.status_code, msg=get_http_error_description(page_1))
 
                 # Make sure previous link is not present
                 self.assertIsNone(
