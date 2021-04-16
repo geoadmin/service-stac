@@ -98,20 +98,27 @@ class AssetUploadBaseTest(StacBaseTestCase, S3TestMixin):
     def check_urls_response(self, urls, number_parts):
         now = utc_aware(datetime.utcnow())
         self.assertEqual(len(urls), number_parts)
-        for i, (url, part, expires) in enumerate(urls):
-            self.assertEqual(part, i + 1, msg=f'Part {part} does not match the url index {i}')
+        for i, url in enumerate(urls):
+            self.assertListEqual(
+                list(url.keys()), ['url', 'part', 'expires'], msg='Url dictionary keys missing'
+            )
+            self.assertEqual(
+                url['part'], i + 1, msg=f'Part {url["part"]} does not match the url index {i}'
+            )
             try:
-                url_parsed = parse.urlparse(url)
+                url_parsed = parse.urlparse(url["url"])
                 self.assertIn(url_parsed[0], ['http', 'https'])
             except ValueError as error:
-                self.fail(msg=f"Invalid url {url} for part {part}: {error}")
+                self.fail(msg=f"Invalid url {url['url']} for part {url['part']}: {error}")
             try:
-                expires_dt = fromisoformat(expires)
+                expires_dt = fromisoformat(url['expires'])
                 self.assertGreater(
-                    expires_dt, now, msg=f"expires {expires} for part {part} is not in future"
+                    expires_dt,
+                    now,
+                    msg=f"expires {url['expires']} for part {url['part']} is not in future"
                 )
             except ValueError as error:
-                self.fail(msg=f"Invalid expires {expires} for part {part}: {error}")
+                self.fail(msg=f"Invalid expires {url['expires']} for part {url['part']}: {error}")
 
     def check_created_response(self, json_response):
         self.assertNotIn('completed', json_response)

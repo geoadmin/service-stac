@@ -87,8 +87,8 @@ class MultipartUpload:
             upload_id: string
                 Upload ID for which to create a presigned url
 
-        Returns: [string, int, datetime]
-            List [url, part, expires]
+        Returns: dict(string, int, datetime)
+            Dict {'url': string, 'part': int, 'expires': datetime}
         '''
         expires = utc_aware(
             datetime.utcnow() + timedelta(seconds=settings.AWS_PRESIGNED_URL_EXPIRES)
@@ -128,7 +128,7 @@ class MultipartUpload:
                 'upload_id': upload_id, 'asset': asset.name
             }
         )
-        return [url, part, expires]
+        return {'url': url, 'part': part, 'expires': expires}
 
     def complete_multipart_upload(self, key, asset, parts, upload_id):
         '''Complete a multipart upload on the backend
