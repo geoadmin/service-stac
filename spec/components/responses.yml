@@ -3,7 +3,7 @@ components:
     Collection:
       headers:
         ETag:
-          $ref: "#/components/schemas/ETag"
+          $ref: "#/components/headers/ETag"
       content:
         application/json:
           schema:
@@ -89,7 +89,7 @@ components:
     Feature:
       headers:
         ETag:
-          $ref: "#/components/schemas/ETag"
+          $ref: "#/components/headers/ETag"
       content:
         application/json:
           schema:

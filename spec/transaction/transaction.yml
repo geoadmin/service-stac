@@ -808,7 +808,7 @@ components:
         The response is a document consisting of one asset of the feature.
       headers:
         ETag:
-          $ref: "#/components/schemas/ETag"
+          $ref: "#/components/headers/ETag"
       content:
         application/json:
           schema:

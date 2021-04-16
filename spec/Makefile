@@ -5,6 +5,7 @@
 SPEC_HTTP_PORT ?= 8090
 
 PARTS = base.yml \
+		components/headers.yml \
 		components/parameters.yml \
 		components/responses.yml \
 		components/schemas.yml \
