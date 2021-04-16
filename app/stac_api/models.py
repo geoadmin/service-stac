@@ -5,7 +5,7 @@ import time
 from uuid import uuid4
 
 # import botocore.exceptions # Un-comment with BGDIINF_SB-1625
-import multihash
+from multihash import encode as multihash_encode
 from multihash import to_hex_string
 
 from django.conf import settings
@@ -527,7 +527,7 @@ def upload_asset_to_path_hook(instance, filename=None):
     ctx = hashlib.sha256()
     for chunk in instance.file.chunks(settings.UPLOAD_FILE_CHUNK_SIZE):
         ctx.update(chunk)
-    mhash = to_hex_string(multihash.encode(ctx.digest(), 'sha2-256'))
+    mhash = to_hex_string(multihash_encode(ctx.digest(), 'sha2-256'))
     # set the hash to the storage to use it for upload signing, this temporary attribute is
     # then used by storages.S3Storage to set the MetaData.sha256
     setattr(instance.file.storage, '_tmp_sha256', ctx.hexdigest())
@@ -693,6 +693,7 @@ class AssetUpload(models.Model):
     class Meta:
         constraints = [
             models.UniqueConstraint(fields=['asset', 'upload_id'], name='unique_together'),
+            # Make sure that there is only one asset upload in progress per asset
             models.UniqueConstraint(
                 fields=['asset', 'status'],
                 condition=Q(status='in-progress'),

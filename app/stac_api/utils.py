@@ -99,6 +99,9 @@ def get_asset_path(item, asset_name):
 def get_s3_resource():
     '''Returns an AWS S3 resource
 
+    The authentication with the S3 server is configured via the AWS_ACCESS_KEY_ID and
+    AWS_SECRET_ACCESS_KEY environment variables.
+
     Returns:
         AWS S3 resource
     '''
@@ -109,6 +112,9 @@ def get_s3_resource():
 
 def get_s3_client():
     '''Returns an AWS S3 client
+
+    The authentication with the S3 server is configured via the AWS_ACCESS_KEY_ID and
+    AWS_SECRET_ACCESS_KEY environment variables.
 
     Returns:
         AWS S3 client
