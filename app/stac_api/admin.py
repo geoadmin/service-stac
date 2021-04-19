@@ -247,9 +247,9 @@ class AssetAdmin(admin.ModelAdmin):
         return queryset, use_distinct
 
     def collection_name(self, instance):
-        return instance.item.collection
+        return instance.item.collection.name
 
-    collection_name.admin_order_field = 'item__collection'
+    collection_name.admin_order_field = 'item__collection__name'
     collection_name.short_description = 'Collection Id'
 
     def item_name(self, instance):

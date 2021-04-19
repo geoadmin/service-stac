@@ -612,12 +612,12 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
             msg="Original item doesn't exists anymore after trying to rename it"
         )
 
-        # Make sure the rename item was done
+        # Make sure the rename item was not done
         self.assertFalse(
             Item.objects.all().filter(
                 name=sample["name"], collection__name=self.collection['name']
             ).exists(),
-            msg="Original item doesn't exists anymore after trying to rename it"
+            msg="Renamed item shouldn't exist"
         )
 
     def test_item_endpoint_patch(self):
@@ -676,11 +676,11 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
             msg="Original item doesn't exists anymore after trying to rename it"
         )
 
-        # Make sure the rename item was done
+        # Make sure the rename item was not done
         self.assertFalse(
             Item.objects.all().filter(name=data["id"],
                                       collection__name=self.collection['name']).exists(),
-            msg="Original item doesn't exists anymore after trying to rename it"
+            msg="Renamed item shouldn't exist"
         )
 
     def test_item_upsert_create(self):
