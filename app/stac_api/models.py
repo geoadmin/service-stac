@@ -376,7 +376,7 @@ class Item(models.Model):
 
     name = models.CharField('id', blank=False, max_length=255, validators=[validate_name])
     collection = models.ForeignKey(
-        Collection, on_delete=models.CASCADE, help_text=_(SEARCH_TEXT_HELP_COLLECTION)
+        Collection, on_delete=models.PROTECT, help_text=_(SEARCH_TEXT_HELP_COLLECTION)
     )
     geometry = models.PolygonField(
         null=False, blank=False, default=BBOX_CH, srid=4326, validators=[validate_geometry]

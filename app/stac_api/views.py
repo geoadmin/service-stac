@@ -304,9 +304,9 @@ class CollectionDetail(
         return self.partial_update(request, *args, **kwargs)
 
     # Here the etag is only added to support pre-conditional If-Match and If-Not-Match
-    # @etag(get_collection_etag)
-    # def delete(self, request, *args, **kwargs):
-    #     return self.destroy(request, *args, **kwargs)
+    @etag(get_collection_etag)
+    def delete(self, request, *args, **kwargs):
+        return self.destroy(request, *args, **kwargs)
 
     def perform_upsert(self, serializer, lookup):
         validate_renaming(

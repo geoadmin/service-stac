@@ -6,11 +6,15 @@ from django.contrib.auth import get_user_model
 from django.test import Client
 from django.urls import reverse
 
+from stac_api.models import Collection
+from stac_api.models import CollectionLink
+from stac_api.models import Provider
 from stac_api.utils import utc_aware
 
 from tests.base_test import StacBaseTestCase
 from tests.base_test import StacBaseTransactionTestCase
 from tests.data_factory import CollectionFactory
+from tests.data_factory import Factory
 from tests.utils import client_login
 from tests.utils import disableLogger
 
@@ -329,14 +333,6 @@ class CollectionsUpdateEndpointTestCase(StacBaseTestCase):
                          response.json()['description'],
                          msg='Unexpected error message')
 
-    def test_authorized_collection_delete(self):
-        path = f'/{STAC_BASE_V}/collections/{self.collection["name"]}'
-        response = self.client.delete(path)
-        # Collection delete is not implemented (and currently not foreseen), hence
-        # the status code should be 405. If it should get implemented in future
-        # an unauthorized delete should get a status code of 401 (see test above).
-        self.assertStatusCode(405, response, msg="unimplemented collection delete was permitted.")
-
     def test_collection_atomic_upsert_create_500(self):
         sample = self.collection_factory.create_sample(sample='collection-2')
 
@@ -378,6 +374,50 @@ class CollectionsUpdateEndpointTestCase(StacBaseTestCase):
         response = self.client.get(reverse('collection-detail', args=[sample['name']]))
         self.assertStatusCode(200, response)
         self.check_stac_collection(self.collection.json, response.json())
+
+
+class CollectionsDeleteEndpointTestCase(StacBaseTestCase):
+
+    def setUp(self):  # pylint: disable=invalid-name
+        self.client = Client()
+        client_login(self.client)
+        self.factory = Factory()
+        self.collection = self.factory.create_collection_sample(db_create=True)
+        self.item = self.factory.create_item_sample(self.collection.model, db_create=True)
+        self.maxDiff = None  # pylint: disable=invalid-name
+
+    def test_authorized_collection_delete(self):
+
+        path = reverse('collection-detail', args=[self.collection["name"]])
+        response = self.client.delete(path)
+
+        self.assertStatusCode(400, response)
+        self.assertEqual(
+            response.json()['description'], ['Deleting Collection with items not allowed']
+        )
+
+        # delete first the item
+        item_path = reverse('item-detail', args=[self.collection["name"], self.item['name']])
+        response = self.client.delete(item_path)
+        self.assertStatusCode(200, response)
+
+        # try the collection delete again
+        response = self.client.delete(path)
+        self.assertStatusCode(200, response)
+
+        # Check that the object doesn't exists anymore
+        self.assertFalse(
+            CollectionLink.objects.filter(collection__name=self.collection["name"]).exists(),
+            msg="Deleted collection link still in DB"
+        )
+        self.assertFalse(
+            Provider.objects.filter(collection__name=self.collection["name"]).exists(),
+            msg="Deleted provider still in DB"
+        )
+        self.assertFalse(
+            Collection.objects.filter(name=self.collection["name"]).exists(),
+            msg="Deleted collection still in DB"
+        )
 
 
 class CollectionRaceConditionTest(StacBaseTransactionTestCase):
