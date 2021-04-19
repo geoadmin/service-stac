@@ -460,8 +460,7 @@ class Item(models.Model):
             trigger, self.geometry, self._original_values.get('geometry', None), self
         )
 
-        if collection_updated:
-            self.collection.save()
+        self.collection.save()
 
         super().save(*args, **kwargs)
 
@@ -482,8 +481,7 @@ class Item(models.Model):
             'delete', self.geometry, None, self
         )
 
-        if collection_updated:
-            self.collection.save()
+        self.collection.save()
 
         super().delete(*args, **kwargs)
 
@@ -646,9 +644,7 @@ class Asset(models.Model):
 
         old_values = [self._original_values.get(field, None) for field in UPDATE_SUMMARIES_FIELDS]
 
-        if self.item.collection.update_summaries(self, trigger, old_values=old_values):
-            self.item.collection.save()
-
+        self.item.collection.update_summaries(self, trigger, old_values=old_values)
         self.item.save()  # We save the item to update its ETag
 
         super().save(*args, **kwargs)
@@ -666,9 +662,9 @@ class Asset(models.Model):
         )
         # It is important to use `*args, **kwargs` in signature because django might add dynamically
         # parameters
-        if self.item.collection.update_summaries(self, 'delete', old_values=None):
-            self.item.collection.save()
+        self.item.collection.update_summaries(self, 'delete', old_values=None)
         self.item.save()  # We save the item to update its ETag
+
         try:
             super().delete(*args, **kwargs)
         except ProtectedError as error:
