@@ -91,13 +91,13 @@ components:
         # roles:
         #   $ref: '#/components/schemas/roles'
         "geoadmin:variant":
-          $ref: "#/components/schemas/geoadmin:variant"
+          $ref: "#/components/schemas/geoadminVariant"
         "geoadmin:lang":
-          $ref: "#/components/schemas/geoadmin:lang"
+          $ref: "#/components/schemas/geoadminLang"
         "proj:epsg":
-          $ref: "#/components/schemas/proj:epsg"
+          $ref: "#/components/schemas/projEpsg"
         "eo:gsd":
-          $ref: "#/components/schemas/eo:gsd"
+          $ref: "#/components/schemas/eoGsd"
         created:
           $ref: "#/components/schemas/created"
         updated:
@@ -188,7 +188,7 @@ components:
       properties:
         bbox:
           $ref: "#/components/schemas/bboxfilter"
-    checksum:multihash:
+    checksumMultihash:
       description: >-
         `sha2-256` checksum of the asset in [multihash](https://multiformats.io/multihash/)
         format.
@@ -456,7 +456,7 @@ components:
         [CommonMark 0.29](http://commonmark.org/) syntax MAY be used for rich
         text representation.
       type: string
-    eo:gsd:
+    eoGsd:
       description: >-
         GSD is the nominal Ground Sample Distance for the data, as measured in meters on the ground.
 
@@ -586,7 +586,7 @@ components:
         - temporal
       type: object
       readOnly: true
-    geoadmin:lang:
+    geoadminLang:
       enum:
         - de
         - it
@@ -595,7 +595,7 @@ components:
         - en
       title: Product language
       type: string
-    geoadmin:variant:
+    geoadminVariant:
       example: komb
       title: Product variants
       type: string
@@ -1145,7 +1145,7 @@ components:
             - - 7.242974548172171
               - 46.57310580640624
         type: Polygon
-    proj:epsg:
+    projEpsg:
       description: >-
         A Coordinate Reference System (CRS) is the data reference system
         (sometimes called a 'projection') used by the asset data, and can
