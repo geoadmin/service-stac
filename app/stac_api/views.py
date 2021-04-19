@@ -422,10 +422,28 @@ class ItemDetail(
 
     def perform_update(self, serializer):
         collection = get_object_or_404(Collection, name=self.kwargs['collection_name'])
+        validate_renaming(
+            serializer,
+            self.kwargs['item_name'],
+            extra_log={
+                'request': self.request,
+                'collection': self.kwargs['collection_name'],
+                'item': self.kwargs['item_name']
+            }
+        )
         serializer.save(collection=collection)
 
     def perform_upsert(self, serializer, lookup):
         collection = get_object_or_404(Collection, name=self.kwargs['collection_name'])
+        validate_renaming(
+            serializer,
+            self.kwargs['item_name'],
+            extra_log={
+                'request': self.request,
+                'collection': self.kwargs['collection_name'],
+                'item': self.kwargs['item_name']
+            }
+        )
         return serializer.upsert(lookup, collection=collection)
 
     @etag(get_item_etag)
@@ -536,9 +554,13 @@ class AssetDetail(
         )
         validate_renaming(
             serializer,
-            id_field='name',
             original_id=self.kwargs['asset_name'],
-            extra_log=self.request
+            extra_log={
+                'request': self.request,
+                'collection': self.kwargs['collection_name'],
+                'item': self.kwargs['item_name'],
+                'asset': self.kwargs['asset_name']
+            }
         )
         serializer.save(item=item, file=get_asset_path(item, self.kwargs['asset_name']))
 
@@ -548,9 +570,13 @@ class AssetDetail(
         )
         validate_renaming(
             serializer,
-            id_field='name',
             original_id=self.kwargs['asset_name'],
-            extra_log=self.request
+            extra_log={
+                'request': self.request,
+                'collection': self.kwargs['collection_name'],
+                'item': self.kwargs['item_name'],
+                'asset': self.kwargs['asset_name']
+            }
         )
         return serializer.upsert(
             lookup, item=item, file=get_asset_path(item, self.kwargs['asset_name'])

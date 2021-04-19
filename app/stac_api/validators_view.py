@@ -78,26 +78,26 @@ def validate_asset(kwargs):
         )
 
 
-def validate_renaming(serializer, id_field='', original_id='', extra_log=None):
-    '''Validate that the asset name is not different from the one defined in
+def validate_renaming(serializer, original_id, id_field='name', extra_log=None):
+    '''Validate that the object name is not different from the one defined in
        the data.
 
     Args:
         serializer: serializer object
             The serializer to derive the data from
-        id_field: string
-            The key to get the name/id in the data dict
         original_id: string
             The id/name derived from the request kwargs
-        extra: djangoHttpRequest object
-            The request object for logging purposes
+        id_field: string
+            The key to get the name/id in the data dict (default 'name')
+        extra_log: dict
+            Dictionary to pass to the log extra in case of error
 
     Raises:
-        Http400: when the asset will be renamed/moved
+        Http400: when the object will be renamed/moved
     '''
     data = serializer.validated_data
     if id_field in data.keys():
         if data[id_field] != original_id:
-            message = 'Renaming object is not allowed'
-            logger.error(message, extra={'request': extra_log})
-            raise ValidationError(_(message), code='invalid')
+            message = 'Renaming is not allowed'
+            logger.error(message, extra=extra_log)
+            raise ValidationError({'id': _(message)}, code='invalid')

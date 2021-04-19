@@ -601,20 +601,24 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
             path, data=sample.get_json('put'), content_type="application/json"
         )
         json_data = response.json()
-        self.assertStatusCode(200, response)
-        self.assertEqual(sample.json['id'], json_data['id'])
-        self.check_stac_item(sample.json, json_data, self.collection["name"])
+        self.assertStatusCode(400, response)
+        self.assertEqual(json_data['description'], {'id': 'Renaming is not allowed'})
 
-        response = self.client.get(path)
-        self.assertStatusCode(404, response, msg="Renamed item still available on old name")
+        # Make sure the original item was not updated
+        self.assertTrue(
+            Item.objects.all().filter(
+                name=self.item["name"], collection__name=self.collection['name']
+            ).exists(),
+            msg="Original item doesn't exists anymore after trying to rename it"
+        )
 
-        # Check the data by reading it back
-        path = f'/{STAC_BASE_V}/collections/{self.collection["name"]}/items/{sample.json["id"]}'
-        response = self.client.get(path)
-        json_data = response.json()
-        self.assertStatusCode(200, response)
-        self.assertEqual(sample.json['id'], json_data['id'])
-        self.check_stac_item(sample.json, json_data, self.collection["name"])
+        # Make sure the rename item was done
+        self.assertFalse(
+            Item.objects.all().filter(
+                name=sample["name"], collection__name=self.collection['name']
+            ).exists(),
+            msg="Original item doesn't exists anymore after trying to rename it"
+        )
 
     def test_item_endpoint_patch(self):
         data = {"properties": {"title": "patched title"}}
@@ -661,19 +665,23 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
         path = f'/{STAC_BASE_V}/collections/{self.collection["name"]}/items/{self.item["name"]}'
         response = self.client.patch(path, data=data, content_type="application/json")
         json_data = response.json()
-        self.assertStatusCode(200, response)
-        self.assertEqual(data['id'], json_data['id'])
-        self.check_stac_item(data, json_data, self.collection["name"])
+        self.assertStatusCode(400, response)
+        self.assertEqual(json_data['description'], {'id': 'Renaming is not allowed'})
 
-        response = self.client.get(path)
-        self.assertStatusCode(404, response, msg="Renamed item still available on old name")
+        # Make sure the original item was not updated
+        self.assertTrue(
+            Item.objects.all().filter(
+                name=self.item["name"], collection__name=self.collection['name']
+            ).exists(),
+            msg="Original item doesn't exists anymore after trying to rename it"
+        )
 
-        # Check the data by reading it back
-        path = f'/{STAC_BASE_V}/collections/{self.collection["name"]}/items/{data["id"]}'
-        response = self.client.get(path)
-        json_data = response.json()
-        self.assertStatusCode(200, response)
-        self.assertEqual(data['id'], json_data['id'])
+        # Make sure the rename item was done
+        self.assertFalse(
+            Item.objects.all().filter(name=data["id"],
+                                      collection__name=self.collection['name']).exists(),
+            msg="Original item doesn't exists anymore after trying to rename it"
+        )
 
     def test_item_upsert_create(self):
 
