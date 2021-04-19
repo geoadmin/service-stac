@@ -24,6 +24,10 @@ from tests.utils import mock_s3_asset_file
 
 logger = logging.getLogger(__name__)
 
+KB = 1024
+MB = 1024 * KB
+GB = 1024 * MB
+
 
 class AssetUploadBaseTest(StacBaseTestCase, S3TestMixin):
 
@@ -66,6 +70,12 @@ class AssetUploadBaseTest(StacBaseTestCase, S3TestMixin):
     def get_complete_multipart_upload_path(self, upload_id):
         return reverse(
             'asset-upload-complete',
+            args=[self.collection.name, self.item.name, self.asset.name, upload_id]
+        )
+
+    def get_list_parts_path(self, upload_id):
+        return reverse(
+            'asset-upload-parts-list',
             args=[self.collection.name, self.item.name, self.asset.name, upload_id]
         )
 
@@ -163,7 +173,7 @@ class AssetUploadCreateEndpointTestCase(AssetUploadBaseTest):
         key = get_asset_path(self.item, self.asset.name)
         self.assertS3ObjectNotExists(key)
         number_parts = 2
-        file_like, checksum_multihash = self.get_file_like_object(1 * 1024)
+        file_like, checksum_multihash = self.get_file_like_object(1 * KB)
         response = self.client.post(
             self.get_create_multipart_upload_path(),
             data={
@@ -202,7 +212,7 @@ class AssetUploadCreateEndpointTestCase(AssetUploadBaseTest):
         key = get_asset_path(self.item, self.asset.name)
         self.assertS3ObjectNotExists(key)
         number_parts = 2
-        file_like, checksum_multihash = self.get_file_like_object(1 * 1024)
+        file_like, checksum_multihash = self.get_file_like_object(1 * KB)
         response = self.client.post(
             self.get_create_multipart_upload_path(),
             data={
@@ -246,7 +256,7 @@ class AssetUpload1PartEndpointTestCase(AssetUploadBaseTest):
         key = get_asset_path(self.item, self.asset.name)
         self.assertS3ObjectNotExists(key)
         number_parts = 1
-        size = 1 * 1024
+        size = 1 * KB
         file_like, checksum_multihash = self.get_file_like_object(size)
         response = self.client.post(
             self.get_create_multipart_upload_path(),
@@ -278,7 +288,7 @@ class AssetUpload2PartEndpointTestCase(AssetUploadBaseTest):
         key = get_asset_path(self.item, self.asset.name)
         self.assertS3ObjectNotExists(key)
         number_parts = 2
-        size = 10 * 1024 * 1024  # Minimum upload part on S3 is 5 MB
+        size = 10 * MB  # Minimum upload part on S3 is 5 MB
         file_like, checksum_multihash = self.get_file_like_object(size)
 
         response = self.client.post(
@@ -356,7 +366,7 @@ class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
         key = get_asset_path(self.item, self.asset.name)
         self.assertS3ObjectNotExists(key)
         number_parts = 2
-        size = 1 * 1024 * 1024  # Minimum upload part on S3 is 5 MB
+        size = 1 * KB  # Minimum upload part on S3 is 5 MB
         file_like, checksum_multihash = self.get_file_like_object(size)
 
         response = self.client.post(
@@ -391,7 +401,7 @@ class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
         key = get_asset_path(self.item, self.asset.name)
         self.assertS3ObjectNotExists(key)
         number_parts = 1
-        size = 1 * 1024 * 1024
+        size = 1 * KB
         file_like, checksum_multihash = self.get_file_like_object(size)
 
         response = self.client.post(
@@ -430,7 +440,7 @@ class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
         key = get_asset_path(self.item, self.asset.name)
         self.assertS3ObjectNotExists(key)
         number_parts = 1
-        size = 1 * 1024 * 1024
+        size = 1 * KB
         file_like, checksum_multihash = self.get_file_like_object(size)
 
         response = self.client.post(
@@ -458,7 +468,7 @@ class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
 
     def test_asset_upload_2_parts_incomplete_upload(self):
         number_parts = 2
-        size = 10 * 1024 * 1024
+        size = 10 * MB
         file_like, checksum_multihash = self.get_file_like_object(size)
 
         response = self.client.post(
@@ -485,7 +495,7 @@ class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
         key = get_asset_path(self.item, self.asset.name)
         self.assertS3ObjectNotExists(key)
         number_parts = 1
-        size = 1 * 1024 * 1024
+        size = 1 * KB
         file_like, checksum_multihash = self.get_file_like_object(size)
 
         response = self.client.post(
@@ -542,7 +552,7 @@ class AssetUploadDeleteInProgressEndpointTestCase(AssetUploadBaseTest):
 
     def test_delete_asset_upload_in_progress(self):
         number_parts = 2
-        size = 10 * 1024 * 1024  # Minimum upload part on S3 is 5 MB
+        size = 10 * MB  # Minimum upload part on S3 is 5 MB
         file_like, checksum_multihash = self.get_file_like_object(size)
 
         response = self.client.post(
@@ -653,3 +663,72 @@ class GetAssetUploadsEndpointTestCase(AssetUploadBaseTest):
         )
         for upload in json_data['uploads']:
             self.assertEqual(upload['status'], AssetUpload.Status.ABORTED)
+
+
+class AssetUploadListPartsEndpointTestCase(AssetUploadBaseTest):
+
+    def test_asset_upload_list_parts(self):
+        key = get_asset_path(self.item, self.asset.name)
+        self.assertS3ObjectNotExists(key)
+        number_parts = 4
+        size = 5 * MB * number_parts
+        file_like, checksum_multihash = self.get_file_like_object(size)
+        response = self.client.post(
+            self.get_create_multipart_upload_path(),
+            data={
+                'number_parts': number_parts, 'checksum:multihash': checksum_multihash
+            },
+            content_type="application/json"
+        )
+        self.assertStatusCode(201, response)
+        json_data = response.json()
+        upload_id = json_data['upload_id']
+        self.check_urls_response(json_data['urls'], number_parts)
+
+        # List the uploaded parts should be empty
+        response = self.client.get(self.get_list_parts_path(upload_id))
+        self.assertStatusCode(200, response)
+        json_data = response.json()
+        self.assertIn('links', json_data, msg='missing required field in list parts response')
+        self.assertIn('parts', json_data, msg='missing required field in list parts response')
+        self.assertEqual(len(json_data['parts']), 0, msg='parts should be empty')
+
+        # upload all the parts
+        parts = self.s3_upload_parts(upload_id, file_like, size, number_parts)
+
+        # List the uploaded parts should have 4 parts
+        response = self.client.get(self.get_list_parts_path(upload_id))
+        self.assertStatusCode(200, response)
+        json_data = response.json()
+        self.assertIn('links', json_data, msg='missing required field in list parts response')
+        self.assertIn('parts', json_data, msg='missing required field in list parts response')
+        self.assertEqual(len(json_data['parts']), number_parts)
+        for part in json_data['parts']:
+            self.assertIn('etag', part)
+            self.assertIn('modified', part)
+            self.assertIn('size', part)
+            self.assertIn('part_number', part)
+
+        # Unfortunately moto doesn't support yet the MaxParts
+        # (see https://github.com/spulec/moto/issues/2680)
+        # Test the list parts pagination
+        # response = self.client.get(self.get_list_parts_path(upload_id), {'limit': 2})
+        # self.assertStatusCode(200, response)
+        # json_data = response.json()
+        # self.assertIn('links', json_data, msg='missing required field in list parts response')
+        # self.assertIn('parts', json_data, msg='missing required field in list parts response')
+        # self.assertEqual(len(json_data['parts']), number_parts)
+        # for part in json_data['parts']:
+        #     self.assertIn('etag', part)
+        #     self.assertIn('modified', part)
+        #     self.assertIn('size', part)
+        #     self.assertIn('part_number', part)
+
+        # Complete the upload
+        response = self.client.post(
+            self.get_complete_multipart_upload_path(upload_id),
+            data={'parts': parts},
+            content_type="application/json"
+        )
+        self.assertStatusCode(200, response)
+        self.assertS3ObjectExists(key)

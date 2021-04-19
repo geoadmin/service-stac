@@ -13,6 +13,7 @@ from botocore.client import Config
 from django.conf import settings
 from django.contrib.gis.geos import Point
 from django.contrib.gis.geos import Polygon
+from django.urls import reverse
 
 logger = logging.getLogger(__name__)
 
@@ -328,3 +329,8 @@ def geometry_from_bbox(bbox):
     else:
         bbox_geometry = Polygon.from_bbox(list_bbox_values)
     return bbox_geometry
+
+
+def get_url(request, view, args=None):
+    '''Get an full url based on a view name'''
+    return request.build_absolute_uri(reverse(view, args=args))

@@ -23,9 +23,11 @@ from stac_api.models import Collection
 from stac_api.models import ConformancePage
 from stac_api.models import Item
 from stac_api.models import LandingPage
+from stac_api.pagination import ExtApiPagination
 from stac_api.pagination import GetPostCursorPagination
 from stac_api.s3_multipart_upload import MultipartUpload
 from stac_api.serializers import AssetSerializer
+from stac_api.serializers import AssetUploadPartsSerializer
 from stac_api.serializers import AssetUploadSerializer
 from stac_api.serializers import CollectionSerializer
 from stac_api.serializers import ConformancePageSerializer
@@ -646,6 +648,10 @@ class AssetUploadBase(generics.GenericAPIView):
         asset_upload.urls = []
         asset_upload.save()
 
+    def list_multipart_upload_parts(self, executor, asset_upload, asset, limit, offset):
+        key = get_asset_path(asset.item, asset.name)
+        return executor.list_upload_parts(key, asset, asset_upload.upload_id, limit, offset)
+
 
 class AssetUploadsList(AssetUploadBase, mixins.ListModelMixin, views_mixins.CreateModelMixin):
 
@@ -710,3 +716,28 @@ class AssetUploadAbort(AssetUploadBase, views_mixins.UpdateInsertModelMixin):
         executor = MultipartUpload()
         asset = serializer.instance.asset
         self.abort_multipart_upload(executor, serializer.instance, asset)
+
+
+class AssetUploadPartsList(AssetUploadBase):
+    serializer_class = AssetUploadPartsSerializer
+    pagination_class = ExtApiPagination
+
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
+
+    def list(self, request, *args, **kwargs):
+        executor = MultipartUpload()
+        asset_upload = self.get_object()
+        limit, offset = self.get_pagination_config(request)
+        data, has_next = self.list_multipart_upload_parts(
+            executor, asset_upload, asset_upload.asset, limit, offset
+        )
+        serializer = self.get_serializer(data)
+
+        return self.get_paginated_response(serializer.data, has_next)
+
+    def get_pagination_config(self, request):
+        return self.paginator.get_pagination_config(request)
+
+    def get_paginated_response(self, data, has_next):  # pylint: disable=arguments-differ
+        return self.paginator.get_paginated_response(data, has_next)

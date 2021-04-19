@@ -9,6 +9,7 @@ from stac_api.views import AssetsList
 from stac_api.views import AssetUploadAbort
 from stac_api.views import AssetUploadComplete
 from stac_api.views import AssetUploadDetail
+from stac_api.views import AssetUploadPartsList
 from stac_api.views import AssetUploadsList
 from stac_api.views import CollectionDetail
 from stac_api.views import CollectionList
@@ -23,7 +24,7 @@ HEALTHCHECK_ENDPOINT = settings.HEALTHCHECK_ENDPOINT
 
 asset_upload_urls = [
     path("<upload_id>", AssetUploadDetail.as_view(), name='asset-upload-detail'),
-    # path("<upload_id>/parts/<part_number>", AssetUploadPart.as_view(), name='asset-upload-part'),
+    path("<upload_id>/parts", AssetUploadPartsList.as_view(), name='asset-upload-parts-list'),
     path("<upload_id>/complete", AssetUploadComplete.as_view(), name='asset-upload-complete'),
     path("<upload_id>/abort", AssetUploadAbort.as_view(), name='asset-upload-abort')
 ]
