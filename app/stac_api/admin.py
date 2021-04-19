@@ -66,6 +66,7 @@ class CollectionAdmin(admin.ModelAdmin):
     class Media:
         js = ('js/admin/collection_help_search.js',)
         css = {'all': ('style/hover.css',)}
+
     fields = [
         'name',
         'title',

@@ -311,16 +311,24 @@ class CollectionDetail(
     def perform_upsert(self, serializer, lookup):
         validate_renaming(
             serializer,
-            'name',
-            self.kwargs['collection_name'], {'collection': self.kwargs['collection_name']}
+            self.kwargs['collection_name'],
+            extra_log={
+                # pylint: disable=protected-access
+                'request': self.request._request,
+                'collection': self.kwargs['collection_name']
+            }
         )
         return super().perform_upsert(serializer, lookup)
 
     def perform_update(self, serializer, *args, **kwargs):
         validate_renaming(
             serializer,
-            'name',
-            self.kwargs['collection_name'], {'collection': self.kwargs['collection_name']}
+            self.kwargs['collection_name'],
+            extra_log={
+                # pylint: disable=protected-access
+                'request': self.request._request,
+                'collection': self.kwargs['collection_name']
+            }
         )
         return super().perform_update(serializer, *args, **kwargs)
 
@@ -426,7 +434,7 @@ class ItemDetail(
             serializer,
             self.kwargs['item_name'],
             extra_log={
-                'request': self.request,
+                'request': self.request._request,  # pylint: disable=protected-access
                 'collection': self.kwargs['collection_name'],
                 'item': self.kwargs['item_name']
             }
@@ -439,7 +447,7 @@ class ItemDetail(
             serializer,
             self.kwargs['item_name'],
             extra_log={
-                'request': self.request,
+                'request': self.request._request,  # pylint: disable=protected-access
                 'collection': self.kwargs['collection_name'],
                 'item': self.kwargs['item_name']
             }
@@ -556,7 +564,7 @@ class AssetDetail(
             serializer,
             original_id=self.kwargs['asset_name'],
             extra_log={
-                'request': self.request,
+                'request': self.request._request,  # pylint: disable=protected-access
                 'collection': self.kwargs['collection_name'],
                 'item': self.kwargs['item_name'],
                 'asset': self.kwargs['asset_name']
@@ -572,7 +580,7 @@ class AssetDetail(
             serializer,
             original_id=self.kwargs['asset_name'],
             extra_log={
-                'request': self.request,
+                'request': self.request._request,  # pylint: disable=protected-access
                 'collection': self.kwargs['collection_name'],
                 'item': self.kwargs['item_name'],
                 'asset': self.kwargs['asset_name']
