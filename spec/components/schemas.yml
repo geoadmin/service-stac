@@ -225,8 +225,6 @@ components:
           type: array
           readOnly: true
         description:
-          schema:
-            $ref: "#/components/schemas/description"
           description: A description of the features in the collection
           example: >-
             Swiss Map Raster are a conversion of the map image into a digital form
