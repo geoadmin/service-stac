@@ -66,7 +66,15 @@ class CollectionAdmin(admin.ModelAdmin):
     class Media:
         js = ('js/admin/collection_help_search.js',)
         css = {'all': ('style/hover.css',)}
-
+    fields = [
+        'name',
+        'title',
+        'description',
+        'extent_start_datetime',
+        'extent_end_datetime',
+        'summaries',
+        'extent_geometry'
+    ]
     readonly_fields = [
         'extent_start_datetime', 'extent_end_datetime', 'summaries', 'extent_geometry'
     ]
@@ -79,6 +87,11 @@ class CollectionAdmin(admin.ModelAdmin):
         if search_term.startswith('"') and search_term.endswith('"'):
             queryset |= self.model.objects.filter(name__exact=search_term.strip('"'))
         return queryset, use_distinct
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj is not None:
+            return self.readonly_fields + ['name']
+        return self.readonly_fields
 
 
 class ItemLinkInline(admin.TabularInline):

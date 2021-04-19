@@ -234,27 +234,30 @@ class CollectionsUpdateEndpointTestCase(StacBaseTestCase):
                          msg='Unexpected error message')
 
     def test_collection_put_change_id(self):
+        # Renaming is no longer allowed, due to this the test has been adapted
         sample = self.collection_factory.create_sample(
             name='new-collection-name', sample='collection-2'
         )
 
-        # for the start, the id have to be different
+        # test if renaming does not work
         self.assertNotEqual(self.collection['name'], sample['name'])
         response = self.client.put(
             f"/{STAC_BASE_V}/collections/{self.collection['name']}",
             data=sample.get_json('put'),
             content_type='application/json'
         )
-        self.assertStatusCode(200, response)
+        self.assertStatusCode(400, response)
+        self.assertEqual(['Renaming object is not allowed'],
+                         response.json()['description'],
+                         msg='Unexpected error message')
 
-        # check if id changed
+        # check if id has not changed
         response = self.client.get(f"/{STAC_BASE_V}/collections/{sample['name']}")
-        self.assertStatusCode(200, response)
-        self.check_stac_collection(sample.json, response.json())
-
-        # the old collection shouldn't exist any more
-        response = self.client.get(f"/{STAC_BASE_V}/collections/{self.collection['name']}")
         self.assertStatusCode(404, response)
+
+        # the old collection should still exist
+        response = self.client.get(f"/{STAC_BASE_V}/collections/{self.collection['name']}")
+        self.assertStatusCode(200, response)
 
     def test_collection_put_remove_optional_fields(self):
         collection_name = self.collection['name']  # get a name that is registered in the service

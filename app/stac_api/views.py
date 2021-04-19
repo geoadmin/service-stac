@@ -308,6 +308,22 @@ class CollectionDetail(
     # def delete(self, request, *args, **kwargs):
     #     return self.destroy(request, *args, **kwargs)
 
+    def perform_upsert(self, serializer, lookup):
+        validate_renaming(
+            serializer,
+            'name',
+            self.kwargs['collection_name'], {'collection': self.kwargs['collection_name']}
+        )
+        return super().perform_upsert(serializer, lookup)
+
+    def perform_update(self, serializer, *args, **kwargs):
+        validate_renaming(
+            serializer,
+            'name',
+            self.kwargs['collection_name'], {'collection': self.kwargs['collection_name']}
+        )
+        return super().perform_update(serializer, *args, **kwargs)
+
 
 class ItemsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
     serializer_class = ItemSerializer
