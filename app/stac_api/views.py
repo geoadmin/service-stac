@@ -322,7 +322,7 @@ class CollectionDetail(
             'name',
             self.kwargs['collection_name'], {'collection': self.kwargs['collection_name']}
         )
-        return super().partial_update(serializer, *args, **kwargs)
+        return super().perform_update(serializer, *args, **kwargs)
 
 
 class ItemsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
