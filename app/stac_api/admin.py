@@ -66,6 +66,7 @@ class CollectionAdmin(admin.ModelAdmin):
     class Media:
         js = ('js/admin/collection_help_search.js',)
         css = {'all': ('style/hover.css',)}
+
     fields = [
         'name',
         'title',
@@ -114,6 +115,7 @@ class ItemAdmin(admin.GeoModelAdmin):
     inlines = [ItemLinkInline]
     autocomplete_fields = ['collection']
     search_fields = ['name', 'collection__name']
+    readonly_fields = ['collection_name']
     fieldsets = (
         (None, {
             'fields': ('name', 'collection', 'geometry')
@@ -167,6 +169,30 @@ class ItemAdmin(admin.GeoModelAdmin):
                 queryset &= self.model.objects.filter(collection__name__exact=collection_name)
         return queryset, use_distinct
 
+    # Here we use a special field for read only to avoid adding the extra help text for search
+    # functionality
+    def collection_name(self, obj):
+        return obj.collection.name
+
+    collection_name.admin_order_field = 'collection__name'
+    collection_name.short_description = 'Collection Id'
+
+    # We don't want to move the assets on S3
+    # That's why some fields like the name of the item and the collection name are set readonly here
+    # for update operations. Those fields value are used as key on S3 that's why renaming them
+    # would mean that the Asset on S3 should be moved.
+    def get_fieldsets(self, request, obj=None):
+        fields = super().get_fieldsets(request, obj)
+        if obj is None:
+            # In case a new Item is added use the normal field 'collection' from model that have
+            # a help text fort the search functionality.
+            fields[0][1]['fields'] = ('name', 'collection')
+            return fields
+        # Otherwise if this is an update operation only display the read only field
+        # without help text
+        fields[0][1]['fields'] = ('name', 'collection_name')
+        return fields
+
 
 @admin.register(Asset)
 class AssetAdmin(admin.ModelAdmin):
@@ -177,11 +203,11 @@ class AssetAdmin(admin.ModelAdmin):
 
     autocomplete_fields = ['item']
     search_fields = ['name', 'item__name', 'item__collection__name']
-    readonly_fields = ['item_name', 'collection', 'href', 'checksum_multihash']
-    list_display = ['name', 'item_name', 'collection']
+    readonly_fields = ['item_name', 'collection_name', 'href', 'checksum_multihash']
+    list_display = ['name', 'item_name', 'collection_name']
     fieldsets = (
         (None, {
-            'fields': ('name', 'item', 'item_name', 'collection')
+            'fields': ('name', 'item')
         }),
         ('File', {
             'fields': ('file', 'media_type', 'href', 'checksum_multihash')
@@ -221,11 +247,11 @@ class AssetAdmin(admin.ModelAdmin):
                 queryset &= self.model.objects.filter(item__collection__name__exact=collection_name)
         return queryset, use_distinct
 
-    def collection(self, instance):
-        return instance.item.collection
+    def collection_name(self, instance):
+        return instance.item.collection.name
 
-    collection.admin_order_field = 'item__collection'
-    collection.short_description = 'Collection Id'
+    collection_name.admin_order_field = 'item__collection__name'
+    collection_name.short_description = 'Collection Id'
 
     def item_name(self, instance):
         return instance.item.name
@@ -255,8 +281,14 @@ class AssetAdmin(admin.ModelAdmin):
     # We don't want to move the assets on S3
     # That's why some fields like the name of the asset are set readonly here
     # for update operations
-    def change_view(self, request, object_id, form_url='', extra_context=None):
-        self.readonly_fields = self.get_readonly_fields(request)
-        self.readonly_fields.extend(['name', 'item'])
-
-        return super().change_view(request, object_id, form_url, extra_context)
+    def get_fieldsets(self, request, obj=None):
+        fields = super().get_fieldsets(request, obj)
+        if obj is None:
+            # In case a new Asset is added use the normal field 'item' from model that have
+            # a help text fort the search functionality.
+            fields[0][1]['fields'] = ('name', 'item')
+            return fields
+        # Otherwise if this is an update operation only display the read only fields
+        # without help text
+        fields[0][1]['fields'] = ('name', 'item_name', 'collection_name')
+        return fields

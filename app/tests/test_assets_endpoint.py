@@ -601,7 +601,7 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
             path, data=changed_asset.get_json('put'), content_type="application/json"
         )
         self.assertStatusCode(400, response)
-        self.assertEqual(['Renaming object is not allowed'],
+        self.assertEqual({'id': 'Renaming is not allowed'},
                          response.json()['description'],
                          msg='Unexpected error message')
 
@@ -639,7 +639,7 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
             path, data=changed_asset.get_json('patch'), content_type="application/json"
         )
         self.assertStatusCode(400, response)
-        self.assertEqual(['Renaming object is not allowed'],
+        self.assertEqual({'id': 'Renaming is not allowed'},
                          response.json()['description'],
                          msg='Unexpected error message')
 
