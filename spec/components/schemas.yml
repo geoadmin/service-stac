@@ -477,7 +477,7 @@ components:
         Information about the exception: an error code plus an optional description.
       properties:
         code:
-          type: int
+          type: integer
           example: 500
         description:
           anyOf:
@@ -1154,9 +1154,7 @@ components:
 
       example: 2056
       title: EPSG code.
-      type:
-        - integer
-        - null
+      type: integer
     providers:
       description: >-
         A list of providers, which may include all organizations capturing or processing the data

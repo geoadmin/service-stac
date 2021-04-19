@@ -823,7 +823,7 @@ components:
             type: object
             properties:
               code:
-                type: int
+                type: integer
                 example: 200
               description:
                 type: string
