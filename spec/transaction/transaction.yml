@@ -1138,14 +1138,14 @@ components:
       readOnly: true
     dtUploadCreated:
       title: created
-      description: Date time when the Asset's upload has been created/started.
+      description: Date and time when the Asset's upload has been created/started.
       type: string
       format: date-time
       readOnly: true
     dtUploadCompleted:
       title: completed
       description: |
-        Date time when the Asset's upload has been completed.
+        Date and time when the Asset's upload has been completed.
 
         *Note: this property is mutually exclusive with `aborted`*
       type: string
@@ -1154,7 +1154,7 @@ components:
     dtUploadAborted:
       title: aborted
       description: |
-        Date time when the Asset's upload has been aborted.
+        Date and time when the Asset's upload has been aborted.
 
         *Note: this property is mutually exclusive with `completed`*
       type: string
@@ -1248,7 +1248,7 @@ components:
           type: array
           description: Parts that have been uploaded
           items:
-            title: File part that have been uploaded
+            title: File parts that have been uploaded
             type: object
             required:
               - etag
@@ -1473,12 +1473,12 @@ tags:
       Metadata management requests. Theses requests are used to create, update or delete the STAC
       metadata.
 
-      *NOTE: these requests requires authentication as described in [here](#tag/Authentication).*
+      *NOTE: these requests require authentication as described in [here](#tag/Authentication).*
   - name: Asset Upload Management
     description: |
       Asset file can be uploaded via the STAC API using the following requests.
 
-      *NOTE: the POST requests requires authentication as described in [here](#tag/Authentication).*
+      *NOTE: the POST requests require authentication as described in [here](#tag/Authentication).*
 
       ### Example
 
