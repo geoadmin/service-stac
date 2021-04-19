@@ -254,7 +254,6 @@ class CollectionsUpdateEndpointTestCase(StacBaseTestCase):
         # check if id has not changed
         response = self.client.get(f"/{STAC_BASE_V}/collections/{sample['name']}")
         self.assertStatusCode(404, response)
-        #self.check_stac_collection(sample.json, response.json())
 
         # the old collection should still exist
         response = self.client.get(f"/{STAC_BASE_V}/collections/{self.collection['name']}")
