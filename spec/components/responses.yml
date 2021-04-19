@@ -3,7 +3,7 @@ components:
     Collection:
       headers:
         ETag:
-          $ref: "#/components/schemas/ETag"
+          $ref: "#/components/headers/ETag"
       content:
         application/json:
           schema:
@@ -89,7 +89,7 @@ components:
     Feature:
       headers:
         ETag:
-          $ref: "#/components/schemas/ETag"
+          $ref: "#/components/headers/ETag"
       content:
         application/json:
           schema:
@@ -191,6 +191,15 @@ components:
           example:
             code: 404
             description: "Resource not found"
+    BadRequest:
+      description: The request was malformed or semantically invalid
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/exception"
+          example:
+            code: 400
+            description: "Invalid parameter"
     PreconditionFailed:
       description: Some condition specified by the request could not be met in the server
       # Currently the 412 Precondition not met is handled by django and we cannot give a body
