@@ -437,9 +437,27 @@ class AdminCollectionTestCase(AdminBaseTestCase):
             reverse('admin:stac_api_collection_delete', args=[collection.id]), {"post": "yes"}
         )
 
-        # Status code for successful creation is 302, since in the admin UI
-        # you're redirected to the list view after successful creation
+        # Removing a collection with items should not be allowed, note on failure a 200 OK is
+        # returned with error description as html. In case of success a 302 is returned
+        self.assertEqual(response.status_code, 200, msg="Admin page remove collection was allowed")
+
+        # removes the assets and items first
+        response = self.client.post(
+            reverse('admin:stac_api_asset_delete', args=[asset.id]), {"post": "yes"}
+        )
+        self.assertEqual(response.status_code, 302, msg="Admin page failed to remove asset")
+        response = self.client.post(
+            reverse('admin:stac_api_item_delete', args=[item.id]), {"post": "yes"}
+        )
+        self.assertEqual(response.status_code, 302, msg="Admin page failed to remove item")
+
+        # remove collection again with links and providers
+        response = self.client.post(
+            reverse('admin:stac_api_collection_delete', args=[collection.id]), {"post": "yes"}
+        )
         self.assertEqual(response.status_code, 302, msg="Admin page failed to remove collection")
+
+        # Check that asset, item, links, providers doesn't exists anymore
         self.assertFalse(Asset.objects.filter(item=item).exists(), msg="Deleted asset still in DB")
         self.assertFalse(
             Item.objects.filter(collection=collection).exists(), msg="Deleted item still in DB"

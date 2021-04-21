@@ -1,8 +1,11 @@
 import logging
 
 from django.db import transaction
+from django.db.models.deletion import ProtectedError
+from django.utils.translation import gettext_lazy as _
 
 from rest_framework import status
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from stac_api.utils import get_link
@@ -143,4 +146,20 @@ class DestroyModelMixin:
         )
 
     def perform_destroy(self, instance):
-        instance.delete()
+        try:
+            instance.delete()
+        except ProtectedError as error:
+            logger.error(
+                'Failed to delete object %s, object has children: %s',
+                instance,
+                error,
+                extra={'request': self.request._request}  # pylint: disable=protected-access
+            )
+            child_name = 'unknown'
+            if instance.__class__.__name__ == 'Collection':
+                child_name = 'items'
+            elif instance.__class__.__name__ == 'Item':
+                child_name = 'assets'
+            raise ValidationError(
+                _(f'Deleting {instance.__class__.__name__} with {child_name} not allowed')
+            ) from None
