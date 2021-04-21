@@ -21,307 +21,244 @@ tags:
 - description: Extension to OGC API - Features to support STAC metadata model and
     search API
   name: STAC
+paths:
+  /:
+    get:
+      description: >-
+        The landing page provides links to the API definition, the conformance statements
+        and to the feature collections in this dataset.
+      operationId: getLandingPage
+      responses:
+        "200":
+          $ref: "#/components/responses/LandingPage"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      summary: Landing page
+      tags:
+      - Capabilities
+  /collections:
+    get:
+      operationId: getCollections
+      parameters:
+      - $ref: "#/components/parameters/limit"
+      responses:
+        "200":
+          $ref: "#/components/responses/Collections"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      summary: Fetch collections
+      description: The feature collections in the dataset
+      tags:
+      - Data
+  /collections/{collectionId}:
+    get:
+      operationId: describeCollection
+      parameters:
+      - $ref: "#/components/parameters/collectionId"
+      - $ref: "#/components/parameters/IfMatch"
+      - $ref: "#/components/parameters/IfNoneMatch"
+      responses:
+        "200":
+          $ref: "#/components/responses/Collection"
+        "304":
+          $ref: "#/components/responses/NotModified"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      summary: Fetch a single collection
+      description: Describe the feature collection with id `collectionId`
+      tags:
+      - Data
+  /collections/{collectionId}/items:
+    get:
+      description: >-
+        Fetch features of the feature collection with id `collectionId`.
+
+
+        Every feature in a dataset belongs to a collection. A dataset may consist
+        of multiple feature collections. A feature collection is often a collection
+        of features of a similar type, based on a common schema.
+
+
+        Use content negotiation to request HTML or GeoJSON.
+      operationId: getFeatures
+      parameters:
+      - $ref: "#/components/parameters/collectionId"
+      - $ref: "#/components/parameters/limit"
+      - $ref: "#/components/parameters/bbox"
+      - $ref: "#/components/parameters/datetime"
+      responses:
+        "200":
+          $ref: "#/components/responses/Features"
+        "400":
+          $ref: "#/components/responses/InvalidParameter"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      summary: Fetch features
+      tags:
+      - Data
+  /collections/{collectionId}/items/{featureId}:
+    get:
+      description: >-
+        Fetch the feature with id `featureId` in the feature collection with id `collectionId`.
+
+
+        Use content negotiation to request HTML or GeoJSON.
+      operationId: getFeature
+      parameters:
+      - $ref: "#/components/parameters/collectionId"
+      - $ref: "#/components/parameters/featureId"
+      - $ref: "#/components/parameters/IfMatch"
+      - $ref: "#/components/parameters/IfNoneMatch"
+      responses:
+        "200":
+          $ref: "#/components/responses/Feature"
+        "304":
+          $ref: "#/components/responses/NotModified"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      summary: Fetch a single feature
+      tags:
+      - Data
+  /conformance:
+    get:
+      description: >-
+        A list of all conformance classes specified in a standard that the server
+        conforms to.
+      operationId: getConformanceDeclaration
+      responses:
+        "200":
+          $ref: "#/components/responses/ConformanceDeclaration"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      summary: Information about specifications that this API conforms to
+      tags:
+      - Capabilities
+  /search:
+    get:
+      description: >-
+        Retrieve Items matching filters. Intended as a shorthand API for simple queries.
+      operationId: getSearchSTAC
+      parameters:
+      - $ref: "#/components/parameters/bbox"
+      - $ref: "#/components/parameters/datetime"
+      - $ref: "#/components/parameters/limit"
+      - $ref: "#/components/parameters/ids"
+      - $ref: "#/components/parameters/collectionsArray"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/itemsSearchGet"
+          description: A feature collection.
+        "500":
+          $ref: "#/components/responses/ServerError"
+      summary: Search STAC items with simple filtering.
+      tags:
+      - STAC
+    post:
+      description: >-
+        Retrieve items matching filters. Intended as the standard, full-featured query
+        API.
+      operationId: postSearchSTAC
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/searchBody"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/itemsSearchPost"
+          description: A feature collection.
+        "500":
+          $ref: "#/components/responses/ServerError"
+      summary: Search STAC items with full-featured filtering.
+      tags:
+      - STAC
 components:
-  headers:
-    ETag:
-      schema:
-        type: string
-      description: >-
-        The RFC7232 ETag header field in a response provides the current entity- tag
-        for the selected resource. An entity-tag is an opaque identifier for different
-        versions of a resource over time, regardless whether multiple versions are
-        valid at the same time. An entity-tag consists of an opaque quoted string,
-        possibly prefixed by a weakness indicator.
-      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
-      required: true
-  parameters:
-    bbox:
-      explode: false
-      in: query
-      name: bbox
-      required: false
-      schema:
-        $ref: "#/components/schemas/bbox"
-      style: form
-      example:
-    collectionId:
-      description: Local identifier of a collection
-      in: path
-      name: collectionId
-      required: true
-      schema:
-        type: string
-    collectionsArray:
-      explode: false
-      in: query
-      name: collections
-      required: false
-      schema:
-        $ref: "#/components/schemas/collectionsArray"
-    datetime:
-      explode: false
-      in: query
-      name: datetime
-      required: false
-      schema:
-        $ref: "#/components/schemas/datetimeQuery"
-      example: 2018-02-12T00%3A00%3A00Z%2F2018-03-18T12%3A31%3A12Z
-      style: form
-    featureId:
-      description: Local identifier of a feature
-      in: path
-      name: featureId
-      required: true
-      schema:
-        type: string
-    ids:
-      description: >-
-        Array of Item ids to return. All other filter parameters that further restrict
-        the number of search results are ignored
-      explode: false
-      in: query
-      name: ids
-      required: false
-      schema:
-        $ref: "#/components/schemas/ids"
-    limit:
-      explode: false
-      in: query
-      name: limit
-      required: false
-      schema:
-        $ref: "#/components/schemas/limit"
-      style: form
-    IfNoneMatch:
-      name: If-None-Match
-      in: header
-      schema:
-        type: string
-      description: >-
-        The RFC7232 `If-None-Match` header field makes the GET request method conditional.
-        It is composed of a comma separated list of ETags or value "*".
-
-
-        The server compares the client's ETags (sent with `If-None-Match`) with the
-        ETag for its current version of the resource, and if both values match (that
-        is, the resource has not changed), the server sends back a `304 Not Modified`
-        status, without a body, which tells the client that the cached version of
-        the response is still good to use (fresh).
-      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
-    IfMatch:
-      name: If-Match
-      in: header
-      schema:
-        type: string
-      description: >-
-        The RFC7232 `If-Match` header field makes the GET request method conditional.
-        It is composed of a comma separated list of ETags or value "*".
-
-
-        The server compares the client's ETags (sent with `If-Match`) with the ETag
-        for its current version of the resource, and if both values don't match (that
-        is, the resource has changed), the server sends back a `412 Precondition Failed`
-        status, without a body, which tells the client that the cached version of
-        the response is not good to use anymore.
-      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
-  responses:
-    Collection:
-      headers:
-        ETag:
-          $ref: "#/components/headers/ETag"
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/collection"
-      description: >-
-        Information about the feature collection with id `collectionId`.
-
-
-        The response contains a link to the items in the collection (path `/collections/{collectionId}/items`,
-        link relation `items`) as well as key information about the collection. This
-        information includes:
-
-
-        * A local identifier for the collection that is unique for the dataset
-
-        * A list of coordinate reference systems (CRS) in which geometries may be
-        returned by the server. The first CRS is the default coordinate reference
-        system (the default is always WGS 84 with axis order longitude/latitude)
-
-        * An optional title and description for the collection
-
-        * An optional extent that can be used to provide an indication of the spatial
-        and temporal extent of the collection - typically derived from the data
-
-        * An optional indicator about the type of the items in the collection (the
-        default value, if the indicator is not provided, is 'feature')
-    Collections:
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/collections"
-      description: >-
-        The feature collections shared by this API.
-
-
-        The dataset is organized as one or more feature collections. This resource
-        provides information about and access to the collections.
-
-
-        The response contains the list of collections. For each collection, a link
-        to the items in the collection (path `/collections/{collectionId}/items`,
-        link relation `items`) as well as key information about the collection. This
-        information includes:
-
-
-        * A local identifier for the collection that is unique for the dataset
-
-        * A list of coordinate reference systems (CRS) in which geometries may be
-        returned by the server. The first CRS is the default coordinate reference
-        system (the default is always WGS 84 with axis order longitude/latitude)
-
-        * An optional title and description for the collection
-
-        * An optional extent that can be used to provide an indication of the spatial
-        and temporal extent of the collection - typically derived from the data
-
-        * An optional indicator about the type of the items in the collection (the
-        default value, if the indicator is not provided, is 'feature').
-
-        The `limit` parameter may be used to control the subset of the selected collections
-        that should be returned in the response, the page size. Each page include
-        links to support paging (link relation `next` and/or `previous`).
-    ConformanceDeclaration:
-      content:
-        application/json:
-          example:
-            conformsTo:
-            - http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/core
-            - http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/oas30
-            - http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/geojson
-          schema:
-            $ref: "#/components/schemas/confClasses"
-      description: >-
-        The URIs of all conformance classes supported by the server.
-
-
-        To support "generic" clients that want to access multiple OGC API Features
-        implementations - and not "just" a specific API / server, the server declares
-        the conformance classes it implements and conforms to.
-    Feature:
-      headers:
-        ETag:
-          $ref: "#/components/headers/ETag"
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/item"
-      description: >-
-        Fetch the feature with id `featureId` in the feature collection with id `collectionId`
-    Features:
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/items"
-      description: >-
-        The response is a document consisting of features in the collection. The features
-        included in the response are determined by the server based on the query parameters
-        of the request. To support access to larger collections without overloading
-        the client, the API supports paged access with links to the next page, if
-        more features are selected that the page size.
-
-
-        The `bbox` and `datetime` parameter can be used to select only a subset of
-        the features in the collection (the features that are in the bounding box
-        or time interval). The `bbox` parameter matches all features in the collection
-        that are not associated with a location, too. The `datetime` parameter matches
-        all features in the collection that are not associated with a time stamp or
-        interval, too.
-
-
-        The `limit` parameter may be used to control the subset of the selected features
-        that should be returned in the response, the page size. Each page include
-        links to support paging (link relation `next` and/or `previous`).
-    NotModified:
-      description: The cached resource was not modified since last request.
-    InvalidParameter:
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/exception"
-          example:
-            code: 400
-            description: "Invalid parameter"
-      description: A query parameter has an invalid value.
-    LandingPage:
-      content:
-        application/json:
-          example:
-            description: Catalog of Swiss Geodata Downloads
-            id: ch
-            links:
-            - href: http://data.geo.admin.ch/api/stac/v0.9/
-              rel: self
-              type: application/json
-              title: this document
-            - href: http://data.geo.admin.ch/api/stac/v0.9/static/api.html
-              rel: service-doc
-              type: text/html
-              title: the API documentation
-            - href: http://data.geo.admin.ch/api/stac/v0.9/conformance
-              rel: conformance
-              type: application/json
-              title: OGC API conformance classes implemented by this server
-            - href: http://data.geo.admin.ch/api/stac/v0.9/collections
-              rel: data
-              type: application/json
-              title: Information about the feature collections
-            - href: http://data.geo.admin.ch/api/stac/v0.9/search
-              rel: search
-              type: application/json
-              title: Search across feature collections
-            stac_version: 0.9.0
-            title: data.geo.admin.ch
-          schema:
-            $ref: "#/components/schemas/landingPage"
-      description: >-
-        The landing page provides links to the API definition (link relations `service-desc`
-        and `service-doc`), the Conformance declaration (path `/conformance`, link
-        relation `conformance`), and the Feature Collections (path `/collections`,
-        link relation `data`).
-    NotFound:
-      description: The specified resource/URI was not found
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/exception"
-          example:
-            code: 404
-            description: "Resource not found"
-    BadRequest:
-      description: The request was malformed or semantically invalid
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/exception"
-          example:
-            code: 400
-            description: "Invalid parameter"
-    PreconditionFailed:
-      description: Some condition specified by the request could not be met in the
-        server
-    ServerError:
-      description: >-
-        The request was syntactically and semantically valid, but an error occurred
-        while trying to act upon it
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/exception"
-          example:
-            code: 500
-            description: "Internal server error"
   schemas:
+    assetQuery:
+      additionalProperties:
+        $ref: "#/components/schemas/assetQueryProp"
+      description: >-
+        Define which properties of the asset to query and the operations to apply.
+
+
+        The following properties can be queried:
+
+        - `type`: query for assets with this specific media type
+
+        - `proj:epsg`: query for assets with this specific epsg
+
+        - `eo:gsd`: query for assets with this specific gsd
+
+        - `geoadmin:variant`: query for assets with this specific variant
+      example:
+        type:
+          eq: image/tiff
+      type: object
+    assetQueryFilter:
+      description: Allows users to query asset properties for specific values
+      properties:
+        assetQuery:
+          $ref: "#/components/schemas/assetQuery"
+      type: object
+    assetQueryProp:
+      anyOf:
+      - description: >-
+          If the object doesn't contain any of the operators, it is equivalent to
+          using the equals operator
+      - description: Match using an operator
+        properties:
+          contains:
+            description: >-
+              Find items with a property that contains the specified literal string,
+              e.g., matches ".*<STRING>.*". A case-insensitive comparison must be
+              performed.
+            type: string
+          endsWith:
+            description: >-
+              Find items with a property that ends with the specified string. A case-insensitive
+              comparison must be performed.
+            type: string
+          eq:
+            description: >-
+              Find items with a property that is equal to the specified value. For
+              strings, a case-insensitive comparison must be performed.
+            nullable: true
+            oneOf:
+            - type: string
+            - type: number
+            - type: boolean
+          in:
+            description: >-
+              Find items with a property that equals at least one entry in the specified
+              array. A case-insensitive comparison must be performed.
+            items:
+              oneOf:
+              - type: string
+              - type: number
+            type: array
+          startsWith:
+            description: >-
+              Find items with a property that begins with the specified string. A
+              case-insensitive comparison must be performed.
+            type: string
+        type: object
+      description: Apply query operations to a specific property
     assetBase:
       title: Asset
       description: The `property name` defines the ID of the Asset.
@@ -354,33 +291,28 @@ components:
         updated:
           $ref: "#/components/schemas/updated"
     bbox:
-      description: >-
+      description: |
         Only features that have a geometry that intersects the bounding box are selected.
         The bounding box is provided as four numbers:
 
-
         * Lower left corner, coordinate axis 1
-
         * Lower left corner, coordinate axis 2
-
         * Upper right corner, coordinate axis 1
-
         * Upper right corner, coordinate axis 2
 
+        The coordinate reference system of the values is WGS84
+        longitude/latitude (http://www.opengis.net/def/crs/OGC/1.3/CRS84).
 
-        The coordinate reference system of the values is WGS84 longitude/latitude
-        (http://www.opengis.net/def/crs/OGC/1.3/CRS84).
+        For WGS84 longitude/latitude the values are in most cases the sequence
+        of minimum longitude, minimum latitude, maximum longitude and maximum
+        latitude. However, in cases where the box spans the antimeridian the
+        first value (west-most box edge) is larger than the third value
+        (east-most box edge).
 
-
-        For WGS84 longitude/latitude the values are in most cases the sequence of
-        minimum longitude, minimum latitude, maximum longitude and maximum latitude.
-        However, in cases where the box spans the antimeridian the first value (west-most
-        box edge) is larger than the third value (east-most box edge).
-
-
-        Example: The bounding box of Switzerland in WGS 84 (from 5.96°E to 10.49°E
-        and from 45.82°N to 47.81°N) would be represented in JSON as `[5.96, 45.82,
-        10.49, 47.81]` and in a query as `bbox=5.96,45.82,10.49,47.81`."
+        Example: The bounding box of Switzerland in
+        WGS 84 (from 5.96°E to 10.49°E and from 45.82°N to 47.81°N) would be
+        represented in JSON as `[5.96, 45.82, 10.49, 47.81]` and in a query as
+        `bbox=5.96,45.82,10.49,47.81`."
       example:
       - 5.96
       - 45.82
@@ -590,23 +522,6 @@ components:
               rel: parent
             - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items
               rel: items
-            - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
-              rel: license
-              title: Licence for the free geodata of the Federal Office of Topography
-                swisstopo
-            - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
-              rel: describedby
-    collectionWrite:
-      title: collection
-      allOf:
-      - $ref: "#/components/schemas/collectionBase"
-      - type: object
-        properties:
-          links:
-            type: array
-            items:
-              $ref: "#/components/schemas/link"
-            example:
             - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
               rel: license
               title: Licence for the free geodata of the Federal Office of Topography
@@ -1605,170 +1520,328 @@ components:
       type: string
       format: date-time
       readOnly: true
-paths:
-  /:
-    get:
+  parameters:
+    assetQuery:
       description: >-
-        The landing page provides links to the API definition, the conformance statements
-        and to the feature collections in this dataset.
-      operationId: getLandingPage
-      responses:
-        "200":
-          $ref: "#/components/responses/LandingPage"
-        "500":
-          $ref: "#/components/responses/ServerError"
-      summary: Landing page
-      tags:
-      - Capabilities
-  /collections:
-    get:
-      operationId: getCollections
-      parameters:
-      - $ref: "#/components/parameters/limit"
-      responses:
-        "200":
-          $ref: "#/components/responses/Collections"
-        "500":
-          $ref: "#/components/responses/ServerError"
-      summary: Fetch collections
-      description: The feature collections in the dataset
-      tags:
-      - Data
-  /collections/{collectionId}:
-    get:
-      operationId: describeCollection
-      parameters:
-      - $ref: "#/components/parameters/collectionId"
-      - $ref: "#/components/parameters/IfMatch"
-      - $ref: "#/components/parameters/IfNoneMatch"
-      responses:
-        "200":
-          $ref: "#/components/responses/Collection"
-        "304":
-          $ref: "#/components/responses/NotModified"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "412":
-          $ref: "#/components/responses/PreconditionFailed"
-        "500":
-          $ref: "#/components/responses/ServerError"
-      summary: Fetch a single collection
-      description: Describe the feature collection with id `collectionId`
-      tags:
-      - Data
-  /collections/{collectionId}/items:
-    get:
+        Query for properties in assets (e.g. mediatype). Use the JSON form of the
+        assetQueryFilter used in POST.
+      in: query
+      name: assetQuery
+      required: false
+      schema:
+        type: string
+    bbox:
+      explode: false
+      in: query
+      name: bbox
+      required: false
+      schema:
+        $ref: "#/components/schemas/bbox"
+      style: form
+      example:
+    collectionId:
+      description: Local identifier of a collection
+      in: path
+      name: collectionId
+      required: true
+      schema:
+        type: string
+    collectionsArray:
+      explode: false
+      in: query
+      name: collections
+      required: false
+      schema:
+        $ref: "#/components/schemas/collectionsArray"
+    datetime:
+      explode: false
+      in: query
+      name: datetime
+      required: false
+      schema:
+        $ref: "#/components/schemas/datetimeQuery"
+      example: 2018-02-12T00%3A00%3A00Z%2F2018-03-18T12%3A31%3A12Z
+      style: form
+    featureId:
+      description: Local identifier of a feature
+      in: path
+      name: featureId
+      required: true
+      schema:
+        type: string
+    ids:
       description: >-
-        Fetch features of the feature collection with id `collectionId`.
+        Array of Item ids to return. All other filter parameters that further restrict
+        the number of search results are ignored
+      explode: false
+      in: query
+      name: ids
+      required: false
+      schema:
+        $ref: "#/components/schemas/ids"
+    limit:
+      explode: false
+      in: query
+      name: limit
+      required: false
+      schema:
+        $ref: "#/components/schemas/limit"
+      style: form
+    query:
+      description: Query for properties in items. Use the JSON form of the queryFilter
+        used in POST.
+      in: query
+      name: query
+      required: false
+      schema:
+        type: string
+    IfNoneMatch:
+      name: If-None-Match
+      in: header
+      schema:
+        type: string
+      description: >-
+        The RFC7232 `If-None-Match` header field makes the GET request method conditional.
+        It is composed of a comma separated list of ETags or value "*".
 
 
-        Every feature in a dataset belongs to a collection. A dataset may consist
-        of multiple feature collections. A feature collection is often a collection
-        of features of a similar type, based on a common schema.
+        The server compares the client's ETags (sent with `If-None-Match`) with the
+        ETag for its current version of the resource, and if both values match (that
+        is, the resource has not changed), the server sends back a `304 Not Modified`
+        status, without a body, which tells the client that the cached version of
+        the response is still good to use (fresh).
+      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
+    IfMatch:
+      name: If-Match
+      in: header
+      schema:
+        type: string
+      description: >-
+        The RFC7232 `If-Match` header field makes the GET request method conditional.
+        It is composed of a comma separated list of ETags or value "*".
 
 
-        Use content negotiation to request HTML or GeoJSON.
-      operationId: getFeatures
-      parameters:
-      - $ref: "#/components/parameters/collectionId"
-      - $ref: "#/components/parameters/limit"
-      - $ref: "#/components/parameters/bbox"
-      - $ref: "#/components/parameters/datetime"
-      responses:
-        "200":
-          $ref: "#/components/responses/Features"
-        "400":
-          $ref: "#/components/responses/InvalidParameter"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/ServerError"
-      summary: Fetch features
-      tags:
-      - Data
-  /collections/{collectionId}/items/{featureId}:
-    get:
+        The server compares the client's ETags (sent with `If-Match`) with the ETag
+        for its current version of the resource, and if both values don't match (that
+        is, the resource has changed), the server sends back a `412 Precondition Failed`
+        status, without a body, which tells the client that the cached version of
+        the response is not good to use anymore.
+      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
+  responses:
+    Collection:
+      headers:
+        ETag:
+          $ref: "#/components/headers/ETag"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/collection"
       description: >-
-        Fetch the feature with id `featureId` in the feature collection with id `collectionId`.
+        Information about the feature collection with id `collectionId`.
 
 
-        Use content negotiation to request HTML or GeoJSON.
-      operationId: getFeature
-      parameters:
-      - $ref: "#/components/parameters/collectionId"
-      - $ref: "#/components/parameters/featureId"
-      - $ref: "#/components/parameters/IfMatch"
-      - $ref: "#/components/parameters/IfNoneMatch"
-      responses:
-        "200":
-          $ref: "#/components/responses/Feature"
-        "304":
-          $ref: "#/components/responses/NotModified"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "412":
-          $ref: "#/components/responses/PreconditionFailed"
-        "500":
-          $ref: "#/components/responses/ServerError"
-      summary: Fetch a single feature
-      tags:
-      - Data
-  /conformance:
-    get:
+        The response contains a link to the items in the collection (path `/collections/{collectionId}/items`,
+        link relation `items`) as well as key information about the collection. This
+        information includes:
+
+
+        * A local identifier for the collection that is unique for the dataset
+
+        * A list of coordinate reference systems (CRS) in which geometries may be
+        returned by the server. The first CRS is the default coordinate reference
+        system (the default is always WGS 84 with axis order longitude/latitude)
+
+        * An optional title and description for the collection
+
+        * An optional extent that can be used to provide an indication of the spatial
+        and temporal extent of the collection - typically derived from the data
+
+        * An optional indicator about the type of the items in the collection (the
+        default value, if the indicator is not provided, is 'feature')
+    Collections:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/collections"
       description: >-
-        A list of all conformance classes specified in a standard that the server
-        conforms to.
-      operationId: getConformanceDeclaration
-      responses:
-        "200":
-          $ref: "#/components/responses/ConformanceDeclaration"
-        "500":
-          $ref: "#/components/responses/ServerError"
-      summary: Information about specifications that this API conforms to
-      tags:
-      - Capabilities
-  /search:
-    get:
+        The feature collections shared by this API.
+
+
+        The dataset is organized as one or more feature collections. This resource
+        provides information about and access to the collections.
+
+
+        The response contains the list of collections. For each collection, a link
+        to the items in the collection (path `/collections/{collectionId}/items`,
+        link relation `items`) as well as key information about the collection. This
+        information includes:
+
+
+        * A local identifier for the collection that is unique for the dataset
+
+        * A list of coordinate reference systems (CRS) in which geometries may be
+        returned by the server. The first CRS is the default coordinate reference
+        system (the default is always WGS 84 with axis order longitude/latitude)
+
+        * An optional title and description for the collection
+
+        * An optional extent that can be used to provide an indication of the spatial
+        and temporal extent of the collection - typically derived from the data
+
+        * An optional indicator about the type of the items in the collection (the
+        default value, if the indicator is not provided, is 'feature').
+
+        The `limit` parameter may be used to control the subset of the selected collections
+        that should be returned in the response, the page size. Each page include
+        links to support paging (link relation `next` and/or `previous`).
+    ConformanceDeclaration:
+      content:
+        application/json:
+          example:
+            conformsTo:
+            - http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/core
+            - http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/oas30
+            - http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/geojson
+          schema:
+            $ref: "#/components/schemas/confClasses"
       description: >-
-        Retrieve Items matching filters. Intended as a shorthand API for simple queries.
-      operationId: getSearchSTAC
-      parameters:
-      - $ref: "#/components/parameters/bbox"
-      - $ref: "#/components/parameters/datetime"
-      - $ref: "#/components/parameters/limit"
-      - $ref: "#/components/parameters/ids"
-      - $ref: "#/components/parameters/collectionsArray"
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/itemsSearchGet"
-          description: A feature collection.
-        "500":
-          $ref: "#/components/responses/ServerError"
-      summary: Search STAC items with simple filtering.
-      tags:
-      - STAC
-    post:
+        The URIs of all conformance classes supported by the server.
+
+
+        To support "generic" clients that want to access multiple OGC API Features
+        implementations - and not "just" a specific API / server, the server declares
+        the conformance classes it implements and conforms to.
+    Feature:
+      headers:
+        ETag:
+          $ref: "#/components/headers/ETag"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/item"
       description: >-
-        Retrieve items matching filters. Intended as the standard, full-featured query
-        API.
-      operationId: postSearchSTAC
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/searchBody"
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/itemsSearchPost"
-          description: A feature collection.
-        "500":
-          $ref: "#/components/responses/ServerError"
-      summary: Search STAC items with full-featured filtering.
-      tags:
-      - STAC
+        Fetch the feature with id `featureId` in the feature collection with id `collectionId`
+    Features:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/items"
+      description: >-
+        The response is a document consisting of features in the collection. The features
+        included in the response are determined by the server based on the query parameters
+        of the request. To support access to larger collections without overloading
+        the client, the API supports paged access with links to the next page, if
+        more features are selected that the page size.
+
+
+        The `bbox` and `datetime` parameter can be used to select only a subset of
+        the features in the collection (the features that are in the bounding box
+        or time interval). The `bbox` parameter matches all features in the collection
+        that are not associated with a location, too. The `datetime` parameter matches
+        all features in the collection that are not associated with a time stamp or
+        interval, too.
+
+
+        The `limit` parameter may be used to control the subset of the selected features
+        that should be returned in the response, the page size. Each page include
+        links to support paging (link relation `next` and/or `previous`).
+    NotModified:
+      description: The cached resource was not modified since last request.
+    InvalidParameter:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/exception"
+          example:
+            code: 400
+            description: "Invalid parameter"
+      description: A query parameter has an invalid value.
+    LandingPage:
+      content:
+        application/json:
+          example:
+            description: Catalog of Swiss Geodata Downloads
+            id: ch
+            links:
+            - href: http://data.geo.admin.ch/api/stac/v0.9/
+              rel: self
+              type: application/json
+              title: this document
+            - href: http://data.geo.admin.ch/api/stac/v0.9/static/api.html
+              rel: service-doc
+              type: text/html
+              title: the API documentation
+            - href: http://data.geo.admin.ch/api/stac/v0.9/conformance
+              rel: conformance
+              type: application/json
+              title: OGC API conformance classes implemented by this server
+            - href: http://data.geo.admin.ch/api/stac/v0.9/collections
+              rel: data
+              type: application/json
+              title: Information about the feature collections
+            - href: http://data.geo.admin.ch/api/stac/v0.9/search
+              rel: search
+              type: application/json
+              title: Search across feature collections
+            stac_version: 0.9.0
+            title: data.geo.admin.ch
+          schema:
+            $ref: "#/components/schemas/landingPage"
+      description: >-
+        The landing page provides links to the API definition (link relations `service-desc`
+        and `service-doc`), the Conformance declaration (path `/conformance`, link
+        relation `conformance`), and the Feature Collections (path `/collections`,
+        link relation `data`).
+    NotFound:
+      description: The specified resource/URI was not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/exception"
+          example:
+            code: 404
+            description: "Resource not found"
+    BadRequest:
+      description: The request was malformed or semantically invalid
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/exception"
+          example:
+            code: 400
+            description: "Invalid parameter"
+    PermissionDenied:
+      description: No Permission for this request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/exception"
+          example:
+            code: 403
+            description: "Permission denied"
+    PreconditionFailed:
+      description: Some condition specified by the request could not be met in the
+        server
+    ServerError:
+      description: >-
+        The request was syntactically and semantically valid, but an error occurred
+        while trying to act upon it
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/exception"
+          example:
+            code: 500
+            description: "Internal server error"
+  headers:
+    ETag:
+      schema:
+        type: string
+      description: >-
+        The RFC7232 ETag header field in a response provides the current entity- tag
+        for the selected resource. An entity-tag is an opaque identifier for different
+        versions of a resource over time, regardless whether multiple versions are
+        valid at the same time. An entity-tag consists of an opaque quoted string,
+        possibly prefixed by a weakness indicator.
+      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
+      required: true

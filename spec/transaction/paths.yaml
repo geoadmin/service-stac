@@ -1,0 +1,874 @@
+openapi: 3.0.1
+paths:
+  "/collections":
+    post:
+      tags:
+        - Data Management
+      summary: >-
+        Create a new collection
+      operationId: createCollection
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas.yaml#/components/schemas/collection"
+            example:
+              description: The National Map 1:200,000 is a topographic map giving an overview of Switzerland.
+              id: ch.swisstopo.pixelkarte-farbe-pk200.noscale
+              license: proprietary
+              links:
+                - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
+                  rel: license
+                  title: Licence for the free geodata of the Federal Office of Topography swisstopo
+                - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
+                  rel: describedby
+              providers:
+                - name: Federal Office of Topography - swisstopo
+                  roles:
+                    - producer
+                    - licensor
+                  url: https://www.swisstopo.admin.ch
+              title: National Map 1:200'000
+      responses:
+        "201":
+          description: Returns the created Collection
+          headers:
+            Location:
+              description: A link to the collection
+              schema:
+                type: string
+                format: url
+          content:
+            application/json:
+              schema:
+                $ref: "./components/schemas.yaml#/components/schemas/collectionWrite"
+        "403":
+          $ref: "../components/responses.yaml#/components/responses/PermissionDenied"
+        "404":
+          $ref: "../components/responses.yaml#/components/responses/NotFound"
+        "500":
+          $ref: "../components/responses.yaml#/components/responses/ServerError"
+
+  "/collections/{collectionId}":
+    put:
+      tags:
+        - Data Management
+      summary: Update or create a collection
+      description: >-
+        Update or create a collection with Id `collectionId` with a complete collection definition.
+        If the collection doesn't exists it is then created.
+      operationId: updateCollection
+      parameters:
+        - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
+        - $ref: "./components/parameters.yaml#/components/parameters/IfMatchWrite"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "./components/schemas.yaml#/components/schemas/collectionWrite"
+            example:
+              description: The National Map 1:200,000 is a topographic map giving an overview of Switzerland.
+              id: ch.swisstopo.pixelkarte-farbe-pk200.noscale
+              license: proprietary
+              links:
+                - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
+                  rel: license
+                  title: Licence for the free geodata of the Federal Office of Topography swisstopo
+                - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
+                  rel: describedby
+              providers:
+                - name: Federal Office of Topography - swisstopo
+                  roles:
+                    - producer
+                    - licensor
+                  url: https://www.swisstopo.admin.ch
+              title: National Map 1:200'000
+      responses:
+        "200":
+          description: Returns the updated Collection
+          content:
+            application/json:
+              schema:
+                $ref: "../components/schemas.yaml#/components/schemas/collection"
+        "201":
+          description: Returns the created Collection
+          headers:
+            Location:
+              description: A link to the collection
+              schema:
+                type: string
+                format: url
+          content:
+            application/json:
+              schema:
+                $ref: "../components/schemas.yaml#/components/schemas/collection"
+        "403":
+          $ref: "../components/responses.yaml#/components/responses/PermissionDenied"
+        "404":
+          $ref: "../components/responses.yaml#/components/responses/NotFound"
+        "412":
+          $ref: "../components/responses.yaml#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "../components/responses.yaml#/components/responses/ServerError"
+    patch:
+      tags:
+        - Data Management
+      summary: Partial update of a collection
+      description: >-
+        Update an existing collection with Id `collectionId` with a partial collection definition
+      operationId: partialUpdateCollection
+      parameters:
+        - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
+        - $ref: "../components/parameters.yaml#/components/parameters/IfMatch"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "./components/schemas.yaml#/components/schemas/collectionWrite"
+            example:
+              id: ch.swisstopo.pixelkarte-farbe-pk200.noscale
+              license: proprietary
+              links:
+                - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
+                  rel: license
+                  title: Licence for the free geodata of the Federal Office of Topography swisstopo
+                - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
+                  rel: describedby
+              providers:
+                - name: Federal Office of Topography - swisstopo
+                  roles:
+                    - producer
+                    - licensor
+                  url: https://www.swisstopo.admin.ch
+              title: National Map 1:200'000
+      responses:
+        "200":
+          description: Returns the updated Collection
+          content:
+            application/json:
+              schema:
+                $ref: "../components/schemas.yaml#/components/schemas/collection"
+        "403":
+          $ref: "../components/responses.yaml#/components/responses/PermissionDenied"
+        "404":
+          $ref: "../components/responses.yaml#/components/responses/NotFound"
+        "412":
+          $ref: "../components/responses.yaml#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "../components/responses.yaml#/components/responses/ServerError"
+  "/collections/{collectionId}/items":
+    post:
+      summary: Add a new feature to a collection
+      description: Create a new feature/item in a specific collection
+      operationId: postFeature
+      tags:
+        - Data Management
+      parameters:
+        - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "./components/schemas.yaml#/components/schemas/createItem"
+            example:
+              id: cs3-20160503_132131_05
+              geometry:
+                type: Polygon
+                coordinates:
+                  - - - -122.308150179
+                      - 37.488035566
+                    - - -122.597502109
+                      - 37.538869539
+                    - - -122.576687533
+                      - 37.613537207
+                    - - -122.2880486
+                      - 37.562818007
+                    - - -122.308150179
+                      - 37.488035566
+              properties:
+                datetime: "2016-05-03T13:22:30.040Z"
+                title: A CS3 item
+              links:
+                - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
+                  rel: license
+                  title: Licence for the free geodata of the Federal Office of Topography swisstopo
+                - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
+                  rel: describedby
+      responses:
+        "201":
+          description: Return the created Item.
+          headers:
+            Location:
+              description: A link to the item
+              schema:
+                type: string
+                format: url
+          content:
+            application/json:
+              schema:
+                $ref: "../components/schemas.yaml#/components/schemas/item"
+        "400":
+          $ref: "../components/responses.yaml#/components/responses/BadRequest"
+        "403":
+          $ref: "../components/responses.yaml#/components/responses/PermissionDenied"
+        "5XX":
+          $ref: "../components/responses.yaml#/components/responses/ServerError"
+  "/collections/{collectionId}/items/{featureId}":
+    put:
+      summary: Update or create a feature
+      description: >-
+        Update or create a feature with Id `featureId` with a complete feature
+        definition. If the feature doesn't exists it is then created.
+
+
+        *NOTE: Optional fields that are not part of the PUT payload, will be erased
+        in the resource. For example if the resource has a properties.title and the
+        PUT payload doesn't, then the resource's properties.title will be removed.*
+      operationId: putFeature
+      tags:
+        - Data Management
+      parameters:
+        - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
+        - $ref: "../components/parameters.yaml#/components/parameters/featureId"
+        - $ref: "./components/parameters.yaml#/components/parameters/IfMatchWrite"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "./components/schemas.yaml#/components/schemas/updateItem"
+            example:
+              id: cs3-20160503_132131_05
+              geometry:
+                type: Polygon
+                coordinates:
+                  - - - -122.308150179
+                      - 37.488035566
+                    - - -122.597502109
+                      - 37.538869539
+                    - - -122.576687533
+                      - 37.613537207
+                    - - -122.2880486
+                      - 37.562818007
+                    - - -122.308150179
+                      - 37.488035566
+              properties:
+                datetime: "2016-05-03T13:22:30.040Z"
+                title: A CS3 item
+              links:
+                - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
+                  rel: license
+                  title: Licence for the free geodata of the Federal Office of Topography swisstopo
+                - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
+                  rel: describedby
+      responses:
+        "200":
+          description: Returns the updated Item
+          content:
+            application/json:
+              schema:
+                $ref: "../components/schemas.yaml#/components/schemas/item"
+        "400":
+          $ref: "../components/responses.yaml#/components/responses/BadRequest"
+        "403":
+          $ref: "../components/responses.yaml#/components/responses/PermissionDenied"
+        "404":
+          $ref: "../components/responses.yaml#/components/responses/NotFound"
+        "412":
+          $ref: "../components/responses.yaml#/components/responses/PreconditionFailed"
+        "5XX":
+          $ref: "../components/responses.yaml#/components/responses/ServerError"
+    patch:
+      summary: Update an existing feature by Id with a partial item definition
+      description: >-
+        Use this method to update an existing feature. Requires a JSON
+        fragment (containing the fields to be updated) be submitted.
+      operationId: patchFeature
+      tags:
+        - Data Management
+      parameters:
+        - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
+        - $ref: "../components/parameters.yaml#/components/parameters/featureId"
+        - $ref: "./components/parameters.yaml#/components/parameters/IfMatchWrite"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "./components/schemas.yaml#/components/schemas/partialItem"
+      responses:
+        "200":
+          description: Returns the updated Item
+          content:
+            application/json:
+              schema:
+                $ref: "../components/schemas.yaml#/components/schemas/item"
+        "201":
+          description: Returns the created Item
+          headers:
+            Location:
+              description: A link to the item
+              schema:
+                type: string
+                format: url
+          content:
+            application/json:
+              schema:
+                $ref: "../components/schemas.yaml#/components/schemas/item"
+        "400":
+          $ref: "../components/responses.yaml#/components/responses/BadRequest"
+        "403":
+          $ref: "../components/responses.yaml#/components/responses/PermissionDenied"
+        "404":
+          $ref: "../components/responses.yaml#/components/responses/NotFound"
+        "412":
+          $ref: "../components/responses.yaml#/components/responses/PreconditionFailed"
+        "5XX":
+          $ref: "../components/responses.yaml#/components/responses/ServerError"
+    delete:
+      summary: Delete an existing feature by Id
+      description: Use this method to delete an existing feature/item.
+      operationId: deleteFeature
+      tags:
+        - Data Management
+      parameters:
+        - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
+        - $ref: "../components/parameters.yaml#/components/parameters/featureId"
+        - $ref: "./components/parameters.yaml#/components/parameters/IfMatchWrite"
+      responses:
+        "200":
+          $ref: "./components/responses.yaml#/components/responses/DeletedResource"
+        "400":
+          $ref: "../components/responses.yaml#/components/responses/BadRequest"
+        "404":
+          $ref: "../components/responses.yaml#/components/responses/NotFound"
+        "412":
+          $ref: "../components/responses.yaml#/components/responses/PreconditionFailed"
+        "5XX":
+          $ref: "../components/responses.yaml#/components/responses/ServerError"
+  "/collections/{collectionId}/items/{featureId}/assets":
+    get:
+      description: >-
+        Fetch assets of the item with id `featureId`.
+
+        Every asset belongs to an item.
+      operationId: getAssets
+      parameters:
+        - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
+        - $ref: "../components/parameters.yaml#/components/parameters/featureId"
+      responses:
+        "200":
+          $ref: "./components/responses.yaml#/components/responses/Assets"
+        "400":
+          $ref: "../components/responses.yaml#/components/responses/InvalidParameter"
+        "404":
+          $ref: "../components/responses.yaml#/components/responses/NotFound"
+        "500":
+          $ref: "../components/responses.yaml#/components/responses/ServerError"
+      summary: Fetch all assets for a feature
+      tags:
+        - Data
+    post:
+      summary: Add a new asset to a feature
+      description: |
+        Create a new asset for a specific feature.
+
+        *Note: to upload an asset file see [Asset Upload Management](#tag/Asset-Upload-Management)*
+      operationId: postAsset
+      tags:
+        - Data Management
+      parameters:
+        - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
+        - $ref: "../components/parameters.yaml#/components/parameters/featureId"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "./components/schemas.yaml#/components/schemas/createAsset"
+      responses:
+        "201":
+          description: Return the created Asset
+          headers:
+            Location:
+              description: A link to the asset
+              schema:
+                type: string
+                format: url
+          content:
+            application/json:
+              schema:
+                $ref: "./components/schemas.yaml#/components/schemas/createAsset"
+        "400":
+          $ref: "../components/responses.yaml#/components/responses/BadRequest"
+        "5XX":
+          $ref: "../components/responses.yaml#/components/responses/ServerError"
+
+  "/collections/{collectionId}/items/{featureId}/assets/{assetId}":
+    get:
+      description: >-
+        Fetch the asset with id `assetId` of the feature with id `featureId`
+        in the feature collection with id `collectionId`.
+      operationId: getAsset
+      parameters:
+        - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
+        - $ref: "../components/parameters.yaml#/components/parameters/featureId"
+        - $ref: "./components/parameters.yaml#/components/parameters/assetId"
+        - $ref: "../components/parameters.yaml#/components/parameters/IfMatch"
+        - $ref: "../components/parameters.yaml#/components/parameters/IfNoneMatch"
+      responses:
+        "200":
+          $ref: "./components/responses.yaml#/components/responses/Asset"
+        "304":
+          $ref: "../components/responses.yaml#/components/responses/NotModified"
+        "404":
+          $ref: "../components/responses.yaml#/components/responses/NotFound"
+        "412":
+          $ref: "../components/responses.yaml#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "../components/responses.yaml#/components/responses/ServerError"
+      summary: Fetch a single asset
+      tags:
+        - Data
+    put:
+      summary: Update or create an asset
+      description: >-
+        Update or create an asset with Id `assetId` with a complete asset definition.
+        If the asset doesn't exists it is then created.
+
+
+        *Note: to upload an asset file see [Asset Upload Management](#tag/Asset-Upload-Management)*
+      operationId: putAsset
+      tags:
+        - Data Management
+      parameters:
+        - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
+        - $ref: "../components/parameters.yaml#/components/parameters/featureId"
+        - $ref: "./components/parameters.yaml#/components/parameters/assetId"
+        - $ref: "./components/parameters.yaml#/components/parameters/IfMatchWrite"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "./components/schemas.yaml#/components/schemas/readUpdateAsset"
+      responses:
+        "200":
+          description: Asset has been successfully updated.
+          content:
+            application/json:
+              schema:
+                $ref: "./components/schemas.yaml#/components/schemas/readUpdateAsset"
+        "201":
+          description: Asset has been newly created.
+          headers:
+            Location:
+              description: A link to the asset
+              schema:
+                type: string
+                format: url
+          content:
+            application/json:
+              schema:
+                $ref: "./components/schemas.yaml#/components/schemas/createAsset"
+        "400":
+          $ref: "../components/responses.yaml#/components/responses/BadRequest"
+        "404":
+          $ref: "../components/responses.yaml#/components/responses/NotFound"
+        "412":
+          $ref: "../components/responses.yaml#/components/responses/PreconditionFailed"
+        "5XX":
+          $ref: "../components/responses.yaml#/components/responses/ServerError"
+    patch:
+      summary: Update an existing asset by Id with a partial asset definition
+      description: >-
+        Use this method to update an existing asset. Requires a JSON
+        fragment (containing the fields to be updated) be submitted.
+
+
+        *Note: to upload an asset file see [Asset Upload Management](#tag/Asset-Upload-Management)*
+      operationId: patchAsset
+      tags:
+        - Data Management
+      parameters:
+        - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
+        - $ref: "../components/parameters.yaml#/components/parameters/featureId"
+        - $ref: "./components/parameters.yaml#/components/parameters/assetId"
+        - $ref: "./components/parameters.yaml#/components/parameters/IfMatchWrite"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "./components/schemas.yaml#/components/schemas/readUpdateAsset"
+      responses:
+        "200":
+          description: Returns the updated Asset.
+          content:
+            application/json:
+              schema:
+                $ref: "./components/schemas.yaml#/components/schemas/readUpdateAsset"
+        "400":
+          $ref: "../components/responses.yaml#/components/responses/BadRequest"
+        "404":
+          $ref: "../components/responses.yaml#/components/responses/NotFound"
+        "412":
+          $ref: "../components/responses.yaml#/components/responses/PreconditionFailed"
+        "5XX":
+          $ref: "../components/responses.yaml#/components/responses/ServerError"
+    delete:
+      summary: Delete an existing asset by Id
+      description: >-
+        Use this method to delete an existing asset.
+
+
+        **NOTE: Asset file on S3 will be also removed !**
+      operationId: deleteAsset
+      tags:
+        - Data Management
+      parameters:
+        - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
+        - $ref: "../components/parameters.yaml#/components/parameters/featureId"
+        - $ref: "./components/parameters.yaml#/components/parameters/assetId"
+        - $ref: "./components/parameters.yaml#/components/parameters/IfMatchWrite"
+      responses:
+        "200":
+          $ref: "./components/responses.yaml#/components/responses/DeletedResource"
+        "400":
+          $ref: "../components/responses.yaml#/components/responses/BadRequest"
+        "404":
+          $ref: "../components/responses.yaml#/components/responses/NotFound"
+        "412":
+          $ref: "../components/responses.yaml#/components/responses/PreconditionFailed"
+        "5XX":
+          $ref: "../components/responses.yaml#/components/responses/ServerError"
+
+
+  "/collections/{collectionId}/items/{featureId}/assets/{assetId}/uploads":
+    parameters:
+      - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
+      - $ref: "../components/parameters.yaml#/components/parameters/featureId"
+      - $ref: "./components/parameters.yaml#/components/parameters/assetId"
+    get:
+      tags:
+        - Asset Upload Management
+      summary: List all Asset's multipart uploads
+      description: >-
+        Return a list of all Asset's multipart uploads that are in progress and have been completed
+        or aborted.
+      operationId: getAssetUploads
+      parameters:
+        - name: status
+          in: query
+          description: Filter the list by status.
+          schema:
+            $ref: "./components/schemas.yaml#/components/schemas/status"
+      responses:
+        200:
+          description: List of Asset's uploads
+          content:
+            application/json:
+              schema:
+                $ref: "./components/schemas.yaml#/components/schemas/assetUploads"
+              example:
+                uploads:
+                  - upload_id: KrFTuglD.N8ireqry_w3.oQqNwrYI7SfSXpVRiusKah0YigDnusebaJNIUZg4R_No0MMW9FLU2UG5anTW0boTUYVxKfBZWCFXqnQTpjnQEo1K7la39MYpjSTvIbZgnG
+                    status: in-progress
+                    number_parts: 1
+                    urls:
+                    - url: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-4-2019/smr50-263-2016-2056-kgrs-2.5.tiff?uploadId=d77UbNnEVTaqCAyAz61AVqy7uuTGJ_YOUyPOklcRMr4ZPBthON9p6cpMREx683yQ_oeGVmGE_yTg4cmnEz3mTErEPKn0_m.3LBjo6A88Qxlj4vFrAdU6YBuourb.IqFF&partNumber=1&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4HDUVYWAM6ZB6SWO%2F20210414%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20210414T112742Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=d12763467eaffa0c69d601297a661a05c9f414d4008b4148fa6ba604f203be01
+                      part: 1
+                      expires: '2019-08-24T14:15:22Z'
+                    created: '2019-08-24T14:15:22Z'
+                    checksum:multihash: 90e402107a7f2588a85362b9beea2a12d4514d45
+                  - upload_id: KrFTuglD.N8ireqry_w3.oQqNwrYI7SfSXpVRiusKah0YaaegJNIUZg4R_No0MMW9FLU2UG5anTW0boTUYVxKfBZWCFXqnQTpjnQEo1K7la39MYpjSTvIbZgnG
+                    status: completed
+                    number_parts: 1
+                    created: '2019-08-24T14:15:22Z'
+                    completed: '2019-08-24T14:15:22Z'
+                    checksum:multihash: 90e402107a7f2588a85362b9beea2a12d4514d45
+                  - upload_id: KrFTuglD.N8ireqry_w3.oQqNwrYI7SfSXpVRiusKah0YigDnuM06hfJNIUZg4R_No0MMW9FLU2UG5anTW0boTUYVxKfBZWCFXqnQTpjnQEo1K7la39MYpjSTvIbZgnG
+                    status: aborted
+                    number_parts: 1
+                    created: '2019-08-24T14:15:22Z'
+                    aborted: '2019-08-24T14:15:22Z'
+                    checksum:multihash: 90e402107a7f2588a85362b9beea2a12d4514d45
+                links:
+                  - rel: next
+                    href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets/smr50-263-2016-2056-kgrs-2.5.tiff/uploads?cursor=0d34
+        "400":
+          $ref: "../components/responses.yaml#/components/responses/BadRequest"
+        "404":
+          $ref: "../components/responses.yaml#/components/responses/NotFound"
+        "5XX":
+          $ref: "../components/responses.yaml#/components/responses/ServerError"
+    post:
+      tags:
+        - Asset Upload Management
+      summary: Create a new Asset's multipart upload
+      description: |
+        Create a new Asset's multipart upload.
+      operationId: createAssetUpload
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "./components/schemas.yaml#/components/schemas/assetUploadCreate"
+      responses:
+        201:
+          description: Created Asset's multipart upload
+          headers:
+            Location:
+              description: A link to the Asset's multipart upload object
+              schema:
+                type: string
+                format: url
+          content:
+            application/json:
+              schema:
+                $ref: "./components/schemas.yaml#/components/schemas/assetUploadCreate"
+        "400":
+          $ref: "../components/responses.yaml#/components/responses/BadRequest"
+        "404":
+          $ref: "../components/responses.yaml#/components/responses/NotFound"
+        "5XX":
+          $ref: "../components/responses.yaml#/components/responses/ServerError"
+  "/collections/{collectionId}/items/{featureId}/assets/{assetId}/uploads/{uploadId}":
+    parameters:
+      - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
+      - $ref: "../components/parameters.yaml#/components/parameters/featureId"
+      - $ref: "./components/parameters.yaml#/components/parameters/assetId"
+      - $ref: "./components/parameters.yaml#/components/parameters/uploadId"
+    get:
+      tags:
+        - Asset Upload Management
+      summary: Get an Asset's multipart upload
+      description: |
+        Return an Asset's multipart upload.
+      operationId: getAssetUpload
+      parameters:
+        - $ref: "../components/parameters.yaml#/components/parameters/IfMatch"
+        - $ref: "../components/parameters.yaml#/components/parameters/IfNoneMatch"
+      responses:
+        "200":
+          description: Asset's multipart upload description.
+          headers:
+            ETag:
+              $ref: "../components/headers.yaml#/components/headers/ETag"
+          content:
+            application/json:
+              schema:
+                $ref: "./components/schemas.yaml#/components/schemas/assetUpload"
+              examples:
+                inprogress:
+                  $ref: "./components/examples.yaml#/components/examples/inprogress"
+                completed:
+                  $ref: "./components/examples.yaml#/components/examples/completed"
+                aborted:
+                  $ref: "./components/examples.yaml#/components/examples/aborted"
+        "304":
+          $ref: "../components/responses.yaml#/components/responses/NotModified"
+        "404":
+          $ref: "../components/responses.yaml#/components/responses/NotFound"
+        "412":
+          $ref: "../components/responses.yaml#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "../components/responses.yaml#/components/responses/ServerError"
+  "/{presignedUrl}":
+    servers:
+      - url: http://data.geo.admin.ch/
+    put:
+      tags:
+        - Asset Upload Management
+      summary: Upload asset file part
+      description: >-
+        Upload an Asset file part using the presigned url(s) returned by
+        [Create a new Asset's multipart upload](#operation/createAssetUpload).
+
+
+        Parts that have been uploaded but not completed can be checked using
+        [Get an Asset's multipart upload](#operation/getAssetUpload)
+
+
+        A file part must be at least 5 MB except for the last one and at most 5 GB, otherwise the
+        complete operation will fail.
+
+
+        *Note: this endpoint doesn't require any authentication as it is already part of the
+        presigned url*
+      operationId: uploadAssetFilePart
+      parameters:
+        - $ref: "./components/parameters.yaml#/components/parameters/presignedUrl"
+        - name: Content-MD5
+          in: header
+          description: Asset file part content MD5.
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Asset file uploaded part successfully
+          headers:
+            ETag:
+              schema:
+                type: string
+              description: >-
+                The RFC7232 ETag header field in a response provides the current entity-
+                tag for the selected resource.
+
+
+                This ETag is required in the complete multipart upload payload.
+
+
+                An entity-tag is an opaque identifier for
+                different versions of a resource over time, regardless whether multiple
+                versions are valid at the same time. An entity-tag consists of an opaque
+                quoted string.
+              example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
+              required: true
+  "/collections/{collectionId}/items/{featureId}/assets/{assetId}/uploads/{uploadId}/complete":
+    parameters:
+      - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
+      - $ref: "../components/parameters.yaml#/components/parameters/featureId"
+      - $ref: "./components/parameters.yaml#/components/parameters/assetId"
+      - $ref: "./components/parameters.yaml#/components/parameters/uploadId"
+    post:
+      tags:
+        - Asset Upload Management
+      summary: Complete multipart upload
+      operationId: completeMultipartUpload
+      description: >-
+        Complete the multipart upload process. After completion, the Asset metadata are updated
+        with the new `checksum:multihash` from the upload and the parts are automatically deleted.
+        The Asset `href` field is also set if it was the first upload.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "./components/schemas.yaml#/components/schemas/assetCompleteUpload"
+      responses:
+        "200":
+          description: Asset multipart upload completed successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "./components/schemas.yaml#/components/schemas/assetUploadCompleted"
+        "400":
+          $ref: "../components/responses.yaml#/components/responses/BadRequest"
+        "404":
+          $ref: "../components/responses.yaml#/components/responses/NotFound"
+        "5XX":
+          $ref: "../components/responses.yaml#/components/responses/ServerError"
+  "/collections/{collectionId}/items/{featureId}/assets/{assetId}/uploads/{uploadId}/abort":
+    parameters:
+      - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
+      - $ref: "../components/parameters.yaml#/components/parameters/featureId"
+      - $ref: "./components/parameters.yaml#/components/parameters/assetId"
+      - $ref: "./components/parameters.yaml#/components/parameters/uploadId"
+    post:
+      tags:
+        - Asset Upload Management
+      summary: Abort multipart upload
+      operationId: abortMultipartUpload
+      description: >-
+        Abort the multipart upload process. All already uploaded parts are automatically deleted.
+      responses:
+        "200":
+          description: Asset multipart upload aborted successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "./components/schemas.yaml#/components/schemas/assetUploadAborted"
+        "400":
+          $ref: "../components/responses.yaml#/components/responses/BadRequest"
+        "404":
+          $ref: "../components/responses.yaml#/components/responses/NotFound"
+        "5XX":
+          $ref: "../components/responses.yaml#/components/responses/ServerError"
+  "/collections/{collectionId}/items/{featureId}/assets/{assetId}/uploads/{uploadId}/parts":
+    parameters:
+      - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
+      - $ref: "../components/parameters.yaml#/components/parameters/featureId"
+      - $ref: "./components/parameters.yaml#/components/parameters/assetId"
+      - $ref: "./components/parameters.yaml#/components/parameters/uploadId"
+    get:
+      tags:
+        - Asset Upload Management
+      summary: Get upload parts
+      operationId: getUploadParts
+      description: >-
+        Return the list of already uploaded parts.
+
+
+        ### Pagination
+
+        By default all parts are returned (maximum number of parts being 100). The user can
+        use pagination to reduce the number of returned parts. Pagination is done via the `limit`
+        query parameter (see below).
+      parameters:
+        - $ref: "../components/parameters.yaml#/components/parameters/limit"
+      responses:
+        "200":
+          description: List of parts already uploaded.
+          content:
+            application/json:
+              schema:
+                $ref: "./components/schemas.yaml#/components/schemas/assetUploadParts"
+        "400":
+          $ref: "../components/responses.yaml#/components/responses/BadRequest"
+        "404":
+          $ref: "../components/responses.yaml#/components/responses/NotFound"
+        "5XX":
+          $ref: "../components/responses.yaml#/components/responses/ServerError"
+
+
+  "/get-token":
+    servers:
+      - url: http://data.geo.admin.ch/api/stac/
+    post:
+      tags:
+        - Authentication
+      summary: >-
+        Request token for token authentication.
+      operationId: getToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  description: name of user for whom token is requested
+                password:
+                  type: string
+                  description: password of user for whom token is requested
+              required:
+                - username
+                - password
+            example:
+              username: "Mickey Mouse"
+              password: "I_love_Minnie_Mouse"
+      responses:
+        "200":
+          description: Returns the token for the specified user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: generated token for specified user
+              example:
+                token: ccecf40693bfc52ba090cd46eb7f19e723fe831f
+        "400":
+          description: Wrong credentials were provided.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  description:
+                    type: string
+              example:
+                code: 400
+                description: "Unable to log in with provided credentials."

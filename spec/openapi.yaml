@@ -1,0 +1,193 @@
+openapi: 3.0.1
+info:
+  contact:
+    name: API Specification (based on STAC)
+    url: http://data.geo.admin.ch/api/stac/v0.9/
+  description: >-
+    This is an OpenAPI definition of the API to query and access federal geodata on
+    data.geo.admin.ch. The API is based on the core SpatioTemporal Asset Catalog API specification
+    [STAC](http://stacspec.org) and adds two extensions for extended searching possibilities.
+  title: The SpatioTemporal Asset Catalog API for data.geo.admin.ch
+  version: 0.9.0
+servers:
+  - description: Data.geo.admin.ch
+    url: http://data.geo.admin.ch/api/stac/v0.9
+tags:
+  - description: Essential characteristics of this API
+    name: Capabilities
+  - description: Access to data (features)
+    name: Data
+  - description: Extension to OGC API - Features to support STAC metadata model and search API
+    name: STAC
+
+paths:
+  /:
+    get:
+      description: >-
+        The landing page provides links to the API definition, the conformance
+        statements and to the feature collections in this dataset.
+      operationId: getLandingPage
+      responses:
+        "200":
+          $ref: "./components/responses.yaml#/components/responses/LandingPage"
+        "500":
+          $ref: "./components/responses.yaml#/components/responses/ServerError"
+      summary: Landing page
+      tags:
+        - Capabilities
+  /collections:
+    get:
+      operationId: getCollections
+      parameters:
+        - $ref: "./components/parameters.yaml#/components/parameters/limit"
+      responses:
+        "200":
+          $ref: "./components/responses.yaml#/components/responses/Collections"
+        "500":
+          $ref: "./components/responses.yaml#/components/responses/ServerError"
+      summary: Fetch collections
+      description: The feature collections in the dataset
+      tags:
+        - Data
+  /collections/{collectionId}:
+    get:
+      operationId: describeCollection
+      parameters:
+        - $ref: "./components/parameters.yaml#/components/parameters/collectionId"
+        - $ref: "./components/parameters.yaml#/components/parameters/IfMatch"
+        - $ref: "./components/parameters.yaml#/components/parameters/IfNoneMatch"
+      responses:
+        "200":
+          $ref: "./components/responses.yaml#/components/responses/Collection"
+        "304":
+          $ref: "./components/responses.yaml#/components/responses/NotModified"
+        "404":
+          $ref: "./components/responses.yaml#/components/responses/NotFound"
+        "412":
+          $ref: "./components/responses.yaml#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "./components/responses.yaml#/components/responses/ServerError"
+      summary: Fetch a single collection
+      description: Describe the feature collection with id `collectionId`
+      tags:
+        - Data
+  /collections/{collectionId}/items:
+    get:
+      description: >-
+        Fetch features of the feature collection with id `collectionId`.
+
+
+        Every feature in a dataset belongs to a collection. A dataset may
+        consist of multiple feature collections. A feature collection is often a
+        collection of features of a similar type, based on a common schema.
+
+
+        Use content negotiation to request HTML or GeoJSON.
+      operationId: getFeatures
+      parameters:
+        - $ref: "./components/parameters.yaml#/components/parameters/collectionId"
+        - $ref: "./components/parameters.yaml#/components/parameters/limit"
+        - $ref: "./components/parameters.yaml#/components/parameters/bbox"
+        - $ref: "./components/parameters.yaml#/components/parameters/datetime"
+      responses:
+        "200":
+          $ref: "./components/responses.yaml#/components/responses/Features"
+        "400":
+          $ref: "./components/responses.yaml#/components/responses/InvalidParameter"
+        "404":
+          $ref: "./components/responses.yaml#/components/responses/NotFound"
+        "500":
+          $ref: "./components/responses.yaml#/components/responses/ServerError"
+      summary: Fetch features
+      tags:
+        - Data
+  /collections/{collectionId}/items/{featureId}:
+    get:
+      description: >-
+        Fetch the feature with id `featureId` in the feature collection
+        with id `collectionId`.
+
+
+        Use content negotiation to request HTML or GeoJSON.
+      operationId: getFeature
+      parameters:
+        - $ref: "./components/parameters.yaml#/components/parameters/collectionId"
+        - $ref: "./components/parameters.yaml#/components/parameters/featureId"
+        - $ref: "./components/parameters.yaml#/components/parameters/IfMatch"
+        - $ref: "./components/parameters.yaml#/components/parameters/IfNoneMatch"
+      responses:
+        "200":
+          $ref: "./components/responses.yaml#/components/responses/Feature"
+        "304":
+          $ref: "./components/responses.yaml#/components/responses/NotModified"
+        "404":
+          $ref: "./components/responses.yaml#/components/responses/NotFound"
+        "412":
+          $ref: "./components/responses.yaml#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "./components/responses.yaml#/components/responses/ServerError"
+      summary: Fetch a single feature
+      tags:
+        - Data
+  /conformance:
+    get:
+      description: >-
+        A list of all conformance classes specified in a standard that the
+        server conforms to.
+      operationId: getConformanceDeclaration
+      responses:
+        "200":
+          $ref: "./components/responses.yaml#/components/responses/ConformanceDeclaration"
+        "500":
+          $ref: "./components/responses.yaml#/components/responses/ServerError"
+      summary: Information about specifications that this API conforms to
+      tags:
+        - Capabilities
+  /search:
+    get:
+      description: >-
+        Retrieve Items matching filters. Intended as a shorthand API for simple
+        queries.
+
+      operationId: getSearchSTAC
+      parameters:
+        - $ref: "./components/parameters.yaml#/components/parameters/bbox"
+        - $ref: "./components/parameters.yaml#/components/parameters/datetime"
+        - $ref: "./components/parameters.yaml#/components/parameters/limit"
+        - $ref: "./components/parameters.yaml#/components/parameters/ids"
+        - $ref: "./components/parameters.yaml#/components/parameters/collectionsArray"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "./components/schemas.yaml#/components/schemas/itemsSearchGet"
+          description: A feature collection.
+        "500":
+          $ref: "./components/responses.yaml#/components/responses/ServerError"
+      summary: Search STAC items with simple filtering.
+      tags:
+        - STAC
+    post:
+      description: >-
+        Retrieve items matching filters. Intended as the standard, full-featured
+        query API.
+
+      operationId: postSearchSTAC
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "./components/schemas.yaml#/components/schemas/searchBody"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "./components/schemas.yaml#/components/schemas/itemsSearchPost"
+          description: A feature collection.
+        "500":
+          $ref: "./components/responses.yaml#/components/responses/ServerError"
+      summary: Search STAC items with full-featured filtering.
+      tags:
+        - STAC
