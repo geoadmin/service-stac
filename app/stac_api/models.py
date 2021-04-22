@@ -552,7 +552,7 @@ class Asset(models.Model):
         Item,
         related_name='assets',
         related_query_name='asset',
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         help_text=_(SEARCH_TEXT_HELP_ITEM)
     )
     # using "name" instead of "id", as "id" has a default meaning in django

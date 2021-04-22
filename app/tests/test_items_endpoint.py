@@ -22,6 +22,7 @@ from tests.data_factory import Factory
 from tests.data_factory import ItemFactory
 from tests.utils import client_login
 from tests.utils import disableLogger
+from tests.utils import mock_s3_asset_file
 
 logger = logging.getLogger(__name__)
 
@@ -828,14 +829,29 @@ class ItemsDeleteEndpointTestCase(StacBaseTestCase):
     @classmethod
     def setUpTestData(cls):
         cls.factory = Factory()
-        cls.collection = cls.factory.create_collection_sample().model
-        cls.item = cls.factory.create_item_sample(cls.collection, sample='item-1').model
 
+    @mock_s3_asset_file
     def setUp(self):
         self.client = Client()
         client_login(self.client)
+        self.collection = self.factory.create_collection_sample().model
+        self.item = self.factory.create_item_sample(self.collection, sample='item-1').model
+        self.asset = self.factory.create_asset_sample(self.item, sample='asset-1').model
 
     def test_item_endpoint_delete_item(self):
+        # Check that deleting, while assets are present, is not allowed
+        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{self.item.name}'
+        response = self.client.delete(path)
+        self.assertStatusCode(400, response)
+        self.assertEqual(response.json()['description'], ['Deleting Item with assets not allowed'])
+
+        # delete asset first
+        asset_path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{self.item.name}' \
+             f'/assets/{self.asset.name}'
+        response = self.client.delete(asset_path)
+        self.assertStatusCode(200, response)
+
+        # try item delete again
         path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{self.item.name}'
         response = self.client.delete(path)
         self.assertStatusCode(200, response)
