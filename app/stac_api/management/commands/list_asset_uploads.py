@@ -43,7 +43,6 @@ class ListAssetUploadsHandler(CommandHandler):
                 limit=limit, key=s3_key_start, start=s3_upload_id_start
             )
 
-        db_uploads = []
         if not self.options['s3_only']:
             queryset = AssetUpload.objects.filter_by_status(self.options['status'])
             count = queryset.count()
@@ -55,7 +54,7 @@ class ListAssetUploadsHandler(CommandHandler):
 
         if not self.options['db_only'] and not self.options['s3_only']:
 
-            def are_uploads_equals(s3_upload, db_upload):
+            def are_uploads_equal(s3_upload, db_upload):
                 if (
                     s3_upload['UploadId'] == db_upload.upload_id and
                     s3_upload['Key'] == get_asset_path(db_upload.asset.item, db_upload.asset.name)
@@ -68,7 +67,7 @@ class ListAssetUploadsHandler(CommandHandler):
                 s3_upload = next(
                     (
                         s3_upload for s3_upload in s3_uploads
-                        if are_uploads_equals(s3_upload, db_upload)
+                        if are_uploads_equal(s3_upload, db_upload)
                     ),
                     None,
                 )
@@ -85,7 +84,7 @@ class ListAssetUploadsHandler(CommandHandler):
                 db_upload = next(
                     (
                         db_upload for db_upload in db_uploads_qs
-                        if are_uploads_equals(s3_upload, db_upload)
+                        if are_uploads_equal(s3_upload, db_upload)
                     ),
                     None,
                 )
@@ -121,12 +120,17 @@ class Command(BaseCommand):
     help = """List all asset uploads object (DB and/or S3)
 
     This checks for all asset uploads object in DB (by default only returning the `in-progress`
-    status objects) as well as the open S3 multipart uploads. This command is in addition to the
+    status objects) as well as the open S3 multipart uploads (S3 has only `in-progress` uploads,
+    once the upload is completed it is automatically deleted). This command is in addition to the
     .../assets/<asset_name>/uploads which only list the uploads of one asset, while the command list
     all uploads for all assets.
 
-    WARNING: The S3 minio server for local development doesn't supports the list_multipart_uploads
-    methods, therefore the output will only contains the DB entries.
+    WARNINGS:
+      - Although pagination is implemented, if there is more uploads than the limit, the sync
+        algorithm will not work because it only search for common upload on the page context and
+        uploads are not sorted.
+      - The S3 minio server for local development doesn't supports the list_multipart_uploads
+        methods, therefore the output will only contains the DB entries.
     """
 
     def add_arguments(self, parser):
