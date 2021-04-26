@@ -55,7 +55,9 @@ class CollectionTemporalExtentMixin():
             logger.critical(
                 'Failed to update collection temporal extent; invalid trigger parameter %s',
                 trigger,
-                extra={'collection', self.name, 'item', item.name}
+                extra={
+                    'collection': self.name, 'item': item.name
+                }
             )
             raise ValueError(f'Invalid trigger parameter; {trigger}')
 
