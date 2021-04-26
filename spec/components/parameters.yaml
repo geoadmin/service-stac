@@ -1,21 +1,22 @@
+openapi: 3.0.1
 components:
   parameters:
-    #assetQuery:
-    #  description: >-
-    #    Query for properties in assets (e.g. mediatype). Use the JSON form of the assetQueryFilter
-    #    used in POST.
-    #  in: query
-    #  name: assetQuery
-    #  required: false
-    #  schema:
-    #    type: string
+    assetQuery:
+     description: >-
+       Query for properties in assets (e.g. mediatype). Use the JSON form of the assetQueryFilter
+       used in POST.
+     in: query
+     name: assetQuery
+     required: false
+     schema:
+       type: string
     bbox:
       explode: false
       in: query
       name: bbox
       required: false
       schema:
-        $ref: "#/components/schemas/bbox"
+        $ref: "./schemas.yaml#/components/schemas/bbox"
       style: form
       example:
     collectionId:
@@ -31,14 +32,14 @@ components:
       name: collections
       required: false
       schema:
-        $ref: "#/components/schemas/collectionsArray"
+        $ref: "./schemas.yaml#/components/schemas/collectionsArray"
     datetime:
       explode: false
       in: query
       name: datetime
       required: false
       schema:
-        $ref: "#/components/schemas/datetimeQuery"
+        $ref: "./schemas.yaml#/components/schemas/datetimeQuery"
       example: 2018-02-12T00%3A00%3A00Z%2F2018-03-18T12%3A31%3A12Z
       style: form
     featureId:
@@ -57,22 +58,22 @@ components:
       name: ids
       required: false
       schema:
-        $ref: "#/components/schemas/ids"
+        $ref: "./schemas.yaml#/components/schemas/ids"
     limit:
       explode: false
       in: query
       name: limit
       required: false
       schema:
-        $ref: "#/components/schemas/limit"
+        $ref: "./schemas.yaml#/components/schemas/limit"
       style: form
-    # query:
-    #   description: Query for properties in items. Use the JSON form of the queryFilter used in POST.
-    #   in: query
-    #   name: query
-    #   required: false
-    #   schema:
-    #     type: string
+    query:
+      description: Query for properties in items. Use the JSON form of the queryFilter used in POST.
+      in: query
+      name: query
+      required: false
+      schema:
+        type: string
     IfNoneMatch:
       name: If-None-Match
       in: header

@@ -1,0 +1,39 @@
+openapi: 3.0.1
+components:
+  parameters:
+    assetId:
+      name: assetId
+      in: path
+      description: Local identifier of an asset.
+      required: true
+      schema:
+        type: string
+    uploadId:
+      name: uploadId
+      in: path
+      description: Local identifier of an asset's upload.
+      required: true
+      schema:
+        type: string
+    presignedUrl:
+      name: presignedUrl
+      in: path
+      description: Presigned url returned by [Create a new Asset's multipart upload](#operation/createAssetUpload).
+      required: true
+      schema:
+        type: string
+    IfMatchWrite:
+      name: If-Match
+      in: header
+      schema:
+        type: string
+      description: >-
+        The RFC7232 `If-Match` header field makes the PUT/PATCH/DEL request method conditional. It is
+        composed of a comma separated list of ETags or value "*".
+
+
+        The server compares the client's ETags (sent with `If-Match`) with the ETag for its
+        current version of the resource, and if both values don't match (that is, the resource has changed),
+        the server sends back a `412 Precondition Failed` status, without a body, which tells the client that
+        he would overwrite another changes of the resource.
+      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
