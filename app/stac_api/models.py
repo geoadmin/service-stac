@@ -254,7 +254,7 @@ class Provider(models.Model):
         for role in self.roles:
             if role not in self.allowed_roles:
                 logger.error(
-                    'Invalid provider role %s', role, extra={'collection', self.collection.name}
+                    'Invalid provider role %s', role, extra={'collection': self.collection.name}
                 )
                 raise ValidationError(
                     _('Invalid role, must be in %(roles)s'),
@@ -446,17 +446,14 @@ class Item(models.Model):
         # It is important to use `*args, **kwargs` in signature because django might add dynamically
         # parameters
         logger.debug('Saving item', extra={'collection': self.collection.name, 'item': self.name})
-        collection_updated = False
 
         self.update_etag()
 
         trigger = get_save_trigger(self)
 
-        collection_updated |= self.collection.update_temporal_extent(
-            self, trigger, self._original_values
-        )
+        self.collection.update_temporal_extent(self, trigger, self._original_values)
 
-        collection_updated |= self.collection.update_bbox_extent(
+        self.collection.update_bbox_extent(
             trigger, self.geometry, self._original_values.get('geometry', None), self
         )
 
@@ -471,15 +468,10 @@ class Item(models.Model):
         # It is important to use `*args, **kwargs` in signature because django might add dynamically
         # parameters
         logger.debug('Deleting item', extra={'collection': self.collection.name, 'item': self.name})
-        collection_updated = False
 
-        collection_updated |= self.collection.update_temporal_extent(
-            self, 'delete', self._original_values
-        )
+        self.collection.update_temporal_extent(self, 'delete', self._original_values)
 
-        collection_updated |= self.collection.update_bbox_extent(
-            'delete', self.geometry, None, self
-        )
+        self.collection.update_bbox_extent('delete', self.geometry, None, self)
 
         self.collection.save()
 

@@ -18,7 +18,7 @@ class CollectionsModelTestCase(TestCase):
     @mock_s3_asset_file
     def setUpTestData(cls):
         cls.factory = Factory()
-        cls.collection = Factory().create_collection_sample(db_create=True)
+        cls.collection = cls.factory.create_collection_sample(db_create=True)
 
     def test_create_already_existing_collection(self):
         # try to create already existing collection twice
@@ -30,14 +30,16 @@ class CollectionsModelTestCase(TestCase):
     def test_create_collection_invalid_name(self):
         # try to create a collection with invalid collection name
         with self.assertRaises(ValidationError, msg="Collection with invalid name was accepted."):
-            Factory().create_collection_sample(sample="collection-invalid", db_create=True)
+            self.factory.create_collection_sample(
+                name="invalid name", sample="collection-invalid", db_create=True
+            )
 
     def test_create_collection_missing_mandatory_fields(self):
         # try to create a collection with invalid collection name
         with self.assertRaises(
             ValidationError, msg="Collection with missing mandatory fields was accepted."
         ):
-            Factory().create_collection_sample(
+            self.factory.create_collection_sample(
                 name="collection-missing-mandatory-fields",
                 sample="collection-missing-mandatory-fields",
                 db_create=True
@@ -46,7 +48,7 @@ class CollectionsModelTestCase(TestCase):
     def test_create_collection_invalid_links(self):
         # try to create a collection with invalid collection name
         with self.assertRaises(ValidationError, msg="Collection with invalid links was accepted."):
-            Factory().create_collection_sample(
+            self.factory.create_collection_sample(
                 name="collection-invalid-links", sample="collection-invalid-links", db_create=True
             )
 
@@ -55,20 +57,20 @@ class CollectionsModelTestCase(TestCase):
         with self.assertRaises(
             ValidationError, msg="Collection with invalid providers was accepted."
         ):
-            Factory().create_collection_sample(
+            self.factory.create_collection_sample(
                 sample="collection-invalid-providers", db_create=True
             )
 
     def test_create_collection_with_providers_and_links(self):
         # try to create a valid collection with providers and links. Should not raise any errors.
-        Factory().create_collection_sample(
+        self.factory.create_collection_sample(
             name="collection-links-providers", sample="collection-1", db_create=True
         )
 
     def test_create_collection_only_required_attributes(self):
         # try to create a valid collection with only the required attributes.
         # Should not raise any errors.
-        Factory().create_collection_sample(
+        self.factory.create_collection_sample(
             name="collection-required-only",
             sample="collection-1",
             db_create=True,
@@ -82,9 +84,9 @@ class CollectionsModelTestCase(TestCase):
         # check collection's update on item insertion
         initial_last_modified = self.collection.model.updated
         sleep(0.01)
-        item = Factory().create_item_sample(self.collection.model, sample='item-1', db_create=True)
-        item.model.full_clean()
-        item.model.save()
+        item = self.factory.create_item_sample(
+            self.collection.model, sample='item-1', db_create=True
+        )
         self.collection.model.refresh_from_db()
         self.assertGreater(
             self.collection.model.updated,
@@ -95,7 +97,7 @@ class CollectionsModelTestCase(TestCase):
         # check collection's update on item update
         initial_last_modified = self.collection.model.updated
         sleep(0.01)
-        item.model.name = "new_randon_name"
+        item.model.properties_title = f"new_{item.model.properties_title}"
         item.model.full_clean()
         item.model.save()
         self.collection.model.refresh_from_db()
@@ -121,12 +123,12 @@ class CollectionsModelTestCase(TestCase):
         # added to an item of the collection, this asset is updated and this asset is deleted
 
         # check collection's update on asset insertion
-        item = Factory().create_item_sample(self.collection.model, sample='item-1', db_create=True)
+        item = self.factory.create_item_sample(
+            self.collection.model, sample='item-1', db_create=True
+        )
         initial_last_modified = self.collection.model.updated
         sleep(0.01)
-        asset = Factory().create_asset_sample(item=item.model, sample='asset-1', db_create=True)
-        asset.model.full_clean()
-        asset.model.save()
+        asset = self.factory.create_asset_sample(item=item.model, sample='asset-1', db_create=True)
         self.collection.model.refresh_from_db()
         self.assertGreater(
             self.collection.model.updated,
@@ -137,7 +139,7 @@ class CollectionsModelTestCase(TestCase):
         # check collection's update on asset update
         initial_last_modified = self.collection.model.updated
         sleep(0.01)
-        asset.model.name = f"new-{asset.model.name}"
+        asset.model.title = f"new-{asset.model.title}"
         asset.model.full_clean()
         asset.model.save()
         self.collection.model.refresh_from_db()
