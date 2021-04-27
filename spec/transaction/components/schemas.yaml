@@ -139,7 +139,7 @@ components:
         id:
           $ref: "#/components/schemas/itemIdUpdate"
         geometry:
-          $ref: "https://geojson.org/schema/Geometry.json"
+          $ref: "../../components/schemas.yaml#/components/schemas/itemGeometry"
         properties:
           $ref: "../../components/schemas.yaml#/components/schemas/itemProperties"
         links:
