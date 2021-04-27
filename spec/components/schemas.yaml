@@ -575,15 +575,15 @@ components:
       example: komb
       title: Product variants
       type: string
-    geometryGeoJSON:
-      oneOf:
-        # - $ref: "./schemas.yaml#/components/schemas/pointGeoJSON"
-        # - $ref: "./schemas.yaml#/components/schemas/multipointGeoJSON"
-        # - $ref: "./schemas.yaml#/components/schemas/linestringGeoJSON"
-        # - $ref: "./schemas.yaml#/components/schemas/multilinestringGeoJSON"
-        - $ref: "./schemas.yaml#/components/schemas/polygonGeoJSON"
-        # - $ref: "./schemas.yaml#/components/schemas/multipolygonGeoJSON"
-        # - $ref: "./schemas.yaml#/components/schemas/geometrycollectionGeoJSON"
+    # geometryGeoJSON:
+    #   oneOf:
+    #     # - $ref: "./schemas.yaml#/components/schemas/pointGeoJSON"
+    #     # - $ref: "./schemas.yaml#/components/schemas/multipointGeoJSON"
+    #     # - $ref: "./schemas.yaml#/components/schemas/linestringGeoJSON"
+    #     # - $ref: "./schemas.yaml#/components/schemas/multilinestringGeoJSON"
+    #     - $ref: "./schemas.yaml#/components/schemas/polygonGeoJSON"
+    #     # - $ref: "./schemas.yaml#/components/schemas/multipolygonGeoJSON"
+    #     # - $ref: "./schemas.yaml#/components/schemas/geometrycollectionGeoJSON"
     geometrycollectionGeoJSON:
       properties:
         geometries:
@@ -644,11 +644,12 @@ components:
         bbox:
           $ref: "./schemas.yaml#/components/schemas/bbox"
         geometry:
+          $ref: "./schemas.yaml#/components/schemas/itemGeometry"
           # we could use the 'original' schema, but it doesn't
           # contain a useful example, hence we use our own
           # schema with appropriate example
           # $ref: https://geojson.org/schema/Geometry.json
-          $ref: "./schemas.yaml#/components/schemas/geometryGeoJSON"
+          # $ref: "./schemas.yaml#/components/schemas/geometryGeoJSON"
         properties:
           $ref: "./schemas.yaml#/components/schemas/itemProperties"
           readOnly: true

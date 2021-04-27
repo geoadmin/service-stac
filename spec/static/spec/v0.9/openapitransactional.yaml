@@ -1768,9 +1768,6 @@ components:
       example: komb
       title: Product variants
       type: string
-    geometryGeoJSON:
-      oneOf:
-      - $ref: "#/components/schemas/polygonGeoJSON"
     geometrycollectionGeoJSON:
       properties:
         geometries:
@@ -1831,7 +1828,7 @@ components:
         bbox:
           $ref: "#/components/schemas/bbox"
         geometry:
-          $ref: "#/components/schemas/geometryGeoJSON"
+          $ref: "#/components/schemas/itemGeometry"
         properties:
           $ref: "#/components/schemas/itemProperties"
           readOnly: true
