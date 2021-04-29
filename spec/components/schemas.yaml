@@ -105,7 +105,6 @@ components:
           $ref: "./schemas.yaml#/components/schemas/updated"
     bbox:
       description: |
-        Only features that have a geometry that intersects the bounding box are selected.
         The bounding box is provided as four numbers:
 
         * Lower left corner, coordinate axis 1
@@ -127,10 +126,10 @@ components:
         represented in JSON as `[5.96, 45.82, 10.49, 47.81]` and in a query as
         `bbox=5.96,45.82,10.49,47.81`."
       example:
-        - 5.96
-        - 45.82
-        - 10.49
-        - 47.81
+        - 7.0906249
+        - 45.9160584
+        - 7.1035698
+        - 45.925093
       items:
         type: number
       maxItems: 4
@@ -168,10 +167,10 @@ components:
         represented in JSON as `[5.96, 45.82, 10.49, 47.81]` and in a query as
         `bbox=5.96,45.82,10.49,47.81`."
       example:
-        - 5.96
-        - 45.82
-        - 10.49
-        - 47.81
+        - 7.0906249
+        - 45.9160584
+        - 7.1035698
+        - 45.925093
       items:
         type: number
       maxItems: 4
@@ -584,20 +583,20 @@ components:
     #     - $ref: "./schemas.yaml#/components/schemas/polygonGeoJSON"
     #     # - $ref: "./schemas.yaml#/components/schemas/multipolygonGeoJSON"
     #     # - $ref: "./schemas.yaml#/components/schemas/geometrycollectionGeoJSON"
-    geometrycollectionGeoJSON:
-      properties:
-        geometries:
-          items:
-            $ref: "./schemas.yaml#/components/schemas/geometryGeoJSON"
-          type: array
-        type:
-          enum:
-            - GeometryCollection
-          type: string
-      required:
-        - type
-        - geometries
-      type: object
+    # geometrycollectionGeoJSON:
+    #   properties:
+    #     geometries:
+    #       items:
+    #         $ref: "./schemas.yaml#/components/schemas/geometryGeoJSON"
+    #       type: array
+    #     type:
+    #       enum:
+    #         - GeometryCollection
+    #       type: string
+    #   required:
+    #     - type
+    #     - geometries
+    #   type: object
     href:
       type: string
       format: url
@@ -821,148 +820,248 @@ components:
       type: string
     itemGeometry:
       oneOf:
-        - title: GeoJSON Point
-          type: object
-          required:
-            - type
-            - coordinates
-          properties:
-            type:
-              type: string
-              enum:
-                - Point
-            coordinates:
+        # - $ref: "#/components/schemas/geoJsonPoint"
+        # - $ref: "#/components/schemas/geoJsonLineString"
+        - $ref: "#/components/schemas/geoJsonPolygon"
+        # - $ref: "#/components/schemas/geoJsonMultiPoint"
+        # - $ref: "#/components/schemas/geoJsonMultiLineString"
+        # - $ref: "#/components/schemas/geoJsonMultiPolygon"
+    geoJsonPoint:
+      title: GeoJSON Point
+      type: object
+      required:
+        - type
+        - coordinates
+      properties:
+        type:
+          type: string
+          enum:
+            - Point
+        coordinates:
+          description: >-
+            For type "Point", the "coordinates" member is a single position.
+            The coordinate reference system of the values is WGS84
+            longitude/latitude (http://www.opengis.net/def/crs/OGC/1.3/CRS84).
+          example:
+            [7.0906823, 45.9160584]
+          type: array
+          minItems: 2
+          items:
+            type: number
+        # bbox:
+        #   $ref: "./schemas.yaml#/components/schemas/bbox"
+          # type: array
+          # minItems: 4
+          # items:
+          #   type: number
+    geoJsonLineString:
+      title: GeoJSON LineString
+      type: object
+      required:
+        - type
+        - coordinates
+      properties:
+        type:
+          type: string
+          enum:
+            - LineString
+        coordinates:
+          description: >-
+            For type "LineString", the "coordinates" member is an array of two or
+            more positions.
+            The coordinate reference system of the values is WGS84
+            longitude/latitude (http://www.opengis.net/def/crs/OGC/1.3/CRS84).
+          example:
+            - [
+              [7.0906823, 45.9160584], [7.1035698, 45.9160977]
+            ]
+          type: array
+          minItems: 2
+          items:
+            type: array
+            minItems: 2
+            items:
+              type: number
+        # bbox:
+        #   $ref: "./schemas.yaml#/components/schemas/bbox"
+          # type: array
+          # minItems: 4
+          # items:
+          #   type: number
+    geoJsonPolygon:
+      title: GeoJSON Polygon
+      type: object
+      required:
+        - type
+        - coordinates
+      properties:
+        type:
+          type: string
+          enum:
+            - Polygon
+        coordinates:
+          description: >-
+            For type "Polygon", the "coordinates" member MUST be an array of
+            linear ring coordinate arrays.
+            The coordinate reference system of the values is WGS84
+            longitude/latitude (http://www.opengis.net/def/crs/OGC/1.3/CRS84).
+          example:
+            [
+              [
+                [7.0906823, 45.9160584],
+                [7.1035698, 45.9160977],
+                [7.1035146, 45.925093],
+                [7.0906249, 45.9250537],
+                [7.0906823, 45.9160584]
+              ]
+            ]
+          type: array
+          items:
+            type: array
+          minItems: 4
+          items:
+            type: array
+            minItems: 2
+            items:
+              type: number
+        # bbox:
+        #   $ref: "./schemas.yaml#/components/schemas/bbox"
+        #   example:
+        #     7.0906249
+        #     45.9160584
+        #     7.1035698
+        #     45.925093
+          # type: array
+          # minItems: 4
+          # items:
+          #   type: number
+    geoJsonMultiPoint:
+      title: GeoJSON MultiPoint
+      type: object
+      required:
+        - type
+        - coordinates
+      properties:
+        type:
+          type: string
+          enum:
+            - MultiPoint
+        coordinates:
+          description: >-
+            For type "MultiPoint", the "coordinates" member is an array of
+            positions.
+            The coordinate reference system of the values is WGS84
+            longitude/latitude (http://www.opengis.net/def/crs/OGC/1.3/CRS84).
+          example:
+            [
+              [7.0906823, 45.9160584],
+              [7.1035698, 45.9160977],
+              [7.1035146, 45.925093]
+            ]
+          type: array
+          items:
+            type: array
+            minItems: 2
+            items:
+              type: number
+        # bbox:
+        #   $ref: "./schemas.yaml#/components/schemas/bbox"
+          # type: array
+          # minItems: 4
+          # items:
+          #   type: number
+    geoJsonMultiLineString:
+      title: GeoJSON MultiLineString
+      type: object
+      required:
+        - type
+        - coordinates
+      properties:
+        type:
+          type: string
+          enum:
+            - MultiLineString
+        coordinates:
+          description: >-
+            For type "MultiLineString", the "coordinates" member is an array of
+            LineString coordinate arrays.
+            The coordinate reference system of the values is WGS84
+            longitude/latitude (http://www.opengis.net/def/crs/OGC/1.3/CRS84).
+          example:
+            [
+                [[7.0906823, 45.9160584], [7.1035698, 45.9160977]],
+                [[7.1035146, 45.925093], [7.0906249, 45.9250537]]
+            ]
+          type: array
+          items:
+            type: array
+            minItems: 2
+            items:
               type: array
               minItems: 2
               items:
                 type: number
-            bbox:
-              type: array
-              minItems: 4
-              items:
-                type: number
-        - title: GeoJSON LineString
-          type: object
-          required:
-            - type
-            - coordinates
-          properties:
-            type:
-              type: string
-              enum:
-                - LineString
-            coordinates:
-              type: array
-              minItems: 2
-              items:
-                type: array
-                minItems: 2
-                items:
-                  type: number
-            bbox:
-              type: array
-              minItems: 4
-              items:
-                type: number
-        - title: GeoJSON Polygon
-          type: object
-          required:
-            - type
-            - coordinates
-          properties:
-            type:
-              type: string
-              enum:
-                - Polygon
-            coordinates:
-              type: array
-              items:
-                type: array
-              minItems: 4
-              items:
-                type: array
-                minItems: 2
-                items:
-                  type: number
-            bbox:
-              type: array
-              minItems: 4
-              items:
-                type: number
-        - title: GeoJSON MultiPoint
-          type: object
-          required:
-            - type
-            - coordinates
-          properties:
-            type:
-              type: string
-              enum:
-                - MultiPoint
-            coordinates:
-              type: array
-              items:
-                type: array
-                minItems: 2
-                items:
-                  type: number
-            bbox:
-              type: array
-              minItems: 4
-              items:
-                type: number
-        - title: GeoJSON MultiLineString
-          type: object
-          required:
-            - type
-            - coordinates
-          properties:
-            type:
-              type: string
-              enum:
-                - MultiLineString
-            coordinates:
-              type: array
-              items:
-                type: array
-                minItems: 2
-                items:
-                  type: array
-                  minItems: 2
-                  items:
-                    type: number
-            bbox:
+        # bbox:
+        #   $ref: "./schemas.yaml#/components/schemas/bbox"
+          # type: array
+          # minItems: 4
+          # items:
+          #   type: number
+    geoJsonMultiPolygon:
+      title: GeoJSON MultiPolygon
+      type: object
+      required:
+        - type
+        - coordinates
+      properties:
+        type:
+          type: string
+          enum:
+            - MultiPolygon
+        coordinates:
+          description: >-
+            For type "MultiPolygon", the "coordinates" member is an array of
+            Polygon coordinate arrays.
+            The coordinate reference system of the values is WGS84
+            longitude/latitude (http://www.opengis.net/def/crs/OGC/1.3/CRS84).
+          example:
+            [
+              [
+                [
+                  [7.0906823, 45.9160584],
+                  [7.1035698, 45.9160977],
+                  [7.1035146, 45.925093],
+                  [7.0906249, 45.9250537],
+                  [7.0906823, 45.9160584]
+                ]
+              ],
+              [
+                [
+                  [8.5816399, 45.7218735],
+                  [8.5944806, 45.7217417],
+                  [8.5946699, 45.7307358],
+                  [8.581827, 45.7308676],
+                  [8.5816399, 45.7218735]
+                ]
+              ]
+            ]
+          type: array
+          items:
+            type: array
+            items:
               type:	array
               minItems:	4
               items:
-                type:	number
-        - title: GeoJSON MultiPolygon
-          type: object
-          required:
-            - type
-            - coordinates
-          properties:
-            type:
-              type: string
-              enum:
-                - MultiPolygon
-            coordinates:
-              type: array
-              items:
-                type: array
+                type:	array
+                minItems:	2
                 items:
-                  type:	array
-                  minItems:	4
-                  items:
-                    type:	array
-                    minItems:	2
-                    items:
-                      type: number
-            bbox:
-              type:	array
-              minItems:	4
-              items:
-                type: number
+                  type: number
+        # bbox:
+        #   $ref: "./schemas.yaml#/components/schemas/bbox"
+          # type: array
+          # minItems: 4
+          # items:
+          #   type: number
     itemProperties:
       title: Properties
       description: >-
