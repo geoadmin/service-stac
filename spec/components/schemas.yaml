@@ -574,29 +574,6 @@ components:
       example: komb
       title: Product variants
       type: string
-    # geometryGeoJSON:
-    #   oneOf:
-    #     # - $ref: "./schemas.yaml#/components/schemas/pointGeoJSON"
-    #     # - $ref: "./schemas.yaml#/components/schemas/multipointGeoJSON"
-    #     # - $ref: "./schemas.yaml#/components/schemas/linestringGeoJSON"
-    #     # - $ref: "./schemas.yaml#/components/schemas/multilinestringGeoJSON"
-    #     - $ref: "./schemas.yaml#/components/schemas/polygonGeoJSON"
-    #     # - $ref: "./schemas.yaml#/components/schemas/multipolygonGeoJSON"
-    #     # - $ref: "./schemas.yaml#/components/schemas/geometrycollectionGeoJSON"
-    # geometrycollectionGeoJSON:
-    #   properties:
-    #     geometries:
-    #       items:
-    #         $ref: "./schemas.yaml#/components/schemas/geometryGeoJSON"
-    #       type: array
-    #     type:
-    #       enum:
-    #         - GeometryCollection
-    #       type: string
-    #   required:
-    #     - type
-    #     - geometries
-    #   type: object
     href:
       type: string
       format: url
@@ -625,7 +602,13 @@ components:
       description: Only returns items that intersect with the provided polygon.
       properties:
         intersects:
-          $ref: https://geojson.org/schema/Geometry.json
+          oneOf:
+          - $ref: "#/components/schemas/geoJsonPoint"
+          - $ref: "#/components/schemas/geoJsonLineString"
+          - $ref: "#/components/schemas/geoJsonPolygon"
+          - $ref: "#/components/schemas/geoJsonMultiPoint"
+          - $ref: "#/components/schemas/geoJsonMultiLineString"
+          - $ref: "#/components/schemas/geoJsonMultiPolygon"
       type: object
       example:
         intersects:
@@ -819,10 +802,10 @@ components:
       example: smr200-200-4-2019
       type: string
     itemGeometry:
-      oneOf:
+      # oneOf:
         # - $ref: "#/components/schemas/geoJsonPoint"
         # - $ref: "#/components/schemas/geoJsonLineString"
-        - $ref: "#/components/schemas/geoJsonPolygon"
+      $ref: "#/components/schemas/geoJsonPolygon"
         # - $ref: "#/components/schemas/geoJsonMultiPoint"
         # - $ref: "#/components/schemas/geoJsonMultiLineString"
         # - $ref: "#/components/schemas/geoJsonMultiPolygon"
@@ -848,12 +831,6 @@ components:
           minItems: 2
           items:
             type: number
-        # bbox:
-        #   $ref: "./schemas.yaml#/components/schemas/bbox"
-          # type: array
-          # minItems: 4
-          # items:
-          #   type: number
     geoJsonLineString:
       title: GeoJSON LineString
       type: object
@@ -882,12 +859,6 @@ components:
             minItems: 2
             items:
               type: number
-        # bbox:
-        #   $ref: "./schemas.yaml#/components/schemas/bbox"
-          # type: array
-          # minItems: 4
-          # items:
-          #   type: number
     geoJsonPolygon:
       title: GeoJSON Polygon
       type: object
@@ -918,23 +889,12 @@ components:
           type: array
           items:
             type: array
-          minItems: 4
-          items:
-            type: array
-            minItems: 2
+            minItems: 4
             items:
-              type: number
-        # bbox:
-        #   $ref: "./schemas.yaml#/components/schemas/bbox"
-        #   example:
-        #     7.0906249
-        #     45.9160584
-        #     7.1035698
-        #     45.925093
-          # type: array
-          # minItems: 4
-          # items:
-          #   type: number
+              type: array
+              minItems: 2
+              items:
+                type: number
     geoJsonMultiPoint:
       title: GeoJSON MultiPoint
       type: object
@@ -964,12 +924,6 @@ components:
             minItems: 2
             items:
               type: number
-        # bbox:
-        #   $ref: "./schemas.yaml#/components/schemas/bbox"
-          # type: array
-          # minItems: 4
-          # items:
-          #   type: number
     geoJsonMultiLineString:
       title: GeoJSON MultiLineString
       type: object
@@ -1001,12 +955,6 @@ components:
               minItems: 2
               items:
                 type: number
-        # bbox:
-        #   $ref: "./schemas.yaml#/components/schemas/bbox"
-          # type: array
-          # minItems: 4
-          # items:
-          #   type: number
     geoJsonMultiPolygon:
       title: GeoJSON MultiPolygon
       type: object
@@ -1056,12 +1004,6 @@ components:
                 minItems:	2
                 items:
                   type: number
-        # bbox:
-        #   $ref: "./schemas.yaml#/components/schemas/bbox"
-          # type: array
-          # minItems: 4
-          # items:
-          #   type: number
     itemProperties:
       title: Properties
       description: >-

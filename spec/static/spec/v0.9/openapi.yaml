@@ -364,10 +364,10 @@ components:
         and from 45.82°N to 47.81°N) would be represented in JSON as `[5.96, 45.82,
         10.49, 47.81]` and in a query as `bbox=5.96,45.82,10.49,47.81`."
       example:
-        - 7.0906249
-        - 45.9160584
-        - 7.1035698
-        - 45.925093
+      - 7.0906249
+      - 45.9160584
+      - 7.1035698
+      - 45.925093
       items:
         type: number
       maxItems: 4
@@ -801,7 +801,13 @@ components:
       description: Only returns items that intersect with the provided polygon.
       properties:
         intersects:
-          $ref: https://geojson.org/schema/Geometry.json
+          oneOf:
+          - $ref: "#/components/schemas/geoJsonPoint"
+          - $ref: "#/components/schemas/geoJsonLineString"
+          - $ref: "#/components/schemas/geoJsonPolygon"
+          - $ref: "#/components/schemas/geoJsonMultiPoint"
+          - $ref: "#/components/schemas/geoJsonMultiLineString"
+          - $ref: "#/components/schemas/geoJsonMultiPolygon"
       type: object
       example:
         intersects:
@@ -990,8 +996,7 @@ components:
       example: smr200-200-4-2019
       type: string
     itemGeometry:
-      oneOf:
-      - $ref: "#/components/schemas/geoJsonPolygon"
+      $ref: "#/components/schemas/geoJsonPolygon"
     geoJsonPoint:
       title: GeoJSON Point
       type: object
@@ -1072,10 +1077,12 @@ components:
           type: array
           items:
             type: array
-            minItems: 2
+            minItems: 4
             items:
-              type: number
-          minItems: 4
+              type: array
+              minItems: 2
+              items:
+                type: number
     geoJsonMultiPoint:
       title: GeoJSON MultiPoint
       type: object
