@@ -187,7 +187,7 @@ components:
         `sha2-256` checksum of the asset in [multihash](https://multiformats.io/multihash/)
         format.
 
-      example: 90e402107a7f2588a85362b9beea2a12d4514d45
+      example: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
       pattern: ^[a-f0-9]+$
       title: Multihash
       type: string
@@ -729,7 +729,7 @@ components:
       readOnly: true
       example:
         smr50-263-2016-2056-kgrs-2.5.tiff:
-          checksum:multihash: 90e402107a7f2588a85362b9beea2a12d4514d45
+          checksum:multihash: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
           created: "2020-07-14T12:30:00Z"
           eo:gsd: 2.5
           geoadmin:variant: kgrs
@@ -738,7 +738,7 @@ components:
           type: image/tiff; application=geotiff
           updated: "2020-07-14T12:30:00Z"
         smr50-263-2016-2056-komb-2.5.tiff:
-          checksum:multihash: 90d402107a7f2588a85362b9beea2a12d4514d45
+          checksum:multihash: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
           created: "2020-07-14T12:30:00Z"
           eo:gsd: 2.5
           geoadmin:variant: komb
@@ -747,7 +747,7 @@ components:
           type: image/tiff; application=geotiff
           updated: "2020-07-14T12:30:00Z"
         smr50-263-2016-2056-krel-2.5.tiff:
-          checksum:multihash: 90f402107a7f2588a85362b9beea2a12d4514d45
+          checksum:multihash: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
           created: "2020-07-14T12:30:00Z"
           eo:gsd: 2.5
           geoadmin:variant: krel
