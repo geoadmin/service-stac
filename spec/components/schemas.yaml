@@ -629,9 +629,8 @@ components:
           $ref: "./schemas.yaml#/components/schemas/itemGeometry"
           # we could use the 'original' schema, but it doesn't
           # contain a useful example, hence we use our own
-          # schema with appropriate example
-          # $ref: https://geojson.org/schema/Geometry.json
-          # $ref: "./schemas.yaml#/components/schemas/geometryGeoJSON"
+          # schema with appropriate example. Original schemas
+          # were defined here: https://geojson.org/schema/Geometry.json
         properties:
           $ref: "./schemas.yaml#/components/schemas/itemProperties"
           readOnly: true
