@@ -91,7 +91,7 @@ tags:
           "type": "application/x.filegdb+zip",
           "description": "My description",
           "proj:epsg": 2056,
-          "checksum:multihash": "01205c3fd6978a7d0b051efaa4263a04"
+          "checksum:multihash": "12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC"
       }'
       ```
 
@@ -112,7 +112,7 @@ tags:
           "type": "application/x.filegdb+zip",
           "description": "My description",
           "proj:epsg": 2056,
-          "checksum:multihash": "01205c3fd6978a7d0b051efaa4263a04"
+          "checksum:multihash": "12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC"
       }'
       ```
 
