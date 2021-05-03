@@ -3,7 +3,7 @@ components:
   schemas:
     assetQuery:
      additionalProperties:
-       $ref: "./schemas.yaml#/components/schemas/assetQueryProp"
+       $ref: "#/components/schemas/assetQueryProp"
      description: >-
        Define which properties of the asset to query and the operations to apply.
 
@@ -25,7 +25,7 @@ components:
      description: Allows users to query asset properties for specific values
      properties:
        assetQuery:
-         $ref: "./schemas.yaml#/components/schemas/assetQuery"
+         $ref: "#/components/schemas/assetQuery"
      type: object
     assetQueryProp:
      anyOf:
@@ -80,29 +80,29 @@ components:
         - updated
       properties:
         title:
-          $ref: "./schemas.yaml#/components/schemas/title"
+          $ref: "#/components/schemas/title"
         description:
-          $ref: "./schemas.yaml#/components/schemas/description"
+          $ref: "#/components/schemas/description"
         type:
-          $ref: "./schemas.yaml#/components/schemas/type"
+          $ref: "#/components/schemas/type"
         href:
-          $ref: "./schemas.yaml#/components/schemas/href"
+          $ref: "#/components/schemas/href"
         checksum:multihash:
-          $ref: "./schemas.yaml#/components/schemas/checksumMultihashReadOnly"
+          $ref: "#/components/schemas/checksumMultihashReadOnly"
         # roles:
         #   $ref: '#/components/schemas/roles'
         "geoadmin:variant":
-          $ref: "./schemas.yaml#/components/schemas/geoadminVariant"
+          $ref: "#/components/schemas/geoadminVariant"
         "geoadmin:lang":
-          $ref: "./schemas.yaml#/components/schemas/geoadminLang"
+          $ref: "#/components/schemas/geoadminLang"
         "proj:epsg":
-          $ref: "./schemas.yaml#/components/schemas/projEpsg"
+          $ref: "#/components/schemas/projEpsg"
         "eo:gsd":
-          $ref: "./schemas.yaml#/components/schemas/eoGsd"
+          $ref: "#/components/schemas/eoGsd"
         created:
-          $ref: "./schemas.yaml#/components/schemas/created"
+          $ref: "#/components/schemas/created"
         updated:
-          $ref: "./schemas.yaml#/components/schemas/updated"
+          $ref: "#/components/schemas/updated"
     bbox:
       description: |
         The bounding box is provided as four numbers:
@@ -180,7 +180,7 @@ components:
     bboxFilter:
       properties:
         bbox:
-          $ref: "./schemas.yaml#/components/schemas/bboxfilter"
+          $ref: "#/components/schemas/bboxfilter"
     checksumMultihash:
       description: >-
         `sha2-256` checksum of the asset in [multihash](https://multiformats.io/multihash/)
@@ -231,7 +231,7 @@ components:
             for a variety of purposes (digital printing, plots, offset printing, etc.).
           type: string
         extent:
-          $ref: "./schemas.yaml#/components/schemas/extent"
+          $ref: "#/components/schemas/extent"
         id:
           description: Identifier of the collection used, for example, in URIs
           example: ch.swisstopo.pixelkarte-farbe-pk200.noscale
@@ -243,11 +243,11 @@ components:
           type: string
           readOnly: true
         license:
-          $ref: "./schemas.yaml#/components/schemas/license"
+          $ref: "#/components/schemas/license"
         providers:
-          $ref: "./schemas.yaml#/components/schemas/providers"
+          $ref: "#/components/schemas/providers"
         stac_version:
-          $ref: "./schemas.yaml#/components/schemas/stac_version"
+          $ref: "#/components/schemas/stac_version"
         summaries:
           additionalProperties:
             oneOf:
@@ -306,9 +306,9 @@ components:
           example: National Map 1:200'000
           type: string
         created:
-          $ref: "./schemas.yaml#/components/schemas/created"
+          $ref: "#/components/schemas/created"
         updated:
-          $ref: "./schemas.yaml#/components/schemas/updated"
+          $ref: "#/components/schemas/updated"
       required:
         - id
         - stac_version
@@ -320,7 +320,7 @@ components:
       type: object
     collection:
       allOf:
-        - $ref: "./schemas.yaml#/components/schemas/collectionBase"
+        - $ref: "#/components/schemas/collectionBase"
         - type: object
           required:
             - links
@@ -328,7 +328,7 @@ components:
             links:
               type: array
               items:
-                $ref: "./schemas.yaml#/components/schemas/link"
+                $ref: "#/components/schemas/link"
               example:
                 - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
                   rel: self
@@ -347,11 +347,11 @@ components:
       properties:
         collections:
           items:
-            $ref: "./schemas.yaml#/components/schemas/collection"
+            $ref: "#/components/schemas/collection"
           type: array
         links:
           items:
-            $ref: "./schemas.yaml#/components/schemas/link"
+            $ref: "#/components/schemas/link"
           example:
             - href: https://data.geo.admin.ch/api/stac/v0.9/collections
               rel: self
@@ -376,7 +376,7 @@ components:
       description: Only returns the collections specified
       properties:
         collections:
-          $ref: "./schemas.yaml#/components/schemas/collectionsArray"
+          $ref: "#/components/schemas/collectionsArray"
       type: object
       example:
         collections:
@@ -421,7 +421,7 @@ components:
     datetimeFilter:
       properties:
         datetime:
-          $ref: "./schemas.yaml#/components/schemas/datetimeQuery"
+          $ref: "#/components/schemas/datetimeQuery"
     description:
       description: >-
         Detailed multi-line description to fully explain the catalog or
@@ -592,7 +592,7 @@ components:
       description: Only returns items that match the array of given ids
       properties:
         ids:
-          $ref: "./schemas.yaml#/components/schemas/ids"
+          $ref: "#/components/schemas/ids"
       type: object
       example:
         ids:
@@ -622,23 +622,21 @@ components:
         STAC entity
       properties:
         assets:
-          $ref: "./schemas.yaml#/components/schemas/itemAssets"
+          $ref: "#/components/schemas/itemAssets"
         bbox:
-          $ref: "./schemas.yaml#/components/schemas/bbox"
+          $ref: "#/components/schemas/bbox"
         geometry:
-          $ref: "./schemas.yaml#/components/schemas/itemGeometry"
-          # we could use the 'original' schema, but it doesn't
-          # contain a useful example, hence we use our own
-          # schema with appropriate example. Original schemas
-          # were defined here: https://geojson.org/schema/Geometry.json
+          # Original schemas were defined here:
+          # https://geojson.org/schema/Geometry.json
+          $ref: "#/components/schemas/itemGeometry"
         properties:
-          $ref: "./schemas.yaml#/components/schemas/itemProperties"
+          $ref: "#/components/schemas/itemProperties"
           readOnly: true
         stac_version:
-          $ref: "./schemas.yaml#/components/schemas/stac_version"
+          $ref: "#/components/schemas/stac_version"
           readOnly: true
         type:
-          $ref: "./schemas.yaml#/components/schemas/itemType"
+          $ref: "#/components/schemas/itemType"
       required:
         - stac_version
         - type
@@ -655,10 +653,10 @@ components:
             - links
           properties:
             id:
-              $ref: "./schemas.yaml#/components/schemas/itemId"
+              $ref: "#/components/schemas/itemId"
             links:
               items:
-                $ref: "./schemas.yaml#/components/schemas/link"
+                $ref: "#/components/schemas/link"
               type: array
               example:
                 - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr50-263-2016
@@ -669,7 +667,7 @@ components:
                   rel: parent
                 - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
                   rel: collection
-        - $ref: "./schemas.yaml#/components/schemas/itemBase"
+        - $ref: "#/components/schemas/itemBase"
     items:
       description: >-
         A FeatureCollection augmented with foreign members that contain values relevant
@@ -677,11 +675,11 @@ components:
       properties:
         features:
           items:
-            $ref: "./schemas.yaml#/components/schemas/item"
+            $ref: "#/components/schemas/item"
           type: array
         links:
           items:
-            $ref: "./schemas.yaml#/components/schemas/link"
+            $ref: "#/components/schemas/link"
           type: array
           example:
             - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items
@@ -706,7 +704,7 @@ components:
       title: Assets
       description: List of Assets attached to this feature.
       additionalProperties:
-        $ref: "./schemas.yaml#/components/schemas/assetBase"
+        $ref: "#/components/schemas/assetBase"
       type: object
       readOnly: true
       example:
@@ -744,7 +742,7 @@ components:
       properties:
         features:
           items:
-            $ref: "./schemas.yaml#/components/schemas/item"
+            $ref: "#/components/schemas/item"
           type: array
         type:
           enum:
@@ -756,18 +754,18 @@ components:
       type: object
     itemsSearchGet:
       allOf:
-        - $ref: "./schemas.yaml#/components/schemas/itemsSearch"
+        - $ref: "#/components/schemas/itemsSearch"
         - type: object
           properties:
             links:
-              $ref: "./schemas.yaml#/components/schemas/itemsSearchLinks"
+              $ref: "#/components/schemas/itemsSearchLinks"
     itemsSearchPost:
       allOf:
-        - $ref: "./schemas.yaml#/components/schemas/itemsSearch"
+        - $ref: "#/components/schemas/itemsSearch"
         - type: object
           properties:
             links:
-              $ref: "./schemas.yaml#/components/schemas/itemsSearchPostLinks"
+              $ref: "#/components/schemas/itemsSearchPostLinks"
     itemsSearchLinks:
       description: >-
         An array of links. Can be used for pagination, e.g. by providing a link with the `next`
@@ -778,7 +776,7 @@ components:
         - href: https://data.geo.admin.ch/api/stac/v0.9/search?cursor=10ab
           rel: next
       items:
-        $ref: "./schemas.yaml#/components/schemas/link"
+        $ref: "#/components/schemas/link"
       type: array
     itemsSearchPostLinks:
       description: >-
@@ -793,7 +791,7 @@ components:
           body: {}
           merge: true
       items:
-        $ref: "./schemas.yaml#/components/schemas/linkPostSearch"
+        $ref: "#/components/schemas/linkPostSearch"
       type: array
     itemId:
       title: ID
@@ -1019,15 +1017,15 @@ components:
         One of the two is required
       properties:
         created:
-          $ref: "./schemas.yaml#/components/schemas/created"
+          $ref: "#/components/schemas/created"
         datetime:
-          $ref: "./schemas.yaml#/components/schemas/datetime"
+          $ref: "#/components/schemas/datetime"
         start_datetime:
-          $ref: "./schemas.yaml#/components/schemas/datetime"
+          $ref: "#/components/schemas/datetime"
         end_datetime:
-          $ref: "./schemas.yaml#/components/schemas/datetime"
+          $ref: "#/components/schemas/datetime"
         updated:
-          $ref: "./schemas.yaml#/components/schemas/updated"
+          $ref: "#/components/schemas/updated"
         title:
           description: Human readable title of the Feature
           example: Feature title
@@ -1054,10 +1052,10 @@ components:
           type: string
         links:
           items:
-            $ref: "./schemas.yaml#/components/schemas/link"
+            $ref: "#/components/schemas/link"
           type: array
         stac_version:
-          $ref: "./schemas.yaml#/components/schemas/stac_version"
+          $ref: "#/components/schemas/stac_version"
         title:
           example: Buildings in Bonn
           type: string
@@ -1103,7 +1101,7 @@ components:
       description: Only returns maximum number of results (page size)
       properties:
         limit:
-          $ref: "./schemas.yaml#/components/schemas/limit"
+          $ref: "#/components/schemas/limit"
       type: object
     linestringGeoJSON:
       properties:
@@ -1159,7 +1157,7 @@ components:
       type: object
     linkPostSearch:
       allOf:
-        - $ref: "./schemas.yaml#/components/schemas/link"
+        - $ref: "#/components/schemas/link"
         - type: object
           properties:
             body:
@@ -1384,7 +1382,7 @@ components:
           url: https://www.swisstopo.admin.ch
     query:
       additionalProperties:
-        $ref: "./schemas.yaml#/components/schemas/queryProp"
+        $ref: "#/components/schemas/queryProp"
       description: Define which properties to query and the operations to apply
       example:
         title:
@@ -1400,7 +1398,7 @@ components:
       description: Allows users to query properties for specific values
       properties:
         query:
-          $ref: "./schemas.yaml#/components/schemas/query"
+          $ref: "#/components/schemas/query"
       type: object
     queryProp:
       anyOf:
@@ -1488,14 +1486,14 @@ components:
         - thumbnail
     searchBody:
       allOf:
-        #        - $ref: "./schemas.yaml#/components/schemas/assetQueryFilter"
-        - $ref: "./schemas.yaml#/components/schemas/queryFilter"
-        - $ref: "./schemas.yaml#/components/schemas/bboxFilter"
-        - $ref: "./schemas.yaml#/components/schemas/datetimeFilter"
-        - $ref: "./schemas.yaml#/components/schemas/intersectsFilter"
-        - $ref: "./schemas.yaml#/components/schemas/collectionsFilter"
-        - $ref: "./schemas.yaml#/components/schemas/idsFilter"
-        - $ref: "./schemas.yaml#/components/schemas/limitFilter"
+        #        - $ref: "#/components/schemas/assetQueryFilter"
+        - $ref: "#/components/schemas/queryFilter"
+        - $ref: "#/components/schemas/bboxFilter"
+        - $ref: "#/components/schemas/datetimeFilter"
+        - $ref: "#/components/schemas/intersectsFilter"
+        - $ref: "#/components/schemas/collectionsFilter"
+        - $ref: "#/components/schemas/idsFilter"
+        - $ref: "#/components/schemas/limitFilter"
       description: The search criteria
       type: object
     stac_version:
