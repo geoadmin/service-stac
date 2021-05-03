@@ -189,6 +189,18 @@ paths:
       tags:
       - STAC
 components:
+  headers:
+    ETag:
+      schema:
+        type: string
+      description: >-
+        The RFC7232 ETag header field in a response provides the current entity- tag
+        for the selected resource. An entity-tag is an opaque identifier for different
+        versions of a resource over time, regardless whether multiple versions are
+        valid at the same time. An entity-tag consists of an opaque quoted string,
+        possibly prefixed by a weakness indicator.
+      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
+      required: true
   schemas:
     assetQuery:
       additionalProperties:
@@ -292,7 +304,6 @@ components:
           $ref: "#/components/schemas/updated"
     bbox:
       description: |
-        Only features that have a geometry that intersects the bounding box are selected.
         The bounding box is provided as four numbers:
 
         * Lower left corner, coordinate axis 1
@@ -314,10 +325,10 @@ components:
         represented in JSON as `[5.96, 45.82, 10.49, 47.81]` and in a query as
         `bbox=5.96,45.82,10.49,47.81`."
       example:
-      - 5.96
-      - 45.82
-      - 10.49
-      - 47.81
+      - 7.0906249
+      - 45.9160584
+      - 7.1035698
+      - 45.925093
       items:
         type: number
       maxItems: 4
@@ -353,10 +364,10 @@ components:
         and from 45.82°N to 47.81°N) would be represented in JSON as `[5.96, 45.82,
         10.49, 47.81]` and in a query as `bbox=5.96,45.82,10.49,47.81`."
       example:
-      - 5.96
-      - 45.82
-      - 10.49
-      - 47.81
+      - 7.0906249
+      - 45.9160584
+      - 7.1035698
+      - 45.925093
       items:
         type: number
       maxItems: 4
@@ -762,23 +773,6 @@ components:
       example: komb
       title: Product variants
       type: string
-    geometryGeoJSON:
-      oneOf:
-      - $ref: "#/components/schemas/polygonGeoJSON"
-    geometrycollectionGeoJSON:
-      properties:
-        geometries:
-          items:
-            $ref: "#/components/schemas/geometryGeoJSON"
-          type: array
-        type:
-          enum:
-          - GeometryCollection
-          type: string
-      required:
-      - type
-      - geometries
-      type: object
     href:
       type: string
       format: url
@@ -807,7 +801,13 @@ components:
       description: Only returns items that intersect with the provided polygon.
       properties:
         intersects:
-          $ref: https://geojson.org/schema/Geometry.json
+          oneOf:
+          - $ref: "#/components/schemas/geoJsonPoint"
+          - $ref: "#/components/schemas/geoJsonLineString"
+          - $ref: "#/components/schemas/geoJsonPolygon"
+          - $ref: "#/components/schemas/geoJsonMultiPoint"
+          - $ref: "#/components/schemas/geoJsonMultiLineString"
+          - $ref: "#/components/schemas/geoJsonMultiPolygon"
       type: object
       example:
         intersects:
@@ -825,7 +825,7 @@ components:
         bbox:
           $ref: "#/components/schemas/bbox"
         geometry:
-          $ref: "#/components/schemas/geometryGeoJSON"
+          $ref: "#/components/schemas/itemGeometry"
         properties:
           $ref: "#/components/schemas/itemProperties"
           readOnly: true
@@ -995,6 +995,205 @@ components:
       description: Feature identifier (unique per collection)
       example: smr200-200-4-2019
       type: string
+    itemGeometry:
+      $ref: "#/components/schemas/geoJsonPolygon"
+    geoJsonPoint:
+      title: GeoJSON Point
+      type: object
+      required:
+      - type
+      - coordinates
+      properties:
+        type:
+          type: string
+          enum:
+          - Point
+        coordinates:
+          description: >-
+            For type "Point", the "coordinates" member is a single position. The coordinate
+            reference system of the values is WGS84 longitude/latitude (http://www.opengis.net/def/crs/OGC/1.3/CRS84).
+          example:
+          - 7.0906823
+          - 45.9160584
+          type: array
+          minItems: 2
+          items:
+            type: number
+    geoJsonLineString:
+      title: GeoJSON LineString
+      type: object
+      required:
+      - type
+      - coordinates
+      properties:
+        type:
+          type: string
+          enum:
+          - LineString
+        coordinates:
+          description: >-
+            For type "LineString", the "coordinates" member is an array of two or
+            more positions. The coordinate reference system of the values is WGS84
+            longitude/latitude (http://www.opengis.net/def/crs/OGC/1.3/CRS84).
+          example:
+          - - - 7.0906823
+              - 45.9160584
+            - - 7.1035698
+              - 45.9160977
+          type: array
+          minItems: 2
+          items:
+            type: array
+            minItems: 2
+            items:
+              type: number
+    geoJsonPolygon:
+      title: GeoJSON Polygon
+      type: object
+      required:
+      - type
+      - coordinates
+      properties:
+        type:
+          type: string
+          enum:
+          - Polygon
+        coordinates:
+          description: >-
+            For type "Polygon", the "coordinates" member MUST be an array of linear
+            ring coordinate arrays. The coordinate reference system of the values
+            is WGS84 longitude/latitude (http://www.opengis.net/def/crs/OGC/1.3/CRS84).
+          example:
+          - - - 7.0906823
+              - 45.9160584
+            - - 7.1035698
+              - 45.9160977
+            - - 7.1035146
+              - 45.925093
+            - - 7.0906249
+              - 45.9250537
+            - - 7.0906823
+              - 45.9160584
+          type: array
+          items:
+            type: array
+            minItems: 4
+            items:
+              type: array
+              minItems: 2
+              items:
+                type: number
+    geoJsonMultiPoint:
+      title: GeoJSON MultiPoint
+      type: object
+      required:
+      - type
+      - coordinates
+      properties:
+        type:
+          type: string
+          enum:
+          - MultiPoint
+        coordinates:
+          description: >-
+            For type "MultiPoint", the "coordinates" member is an array of positions.
+            The coordinate reference system of the values is WGS84 longitude/latitude
+            (http://www.opengis.net/def/crs/OGC/1.3/CRS84).
+          example:
+          - - 7.0906823
+            - 45.9160584
+          - - 7.1035698
+            - 45.9160977
+          - - 7.1035146
+            - 45.925093
+          type: array
+          items:
+            type: array
+            minItems: 2
+            items:
+              type: number
+    geoJsonMultiLineString:
+      title: GeoJSON MultiLineString
+      type: object
+      required:
+      - type
+      - coordinates
+      properties:
+        type:
+          type: string
+          enum:
+          - MultiLineString
+        coordinates:
+          description: >-
+            For type "MultiLineString", the "coordinates" member is an array of LineString
+            coordinate arrays. The coordinate reference system of the values is WGS84
+            longitude/latitude (http://www.opengis.net/def/crs/OGC/1.3/CRS84).
+          example:
+          - - - 7.0906823
+              - 45.9160584
+            - - 7.1035698
+              - 45.9160977
+          - - - 7.1035146
+              - 45.925093
+            - - 7.0906249
+              - 45.9250537
+          type: array
+          items:
+            type: array
+            minItems: 2
+            items:
+              type: array
+              minItems: 2
+              items:
+                type: number
+    geoJsonMultiPolygon:
+      title: GeoJSON MultiPolygon
+      type: object
+      required:
+      - type
+      - coordinates
+      properties:
+        type:
+          type: string
+          enum:
+          - MultiPolygon
+        coordinates:
+          description: >-
+            For type "MultiPolygon", the "coordinates" member is an array of Polygon
+            coordinate arrays. The coordinate reference system of the values is WGS84
+            longitude/latitude (http://www.opengis.net/def/crs/OGC/1.3/CRS84).
+          example:
+          - - - - 7.0906823
+                - 45.9160584
+              - - 7.1035698
+                - 45.9160977
+              - - 7.1035146
+                - 45.925093
+              - - 7.0906249
+                - 45.9250537
+              - - 7.0906823
+                - 45.9160584
+          - - - - 8.5816399
+                - 45.7218735
+              - - 8.5944806
+                - 45.7217417
+              - - 8.5946699
+                - 45.7307358
+              - - 8.581827
+                - 45.7308676
+              - - 8.5816399
+                - 45.7218735
+          type: array
+          items:
+            type: array
+            items:
+              type: array
+              minItems: 4
+              items:
+                type: array
+                minItems: 2
+                items:
+                  type: number
     itemProperties:
       title: Properties
       description: >-
@@ -1520,113 +1719,6 @@ components:
       type: string
       format: date-time
       readOnly: true
-  parameters:
-    assetQuery:
-      description: >-
-        Query for properties in assets (e.g. mediatype). Use the JSON form of the
-        assetQueryFilter used in POST.
-      in: query
-      name: assetQuery
-      required: false
-      schema:
-        type: string
-    bbox:
-      explode: false
-      in: query
-      name: bbox
-      required: false
-      schema:
-        $ref: "#/components/schemas/bbox"
-      style: form
-      example:
-    collectionId:
-      description: Local identifier of a collection
-      in: path
-      name: collectionId
-      required: true
-      schema:
-        type: string
-    collectionsArray:
-      explode: false
-      in: query
-      name: collections
-      required: false
-      schema:
-        $ref: "#/components/schemas/collectionsArray"
-    datetime:
-      explode: false
-      in: query
-      name: datetime
-      required: false
-      schema:
-        $ref: "#/components/schemas/datetimeQuery"
-      example: 2018-02-12T00%3A00%3A00Z%2F2018-03-18T12%3A31%3A12Z
-      style: form
-    featureId:
-      description: Local identifier of a feature
-      in: path
-      name: featureId
-      required: true
-      schema:
-        type: string
-    ids:
-      description: >-
-        Array of Item ids to return. All other filter parameters that further restrict
-        the number of search results are ignored
-      explode: false
-      in: query
-      name: ids
-      required: false
-      schema:
-        $ref: "#/components/schemas/ids"
-    limit:
-      explode: false
-      in: query
-      name: limit
-      required: false
-      schema:
-        $ref: "#/components/schemas/limit"
-      style: form
-    query:
-      description: Query for properties in items. Use the JSON form of the queryFilter
-        used in POST.
-      in: query
-      name: query
-      required: false
-      schema:
-        type: string
-    IfNoneMatch:
-      name: If-None-Match
-      in: header
-      schema:
-        type: string
-      description: >-
-        The RFC7232 `If-None-Match` header field makes the GET request method conditional.
-        It is composed of a comma separated list of ETags or value "*".
-
-
-        The server compares the client's ETags (sent with `If-None-Match`) with the
-        ETag for its current version of the resource, and if both values match (that
-        is, the resource has not changed), the server sends back a `304 Not Modified`
-        status, without a body, which tells the client that the cached version of
-        the response is still good to use (fresh).
-      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
-    IfMatch:
-      name: If-Match
-      in: header
-      schema:
-        type: string
-      description: >-
-        The RFC7232 `If-Match` header field makes the GET request method conditional.
-        It is composed of a comma separated list of ETags or value "*".
-
-
-        The server compares the client's ETags (sent with `If-Match`) with the ETag
-        for its current version of the resource, and if both values don't match (that
-        is, the resource has changed), the server sends back a `412 Precondition Failed`
-        status, without a body, which tells the client that the cached version of
-        the response is not good to use anymore.
-      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
   responses:
     Collection:
       headers:
@@ -1833,15 +1925,110 @@ components:
           example:
             code: 500
             description: "Internal server error"
-  headers:
-    ETag:
+  parameters:
+    assetQuery:
+      description: >-
+        Query for properties in assets (e.g. mediatype). Use the JSON form of the
+        assetQueryFilter used in POST.
+      in: query
+      name: assetQuery
+      required: false
+      schema:
+        type: string
+    bbox:
+      explode: false
+      in: query
+      name: bbox
+      required: false
+      schema:
+        $ref: "#/components/schemas/bbox"
+      style: form
+      example:
+    collectionId:
+      description: Local identifier of a collection
+      in: path
+      name: collectionId
+      required: true
+      schema:
+        type: string
+    collectionsArray:
+      explode: false
+      in: query
+      name: collections
+      required: false
+      schema:
+        $ref: "#/components/schemas/collectionsArray"
+    datetime:
+      explode: false
+      in: query
+      name: datetime
+      required: false
+      schema:
+        $ref: "#/components/schemas/datetimeQuery"
+      example: 2018-02-12T00%3A00%3A00Z%2F2018-03-18T12%3A31%3A12Z
+      style: form
+    featureId:
+      description: Local identifier of a feature
+      in: path
+      name: featureId
+      required: true
+      schema:
+        type: string
+    ids:
+      description: >-
+        Array of Item ids to return. All other filter parameters that further restrict
+        the number of search results are ignored
+      explode: false
+      in: query
+      name: ids
+      required: false
+      schema:
+        $ref: "#/components/schemas/ids"
+    limit:
+      explode: false
+      in: query
+      name: limit
+      required: false
+      schema:
+        $ref: "#/components/schemas/limit"
+      style: form
+    query:
+      description: Query for properties in items. Use the JSON form of the queryFilter
+        used in POST.
+      in: query
+      name: query
+      required: false
+      schema:
+        type: string
+    IfNoneMatch:
+      name: If-None-Match
+      in: header
       schema:
         type: string
       description: >-
-        The RFC7232 ETag header field in a response provides the current entity- tag
-        for the selected resource. An entity-tag is an opaque identifier for different
-        versions of a resource over time, regardless whether multiple versions are
-        valid at the same time. An entity-tag consists of an opaque quoted string,
-        possibly prefixed by a weakness indicator.
+        The RFC7232 `If-None-Match` header field makes the GET request method conditional.
+        It is composed of a comma separated list of ETags or value "*".
+
+
+        The server compares the client's ETags (sent with `If-None-Match`) with the
+        ETag for its current version of the resource, and if both values match (that
+        is, the resource has not changed), the server sends back a `304 Not Modified`
+        status, without a body, which tells the client that the cached version of
+        the response is still good to use (fresh).
       example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
-      required: true
+    IfMatch:
+      name: If-Match
+      in: header
+      schema:
+        type: string
+      description: >-
+        The RFC7232 `If-Match` header field makes the GET request method conditional.
+        It is composed of a comma separated list of ETags or value "*".
+
+
+        The server compares the client's ETags (sent with `If-Match`) with the ETag
+        for its current version of the resource, and if both values don't match (that
+        is, the resource has changed), the server sends back a `412 Precondition Failed`
+        status, without a body, which tells the client that the cached version of
+        the response is not good to use anymore.
+      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
