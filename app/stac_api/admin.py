@@ -10,6 +10,7 @@ from django.forms import Textarea
 from solo.admin import SingletonModelAdmin
 
 from stac_api.models import Asset
+from stac_api.models import AssetUpload
 from stac_api.models import Collection
 from stac_api.models import CollectionLink
 from stac_api.models import ConformancePage
@@ -292,3 +293,60 @@ class AssetAdmin(admin.ModelAdmin):
         # without help text
         fields[0][1]['fields'] = ('name', 'item_name', 'collection_name')
         return fields
+
+
+@admin.register(AssetUpload)
+class AssetUploadAdmin(admin.ModelAdmin):
+
+    autocomplete_fields = ['asset']
+    search_fields = [
+        'upload_id', 'asset__name', 'asset__item__name', 'asset__item__collection__name', 'status'
+    ]
+    readonly_fields = [
+        'asset_name', 'item_name', 'collection_name', 'created', 'ended', 'etag', 'status'
+    ]
+    list_display = ['upload_id', 'status', 'asset_name', 'item_name', 'collection_name']
+    fieldsets = ((None, {
+        'fields': ('upload_id', 'asset', 'status')
+    }),
+                 (
+                     'Attributes', {
+                         'fields':
+                             ('number_parts', 'urls', 'checksum_multihash', 'created', 'ended')
+                     }
+                 ))
+
+    def has_add_permission(self, request):
+        return False
+
+    def get_fieldsets(self, request, obj=None):
+        fields = super().get_fieldsets(request, obj)
+        if obj is None:
+            # In case a new AssetUpload is added use the normal field 'asset' from model that have
+            # a help text fort the search functionality.
+            fields[0][1]['fields'] = ('upload_id', 'asset', 'status')
+            return fields
+        # Otherwise if this is an update operation only display the read only fields
+        # without help text
+        fields[0][1]['fields'] = (
+            'upload_id', 'asset_name', 'item_name', 'collection_name', 'status'
+        )
+        return fields
+
+    def collection_name(self, instance):
+        return instance.asset.item.collection.name
+
+    collection_name.admin_order_field = 'asset__item__collection__name'
+    collection_name.short_description = 'Collection Id'
+
+    def item_name(self, instance):
+        return instance.asset.item.name
+
+    item_name.admin_order_field = 'asset__item__name'
+    item_name.short_description = 'Item Id'
+
+    def asset_name(self, instance):
+        return instance.asset.name
+
+    asset_name.admin_order_field = 'asset__name'
+    asset_name.short_description = 'Asset Id'
