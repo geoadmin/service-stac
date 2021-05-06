@@ -1,11 +1,17 @@
+import json
+
 from admin_auto_filters.filters import AutocompleteFilter
 from admin_auto_filters.filters import AutocompleteFilterFactory
 
+from django.contrib import messages
 from django.contrib.gis import admin
 from django.contrib.postgres.fields import ArrayField
 from django.contrib.staticfiles import finders
 from django.db import models
+from django.db.models.deletion import ProtectedError
 from django.forms import Textarea
+from django.http import HttpResponseRedirect
+from django.urls import reverse
 
 from solo.admin import SingletonModelAdmin
 
@@ -303,35 +309,45 @@ class AssetUploadAdmin(admin.ModelAdmin):
         'upload_id', 'asset__name', 'asset__item__name', 'asset__item__collection__name', 'status'
     ]
     readonly_fields = [
-        'asset_name', 'item_name', 'collection_name', 'created', 'ended', 'etag', 'status'
+        'upload_id',
+        'asset_name',
+        'item_name',
+        'collection_name',
+        'created',
+        'ended',
+        'etag',
+        'status',
+        'urls_json',
+        'number_parts',
+        'checksum_multihash'
     ]
-    list_display = ['upload_id', 'status', 'asset_name', 'item_name', 'collection_name']
-    fieldsets = ((None, {
-        'fields': ('upload_id', 'asset', 'status')
-    }),
-                 (
-                     'Attributes', {
-                         'fields':
-                             ('number_parts', 'urls', 'checksum_multihash', 'created', 'ended')
-                     }
-                 ))
+    list_display = [
+        'short_upload_id', 'status', 'asset_name', 'item_name', 'collection_name', 'created'
+    ]
+    fieldsets = (
+        (None, {
+            'fields': ('upload_id', 'asset_name', 'item_name', 'collection_name', 'status')
+        }),
+        (
+            'Attributes', {
+                'fields': ('number_parts', 'urls_json', 'checksum_multihash', 'created', 'ended')
+            }
+        ),
+    )
 
     def has_add_permission(self, request):
         return False
 
-    def get_fieldsets(self, request, obj=None):
-        fields = super().get_fieldsets(request, obj)
-        if obj is None:
-            # In case a new AssetUpload is added use the normal field 'asset' from model that have
-            # a help text fort the search functionality.
-            fields[0][1]['fields'] = ('upload_id', 'asset', 'status')
-            return fields
-        # Otherwise if this is an update operation only display the read only fields
-        # without help text
-        fields[0][1]['fields'] = (
-            'upload_id', 'asset_name', 'item_name', 'collection_name', 'status'
-        )
-        return fields
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def short_upload_id(self, instance):
+        if len(instance.upload_id) > 32:
+            return instance.upload_id[:29] + '...'
+        return instance.upload_id
+
+    short_upload_id.admin_order_field = 'upload_id'
+    short_upload_id.short_description = 'Upload ID'
 
     def collection_name(self, instance):
         return instance.asset.item.collection.name
@@ -350,3 +366,22 @@ class AssetUploadAdmin(admin.ModelAdmin):
 
     asset_name.admin_order_field = 'asset__name'
     asset_name.short_description = 'Asset Id'
+
+    def urls_json(self, instance):
+        return json.dumps(instance.urls, indent=1)
+
+    urls_json.short_description = "Urls"
+
+    def delete_view(self, request, object_id, extra_context=None):
+        try:
+            return super().delete_view(request, object_id, extra_context)
+        except ProtectedError:
+            msg = "You cannot delete Asset Upload that are in progress"
+            self.message_user(request, msg, messages.ERROR)
+            opts = self.model._meta
+            return_url = reverse(
+                'admin:%s_%s_change' % (opts.app_label, opts.model_name),
+                args=(object_id,),
+                current_app=self.admin_site.name,
+            )
+            return HttpResponseRedirect(return_url)
