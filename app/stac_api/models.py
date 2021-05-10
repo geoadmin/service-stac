@@ -4,7 +4,6 @@ import os
 import time
 from uuid import uuid4
 
-# import botocore.exceptions # Un-comment with BGDIINF_SB-1625
 from multihash import encode as multihash_encode
 from multihash import to_hex_string
 
@@ -29,7 +28,6 @@ from stac_api.collection_temporal_extent import CollectionTemporalExtentMixin
 from stac_api.managers import AssetUploadManager
 from stac_api.managers import ItemManager
 from stac_api.utils import get_asset_path
-# from stac_api.utils import get_s3_resource # Un-comment with BGDIINF_SB-1625
 from stac_api.validators import MEDIA_TYPES
 from stac_api.validators import validate_asset_name
 from stac_api.validators import validate_asset_name_with_media_type

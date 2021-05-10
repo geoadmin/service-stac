@@ -43,6 +43,7 @@
 Prerequisites on host for development and build:
 
 - python version 3.7
+- libgdal-dev
 - [pipenv](https://pipenv-fork.readthedocs.io/en/latest/install.html)
 - `docker` and `docker-compose`
 
@@ -50,10 +51,12 @@ Prerequisites on host for development and build:
 
 If your Ubuntu distribution is missing Python 3.7, you may use the `deadsnakes` PPA and install it:
 
-    sudo add-apt-repository ppa:deadsnakes/ppa
-    sudo apt-get update
-    sudo apt-get install python3.7
-    
+```bash
+sudo add-apt-repository ppa:deadsnakes/ppa
+sudo apt-get update
+sudo apt-get install python3.7
+```
+
 #### pipenv
 
 Generally, all modern distribution have already a [pipenv](https://pipenv-fork.readthedocs.io) package. If no, install from hand.
@@ -62,7 +65,7 @@ The other services that are used (Postgres with PostGIS extension for metadata a
 
 Starting postgres and MinIO is done with a simple
 
-```
+```bash
 docker-compose up
 ```
 
@@ -156,6 +159,7 @@ some default values to be able to start working with it. (From the root)
   ```
 
 the ```pipenv shell``` command activate the virtual environment provided by pipenv.
+
 ### Using a local PostGres database instead of a container
 
 To use a local postgres instance rather than a container, once you've ensured you've the needed dependencies, you should :
