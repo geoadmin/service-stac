@@ -73,6 +73,7 @@ disable=missing-docstring,
                         # yapf correct indentation continuation issue
     useless-object-inheritance,
     no-self-use,        # method signature often defined by django
+    similarities        # currently similarities has a bug when running pylint with jobs>=2
 
 
 # Enable the message, report, category or checker with the given id(s). You can

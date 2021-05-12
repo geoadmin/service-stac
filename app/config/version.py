@@ -11,18 +11,17 @@ import subprocess
 # the tag is directly related to the commit or has an additional
 # suffix 'v[0-9]+\.[0-9]+\.[0-9]+-beta.[0-9]-[0-9]+-gHASH' denoting
 # the 'distance' to the latest tag
-proc = subprocess.Popen(["git", "describe", "--tags"],
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE)
-stdout, stderr = proc.communicate()
+with subprocess.Popen(["git", "describe", "--tags"], stdout=subprocess.PIPE,
+                      stderr=subprocess.PIPE) as proc:
+    stdout, stderr = proc.communicate()
 GIT_VERSION = stdout.decode('utf-8').strip()
 if GIT_VERSION == '':
     # If theres no git tag found in the history we simply use the short
     # version of the latest git commit hash
-    proc = subprocess.Popen(["git", "rev-parse", "--short", "HEAD"],
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE)
-    stdout, stderr = proc.communicate()
+    with subprocess.Popen(["git", "rev-parse", "--short", "HEAD"],
+                          stdout=subprocess.PIPE,
+                          stderr=subprocess.PIPE) as proc:
+        stdout, stderr = proc.communicate()
     APP_VERSION = f"v_{stdout.decode('utf-8').strip()}"
 else:
     APP_VERSION = GIT_VERSION
