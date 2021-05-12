@@ -104,8 +104,8 @@ from stac_api.models import Item
 from stac_api.models import ItemLink
 from stac_api.models import Provider
 from stac_api.utils import get_s3_resource
-from stac_api.utils import get_sha256_multihash
 from stac_api.utils import isoformat
+from stac_api.validators import MEDIA_TYPES_BY_TYPE
 
 from tests.sample_data.asset_samples import assets as asset_samples
 from tests.sample_data.collection_samples import collections as collection_samples
@@ -132,7 +132,7 @@ class SampleData:
         try:
             sample = self.samples_dict[sample]
         except KeyError as error:
-            raise KeyError(f'Unknown {self.sample_name} sample: {error}')
+            raise KeyError(f'Unknown {self.sample_name} sample: {error}') from None
 
         # Sets attributes from sample
         for key, value in sample.items():
@@ -545,6 +545,7 @@ class ItemSample(SampleData):
     read_only_fields = [
         'type',
         'bbox',
+        'collection',
         'assets',
         'stac_extensions',
         'stac_version',
@@ -619,8 +620,8 @@ class ItemSample(SampleData):
             value in super().get_json(method, keep_read_only).items()
             if not key.startswith('properties_')
         }
-        collection = json_data.pop('collection')
-        if method in ['get', 'serialize', 'deserialize']:
+        if method in ['get', 'serialize']:
+            collection = self.get('collection')
             json_data['collection'] = collection.name
         if 'geometry' in json_data and isinstance(json_data['geometry'], GEOSGeometry):
             json_data['geometry'] = json_data['geometry'].json
@@ -713,11 +714,7 @@ class AssetSample(SampleData):
         'proj_epsg',
         'checksum_multihash'
     ]
-    read_only_fields = [
-        'created',
-        'updated',
-        'href',
-    ]
+    read_only_fields = ['created', 'updated', 'href', 'checksum:multihash']
 
     def __init__(self, item, sample='asset-1', name=None, required_only=False, **kwargs):
         '''Create a item sample data
@@ -740,7 +737,6 @@ class AssetSample(SampleData):
         file = getattr(self, 'attr_file', None)
         file_path = f'{item.collection.name}/{item.name}/{self.attr_name}'
         if isinstance(file, bytes):
-            self.attr_checksum_multihash = get_sha256_multihash(file)
             self.attr_file = SimpleUploadedFile(file_path, file)
 
     def get_json(self, method='get', keep_read_only=False):
@@ -763,8 +759,6 @@ class AssetSample(SampleData):
         '''
         data = super().get_json(method, keep_read_only)
         item = data.pop('item')
-        if method in ['get', 'serialize', 'deserialize']:
-            data['item'] = item.name
         if 'href' in data and isinstance(data['href'], File):
             data['href'] = \
                 f'http://{settings.AWS_S3_CUSTOM_DOMAIN}/{item.collection.name}/{item.name}/{data["href"].name}'
@@ -806,13 +800,15 @@ class FactoryBase:
         self.last = None
 
     @classmethod
-    def get_last_name(cls, last):
+    def get_last_name(cls, last, extension=''):
         '''Return a factory name incremented by one (e.g. 'collection-1')
         '''
         if last is None:
-            last = f'{cls.factory_name}-0'
-        last = '{}-{}'.format(
-            cls.factory_name, int(re.match(fr"{cls.factory_name}-(\d+)", last).group(1)) + 1
+            last = f'{cls.factory_name}-0{extension}'
+        last = '{}-{}{}'.format(
+            cls.factory_name,
+            int(re.match(fr"{cls.factory_name}-(\d+)(\.\w+)?", last).group(1)) + 1,
+            extension
         )
         return last
 
@@ -1071,19 +1067,22 @@ class AssetFactory(FactoryBase):
         Returns:
             The data sample
         '''
-        sample = super().create_sample(
-            sample,
-            name=name,
-            item=item,
-            db_create=db_create,
-            required_only=required_only,
-            **kwargs
-        )
+        if name:
+            data_sample = AssetSample(
+                item, sample=sample, name=name, required_only=required_only, **kwargs
+            )
+        else:
+            self.last = self.get_last_name(self.last, extension=self._get_extension(sample, kwargs))
+            data_sample = AssetSample(
+                item, sample=sample, name=self.last, required_only=required_only, **kwargs
+            )
+        if db_create:
+            data_sample.create()
         if not db_create and create_asset_file:
             # when db_create is true, the asset file automatically created therefore it is not
             # necessary to explicitely create it again.
-            sample.create_asset_file()
-        return sample
+            data_sample.create_asset_file()
+        return data_sample
 
     def create_samples(self, samples, item, db_create=False, create_asset_file=False, **kwargs):
         '''Creates several Asset samples
@@ -1108,6 +1107,21 @@ class AssetFactory(FactoryBase):
         return super().create_samples(
             samples, item=item, db_create=db_create, create_asset_file=create_asset_file, **kwargs
         )
+
+    def _get_extension(self, sample_name, kwargs):
+        media = 'text/plain'
+        if 'media_type' in kwargs:
+            media = kwargs['media_type']
+        else:
+            try:
+                sample = AssetSample.samples_dict[sample_name]
+            except KeyError as error:
+                raise KeyError(f'Unknown {sample_name} sample: {error}') from None
+            if 'media_type' in sample:
+                media = sample['media_type']
+        if media not in MEDIA_TYPES_BY_TYPE:
+            media = 'text/plain'
+        return MEDIA_TYPES_BY_TYPE[media][2][0]
 
 
 class Factory:

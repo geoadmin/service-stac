@@ -51,7 +51,9 @@ class S3TestMixin():
 
     def assertS3ObjectNotExists(self, path):  # pylint: disable=invalid-name
         s3 = get_s3_resource()
-        with self.assertRaises(botocore.exceptions.ClientError) as exception_context:
+        with self.assertRaises(
+            botocore.exceptions.ClientError, msg=f'Object {path} found on S3'
+        ) as exception_context:
             s3.Object(settings.AWS_STORAGE_BUCKET_NAME, path).load()
         error = exception_context.exception
         self.assertEqual(error.response['Error']['Code'], "404")
@@ -169,3 +171,30 @@ def client_login(client):
         username, 'test_e_mail1234@some_fantasy_domainname.com', password
     )
     client.login(username=username, password=password)
+
+
+class disableLogger:  # pylint: disable=invalid-name
+    """Disable temporarily a logger with a with statement
+
+    Args:
+        logger_name: str | None
+            logger name to disable, by default use the root logger (None)
+
+    Example:
+        with disableLogger('stac_api.apps'):
+            # the stac_api.apps logger is totally disable within the with statement
+            logger = logging.getLogger('stac_api.apps')
+            logger.critical('This log will not be printed anywhere')
+    """
+
+    def __init__(self, logger_name=None):
+        if logger_name:
+            self.logger = logging.getLogger(logger_name)
+        else:
+            self.logger = logging.getLogger()
+
+    def __enter__(self):
+        self.logger.disabled = True
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.logger.disabled = False

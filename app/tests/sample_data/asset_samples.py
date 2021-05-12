@@ -6,7 +6,7 @@ FILE_CONTENT_3 = b'Asset 3 file content'
 
 assets = {
     'asset-1': {
-        'name': 'asset-1',
+        'name': 'asset-1.tiff',
         'title': 'Asset 1 Title',
         'description': 'This is a full description of asset 1',
         'eo_gsd': 3.4,
@@ -17,8 +17,19 @@ assets = {
         'checksum_multihash': get_sha256_multihash(FILE_CONTENT_1),
         'file': FILE_CONTENT_1
     },
+    'asset-no-checksum': {
+        'name': 'asset-1.tiff',
+        'title': 'Asset 1 Title',
+        'description': 'This is a full description of asset 1',
+        'eo_gsd': 3.4,
+        'geoadmin_lang': 'fr',
+        'geoadmin_variant': 'kgrs',
+        'proj_epsg': 2056,
+        'media_type': "image/tiff; application=geotiff; profile=cloud-optimized",
+        'file': FILE_CONTENT_1
+    },
     'asset-1-updated': {
-        'name': 'asset-2',
+        'name': 'asset-2.txt',
         'title': 'Asset 2 Title',
         'description': 'This is a full description of asset 2',
         'eo_gsd': 4,
@@ -28,7 +39,7 @@ assets = {
         'media_type': "text/plain"
     },
     'asset-2': {
-        'name': 'asset-2',
+        'name': 'asset-2.txt',
         'title': 'Asset 2 Title',
         'description': 'This is a full description of asset 2',
         'eo_gsd': 4,
@@ -40,7 +51,7 @@ assets = {
         'file': FILE_CONTENT_2
     },
     'asset-3': {
-        'name': 'asset-3',
+        'name': 'asset-3.pdf',
         'title': 'Asset 3 Title',
         'description': 'This is a full description of asset 3',
         'eo_gsd': 5.4,
@@ -66,7 +77,7 @@ assets = {
         'name': 'asset-missing-required',
     },
     'asset-valid-geoadmin-variant': {
-        'name': 'geodadmin-variant',
+        'name': 'geodadmin-variant.txt',
         'title': 'Asset Variant',
         'description': 'This asset should pass the test',
         'eo_gsd': 4,
@@ -77,7 +88,7 @@ assets = {
         'file': b'Asset with long geoadmin:variant'
     },
     'asset-invalid-geoadmin-variant': {
-        'name': 'invalid-geodadmin-variant',
+        'name': 'invalid-geodadmin-variant.txt',
         'title': 'Asset Variant Testing',
         'description': 'This asset shouldn\'t pass the test',
         'eo_gsd': 4,
@@ -86,5 +97,17 @@ assets = {
         'proj_epsg': 2056,
         'media_type': "text/plain",
         'file': b'Asset with invalid geoadmin:variant'
-    }
+    },
+    'asset-no-file': {
+        'name': 'asset-1.tiff',
+        'title': 'Asset 1 Title',
+        'description': 'This is a full description of asset 1',
+        'eo_gsd': 3.4,
+        'geoadmin_lang': 'fr',
+        'geoadmin_variant': 'kgrs',
+        'proj_epsg': 2056,
+        'media_type': "image/tiff; application=geotiff; profile=cloud-optimized",
+        # use a path instead of a bytes object to avoid creating a file
+        'file': 'collection-1/item-1/asset-1.tiff'
+    },
 }

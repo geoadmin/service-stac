@@ -1,0 +1,33 @@
+openapi: 3.0.1
+components:
+  examples:
+    inprogress:
+      summary: In progress upload example
+      value:
+        upload_id: KrFTuglD.N8ireqry_w3.oQqNwrYI7SfSXpVRiusKah0YigDnuM06hfJNIUZg4R_No0MMW9FLU2UG5anTW0boTUYVxKfBZWCFXqnQTpjnQEo1K7la39MYpjSTvIbZgnG
+        status: in-progress
+        number_parts: 1
+        urls:
+        - url: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-4-2019/smr50-263-2016-2056-kgrs-2.5.tiff?uploadId=d77UbNnEVTaqCAyAz61AVqy7uuTGJ_YOUyPOklcRMr4ZPBthON9p6cpMREx683yQ_oeGVmGE_yTg4cmnEz3mTErEPKn0_m.3LBjo6A88Qxlj4vFrAdU6YBuourb.IqFF&partNumber=1&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4HDUVYWAM6ZB6SWO%2F20210414%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20210414T112742Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=d12763467eaffa0c69d601297a661a05c9f414d4008b4148fa6ba604f203be01
+          part: 1
+          expires: '2019-08-24T14:15:22Z'
+        created: '2019-08-24T14:15:22Z'
+        checksum:multihash: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
+    completed:
+      summary: Completed upload example
+      value:
+        upload_id: KrFTuglD.N8ireqry_w3.oQqNwrYI7SfSXpVRiusKah0YigDnuM06hfJNIUZg4R_No0MMW9FLU2UG5anTW0boTUYVxKfBZWCFXqnQTpjnQEo1K7la39MYpjSTvIbZgnG
+        status: completed
+        number_parts: 1
+        created: '2019-08-24T14:15:22Z'
+        completed: '2019-08-24T14:15:22Z'
+        checksum:multihash: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
+    aborted:
+      summary: Aborted upload example
+      value:
+        upload_id: KrFTuglD.N8ireqry_w3.oQqNwrYI7SfSXpVRiusKah0YigDnuM06hfJNIUZg4R_No0MMW9FLU2UG5anTW0boTUYVxKfBZWCFXqnQTpjnQEo1K7la39MYpjSTvIbZgnG
+        status: completed
+        number_parts: 1
+        created: '2019-08-24T14:15:22Z'
+        aborted: '2019-08-24T14:15:22Z'
+        checksum:multihash: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC

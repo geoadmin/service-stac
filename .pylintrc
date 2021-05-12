@@ -33,6 +33,7 @@ limit-inference-results=100
 # List of plugins (as comma separated values of python module names) to load,
 # usually to register additional checkers.
 load-plugins=pylint_django
+django-settings-module=stac_api.settings
 
 # Pickle collected data for later comparisons.
 persistent=yes
@@ -72,6 +73,7 @@ disable=missing-docstring,
                         # yapf correct indentation continuation issue
     useless-object-inheritance,
     no-self-use,        # method signature often defined by django
+    similarities        # currently similarities has a bug when running pylint with jobs>=2
 
 
 # Enable the message, report, category or checker with the given id(s). You can
@@ -321,7 +323,7 @@ module-naming-style=snake_case
 
 # Regular expression matching correct module names. Overrides module-naming-
 # style.
-module-rgx=^(?:(?P<snake>[a-z]+[a-z_]*)|(?P<migration>\d+_[_a-z0-9]+))$
+module-rgx=^(?:(?P<snake>[a-z]+[a-z_\d]*)|(?P<migration>\d+_[_a-z0-9]+))$
 
 # Colon-delimited sets of names that determine each other's naming style when
 # the name regexes allow several styles.
@@ -384,10 +386,10 @@ ignore-comments=yes
 ignore-docstrings=yes
 
 # Ignore imports when computing similarities.
-ignore-imports=no
+ignore-imports=yes
 
 # Minimum lines number of a similarity.
-min-similarity-lines=4
+min-similarity-lines=8
 
 
 [VARIABLES]

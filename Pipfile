@@ -5,14 +5,14 @@ verify_ssl = true
 
 [dev-packages]
 yapf = "~=0.30.0"
-pylint = "~=2.5.3"
 isort = "~=4.3.21"
-pylint-django = "~=2.3.0"
-django-extensions = "~=3.0.9"
+pylint = "*"
+pylint-django = "*"
+django-extensions = "*"
+django-debug-toolbar = ">=3.2.1"
 pip = "*"
-django-debug-toolbar = "*"
-mock = "==4.0.2"
 tblib = "*"  # needed for traceback when running tests in parallel
+mock = "~=4.0.2"
 responses = "!=0.12.1" # skip version 0.12.1 which has a bug see https://github.com/getsentry/responses/issues/358
 moto = {extras = [ "s3",], version = "*"}
 requests-mock = "*"
@@ -25,8 +25,8 @@ logging-utilities = "~=1.2.0"
 numpy = "~=1.19.2"
 python-dotenv = "~=0.14.0"
 djangorestframework = "~=3.12.1"
-Django = "~=3.1"
-PyYAML = "~=5.3.1"
+Django = "~=3.1.8"
+PyYAML = "~=5.4"
 whitenoise = "~=5.2.0"
 djangorestframework-gis = "~=0.16"
 python-dateutil = "~=2.8.1"
@@ -38,6 +38,7 @@ requests = "~=2.25.0"
 py-multihash = "~=2.0.1"
 pypatch = "*"
 django-prometheus = "*"
+django-admin-autocomplete-filter = "~=0.6.1"
 
 [requires]
 python_version = "3.7"

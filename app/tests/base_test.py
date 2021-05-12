@@ -1,11 +1,15 @@
 import json
 import logging
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import as_completed
 from datetime import timedelta
 from pprint import pformat
 from urllib.parse import urlparse
 
 from django.contrib.gis.geos.geometry import GEOSGeometry
+from django.db import connections
 from django.test import TestCase
+from django.test import TransactionTestCase
 
 from stac_api.utils import fromisoformat
 from stac_api.utils import get_link
@@ -19,7 +23,9 @@ TEST_LINK_ROOT_HREF = 'http://testserver/api/stac/v0.9'
 TEST_LINK_ROOT = {'rel': 'root', 'href': f'{TEST_LINK_ROOT_HREF}/'}
 
 
-class StacBaseTestCase(TestCase):
+class StacTestMixin:
+    """Adds some useful checks for STAC API unittesting
+    """
 
     # we keep the TestCase nomenclature here therefore we disable the pylint invalid-name
     def assertStatusCode(self, code, response, msg=None):  # pylint: disable=invalid-name
@@ -222,7 +228,7 @@ class StacBaseTestCase(TestCase):
         self._check_stac_dictsubset('asset', expected, current, ignore=ignore)
 
         # check required fields
-        for key in ['links', 'id', 'type', 'checksum:multihash', 'href']:
+        for key in ['links', 'id', 'type', 'href']:
             self.assertIn(key, current, msg=f'Asset {key} is missing')
         for date_field in ['created', 'updated']:
             self.assertIn(date_field, current, msg=f'Asset {date_field} is missing')
@@ -407,3 +413,47 @@ class StacBaseTestCase(TestCase):
             self.assertEqual(
                 value, current[key], msg=f'{path}: current value is not equal to the expected'
             )
+
+
+class StacBaseTestCase(TestCase, StacTestMixin):
+    """Django TestCase with additional STAC check methods"""
+
+
+class StacBaseTransactionTestCase(TransactionTestCase, StacTestMixin):
+    """Django TransactionTestCase with additional STAC check methods
+    """
+
+    @staticmethod
+    def on_done(future):
+        # Because each thread has a db connection, we call close_all() when the thread is
+        # terminated. This is needed because the thread are not managed by django here but
+        # by us.
+        connections.close_all()
+
+    def run_parallel(self, workers, func):
+        errors = []
+        responses = []
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            futures = {}
+            for worker in range(workers):
+                future = executor.submit(func, worker)
+                future.add_done_callback(self.on_done)
+                futures[future] = worker
+            for future in as_completed(futures):
+                try:
+                    response = future.result()
+                except Exception as exc:  # pylint: disable=broad-except
+                    errors.append((futures[future], str(exc)))
+                else:
+                    responses.append((futures[future], response))
+
+        self.assertEqual(
+            len(responses) + len(errors),
+            workers,
+            msg='Number of responses/errors doesn\'t match the number of worker'
+        )
+
+        for worker, error in errors:
+            self.fail(msg=f'Worker {worker} failed: {error}')
+
+        return responses, errors

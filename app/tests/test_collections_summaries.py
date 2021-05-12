@@ -48,13 +48,9 @@ class CollectionsSummariesTestCase(TestCase):
         ).model
         return item
 
-    def add_asset(self, item, name, eo_gsd, geoadmin_variant, proj_epsg):
+    def add_asset(self, item, eo_gsd, geoadmin_variant, proj_epsg):
         asset = self.data_factory.create_asset_sample(
-            item=item,
-            name=name,
-            eo_gsd=eo_gsd,
-            geoadmin_variant=geoadmin_variant,
-            proj_epsg=proj_epsg
+            item=item, eo_gsd=eo_gsd, geoadmin_variant=geoadmin_variant, proj_epsg=proj_epsg
         ).model
         return asset
 
@@ -65,7 +61,7 @@ class CollectionsSummariesTestCase(TestCase):
         item1 = self.add_range_item(self.y200, self.y8000, "item1")
         item2 = self.add_range_item(self.y200, self.y8000, "item2")
 
-        self.add_asset(item1, "asset1", 1.2, "kgrs", 1234)
+        self.add_asset(item1, 1.2, "kgrs", 1234)
 
         self.assertEqual(
             self.collection.summaries["eo:gsd"], [1.2],
@@ -83,7 +79,7 @@ class CollectionsSummariesTestCase(TestCase):
             "after asset has been inserted."
         )
 
-        self.add_asset(item2, "asset2", 2.1, "komb", 4321)
+        self.add_asset(item2, 2.1, "komb", 4321)
         self.assertEqual(
             self.collection.summaries["eo:gsd"], [1.2, 2.1],
             "Collection's summaries[eo:gsd] has not been correctly updated "
@@ -106,8 +102,8 @@ class CollectionsSummariesTestCase(TestCase):
 
         item1 = self.add_range_item(self.y200, self.y8000, "item1")
 
-        asset1 = self.add_asset(item1, "asset1", 1.2, "kgrs", 1234)
-        asset2 = self.add_asset(item1, "asset2", 2.1, "komb", 4321)
+        asset1 = self.add_asset(item1, 1.2, "kgrs", 1234)
+        asset2 = self.add_asset(item1, 2.1, "komb", 4321)
 
         asset2.delete()
 
@@ -190,8 +186,8 @@ class CollectionsSummariesTestCase(TestCase):
         # Tests if collection's summaries are updated correctly after an
         # asset was updated
         item1 = self.add_range_item(self.y200, self.y8000, "item1")
-        asset1 = self.add_asset(item1, "asset1", 1.2, "kgrs", 1234)
-        asset2 = self.add_asset(item1, "asset2", 2.1, "komb", 4321)
+        asset1 = self.add_asset(item1, 1.2, "kgrs", 1234)
+        asset2 = self.add_asset(item1, 2.1, "komb", 4321)
 
         asset1.eo_gsd = 12.34
         asset1.geoadmin_variant = "krel"
@@ -218,7 +214,7 @@ class CollectionsSummariesTestCase(TestCase):
     def test_update_collection_summaries_none_values(self):
         # update a variant, that as been None as a start value
         item = self.data_factory.create_item_sample(collection=self.collection).model
-        asset = self.add_asset(item, 'asset-1', None, None, None)
+        asset = self.add_asset(item, None, None, None)
         self.assertEqual(
             self.collection.summaries, {
                 'eo:gsd': [], 'proj:epsg': [], 'geoadmin:variant': []

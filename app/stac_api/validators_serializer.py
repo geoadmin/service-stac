@@ -1,6 +1,5 @@
 import json
 import logging
-from decimal import Decimal
 
 import botocore
 import multihash
@@ -10,8 +9,8 @@ from multihash import to_hex_string
 from django.conf import settings
 from django.contrib.gis.gdal.error import GDALException
 from django.contrib.gis.geos import GEOSGeometry
-from django.contrib.gis.geos import Point
-from django.contrib.gis.geos import Polygon
+from django.db import IntegrityError
+from django.db import transaction
 from django.utils.translation import gettext_lazy as _
 
 from rest_framework.exceptions import APIException
@@ -20,6 +19,7 @@ from rest_framework.exceptions import ValidationError
 from stac_api.utils import create_multihash
 from stac_api.utils import create_multihash_string
 from stac_api.utils import fromisoformat
+from stac_api.utils import geometry_from_bbox
 from stac_api.utils import get_asset_path
 from stac_api.utils import get_s3_resource
 from stac_api.utils import harmonize_post_get_for_search
@@ -123,24 +123,19 @@ def validate_asset_file(href, original_name, attrs):
     # Get the hash from response
     asset_multihash = None
     asset_sha256 = obj.metadata.get('sha256', None)
-    asset_md5 = obj.e_tag.strip('"')
-    logger.debug(
-        'Asset file %s checksums from headers: sha256=%s, md5=%s', href, asset_sha256, asset_md5
-    )
+    logger.debug('Asset file %s checksums from headers: sha256=%s', href, asset_sha256)
     if asset_sha256:
         asset_multihash = create_multihash(asset_sha256, 'sha2-256')
-    elif asset_md5:
-        asset_multihash = create_multihash(asset_md5, 'md5')
 
     if asset_multihash is None:
         logger.error(
-            'Asset at href %s, doesn\'t provide a sha2-256 hash in header x-amz-meta-sha256 ' \
-            'or an ETag md5 checksum', href
+            "Asset at href %s doesn't provide a mandatory checksum header "
+            "(x-amz-meta-sha256) for validation",
+            href
         )
-        raise APIException({
-            'href': _(f"Asset at href {href} doesn't provide a valid checksum header "
-                      "(ETag or x-amz-meta-sha256) for validation")
-        })
+        raise ValidationError(code='query-invalid', detail=_(
+            f"Asset at href {href} doesn't provide a mandatory checksum header "
+            "(x-amz-meta-sha256) for validation")) from None
 
     expected_multihash = attrs.get('checksum_multihash', None)
     if expected_multihash is None:
@@ -288,7 +283,7 @@ class ValidateSearchRequest:
             message = f"The application could not decode the query parameter" \
                       f"Please check the syntax ({error})." \
                       f"{query}"
-            raise ValidationError(code='query-invalid', detail=_(message))
+            raise ValidationError(code='query-invalid', detail=_(message)) from None
 
         self._query_validate_length_of_query(query_dict)
         for attribute in query_dict:
@@ -477,15 +472,7 @@ class ValidateSearchRequest:
                 float values. F. ex.: 5.96,45.82,10.49,47.81
         '''
         try:
-            list_bbox_values = bbox.split(',')
-            if (
-                Decimal(list_bbox_values[0]) == Decimal(list_bbox_values[2]) and
-                Decimal(list_bbox_values[1]) == Decimal(list_bbox_values[3])
-            ):
-                bbox_geometry = Point(float(list_bbox_values[0]), float(list_bbox_values[1]))
-            else:
-                bbox_geometry = Polygon.from_bbox(list_bbox_values)
-            validate_geometry(bbox_geometry)
+            validate_geometry(geometry_from_bbox(bbox))
 
         except (ValueError, ValidationError, IndexError, GDALException) as error:
             message = f"Invalid bbox query parameter: " \
@@ -537,3 +524,33 @@ class ValidateSearchRequest:
             logger.error(
                 'Query contains the non-allowed parameter(s): %s', list(wrong_query_parameters)
             )
+
+
+def validate_uniqueness_and_create(model_class, validated_data):
+    """Validate for uniqueness and create object
+
+    Try to create an object and if it fails with db IntegrityError due to non unique object by name
+    re-raise a ValidationError(), otherwise re-raise the IntegrityError
+
+    Args:
+        model_class: Model
+            A model Class to use for the create()
+        validated_data: dict
+            Validated data to use for the create method
+
+    Returns:
+        the object created
+
+    Raises:
+        ValidationError: when the new object is not unique by name in db.
+        IntegrityError: for any other DB errors
+    """
+    try:
+        with transaction.atomic():
+            return model_class.objects.create(**validated_data)
+    except IntegrityError as error:
+        if model_class.objects.all().filter(name=validated_data['name']).exists():
+            raise ValidationError(
+                code='unique', detail={'id': ['This field must be unique.']}
+            ) from None
+        raise

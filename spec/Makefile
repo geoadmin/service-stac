@@ -4,26 +4,26 @@
 
 SPEC_HTTP_PORT ?= 8090
 
-PARTS = base.yml \
-		components/parameters.yml \
-		components/responses.yml \
-		components/schemas.yml \
-		paths.yml
+COMPONENTS_DIR = ./components
+PARTS_COMPONENTS := $(shell find $(COMPONENTS_DIR) -type f -name "*.yaml" -print)
+PARTS := openapi.yaml $(PARTS_COMPONENTS)
 
 
-PARTS_TRANSACTIONAL = transaction/transaction.yml
+TRANSACTIONAL_DIR = ./transaction
+PARTS_TRANSACTIONAL = $(shell find $(TRANSACTIONAL_DIR) -type f -name "*.yaml" -print)
 
 STATIC_BASE_DIR = static/spec/v0.9
 OPENAPI = $(STATIC_BASE_DIR)/openapi.yaml
 OPENAPI_TRANSACTIONAL = $(STATIC_BASE_DIR)/openapitransactional.yaml
 
-# AWS_ACCOUNT = swisstopo-3d
 
 $(OPENAPI): $(PARTS)
-	docker run --rm -v ${PWD}:/workdir mikefarah/yq:3.3.0 yq merge -x $(PARTS) > $@
+	docker run --rm -v ${PWD}:/workdir mikefarah/yq:3.3.0 yq merge -x $(PARTS) | \
+	sed -E '/\$ref:/s/"\..*?(#.*?)"/"\1"/' > $@
 
 $(OPENAPI_TRANSACTIONAL): $(OPENAPI) $(PARTS_TRANSACTIONAL)
-	docker run --rm -v ${PWD}:/workdir mikefarah/yq:3.3.0 yq merge -x $(OPENAPI) $(PARTS_TRANSACTIONAL) > $@
+	docker run --rm -v ${PWD}:/workdir mikefarah/yq:3.3.0 yq merge -x $(OPENAPI) $(PARTS_TRANSACTIONAL) | \
+	sed -E '/\$ref:/s/"\..*?(#.*?)"/"\1"/' > $@
 
 
 .PHONY: build-specs

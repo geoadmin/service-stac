@@ -3,6 +3,7 @@ import json
 import logging
 from datetime import datetime
 from datetime import timezone
+from decimal import Decimal
 from urllib import parse
 
 import boto3
@@ -10,6 +11,9 @@ import multihash
 from botocore.client import Config
 
 from django.conf import settings
+from django.contrib.gis.geos import Point
+from django.contrib.gis.geos import Polygon
+from django.urls import reverse
 
 logger = logging.getLogger(__name__)
 
@@ -96,10 +100,27 @@ def get_asset_path(item, asset_name):
 def get_s3_resource():
     '''Returns an AWS S3 resource
 
+    The authentication with the S3 server is configured via the AWS_ACCESS_KEY_ID and
+    AWS_SECRET_ACCESS_KEY environment variables.
+
     Returns:
         AWS S3 resource
     '''
     return boto3.resource(
+        's3', endpoint_url=settings.AWS_S3_ENDPOINT_URL, config=Config(signature_version='s3v4')
+    )
+
+
+def get_s3_client():
+    '''Returns an AWS S3 client
+
+    The authentication with the S3 server is configured via the AWS_ACCESS_KEY_ID and
+    AWS_SECRET_ACCESS_KEY environment variables.
+
+    Returns:
+        AWS S3 client
+    '''
+    return boto3.client(
         's3', endpoint_url=settings.AWS_S3_ENDPOINT_URL, config=Config(signature_version='s3v4')
     )
 
@@ -150,7 +171,7 @@ def create_multihash(digest, hash_type):
     Args:
         digest: string
         hash_type: string
-            hash type (sha2-256, md5, ...)
+            hash type sha2-256
 
     Returns: multihash
         multihash
@@ -164,12 +185,29 @@ def create_multihash_string(digest, hash_code):
     Args:
         digest: string
         hash_code: string | int
-            hash code (sha2-256, md5, ...)
+            hash code sha2-256
 
     Returns: string
         multihash string
     '''
     return multihash.to_hex_string(multihash.encode(digest, hash_code))
+
+
+def parse_multihash(multihash_string):
+    '''Parse a multihash string
+
+    Args:
+        multihash_string: string
+            multihash string to parse
+
+    Returns.
+        Multihash object
+
+    Raises:
+        TypeError: if incoming data is not a string
+        ValueError: if the incoming data is not a valid multihash
+    '''
+    return multihash.decode(multihash.from_hex_string(multihash_string))
 
 
 def harmonize_post_get_for_search(request):
@@ -252,6 +290,7 @@ class CommandHandler():
         self.stdout = command.stdout
         self.stderr = command.stderr
         self.style = command.style
+        self.command = command
 
     def print(self, message, *args, level=2):
         if self.verbosity >= level:
@@ -267,3 +306,32 @@ class CommandHandler():
 
     def print_error(self, message, *args):
         self.stderr.write(self.style.ERROR(message % (args)))
+
+
+def geometry_from_bbox(bbox):
+    '''Returns a Geometry from a bbox
+
+    Args:
+        bbox: string
+            bbox as string comma separated or as float list
+
+    Returns:
+        Geometry
+
+    Raises:
+        ValueError, IndexError, GDALException
+    '''
+    list_bbox_values = bbox.split(',')
+    if (
+        Decimal(list_bbox_values[0]) == Decimal(list_bbox_values[2]) and
+        Decimal(list_bbox_values[1]) == Decimal(list_bbox_values[3])
+    ):
+        bbox_geometry = Point(float(list_bbox_values[0]), float(list_bbox_values[1]))
+    else:
+        bbox_geometry = Polygon.from_bbox(list_bbox_values)
+    return bbox_geometry
+
+
+def get_url(request, view, args=None):
+    '''Get an full url based on a view name'''
+    return request.build_absolute_uri(reverse(view, args=args))

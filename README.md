@@ -7,20 +7,30 @@
 
 ## Table of Content
 
+- [Table of Content](#table-of-content)
 - [Summary of the project](#summary-of-the-project)
-- [Specs](spec/README.md)
 - [Local development](#local-development)
   - [Dependencies](#dependencies)
+    - [Python3.7](#python37)
+    - [pipenv](#pipenv)
+  - [Using Postgres on local host](#using-postgres-on-local-host)
   - [Creating the local environment](#creating-the-local-environment)
   - [Setting up the local database](#setting-up-the-local-database)
   - [Using a local PostGres database instead of a container](#using-a-local-postgres-database-instead-of-a-container)
   - [Starting dev server](#starting-dev-server)
   - [Running tests](#running-tests)
+    - [Unit test logging](#unit-test-logging)
   - [Using Django shell](#using-django-shell)
+  - [Migrate DB with Django](#migrate-db-with-django)
   - [Linting and formatting your work](#linting-and-formatting-your-work)
+- [Initial Setup up the RDS database and the user](#initial-setup-up-the-rds-database-and-the-user)
 - [Deploying the project and continuous integration](#deploying-the-project-and-continuous-integration)
 - [Docker](#docker)
-- [Configuration](#configuration)
+  - [Configuration](#configuration)
+    - [**General settings**](#general-settings)
+    - [**Database settings**](#database-settings)
+    - [**Asset Storage settings (AWS S3)**](#asset-storage-settings-aws-s3)
+    - [**Development settings (only for local environment and DEV staging)**](#development-settings-only-for-local-environment-and-dev-staging)
 
 ## Summary of the project
 
@@ -33,6 +43,7 @@
 Prerequisites on host for development and build:
 
 - python version 3.7
+- libgdal-dev
 - [pipenv](https://pipenv-fork.readthedocs.io/en/latest/install.html)
 - `docker` and `docker-compose`
 
@@ -40,10 +51,12 @@ Prerequisites on host for development and build:
 
 If your Ubuntu distribution is missing Python 3.7, you may use the `deadsnakes` PPA and install it:
 
-    sudo add-apt-repository ppa:deadsnakes/ppa
-    sudo apt-get update
-    sudo apt-get install python3.7
-    
+```bash
+sudo add-apt-repository ppa:deadsnakes/ppa
+sudo apt-get update
+sudo apt-get install python3.7
+```
+
 #### pipenv
 
 Generally, all modern distribution have already a [pipenv](https://pipenv-fork.readthedocs.io) package. If no, install from hand.
@@ -52,7 +65,7 @@ The other services that are used (Postgres with PostGIS extension for metadata a
 
 Starting postgres and MinIO is done with a simple
 
-```
+```bash
 docker-compose up
 ```
 
@@ -101,7 +114,7 @@ These steps will ensure you have everything needed to start working locally.
   ```
 
 An alternative to ```pipenv install``` is to use the ```make setup``` command, which will install the environment,
-apply a patch to the multihash package to support md5, create the volumes needed by the Postgres and MinIO containers
+create the volumes needed by the Postgres and MinIO containers
 and run those containers. ```Make setup``` assume a standard local installation with a dev environment.
 
 ### Setting up the local database
@@ -146,6 +159,7 @@ some default values to be able to start working with it. (From the root)
   ```
 
 the ```pipenv shell``` command activate the virtual environment provided by pipenv.
+
 ### Using a local PostGres database instead of a container
 
 To use a local postgres instance rather than a container, once you've ensured you've the needed dependencies, you should :
@@ -432,6 +446,7 @@ The service is configured by Environment Variable:
 | AWS_S3_REGION_NAME | - | |
 | AWS_S3_ENDPOINT_URL | `None` | |
 | AWS_S3_CUSTOM_DOMAIN | `None` | |
+| AWS_PRESIGNED_URL_EXPIRES | 3600 | AWS presigned url for asset upload expire time in seconds | 
 
 #### **Development settings (only for local environment and DEV staging)**
 

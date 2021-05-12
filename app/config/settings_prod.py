@@ -76,6 +76,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     #  Note: If you use TokenAuthentication in production you must ensure
     #  that your API is only available over https.
+    'admin_auto_filters',
     'solo.apps.SoloAppConfig',
     'storages',
     'whitenoise.runserver_nostatic',
@@ -108,7 +109,7 @@ MIDDLEWARE = [
 try:
     CACHE_MIDDLEWARE_SECONDS = int(os.environ.get('HTTP_CACHE_SECONDS', '600'))
 except ValueError as error:
-    raise ValueError('Invalid HTTP_CACHE_SECONDS environment value: must be an integer')
+    raise ValueError('Invalid HTTP_CACHE_SECONDS environment value: must be an integer') from error
 
 ROOT_URLCONF = 'config.urls'
 API_BASE = 'api'
@@ -194,7 +195,9 @@ HEALTHCHECK_ENDPOINT = os.environ.get('HEALTHCHECK_ENDPOINT', 'healthcheck')
 try:
     WHITENOISE_MAX_AGE = int(os.environ.get('HTTP_STATIC_CACHE_SECONDS', '3600'))
 except ValueError as error:
-    raise ValueError('Invalid HTTP_STATIC_CACHE_SECONDS environment value: must be an integer')
+    raise ValueError(
+        'Invalid HTTP_STATIC_CACHE_SECONDS environment value: must be an integer'
+    ) from error
 WHITENOISE_MIMETYPES = {
     # These sets the mime types for the api/stac/static/spec/v0.9/openapi.yaml static file
     # otherwise a default application/octet-stream is used.
@@ -226,11 +229,13 @@ try:
 except KeyError as err:
     raise KeyError(f'AWS configuration {err} missing') from err
 
+AWS_PRESIGNED_URL_EXPIRES = int(os.environ.get('AWS_PRESIGNED_URL_EXPIRES', '3600'))
+
 # Configure the admin upload caching
 try:
     STORAGE_ASSETS_CACHE_SECONDS = int(os.environ.get('HTTP_ASSETS_CACHE_SECONDS', '7200'))
 except ValueError as err:
-    raise ValueError('Invalid HTTP_ASSETS_CACHE_SECONDS, must be an integer')
+    raise ValueError('Invalid HTTP_ASSETS_CACHE_SECONDS, must be an integer') from err
 
 # Logging
 # https://docs.djangoproject.com/en/3.1/topics/logging/
@@ -289,6 +294,6 @@ DEBUG_PROPAGATE_API_EXCEPTIONS = False
 # data.geo.admin.ch/collection/item/asset to check if asset exists.
 EXTERNAL_SERVICE_TIMEOUT = 3
 
-# By default django_promtheus tracks the number of migrations
+# By default django_prometheus tracks the number of migrations
 # This causes troubles in various places so we disable it
 PROMETHEUS_EXPORT_MIGRATIONS = False

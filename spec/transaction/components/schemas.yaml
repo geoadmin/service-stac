@@ -1,0 +1,480 @@
+openapi: 3.0.1
+components:
+  schemas:
+    assetId:
+      type: string
+      pattern: ^[a-z0-9.-_]+$
+      title: ID
+      description: >-
+        The asset id uniquely identifies the asset for an item
+
+
+        **Note**: `id` must be unique for the item and must be identical to the
+        filename.
+      example: smr50-263-2016-2056-kgrs-2.5.tiff
+    assets:
+      title: Assets
+      type: object
+      properties:
+        assets:
+          items:
+            $ref: "#/components/schemas/readUpdateAsset"
+          type: array
+        links:
+          items:
+            $ref: "../../components/schemas.yaml#/components/schemas/link"
+          type: array
+          example:
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets
+              rel: self
+            - href: https://data.geo.admin.ch/api/stac/v0.9/
+              rel: root
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019
+              rel: parent
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019
+              rel: item
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+              rel: collection
+    collectionWrite:
+      title: collection
+      allOf:
+        - $ref: "../../components/schemas.yaml#/components/schemas/collectionBase"
+        - type: object
+          properties:
+            links:
+              type: array
+              items:
+                $ref: "../../components/schemas.yaml#/components/schemas/link"
+              example:
+                - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
+                  rel: license
+                  title: Licence for the free geodata of the Federal Office of Topography swisstopo
+                - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
+                  rel: describedby
+    createAsset:
+      allOf:
+        - $ref: "../../components/schemas.yaml#/components/schemas/assetBase"
+        - type: object
+          required:
+            - id
+            - links
+          properties:
+            id:
+              $ref: "./schemas.yaml#/components/schemas/assetId"
+            links:
+              items:
+                $ref: "../../components/schemas.yaml#/components/schemas/link"
+              type: array
+              readOnly: true
+              example:
+                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets/smr50-263-2016-2056-kgrs-2.5.tiff
+                  rel: self
+                - href: https://data.geo.admin.ch/api/stac/v0.9/
+                  rel: root
+                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets
+                  rel: parent
+                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019
+                  rel: item
+                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+                  rel: collection
+    readUpdateAsset:
+      allOf:
+        - $ref: "../../components/schemas.yaml#/components/schemas/assetBase"
+        - type: object
+          required:
+            - id
+            - links
+          properties:
+            id:
+              $ref: "./schemas.yaml#/components/schemas/assetId"
+            links:
+              items:
+                $ref: "../../components/schemas.yaml#/components/schemas/link"
+              type: array
+              readOnly: true
+              example:
+                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets/smr50-263-2016-2056-kgrs-2.5.tiff
+                  rel: self
+                - href: https://data.geo.admin.ch/api/stac/v0.9/
+                  rel: root
+                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets
+                  rel: parent
+                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019
+                  rel: item
+                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+                  rel: collection
+    writeItem:
+      allOf:
+        - $ref: "../../components/schemas.yaml#/components/schemas/itemBase"
+        - type: object
+          properties:
+            links:
+              items:
+                $ref: "../../components/schemas.yaml#/components/schemas/link"
+              type: array
+              description: >-
+                Add additional link to the generated ones (`self`, `root`, `parent`, `items`,
+                `collection`, `next`, `previous`)
+    createItem:
+      allOf:
+        - type: object
+          required:
+            - id
+          properties:
+            id:
+              $ref: "../../components/schemas.yaml#/components/schemas/itemId"
+        - $ref: "./schemas.yaml#/components/schemas/writeItem"
+    updateItem:
+      allOf:
+        - type: object
+          required:
+            - id
+          properties:
+            id:
+              $ref: "#/components/schemas/itemIdUpdate"
+        - $ref: "#/components/schemas/writeItem"
+    partialItem:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/itemIdUpdate"
+        geometry:
+          $ref: "../../components/schemas.yaml#/components/schemas/itemGeometry"
+        properties:
+          $ref: "../../components/schemas.yaml#/components/schemas/itemProperties"
+        links:
+          type: array
+          items:
+            $ref: "../../components/schemas.yaml#/components/schemas/link"
+          description: >-
+            Add/update additional link to the generated ones (`self`, `root`, `parent`, `items`,
+            `collection`, `next`, `previous`)
+      example:
+        properties:
+          datetime: "2016-05-03T13:22:30.040Z"
+    partialCollection:
+      type: object
+      description: Allows for a set of partial metadata fields for a collection
+      properties:
+        id:
+          description: Identifier of the collection used, for example, in URIs
+          type: string
+          example: ch.swisstopo.pixelkarte-farbe-pk200.noscale
+        title:
+          description: Human readable title of the collection
+          type: string
+          example: National Map 1:200'000
+        description:
+          description: A description of the features in the collection
+          type: string
+          example: The National Map 1:200,000 is a topographic map giving an overview of Switzerland.
+        links:
+          type: array
+          items:
+            $ref: "../../components/schemas.yaml#/components/schemas/link"
+          example:
+            - href: http://data.example.com/buildings
+              rel: item
+            - href: http://example.com/concepts/buildings.html
+              rel: describedBy
+              type: text/html
+        extent:
+          $ref: "../../components/schemas.yaml#/components/schemas/extent"
+        itemType:
+          description: >-
+            Indicator about the type of the items in the collection (the default value is 'feature').
+          type: string
+          default: feature
+        crs:
+          description: The list of coordinate reference systems supported by the service
+          type: array
+          items:
+            type: string
+          default:
+            - http://www.opengis.net/def/crs/OGC/1.3/CRS84
+          example:
+            - http://www.opengis.net/def/crs/OGC/1.3/CRS84
+            - http://www.opengis.net/def/crs/EPSG/0/4326
+        example:
+          title: The new title of the collection
+    itemIdUpdate:
+      description: >-
+        Item identifier (unique per collection. If it doesn't match the `featureId` in path
+        parameters, then the Item is renamed.
+      example: smr200-200-4-2019
+      type: string
+    uploadId:
+      title: ID
+      type: string
+      description: Unique Asset upload identifier
+      example: KrFTuglD.N8ireqry_w3.oQqNwrYI7SfSXpVRiusKah0YigDnuM06hfJNIUZg4R_No0MMW9FLU2UG5anTW0boTUYVxKfBZWCFXqnQTpjnQEo1K7la39MYpjSTvIbZgnG
+      readOnly: true
+    dtUploadCreated:
+      title: created
+      description: Date and time when the Asset's upload has been created/started.
+      type: string
+      format: date-time
+      readOnly: true
+    dtUploadCompleted:
+      title: completed
+      description: |
+        Date and time when the Asset's upload has been completed.
+
+        *Note: this property is mutually exclusive with `aborted`*
+      type: string
+      format: date-time
+      readOnly: true
+    dtUploadAborted:
+      title: aborted
+      description: |
+        Date and time when the Asset's upload has been aborted.
+
+        *Note: this property is mutually exclusive with `completed`*
+      type: string
+      format: date-time
+      readOnly: true
+    assetUploads:
+      title: AssetUploads
+      type: object
+      required:
+        - uploads
+        - links
+      properties:
+        uploads:
+          description: List of uploads that are within the asset.
+          type: array
+          items:
+            $ref: "#/components/schemas/assetUpload"
+        links:
+          description: Next and/or previous links for the pagination.
+          type: array
+          items:
+            $ref: "../../components/schemas.yaml#/components/schemas/link"
+          example:
+            - rel: next
+              href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets/smr50-263-2016-2056-kgrs-2.5.tiff/uploads?cursor=0d34
+    assetUpload:
+      title: AssetUpload
+      type: object
+      required:
+        - upload_id
+        - status
+        - created
+        - "checksum:multihash"
+        - number_parts
+      properties:
+        upload_id:
+          $ref: "#/components/schemas/uploadId"
+        status:
+          $ref: "#/components/schemas/status"
+        number_parts:
+          $ref: "#/components/schemas/number_parts"
+        urls:
+          type: array
+          description: |
+            Note: As soon as the multipart upload is completed or aborted, the `urls` property is removed.
+          items:
+            $ref: "#/components/schemas/multipartUploadUrl"
+          readOnly: true
+        created:
+          $ref: "#/components/schemas/dtUploadCreated"
+        completed:
+          $ref: "#/components/schemas/dtUploadCompleted"
+        aborted:
+          $ref: "#/components/schemas/dtUploadAborted"
+        "checksum:multihash":
+          $ref: "../../components/schemas.yaml#/components/schemas/checksumMultihash"
+    assetUploadCreate:
+      title: AssetUpload
+      type: object
+      required:
+        - upload_id
+        - status
+        - created
+        - "checksum:multihash"
+        - number_parts
+      properties:
+        upload_id:
+          $ref: "#/components/schemas/uploadId"
+        status:
+          $ref: "#/components/schemas/status"
+        number_parts:
+          $ref: "#/components/schemas/number_parts"
+        urls:
+          type: array
+          description: |
+            Note: As soon as the multipart upload is completed or aborted, the `urls` property is removed.
+          items:
+            $ref: "#/components/schemas/multipartUploadUrl"
+          readOnly: true
+        created:
+          $ref: "#/components/schemas/dtUploadCreated"
+        "checksum:multihash":
+          $ref: "../../components/schemas.yaml#/components/schemas/checksumMultihash"
+    assetCompleteUpload:
+      title: CompleteUpload
+      type: object
+      required:
+        - parts
+      properties:
+        parts:
+          type: array
+          description: Parts that have been uploaded
+          items:
+            title: File parts that have been uploaded
+            type: object
+            required:
+              - etag
+              - part_number
+            properties:
+              etag:
+                title: ETag
+                type: string
+                description: >-
+                  ETag of the uploaded file part (returned in the header of the answer of
+                  [Upload asset file part](#operation/uploadAssetFilePart)).
+                example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
+              part_number:
+                $ref: "#/components/schemas/part_number"
+    assetUploadCompleted:
+      title: UploadCompleted
+      type: object
+      required:
+        - upload_id
+        - status
+        - number_parts
+        - created
+        - completed
+        - "checksum:multihash"
+      properties:
+        upload_id:
+          $ref: "#/components/schemas/uploadId"
+        status:
+          title: Status
+          description: Status of the Asset's multipart upload.
+          type: string
+          enum:
+            - completed
+          example:
+            completed
+        number_parts:
+          $ref: "#/components/schemas/number_parts"
+        created:
+          $ref: "#/components/schemas/dtUploadCreated"
+        completed:
+          $ref: "#/components/schemas/dtUploadCompleted"
+        "checksum:multihash":
+          $ref: "../../components/schemas.yaml#/components/schemas/checksumMultihash"
+    assetUploadAborted:
+      title: UploadCompleted
+      type: object
+      required:
+        - upload_id
+        - status
+        - number_parts
+        - created
+        - aborted
+        - "checksum:multihash"
+      properties:
+        upload_id:
+          $ref: "#/components/schemas/uploadId"
+        status:
+          title: Status
+          description: Status of the Asset's multipart upload.
+          type: string
+          enum:
+            - aborted
+          example:
+            aborted
+        number_parts:
+          $ref: "#/components/schemas/number_parts"
+        created:
+          $ref: "#/components/schemas/dtUploadCreated"
+        aborted:
+          $ref: "#/components/schemas/dtUploadAborted"
+        "checksum:multihash":
+          $ref: "../../components/schemas.yaml#/components/schemas/checksumMultihash"
+    assetUploadParts:
+      title: Parts
+      type: object
+      required:
+        - parts
+        - links
+      properties:
+        parts:
+          type: object
+          description: List of uploaded parts
+          required:
+            - etag
+            - part_number
+            - modified
+            - size
+          properties:
+            etag:
+              $ref: "#/components/schemas/uploadEtag"
+            part_number:
+              $ref: "#/components/schemas/part_number"
+            modified:
+              type: string
+              format: date-time
+              description: Date time when the part was added/modified
+            size:
+              type: integer
+              description: Part size in bytes
+              minimum: 0
+              example: 1024
+        links:
+          description: Next and/or previous links for the pagination.
+          type: array
+          items:
+            $ref: "../../components/schemas.yaml#/components/schemas/link"
+          example:
+            - rel: next
+              href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets/smr50-263-2016-2056-kgrs-2.5.tiff/uploads/upload-id/parts?limit=50&offset=50
+    status:
+      title: Status
+      description: Status of the Asset's multipart upload.
+      type: string
+      enum:
+        - in-progress
+        - aborted
+        - completed
+      readOnly: true
+    number_parts:
+      description: Number of parts for the Asset's multipart upload.
+      type: integer
+      minimum: 1
+      maximum: 100
+    part_number:
+      description: Number of the part.
+      type: integer
+      minimum: 1
+      maximum: 100
+    multipartUploadUrl:
+      title: MultipartUploadUrl
+      description: Multipart upload url.
+      type: object
+      required:
+        - url
+        - part
+        - expires
+      properties:
+        url:
+          description: Presigned URL to use to upload the Asset File part using the PUT method.
+          type: string
+          format: url
+          example: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-4-2019/smr50-263-2016-2056-kgrs-2.5.tiff?uploadId=d77UbNnEVTaqCAyAz61AVqy7uuTGJ_YOUyPOklcRMr4ZPBthON9p6cpMREx683yQ_oeGVmGE_yTg4cmnEz3mTErEPKn0_m.3LBjo6A88Qxlj4vFrAdU6YBuourb.IqFF&partNumber=1&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4HDUVYWAM6ZB6SWO%2F20210414%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20210414T112742Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=d12763467eaffa0c69d601297a661a05c9f414d4008b4148fa6ba604f203be01
+        part:
+          description: Part number assigned to this presigned URL.
+          type: integer
+          minimum: 1
+          maximum: 100
+        expires:
+          description: Date time when this presigned URL expires and is not valid anymore.
+          type: string
+          format: date-time
+    uploadEtag:
+      title: ETag
+      type: string
+      description: The RFC7232 ETag for the specified uploaded part.
+      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"

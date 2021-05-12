@@ -4,8 +4,8 @@ import os
 import time
 from uuid import uuid4
 
-# import botocore.exceptions # Un-comment with BGDIINF_SB-1625
-import multihash
+from multihash import encode as multihash_encode
+from multihash import to_hex_string
 
 from django.conf import settings
 from django.contrib.gis.db import models
@@ -13,6 +13,10 @@ from django.contrib.gis.geos import Polygon
 from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ValidationError
 from django.core.serializers.json import DjangoJSONEncoder
+from django.core.validators import MaxValueValidator
+from django.core.validators import MinValueValidator
+from django.db.models import Q
+from django.db.models.deletion import ProtectedError
 from django.utils.translation import gettext_lazy as _
 
 from solo.models import SingletonModel
@@ -21,10 +25,12 @@ from stac_api.collection_spatial_extent import CollectionSpatialExtentMixin
 from stac_api.collection_summaries import UPDATE_SUMMARIES_FIELDS
 from stac_api.collection_summaries import CollectionSummariesMixin
 from stac_api.collection_temporal_extent import CollectionTemporalExtentMixin
+from stac_api.managers import AssetUploadManager
 from stac_api.managers import ItemManager
 from stac_api.utils import get_asset_path
-# from stac_api.utils import get_s3_resource # Un-comment with BGDIINF_SB-1625
 from stac_api.validators import MEDIA_TYPES
+from stac_api.validators import validate_asset_name
+from stac_api.validators import validate_asset_name_with_media_type
 from stac_api.validators import validate_geoadmin_variant
 from stac_api.validators import validate_geometry
 from stac_api.validators import validate_item_properties_datetimes
@@ -246,7 +252,7 @@ class Provider(models.Model):
         for role in self.roles:
             if role not in self.allowed_roles:
                 logger.error(
-                    'Invalid provider role %s', role, extra={'collection', self.collection.name}
+                    'Invalid provider role %s', role, extra={'collection': self.collection.name}
                 )
                 raise ValidationError(
                     _('Invalid role, must be in %(roles)s'),
@@ -368,7 +374,7 @@ class Item(models.Model):
 
     name = models.CharField('id', blank=False, max_length=255, validators=[validate_name])
     collection = models.ForeignKey(
-        Collection, on_delete=models.CASCADE, help_text=_(SEARCH_TEXT_HELP_COLLECTION)
+        Collection, on_delete=models.PROTECT, help_text=_(SEARCH_TEXT_HELP_COLLECTION)
     )
     geometry = models.PolygonField(
         null=False, blank=False, default=BBOX_CH, srid=4326, validators=[validate_geometry]
@@ -438,22 +444,18 @@ class Item(models.Model):
         # It is important to use `*args, **kwargs` in signature because django might add dynamically
         # parameters
         logger.debug('Saving item', extra={'collection': self.collection.name, 'item': self.name})
-        collection_updated = False
 
         self.update_etag()
 
         trigger = get_save_trigger(self)
 
-        collection_updated |= self.collection.update_temporal_extent(
-            self, trigger, self._original_values
-        )
+        self.collection.update_temporal_extent(self, trigger, self._original_values)
 
-        collection_updated |= self.collection.update_bbox_extent(
+        self.collection.update_bbox_extent(
             trigger, self.geometry, self._original_values.get('geometry', None), self
         )
 
-        if collection_updated:
-            self.collection.save()
+        self.collection.save()
 
         super().save(*args, **kwargs)
 
@@ -464,18 +466,12 @@ class Item(models.Model):
         # It is important to use `*args, **kwargs` in signature because django might add dynamically
         # parameters
         logger.debug('Deleting item', extra={'collection': self.collection.name, 'item': self.name})
-        collection_updated = False
 
-        collection_updated |= self.collection.update_temporal_extent(
-            self, 'delete', self._original_values
-        )
+        self.collection.update_temporal_extent(self, 'delete', self._original_values)
 
-        collection_updated |= self.collection.update_bbox_extent(
-            'delete', self.geometry, None, self
-        )
+        self.collection.update_bbox_extent('delete', self.geometry, None, self)
 
-        if collection_updated:
-            self.collection.save()
+        self.collection.save()
 
         super().delete(*args, **kwargs)
 
@@ -519,7 +515,7 @@ def upload_asset_to_path_hook(instance, filename=None):
     ctx = hashlib.sha256()
     for chunk in instance.file.chunks(settings.UPLOAD_FILE_CHUNK_SIZE):
         ctx.update(chunk)
-    mhash = multihash.to_hex_string(multihash.encode(ctx.digest(), 'sha2-256'))
+    mhash = to_hex_string(multihash_encode(ctx.digest(), 'sha2-256'))
     # set the hash to the storage to use it for upload signing, this temporary attribute is
     # then used by storages.S3Storage to set the MetaData.sha256
     setattr(instance.file.storage, '_tmp_sha256', ctx.hexdigest())
@@ -544,18 +540,20 @@ class Asset(models.Model):
         Item,
         related_name='assets',
         related_query_name='asset',
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         help_text=_(SEARCH_TEXT_HELP_ITEM)
     )
     # using "name" instead of "id", as "id" has a default meaning in django
-    name = models.CharField('id', max_length=255, validators=[validate_name])
+    name = models.CharField('id', max_length=255, validators=[validate_asset_name])
     file = models.FileField(upload_to=upload_asset_to_path_hook, max_length=255)
 
     @property
     def filename(self):
         return os.path.basename(self.file.name)
 
-    checksum_multihash = models.CharField(editable=False, max_length=255, blank=True, default='')
+    checksum_multihash = models.CharField(
+        editable=False, max_length=255, blank=True, null=True, default=None
+    )
     # here we need to set blank=True otherwise the field is as required in the admin interface
     description = models.TextField(blank=True, null=True, default=None)
     eo_gsd = models.FloatField(null=True, blank=True)
@@ -621,77 +619,6 @@ class Asset(models.Model):
         '''
         self.etag = compute_etag()
 
-    def move_asset(self, source, dest):
-        # Un-comment and remove the warning with BGDIINF_SB-1625
-        logger.warning(
-            'Asset %s has been renamed to %s, file needs to renamed on S3 as well !',
-            source,
-            dest,
-            extra={
-                'collection': self.item.collection.name, 'item': self.item.name, 'asset': self.name
-            }
-        )
-        # logger.info(
-        #     "Renaming asset on s3 from %s to %s",
-        #     source,
-        #     dest,
-        #     extra={
-        #         'collection': self.item.collection.name,
-        #         'item': self.item.name,
-        #         'asset': self.name
-        #     }
-        # )
-        # s3 = get_s3_resource()
-
-        # try:
-        #     s3.Object(settings.AWS_STORAGE_BUCKET_NAME,
-        #               dest).copy_from(CopySource=f'{settings.AWS_STORAGE_BUCKET_NAME}/{source}')
-        #     s3.Object(settings.AWS_STORAGE_BUCKET_NAME, source).delete()
-        #     self.file.name = dest
-        # except botocore.exceptions.ClientError as error:
-        #     logger.error(
-        #         'Failed to move asset %s from %s to %s: %s',
-        #         self.name,
-        #         source,
-        #         dest,
-        #         error,
-        #         extra={
-        #             'collection': self.item.collection.name,
-        #             'item': self.item.name,
-        #             'asset': self.name
-        #         }
-        #     )
-        #     raise error
-
-    # def remove_asset(self, source):
-    #     logger.info(
-    #         "Remove asset on s3 from %s",
-    #         source,
-    #         extra={
-    #             'collection': self.item.collection.name,
-    #             'item': self.item.name,
-    #             'asset': self.name
-    #         }
-    #     )
-    #     s3 = get_s3_resource()
-
-    #     try:
-    #         s3.Object(settings.AWS_STORAGE_BUCKET_NAME, source).delete()
-    #     except botocore.exceptions.ClientError as error:
-    #         logger.error(
-    #             'Failed to remove asset %s from %s: %s',
-    #             self.name,
-    #             source,
-    #             error,
-    #             extra={
-    #                 'collection': self.item.collection.name,
-    #                 'item': self.item.name,
-    #                 'asset': self.name
-    #             }
-    #         )
-    #     self.file.name = ''
-    #     self.checksum_multihash = ''
-
     # alter save-function, so that the corresponding collection of the parent item of the asset
     # is saved, too.
     def save(self, *args, **kwargs):  # pylint: disable=signature-differs
@@ -705,13 +632,9 @@ class Asset(models.Model):
 
         trigger = get_save_trigger(self)
 
-        if trigger == 'update' and self.name != self._original_values["name"]:
-            self.move_asset(self._original_values['path'], get_asset_path(self.item, self.name))
-
         old_values = [self._original_values.get(field, None) for field in UPDATE_SUMMARIES_FIELDS]
-        if self.item.collection.update_summaries(self, trigger, old_values=old_values):
-            self.item.collection.save()
 
+        self.item.collection.update_summaries(self, trigger, old_values=old_values)
         self.item.save()  # We save the item to update its ETag
 
         super().save(*args, **kwargs)
@@ -729,7 +652,95 @@ class Asset(models.Model):
         )
         # It is important to use `*args, **kwargs` in signature because django might add dynamically
         # parameters
-        if self.item.collection.update_summaries(self, 'delete', old_values=None):
-            self.item.collection.save()
+        self.item.collection.update_summaries(self, 'delete', old_values=None)
         self.item.save()  # We save the item to update its ETag
-        super().delete(*args, **kwargs)
+
+        try:
+            super().delete(*args, **kwargs)
+        except ProtectedError as error:
+            logger.error(
+                'Cannot delete asset %s: %s',
+                self.name,
+                error,
+                extra={
+                    'collection': self.item.collection.name,
+                    'item': self.item.name,
+                    'asset': self.name
+                }
+            )
+            raise ValidationError(error.args[0]) from None
+
+    def clean(self):
+        validate_asset_name_with_media_type(self.name, self.media_type)
+
+
+class AssetUpload(models.Model):
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['asset', 'upload_id'], name='unique_together'),
+            # Make sure that there is only one asset upload in progress per asset
+            models.UniqueConstraint(
+                fields=['asset', 'status'],
+                condition=Q(status='in-progress'),
+                name='unique_in_progress'
+            )
+        ]
+
+    class Status(models.TextChoices):
+        # pylint: disable=invalid-name
+        IN_PROGRESS = 'in-progress'
+        COMPLETED = 'completed'
+        ABORTED = 'aborted'
+        __empty__ = ''
+
+    # using BigIntegerField as primary_key to deal with the expected large number of assets.
+    id = models.BigAutoField(primary_key=True)
+    asset = models.ForeignKey(Asset, related_name='+', on_delete=models.CASCADE)
+    upload_id = models.CharField(max_length=255, blank=False, null=False)
+    status = models.CharField(
+        choices=Status.choices, max_length=32, default=Status.IN_PROGRESS, blank=False, null=False
+    )
+    number_parts = models.IntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(100)], null=False, blank=False
+    )  # S3 doesn't support more that 10'000 parts
+    urls = models.JSONField(default=list, encoder=DjangoJSONEncoder, blank=True)
+    created = models.DateTimeField(auto_now_add=True)
+    ended = models.DateTimeField(blank=True, null=True, default=None)
+    checksum_multihash = models.CharField(max_length=255, blank=False, null=False)
+
+    # hidden ETag field
+    etag = models.CharField(blank=False, null=False, max_length=56, default=compute_etag)
+
+    # Custom Manager that preselects the collection
+    objects = AssetUploadManager()
+
+    def save(self, *args, **kwargs):  # pylint: disable=signature-differs
+        self.update_etag()
+        super().save(*args, **kwargs)
+
+    def update_etag(self):
+        '''Update the ETag with a new UUID
+        '''
+        self.etag = compute_etag()
+
+    def update_asset_checksum_multihash(self):
+        '''Updating the asset's checksum:multihash from the upload
+
+        When the upload is completed, the new checksum:multihash from the upload
+        is set to its asset parent.
+        '''
+        logger.debug(
+            'Updating asset %s checksum:multihash from %s to %s due to upload complete',
+            self.asset.name,
+            self.asset.checksum_multihash,
+            self.checksum_multihash,
+            extra={
+                'upload_id': self.upload_id,
+                'asset': self.asset.name,
+                'item': self.asset.item.name,
+                'collection': self.asset.item.collection.name
+            }
+        )
+        self.asset.checksum_multihash = self.checksum_multihash
+        self.asset.save()

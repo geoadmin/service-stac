@@ -1,0 +1,128 @@
+openapi: 3.0.1
+tags:
+  - name: Capabilities
+  - name: Data
+  - name: STAC
+  - name: Data Management
+    description: |
+      Metadata management requests. Theses requests are used to create, update or delete the STAC
+      metadata.
+
+      *NOTE: these requests require authentication as described in [here](#tag/Authentication).*
+  - name: Asset Upload Management
+    description: |
+      Asset file can be uploaded via the STAC API using the following requests.
+
+      *NOTE: the POST requests require authentication as described in [here](#tag/Authentication).*
+
+      ### Example
+
+      ```python
+      import os
+      import hashlib
+
+      import requests
+      import multihash
+
+      # variables
+      scheme = 'https'
+      hostname = 'data.geo.admin.ch'
+      collection = 'ch.swisstopo.pixelkarte-farbe-pk200.noscale'
+      item = 'smr200-200-4-2016'
+      asset = 'smr200-200-4-2016-2056-kgrs-10.tiff'
+      asset_path = f'collections/{collection}/items/{item}/assets/{asset}'
+      user = os.environ.get('STAC_USER', 'unknown-user')
+      password = os.environ.get('STAC_PASSWORD', 'unknown-password')
+
+      with open('smr200-200-4-2016-2056-kgrs-10.tiff', 'rb') as fd:
+        data = fd.read()
+
+      checksum_multihash = multihash.to_hex_string(multihash.encode(hashlib.sha256(data).digest(), 'sha2-256'))
+
+      # 1. Create a multipart upload
+      response = requests.post(
+        f"{scheme}://{hostname}/api/stac/v0.9/{asset_path}/uploads",
+        auth=(user, password),
+        json={
+          "number_parts": 1,
+          "checksum:multihash": checksum_multihash
+        }
+      )
+      upload_id = response.json()['upload_id']
+
+      # 2. Upload the part using the presigned url
+      response = requests.put(response.json()['urls'][0]['url'], data=data)
+      etag = response.headers['ETag']
+
+      # 3. Complete the upload
+      response = requests.post(
+        f"{scheme}://{hostname}/api/stac/v0.9/{asset_path}/uploads/{upload_id}/complete",
+        auth=(user, password),
+        json={'parts': [{'etag': etag, 'part_number': 1}]}
+      )
+      ```
+  - name: Authentication
+    description: |
+      All write requests require authentication. There is currently three type of supported authentications:
+
+      * [Session authentication](#section/Session-authentication)
+      * [Basic authentication](#section/Basic-authentication)
+      * [Token authentication](#section/Token-authentication)
+
+      ## Session authentication
+
+      When using the browsable API the user can simply use the admin interface for logging in.
+      Once logged in, the browsable API can be used to perform write requests.
+
+      ## Basic authentication
+
+      The username and password for authentication can be added to every write request the user wants to perform.
+      Here is an example of posting an asset using curl (_username_="MickeyMouse", _password_="I_love_Minnie_Mouse"):
+
+      ```
+      curl --request POST \
+        --user MickeyMouse:I_love_Minnie_Mouse \
+        --url https://data.geoadmin.ch/api/stac/v0.9/collections/ch.swisstopo.swisstlmregio/items/swisstlmregio-2020/assets \
+        --header 'Content-Type: application/json' \
+        --data '{
+          "id": "fancy_unique_id",
+          "item": "swisstlmregio-2020",
+          "title": "My title",
+          "type": "application/x.filegdb+zip",
+          "description": "My description",
+          "proj:epsg": 2056,
+          "checksum:multihash": "12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC"
+      }'
+      ```
+
+      ## Token authentication
+
+      A user specific token for authentication can be added to every write request the user wants to perform.
+      Here is an example of posting an asset using curl:
+
+      ```
+      curl --request POST \
+        --url https://data.geoadmin.ch/api/stac/v0.9/collections/ch.swisstopo.swisstlmregio/items/swisstlmregio-2020/assets \
+        --header 'Authorization: Token ccecf40693bfc52ba090cd46eb7f19e723fe831f' \
+        --header 'Content-Type: application/json' \
+        --data '{
+          "id": "fancy_unique_id",
+          "item": "swisstlmregio-2020",
+          "title": "My title",
+          "type": "application/x.filegdb+zip",
+          "description": "My description",
+          "proj:epsg": 2056,
+          "checksum:multihash": "12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC"
+      }'
+      ```
+
+      Tokens can either be generated in the admin interface or existing users can perform a POST request
+      on the get-token endpoint to request a token (also see [Request token for token authentication](#operation/getToken)).
+      Here is an example using curl:
+
+      ```
+      curl --request POST \
+        --url https://data.geoadmin.ch/api/stac/get-token \
+        --header 'Content-Type: application/json' \
+        --data '{"username": "MickeyMouse", "password": "I_love_Minnie_Mouse"}'
+      ```

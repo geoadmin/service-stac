@@ -11,6 +11,7 @@ from rest_framework.validators import UniqueValidator
 from rest_framework_gis import serializers as gis_serializers
 
 from stac_api.models import Asset
+from stac_api.models import AssetUpload
 from stac_api.models import Collection
 from stac_api.models import CollectionLink
 from stac_api.models import ConformancePage
@@ -19,141 +20,25 @@ from stac_api.models import ItemLink
 from stac_api.models import LandingPage
 from stac_api.models import LandingPageLink
 from stac_api.models import Provider
-from stac_api.models import get_asset_path
+from stac_api.serializers_utils import DictSerializer
+from stac_api.serializers_utils import NonNullModelSerializer
+from stac_api.serializers_utils import UpsertModelSerializerMixin
+from stac_api.serializers_utils import get_relation_links
+from stac_api.serializers_utils import update_or_create_links
 from stac_api.utils import build_asset_href
+from stac_api.utils import get_url
 from stac_api.utils import isoformat
 from stac_api.validators import MEDIA_TYPES_MIMES
-from stac_api.validators import validate_asset_multihash
+from stac_api.validators import validate_asset_name
+from stac_api.validators import validate_asset_name_with_media_type
+from stac_api.validators import validate_checksum_multihash_sha256
 from stac_api.validators import validate_geoadmin_variant
 from stac_api.validators import validate_item_properties_datetimes
 from stac_api.validators import validate_name
-from stac_api.validators_serializer import validate_asset_file
 from stac_api.validators_serializer import validate_json_payload
+from stac_api.validators_serializer import validate_uniqueness_and_create
 
 logger = logging.getLogger(__name__)
-
-
-def create_or_update_str(created):
-    if created:
-        return 'create'
-    return 'update'
-
-
-def update_or_create_links(model, instance, instance_type, links_data):
-    '''Update or create links for a model
-
-    Update the given links list within a model instance or create them when they don't exists yet.
-    Args:
-        model: model class on which to update/create links (Collection or Item)
-        instance: model instance on which to update/create links
-        instance_type: (str) instance type name string to use for filtering ('collection' or 'item')
-        links_data: list of links dictionary to add/update
-    '''
-    links_ids = []
-    for link_data in links_data:
-        link, created = model.objects.get_or_create(
-            **{instance_type: instance},
-            rel=link_data["rel"],
-            defaults={
-                'href': link_data.get('href', None),
-                'link_type': link_data.get('link_type', None),
-                'title': link_data.get('title', None)
-            }
-        )
-        logger.debug(
-            '%s link %s',
-            create_or_update_str(created),
-            link.href,
-            extra={
-                instance_type: instance.name, "link": link_data
-            }
-        )
-        links_ids.append(link.id)
-        # the duplicate here is necessary to update the values in
-        # case the object already exists
-        link.link_type = link_data.get('link_type', link.link_type)
-        link.title = link_data.get('title', link.title)
-        link.href = link_data.get('href', link.rel)
-        link.full_clean()
-        link.save()
-
-    # Delete link that were not mentioned in the payload anymore
-    deleted = model.objects.filter(**{instance_type: instance},).exclude(id__in=links_ids).delete()
-    logger.info(
-        "deleted %d stale links for %s %s",
-        deleted[0],
-        instance_type,
-        instance.name,
-        extra={instance_type: instance}
-    )
-
-
-class NonNullModelSerializer(serializers.ModelSerializer):
-    """Filter fields with null value
-
-    Best practice is to not include (optional) fields whose
-    value is None.
-    """
-
-    def to_representation(self, instance):
-
-        def filter_null(obj):
-            filtered_obj = {}
-            if isinstance(obj, OrderedDict):
-                filtered_obj = OrderedDict()
-            for key, value in obj.items():
-                if isinstance(value, dict):
-                    filtered_obj[key] = filter_null(value)
-                # then links array might be empty at this point,
-                # but that in the view the auto generated links are added anyway
-                elif isinstance(value, list) and key != 'links':
-                    if len(value) > 0:
-                        filtered_obj[key] = value
-                elif value is not None:
-                    filtered_obj[key] = value
-            return filtered_obj
-
-        obj = super().to_representation(instance)
-        return filter_null(obj)
-
-
-class DictSerializer(serializers.ListSerializer):
-    '''Represent objects within a dictionary instead of a list
-
-    By default the Serializer with `many=True` attribute represent all objects within a list.
-    Here we overwrite the ListSerializer to instead represent multiple objects using a dictionary
-    where the object identifier is used as key.
-
-    For example the following list:
-
-        [{
-                'name': 'object1',
-                'description': 'This is object 1'
-            }, {
-                'name': 'object2',
-                'description': 'This is object 2'
-        }]
-
-    Would be represented as follow:
-
-        {
-            'object1': {'description': 'This is object 1'},
-            'object2': {'description': 'This is object 2'}
-        }
-    '''
-
-    # pylint: disable=abstract-method
-
-    key_identifier = 'id'
-
-    def to_representation(self, data):
-        objects = super().to_representation(data)
-        return {obj.pop(self.key_identifier): obj for obj in objects}
-
-    @property
-    def data(self):
-        ret = super(serializers.ListSerializer, self).data
-        return ReturnDict(ret, serializer=self)
 
 
 class LandingPageLinkSerializer(serializers.ModelSerializer):
@@ -192,7 +77,6 @@ class LandingPageSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
-        stac_base_v = settings.STAC_BASE_V
         request = self.context.get("request")
 
         spec_base = urlparse(settings.STATIC_SPEC_URL).path.strip('/')
@@ -203,7 +87,7 @@ class LandingPageSerializer(serializers.ModelSerializer):
         representation['links'][:0] = [
             OrderedDict([
                 ('rel', 'self'),
-                ('href', request.build_absolute_uri(f'/{stac_base_v}/')),
+                ('href', get_url(request, 'landing-page')),
                 ("type", "application/json"),
                 ("title", "This document"),
             ]),
@@ -221,25 +105,25 @@ class LandingPageSerializer(serializers.ModelSerializer):
             ]),
             OrderedDict([
                 ("rel", "conformance"),
-                ("href", request.build_absolute_uri(f'/{stac_base_v}/conformance')),
+                ("href", get_url(request, 'conformance')),
                 ("type", "application/json"),
                 ("title", "OGC API conformance classes implemented by this server"),
             ]),
             OrderedDict([
                 ('rel', 'data'),
-                ('href', request.build_absolute_uri(f'/{stac_base_v}/collections')),
+                ('href', get_url(request, 'collections-list')),
                 ("type", "application/json"),
                 ("title", "Information about the feature collections"),
             ]),
             OrderedDict([
-                ("href", request.build_absolute_uri(f"/{stac_base_v}/search")),
+                ("href", get_url(request, 'search-list')),
                 ("rel", "search"),
                 ("method", "GET"),
                 ("type", "application/json"),
                 ("title", "Search across feature collections"),
             ]),
             OrderedDict([
-                ("href", request.build_absolute_uri(f"/{stac_base_v}/search")),
+                ("href", get_url(request, 'search-list')),
                 ("rel", "search"),
                 ("method", "POST"),
                 ("type", "application/json"),
@@ -313,7 +197,7 @@ class CollectionLinkSerializer(NonNullModelSerializer):
     )
 
 
-class CollectionSerializer(NonNullModelSerializer):
+class CollectionSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
 
     class Meta:
         model = Collection
@@ -334,14 +218,14 @@ class CollectionSerializer(NonNullModelSerializer):
             'itemType'
         ]
         # crs not in sample data, but in specs..
+        validators = []  # Remove a default "unique together" constraint.
+        # (see:
+        # https://www.django-rest-framework.org/api-guide/validators/#limitations-of-validators)
 
     # NOTE: when explicitely declaring fields, we need to add the validation as for the field
     # in model !
     id = serializers.CharField(
-        required=True,
-        max_length=255,
-        source="name",
-        validators=[validate_name, UniqueValidator(queryset=Collection.objects.all())]
+        required=True, max_length=255, source="name", validators=[validate_name]
     )
     title = serializers.CharField(required=False, allow_blank=False, default=None, max_length=255)
     # Also links are required in the spec, the main links (self, root, items) are automatically
@@ -383,7 +267,7 @@ class CollectionSerializer(NonNullModelSerializer):
             )
             logger.debug(
                 '%s provider %s',
-                create_or_update_str(created),
+                'created' if created else 'updated',
                 provider.name,
                 extra={"provider": provider_data}
             )
@@ -412,7 +296,7 @@ class CollectionSerializer(NonNullModelSerializer):
         """
         providers_data = validated_data.pop('providers', [])
         links_data = validated_data.pop('links', [])
-        collection = Collection.objects.create(**validated_data)
+        collection = validate_uniqueness_and_create(Collection, validated_data)
         self._update_or_create_providers(collection=collection, providers_data=providers_data)
         update_or_create_links(
             instance_type="collection",
@@ -437,31 +321,48 @@ class CollectionSerializer(NonNullModelSerializer):
         )
         return super().update(instance, validated_data)
 
+    def update_or_create(self, look_up, validated_data):
+        """
+        Update or create the collection object selected by kwargs and return the instance.
+
+        When no collection object matching the kwargs selection, a new object is created.
+
+        Args:
+            validated_data: dict
+                Copy of the validated_data to use for update
+            kwargs: dict
+                Object selection arguments (NOTE: the selection arguments must match a unique
+                object in DB otherwise an IntegrityError will be raised)
+
+        Returns: tuple
+            Collection instance and True if created otherwise false
+        """
+        providers_data = validated_data.pop('providers', [])
+        links_data = validated_data.pop('links', [])
+        collection, created = Collection.objects.update_or_create(
+            **look_up, defaults=validated_data
+            )
+        self._update_or_create_providers(collection=collection, providers_data=providers_data)
+        update_or_create_links(
+            instance_type="collection",
+            model=CollectionLink,
+            instance=collection,
+            links_data=links_data
+        )
+        return collection, created
+
     def to_representation(self, instance):
         name = instance.name
-        stac_base_v = settings.STAC_BASE_V
         request = self.context.get("request")
         representation = super().to_representation(instance)
         # Add auto links
         # We use OrderedDict, although it is not necessary, because the default serializer/model for
         # links already uses OrderedDict, this way we keep consistency between auto link and user
         # link
-        representation['links'][:0] = [
-            OrderedDict([
-                ('rel', 'self'),
-                ('href', request.build_absolute_uri(f'/{stac_base_v}/collections/{name}')),
-            ]),
-            OrderedDict([
-                ('rel', 'root'),
-                ('href', request.build_absolute_uri(f'/{stac_base_v}/')),
-            ]),
-            OrderedDict([
-                ('rel', 'parent'),
-                ('href', request.build_absolute_uri(f'/{stac_base_v}/collections')),
-            ]),
+        representation['links'][:0] = get_relation_links(request, 'collection-detail', [name]) + [
             OrderedDict([
                 ('rel', 'items'),
-                ('href', request.build_absolute_uri(f'/{stac_base_v}/collections/{name}/items')),
+                ('href', get_url(request, 'items-list', [name])),
             ])
         ]
         return representation
@@ -540,7 +441,7 @@ class HrefField(serializers.Field):
         return build_asset_href(request, path)
 
 
-class AssetBaseSerializer(NonNullModelSerializer):
+class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
     '''Asset serializer base class
     '''
 
@@ -548,7 +449,6 @@ class AssetBaseSerializer(NonNullModelSerializer):
         model = Asset
         fields = [
             'id',
-            'item',
             'title',
             'type',
             'href',
@@ -561,17 +461,13 @@ class AssetBaseSerializer(NonNullModelSerializer):
             'created',
             'updated'
         ]
+        validators = []  # Remove a default "unique together" constraint.
+        # (see:
+        # https://www.django-rest-framework.org/api-guide/validators/#limitations-of-validators)
 
     # NOTE: when explicitely declaring fields, we need to add the validation as for the field
     # in model !
-    item = serializers.SlugRelatedField(
-        slug_field='name', write_only=True, queryset=Item.objects.all()
-    )
-    id = serializers.CharField(
-        source='name',
-        max_length=255,
-        validators=[validate_name, UniqueValidator(queryset=Asset.objects.all())]
-    )
+    id = serializers.CharField(source='name', max_length=255, validators=[validate_asset_name])
     title = serializers.CharField(
         required=False, max_length=255, allow_null=True, allow_blank=False
     )
@@ -602,33 +498,42 @@ class AssetBaseSerializer(NonNullModelSerializer):
         validators=[validate_geoadmin_variant]
     )
     proj_epsg = serializers.IntegerField(source='proj_epsg', allow_null=True, required=False)
-    checksum_multihash = serializers.CharField(
-        source='checksum_multihash',
-        max_length=255,
-        required=False,
-        allow_blank=False,
-        validators=[validate_asset_multihash]
-    )
     # read only fields
+    checksum_multihash = serializers.CharField(source='checksum_multihash', read_only=True)
     href = HrefField(source='file', read_only=True)
     created = serializers.DateTimeField(read_only=True)
     updated = serializers.DateTimeField(read_only=True)
 
+    def create(self, validated_data):
+        asset = validate_uniqueness_and_create(Asset, validated_data)
+        return asset
+
+    def update_or_create(self, look_up, validated_data):
+        """
+        Update or create the asset object selected by kwargs and return the instance.
+        When no asset object matching the kwargs selection, a new asset is created.
+        Args:
+            validated_data: dict
+                Copy of the validated_data to use for update
+            kwargs: dict
+                Object selection arguments (NOTE: the selection arguments must match a unique
+                object in DB otherwise an IntegrityError will be raised)
+        Returns: tuple
+            Asset instance and True if created otherwise false
+        """
+        asset, created = Asset.objects.update_or_create(**look_up, defaults=validated_data)
+        return asset, created
+
     def validate(self, attrs):
-        validate_json_payload(self)
-
         if not self.partial:
-            attrs['file'] = get_asset_path(attrs['item'], attrs['name'])
+            validate_asset_name_with_media_type(attrs.get('name'), attrs.get('media_type'))
+        if self.partial and ('name' in attrs or 'media_type' in attrs):
+            validate_asset_name_with_media_type(
+                attrs.get('name', self.instance.name),
+                attrs.get('media_type', self.instance.media_type)
+            )
 
-        # Check if the asset exits for non partial update or when the checksum is available
-        if not self.partial or 'checksum_multihash' in attrs:
-            original_name = attrs['name']
-            if self.instance:
-                original_name = self.instance.name
-            path = get_asset_path(attrs['item'], original_name)
-            request = self.context.get("request")
-            href = build_asset_href(request, path)
-            attrs = validate_asset_file(href, original_name, attrs)
+        validate_json_payload(self)
 
         return attrs
 
@@ -653,47 +558,24 @@ class AssetSerializer(AssetBaseSerializer):
         collection = instance.item.collection.name
         item = instance.item.name
         name = instance.name
-        api = settings.STAC_BASE_V
         request = self.context.get("request")
         representation = super().to_representation(instance)
         # Add auto links
         # We use OrderedDict, although it is not necessary, because the default serializer/model for
         # links already uses OrderedDict, this way we keep consistency between auto link and user
         # link
-        representation['links'] = [
-            OrderedDict([
-                ('rel', 'self'),
-                (
-                    'href',
-                    request.build_absolute_uri(
-                        f'/{api}/collections/{collection}/items/{item}/assets/{name}'
-                    )
-                ),
-            ]),
-            OrderedDict([
-                ('rel', 'root'),
-                ('href', request.build_absolute_uri(f'/{api}/')),
-            ]),
-            OrderedDict([
-                ('rel', 'parent'),
-                (
-                    'href',
-                    request.
-                    build_absolute_uri(f'/{api}/collections/{collection}/items/{item}/assets')
-                ),
-            ]),
-            OrderedDict([
-                ('rel', 'item'),
-                (
-                    'href',
-                    request.build_absolute_uri(f'/{api}/collections/{collection}/items/{item}')
-                ),
-            ]),
-            OrderedDict([
-                ('rel', 'collection'),
-                ('href', request.build_absolute_uri(f'/{api}/collections/{collection}')),
-            ])
-        ]
+        representation['links'] = \
+            get_relation_links(request, 'asset-detail', [collection, item, name]) \
+            + [
+                OrderedDict([
+                    ('rel', 'item'),
+                    ('href', get_url(request, 'item-detail', [collection, item])),
+                ]),
+                OrderedDict([
+                    ('rel', 'collection'),
+                    ('href', get_url(request, 'collection-detail', [collection])),
+                ])
+            ]
         return representation
 
 
@@ -709,7 +591,6 @@ class AssetsForItemSerializer(AssetBaseSerializer):
         list_serializer_class = AssetsDictSerializer
         fields = [
             'id',
-            'item',
             'title',
             'type',
             'href',
@@ -724,7 +605,7 @@ class AssetsForItemSerializer(AssetBaseSerializer):
         ]
 
 
-class ItemSerializer(NonNullModelSerializer):
+class ItemSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
 
     class Meta:
         model = Item
@@ -740,21 +621,21 @@ class ItemSerializer(NonNullModelSerializer):
             'links',
             'assets'
         ]
+        validators = []  # Remove a default "unique together" constraint.
+        # (see:
+        # https://www.django-rest-framework.org/api-guide/validators/#limitations-of-validators)
 
     # NOTE: when explicitely declaring fields, we need to add the validation as for the field
     # in model !
-    collection = serializers.SlugRelatedField(slug_field='name', queryset=Collection.objects.all())
     id = serializers.CharField(
-        source='name',
-        required=True,
-        max_length=255,
-        validators=[validate_name, UniqueValidator(queryset=Collection.objects.all())]
+        source='name', required=True, max_length=255, validators=[validate_name]
     )
     properties = ItemsPropertiesSerializer(source='*', required=True)
     geometry = gis_serializers.GeometryField(required=True)
     links = ItemLinkSerializer(required=False, many=True)
     # read only fields
     type = serializers.SerializerMethodField()
+    collection = serializers.SlugRelatedField(slug_field='name', read_only=True)
     bbox = BboxSerializer(source='*', read_only=True)
     assets = AssetsForItemSerializer(many=True, read_only=True)
     stac_extensions = serializers.SerializerMethodField()
@@ -772,39 +653,25 @@ class ItemSerializer(NonNullModelSerializer):
     def to_representation(self, instance):
         collection = instance.collection.name
         name = instance.name
-        api = settings.STAC_BASE_V
         request = self.context.get("request")
         representation = super().to_representation(instance)
         # Add auto links
         # We use OrderedDict, although it is not necessary, because the default serializer/model for
         # links already uses OrderedDict, this way we keep consistency between auto link and user
         # link
-        representation['links'][:0] = [
-            OrderedDict([
-                ('rel', 'self'),
-                (
-                    'href',
-                    request.build_absolute_uri(f'/{api}/collections/{collection}/items/{name}')
-                ),
-            ]),
-            OrderedDict([
-                ('rel', 'root'),
-                ('href', request.build_absolute_uri(f'/{api}/')),
-            ]),
-            OrderedDict([
-                ('rel', 'parent'),
-                ('href', request.build_absolute_uri(f'/{api}/collections/{collection}/items')),
-            ]),
-            OrderedDict([
-                ('rel', 'collection'),
-                ('href', request.build_absolute_uri(f'/{api}/collections/{collection}')),
-            ])
-        ]
+        representation['links'][:0] = \
+            get_relation_links(request, 'item-detail', [collection, name]) \
+            + [
+                OrderedDict([
+                    ('rel', 'collection'),
+                    ('href', get_url(request, 'collection-detail', [collection])),
+                ])
+            ]
         return representation
 
     def create(self, validated_data):
         links_data = validated_data.pop('links', [])
-        item = Item.objects.create(**validated_data)
+        item = validate_uniqueness_and_create(Item, validated_data)
         update_or_create_links(
             instance_type="item", model=ItemLink, instance=item, links_data=links_data
         )
@@ -816,6 +683,26 @@ class ItemSerializer(NonNullModelSerializer):
             instance_type="item", model=ItemLink, instance=instance, links_data=links_data
         )
         return super().update(instance, validated_data)
+
+    def update_or_create(self, look_up, validated_data):
+        """
+        Update or create the item object selected by kwargs and return the instance.
+        When no item object matching the kwargs selection, a new item is created.
+        Args:
+            validated_data: dict
+                Copy of the validated_data to use for update
+            kwargs: dict
+                Object selection arguments (NOTE: the selection arguments must match a unique
+                object in DB otherwise an IntegrityError will be raised)
+        Returns: tuple
+            Item instance and True if created otherwise false
+        """
+        links_data = validated_data.pop('links', [])
+        item, created = Item.objects.update_or_create(**look_up, defaults=validated_data)
+        update_or_create_links(
+            instance_type="item", model=ItemLink, instance=item, links_data=links_data
+        )
+        return item, created
 
     def validate(self, attrs):
         if (
@@ -837,3 +724,97 @@ class ItemSerializer(NonNullModelSerializer):
         validate_json_payload(self)
 
         return attrs
+
+
+class AssetUploadListSerializer(serializers.ListSerializer):
+    # pylint: disable=abstract-method
+
+    def to_representation(self, data):
+        return {'uploads': super().to_representation(data)}
+
+    @property
+    def data(self):
+        ret = super(serializers.ListSerializer, self).data
+        return ReturnDict(ret, serializer=self)
+
+
+class UploadPartSerializer(serializers.Serializer):
+    '''This serializer is used to serialize the data from/to the S3 API.
+    '''
+    # pylint: disable=abstract-method
+    etag = serializers.CharField(source='ETag', allow_blank=False, required=True)
+    part_number = serializers.IntegerField(
+        source='PartNumber', min_value=1, max_value=100, required=True, allow_null=False
+    )
+    modified = serializers.DateTimeField(source='LastModified', required=False, allow_null=True)
+    size = serializers.IntegerField(source='Size', allow_null=True, required=False)
+
+
+class AssetUploadSerializer(NonNullModelSerializer):
+
+    class Meta:
+        model = AssetUpload
+        list_serializer_class = AssetUploadListSerializer
+        fields = [
+            'upload_id',
+            'status',
+            'created',
+            'checksum_multihash',
+            'completed',
+            'aborted',
+            'number_parts',
+            'urls',
+            'ended',
+            'parts'
+        ]
+
+    checksum_multihash = serializers.CharField(
+        source='checksum_multihash',
+        max_length=255,
+        required=True,
+        allow_blank=False,
+        validators=[validate_checksum_multihash_sha256]
+    )
+
+    # write only fields
+    ended = serializers.DateTimeField(write_only=True, required=False)
+    parts = serializers.ListField(
+        child=UploadPartSerializer(), write_only=True, allow_empty=False, required=False
+    )
+
+    # Read only fields
+    upload_id = serializers.CharField(read_only=True)
+    created = serializers.DateTimeField(read_only=True)
+    urls = serializers.JSONField(read_only=True)
+    completed = serializers.SerializerMethodField()
+    aborted = serializers.SerializerMethodField()
+
+    def get_completed(self, obj):
+        if obj.status == AssetUpload.Status.COMPLETED:
+            return isoformat(obj.ended)
+        return None
+
+    def get_aborted(self, obj):
+        if obj.status == AssetUpload.Status.ABORTED:
+            return isoformat(obj.ended)
+        return None
+
+    def get_fields(self):
+        fields = super().get_fields()
+        # This is a hack to allow fields with special characters
+        fields['checksum:multihash'] = fields.pop('checksum_multihash')
+        return fields
+
+
+class AssetUploadPartsSerializer(serializers.Serializer):
+    '''S3 list_parts response serializer'''
+
+    # pylint: disable=abstract-method
+
+    class Meta:
+        list_serializer_class = AssetUploadListSerializer
+
+    # Read only fields
+    parts = serializers.ListField(
+        source='Parts', child=UploadPartSerializer(), default=list, read_only=True
+    )
