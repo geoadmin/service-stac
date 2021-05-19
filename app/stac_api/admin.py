@@ -125,7 +125,10 @@ class ItemAdmin(admin.GeoModelAdmin):
     readonly_fields = ['collection_name']
     fieldsets = (
         (None, {
-            'fields': ('name', 'collection', 'geometry')
+            'fields': ('name', 'collection')
+        }),
+        ('geometry', {
+            'fields': ('geometry',)
         }),
         (
             'Properties',
