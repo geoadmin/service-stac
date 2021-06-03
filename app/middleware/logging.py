@@ -23,7 +23,11 @@ class RequestResponseLoggingMiddleware:
             "request.query": request.GET.urlencode(RequestResponseLoggingMiddleware.url_safe)
         }
 
-        if request.method.upper() in ["PATCH", "POST", "PUT"]:
+        if request.method.upper() in [
+            "PATCH", "POST", "PUT"
+        ] and request.content_type == "application/json" and not request.path.startswith(
+            '/api/stac/admin'
+        ):
             extra["request.payload"] = str(request.body[:200])
 
         logger.info(
