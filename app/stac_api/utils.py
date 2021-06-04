@@ -322,6 +322,8 @@ def geometry_from_bbox(bbox):
         ValueError, IndexError, GDALException
     '''
     list_bbox_values = bbox.split(',')
+    if len(list_bbox_values) != 4:
+        raise ValueError('A bbox is based of four values')
     if (
         Decimal(list_bbox_values[0]) == Decimal(list_bbox_values[2]) and
         Decimal(list_bbox_values[1]) == Decimal(list_bbox_values[3])
@@ -329,6 +331,11 @@ def geometry_from_bbox(bbox):
         bbox_geometry = Point(float(list_bbox_values[0]), float(list_bbox_values[1]))
     else:
         bbox_geometry = Polygon.from_bbox(list_bbox_values)
+
+    # if large values, SRID is LV95. The default SRID is 4326
+    if Decimal(list_bbox_values[0]) > 360:
+        bbox_geometry.srid = 2056
+
     return bbox_geometry
 
 

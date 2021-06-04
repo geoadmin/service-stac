@@ -119,6 +119,8 @@ class AdminBaseTestCase(TestCase):
             "name": "test_item",
             "geometry":
                 "SRID=4326;POLYGON((5.96 45.82, 5.96 47.81, 10.49 47.81, 10.49 45.82, 5.96 45.82))",
+            "text_geometry":
+                "SRID=4326;POLYGON((5.96 45.82, 5.96 47.81, 10.49 47.81, 10.49 45.82, 5.96 45.82))",
             "properties_datetime_0": "2020-12-01",
             "properties_datetime_1": "13:15:39",
             "properties_title": "test",
@@ -157,7 +159,13 @@ class AdminBaseTestCase(TestCase):
 
         # Check the item values
         for key, value in data.items():
-            if key in ['collection', 'id', 'properties_datetime_0', 'properties_datetime_1']:
+            if key in [
+                'collection',
+                'id',
+                'properties_datetime_0',
+                'properties_datetime_1',
+                'text_geometry'
+            ]:
                 continue
             if key.startswith('links-0-'):
                 self.assertEqual(

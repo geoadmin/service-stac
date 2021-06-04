@@ -7,8 +7,11 @@ from multihash.constants import CODE_HASHES
 from multihash.constants import HASH_CODES
 
 from django.contrib.gis.geos import GEOSGeometry
+from django.contrib.gis.geos.error import GEOSException
 from django.core.exceptions import ValidationError
+from django.contrib.gis.gdal.error import GDALException
 from django.utils.translation import gettext_lazy as _
+from stac_api.utils import geometry_from_bbox
 
 from stac_api.utils import fromisoformat
 
@@ -168,6 +171,46 @@ def validate_link_rel(value):
         )
 
 
+def validate_text_to_geometry(text_geometry):
+    '''
+    https://jira.swisstopo.ch/browse/BGDIINF_SB-1650
+    A validator function that tests, if a text can be transformed to a geometry.
+    The text is either a bbox or WKT.
+
+    an extent in either WGS84 or LV95, in the form "(xmin, ymin, xmax, ymax)" where x is easting
+    a WKT defintion of a polygon in the form POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))
+
+    Args:
+        text_geometry: The text to be transformed into a geometry
+    Returns:
+        A GEOSGeometry
+    Raises:
+        ValidationError: About that the text_geometry is not valid
+    '''
+    errors = []
+    # is the input WKT
+    try:
+        geos_geometry = GEOSGeometry(text_geometry)
+        validate_geometry(geos_geometry)
+        return geos_geometry
+    except (ValueError, ValidationError, IndexError, GDALException, GEOSException) as error:
+        message = "The text as WKT could not be transformed into a geometry: %(error)s"
+        params = {'error': error}
+        logger.warning(message, params)
+        errors.append(ValidationError(_(message), params=params, code='invalid'))
+    # is the input a bbox
+    try:
+        text_geometry = text_geometry.replace('(', '')
+        text_geometry = text_geometry.replace(')', '')
+        return validate_geometry(geometry_from_bbox(text_geometry))
+    except (ValueError, ValidationError, IndexError, GDALException) as error:
+        message = "The text as bbox could not be transformed into a geometry: %(error)s"
+        params = {'error': error}
+        logger.error(message, params)
+        errors.append(ValidationError(_(message), params=params, code='invalid'))
+        raise ValidationError(errors) from None
+
+
 def validate_geometry(geometry):
     '''
     A validator function that ensures, that only valid
@@ -188,7 +231,7 @@ def validate_geometry(geometry):
         logger.error(message, params)
         raise ValidationError(_(message), params=params, code='invalid')
     if not geos_geometry.valid:
-        message = "The geometry is not valid: %s"
+        message = "The geometry is not valid: %(error)s"
         params = {'error': geos_geometry.valid_reason}
         logger.error(message, params)
         raise ValidationError(_(message), params=params, code='invalid')
