@@ -81,7 +81,8 @@ class CollectionAdmin(admin.ModelAdmin):
         'extent_start_datetime',
         'extent_end_datetime',
         'summaries',
-        'extent_geometry'
+        'extent_geometry',
+        'license'
     ]
     readonly_fields = [
         'extent_start_datetime', 'extent_end_datetime', 'summaries', 'extent_geometry'
