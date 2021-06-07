@@ -224,11 +224,11 @@ class AdminBaseTestCase(TestCase):
         start = time.time()
         filecontent = b'mybinarydata'
         filelike = BytesIO(filecontent)
-        filelike.name = 'testname.tiff'
+        filelike.name = 'testname.zip'
 
         data = {
             "item": item.id,
-            "name": "test_asset.zip",
+            "name": filelike.name,
             "description": "This is a description",
             "eo_gsd": 10,
             "geoadmin_lang": "en",
