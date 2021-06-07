@@ -242,6 +242,9 @@ class Provider(models.Model):
     def save(self, *args, **kwargs):  # pylint: disable=signature-differs
         # It is important to use `*args, **kwargs` in signature because django might add dynamically
         # parameters
+        if self.description == "":
+            logger.debug("transforming empty description string into None for database storage")
+            self.description = None
         logger.debug('Saving CollectionProvider %s', self.name)
         super().save(*args, **kwargs)
         self.collection.save()  # save the collection to updated its ETag
