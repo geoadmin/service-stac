@@ -510,7 +510,16 @@ def upload_asset_to_path_hook(instance, filename=None):
     Returns:
         Asset file path to use on S3
     '''
-    logger.debug('Start computing asset file %s multihash', filename)
+    logger.debug(
+        'Start computing asset file %s multihash (file size: %.1f MB)',
+        filename,
+        instance.file.size / 1024**2,
+        extra={
+            "collection": instance.item.collection.name,
+            "item": instance.item.name,
+            "asset": instance.name
+        }
+    )
     start = time.time()
     ctx = hashlib.sha256()
     for chunk in instance.file.chunks(settings.UPLOAD_FILE_CHUNK_SIZE):
@@ -520,10 +529,15 @@ def upload_asset_to_path_hook(instance, filename=None):
     # then used by storages.S3Storage to set the MetaData.sha256
     setattr(instance.file.storage, '_tmp_sha256', ctx.hexdigest())
     logger.debug(
-        'Set uploaded file %s multihash %s to checksum:multihash; computation done in %ss',
+        'Set uploaded file %s multihash %s to checksum:multihash; computation done in %.3fs',
         filename,
         mhash,
-        time.time() - start
+        time.time() - start,
+        extra={
+            "collection": instance.item.collection.name,
+            "item": instance.item.name,
+            "asset": instance.name
+        }
     )
     instance.checksum_multihash = mhash
     return get_asset_path(instance.item, instance.name)
