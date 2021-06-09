@@ -510,7 +510,14 @@ def upload_asset_to_path_hook(instance, filename=None):
     Returns:
         Asset file path to use on S3
     '''
-    logger.debug('Start computing asset file %s multihash', filename)
+    logger.debug(
+        'Start computing asset file %s multihash (file size: %s MB)',
+        filename,
+        int(instance.file.size / 1024**2),
+        extra={
+            "collection": instance.item.collection, "item": instance.item, "asset": instance.name
+        }
+    )
     start = time.time()
     ctx = hashlib.sha256()
     for chunk in instance.file.chunks(settings.UPLOAD_FILE_CHUNK_SIZE):
