@@ -532,7 +532,7 @@ def upload_asset_to_path_hook(instance, filename=None):
         'Set uploaded file %s multihash %s to checksum:multihash; computation done in %ss',
         filename,
         mhash,
-        time.time() - start
+        time.time() - start,
         extra={
             "collection": instance.item.collection.name,
             "item": instance.item.name,
