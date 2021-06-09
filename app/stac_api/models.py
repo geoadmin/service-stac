@@ -515,7 +515,9 @@ def upload_asset_to_path_hook(instance, filename=None):
         filename,
         int(instance.file.size / 1024**2),
         extra={
-            "collection": instance.item.collection, "item": instance.item, "asset": instance.name
+            "collection": instance.item.collection.name,
+            "item": instance.item.name,
+            "asset": instance.name
         }
     )
     start = time.time()
@@ -531,6 +533,11 @@ def upload_asset_to_path_hook(instance, filename=None):
         filename,
         mhash,
         time.time() - start
+        extra={
+            "collection": instance.item.collection.name,
+            "item": instance.item.name,
+            "asset": instance.name
+        }
     )
     instance.checksum_multihash = mhash
     return get_asset_path(instance.item, instance.name)
