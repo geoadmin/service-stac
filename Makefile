@@ -46,8 +46,12 @@ GIT_TAG := `git describe --tags || echo "no version info"`
 AUTHOR := $(USER)
 
 # Docker variables
-DOCKER_IMG_LOCAL_TAG = swisstopo/$(SERVICE_NAME):$(USER).$(GIT_TAG)
-DOCKER_IMG_LOCAL_TAG_DEV = swisstopo/$(SERVICE_NAME):$(USER).$(GIT_TAG)-dev
+DOCKER_REGISTRY = 974517877189.dkr.ecr.eu-central-1.amazonaws.com
+DOCKER_IMG_LOCAL_TAG = $(DOCKER_REGISTRY)/$(SERVICE_NAME):$(USER).$(GIT_TAG)
+DOCKER_IMG_LOCAL_TAG_DEV = $(DOCKER_REGISTRY)/$(SERVICE_NAME):$(USER).$(GIT_TAG)-dev
+
+# AWS variables
+AWS_DEFAULT_REGION = eu-central-1
 
 all: help
 
@@ -68,7 +72,9 @@ help:
 	@echo "- serve                    Run the project using the django debug server. Port can be set by Env variable HTTP_PORT i(default: 8000)"
 	@echo "- gunicornserve            Run the project using the gunicorn WSGI server. Port can be set by Env variable HTTP_PORT (default: 8000)"
 	@echo -e " \033[1mDOCKER TARGETS\033[0m "
+	@echo "- dockerlogin              Login to the AWS ECR registery for pulling/pushing docker images"
 	@echo "- dockerbuild-(debug|prod) Build the project locally (with tag := $(DOCKER_IMG_LOCAL_TAG))"
+	@echo "- dockerpush-(debug|prod)  Build and push the project localy (with tag := $(DOCKER_IMG_LOCAL_TAG))"
 	@echo "- dockerrun                Run the test container with default manage.py command 'runserver'. Note: ENV is populated from '.env.local'"
 	@echo "                           Other cmds can be invoked with 'make dockerrun CMD'."
 	@echo -e "                           \e[1mNote:\e[0m This will connect to your host Postgres DB. If you wanna test with a containerized DB, run 'docker-compose up'"
@@ -173,6 +179,10 @@ serve-spec:
 # Note: the timestamp magic is ommitted here on purpose, we rely on docker's
 # change detection mgmt
 
+.PHONY: dockerlogin
+dockerlogin:
+	aws --profile swisstopo-bgdi-builder ecr get-login-password --region $(AWS_DEFAULT_REGION) | docker login --username AWS --password-stdin $(DOCKER_REGISTRY)
+
 .PHONY: dockerbuild-debug
 dockerbuild-debug:
 	docker build \
@@ -196,6 +206,13 @@ dockerrun: dockerbuild-debug
 	@echo "starting docker debug container with populating ENV from .env.local"
 	docker run -it --rm --env-file .env.local --net=host $(DOCKER_IMG_LOCAL_TAG_DEV) ./manage.py runserver
 
+.PHONY: dockerpush-debug
+dockerpush-debug: dockerbuild-debug
+	docker push $(DOCKER_IMG_LOCAL_TAG_DEV)
+
+.PHONY: dockerpush-prod
+dockerpush-prod: dockerbuild-prod
+	docker push $(DOCKER_IMG_LOCAL_TAG)
 
 ###################
 # clean targets
