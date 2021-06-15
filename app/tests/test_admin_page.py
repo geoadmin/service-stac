@@ -445,7 +445,7 @@ class AdminCollectionTestCase(AdminBaseTestCase):
         data["providers-INITIAL_FORMS"] = 1
         data["providers-0-id"] = provider.id
         data["providers-0-collection"] = collection.id
-        data["providers-0-description"] = None
+        data.pop("providers-0-description")
         response = self.client.post(
             f"/api/stac/admin/stac_api/collection/{collection.id}/change/", data
         )

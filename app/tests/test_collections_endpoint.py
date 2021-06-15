@@ -87,10 +87,14 @@ class CollectionsWriteEndpointTestCase(StacBaseTestCase):
                          msg='Unexpected error message')
 
     def test_valid_collections_post_no_description(self):
-        collection = self.collection_factory.create_sample("collection-5")
+        collection = self.collection_factory.create_sample(sample="collection-5")
         path = f"/{STAC_BASE_V}/collections"
+        # the get_json method add a description field when there is none, so we remove that field.
+        post_data = collection.get_json('post')
+        post_data['providers'][0].pop('description')
+
         response = self.client.post(
-            path, data=collection.get_json('post'), content_type='application/json'
+            path, data=post_data, content_type='application/json'
         )
         self.assertStatusCode(201, response)
         self.check_header_location(f'{path}/{collection.json["id"]}', response)
@@ -98,7 +102,7 @@ class CollectionsWriteEndpointTestCase(StacBaseTestCase):
         response = self.client.get(f"/{STAC_BASE_V}/collections/{collection.json['id']}")
         response_json = response.json()
         self.assertEqual(response_json['id'], collection.json['id'])
-        self.assertEqual(response_json['provider'][0].get('description'), None,
+        self.assertEqual(response_json['providers'][0].get('description'), None,
                          msg=f"Description for this provider should be None."
                              f"{response_json['providers'][0].get('description')} found instead")
 
@@ -114,7 +118,7 @@ class CollectionsWriteEndpointTestCase(StacBaseTestCase):
                          msg='Unexpected error message')
 
     def test_valid_collections_post_empty_description(self):
-        collection = self.collection_factory.create_sample("collection-6")
+        collection = self.collection_factory.create_sample(sample="collection-6")
         path = f"/{STAC_BASE_V}/collections"
         response = self.client.post(
             path, data=collection.get_json('post'), content_type='application/json'
@@ -125,8 +129,8 @@ class CollectionsWriteEndpointTestCase(StacBaseTestCase):
         response = self.client.get(f"/{STAC_BASE_V}/collections/{collection.json['id']}")
         response_json = response.json()
         self.assertEqual(response_json['id'], collection.json['id'])
-        self.assertEqual(response_json['provider'][0].get('description'), None,
-                         msg=f"Description for this provider should be None."
+        self.assertEqual(response_json['providers'][0].get('description'), "",
+                         msg=f"Description for this provider should be and empty string. "
                              f"{response_json['providers'][0].get('description')} found instead")
 
         # the dataset already exists in the database
@@ -141,7 +145,7 @@ class CollectionsWriteEndpointTestCase(StacBaseTestCase):
                          msg='Unexpected error message')
 
     def test_valid_collections_post_with_description(self):
-        collection = self.collection_factory.create_sample("collection-2")
+        collection = self.collection_factory.create_sample(sample="collection-2")
         path = f"/{STAC_BASE_V}/collections"
         response = self.client.post(
             path, data=collection.get_json('post'), content_type='application/json'
@@ -152,7 +156,7 @@ class CollectionsWriteEndpointTestCase(StacBaseTestCase):
         response = self.client.get(f"/{STAC_BASE_V}/collections/{collection.json['id']}")
         response_json = response.json()
         self.assertEqual(response_json['id'], collection.json['id'])
-        self.assertEqual(response_json['provider'][0].get('description'),
+        self.assertEqual(response_json['providers'][0].get('description'),
                          collection.json['providers'][0].get('description'),
                          msg=f"Description for this provider should be "
                              f"{collection.json['providers'][0].get('description')}."

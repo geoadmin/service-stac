@@ -15,17 +15,6 @@ providers = {
     'provider-3': {
         'name': 'provider-3',
     },
-    'provider-4': {
-        'name': 'provider-4',
-        'roles': ['licensor'],
-        'url': 'https://www.provider.com/provider-5/no-description.html'
-    },
-    'provider-5': {
-        'name': 'provider-5',
-        'roles': ['licensor'],
-        'description': "",
-        'url': 'https://www.provider.com/provider-5/empty-description.html'
-    },
 }
 
 providers_invalid = {
@@ -80,19 +69,28 @@ collections = {
         'title': 'My collection 4',
         'license': 'MIT'
     },
-    'collection-5':{
+    'collection-5': {
         'name': 'collection-5',
         'description': 'This a fifth open source collection description',
         'title': 'My collection 5',
         'license': 'MIT',
-        'providers': [providers['provider-4']]
+        'providers': [{
+            'name': 'provider-4',
+            'roles': ['licensor'],
+            'url': 'https://www.provider.com/provider-4/no-description.html'
+        }]
     },
-    'collection-6':{
+    'collection-6': {
         'name': 'collection-6',
         'description': 'This a sixth open source collection description',
         'title': 'My collection 6',
         'license': 'MIT',
-        'providers': [providers['provider-5']]
+        'providers': [{
+            'name': 'provider-5',
+            'roles': ['licensor'],
+            'description': "",
+            'url': 'https://www.provider.com/provider-5/empty-description.html'
+        }]
     },
     'collection-invalid': {
         'name': 'collection invalid name',
