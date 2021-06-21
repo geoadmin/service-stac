@@ -350,19 +350,15 @@ class AdminCollectionTestCase(AdminBaseTestCase):
             "name": "test_collection",
             "license": "free",
             "description": "some very important collection",
-            "providers-TOTAL_FORMS": "0",
-            "providers-INITIAL_FORMS": "0",
             "links-TOTAL_FORMS": "0",
-            "links-INITIAL_FORMS": "0"
-        }
-        data.update({
+            "links-INITIAL_FORMS": "0",
             "providers-TOTAL_FORMS": "1",
             "providers-INITIAL_FORMS": "0",
             "providers-0-name": "my-provider",
             "providers-0-description": "",
             "providers-0-roles": "licensor",
             "providers-0-url": "http://www.example.com",
-        })
+        }
         response = self.client.post("/api/stac/admin/stac_api/collection/add/", data)
 
         # Status code for successful creation is 302, since in the admin UI
@@ -389,6 +385,9 @@ class AdminCollectionTestCase(AdminBaseTestCase):
         self.client.login(username=self.username, password=self.password)
 
         collection, data, link, provider = self._create_collection(with_provider=True)
+
+        self.assertEqual(provider.description, data['providers-0-description'],
+                         msg="description non existent when it should exist.")
 
         # update some data in provider
         data["providers-INITIAL_FORMS"] = 1
