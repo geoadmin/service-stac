@@ -41,6 +41,8 @@ phases:
       - echo "GITHUB_BRANCH=${GITHUB_BRANCH} COMMIT_HASH=${COMMIT_HASH} GIT_TAG=${GIT_TAG}"
       - echo "creating a clean environment"
       - make ci
+      - echo "checking code formatting"
+      - make ci-check-format
       - echo "linting code"
       - make lint
       - echo "linting specs"

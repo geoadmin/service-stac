@@ -66,6 +66,7 @@ help:
 	@echo "- ci                       Create the python virtual environment and install requirements based on the Pipfile.lock"
 	@echo -e " \033[1mFORMATING, LINTING AND TESTING TOOLS TARGETS\033[0m "
 	@echo "- format                   Format the python source code"
+	@echo "- ci-check-format          Format the python source code and check if any files has changed. This is meant to be used by the CI."
 	@echo "- lint                     Lint the python source code"
 	@echo "- test                     Run the tests"
 	@echo -e " \033[1mSPEC TARGETS\033[0m "
@@ -134,6 +135,14 @@ format:
 	$(YAPF) -p -i --style .style.yapf $(PYTHON_FILES)
 	$(ISORT) $(PYTHON_FILES)
 
+.PHONY: ci-check-format
+ci-check-format: format
+	@if [[ -n `git status --porcelain --untracked-files=no` ]]; then \
+	 	>&2 echo "ERROR: the following files are not formatted correctly"; \
+	 	>&2 echo "'git status --porcelain' reported changes in those files after a 'make format' :"; \
+		>&2 git status --porcelain --untracked-files=no; \
+		exit 1; \
+	fi
 
 # make sure that the code conforms to the style guide. Note that
 # - the DJANGO_SETTINGS module must be made available to pylint
