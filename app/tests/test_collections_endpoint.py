@@ -57,7 +57,8 @@ class CollectionsUnImplementedEndpointTestCase(StacBaseTestCase):
     def setUp(self):  # pylint: disable=invalid-name
         self.client = Client()
         client_login(self.client)
-        self.collection = CollectionFactory().create_sample()
+        self.factory = Factory()
+        self.collection = self.factory.create_collection_sample()
         self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_collections_post_unimplemented(self):
@@ -74,11 +75,12 @@ class CollectionsCreateEndpointTestCase(StacBaseTestCase):
     def setUp(self):  # pylint: disable=invalid-name
         self.client = Client()
         client_login(self.client)
-        self.collection_factory = CollectionFactory()
+        self.factory = Factory()
+        self.collection = self.factory.create_collection_sample()
         self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_collection_upsert_create(self):
-        sample = self.collection_factory.create_sample(sample='collection-2')
+        sample = self.factory.create_collection_sample(sample='collection-2')
 
         # the dataset to update does not exist yet
         response = self.client.put(
@@ -92,7 +94,7 @@ class CollectionsCreateEndpointTestCase(StacBaseTestCase):
 
     def test_invalid_collections_create(self):
         # the dataset already exists in the database
-        collection = self.collection_factory.create_sample(sample='collection-invalid')
+        collection = self.factory.create_collection_sample(sample='collection-invalid')
 
         response = self.client.put(
             f"/{STAC_BASE_V}/collections/{collection['name']}",
@@ -106,7 +108,7 @@ class CollectionsCreateEndpointTestCase(StacBaseTestCase):
 
     def test_collections_min_mandatory_create(self):
         # a post with the absolute valid minimum
-        collection = self.collection_factory.create_sample(required_only=True)
+        collection = self.factory.create_collection_sample(required_only=True)
 
         path = f"/{STAC_BASE_V}/collections/{collection['name']}"
         response = self.client.put(
@@ -122,7 +124,7 @@ class CollectionsCreateEndpointTestCase(StacBaseTestCase):
 
     def test_collections_less_than_mandatory_create(self):
         # a post with the absolute valid minimum
-        collection = self.collection_factory.create_sample(
+        collection = self.factory.create_collection_sample(
             sample='collection-missing-mandatory-fields'
         )
 
@@ -141,8 +143,76 @@ class CollectionsCreateEndpointTestCase(StacBaseTestCase):
             msg='Unexpected error message',
         )
 
+    def test_collections_create_unpublished(self):
+        published_collection = self.factory.create_collection_sample(db_create=True)
+        published_items = self.factory.create_item_samples(
+            2, collection=published_collection.model, name=['item-1-1', 'item-1-2'], db_create=True
+        )
+
+        collection_sample = self.factory.create_collection_sample(published=False)
+
+        path = f"/{STAC_BASE_V}/collections/{collection_sample['name']}"
+        response = self.client.put(
+            path, data=collection_sample.get_json('put'), content_type='application/json'
+        )
+        self.assertStatusCode(201, response)
+        self.check_header_location(f'{path}', response)
+        self.assertNotIn(
+            'published', response.json(), msg="'published' flag should not be seen in answer"
+        )
+        collection = Collection.objects.get(name=collection_sample['name'])
+        self.assertFalse(
+            collection.published, msg='Collection marked as published when it shouldn\'t'
+        )
+
+        # verify that the collection is not found in the collection list
+        response = self.client.get(f"/{STAC_BASE_V}/collections")
+        self.assertStatusCode(200, response)
+        self.assertEqual(
+            len(response.json()['collections']),
+            1,
+            msg="The un published collection is part of the collection list"
+        )
+        self.assertEqual(response.json()['collections'][0]['id'], published_collection['name'])
+
+        # add some items to the collection
+        items = self.factory.create_item_samples(
+            2, collection=collection, name=['item-2-1', 'item-2-2'], db_create=True
+        )
+
+        # Check that those items are not found in the search endpoint
+        response = self.client.get(f'/{STAC_BASE_V}/search')
+        self.assertStatusCode(200, response)
+        self.assertEqual(
+            len(response.json()['features']),
+            2,
+            msg="Too many items found, probably the unpublished are also returned"
+        )
+        for i, item in enumerate(response.json()['features']):
+            self.assertEqual(item['id'], published_items[i]['name'])
+
+        # Publish the collection
+        response = self.client.patch(
+            f"/{STAC_BASE_V}/collections/{collection.name}",
+            data={'published': True},
+            content_type='application/json'
+        )
+        self.assertStatusCode(200, response)
+
+        # verify that now the collection can be seen
+        response = self.client.get(f"/{STAC_BASE_V}/collections")
+        self.assertStatusCode(200, response)
+        self.assertEqual(len(response.json()['collections']), 2, msg="No enough collections found")
+        self.assertEqual(response.json()['collections'][0]['id'], published_collection.json['id'])
+        self.assertEqual(response.json()['collections'][1]['id'], collection.name)
+
+        # Check that the items are found in the search endpoint
+        response = self.client.get(f'/{STAC_BASE_V}/search')
+        self.assertStatusCode(200, response)
+        self.assertEqual(len(response.json()['features']), 4, msg="Not all published items found")
+
     def test_collection_atomic_upsert_create_500(self):
-        sample = self.collection_factory.create_sample(sample='collection-2')
+        sample = self.factory.create_collection_sample(sample='collection-2')
 
         # the dataset to update does not exist yet
         with self.settings(DEBUG_PROPAGATE_API_EXCEPTIONS=True), disableLogger('stac_api.apps'):

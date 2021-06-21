@@ -202,6 +202,7 @@ class CollectionSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
     class Meta:
         model = Collection
         fields = [
+            'published',
             'stac_version',
             'stac_extensions',
             'id',
@@ -222,6 +223,7 @@ class CollectionSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         # (see:
         # https://www.django-rest-framework.org/api-guide/validators/#limitations-of-validators)
 
+    published = serializers.BooleanField(write_only=True, default=True)
     # NOTE: when explicitely declaring fields, we need to add the validation as for the field
     # in model !
     id = serializers.CharField(

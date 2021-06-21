@@ -162,7 +162,8 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
     pagination_class = GetPostCursorPagination
 
     def get_queryset(self):
-        queryset = Item.objects.all().prefetch_related('assets', 'links')
+        queryset = Item.objects.filter(collection__published=True
+                                      ).prefetch_related('assets', 'links')
         # harmonize GET and POST query
         query_param = harmonize_post_get_for_search(self.request)
 
@@ -242,7 +243,7 @@ class CollectionList(generics.GenericAPIView):
     # prefetch_related is a performance optimization to reduce the number
     # of DB queries.
     # see https://docs.djangoproject.com/en/3.1/ref/models/querysets/#prefetch-related
-    queryset = Collection.objects.all().prefetch_related('providers', 'links')
+    queryset = Collection.objects.filter(published=True).prefetch_related('providers', 'links')
 
     def get(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())

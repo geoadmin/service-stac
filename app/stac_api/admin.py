@@ -83,6 +83,7 @@ class CollectionAdmin(admin.ModelAdmin):
 
     fields = [
         'name',
+        'published',
         'title',
         'description',
         'extent_start_datetime',
