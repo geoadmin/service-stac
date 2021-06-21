@@ -43,6 +43,8 @@ phases:
       - make ci
       - echo "linting code"
       - make lint
+      - echo "linting specs"
+      - make lint-specs
 
   build:
     commands:

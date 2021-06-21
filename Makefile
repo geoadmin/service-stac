@@ -68,6 +68,10 @@ help:
 	@echo "- format                   Format the python source code"
 	@echo "- lint                     Lint the python source code"
 	@echo "- test                     Run the tests"
+	@echo -e " \033[1mSPEC TARGETS\033[0m "
+	@echo "- lint-specs               Lint the openapi specs  (openapi.yaml and openapitransactional.yaml)"
+	@echo "- build-specs              Build the openapi specs (openapi.yaml and openapitransactional.yaml)"
+	@echo "- serve-specs              Serve openapi specs  (openapi.yaml and openapitransactional.yaml)"
 	@echo -e " \033[1mLOCAL SERVER TARGETS\033[0m "
 	@echo "- serve                    Run the project using the django debug server. Port can be set by Env variable HTTP_PORT i(default: 8000)"
 	@echo "- gunicornserve            Run the project using the gunicorn WSGI server. Port can be set by Env variable HTTP_PORT (default: 8000)"
@@ -159,6 +163,10 @@ build-specs:
 	cd spec && make build-specs
 
 
+.PHONY: lint-specs
+lint-specs:
+	cd spec && make lint-specs
+
 ###################
 # Serve targets. Using these will run the application on your local machine. You can either serve with a wsgi front (like it would be within the container), or without.
 
@@ -170,9 +178,9 @@ serve:
 gunicornserve:
 	$(PYTHON) $(APP_SRC_DIR)/wsgi.py
 
-.PHONY: serve-spec
-serve-spec:
-	cd spec && make serve-spec
+.PHONY: serve-specs
+serve-specs:
+	cd spec && make serve-specs
 
 ###################
 # Docker related functions.

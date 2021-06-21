@@ -30,11 +30,17 @@ $(OPENAPI_TRANSACTIONAL): $(OPENAPI) $(PARTS_TRANSACTIONAL)
 build-specs: $(OPENAPI_TRANSACTIONAL)
 
 
+.PHONY: lint-specs
+lint-specs: build-specs
+	docker run --volume "$(PWD)":/data jamescooke/openapi-validator -e $(OPENAPI)
+	docker run --volume "$(PWD)":/data jamescooke/openapi-validator -e $(OPENAPI_TRANSACTIONAL)
+
+
 # Start a little server that serves api.html and openapi.yaml
 # since ReDoc (the js library used in api.html) cannot load spec
 # from file:/// locations, but only from http:// locations
-.PHONY: serve-spec
-serve-spec: $(OPENAPI_TRANSACTIONAL)
+.PHONY: serve-specs
+serve-specs: $(OPENAPI_TRANSACTIONAL)
 	@echo "Serving http://0.0.0.0:$(SPEC_HTTP_PORT)/api.html"
 	@echo "Serving http://0.0.0.0:$(SPEC_HTTP_PORT)/apitransactional.html"
 	cd $(STATIC_BASE_DIR) && python3 -m http.server $(SPEC_HTTP_PORT)

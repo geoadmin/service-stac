@@ -9,6 +9,7 @@
 
 - [Table of Content](#table-of-content)
 - [Summary of the project](#summary-of-the-project)
+- [SPEC](#spec)
 - [Local development](#local-development)
   - [Dependencies](#dependencies)
     - [Python3.7](#python37)
@@ -36,6 +37,10 @@
 
 `service-stac` provides and manages access to packaged geospatial data and their metadata. It implements and extends the **STAC API** specification version 0.9.0 [radiantearth/stac-spec/tree/v0.9.0/api-spec](https://github.com/radiantearth/stac-spec/tree/v0.9.0/api-spec). Currently the **STAC API** has been split from the main **STAC SPEC** repository into [radiantearth/stac-api-spec](https://github.com/radiantearth/stac-api-spec), which is under active development until the release 1.0-beta.
 
+
+## SPEC
+
+See [SPEC](./spec/README.md)
 ## Local development
 
 ### Dependencies
