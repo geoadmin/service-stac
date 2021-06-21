@@ -4,11 +4,11 @@ import logging
 from admin_auto_filters.filters import AutocompleteFilter
 from admin_auto_filters.filters import AutocompleteFilterFactory
 
+from django import forms
 from django.contrib import messages
 from django.contrib.gis import admin
-from django import forms
-from django.contrib.postgres.fields import ArrayField
 from django.contrib.gis.db import models
+from django.contrib.postgres.fields import ArrayField
 from django.db.models.deletion import ProtectedError
 from django.forms import CharField
 from django.forms import Textarea
@@ -17,6 +17,7 @@ from django.urls import reverse
 
 from solo.admin import SingletonModelAdmin
 
+from stac_api.models import BBOX_CH
 from stac_api.models import Asset
 from stac_api.models import AssetUpload
 from stac_api.models import Collection
@@ -27,10 +28,8 @@ from stac_api.models import ItemLink
 from stac_api.models import LandingPage
 from stac_api.models import LandingPageLink
 from stac_api.models import Provider
-from stac_api.models import BBOX_CH
 from stac_api.utils import build_asset_href
 from stac_api.utils import get_query_params
-
 from stac_api.validators import validate_text_to_geometry
 
 logger = logging.getLogger(__name__)
@@ -64,7 +63,8 @@ class ProviderInline(admin.TabularInline):
         models.TextField: {
             'widget': Textarea(attrs={
                 'rows': 4, 'cols': 40
-            })
+            }),
+            'empty_value': None,
         },
     }
 

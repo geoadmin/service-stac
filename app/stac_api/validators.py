@@ -6,14 +6,14 @@ import multihash
 from multihash.constants import CODE_HASHES
 from multihash.constants import HASH_CODES
 
+from django.contrib.gis.gdal.error import GDALException
 from django.contrib.gis.geos import GEOSGeometry
 from django.contrib.gis.geos.error import GEOSException
 from django.core.exceptions import ValidationError
-from django.contrib.gis.gdal.error import GDALException
 from django.utils.translation import gettext_lazy as _
-from stac_api.utils import geometry_from_bbox
 
 from stac_api.utils import fromisoformat
+from stac_api.utils import geometry_from_bbox
 
 logger = logging.getLogger(__name__)
 
