@@ -220,7 +220,7 @@ class Provider(models.Model):
         related_query_name='provider'
     )
     name = models.CharField(blank=False, max_length=200)
-    description = models.TextField(blank=True, null=True)
+    description = models.TextField(blank=True, null=True, default=None)
     # possible roles are licensor, producer, processor or host
     allowed_roles = ['licensor', 'producer', 'processor', 'host']
     roles = ArrayField(
