@@ -274,7 +274,10 @@ class Collection(
 ):
 
     class Meta:
-        indexes = [models.Index(fields=['name'], name='collection_name_idx')]
+        indexes = [
+            models.Index(fields=['name'], name='collection_name_idx'),
+            models.Index(fields=['published'], name='collection_published_idx')
+        ]
 
     published = models.BooleanField(
         default=True,
