@@ -120,12 +120,6 @@ class CollectionSerializationTestCase(StacBaseTestCase):
                     'name': 'provider-3',
                 },
             ],
-            'stac_extensions': [
-                'eo',
-                'proj',
-                'view',
-                'https://data.geo.admin.ch/stac/geoadmin-extension/1.0/schema.json'
-            ],
             'stac_version': settings.STAC_VERSION,
             'summaries': {
                 'eo:gsd': [3.4],
@@ -281,12 +275,6 @@ class ItemSerializationTestCase(StacBaseTestCase):
                 self.asset['name']: expected_asset
             },
             'bbox': (5.644711, 46.775054, 7.602408, 49.014995),
-            'stac_extensions': [
-                'eo',
-                'proj',
-                'view',
-                'https://data.geo.admin.ch/stac/geoadmin-extension/1.0/schema.json'
-            ],
             'stac_version': settings.STAC_VERSION,
             'type': 'Feature'
         })

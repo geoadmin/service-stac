@@ -262,8 +262,7 @@ class StacTestMixin:
         for key, value in expected.items():
             path = f'{parent_path}.{key}'
 
-            # We need to remove the stac_extensions from here when BGDIINF_SB-1410 is implemented
-            if (ignore and key in ignore) or key in ['stac_extensions']:
+            if (ignore and key in ignore):
                 if key not in ['item', 'created', 'updated']:
                     logger.warning('Ignoring key %s in %s', key, path)
                 else:
