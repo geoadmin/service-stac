@@ -27,18 +27,35 @@ class CollectionsEndpointTestCase(StacBaseTestCase):
 
     def setUp(self):  # pylint: disable=invalid-name
         self.client = Client()
-        factory = CollectionFactory()
-        self.collection_1 = factory.create_sample(sample='collection-1', db_create=True)
-        self.collection_2 = factory.create_sample(sample='collection-2', db_create=True)
+        self.factory = CollectionFactory()
+        self.collection_1 = self.factory.create_sample(
+            sample='collection-1', name='collection-1', db_create=True
+        )
+        self.collection_2 = self.factory.create_sample(
+            sample='collection-2', name='collection-2', db_create=True
+        )
         self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_collections_endpoint(self):
+        # create a third collection with an ascendent name to make sure that collections
+        # ordering is working
+        collection_3 = self.factory.create_sample(
+            sample='collection-2', name='collection-0', db_create=True
+        )
         response = self.client.get(f"/{STAC_BASE_V}/collections")
         response_json = response.json()
         self.assertStatusCode(200, response)
 
-        self.check_stac_collection(self.collection_1.json, response_json['collections'][0])
-        self.check_stac_collection(self.collection_2.json, response_json['collections'][1])
+        # Check that the output is sorted by name
+        collection_ids = [collection['id'] for collection in response_json['collections']]
+        self.assertListEqual(
+            collection_ids, sorted(collection_ids), msg="Collections are not sorted by ID"
+        )
+
+        collection_samples = sorted([self.collection_1, self.collection_2, collection_3],
+                                    key=lambda collection: collection['name'])
+        for i, collection in enumerate(collection_samples):
+            self.check_stac_collection(collection.json, response_json['collections'][i])
 
     def test_single_collection_endpoint(self):
         collection_name = self.collection_1.attributes['name']

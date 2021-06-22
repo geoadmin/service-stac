@@ -38,14 +38,21 @@ class AssetsEndpointTestCase(StacBaseTestCase):
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample().model
         self.item = self.factory.create_item_sample(collection=self.collection).model
-        self.asset_1 = self.factory.create_asset_sample(item=self.item, db_create=True)
+        self.asset_1 = self.factory.create_asset_sample(
+            item=self.item, name="asset-1.tiff", db_create=True
+        )
         self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_assets_endpoint(self):
         collection_name = self.collection.name
         item_name = self.item.name
-        asset_2 = self.factory.create_asset_sample(item=self.item, sample='asset-2', db_create=True)
-        asset_3 = self.factory.create_asset_sample(item=self.item, sample='asset-3', db_create=True)
+        # To test the assert ordering make sure to not create them in ascent order
+        asset_2 = self.factory.create_asset_sample(
+            item=self.item, sample='asset-2', name="asset-2.txt", db_create=True
+        )
+        asset_3 = self.factory.create_asset_sample(
+            item=self.item, name="asset-0.pdf", sample='asset-3', db_create=True
+        )
         response = self.client.get(
             f"/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets"
         )
@@ -57,7 +64,13 @@ class AssetsEndpointTestCase(StacBaseTestCase):
         self.assertEqual(
             3, len(json_data['assets']), msg='Number of assets doesn\'t match the expected'
         )
-        for i, asset in enumerate([self.asset_1, asset_2, asset_3]):
+
+        # Check that the output is sorted by name
+        asset_ids = [asset['id'] for asset in json_data['assets']]
+        self.assertListEqual(asset_ids, sorted(asset_ids), msg="Assets are not sorted by ID")
+
+        asset_samples = sorted([self.asset_1, asset_2, asset_3], key=lambda asset: asset['name'])
+        for i, asset in enumerate(asset_samples):
             self.check_stac_asset(asset.json, json_data['assets'][i], collection_name, item_name)
 
     def test_assets_endpoint_collection_does_not_exist(self):

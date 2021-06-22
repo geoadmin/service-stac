@@ -153,7 +153,7 @@ class CursorPagination(pagination.CursorPagination):
     def get_ordering(self, request, queryset, view):
         '''Get the ordering for the pagination.
 
-        The base class doesn't not allowed to use the view configuration for
+        The base class doesn't allow to use the view configuration for
         ordering, therefore it is here implemented.
         '''
         if hasattr(view, 'ordering'):
