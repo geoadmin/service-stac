@@ -97,7 +97,8 @@ class CollectionAdmin(admin.ModelAdmin):
     ]
     inlines = [ProviderInline, CollectionLinkInline]
     search_fields = ['name']
-    list_display = ['name']
+    list_display = ['name', 'published']
+    list_filter = ['published']
 
     def get_search_results(self, request, queryset, search_term):
         queryset, use_distinct = super().get_search_results(request, queryset, search_term)
@@ -176,7 +177,7 @@ class ItemAdmin(admin.GeoModelAdmin):
         ),
     )
 
-    list_display = ['name', 'collection']
+    list_display = ['name', 'collection', 'collection_published']
     list_filter = [CollectionFilterForItems]
 
     def get_search_results(self, request, queryset, search_term):
@@ -208,6 +209,13 @@ class ItemAdmin(admin.GeoModelAdmin):
             if collection_name:
                 queryset &= self.model.objects.filter(collection__name__exact=collection_name)
         return queryset, use_distinct
+
+    def collection_published(self, instance):
+        return instance.collection.published
+
+    collection_published.admin_order_field = 'collection__published'
+    collection_published.short_description = 'Published'
+    collection_published.boolean = True
 
     # Here we use a special field for read only to avoid adding the extra help text for search
     # functionality
@@ -259,7 +267,7 @@ class AssetAdmin(admin.ModelAdmin):
     autocomplete_fields = ['item']
     search_fields = ['name', 'item__name', 'item__collection__name']
     readonly_fields = ['item_name', 'collection_name', 'href', 'checksum_multihash']
-    list_display = ['name', 'item_name', 'collection_name']
+    list_display = ['name', 'item_name', 'collection_name', 'collection_published']
     fieldsets = (
         (None, {
             'fields': ('name', 'item')
@@ -301,6 +309,13 @@ class AssetAdmin(admin.ModelAdmin):
             if collection_name:
                 queryset &= self.model.objects.filter(item__collection__name__exact=collection_name)
         return queryset, use_distinct
+
+    def collection_published(self, instance):
+        return instance.item.collection.published
+
+    collection_published.admin_order_field = 'item__collection__published'
+    collection_published.short_description = 'Published'
+    collection_published.boolean = True
 
     def collection_name(self, instance):
         return instance.item.collection.name
