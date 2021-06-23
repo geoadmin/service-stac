@@ -392,9 +392,21 @@ class Item(models.Model):
     updated = models.DateTimeField(auto_now=True)
     # after discussion with Chris and Tobias: for the moment only support
     # proterties: datetime and title (the rest is hence commented out)
-    properties_datetime = models.DateTimeField(blank=True, null=True)
-    properties_start_datetime = models.DateTimeField(blank=True, null=True)
-    properties_end_datetime = models.DateTimeField(blank=True, null=True)
+    properties_datetime = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text="Enter date in <i>yyyy-mm-dd</i> format, and time in UTC <i>hh:mm:ss</i> format"
+    )
+    properties_start_datetime = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text="Enter date in <i>yyyy-mm-dd</i> format, and time in UTC <i>hh:mm:ss</i> format"
+    )
+    properties_end_datetime = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text="Enter date in <i>yyyy-mm-dd</i> format, and time in UTC <i>hh:mm:ss</i> format"
+    )
     # properties_eo_bands = model.TextFields(blank=True)  # ? [string]?
     # properties_eo_cloud_cover = models.FloatField(blank=True)
     # eo_gsd is defined on asset level and will be updated here on ever
