@@ -386,8 +386,11 @@ class AdminCollectionTestCase(AdminBaseTestCase):
 
         collection, data, link, provider = self._create_collection(with_provider=True)
 
-        self.assertEqual(provider.description, data['providers-0-description'],
-                         msg="description non existent when it should exist.")
+        self.assertEqual(
+            provider.description,
+            data['providers-0-description'],
+            msg="description non existent when it should exist."
+        )
 
         # update some data in provider
         data["providers-INITIAL_FORMS"] = 1
