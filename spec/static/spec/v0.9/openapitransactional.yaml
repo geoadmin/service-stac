@@ -173,55 +173,6 @@ paths:
       description: The feature collections in the dataset
       tags:
       - Data
-    post:
-      tags:
-      - Data Management
-      summary: >-
-        Create a new collection
-      operationId: createCollection
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/collection"
-            example:
-              description: The National Map 1:200,000 is a topographic map giving
-                an overview of Switzerland.
-              id: ch.swisstopo.pixelkarte-farbe-pk200.noscale
-              license: proprietary
-              links:
-              - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
-                rel: license
-                title: Licence for the free geodata of the Federal Office of Topography
-                  swisstopo
-              - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
-                rel: describedby
-              providers:
-              - name: Federal Office of Topography - swisstopo
-                roles:
-                - producer
-                - licensor
-                url: https://www.swisstopo.admin.ch
-              title: National Map 1:200'000
-      responses:
-        "201":
-          description: Returns the created Collection
-          headers:
-            Location:
-              description: A link to the collection
-              schema:
-                type: string
-                format: url
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/collectionWrite"
-        "403":
-          $ref: "#/components/responses/PermissionDenied"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/ServerError"
   /collections/{collectionId}:
     get:
       operationId: describeCollection
@@ -384,63 +335,6 @@ paths:
       summary: Fetch features
       tags:
       - Data
-    post:
-      summary: Add a new feature to a collection
-      description: Create a new feature/item in a specific collection
-      operationId: postFeature
-      tags:
-      - Data Management
-      parameters:
-      - $ref: "#/components/parameters/collectionId"
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/createItem"
-            example:
-              id: cs3-20160503_132131_05
-              geometry:
-                type: Polygon
-                coordinates:
-                - - - 7.0906823
-                    - 45.9160584
-                  - - 7.1035698
-                    - 45.9160977
-                  - - 7.1035146
-                    - 45.925093
-                  - - 7.0906249
-                    - 45.9250537
-                  - - 7.0906823
-                    - 45.9160584
-              properties:
-                datetime: "2016-05-03T13:22:30.040Z"
-                title: A CS3 item
-              links:
-              - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
-                rel: license
-                title: Licence for the free geodata of the Federal Office of Topography
-                  swisstopo
-              - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
-                rel: describedby
-      responses:
-        "201":
-          description: Return the created Item.
-          headers:
-            Location:
-              description: A link to the item
-              schema:
-                type: string
-                format: url
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/item"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "403":
-          $ref: "#/components/responses/PermissionDenied"
-        5XX:
-          $ref: "#/components/responses/ServerError"
   /collections/{collectionId}/items/{featureId}:
     get:
       description: >-
@@ -518,6 +412,18 @@ paths:
       responses:
         "200":
           description: Returns the updated Item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/item"
+        "201":
+          description: Return the created Item.
+          headers:
+            Location:
+              description: A link to the item
+              schema:
+                type: string
+                format: url
           content:
             application/json:
               schema:
@@ -680,40 +586,6 @@ paths:
       summary: Fetch all assets for a feature
       tags:
       - Data
-    post:
-      summary: Add a new asset to a feature
-      description: |
-        Create a new asset for a specific feature.
-
-        *Note: to upload an asset file see [Asset Upload Management](#tag/Asset-Upload-Management)*
-      operationId: postAsset
-      tags:
-      - Data Management
-      parameters:
-      - $ref: "#/components/parameters/collectionId"
-      - $ref: "#/components/parameters/featureId"
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/createAsset"
-      responses:
-        "201":
-          description: Return the created Asset
-          headers:
-            Location:
-              description: A link to the asset
-              schema:
-                type: string
-                format: url
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/createAsset"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        5XX:
-          $ref: "#/components/responses/ServerError"
   /collections/{collectionId}/items/{featureId}/assets/{assetId}:
     get:
       description: >-

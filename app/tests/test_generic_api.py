@@ -310,35 +310,6 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
                 f'collections/{self.collection["name"]}/items/{self.item["name"]}',
                 {},
             ),
-            (
-                ['post'],
-                'collections',
-                self.factory.create_collection_sample(
-                    name=self.collection["name"],
-                    sample='collection-2',
-                ),
-            ),
-            (
-                ['post'],
-                f'collections/{self.collection["name"]}/items',
-                self.factory.create_item_sample(
-                    collection=self.collection.model,
-                    name=self.item["name"],
-                    sample='item-2',
-                ),
-            ),
-            (
-                ['post'],
-                f'collections/{self.collection["name"]}/items/{self.item["name"]}'
-                f'/assets',
-                self.factory.create_asset_sample(
-                    item=self.item.model,
-                    name=self.asset["name"],
-                    sample='asset-1-updated',
-                    media_type=self.asset['media_type'],
-                    checksum_multihash=self.asset["checksum_multihash"]
-                ),
-            ),
             (['post'], 'search', {
                 "query": {
                     "title": {

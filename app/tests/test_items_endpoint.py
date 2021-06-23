@@ -424,7 +424,7 @@ class ItemsBboxQueryEndpointTestCase(StacBaseTestCase):
         self.assertEqual(nb_features_polygon, nb_features_point)
 
 
-class ItemsWriteEndpointTestCase(StacBaseTestCase):
+class ItemsUnImplementedEndpointTestCase(StacBaseTestCase):
 
     @classmethod
     def setUpTestData(cls):
@@ -435,46 +435,46 @@ class ItemsWriteEndpointTestCase(StacBaseTestCase):
         self.client = Client()
         client_login(self.client)
 
-    def test_item_endpoint_post_only_required(self):
-        sample = self.factory.create_item_sample(self.collection, required_only=True)
-        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items'
-        response = self.client.post(
-            path, data=sample.get_json('post'), content_type="application/json"
-        )
-        json_data = response.json()
-        self.assertStatusCode(201, response)
-        self.check_header_location(f'{path}/{sample.json["id"]}', response)
-
-        self.check_stac_item(sample.json, json_data, self.collection.name)
-
-        # Check the data by reading it back
-        response = self.client.get(response['Location'])
-        json_data = response.json()
-        self.assertStatusCode(200, response)
-        self.check_stac_item(sample.json, json_data, self.collection.name)
-
-    def test_item_endpoint_post_extra_payload(self):
-        data = self.factory.create_item_sample(self.collection, extra_payload=True).get_json('post')
-        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items'
-        response = self.client.post(path, data=data, content_type="application/json")
-        self.assertStatusCode(400, response)
-
-    def test_item_endpoint_post_read_only_in_payload(self):
-        data = self.factory.create_item_sample(self.collection,
-                                               created=datetime.today()).get_json('post')
-        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items'
-        response = self.client.post(path, data=data, content_type="application/json")
-        self.assertStatusCode(400, response)
-
-    def test_item_endpoint_post_full(self):
+    def test_item_post_unimplemented(self):
         sample = self.factory.create_item_sample(self.collection)
-        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items'
         response = self.client.post(
-            path, data=sample.get_json('post'), content_type="application/json"
+            f'/{STAC_BASE_V}/collections/{self.collection.name}/items',
+            data=sample.get_json('post'),
+            content_type="application/json"
+        )
+        self.assertStatusCode(405, response)
+
+
+class ItemsCreateEndpointTestCase(StacBaseTestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.factory = Factory()
+        cls.collection = cls.factory.create_collection_sample().model
+
+    def setUp(self):
+        self.client = Client()
+        client_login(self.client)
+
+    def test_item_upsert_create(self):
+        sample = self.factory.create_item_sample(self.collection)
+        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{sample.json["id"]}'
+        response = self.client.put(
+            path, data=sample.get_json('put'), content_type="application/json"
         )
         json_data = response.json()
         self.assertStatusCode(201, response)
-        self.check_header_location(f'{path}/{sample.json["id"]}', response)
+        self.check_stac_item(sample.json, json_data, self.collection.name)
+
+    def test_item_endpoint_create_only_required(self):
+        sample = self.factory.create_item_sample(self.collection, required_only=True)
+        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{sample["name"]}'
+        response = self.client.put(
+            path, data=sample.get_json('put'), content_type="application/json"
+        )
+        json_data = response.json()
+        self.assertStatusCode(201, response)
+        self.check_header_location(f'{path}', response)
 
         self.check_stac_item(sample.json, json_data, self.collection.name)
 
@@ -484,11 +484,40 @@ class ItemsWriteEndpointTestCase(StacBaseTestCase):
         self.assertStatusCode(200, response)
         self.check_stac_item(sample.json, json_data, self.collection.name)
 
-    def test_item_endpoint_post_invalid_data(self):
+    def test_item_upsert_create_non_existing_parent_collection_in_path(self):
+
+        sample = self.factory.create_item_sample(self.collection, required_only=True)
+        response = self.client.put(
+            f'/{STAC_BASE_V}/collections/non-existing-collection/items/{sample.json["id"]}',
+            data=sample.get_json('put'),
+            content_type="application/json"
+        )
+        self.assertStatusCode(404, response)
+
+    def test_item_atomic_upsert_create_500(self):
+        sample = self.factory.create_item_sample(self.collection, sample='item-2')
+
+        # the dataset to update does not exist yet
+        with self.settings(DEBUG_PROPAGATE_API_EXCEPTIONS=True), disableLogger('stac_api.apps'):
+            response = self.client.put(
+                reverse('test-item-detail-http-500', args=[self.collection.name, sample['name']]),
+                data=sample.get_json('put'),
+                content_type='application/json'
+            )
+        self.assertStatusCode(500, response)
+        self.assertEqual(response.json()['description'], "AttributeError('test exception')")
+
+        # Make sure that the ressource has not been created
+        response = self.client.get(
+            reverse('item-detail', args=[self.collection.name, sample['name']])
+        )
+        self.assertStatusCode(404, response)
+
+    def test_item_endpoint_create_invalid_data(self):
         data = self.factory.create_item_sample(self.collection,
-                                               sample='item-invalid').get_json('post')
-        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items'
-        response = self.client.post(path, data=data, content_type="application/json")
+                                               sample='item-invalid').get_json('put')
+        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{data["id"]}'
+        response = self.client.put(path, data=data, content_type="application/json")
         self.assertStatusCode(400, response)
 
         # Make sure that the item is not found in DB
@@ -497,15 +526,15 @@ class ItemsWriteEndpointTestCase(StacBaseTestCase):
             msg="Invalid item has been created in DB"
         )
 
-    def test_item_endpoint_post_missing_datetime(self):
+    def test_item_endpoint_create_missing_datetime(self):
         data = self.factory.create_item_sample(
             self.collection,
             properties_datetime=None,
             properties_start_datetime=None,
             properties_end_datetime=None
-        ).get_json('post')
-        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items'
-        response = self.client.post(path, data=data, content_type="application/json")
+        ).get_json('put')
+        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{data["id"]}'
+        response = self.client.put(path, data=data, content_type="application/json")
         self.assertStatusCode(400, response)
 
         # Make sure that the item is not found in DB
@@ -684,47 +713,6 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
             msg="Renamed item shouldn't exist"
         )
 
-    def test_item_upsert_create(self):
-
-        sample = self.factory.create_item_sample(self.collection.model, required_only=True)
-        path = f'/{STAC_BASE_V}/collections/{self.collection["name"]}/items/{sample.json["id"]}'
-        response = self.client.put(
-            path, data=sample.get_json('post'), content_type="application/json"
-        )
-        json_data = response.json()
-        self.assertStatusCode(201, response)
-        self.check_stac_item(sample.json, json_data, self.collection["name"])
-
-    def test_item_upsert_create_non_existing_parent_collection_in_path(self):
-
-        sample = self.factory.create_item_sample(self.collection.model, required_only=True)
-        path = f'/{STAC_BASE_V}/collections/non-existing-collection/items/{sample.json["id"]}'
-        response = self.client.put(
-            path, data=sample.get_json('post'), content_type="application/json"
-        )
-        self.assertStatusCode(404, response)
-
-    def test_item_atomic_upsert_create_500(self):
-        sample = self.factory.create_item_sample(self.collection.model, sample='item-2')
-
-        # the dataset to update does not exist yet
-        with self.settings(DEBUG_PROPAGATE_API_EXCEPTIONS=True), disableLogger('stac_api.apps'):
-            response = self.client.put(
-                reverse(
-                    'test-item-detail-http-500', args=[self.collection['name'], sample['name']]
-                ),
-                data=sample.get_json('put'),
-                content_type='application/json'
-            )
-        self.assertStatusCode(500, response)
-        self.assertEqual(response.json()['description'], "AttributeError('test exception')")
-
-        # Make sure that the ressource has not been created
-        response = self.client.get(
-            reverse('item-detail', args=[self.collection['name'], sample['name']])
-        )
-        self.assertStatusCode(404, response)
-
     def test_item_atomic_upsert_update_500(self):
         sample = self.factory.create_item_sample(
             self.collection.model, sample='item-2', name=self.item['name']
@@ -792,37 +780,6 @@ class ItemRaceConditionTest(StacBaseTransactionTestCase):
             self.check_stac_item(item_sample.json, response.json(), collection_sample['name'])
         self.assertEqual(status_201, 1, msg="Not only one upsert did a create !")
 
-    def test_item_post_race_condition(self):
-        workers = 5
-        status_201 = 0
-        collection_sample = CollectionFactory().create_sample(sample='collection-2')
-        item_sample = ItemFactory().create_sample(collection_sample.model, sample='item-1')
-
-        def item_atomic_post_test(worker):
-            # This method run on separate thread therefore it requires to create a new client and
-            # to login it for each call.
-            client = Client()
-            client.login(username=self.username, password=self.password)
-            return client.post(
-                reverse('items-list', args=[collection_sample['name']]),
-                data=item_sample.get_json('post'),
-                content_type='application/json'
-            )
-
-        # We call the PUT item several times in parallel with the same data to make sure
-        # that we don't have any race condition.
-        responses, errors = self.run_parallel(workers, item_atomic_post_test)
-
-        for worker, response in responses:
-            self.assertIn(response.status_code, [201, 400])
-            if response.status_code == 201:
-                self.check_stac_item(item_sample.json, response.json(), collection_sample['name'])
-                status_201 += 1
-            else:
-                self.assertIn('id', response.json()['description'].keys())
-                self.assertIn('This field must be unique.', response.json()['description']['id'])
-        self.assertEqual(status_201, 1, msg="Not only one POST was successfull")
-
 
 class ItemsDeleteEndpointTestCase(StacBaseTestCase):
 
@@ -882,14 +839,9 @@ class ItemsUnauthorizeEndpointTestCase(StacBaseTestCase):
     def setUp(self):
         self.client = Client()
 
-    def test_unauthorized_item_post_put_patch_delete(self):
+    def test_unauthorized_item_put_patch_delete(self):
         # make sure POST fails for anonymous user:
         sample = self.factory.create_item_sample(self.collection)
-        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items'
-        response = self.client.post(
-            path, data=sample.get_json('post'), content_type="application/json"
-        )
-        self.assertStatusCode(401, response, msg="Unauthorized post was permitted.")
 
         # make sure PUT fails for anonymous user:
         sample = self.factory.create_item_sample(self.collection, name=self.item.name)
