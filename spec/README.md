@@ -1,4 +1,4 @@
-## Specs
+# Specs
 
 The API of this service is based on the [STAC API Specification](https://github.com/radiantearth/stac-api-spec) in version `0.9.0`, which itself is based on the [STAC Specification](https://github.com/radiantearth/stac-spec/tree/v0.9.0) and the [_OGC API - Features_](https://github.com/opengeospatial/ogcapi-features) specification. The default STAC spec is amended by geoadmin-specific parts that are explicitly mentioned in the spec, as well as adapted examples that resemble geoadmin-specific use cases.
 
@@ -13,9 +13,15 @@ make build-specs
 and previewed locally with the little html ReDoc wrappers `spec/static/api.html` and `spec/static/apitransactional.html`. The can be served locally by invoking
 
 ```bash
-make serve-spec
+make serve-specs
 ```
 
 which starts a simple http server that can be reached under `http://0.0.0.0:8090` (default port is `8090`, if you need another one, check the Makefile on how to do this).
 
 The generated files along with html wrappers are also included as static targets and are available under `https://<host_env>/api/stac/v0.9/static/api.html`.
+
+Once the specs has been built they need to be validated with
+
+```bash
+make lint-specs
+```

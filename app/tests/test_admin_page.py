@@ -53,6 +53,7 @@ class AdminBaseTestCase(TestCase):
             "name": "test_collection",
             "license": "free",
             "description": "some very important collection",
+            "published": "on",
             "providers-TOTAL_FORMS": "0",
             "providers-INITIAL_FORMS": "0",
             "links-TOTAL_FORMS": "0",
@@ -318,6 +319,38 @@ class AdminCollectionTestCase(AdminBaseTestCase):
         self.assertEqual(
             collection.title, data['title'], msg="Admin page collection title update did not work"
         )
+
+    def test_publish_collection(self):
+        collection, data = self._create_collection()[:2]
+
+        # By default collection should be published
+        self.assertTrue(collection.published, msg="Admin page default collection is not published")
+
+        # un published the collection
+        data.pop('published')
+        response = self.client.post(
+            reverse('admin:stac_api_collection_change', args=[collection.id]), data
+        )
+
+        # Status code for successful creation is 302, since in the admin UI
+        # you're redirected to the list view after successful creation
+        self.assertEqual(response.status_code, 302, msg="Admin page failed to update collection")
+        collection.refresh_from_db()
+        # collection = Collection.objects.get(name=data['name'])
+        self.assertFalse(collection.published, msg="Admin page collection still published")
+
+        # Publish the collection again
+        data['published'] = "on"
+        response = self.client.post(
+            reverse('admin:stac_api_collection_change', args=[collection.id]), data
+        )
+
+        # Status code for successful creation is 302, since in the admin UI
+        # you're redirected to the list view after successful creation
+        self.assertEqual(response.status_code, 302, msg="Admin page failed to update collection")
+        collection.refresh_from_db()
+        # collection = Collection.objects.get(name=data['name'])
+        self.assertTrue(collection.published, msg="Admin page collection still unpublished")
 
     def test_add_update_collection_with_provider(self):
         collection, data, link, provider = self._create_collection(with_provider=True)

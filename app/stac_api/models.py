@@ -274,8 +274,17 @@ class Collection(
 ):
 
     class Meta:
-        indexes = [models.Index(fields=['name'], name='collection_name_idx')]
+        indexes = [
+            models.Index(fields=['name'], name='collection_name_idx'),
+            models.Index(fields=['published'], name='collection_published_idx')
+        ]
 
+    published = models.BooleanField(
+        default=True,
+        help_text="When not published the collection doesn't appear on the "
+        "api/stac/v0.9/collections endpoint and its items are not listed in /search endpoint."
+        "<p><i>NOTE: unpublished collections/items can still be accessed by their path.</ip></p>"
+    )
     # using "name" instead of "id", as "id" has a default meaning in django
     name = models.CharField('id', unique=True, max_length=255, validators=[validate_name])
     created = models.DateTimeField(auto_now_add=True)

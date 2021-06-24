@@ -18,7 +18,6 @@ components:
       schema:
         $ref: "./schemas.yaml#/components/schemas/bbox"
       style: form
-      example:
     collectionId:
       description: Local identifier of a collection
       in: path
