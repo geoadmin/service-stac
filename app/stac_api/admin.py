@@ -1,20 +1,23 @@
 import json
+import logging
 
 from admin_auto_filters.filters import AutocompleteFilter
 from admin_auto_filters.filters import AutocompleteFilterFactory
 
+from django import forms
 from django.contrib import messages
 from django.contrib.gis import admin
+from django.contrib.gis.db import models
 from django.contrib.postgres.fields import ArrayField
-from django.contrib.staticfiles import finders
-from django.db import models
 from django.db.models.deletion import ProtectedError
+from django.forms import CharField
 from django.forms import Textarea
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 
 from solo.admin import SingletonModelAdmin
 
+from stac_api.models import BBOX_CH
 from stac_api.models import Asset
 from stac_api.models import AssetUpload
 from stac_api.models import Collection
@@ -27,6 +30,9 @@ from stac_api.models import LandingPageLink
 from stac_api.models import Provider
 from stac_api.utils import build_asset_href
 from stac_api.utils import get_query_params
+from stac_api.validators import validate_text_to_geometry
+
+logger = logging.getLogger(__name__)
 
 
 class LandingPageLinkInline(admin.TabularInline):
@@ -57,7 +63,8 @@ class ProviderInline(admin.TabularInline):
         models.TextField: {
             'widget': Textarea(attrs={
                 'rows': 4, 'cols': 40
-            })
+            }),
+            'empty_value': None,
         },
     }
 
@@ -76,19 +83,22 @@ class CollectionAdmin(admin.ModelAdmin):
 
     fields = [
         'name',
+        'published',
         'title',
         'description',
         'extent_start_datetime',
         'extent_end_datetime',
         'summaries',
-        'extent_geometry'
+        'extent_geometry',
+        'license'
     ]
     readonly_fields = [
         'extent_start_datetime', 'extent_end_datetime', 'summaries', 'extent_geometry'
     ]
     inlines = [ProviderInline, CollectionLinkInline]
     search_fields = ['name']
-    list_display = ['name']
+    list_display = ['name', 'published']
+    list_filter = ['published']
 
     def get_search_results(self, request, queryset, search_term):
         queryset, use_distinct = super().get_search_results(request, queryset, search_term)
@@ -112,8 +122,29 @@ class CollectionFilterForItems(AutocompleteFilter):
     field_name = 'collection'  # name of the foreign key
 
 
+# helper form to add an extra text_geometry field to ItemAdmin
+class ItemAdminForm(forms.ModelForm):
+    help_text = """Insert either:<br/>
+    - An extent in either WGS84 or LV95: "xmin, ymin, xmax, ymax"
+    where x is easting and y is northing<br/>
+    - A WKT polygon.
+    F.ex. "SRID=4326;POLYGON((5.96 45.82, 5.96 47.81, 10.49 47.81, 10.49 45.82, 5.96 45.82))"
+    <br/><br/><b>In any case the geometry will be saved as a WKT POLYGON in WGS84.</b>
+    """
+    text_geometry = CharField(
+        label='Geometry text', widget=forms.TextInput(attrs={'size': 150}), help_text=help_text
+    )
+
+    def clean_text_geometry(self):
+        # validating and transforming the text to a geometry
+        self.cleaned_data["text_geometry"] = validate_text_to_geometry(self.data["text_geometry"])
+        return self.cleaned_data["text_geometry"]
+
+
 @admin.register(Item)
 class ItemAdmin(admin.GeoModelAdmin):
+    form = ItemAdminForm
+    modifiable = False
 
     class Media:
         js = ('js/admin/item_help_search.js',)
@@ -128,7 +159,10 @@ class ItemAdmin(admin.GeoModelAdmin):
             'fields': ('name', 'collection')
         }),
         ('geometry', {
-            'fields': ('geometry',)
+            'fields': (
+                'geometry',
+                'text_geometry',
+            ),
         }),
         (
             'Properties',
@@ -142,11 +176,8 @@ class ItemAdmin(admin.GeoModelAdmin):
             }
         ),
     )
-    # customization of the geometry field
-    map_template = finders.find('admin/ol_swisstopo.html')  # custom swisstopo
-    wms_layer = 'ch.swisstopo.pixelkarte-farbe-pk1000.noscale'
-    wms_url = 'https://wms.geo.admin.ch/'
-    list_display = ['name', 'collection']
+
+    list_display = ['name', 'collection', 'collection_published']
     list_filter = [CollectionFilterForItems]
 
     def get_search_results(self, request, queryset, search_term):
@@ -179,6 +210,13 @@ class ItemAdmin(admin.GeoModelAdmin):
                 queryset &= self.model.objects.filter(collection__name__exact=collection_name)
         return queryset, use_distinct
 
+    def collection_published(self, instance):
+        return instance.collection.published
+
+    collection_published.admin_order_field = 'collection__published'
+    collection_published.short_description = 'Published'
+    collection_published.boolean = True
+
     # Here we use a special field for read only to avoid adding the extra help text for search
     # functionality
     def collection_name(self, obj):
@@ -203,6 +241,21 @@ class ItemAdmin(admin.GeoModelAdmin):
         fields[0][1]['fields'] = ('name', 'collection_name')
         return fields
 
+    # Populate text_geometry field with value of geometry
+    def get_form(self, request, obj=None, **kwargs):  # pylint: disable=arguments-differ
+        # pylint: disable=attribute-defined-outside-init
+        form = super().get_form(request, obj, **kwargs)
+        if obj is not None:
+            form.base_fields['text_geometry'].initial = obj.geometry
+        else:
+            form.base_fields['text_geometry'].initial = BBOX_CH
+        return form
+
+    # Overwrite value of geometry with value of text_geometry
+    def save_model(self, request, obj, form, change):
+        obj.geometry = form.cleaned_data['text_geometry']
+        return super().save_model(request, obj, form, change)
+
 
 @admin.register(Asset)
 class AssetAdmin(admin.ModelAdmin):
@@ -214,7 +267,7 @@ class AssetAdmin(admin.ModelAdmin):
     autocomplete_fields = ['item']
     search_fields = ['name', 'item__name', 'item__collection__name']
     readonly_fields = ['item_name', 'collection_name', 'href', 'checksum_multihash']
-    list_display = ['name', 'item_name', 'collection_name']
+    list_display = ['name', 'item_name', 'collection_name', 'collection_published']
     fieldsets = (
         (None, {
             'fields': ('name', 'item')
@@ -256,6 +309,13 @@ class AssetAdmin(admin.ModelAdmin):
             if collection_name:
                 queryset &= self.model.objects.filter(item__collection__name__exact=collection_name)
         return queryset, use_distinct
+
+    def collection_published(self, instance):
+        return instance.item.collection.published
+
+    collection_published.admin_order_field = 'item__collection__published'
+    collection_published.short_description = 'Published'
+    collection_published.boolean = True
 
     def collection_name(self, instance):
         return instance.item.collection.name

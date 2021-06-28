@@ -220,7 +220,7 @@ class Provider(models.Model):
         related_query_name='provider'
     )
     name = models.CharField(blank=False, max_length=200)
-    description = models.TextField(blank=True, null=True)
+    description = models.TextField(blank=True, null=True, default=None)
     # possible roles are licensor, producer, processor or host
     allowed_roles = ['licensor', 'producer', 'processor', 'host']
     roles = ArrayField(
@@ -274,8 +274,17 @@ class Collection(
 ):
 
     class Meta:
-        indexes = [models.Index(fields=['name'], name='collection_name_idx')]
+        indexes = [
+            models.Index(fields=['name'], name='collection_name_idx'),
+            models.Index(fields=['published'], name='collection_published_idx')
+        ]
 
+    published = models.BooleanField(
+        default=True,
+        help_text="When not published the collection doesn't appear on the "
+        "api/stac/v0.9/collections endpoint and its items are not listed in /search endpoint."
+        "<p><i>NOTE: unpublished collections/items can still be accessed by their path.</ip></p>"
+    )
     # using "name" instead of "id", as "id" has a default meaning in django
     name = models.CharField('id', unique=True, max_length=255, validators=[validate_name])
     created = models.DateTimeField(auto_now_add=True)
@@ -383,9 +392,21 @@ class Item(models.Model):
     updated = models.DateTimeField(auto_now=True)
     # after discussion with Chris and Tobias: for the moment only support
     # proterties: datetime and title (the rest is hence commented out)
-    properties_datetime = models.DateTimeField(blank=True, null=True)
-    properties_start_datetime = models.DateTimeField(blank=True, null=True)
-    properties_end_datetime = models.DateTimeField(blank=True, null=True)
+    properties_datetime = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text="Enter date in <i>yyyy-mm-dd</i> format, and time in UTC <i>hh:mm:ss</i> format"
+    )
+    properties_start_datetime = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text="Enter date in <i>yyyy-mm-dd</i> format, and time in UTC <i>hh:mm:ss</i> format"
+    )
+    properties_end_datetime = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text="Enter date in <i>yyyy-mm-dd</i> format, and time in UTC <i>hh:mm:ss</i> format"
+    )
     # properties_eo_bands = model.TextFields(blank=True)  # ? [string]?
     # properties_eo_cloud_cover = models.FloatField(blank=True)
     # eo_gsd is defined on asset level and will be updated here on ever
@@ -510,7 +531,16 @@ def upload_asset_to_path_hook(instance, filename=None):
     Returns:
         Asset file path to use on S3
     '''
-    logger.debug('Start computing asset file %s multihash', filename)
+    logger.debug(
+        'Start computing asset file %s multihash (file size: %.1f MB)',
+        filename,
+        instance.file.size / 1024**2,
+        extra={
+            "collection": instance.item.collection.name,
+            "item": instance.item.name,
+            "asset": instance.name
+        }
+    )
     start = time.time()
     ctx = hashlib.sha256()
     for chunk in instance.file.chunks(settings.UPLOAD_FILE_CHUNK_SIZE):
@@ -520,10 +550,15 @@ def upload_asset_to_path_hook(instance, filename=None):
     # then used by storages.S3Storage to set the MetaData.sha256
     setattr(instance.file.storage, '_tmp_sha256', ctx.hexdigest())
     logger.debug(
-        'Set uploaded file %s multihash %s to checksum:multihash; computation done in %ss',
+        'Set uploaded file %s multihash %s to checksum:multihash; computation done in %.3fs',
         filename,
         mhash,
-        time.time() - start
+        time.time() - start,
+        extra={
+            "collection": instance.item.collection.name,
+            "item": instance.item.name,
+            "asset": instance.name
+        }
     )
     instance.checksum_multihash = mhash
     return get_asset_path(instance.item, instance.name)

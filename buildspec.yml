@@ -2,15 +2,13 @@ version: 0.2
 
 env:
   variables:
-    IMAGE_BASE_NAME: "swisstopo/service-stac"
+    IMAGE_BASE_NAME: "service-stac"
+    REGISTRY: "974517877189.dkr.ecr.eu-central-1.amazonaws.com"
     SHELL: /bin/bash
     AWS_DEFAULT_REGION: eu-central-1
     USER: "aws_code_build"
     ENV: "dev"
     PIPENV_NOSPIN: 1
-  parameter-store:
-    CI_DOCKERHUB_USER: "/dockerhub/user"
-    CI_DOCKERHUB_PASSWORD: "/dockerhub/password"
 
 phases:
   install:
@@ -18,8 +16,14 @@ phases:
       docker: 18
     commands:
       - echo "Installing necessary dependencies"
-      - docker login -u ${CI_DOCKERHUB_USER} -p ${CI_DOCKERHUB_PASSWORD}
-      - apt-get update && apt-get install -y docker-compose python3-pip python3-venv gdal-bin
+      - apt-get update && apt-get install -y docker-compose python3-pip python3-venv gdal-bin pass gnupg2
+      - echo "Install aws cli v2 for docker login to ECR registry"
+      - curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+      - unzip awscliv2.zip
+      - ./aws/install
+      - aws --version
+      - echo "Login to AWS ECR docker registry"
+      - aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | docker login --username AWS --password-stdin ${REGISTRY}
   pre_build:
     commands:
       - echo "export of the image tag for build and push purposes"
@@ -37,21 +41,25 @@ phases:
       - echo "GITHUB_BRANCH=${GITHUB_BRANCH} COMMIT_HASH=${COMMIT_HASH} GIT_TAG=${GIT_TAG}"
       - echo "creating a clean environment"
       - make ci
+      - echo "checking code formatting"
+      - make ci-check-format
       - echo "linting code"
       - make lint
+      - echo "linting specs"
+      - make lint-specs
 
   build:
     commands:
       - |-
         if [ "${GIT_TAG}" = "undefined" ] ; then
-          DOCKER_IMG_TAG="${IMAGE_BASE_NAME}:${GITHUB_BRANCH}.${COMMIT_HASH}"
+          DOCKER_IMG_TAG="${REGISTRY}/${IMAGE_BASE_NAME}:${GITHUB_BRANCH}.${COMMIT_HASH}"
         else
-          DOCKER_IMG_TAG="${IMAGE_BASE_NAME}:${GIT_TAG}"
+          DOCKER_IMG_TAG="${REGISTRY}/${IMAGE_BASE_NAME}:${GIT_TAG}"
         fi
       - export DOCKER_IMG_TAG=${DOCKER_IMG_TAG}
       - export DOCKER_IMG_TAG_DEV="${DOCKER_IMG_TAG}-dev"
-      - export DOCKER_IMG_TAG_LATEST="${IMAGE_BASE_NAME}:${GITHUB_BRANCH}.latest"
-      - export DOCKER_IMG_TAG_LATEST_DEV="${IMAGE_BASE_NAME}:${GITHUB_BRANCH}.latest-dev"
+      - export DOCKER_IMG_TAG_LATEST="${REGISTRY}/${IMAGE_BASE_NAME}:${GITHUB_BRANCH}.latest"
+      - export DOCKER_IMG_TAG_LATEST_DEV="${REGISTRY}/${IMAGE_BASE_NAME}:${GITHUB_BRANCH}.latest-dev"
       # Starting dev build for testing
       - echo "starting debug build on $(date)"
       - echo "Building docker debug image with tags ${DOCKER_IMG_TAG} and ${DOCKER_IMG_TAG_LATEST_DEV}"

@@ -150,6 +150,19 @@ class CursorPagination(pagination.CursorPagination):
     page_size_query_param = 'limit'
     max_page_size = settings.REST_FRAMEWORK['PAGE_SIZE_LIMIT']
 
+    def get_ordering(self, request, queryset, view):
+        '''Get the ordering for the pagination.
+
+        The base class doesn't allow to use the view configuration for
+        ordering, therefore it is here implemented.
+        '''
+        if hasattr(view, 'ordering'):
+            ordering = getattr(view, 'ordering')
+            if isinstance(ordering, str):
+                return (ordering,)
+            return tuple(ordering)
+        return super().get_ordering(request, queryset, view)
+
     def get_paginated_response(self, data):
         update_links_with_pagination(data, self.get_previous_link(), self.get_next_link())
         return Response(data)

@@ -53,6 +53,7 @@ class AdminBaseTestCase(TestCase):
             "name": "test_collection",
             "license": "free",
             "description": "some very important collection",
+            "published": "on",
             "providers-TOTAL_FORMS": "0",
             "providers-INITIAL_FORMS": "0",
             "links-TOTAL_FORMS": "0",
@@ -119,6 +120,8 @@ class AdminBaseTestCase(TestCase):
             "name": "test_item",
             "geometry":
                 "SRID=4326;POLYGON((5.96 45.82, 5.96 47.81, 10.49 47.81, 10.49 45.82, 5.96 45.82))",
+            "text_geometry":
+                "SRID=4326;POLYGON((5.96 45.82, 5.96 47.81, 10.49 47.81, 10.49 45.82, 5.96 45.82))",
             "properties_datetime_0": "2020-12-01",
             "properties_datetime_1": "13:15:39",
             "properties_title": "test",
@@ -157,7 +160,13 @@ class AdminBaseTestCase(TestCase):
 
         # Check the item values
         for key, value in data.items():
-            if key in ['collection', 'id', 'properties_datetime_0', 'properties_datetime_1']:
+            if key in [
+                'collection',
+                'id',
+                'properties_datetime_0',
+                'properties_datetime_1',
+                'text_geometry'
+            ]:
                 continue
             if key.startswith('links-0-'):
                 self.assertEqual(
@@ -224,11 +233,11 @@ class AdminBaseTestCase(TestCase):
         start = time.time()
         filecontent = b'mybinarydata'
         filelike = BytesIO(filecontent)
-        filelike.name = 'testname.tiff'
+        filelike.name = 'testname.zip'
 
         data = {
             "item": item.id,
-            "name": "test_asset.zip",
+            "name": filelike.name,
             "description": "This is a description",
             "eo_gsd": 10,
             "geoadmin_lang": "en",
@@ -311,6 +320,38 @@ class AdminCollectionTestCase(AdminBaseTestCase):
             collection.title, data['title'], msg="Admin page collection title update did not work"
         )
 
+    def test_publish_collection(self):
+        collection, data = self._create_collection()[:2]
+
+        # By default collection should be published
+        self.assertTrue(collection.published, msg="Admin page default collection is not published")
+
+        # un published the collection
+        data.pop('published')
+        response = self.client.post(
+            reverse('admin:stac_api_collection_change', args=[collection.id]), data
+        )
+
+        # Status code for successful creation is 302, since in the admin UI
+        # you're redirected to the list view after successful creation
+        self.assertEqual(response.status_code, 302, msg="Admin page failed to update collection")
+        collection.refresh_from_db()
+        # collection = Collection.objects.get(name=data['name'])
+        self.assertFalse(collection.published, msg="Admin page collection still published")
+
+        # Publish the collection again
+        data['published'] = "on"
+        response = self.client.post(
+            reverse('admin:stac_api_collection_change', args=[collection.id]), data
+        )
+
+        # Status code for successful creation is 302, since in the admin UI
+        # you're redirected to the list view after successful creation
+        self.assertEqual(response.status_code, 302, msg="Admin page failed to update collection")
+        collection.refresh_from_db()
+        # collection = Collection.objects.get(name=data['name'])
+        self.assertTrue(collection.published, msg="Admin page collection still unpublished")
+
     def test_add_update_collection_with_provider(self):
         collection, data, link, provider = self._create_collection(with_provider=True)
 
@@ -332,6 +373,76 @@ class AdminCollectionTestCase(AdminBaseTestCase):
             provider.roles,
             data['providers-0-roles'].split(','),
             msg="Admin page wrong provider.roles after update"
+        )
+
+    def test_add_collection_with_provider_empty_description(self):
+        # Login the user first
+        self.client.login(username=self.username, password=self.password)
+
+        data = {
+            "name": "test_collection",
+            "license": "free",
+            "description": "some very important collection",
+            "links-TOTAL_FORMS": "0",
+            "links-INITIAL_FORMS": "0",
+            "providers-TOTAL_FORMS": "1",
+            "providers-INITIAL_FORMS": "0",
+            "providers-0-name": "my-provider",
+            "providers-0-description": "",
+            "providers-0-roles": "licensor",
+            "providers-0-url": "http://www.example.com",
+        }
+        response = self.client.post("/api/stac/admin/stac_api/collection/add/", data)
+
+        # Status code for successful creation is 302, since in the admin UI
+        # you're redirected to the list view after successful creation
+        self.assertEqual(response.status_code, 302, msg="Admin page failed to add new collection")
+        self.assertTrue(
+            Collection.objects.filter(name=data["name"]).exists(),
+            msg="Admin page collection added not found in DB"
+        )
+        collection = Collection.objects.get(name=data["name"])
+
+        self.assertTrue(
+            Provider.objects.filter(collection=collection, name=data["providers-0-name"]).exists(),
+            msg="Admin page Provider added not found in DB"
+        )
+        provider = Provider.objects.get(collection=collection, name=data["providers-0-name"])
+
+        self.assertEqual(
+            provider.description, None, msg="Admin page wrong provider.description on creation"
+        )
+
+    def test_add_update_collection_empty_provider_description(self):
+        # Login the user first
+        self.client.login(username=self.username, password=self.password)
+
+        collection, data, link, provider = self._create_collection(with_provider=True)
+
+        self.assertEqual(
+            provider.description,
+            data['providers-0-description'],
+            msg="description non existent when it should exist."
+        )
+
+        # update some data in provider
+        data["providers-INITIAL_FORMS"] = 1
+        data["providers-0-id"] = provider.id
+        data["providers-0-collection"] = collection.id
+        data["providers-0-description"] = ""
+        response = self.client.post(
+            f"/api/stac/admin/stac_api/collection/{collection.id}/change/", data
+        )
+
+        # Status code for successful creation is 302, since in the admin UI
+        # you're redirected to the list view after successful creation
+        self.assertEqual(response.status_code, 302, msg="Admin page failed to update provider")
+
+        provider.refresh_from_db()
+        self.assertEqual(
+            provider.description,
+            None,
+            msg="Admin page wrong provider.description after update. Should be None"
         )
 
     def test_add_update_collection_with_link(self):

@@ -6,6 +6,7 @@ from datetime import datetime
 from django.conf import settings
 from django.db import IntegrityError
 from django.db import transaction
+from django.db.models import Prefetch
 from django.utils.translation import gettext_lazy as _
 
 from rest_framework import generics
@@ -160,9 +161,11 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
     permission_classes = [AllowAny]
     serializer_class = ItemSerializer
     pagination_class = GetPostCursorPagination
+    ordering = ['name']
 
     def get_queryset(self):
-        queryset = Item.objects.all().prefetch_related('assets', 'links')
+        queryset = Item.objects.filter(collection__published=True
+                                      ).prefetch_related('assets', 'links')
         # harmonize GET and POST query
         query_param = harmonize_post_get_for_search(self.request)
 
@@ -237,15 +240,13 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
         return self.list(request, *args, **kwargs)
 
 
-class CollectionList(generics.GenericAPIView, views_mixins.CreateModelMixin):
+class CollectionList(generics.GenericAPIView):
     serializer_class = CollectionSerializer
     # prefetch_related is a performance optimization to reduce the number
     # of DB queries.
     # see https://docs.djangoproject.com/en/3.1/ref/models/querysets/#prefetch-related
-    queryset = Collection.objects.all().prefetch_related('providers', 'links')
-
-    def post(self, request, *args, **kwargs):
-        return self.create(request, *args, **kwargs)
+    queryset = Collection.objects.filter(published=True).prefetch_related('providers', 'links')
+    ordering = ['name']
 
     def get(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
@@ -333,19 +334,15 @@ class CollectionDetail(
         return super().perform_update(serializer, *args, **kwargs)
 
 
-class ItemsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
+class ItemsList(generics.GenericAPIView):
     serializer_class = ItemSerializer
-
-    def perform_create(self, serializer):
-        # this DB hit used to be done by the serializer due to the SlugRelatedField during
-        # deserialization
-        collection = get_object_or_404(Collection, name=self.kwargs['collection_name'])
-        serializer.save(collection=collection)
+    ordering = ['name']
 
     def get_queryset(self):
         # filter based on the url
-        queryset = Item.objects.filter(collection__name=self.kwargs['collection_name']
-                                      ).prefetch_related('assets', 'links')
+        queryset = Item.objects.filter(
+            collection__name=self.kwargs['collection_name']
+        ).prefetch_related(Prefetch('assets', queryset=Asset.objects.order_by('name')), 'links')
         bbox = self.request.query_params.get('bbox', None)
         date_time = self.request.query_params.get('datetime', None)
 
@@ -400,9 +397,6 @@ class ItemsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
     def get(self, request, *args, **kwargs):
         return self.list(request, *args, **kwargs)
 
-    def post(self, request, *args, **kwargs):
-        return self.create(request, *args, **kwargs)
-
 
 class ItemDetail(
     generics.GenericAPIView,
@@ -416,8 +410,9 @@ class ItemDetail(
 
     def get_queryset(self):
         # filter based on the url
-        queryset = Item.objects.filter(collection__name=self.kwargs['collection_name']
-                                      ).prefetch_related('assets', 'links')
+        queryset = Item.objects.filter(
+            collection__name=self.kwargs['collection_name']
+        ).prefetch_related(Prefetch('assets', queryset=Asset.objects.order_by('name')), 'links')
 
         if settings.DEBUG_ENABLE_DB_EXPLAIN_ANALYZE:
             logger.debug(
@@ -474,31 +469,16 @@ class ItemDetail(
         return self.destroy(request, *args, **kwargs)
 
 
-class AssetsList(generics.GenericAPIView, views_mixins.CreateModelMixin):
+class AssetsList(generics.GenericAPIView):
     serializer_class = AssetSerializer
     pagination_class = None
-
-    def get_success_headers(self, data):  # pylint: disable=arguments-differ
-        asset_link_self = self.request.build_absolute_uri() + "/" + self.request.data["id"]
-        return {'Location': asset_link_self}
-
-    def post(self, request, *args, **kwargs):
-        return self.create(request, *args, **kwargs)
 
     def get_queryset(self):
         # filter based on the url
         return Asset.objects.filter(
             item__collection__name=self.kwargs['collection_name'],
             item__name=self.kwargs['item_name']
-        )
-
-    def perform_create(self, serializer):
-        # this DB hit used to done by the serializer due to the SlugRelatedField during
-        # deserialization
-        item = get_object_or_404(
-            Item, collection__name=self.kwargs['collection_name'], name=self.kwargs['item_name']
-        )
-        serializer.save(item=item, file=get_asset_path(item, serializer.validated_data['name']))
+        ).order_by('name')
 
     def get(self, request, *args, **kwargs):
         validate_item(self.kwargs)

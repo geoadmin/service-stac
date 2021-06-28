@@ -41,6 +41,12 @@ components:
         - $ref: "../../components/schemas.yaml#/components/schemas/collectionBase"
         - type: object
           properties:
+            published:
+              type: boolean
+              default: True
+              description: |
+                Collection that are not published are not listed in the /collections endpoint. Same for collection's items,
+                they are then not listed in the /search endpoint when not published.
             links:
               type: array
               items:

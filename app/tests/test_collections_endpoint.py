@@ -27,18 +27,35 @@ class CollectionsEndpointTestCase(StacBaseTestCase):
 
     def setUp(self):  # pylint: disable=invalid-name
         self.client = Client()
-        factory = CollectionFactory()
-        self.collection_1 = factory.create_sample(sample='collection-1', db_create=True)
-        self.collection_2 = factory.create_sample(sample='collection-2', db_create=True)
+        self.factory = CollectionFactory()
+        self.collection_1 = self.factory.create_sample(
+            sample='collection-1', name='collection-1', db_create=True
+        )
+        self.collection_2 = self.factory.create_sample(
+            sample='collection-2', name='collection-2', db_create=True
+        )
         self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_collections_endpoint(self):
+        # create a third collection with an ascendent name to make sure that collections
+        # ordering is working
+        collection_3 = self.factory.create_sample(
+            sample='collection-2', name='collection-0', db_create=True
+        )
         response = self.client.get(f"/{STAC_BASE_V}/collections")
         response_json = response.json()
         self.assertStatusCode(200, response)
 
-        self.check_stac_collection(self.collection_1.json, response_json['collections'][0])
-        self.check_stac_collection(self.collection_2.json, response_json['collections'][1])
+        # Check that the output is sorted by name
+        collection_ids = [collection['id'] for collection in response_json['collections']]
+        self.assertListEqual(
+            collection_ids, sorted(collection_ids), msg="Collections are not sorted by ID"
+        )
+
+        collection_samples = sorted([self.collection_1, self.collection_2, collection_3],
+                                    key=lambda collection: collection['name'])
+        for i, collection in enumerate(collection_samples):
+            self.check_stac_collection(collection.json, response_json['collections'][i])
 
     def test_single_collection_endpoint(self):
         collection_name = self.collection_1.attributes['name']
@@ -52,73 +69,53 @@ class CollectionsEndpointTestCase(StacBaseTestCase):
         self.check_stac_collection(self.collection_1.json, response_json)
 
 
-class CollectionsWriteEndpointTestCase(StacBaseTestCase):
+class CollectionsUnImplementedEndpointTestCase(StacBaseTestCase):
 
     def setUp(self):  # pylint: disable=invalid-name
         self.client = Client()
         client_login(self.client)
-        self.collection_factory = CollectionFactory()
+        self.factory = Factory()
+        self.collection = self.factory.create_collection_sample()
         self.maxDiff = None  # pylint: disable=invalid-name
 
-    def test_valid_collections_post(self):
-        collection = self.collection_factory.create_sample()
-
-        path = f"/{STAC_BASE_V}/collections"
+    def test_collections_post_unimplemented(self):
         response = self.client.post(
-            path, data=collection.get_json('post'), content_type='application/json'
+            f"/{STAC_BASE_V}/collections",
+            data=self.collection.get_json('post'),
+            content_type='application/json'
+        )
+        self.assertStatusCode(405, response)
+
+
+class CollectionsCreateEndpointTestCase(StacBaseTestCase):
+
+    def setUp(self):  # pylint: disable=invalid-name
+        self.client = Client()
+        client_login(self.client)
+        self.factory = Factory()
+        self.collection = self.factory.create_collection_sample()
+        self.maxDiff = None  # pylint: disable=invalid-name
+
+    def test_collection_upsert_create(self):
+        sample = self.factory.create_collection_sample(sample='collection-2')
+
+        # the dataset to update does not exist yet
+        response = self.client.put(
+            f"/{STAC_BASE_V}/collections/{sample['name']}",
+            data=sample.get_json('put'),
+            content_type='application/json'
         )
         self.assertStatusCode(201, response)
-        self.check_header_location(f'{path}/{collection.json["id"]}', response)
 
-        response = self.client.get(f"/{STAC_BASE_V}/collections/{collection.json['id']}")
-        response_json = response.json()
-        self.assertEqual(response_json['id'], collection.json['id'])
-        self.check_stac_collection(collection.json, response.json())
+        self.check_stac_collection(sample.json, response.json())
 
+    def test_invalid_collections_create(self):
         # the dataset already exists in the database
-        response = self.client.post(
-            f"/{STAC_BASE_V}/collections",
-            data=collection.get_json('post'),
-            content_type='application/json'
-        )
-        self.assertStatusCode(400, response)
-        self.assertEqual({'id': ['This field must be unique.']},
-                         response.json()['description'],
-                         msg='Unexpected error message')
+        collection = self.factory.create_collection_sample(sample='collection-invalid')
 
-    def test_collections_post_extra_payload(self):
-        collection = self.collection_factory.create_sample(extra_payload='not allowed')
-
-        response = self.client.post(
-            f"/{STAC_BASE_V}/collections",
-            data=collection.get_json('post'),
-            content_type='application/json'
-        )
-        self.assertStatusCode(400, response)
-        self.assertEqual({'extra_payload': ['Unexpected property in payload']},
-                         response.json()['description'],
-                         msg='Unexpected error message')
-
-    def test_collections_post_read_only_in_payload(self):
-        collection = self.collection_factory.create_sample(created=utc_aware(datetime.utcnow()))
-
-        response = self.client.post(
-            f"/{STAC_BASE_V}/collections",
-            data=collection.get_json('post', keep_read_only=True),
-            content_type='application/json'
-        )
-        self.assertStatusCode(400, response)
-        self.assertEqual({'created': ['Found read-only property in payload']},
-                         response.json()['description'],
-                         msg='Unexpected error message')
-
-    def test_invalid_collections_post(self):
-        # the dataset already exists in the database
-        collection = self.collection_factory.create_sample(sample='collection-invalid')
-
-        response = self.client.post(
-            f"/{STAC_BASE_V}/collections",
-            data=collection.get_json('post'),
+        response = self.client.put(
+            f"/{STAC_BASE_V}/collections/{collection['name']}",
+            data=collection.get_json('put'),
             content_type='application/json'
         )
         self.assertStatusCode(400, response)
@@ -126,31 +123,31 @@ class CollectionsWriteEndpointTestCase(StacBaseTestCase):
                          response.json()['description'],
                          msg='Unexpected error message')
 
-    def test_collections_min_mandatory_post(self):
+    def test_collections_min_mandatory_create(self):
         # a post with the absolute valid minimum
-        collection = self.collection_factory.create_sample(required_only=True)
+        collection = self.factory.create_collection_sample(required_only=True)
 
-        path = f"/{STAC_BASE_V}/collections"
-        response = self.client.post(
-            path, data=collection.get_json('post'), content_type='application/json'
+        path = f"/{STAC_BASE_V}/collections/{collection['name']}"
+        response = self.client.put(
+            path, data=collection.get_json('put'), content_type='application/json'
         )
         response_json = response.json()
         logger.debug(response_json)
         self.assertStatusCode(201, response)
-        self.check_header_location(f'{path}/{collection.json["id"]}', response)
+        self.check_header_location(f'{path}', response)
         self.assertNotIn('title', response_json.keys())  # key does not exist
         self.assertNotIn('providers', response_json.keys())  # key does not exist
         self.check_stac_collection(collection.json, response_json)
 
-    def test_collections_less_than_mandatory_post(self):
+    def test_collections_less_than_mandatory_create(self):
         # a post with the absolute valid minimum
-        collection = self.collection_factory.create_sample(
+        collection = self.factory.create_collection_sample(
             sample='collection-missing-mandatory-fields'
         )
 
-        response = self.client.post(
-            f"/{STAC_BASE_V}/collections",
-            data=collection.get_json('post'),
+        response = self.client.put(
+            f"/{STAC_BASE_V}/collections/{collection['name']}",
+            data=collection.get_json('put'),
             content_type='application/json'
         )
         self.assertStatusCode(400, response)
@@ -163,6 +160,91 @@ class CollectionsWriteEndpointTestCase(StacBaseTestCase):
             msg='Unexpected error message',
         )
 
+    def test_collections_create_unpublished(self):
+        published_collection = self.factory.create_collection_sample(db_create=True)
+        published_items = self.factory.create_item_samples(
+            2, collection=published_collection.model, name=['item-1-1', 'item-1-2'], db_create=True
+        )
+
+        collection_sample = self.factory.create_collection_sample(published=False)
+
+        path = f"/{STAC_BASE_V}/collections/{collection_sample['name']}"
+        response = self.client.put(
+            path, data=collection_sample.get_json('put'), content_type='application/json'
+        )
+        self.assertStatusCode(201, response)
+        self.check_header_location(f'{path}', response)
+        self.assertNotIn(
+            'published', response.json(), msg="'published' flag should not be seen in answer"
+        )
+        collection = Collection.objects.get(name=collection_sample['name'])
+        self.assertFalse(
+            collection.published, msg='Collection marked as published when it shouldn\'t'
+        )
+
+        # verify that the collection is not found in the collection list
+        response = self.client.get(f"/{STAC_BASE_V}/collections")
+        self.assertStatusCode(200, response)
+        self.assertEqual(
+            len(response.json()['collections']),
+            1,
+            msg="The un published collection is part of the collection list"
+        )
+        self.assertEqual(response.json()['collections'][0]['id'], published_collection['name'])
+
+        # add some items to the collection
+        items = self.factory.create_item_samples(
+            2, collection=collection, name=['item-2-1', 'item-2-2'], db_create=True
+        )
+
+        # Check that those items are not found in the search endpoint
+        response = self.client.get(f'/{STAC_BASE_V}/search')
+        self.assertStatusCode(200, response)
+        self.assertEqual(
+            len(response.json()['features']),
+            2,
+            msg="Too many items found, probably the unpublished are also returned"
+        )
+        for i, item in enumerate(response.json()['features']):
+            self.assertEqual(item['id'], published_items[i]['name'])
+
+        # Publish the collection
+        response = self.client.patch(
+            f"/{STAC_BASE_V}/collections/{collection.name}",
+            data={'published': True},
+            content_type='application/json'
+        )
+        self.assertStatusCode(200, response)
+
+        # verify that now the collection can be seen
+        response = self.client.get(f"/{STAC_BASE_V}/collections")
+        self.assertStatusCode(200, response)
+        self.assertEqual(len(response.json()['collections']), 2, msg="No enough collections found")
+        self.assertEqual(response.json()['collections'][0]['id'], published_collection.json['id'])
+        self.assertEqual(response.json()['collections'][1]['id'], collection.name)
+
+        # Check that the items are found in the search endpoint
+        response = self.client.get(f'/{STAC_BASE_V}/search')
+        self.assertStatusCode(200, response)
+        self.assertEqual(len(response.json()['features']), 4, msg="Not all published items found")
+
+    def test_collection_atomic_upsert_create_500(self):
+        sample = self.factory.create_collection_sample(sample='collection-2')
+
+        # the dataset to update does not exist yet
+        with self.settings(DEBUG_PROPAGATE_API_EXCEPTIONS=True), disableLogger('stac_api.apps'):
+            response = self.client.put(
+                reverse('test-collection-detail-http-500', args=[sample['name']]),
+                data=sample.get_json('put'),
+                content_type='application/json'
+            )
+        self.assertStatusCode(500, response)
+        self.assertEqual(response.json()['description'], "AttributeError('test exception')")
+
+        # Make sure that the ressource has not been created
+        response = self.client.get(reverse('collection-detail', args=[sample['name']]))
+        self.assertStatusCode(404, response)
+
 
 class CollectionsUpdateEndpointTestCase(StacBaseTestCase):
 
@@ -172,19 +254,6 @@ class CollectionsUpdateEndpointTestCase(StacBaseTestCase):
         self.collection_factory = CollectionFactory()
         self.collection = self.collection_factory.create_sample(db_create=True)
         self.maxDiff = None  # pylint: disable=invalid-name
-
-    def test_collection_upsert_create(self):
-        sample = self.collection_factory.create_sample(sample='collection-2')
-
-        # the dataset to update does not exist yet
-        response = self.client.put(
-            f"/{STAC_BASE_V}/collections/{sample['name']}",
-            data=sample.get_json('put'),
-            content_type='application/json'
-        )
-        self.assertStatusCode(201, response)
-
-        self.check_stac_collection(sample.json, response.json())
 
     def test_collections_put(self):
         sample = self.collection_factory.create_sample(
@@ -333,23 +402,6 @@ class CollectionsUpdateEndpointTestCase(StacBaseTestCase):
                          response.json()['description'],
                          msg='Unexpected error message')
 
-    def test_collection_atomic_upsert_create_500(self):
-        sample = self.collection_factory.create_sample(sample='collection-2')
-
-        # the dataset to update does not exist yet
-        with self.settings(DEBUG_PROPAGATE_API_EXCEPTIONS=True), disableLogger('stac_api.apps'):
-            response = self.client.put(
-                reverse('test-collection-detail-http-500', args=[sample['name']]),
-                data=sample.get_json('put'),
-                content_type='application/json'
-            )
-        self.assertStatusCode(500, response)
-        self.assertEqual(response.json()['description'], "AttributeError('test exception')")
-
-        # Make sure that the ressource has not been created
-        response = self.client.get(reverse('collection-detail', args=[sample['name']]))
-        self.assertStatusCode(404, response)
-
     def test_collection_atomic_upsert_update_500(self):
         sample = self.collection_factory.create_sample(
             sample='collection-2', name=self.collection['name']
@@ -457,36 +509,6 @@ class CollectionRaceConditionTest(StacBaseTransactionTestCase):
             self.check_stac_collection(sample.json, response.json())
         self.assertEqual(status_201, 1, msg="Not only one upsert did a create !")
 
-    def test_collection_post_race_condition(self):
-        workers = 5
-        status_201 = 0
-        sample = CollectionFactory().create_sample(sample='collection-2')
-
-        def collection_atomic_post_test(worker):
-            # This method run on separate thread therefore it requires to create a new client and
-            # to login it for each call.
-            client = Client()
-            client.login(username=self.username, password=self.password)
-            return client.post(
-                reverse('collections-list'),
-                data=sample.get_json('post'),
-                content_type='application/json'
-            )
-
-        # We call the PUT collection several times in parallel with the same data to make sure
-        # that we don't have any race condition.
-        responses, errors = self.run_parallel(workers, collection_atomic_post_test)
-
-        for worker, response in responses:
-            self.assertIn(response.status_code, [201, 400])
-            if response.status_code == 201:
-                self.check_stac_collection(sample.json, response.json())
-                status_201 += 1
-            else:
-                self.assertIn('id', response.json()['description'].keys())
-                self.assertIn('This field must be unique.', response.json()['description']['id'])
-        self.assertEqual(status_201, 1, msg="Not only one POST was successfull")
-
 
 class CollectionsUnauthorizeEndpointTestCase(StacBaseTestCase):
 
@@ -496,17 +518,10 @@ class CollectionsUnauthorizeEndpointTestCase(StacBaseTestCase):
         self.collection = self.collection_factory.create_sample().model
         self.maxDiff = None  # pylint: disable=invalid-name
 
-    def test_unauthorized_collection_post_put_patch(self):
+    def test_unauthorized_collection_put_patch(self):
         # make sure POST fails for anonymous user:
         # a post with the absolute valid minimum
         sample = self.collection_factory.create_sample(sample='collection-2')
-
-        response = self.client.post(
-            f"/{STAC_BASE_V}/collections",
-            data=sample.get_json('post'),
-            content_type='application/json'
-        )
-        self.assertStatusCode(401, response, msg="Unauthorized post was permitted.")
 
         # make sure PUT fails for anonymous user:
         sample = self.collection_factory.create_sample(
