@@ -6,6 +6,7 @@ from datetime import datetime
 from django.conf import settings
 from django.db import IntegrityError
 from django.db import transaction
+from django.db.models import Prefetch
 from django.utils.translation import gettext_lazy as _
 
 from rest_framework import generics
@@ -160,6 +161,7 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
     permission_classes = [AllowAny]
     serializer_class = ItemSerializer
     pagination_class = GetPostCursorPagination
+    ordering = ['name']
 
     def get_queryset(self):
         queryset = Item.objects.filter(collection__published=True
@@ -244,6 +246,7 @@ class CollectionList(generics.GenericAPIView):
     # of DB queries.
     # see https://docs.djangoproject.com/en/3.1/ref/models/querysets/#prefetch-related
     queryset = Collection.objects.filter(published=True).prefetch_related('providers', 'links')
+    ordering = ['name']
 
     def get(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
@@ -333,11 +336,13 @@ class CollectionDetail(
 
 class ItemsList(generics.GenericAPIView):
     serializer_class = ItemSerializer
+    ordering = ['name']
 
     def get_queryset(self):
         # filter based on the url
-        queryset = Item.objects.filter(collection__name=self.kwargs['collection_name']
-                                      ).prefetch_related('assets', 'links')
+        queryset = Item.objects.filter(
+            collection__name=self.kwargs['collection_name']
+        ).prefetch_related(Prefetch('assets', queryset=Asset.objects.order_by('name')), 'links')
         bbox = self.request.query_params.get('bbox', None)
         date_time = self.request.query_params.get('datetime', None)
 
@@ -405,8 +410,9 @@ class ItemDetail(
 
     def get_queryset(self):
         # filter based on the url
-        queryset = Item.objects.filter(collection__name=self.kwargs['collection_name']
-                                      ).prefetch_related('assets', 'links')
+        queryset = Item.objects.filter(
+            collection__name=self.kwargs['collection_name']
+        ).prefetch_related(Prefetch('assets', queryset=Asset.objects.order_by('name')), 'links')
 
         if settings.DEBUG_ENABLE_DB_EXPLAIN_ANALYZE:
             logger.debug(
@@ -472,7 +478,7 @@ class AssetsList(generics.GenericAPIView):
         return Asset.objects.filter(
             item__collection__name=self.kwargs['collection_name'],
             item__name=self.kwargs['item_name']
-        )
+        ).order_by('name')
 
     def get(self, request, *args, **kwargs):
         validate_item(self.kwargs)

@@ -35,20 +35,58 @@ class ItemsReadEndpointTestCase(StacBaseTestCase):
     def setUpTestData(cls):
         cls.factory = Factory()
         cls.collection = cls.factory.create_collection_sample().model
-        cls.items = cls.factory.create_item_samples(2, cls.collection, db_create=True)
+        cls.items = cls.factory.create_item_samples(
+            2, cls.collection, name=['item-1', 'item-2'], db_create=True
+        )
 
     def setUp(self):
         self.client = Client()
 
+    @mock_s3_asset_file
     def test_items_endpoint(self):
+        # To make sure that item sorting is working, make sure that the items where not
+        # created in ascending order, same for assets
+        item_3 = self.factory.create_item_sample(self.collection, name='item-0', db_create=True)
+        assets = self.factory.create_asset_samples(
+            3, item_3.model, name=['asset-1.tiff', 'asset-0.tiff', 'asset-2.tiff'], db_create=True
+        )
         response = self.client.get(f"/{STAC_BASE_V}/collections/{self.collection.name}/items")
         self.assertStatusCode(200, response)
         json_data = response.json()
 
-        self.assertEqual(len(json_data['features']), 2, msg='Output should only have two features')
+        self.assertEqual(
+            len(json_data['features']), 3, msg='Output should only have three features'
+        )
 
-        self.check_stac_item(self.items[0].json, json_data['features'][0], self.collection.name)
-        self.check_stac_item(self.items[1].json, json_data['features'][1], self.collection.name)
+        # Check that the output is sorted by name
+        item_ids = [item['id'] for item in json_data['features']]
+        self.assertListEqual(item_ids, sorted(item_ids), msg="Items are not sorted by ID")
+
+        item_samples = sorted(self.items + [item_3], key=lambda item: item['name'])
+        for i, item in enumerate(item_samples):
+            self.check_stac_item(item.json, json_data['features'][i], self.collection.name)
+
+        self.assertEqual(
+            len(json_data['features'][0]['assets']), 3, msg="Integrated assets length don't match"
+        )
+
+        # Check that the integrated assets output is sorted by name
+        asset_ids = list(json_data['features'][0]['assets'].keys())
+        self.assertListEqual(
+            asset_ids, sorted(asset_ids), msg="Integrated assets are not sorted by ID"
+        )
+
+        # Check the integrated assets output
+        asset_samples = sorted(assets, key=lambda asset: asset['name'])
+        for asset in asset_samples:
+            self.check_stac_asset(
+                asset.json,
+                json_data['features'][0]['assets'][asset['name']],
+                self.collection.name,
+                json_data['features'][0]['id'],
+                # in the integrated asset there is no id (the id is actually the json key)
+                ignore=['id', 'links']
+            )
 
     def test_items_endpoint_with_limit(self):
         response = self.client.get(
@@ -66,9 +104,13 @@ class ItemsReadEndpointTestCase(StacBaseTestCase):
 
     def test_single_item_endpoint(self):
         collection_name = self.collection.name
-        item_name = self.items[0].model.name
+        item = self.items[0]
+        # create assets in a non ascending order to make sure that the assets ordering is working
+        assets = self.factory.create_asset_samples(
+            3, item.model, name=['asset-1.tiff', 'asset-0.tiff', 'asset-2.tiff'], db_create=True
+        )
         response = self.client.get(
-            f"/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}"
+            f"/{STAC_BASE_V}/collections/{collection_name}/items/{item['name']}"
         )
         json_data = response.json()
         self.assertStatusCode(200, response)
@@ -77,7 +119,7 @@ class ItemsReadEndpointTestCase(StacBaseTestCase):
         # hash computation of the ETag
         self.check_header_etag(None, response)
 
-        self.check_stac_item(self.items[0].json, json_data, self.collection.name)
+        self.check_stac_item(item.json, json_data, self.collection.name)
 
         # created and updated must exist and be a valid date
         date_fields = ['created', 'updated']
@@ -85,6 +127,26 @@ class ItemsReadEndpointTestCase(StacBaseTestCase):
             self.assertTrue(
                 fromisoformat(json_data['properties'][date_field]),
                 msg=f"The field {date_field} has an invalid date"
+            )
+
+        self.assertEqual(len(json_data['assets']), 3, msg="Integrated assets length don't match")
+
+        # Check that the integrated assets output is sorted by name
+        asset_ids = list(json_data['assets'].keys())
+        self.assertListEqual(
+            asset_ids, sorted(asset_ids), msg="Integrated assets are not sorted by ID"
+        )
+
+        # Check the integrated assets output
+        asset_samples = sorted(assets, key=lambda asset: asset['name'])
+        for asset in asset_samples:
+            self.check_stac_asset(
+                asset.json,
+                json_data['assets'][asset['name']],
+                collection_name,
+                json_data['id'],
+                # in the integrated asset there is no id (the id is actually the json key)
+                ignore=['id', 'links']
             )
 
     def test_items_endpoint_non_existing_collection(self):
