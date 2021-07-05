@@ -13,14 +13,11 @@ env:
 phases:
   install:
     runtime-versions:
-      docker: 18
+      python: 3.7
     commands:
       - echo "Installing necessary dependencies"
-      - apt-get update && apt-get install -y docker-compose python3-pip python3-venv gdal-bin pass gnupg2
-      - echo "Install aws cli v2 for docker login to ECR registry"
-      - curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-      - unzip awscliv2.zip
-      - ./aws/install
+      - apt-get update
+      - apt-get install -y gdal-bin
       - aws --version
       - echo "Login to AWS ECR docker registry"
       - aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | docker login --username AWS --password-stdin ${REGISTRY}
