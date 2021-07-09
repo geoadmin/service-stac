@@ -47,7 +47,8 @@ def custom_exception_handler(exc, context):
 
         if (
             context['request']._request.method.upper() in ["PATCH", "POST", "PUT"] and
-            'application/json' in context['request']._request.headers['content-type'].lower()
+            'application/json' in context['request']._request.headers.get('content-type',
+                                                                          '').lower()
         ):
             extra["request.payload"] = context['request'].data
 
