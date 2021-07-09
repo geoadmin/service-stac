@@ -31,6 +31,7 @@ from stac_api.utils import get_asset_path
 from stac_api.validators import MEDIA_TYPES
 from stac_api.validators import validate_asset_name
 from stac_api.validators import validate_asset_name_with_media_type
+from stac_api.validators import validate_eo_gsd
 from stac_api.validators import validate_geoadmin_variant
 from stac_api.validators import validate_geometry
 from stac_api.validators import validate_item_properties_datetimes
@@ -591,7 +592,7 @@ class Asset(models.Model):
     )
     # here we need to set blank=True otherwise the field is as required in the admin interface
     description = models.TextField(blank=True, null=True, default=None)
-    eo_gsd = models.FloatField(null=True, blank=True)
+    eo_gsd = models.FloatField(null=True, blank=True, validators=[validate_eo_gsd])
 
     class Language(models.TextChoices):
         # pylint: disable=invalid-name

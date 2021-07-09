@@ -82,7 +82,8 @@ class CollectionSummariesMixin():
                 if (
                     not assets.filter(**{
                         attribute: attribute_value
-                    }).exists() and attribute_value is not None
+                    }).exists() and attribute_value is not None and
+                    attribute_value in self.summaries[key]
                 ):
                     logger.info(
                         'Removing %s %s from collection summaries',
@@ -146,7 +147,7 @@ class CollectionSummariesMixin():
             self.summaries["geoadmin:variant"].sort()
             updated |= True
 
-        if asset.proj_epsg and asset.proj_epsg not in self.summaries["proj:epsg"]:
+        if asset.proj_epsg is not None and asset.proj_epsg not in self.summaries["proj:epsg"]:
             logger.info(
                 'Adds proj:epsg %s to collection summaries',
                 asset.proj_epsg,
@@ -161,7 +162,7 @@ class CollectionSummariesMixin():
             self.summaries["proj:epsg"].sort()
             updated |= True
 
-        if asset.eo_gsd and not float_in(asset.eo_gsd, self.summaries["eo:gsd"]):
+        if asset.eo_gsd is not None and not float_in(asset.eo_gsd, self.summaries["eo:gsd"]):
             logger.info(
                 'Adds eo:gsd %s to collection summaries',
                 asset.proj_epsg,
@@ -262,7 +263,7 @@ class CollectionSummariesMixin():
         '''
         updated = False
 
-        if proj_epsg and proj_epsg not in self.summaries["proj:epsg"]:
+        if proj_epsg is not None and proj_epsg not in self.summaries["proj:epsg"]:
             logger.info(
                 'Adds proj:epsg value %s from collection summaries',
                 proj_epsg,
@@ -319,7 +320,7 @@ class CollectionSummariesMixin():
         '''
         updated = False
 
-        if eo_gsd and not float_in(eo_gsd, self.summaries["eo:gsd"]):
+        if eo_gsd is not None and not float_in(eo_gsd, self.summaries["eo:gsd"]):
             logger.info(
                 'Adds eo:gsd value %s from collection summaries',
                 eo_gsd,
