@@ -55,6 +55,30 @@ class AssetsModelTestCase(TestCase):
             db_create=True,
         )
 
+    def test_create_asset_invalid_eo_gsd(self):
+        with self.assertRaises(ValidationError, msg="asset with invalid eo:gsd was accepted."):
+            self.factory.create_asset_sample(
+                item=self.item,
+                eo_gsd=0.0,
+                db_create=True,
+            )
+
+    def test_create_asset_valid_eo_gsd(self):
+        asset = self.factory.create_asset_sample(item=self.item, eo_gsd=1.33).model
+        self.collection.refresh_from_db()
+        self.assertEqual(
+            self.collection.summaries, {
+                'eo:gsd': [1.33, 3.4], 'proj:epsg': [2056], 'geoadmin:variant': ['kgrs']
+            }
+        )
+        asset.delete()
+        self.collection.refresh_from_db()
+        self.assertEqual(
+            self.collection.summaries, {
+                'eo:gsd': [3.4], 'proj:epsg': [2056], 'geoadmin:variant': ['kgrs']
+            }
+        )
+
     def test_create_asset_invalid_geoadmin_variant(self):
         # try to create an asset with invalid geoadmin variant.
         with self.assertRaises(
