@@ -96,7 +96,24 @@ class CollectionSummariesMixin():
                             'trigger': 'asset-delete'
                         }
                     )
-                    self.summaries[key].remove(attribute_value)
+                    try:
+                        self.summaries[key].remove(attribute_value)
+                    except ValueError as error:
+                        # This happens if the value is not in the list (which should not be the
+                        # case), but if it should happen this is not an issue.
+                        logger.error(
+                            'Failed to remove %s=%s from summaries %s: %s',
+                            key,
+                            attribute_value,
+                            self.summaries[key],
+                            error,
+                            extra={
+                                'collection': self.name,
+                                'item': asset.item.name,
+                                'asset': asset.name,
+                                'trigger': 'asset-delete'
+                            }
+                        )
                     updated |= True
         else:
             logger.info(
@@ -130,7 +147,7 @@ class CollectionSummariesMixin():
         '''
         updated = False
         if (
-            asset.geoadmin_variant and
+            asset.geoadmin_variant is not None and
             asset.geoadmin_variant not in self.summaries["geoadmin:variant"]
         ):
             logger.info(
@@ -203,7 +220,10 @@ class CollectionSummariesMixin():
         '''
         updated = False
 
-        if geoadmin_variant and geoadmin_variant not in self.summaries["geoadmin:variant"]:
+        if (
+            geoadmin_variant is not None and
+            geoadmin_variant not in self.summaries["geoadmin:variant"]
+        ):
             logger.info(
                 'Adds geoadmin:variant %s to collection summaries',
                 geoadmin_variant,
@@ -233,7 +253,23 @@ class CollectionSummariesMixin():
                     'trigger': 'asset-update'
                 }
             )
-            self.summaries["geoadmin:variant"].remove(original_geoadmin_variant)
+            try:
+                self.summaries["geoadmin:variant"].remove(original_geoadmin_variant)
+            except ValueError as error:
+                # This happens if the value is not in the list (which should not be the
+                # case), but if it should happen this is not an issue.
+                logger.error(
+                    'Failed to remove geoadmin:variant=%d from summaries %s: %s',
+                    original_geoadmin_variant,
+                    self.summaries["geoadmin:variant"],
+                    error,
+                    extra={
+                        'collection': self.name,
+                        'item': asset.item.name,
+                        'asset': asset.name,
+                        'trigger': 'asset-update'
+                    }
+                )
             updated |= True
 
         if updated:
@@ -277,9 +313,8 @@ class CollectionSummariesMixin():
             self.summaries["proj:epsg"].append(proj_epsg)
             updated |= True
 
-        if (
-            not assets.exists() or not assets.filter(proj_epsg=original_proj_epsg).exists()
-        ) and original_proj_epsg is not None:
+        if ((not assets.exists() or not assets.filter(proj_epsg=original_proj_epsg).exists()) and
+            original_proj_epsg is not None):
             logger.info(
                 'Removes original proj:epsg value %s from collection summaries',
                 original_proj_epsg,
@@ -290,7 +325,23 @@ class CollectionSummariesMixin():
                     'trigger': 'asset-update'
                 }
             )
-            self.summaries["proj:epsg"].remove(original_proj_epsg)
+            try:
+                self.summaries["proj:epsg"].remove(original_proj_epsg)
+            except ValueError as error:
+                # This happens if the value is not in the list (which should not be the
+                # case), but if it should happen this is not an issue.
+                logger.error(
+                    'Failed to remove proj:epsg=%d from summaries %s: %s',
+                    original_proj_epsg,
+                    self.summaries["proj:epsg"],
+                    error,
+                    extra={
+                        'collection': self.name,
+                        'item': asset.item.name,
+                        'asset': asset.name,
+                        'trigger': 'asset-update'
+                    }
+                )
             updated |= True
 
         if updated:
@@ -347,7 +398,23 @@ class CollectionSummariesMixin():
                     'trigger': 'asset-update'
                 }
             )
-            self.summaries["eo:gsd"].remove(original_eo_gsd)
+            try:
+                self.summaries["eo:gsd"].remove(original_eo_gsd)
+            except ValueError as error:
+                # This happens if the value is not in the list (which should not be the
+                # case), but if it should happen this is not an issue.
+                logger.error(
+                    'Failed to remove eo:gsd=%d from summaries %s: %s',
+                    original_eo_gsd,
+                    self.summaries["eo:gsd"],
+                    error,
+                    extra={
+                        'collection': self.name,
+                        'item': asset.item.name,
+                        'asset': asset.name,
+                        'trigger': 'asset-update'
+                    }
+                )
             updated |= True
 
         if updated:
