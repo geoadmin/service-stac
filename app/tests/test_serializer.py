@@ -67,15 +67,14 @@ class CollectionSerializationTestCase(StacBaseTransactionTestCase):
         expected.update({
             'created': isoformat(self.collection_created),
             'crs': ['http://www.opengis.net/def/crs/OGC/1.3/CRS84'],
-            'extent':
-                OrderedDict([
-                    ('spatial', {
-                        'bbox': [[5.644711, 46.775054, 7.602408, 49.014995]]
-                    }),
-                    ('temporal', {
-                        'interval': [['2020-10-28T13:05:10Z', '2020-10-28T13:05:10Z']]
-                    })
-                ]),
+            'extent': {
+                'spatial': {
+                    'bbox': [[5.644711, 46.775054, 7.602408, 49.014995]]
+                },
+                'temporal': {
+                    'interval': [['2020-10-28T13:05:10Z', '2020-10-28T13:05:10Z']]
+                }
+            },
             'itemType': 'Feature',
             'links': [
                 OrderedDict([
@@ -160,12 +159,13 @@ class EmptyCollectionSerializationTestCase(StacBaseTransactionTestCase):
         expected.update({
             'created': isoformat(self.collection_created),
             'crs': ['http://www.opengis.net/def/crs/OGC/1.3/CRS84'],
-            'extent':
-                OrderedDict([('spatial', {
+            'extent': {
+                'spatial': {
                     'bbox': [[]]
-                }), ('temporal', {
+                }, 'temporal': {
                     'interval': [[None, None]]
-                })]),
+                }
+            },
             'itemType': 'Feature',
             'links': [
                 OrderedDict([

@@ -140,50 +140,6 @@ class ProviderSerializer(NonNullModelSerializer):
         fields = ['name', 'roles', 'url', 'description']
 
 
-class ExtentTemporalSerializer(serializers.Serializer):
-    # pylint: disable=abstract-method
-    extent_start_datetime = serializers.DateTimeField()
-    extent_end_datetime = serializers.DateTimeField()
-
-    def to_representation(self, instance):
-        ret = super().to_representation(instance)
-
-        start = instance.extent_start_datetime
-        end = instance.extent_end_datetime
-
-        if start is not None:
-            start = isoformat(start)
-
-        if end is not None:
-            end = isoformat(end)
-
-        ret["temporal_extent"] = {"interval": [[start, end]]}
-
-        return ret["temporal_extent"]
-
-
-class ExtentSpatialSerializer(serializers.Serializer):
-    # pylint: disable=abstract-method
-    extent_geometry = gis_serializers.GeometryField()
-
-    def to_representation(self, instance):
-        ret = super().to_representation(instance)
-        # handle empty field
-        if instance.extent_geometry is None:
-            ret["bbox"] = {"bbox": [[]]}
-        else:
-            bbox = GEOSGeometry(instance.extent_geometry).extent
-            bbox = list(bbox)
-            ret["bbox"] = {"bbox": [bbox]}
-        return ret["bbox"]
-
-
-class ExtentSerializer(serializers.Serializer):
-    # pylint: disable=abstract-method
-    spatial = ExtentSpatialSerializer(source="*")
-    temporal = ExtentTemporalSerializer(source="*")
-
-
 class CollectionLinkSerializer(NonNullModelSerializer):
 
     class Meta:
@@ -240,7 +196,7 @@ class CollectionSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
     crs = serializers.SerializerMethodField(read_only=True)
     created = serializers.DateTimeField(read_only=True)
     updated = serializers.DateTimeField(read_only=True)
-    extent = ExtentSerializer(read_only=True, source="*")
+    extent = serializers.SerializerMethodField(read_only=True)
     summaries = serializers.SerializerMethodField(read_only=True)
     stac_extensions = serializers.SerializerMethodField(read_only=True)
     stac_version = serializers.SerializerMethodField(read_only=True)
@@ -260,6 +216,27 @@ class CollectionSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
             'proj:epsg': obj.summaries_proj_epsg or [],
             'eo:gsd': obj.summaries_eo_gsd or [],
             'geoadmin:variant': obj.summaries_geoadmin_variant or []
+        }
+
+    def get_extent(self, obj):
+        start = obj.extent_start_datetime
+        end = obj.extent_end_datetime
+        if start is not None:
+            start = isoformat(start)
+        if end is not None:
+            end = isoformat(end)
+
+        bbox = []
+        if obj.extent_geometry is not None:
+            bbox = list(GEOSGeometry(obj.extent_geometry).extent)
+
+        return {
+            "spatial": {
+                "bbox": [bbox]
+            },
+            "temporal": {
+                "interval": [[start, end]]
+            },
         }
 
     def _update_or_create_providers(self, collection, providers_data):
