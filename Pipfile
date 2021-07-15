@@ -39,6 +39,7 @@ py-multihash = "~=2.0.1"
 pypatch = "*"
 django-prometheus = "*"
 django-admin-autocomplete-filter = "~=0.6.1"
+django-pgtrigger = "~=2.3.2"
 
 [requires]
 python_version = "3.7"

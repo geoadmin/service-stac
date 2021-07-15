@@ -86,14 +86,27 @@ class CollectionAdmin(admin.ModelAdmin):
         'published',
         'title',
         'description',
+        'created',
+        'updated',
         'extent_start_datetime',
         'extent_end_datetime',
-        'summaries',
         'extent_geometry',
-        'license'
+        'summaries_proj_epsg',
+        'summaries_geoadmin_variant',
+        'summaries_eo_gsd',
+        'license',
+        'etag'
     ]
     readonly_fields = [
-        'extent_start_datetime', 'extent_end_datetime', 'summaries', 'extent_geometry'
+        'extent_start_datetime',
+        'extent_end_datetime',
+        'extent_geometry',
+        'created',
+        'updated',
+        'summaries_proj_epsg',
+        'summaries_geoadmin_variant',
+        'summaries_eo_gsd',
+        'etag'
     ]
     inlines = [ProviderInline, CollectionLinkInline]
     search_fields = ['name']

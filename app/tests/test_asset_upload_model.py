@@ -46,6 +46,7 @@ class AssetUploadTestCaseMixin:
             setattr(asset_upload, kwarg, value)
         asset_upload.full_clean()
         asset_upload.save()
+        asset_upload.refresh_from_db()
         self.assertEqual(
             asset_upload,
             AssetUpload.objects.get(

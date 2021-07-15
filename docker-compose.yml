@@ -7,6 +7,7 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_MULTIPLE_EXTENSIONS=postgis,postgis_topology
+      - EXTRA_CONF=log_min_messages = 'DEBUG1'\n
     user: ${UID}
     ports:
       - 15432:5432

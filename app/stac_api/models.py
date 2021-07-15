@@ -4,6 +4,7 @@ import os
 import time
 from uuid import uuid4
 
+import pgtrigger
 from multihash import encode as multihash_encode
 from multihash import to_hex_string
 
@@ -21,12 +22,13 @@ from django.utils.translation import gettext_lazy as _
 
 from solo.models import SingletonModel
 
-from stac_api.collection_spatial_extent import CollectionSpatialExtentMixin
-from stac_api.collection_summaries import UPDATE_SUMMARIES_FIELDS
-from stac_api.collection_summaries import CollectionSummariesMixin
-from stac_api.collection_temporal_extent import CollectionTemporalExtentMixin
 from stac_api.managers import AssetUploadManager
 from stac_api.managers import ItemManager
+from stac_api.pgtriggers import generate_child_triggers
+from stac_api.pgtriggers import generates_asset_triggers
+from stac_api.pgtriggers import generates_asset_upload_triggers
+from stac_api.pgtriggers import generates_collection_triggers
+from stac_api.pgtriggers import generates_item_triggers
 from stac_api.utils import get_asset_path
 from stac_api.validators import MEDIA_TYPES
 from stac_api.validators import validate_asset_name
@@ -117,14 +119,6 @@ SEARCH_TEXT_HELP_COLLECTION = '''
     </div>'''
 
 
-def get_default_extent_value():
-    return dict({"spatial": {"bbox": [[None]]}, "temporal": {"interval": [[None, None]]}})
-
-
-def get_default_summaries_value():
-    return dict({"eo:gsd": [], "geoadmin:variant": [], "proj:epsg": []})
-
-
 def get_conformance_default_links():
     '''A helper function of the class Conformance Page
 
@@ -140,21 +134,13 @@ def get_conformance_default_links():
     return default_links
 
 
+def get_default_summaries_value():
+    return {}
+
+
 def compute_etag():
     '''Compute a unique ETag'''
     return str(uuid4())
-
-
-def get_save_trigger(instance):
-    '''Get the model instance save() trigger event
-
-    Returns:
-        'insert' or 'update'
-    '''
-    trigger = 'update'
-    if instance.pk is None:
-        trigger = 'insert'
-    return trigger
 
 
 class Link(models.Model):
@@ -213,6 +199,7 @@ class ConformancePage(SingletonModel):
         verbose_name = "STAC Conformance Page"
 
 
+@pgtrigger.register(*generate_child_triggers('collection'))
 class Provider(models.Model):
     collection = models.ForeignKey(
         'stac_api.Collection',
@@ -240,13 +227,6 @@ class Provider(models.Model):
     def __str__(self):
         return self.name
 
-    def save(self, *args, **kwargs):  # pylint: disable=signature-differs
-        # It is important to use `*args, **kwargs` in signature because django might add dynamically
-        # parameters
-        logger.debug('Saving CollectionProvider %s', self.name)
-        super().save(*args, **kwargs)
-        self.collection.save()  # save the collection to updated its ETag
-
     def clean(self):
         if self.roles is None:
             return
@@ -265,14 +245,8 @@ class Provider(models.Model):
 # For Collections and Items: No primary key will be defined, so that the auto-generated ones
 # will be used by Django. For assets, a primary key is defined as "BigAutoField" due the
 # expected large number of assets
-
-
-class Collection(
-    models.Model,
-    CollectionSpatialExtentMixin,
-    CollectionSummariesMixin,
-    CollectionTemporalExtentMixin
-):
+@pgtrigger.register(*generates_collection_triggers())
+class Collection(models.Model):
 
     class Meta:
         indexes = [
@@ -289,15 +263,10 @@ class Collection(
     # using "name" instead of "id", as "id" has a default meaning in django
     name = models.CharField('id', unique=True, max_length=255, validators=[validate_name])
     created = models.DateTimeField(auto_now_add=True)
-    updated = models.DateTimeField(auto_now=True)
+    updated = models.DateTimeField(auto_now_add=True)
     description = models.TextField()
     extent_geometry = models.PolygonField(
-        default=None,
-        srid=4326,
-        editable=False,
-        blank=True,
-        null=True,
-        validators=[validate_geometry]
+        default=None, srid=4326, editable=False, blank=True, null=True
     )
     extent_start_datetime = models.DateTimeField(editable=False, null=True, blank=True)
     extent_end_datetime = models.DateTimeField(editable=False, null=True, blank=True)
@@ -306,31 +275,26 @@ class Collection(
 
     # "summaries" values will be updated on every update of an asset inside the
     # collection
-    summaries = models.JSONField(
-        default=get_default_summaries_value, encoder=DjangoJSONEncoder, editable=False
+    summaries = models.JSONField(default=dict, encoder=DjangoJSONEncoder, editable=False)
+    summaries_proj_epsg = ArrayField(
+        models.IntegerField(), default=list, blank=True, editable=False
+    )
+    summaries_eo_gsd = ArrayField(models.FloatField(), default=list, blank=True, editable=False)
+    summaries_geoadmin_variant = ArrayField(
+        models.CharField(max_length=25), default=list, blank=True, editable=False
     )
     title = models.CharField(blank=True, null=True, max_length=255)
 
     # hidden ETag field
-    etag = models.CharField(blank=False, null=False, editable=False, max_length=56)
+    etag = models.CharField(
+        blank=False, null=False, editable=False, max_length=56, default=compute_etag
+    )
 
     def __str__(self):
         return self.name
 
-    def update_etag(self):
-        '''Update the ETag with a new UUID
-        '''
-        logger.debug('Updating collection etag', extra={'collection': self.name})
-        self.etag = compute_etag()
 
-    def save(self, *args, **kwargs):  # pylint: disable=signature-differs
-        # It is important to use `*args, **kwargs` in signature because django might add dynamically
-        # parameters
-        logger.debug('Saving collection', extra={'collection': self.name})
-        self.update_etag()
-        super().save(*args, **kwargs)
-
-
+@pgtrigger.register(*generate_child_triggers('collection'))
 class CollectionLink(Link):
     collection = models.ForeignKey(
         Collection, related_name='links', related_query_name='link', on_delete=models.CASCADE
@@ -338,15 +302,6 @@ class CollectionLink(Link):
 
     class Meta:
         unique_together = (('rel', 'collection'),)
-
-    def save(self, *args, **kwargs):  # pylint: disable=signature-differs
-        # It is important to use `*args, **kwargs` in signature because django might add dynamically
-        # parameters
-        logger.debug(
-            'Saving collection link %s', self.rel, extra={'collection': self.collection.name}
-        )
-        super().save(*args, **kwargs)
-        self.collection.save()  # save the collection to updated its ETag
 
 
 ITEM_KEEP_ORIGINAL_FIELDS = [
@@ -357,6 +312,7 @@ ITEM_KEEP_ORIGINAL_FIELDS = [
 ]
 
 
+@pgtrigger.register(*generates_item_triggers())
 class Item(models.Model):
 
     class Meta:
@@ -390,7 +346,7 @@ class Item(models.Model):
         null=False, blank=False, default=BBOX_CH, srid=4326, validators=[validate_geometry]
     )
     created = models.DateTimeField(auto_now_add=True)
-    updated = models.DateTimeField(auto_now=True)
+    updated = models.DateTimeField(auto_now_add=True)
     # after discussion with Chris and Tobias: for the moment only support
     # proterties: datetime and title (the rest is hence commented out)
     properties_datetime = models.DateTimeField(
@@ -426,98 +382,28 @@ class Item(models.Model):
     # properties_view_elevation = models.FloatField(blank=True)
 
     # hidden ETag field
-    etag = models.CharField(blank=False, null=False, editable=False, max_length=56)
+    etag = models.CharField(
+        blank=False, null=False, editable=False, max_length=56, default=compute_etag
+    )
 
     # Custom Manager that preselects the collection
     objects = ItemManager()
 
-    def __init__(self, *args, **kwargs):
-        self._original_values = {}
-        super().__init__(*args, **kwargs)
-
-    @classmethod
-    def from_db(cls, db, field_names, values):
-        instance = super().from_db(db, field_names, values)
-
-        # Save original values for some fields, when model is loaded from database,
-        # in a separate attribute on the model, this simplify the collection extent update.
-        # See https://docs.djangoproject.com/en/3.1/ref/models/instances/#customizing-model-loading
-        instance._original_values = dict( # pylint: disable=protected-access
-            filter(lambda item: item[0] in ITEM_KEEP_ORIGINAL_FIELDS, zip(field_names, values))
-        )
-
-        return instance
-
     def __str__(self):
         # This is used in the admin page in the autocomplete_fields of the Asset page
         return f"{self.collection.name}/{self.name}"
-
-    def update_etag(self):
-        '''Update the ETag with a new UUID
-        '''
-        self.etag = compute_etag()
 
     def clean(self):
         validate_item_properties_datetimes(
             self.properties_datetime, self.properties_start_datetime, self.properties_end_datetime
         )
 
-    def save(self, *args, **kwargs):  # pylint: disable=signature-differs
-        # It is important to use `*args, **kwargs` in signature because django might add dynamically
-        # parameters
-        logger.debug('Saving item', extra={'collection': self.collection.name, 'item': self.name})
 
-        self.update_etag()
-
-        trigger = get_save_trigger(self)
-
-        self.collection.update_temporal_extent(self, trigger, self._original_values)
-
-        self.collection.update_bbox_extent(
-            trigger, self.geometry, self._original_values.get('geometry', None), self
-        )
-
-        self.collection.save()
-
-        super().save(*args, **kwargs)
-
-        # update the original_values just in case save() is called again without reloading from db
-        self._original_values = {key: getattr(self, key) for key in ITEM_KEEP_ORIGINAL_FIELDS}
-
-    def delete(self, *args, **kwargs):  # pylint: disable=signature-differs
-        # It is important to use `*args, **kwargs` in signature because django might add dynamically
-        # parameters
-        logger.debug('Deleting item', extra={'collection': self.collection.name, 'item': self.name})
-
-        self.collection.update_temporal_extent(self, 'delete', self._original_values)
-
-        self.collection.update_bbox_extent('delete', self.geometry, None, self)
-
-        self.collection.save()
-
-        super().delete(*args, **kwargs)
-
-
+@pgtrigger.register(*generate_child_triggers('item'))
 class ItemLink(Link):
     item = models.ForeignKey(
         Item, related_name='links', related_query_name='link', on_delete=models.CASCADE
     )
-
-    def save(self, *args, **kwargs):  # pylint: disable=signature-differs
-        # It is important to use `*args, **kwargs` in signature because django might add dynamically
-        # parameters
-        logger.debug(
-            'Saving item link %s',
-            self.rel,
-            extra={
-                'collection': self.item.collection.name, 'item': self.item.name
-            }
-        )
-        super().save(*args, **kwargs)
-        self.item.save()  # We save the item to update its ETag
-
-
-ASSET_KEEP_ORIGINAL_FIELDS = ["name", "file"] + UPDATE_SUMMARIES_FIELDS
 
 
 def upload_asset_to_path_hook(instance, filename=None):
@@ -565,6 +451,7 @@ def upload_asset_to_path_hook(instance, filename=None):
     return get_asset_path(instance.item, instance.name)
 
 
+@pgtrigger.register(*generates_asset_triggers())
 class Asset(models.Model):
 
     class Meta:
@@ -618,98 +505,28 @@ class Asset(models.Model):
     media_type = models.CharField(choices=media_choices, max_length=200, blank=False, null=False)
 
     created = models.DateTimeField(auto_now_add=True)
-    updated = models.DateTimeField(auto_now=True)
+    updated = models.DateTimeField(auto_now_add=True)
 
     # hidden ETag field
-    etag = models.CharField(blank=False, null=False, editable=False, max_length=56)
-
-    def __init__(self, *args, **kwargs):
-        self._original_values = {}
-        super().__init__(*args, **kwargs)
-
-    @classmethod
-    def from_db(cls, db, field_names, values):
-        instance = super().from_db(db, field_names, values)
-
-        # Save original values for some fields, when model is loaded from database,
-        # in a separate attribute on the model, this simplify the collection summaries update.
-        # See https://docs.djangoproject.com/en/3.1/ref/models/instances/#customizing-model-loading
-        instance.keep_originals(field_names, values)  # pylint: disable=no-member
-
-        return instance
+    etag = models.CharField(
+        blank=False, null=False, editable=False, max_length=56, default=compute_etag
+    )
 
     def __str__(self):
         return self.name
 
-    def keep_originals(self, field_names, values):
-        self._original_values = dict( # pylint: disable=protected-access
-            filter(lambda item: item[0] in ASSET_KEEP_ORIGINAL_FIELDS, zip(field_names, values))
-        )
-
-        # file.name / path has to be treated separately since it's not a simple
-        # field
-        self._original_values['path'] = self.file.name
-
-    def update_etag(self):
-        '''Update the ETag with a new UUID
-        '''
-        self.etag = compute_etag()
-
-    # alter save-function, so that the corresponding collection of the parent item of the asset
-    # is saved, too.
-    def save(self, *args, **kwargs):  # pylint: disable=signature-differs
-        logger.debug(
-            'Saving asset',
-            extra={
-                'collection': self.item.collection.name, 'item': self.item.name, 'asset': self.name
-            }
-        )
-        self.update_etag()
-
-        trigger = get_save_trigger(self)
-
-        old_values = [self._original_values.get(field, None) for field in UPDATE_SUMMARIES_FIELDS]
-
-        self.item.collection.update_summaries(self, trigger, old_values=old_values)
-        self.item.save()  # We save the item to update its ETag
-
-        super().save(*args, **kwargs)
-
-        # update the original_values just in case save() is called again without reloading from db
-        fields = [field.name for field in self._meta.get_fields()]
-        self.keep_originals(fields, [getattr(self, field) for field in fields])
-
     def delete(self, *args, **kwargs):  # pylint: disable=signature-differs
-        logger.debug(
-            'Deleting asset',
-            extra={
-                'collection': self.item.collection.name, 'item': self.item.name, 'asset': self.name
-            }
-        )
-        # It is important to use `*args, **kwargs` in signature because django might add dynamically
-        # parameters
-        self.item.collection.update_summaries(self, 'delete', old_values=None)
-        self.item.save()  # We save the item to update its ETag
-
         try:
             super().delete(*args, **kwargs)
         except ProtectedError as error:
-            logger.error(
-                'Cannot delete asset %s: %s',
-                self.name,
-                error,
-                extra={
-                    'collection': self.item.collection.name,
-                    'item': self.item.name,
-                    'asset': self.name
-                }
-            )
+            logger.error('Cannot delete asset %s: %s', self.name, error)
             raise ValidationError(error.args[0]) from None
 
     def clean(self):
         validate_asset_name_with_media_type(self.name, self.media_type)
 
 
+@pgtrigger.register(*generates_asset_upload_triggers())
 class AssetUpload(models.Model):
 
     class Meta:
@@ -750,15 +567,6 @@ class AssetUpload(models.Model):
 
     # Custom Manager that preselects the collection
     objects = AssetUploadManager()
-
-    def save(self, *args, **kwargs):  # pylint: disable=signature-differs
-        self.update_etag()
-        super().save(*args, **kwargs)
-
-    def update_etag(self):
-        '''Update the ETag with a new UUID
-        '''
-        self.etag = compute_etag()
 
     def update_asset_checksum_multihash(self):
         '''Updating the asset's checksum:multihash from the upload

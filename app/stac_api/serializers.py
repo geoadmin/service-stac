@@ -241,7 +241,7 @@ class CollectionSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
     created = serializers.DateTimeField(read_only=True)
     updated = serializers.DateTimeField(read_only=True)
     extent = ExtentSerializer(read_only=True, source="*")
-    summaries = serializers.JSONField(read_only=True)
+    summaries = serializers.SerializerMethodField(read_only=True)
     stac_extensions = serializers.SerializerMethodField(read_only=True)
     stac_version = serializers.SerializerMethodField(read_only=True)
     itemType = serializers.ReadOnlyField(default="Feature")  # pylint: disable=invalid-name
@@ -254,6 +254,13 @@ class CollectionSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
 
     def get_stac_version(self, obj):
         return settings.STAC_VERSION
+
+    def get_summaries(self, obj):
+        return {
+            'proj:epsg': obj.summaries_proj_epsg or [],
+            'eo:gsd': obj.summaries_eo_gsd or [],
+            'geoadmin:variant': obj.summaries_geoadmin_variant or []
+        }
 
     def _update_or_create_providers(self, collection, providers_data):
         provider_ids = []

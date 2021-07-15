@@ -81,6 +81,7 @@ INSTALLED_APPS = [
     'storages',
     'whitenoise.runserver_nostatic',
     'django_prometheus',
+    'pgtrigger',
     'config.apps.StacAdminConfig',
     'stac_api.apps.StacApiConfig',
 ]
