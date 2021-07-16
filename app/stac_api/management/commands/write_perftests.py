@@ -80,8 +80,8 @@ class Handler(CommandHandler):
         delete_durations = []
         for i in range(self.options['n']):
             # Create test
-            name = self.get_name(i)
-            data = self.get_data(name, i)
+            data = self.get_data(i)
+            name = data['id']
             url = self.get_url(name)
             self.print('Create: PUT %s', url)
             start = time.monotonic()
@@ -91,7 +91,7 @@ class Handler(CommandHandler):
             create_durations.append(duration)
 
             # update test
-            updated_data = self.get_data(name, i + 1, init_data=data)
+            updated_data = self.get_data(i + 1, name=name, init_data=data)
             self.print('Update: PUT %s', url)
             start = time.monotonic()
             response = requests.put(url, json=updated_data, headers=headers, auth=auth)
@@ -156,22 +156,22 @@ class Handler(CommandHandler):
             return f'perftest-write-item-{i}'
         return f'perftest-write-asset-{i}'
 
-    def get_data(self, name, i, init_data=None):
+    def get_data(self, i, name=None, init_data=None):
         if self.options['object_type'] == 'items':
-            return self.get_data_item(name, i)
+            return self.get_data_item(i, name=name)
         # else assets
         if init_data:
-            return self.get_data_asset(name, i, media_type=init_data['type'])
-        return self.get_data_asset(name, i)
+            return self.get_data_asset(i, name=name, media_type=init_data['type'])
+        return self.get_data_asset(i, name=name)
 
-    def get_data_item(self, name, i):
+    def get_data_item(self, i, name=None):
         return {
-            'id': name,
+            'id': name if name else self.get_name(i),
             'geometry': self.get_item_geometry(i),
             'properties': self.get_item_properties(i)
         }
 
-    def get_data_asset(self, name, i, media_type=None):
+    def get_data_asset(self, i, name=None, media_type=None):
         media_types = ['text/plain', 'application/json', 'image/tiff; application=geotiff']
         variants = [None, 'krel', 'komb', 'geoadmin']
         eo_gsds = [None, 1, 0.3, None, 4, 3.2, None]
@@ -184,7 +184,7 @@ class Handler(CommandHandler):
         proj_epsg = proj_epsgs[i % len(proj_epsgs)]
         ext = MEDIA_TYPES_BY_TYPE[media_type][2][0]
         data = {
-            'id': f'{name}.{ext}',
+            'id': name if name else f'{ self.get_name(i)}.{ext}',
             'type': media_type,
         }
         if variant is not None:
