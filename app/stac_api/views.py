@@ -447,6 +447,7 @@ class ItemDetail(
                 'item': self.kwargs['item_name']
             }
         )
+        lookup['collection__name'] = collection.name
         return serializer.upsert(lookup, collection=collection)
 
     @etag(get_item_etag)
@@ -566,6 +567,8 @@ class AssetDetail(
                 'asset': self.kwargs['asset_name']
             }
         )
+        lookup['item__collection__name'] = item.collection.name
+        lookup['item__name'] = item.name
         return serializer.upsert(
             lookup, item=item, file=get_asset_path(item, self.kwargs['asset_name'])
         )
