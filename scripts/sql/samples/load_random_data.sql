@@ -19,7 +19,7 @@ select generate_series(1,10) as id,  -- second number is the number of random co
 	random() as integer_random, 'test'
 	, md5(random()::text) as text_random
 )
-INSERT INTO stac_api_collection (id, name, created, updated, description, license, summaries, etag)
+INSERT INTO stac_api_collection (id, name, created, updated, description, license, summaries, etag, published, summaries_eo_gsd, summaries_geoadmin_variant, summaries_proj_epsg)
 select id
 , concat('collection-',id) as name
 , now() + random() * interval '-365 days' as created	-- random timestamp within the last year
@@ -33,7 +33,13 @@ select id
     ],
     "geoadmin:variant": []
 }'::jsonb as summaries
-, text_random as etag FROM sample_collection;
+, text_random as etag
+, TRUE as published
+, '{}' as summaries_eo_gsd
+, '{}' as summaries_geoadmin_variant
+, '{}' as summaries_proj_epsg
+
+FROM sample_collection;
 
 
 -- load random items
@@ -54,7 +60,7 @@ spatial_extent as (
 	FROM stac_api_collection
 ), items as (
 SELECT 
-	generate_series(1,500000) as id  -- second number is the number of random items per collections
+	generate_series(1,10000) as id  -- second number is the number of random items per collections
 	-- each item will get a random extent / geometry
 	, st_setsrid(concat(
 		'BOX(',
@@ -80,25 +86,5 @@ select
 	, md5(random()::text) as etag
 	, collections.id as collection_id
 from collections,items,spatial_extent order by 1 asc;
-
--- test bbox on-the-fly
-EXPLAIN ANALYZE 
-SELECT 
-"stac_api_collection"."id"
-, "stac_api_collection"."name"
-, "stac_api_collection"."created"
-, "stac_api_collection"."updated"
-, "stac_api_collection"."description"
-, "stac_api_collection"."extent_start_datetime"
-, "stac_api_collection"."extent_end_datetime"
-, "stac_api_collection"."license"
-, "stac_api_collection"."summaries"
-, "stac_api_collection"."title"
-, "stac_api_collection"."etag"
-, st_setsrid(ST_Extent("stac_api_item"."geometry")::geometry,4326) AS "num_item" 
-FROM stac_api_collection_ltclm "stac_api_collection"
-LEFT OUTER JOIN "stac_api_item_ltclm" stac_api_item
-ON ("stac_api_collection"."id" = "stac_api_item"."collection_id") 
-GROUP BY "stac_api_collection"."id";
 
 rollback;
