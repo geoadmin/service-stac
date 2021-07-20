@@ -199,7 +199,7 @@ class ConformancePage(SingletonModel):
         verbose_name = "STAC Conformance Page"
 
 
-@pgtrigger.register(*generate_child_triggers('collection'))
+@pgtrigger.register(*generate_child_triggers('collection', 'Provider'))
 class Provider(models.Model):
     collection = models.ForeignKey(
         'stac_api.Collection',
@@ -294,7 +294,7 @@ class Collection(models.Model):
         return self.name
 
 
-@pgtrigger.register(*generate_child_triggers('collection'))
+@pgtrigger.register(*generate_child_triggers('collection', 'CollectionLink'))
 class CollectionLink(Link):
     collection = models.ForeignKey(
         Collection, related_name='links', related_query_name='link', on_delete=models.CASCADE
@@ -399,7 +399,7 @@ class Item(models.Model):
         )
 
 
-@pgtrigger.register(*generate_child_triggers('item'))
+@pgtrigger.register(*generate_child_triggers('item', 'ItemLink'))
 class ItemLink(Link):
     item = models.ForeignKey(
         Item, related_name='links', related_query_name='link', on_delete=models.CASCADE

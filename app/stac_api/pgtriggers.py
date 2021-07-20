@@ -5,11 +5,13 @@ AUTO_VARIABLES_FUNC = """
 NEW.etag = gen_random_uuid();
 NEW.updated = now();
 
+RAISE INFO 'Updated auto fields of %.id=% due to table updates.', TG_TABLE_NAME, NEW.id;
+
 RETURN NEW;
 """
 
 
-def generate_child_triggers(parent_name):
+def generate_child_triggers(parent_name, child_name):
     '''Function that generates two triggers for parent child relation.
 
     The triggers update the `updated` and `etag` fields of the parent when a child gets inserted,
@@ -25,27 +27,36 @@ def generate_child_triggers(parent_name):
         etag = public.gen_random_uuid()
     WHERE id = {child_obj}.{parent_name}_id;
 
+    RAISE INFO 'Parent table {parent_name}.id=% auto fields updated due to child {child_name}.id=% updates.',
+        {child_obj}.{parent_name}_id, {child_obj}.id;
+
     RETURN {child_obj};
     """
     return (
         pgtrigger.Trigger(
             name=f"add_{parent_name}_child_trigger",
             operation=pgtrigger.Insert,
-            when=pgtrigger.Before,
-            func=child_update_func.format(parent_name=parent_name, child_obj="NEW")
+            when=pgtrigger.After,
+            func=child_update_func.format(
+                parent_name=parent_name, child_obj="NEW", child_name=child_name
+            )
         ),
         pgtrigger.Trigger(
             name=f"update_{parent_name}_child_trigger",
             operation=pgtrigger.Update,
-            when=pgtrigger.Before,
+            when=pgtrigger.After,
             condition=pgtrigger.Condition('OLD.* IS DISTINCT FROM NEW.*'),
-            func=child_update_func.format(parent_name=parent_name, child_obj="NEW")
+            func=child_update_func.format(
+                parent_name=parent_name, child_obj="NEW", child_name=child_name
+            )
         ),
         pgtrigger.Trigger(
             name=f"del_{parent_name}_child_trigger",
             operation=pgtrigger.Delete,
-            when=pgtrigger.Before,
-            func=child_update_func.format(parent_name=parent_name, child_obj="OLD")
+            when=pgtrigger.After,
+            func=child_update_func.format(
+                parent_name=parent_name, child_obj="OLD", child_name=child_name
+            )
         )
     )
 
@@ -80,6 +91,9 @@ def generates_asset_triggers():
             etag = gen_random_uuid()
         WHERE id = asset_instance.item_id;
 
+        RAISE INFO 'item.id=% auto fields updated, due to asset.name=% updates.',
+            asset_instance.item_id, asset_instance.name;
+
         -- Compute collection summaries
         SELECT
             item.collection_id,
@@ -100,6 +114,9 @@ def generates_asset_triggers():
             summaries_geoadmin_variant = collection_summaries.geoadmin_variant,
             summaries_eo_gsd = collection_summaries.eo_gsd
         WHERE id = related_collection_id;
+
+        RAISE INFO 'collection.id=% summaries updated, due to asset.name=% update.',
+            related_collection_id, asset_instance.name;
 
         RETURN asset_instance;
         '''
@@ -175,6 +192,8 @@ def generates_item_triggers():
             extent_start_datetime = collection_extent.extent_start_datetime,
             extent_end_datetime = collection_extent.extent_end_datetime
         WHERE id = item_instance.collection_id;
+
+        RAISE INFO 'collection.id=% extent updated, due to item.name=% updates.', item_instance.collection_id, item_instance.name;
 
         RETURN item_instance;
         '''
