@@ -74,11 +74,7 @@ def generates_asset_triggers():
     class UpdateCollectionSummariesTrigger(pgtrigger.Trigger):
         when = pgtrigger.After
         func = '''
-        IF (TG_OP != 'DELETE') THEN
-            asset_instance = NEW;
-        ELSE
-            asset_instance = OLD;
-        END IF;
+        asset_instance = COALESCE(NEW, OLD);
 
         related_collection_id = (
             SELECT collection_id FROM stac_api_item
@@ -167,11 +163,7 @@ def generates_item_triggers():
     class UpdateCollectionExtentTrigger(pgtrigger.Trigger):
         when = pgtrigger.After
         func = '''
-        IF (TG_OP != 'DELETE') THEN
-            item_instance = NEW;
-        ELSE
-            item_instance = OLD;
-        END IF;
+        item_instance = COALESCE(NEW, OLD);
 
         -- Compute collection extent
         SELECT
