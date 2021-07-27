@@ -10,7 +10,7 @@
 ## Decision
 The following decisions are taken regarding the application architecture
 - Programming Language **Python**: Python is used in most of the backend services and is the programming language that's best known within devs, so no reason to change here.
-- Application Framework **Django**: Django is used as application framework. Django is very majure and has a wide user community. It comes with excellent documentation and a powerfull ORM. Futhermore, there are well-supported and maintained extensions, e.g. for designing REST API's that can considerably reduce the amount of boilerplate code needed for serializing, authentication, ....
+- Application Framework **Django**: Django is used as application framework. Django is very mature and has a wide user community. It comes with excellent documentation and a powerfull ORM. Futhermore, there are well-supported and maintained extensions, e.g. for designing REST API's that can considerably reduce the amount of boilerplate code needed for serializing, authentication, ....
 - Asset Storage **S3**: Since this service runs on AWS assets will be stored in S3 object store.
 - Metadata Storage **PostGIS**: Since Metadata can contain arbitrary geoJSON-supported geometries, Postgres along with the PostGIS extension is used as storage for metadata.
 
