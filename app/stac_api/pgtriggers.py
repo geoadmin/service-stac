@@ -98,7 +98,7 @@ def generates_asset_triggers():
             array_remove(array_agg(DISTINCT(asset.eo_gsd)), null) AS eo_gsd
         INTO collection_summaries
         FROM stac_api_item AS item
- 	        LEFT JOIN stac_api_asset AS asset ON (asset.item_id = item.id)
+            LEFT JOIN stac_api_asset AS asset ON (asset.item_id = item.id)
         WHERE item.collection_id = related_collection_id
         GROUP BY item.collection_id;
 
@@ -168,7 +168,7 @@ def generates_item_triggers():
         -- Compute collection extent
         SELECT
             item.collection_id,
-            ST_SetSRID(ST_EXTENT(item.geometry),4326) as extent_spatial,
+            ST_SetSRID(ST_EXTENT(item.geometry),4326) as extent_geometry,
             MIN(LEAST(item.properties_datetime, item.properties_start_datetime)) as extent_start_datetime,
             MAX(GREATEST(item.properties_datetime, item.properties_end_datetime)) as extent_end_datetime
         INTO collection_extent
@@ -180,7 +180,7 @@ def generates_item_triggers():
         UPDATE stac_api_collection SET
             updated = now(),
             etag = gen_random_uuid(),
-            extent_geometry = collection_extent.extent_spatial,
+            extent_geometry = collection_extent.extent_geometry,
             extent_start_datetime = collection_extent.extent_start_datetime,
             extent_end_datetime = collection_extent.extent_end_datetime
         WHERE id = item_instance.collection_id;

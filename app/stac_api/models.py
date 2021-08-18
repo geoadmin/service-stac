@@ -263,6 +263,8 @@ class Collection(models.Model):
     # using "name" instead of "id", as "id" has a default meaning in django
     name = models.CharField('id', unique=True, max_length=255, validators=[validate_name])
     created = models.DateTimeField(auto_now_add=True)
+    # NOTE: the updated field is automatically updated by stac_api.pgtriggers, we use auto_now_add
+    # only for the initial value.
     updated = models.DateTimeField(auto_now_add=True)
     description = models.TextField()
     extent_geometry = models.PolygonField(
@@ -273,9 +275,12 @@ class Collection(models.Model):
 
     license = models.CharField(max_length=30)  # string
 
-    # "summaries" values will be updated on every update of an asset inside the
-    # collection
+    # DEPRECATED: summaries JSON field is not used anymore and not up to date, it will be removed
+    # in future. It has been replaced by summaries_proj_epsg, summaries_eo_gsd and
+    # summaries_geoadmin_variant
     summaries = models.JSONField(default=dict, encoder=DjangoJSONEncoder, editable=False)
+
+    # NOTE: the following summaries_* fields are automatically update by the stac_api.pgtriggers
     summaries_proj_epsg = ArrayField(
         models.IntegerField(), default=list, blank=True, editable=False
     )
@@ -283,9 +288,10 @@ class Collection(models.Model):
     summaries_geoadmin_variant = ArrayField(
         models.CharField(max_length=25), default=list, blank=True, editable=False
     )
+
     title = models.CharField(blank=True, null=True, max_length=255)
 
-    # hidden ETag field
+    # NOTE: hidden ETag field, this field is automatically updated by stac_api.pgtriggers
     etag = models.CharField(
         blank=False, null=False, editable=False, max_length=56, default=compute_etag
     )
@@ -346,6 +352,8 @@ class Item(models.Model):
         null=False, blank=False, default=BBOX_CH, srid=4326, validators=[validate_geometry]
     )
     created = models.DateTimeField(auto_now_add=True)
+    # NOTE: the updated field is automatically updated by stac_api.pgtriggers, we use auto_now_add
+    # only for the initial value.
     updated = models.DateTimeField(auto_now_add=True)
     # after discussion with Chris and Tobias: for the moment only support
     # proterties: datetime and title (the rest is hence commented out)
@@ -381,7 +389,7 @@ class Item(models.Model):
     # properties_view_sun_azimuth = models.FloatField(blank=True)
     # properties_view_elevation = models.FloatField(blank=True)
 
-    # hidden ETag field
+    # NOTE: hidden ETag field, this field is automatically updated by stac_api.pgtriggers
     etag = models.CharField(
         blank=False, null=False, editable=False, max_length=56, default=compute_etag
     )
@@ -505,9 +513,11 @@ class Asset(models.Model):
     media_type = models.CharField(choices=media_choices, max_length=200, blank=False, null=False)
 
     created = models.DateTimeField(auto_now_add=True)
+    # NOTE: the updated field is automatically updated by stac_api.pgtriggers, we use auto_now_add
+    # only for the initial value.
     updated = models.DateTimeField(auto_now_add=True)
 
-    # hidden ETag field
+    # NOTE: hidden ETag field, this field is automatically updated by stac_api.pgtriggers
     etag = models.CharField(
         blank=False, null=False, editable=False, max_length=56, default=compute_etag
     )
@@ -562,7 +572,7 @@ class AssetUpload(models.Model):
     ended = models.DateTimeField(blank=True, null=True, default=None)
     checksum_multihash = models.CharField(max_length=255, blank=False, null=False)
 
-    # hidden ETag field
+    # NOTE: hidden ETag field, this field is automatically updated by stac_api.pgtriggers
     etag = models.CharField(blank=False, null=False, max_length=56, default=compute_etag)
 
     # Custom Manager that preselects the collection

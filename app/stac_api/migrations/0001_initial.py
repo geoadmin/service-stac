@@ -7,11 +7,20 @@ import django.db.models.deletion
 from django.db import migrations
 from django.db import models
 
-import stac_api.collection_spatial_extent
-import stac_api.collection_summaries
-import stac_api.collection_temporal_extent
 import stac_api.models
 import stac_api.validators
+
+
+class CollectionSpatialExtentMixin:
+    pass
+
+
+class CollectionSummariesMixin:
+    pass
+
+
+class CollectionTemporalExtentMixin:
+    pass
 
 
 class Migration(migrations.Migration):
@@ -75,9 +84,9 @@ class Migration(migrations.Migration):
             ],
             bases=(
                 models.Model,
-                stac_api.collection_spatial_extent.CollectionSpatialExtentMixin,
-                stac_api.collection_summaries.CollectionSummariesMixin,
-                stac_api.collection_temporal_extent.CollectionTemporalExtentMixin
+                CollectionSpatialExtentMixin,
+                CollectionSummariesMixin,
+                CollectionTemporalExtentMixin
             ),
         ),
         migrations.CreateModel(

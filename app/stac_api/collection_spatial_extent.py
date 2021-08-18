@@ -1,2 +1,0 @@
-class CollectionSpatialExtentMixin():
-    pass
