@@ -21,7 +21,7 @@ loggers:
   django:
     level: INFO
   django.db:
-    level: INFO
+    level: DEBUG
   django.utils.autoreload:
     level: INFO
   gunicorn.error:

@@ -1,27 +1,27 @@
 import logging
 
 from django.core.exceptions import ValidationError
-from django.test import TestCase
 
 from stac_api.models import Asset
 
+from tests.base_test import StacBaseTransactionTestCase
 from tests.data_factory import Factory
 from tests.utils import mock_s3_asset_file
 
 logger = logging.getLogger(__name__)
 
 
-class AssetsModelTestCase(TestCase):
-
-    @classmethod
-    @mock_s3_asset_file
-    def setUpTestData(cls):
-        cls.factory = Factory()
-        cls.collection = cls.factory.create_collection_sample(db_create=True).model
-        cls.item = cls.factory.create_item_sample(collection=cls.collection, db_create=True).model
-        cls.asset = cls.factory.create_asset_sample(item=cls.item, db_create=True)
+class AssetsModelTestCase(StacBaseTransactionTestCase):
 
     @mock_s3_asset_file
+    def setUp(self):
+        self.factory = Factory()
+        self.collection = self.factory.create_collection_sample(db_create=True).model
+        self.item = self.factory.create_item_sample(
+            collection=self.collection, db_create=True
+        ).model
+        self.asset = self.factory.create_asset_sample(item=self.item, db_create=True)
+
     def test_create_already_existing_asset(self):
         # try to create already existing asset twice
         with self.assertRaises(ValidationError, msg="Existing asset could be re-created."):
@@ -64,20 +64,16 @@ class AssetsModelTestCase(TestCase):
             )
 
     def test_create_asset_valid_eo_gsd(self):
-        asset = self.factory.create_asset_sample(item=self.item, eo_gsd=1.33).model
+        asset = self.factory.create_asset_sample(item=self.item, eo_gsd=1.33, db_create=True).model
         self.collection.refresh_from_db()
-        self.assertEqual(
-            self.collection.summaries, {
-                'eo:gsd': [1.33, 3.4], 'proj:epsg': [2056], 'geoadmin:variant': ['kgrs']
-            }
-        )
+        self.assertListEqual(self.collection.summaries_proj_epsg, [2056])
+        self.assertListEqual(self.collection.summaries_eo_gsd, [1.33, 3.4])
+        self.assertListEqual(self.collection.summaries_geoadmin_variant, ['kgrs'])
         asset.delete()
         self.collection.refresh_from_db()
-        self.assertEqual(
-            self.collection.summaries, {
-                'eo:gsd': [3.4], 'proj:epsg': [2056], 'geoadmin:variant': ['kgrs']
-            }
-        )
+        self.assertListEqual(self.collection.summaries_proj_epsg, [2056])
+        self.assertListEqual(self.collection.summaries_eo_gsd, [3.4])
+        self.assertListEqual(self.collection.summaries_geoadmin_variant, ['kgrs'])
 
     def test_create_asset_invalid_geoadmin_variant(self):
         # try to create an asset with invalid geoadmin variant.
