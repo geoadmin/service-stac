@@ -429,6 +429,8 @@ The service is configured by Environment Variable:
 | TEST_ENABLE_LOGGING | `False` | Enable logging in unittest |
 | PAGE_SIZE | `100` | Default page size |
 | PAGE_SIZE_LIMIT | `100` | Maximum page size allowed |
+| STAC_BROWSER_HOST | `None` | STAC Browser host (including HTTP schema). When `None` it takes the same host as the STAC API. |
+| STAC_BROWSER_BASE_PATH | `browser/index.html` | STAC Browser base path. |
 
 #### **Database settings**
 
