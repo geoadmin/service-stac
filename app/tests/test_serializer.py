@@ -21,6 +21,7 @@ from stac_api.utils import isoformat
 from stac_api.utils import utc_aware
 
 from tests.base_test import StacBaseTestCase
+from tests.base_test import StacBaseTransactionTestCase
 from tests.data_factory import Factory
 from tests.utils import mock_s3_asset_file
 
@@ -30,20 +31,20 @@ STAC_BASE_V = settings.STAC_BASE_V
 api_request_mocker = APIRequestFactory()
 
 
-class CollectionSerializationTestCase(StacBaseTestCase):
+# Here we need to use TransactionTestCase due to the pgtrigger, in a normal
+# test case we cannot test effect of pgtrigger.
+class CollectionSerializationTestCase(StacBaseTransactionTestCase):
 
-    @classmethod
     @mock_s3_asset_file
-    def setUpTestData(cls):
-        cls.data_factory = Factory()
-        cls.collection_created = utc_aware(datetime.now())
-        cls.collection = cls.data_factory.create_collection_sample(db_create=True)
-        cls.item = cls.data_factory.create_item_sample(
-            collection=cls.collection.model, db_create=True
+    def setUp(self):
+        self.data_factory = Factory()
+        self.collection_created = utc_aware(datetime.now())
+        self.collection = self.data_factory.create_collection_sample(db_create=True)
+        self.item = self.data_factory.create_item_sample(
+            collection=self.collection.model, db_create=True
         )
-        cls.asset = cls.data_factory.create_asset_sample(item=cls.item.model, db_create=True)
-
-    def setUp(self):  # pylint: disable=invalid-name
+        self.asset = self.data_factory.create_asset_sample(item=self.item.model, db_create=True)
+        self.collection.model.refresh_from_db()
         self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_collection_serialization(self):
@@ -66,15 +67,14 @@ class CollectionSerializationTestCase(StacBaseTestCase):
         expected.update({
             'created': isoformat(self.collection_created),
             'crs': ['http://www.opengis.net/def/crs/OGC/1.3/CRS84'],
-            'extent':
-                OrderedDict([
-                    ('spatial', {
-                        'bbox': [[5.644711, 46.775054, 7.602408, 49.014995]]
-                    }),
-                    ('temporal', {
-                        'interval': [['2020-10-28T13:05:10Z', '2020-10-28T13:05:10Z']]
-                    })
-                ]),
+            'extent': {
+                'spatial': {
+                    'bbox': [[5.644711, 46.775054, 7.602408, 49.014995]]
+                },
+                'temporal': {
+                    'interval': [['2020-10-28T13:05:10Z', '2020-10-28T13:05:10Z']]
+                }
+            },
             'itemType': 'Feature',
             'links': [
                 OrderedDict([
@@ -126,6 +126,93 @@ class CollectionSerializationTestCase(StacBaseTestCase):
                 'geoadmin:variant': ['kgrs'],
                 'proj:epsg': [2056],
             },
+            'updated': isoformat(self.collection_created)
+        })
+        self.check_stac_collection(expected, python_native)
+
+
+class EmptyCollectionSerializationTestCase(StacBaseTransactionTestCase):
+
+    def setUp(self):
+        self.data_factory = Factory()
+        self.collection_created = utc_aware(datetime.now())
+        self.collection = self.data_factory.create_collection_sample(db_create=True)
+        self.maxDiff = None  # pylint: disable=invalid-name
+
+    def test_empty_collection_serialization(self):
+        collection_name = self.collection.model.name
+        # mock a request needed for the serialization of links
+        context = {
+            'request': api_request_mocker.get(f'{STAC_BASE_V}/collections/{collection_name}')
+        }
+
+        # transate to Python native:
+        serializer = CollectionSerializer(self.collection.model, context=context)
+        python_native = serializer.data
+        logger.debug('python native:\n%s', pformat(python_native))
+
+        # translate to JSON:
+        content = JSONRenderer().render(python_native)
+        logger.debug('json string: %s', content.decode("utf-8"))
+
+        expected = self.collection.get_json('serialize')
+        expected.update({
+            'created': isoformat(self.collection_created),
+            'crs': ['http://www.opengis.net/def/crs/OGC/1.3/CRS84'],
+            'extent': {
+                'spatial': {
+                    'bbox': [[]]
+                }, 'temporal': {
+                    'interval': [[None, None]]
+                }
+            },
+            'itemType': 'Feature',
+            'links': [
+                OrderedDict([
+                    ('rel', 'self'),
+                    ('href', f'http://testserver/api/stac/v0.9/collections/{collection_name}'),
+                ]),
+                OrderedDict([
+                    ('rel', 'root'),
+                    ('href', 'http://testserver/api/stac/v0.9/'),
+                ]),
+                OrderedDict([
+                    ('rel', 'parent'),
+                    ('href', 'http://testserver/api/stac/v0.9/collections'),
+                ]),
+                OrderedDict([
+                    ('rel', 'items'),
+                    (
+                        'href',
+                        f'http://testserver/api/stac/v0.9/collections/{collection_name}/items'
+                    ),
+                ]),
+                OrderedDict([
+                    ('href', 'https://www.example.com/described-by'),
+                    ('rel', 'describedBy'),
+                    ('type', 'description'),
+                    ('title', 'This is an extra collection link'),
+                ])
+            ],
+            'providers': [
+                {
+                    'name': 'provider-1',
+                    'roles': ['licensor', 'producer'],
+                    'description': 'This is a full description of the provider',
+                    'url': 'https://www.provider.com'
+                },
+                {
+                    'name': 'provider-2',
+                    'roles': ['licensor'],
+                    'description': 'This is a full description of a second provider',
+                    'url': 'https://www.provider.com/provider-2'
+                },
+                {
+                    'name': 'provider-3',
+                },
+            ],
+            'stac_version': settings.STAC_VERSION,
+            'summaries': {},
             'updated': isoformat(self.collection_created)
         })
         self.check_stac_collection(expected, python_native)

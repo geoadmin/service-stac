@@ -2,23 +2,24 @@ import logging
 from time import sleep
 
 from django.core.exceptions import ValidationError
-from django.test import TestCase
 
 from stac_api.models import Collection
 
+from tests.base_test import StacBaseTransactionTestCase
 from tests.data_factory import Factory
 from tests.utils import mock_s3_asset_file
 
 logger = logging.getLogger(__name__)
 
 
-class CollectionsModelTestCase(TestCase):
+# Here we need to use TransactionTestCase due to the pgtrigger, in a normal
+# test case we cannot test effect of pgtrigger.
+class CollectionsModelTestCase(StacBaseTransactionTestCase):
 
-    @classmethod
     @mock_s3_asset_file
-    def setUpTestData(cls):
-        cls.factory = Factory()
-        cls.collection = cls.factory.create_collection_sample(db_create=True)
+    def setUp(self):
+        self.factory = Factory()
+        self.collection = self.factory.create_collection_sample(db_create=True)
 
     def test_create_already_existing_collection(self):
         # try to create already existing collection twice

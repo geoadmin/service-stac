@@ -4,7 +4,7 @@ from django.conf import settings
 from django.contrib.gis.geos import Polygon
 from django.test import Client
 
-from tests.base_test import StacBaseTestCase
+from tests.base_test import StacBaseTransactionTestCase
 from tests.data_factory import Factory
 from tests.utils import client_login
 
@@ -13,7 +13,9 @@ logger = logging.getLogger(__name__)
 STAC_BASE_V = settings.STAC_BASE_V
 
 
-class OneItemSpatialTestCase(StacBaseTestCase):
+# Here we need to use TransactionTestCase due to the pgtrigger, in a normal
+# test case we cannot test effect of pgtrigger.
+class OneItemSpatialTestCase(StacBaseTransactionTestCase):
 
     def setUp(self):
         self.client = Client()
@@ -55,7 +57,7 @@ class OneItemSpatialTestCase(StacBaseTestCase):
         self.assertEqual(bbox_collection, [])
 
 
-class TwoItemsSpatialTestCase(StacBaseTestCase):
+class TwoItemsSpatialTestCase(StacBaseTransactionTestCase):
 
     def setUp(self):
         self.client = Client()

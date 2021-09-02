@@ -243,6 +243,7 @@ class SampleData:
         self.model_instance = self.model_class(**self.attributes)
         self.model_instance.full_clean()
         self.model_instance.save()
+        self.model_instance.refresh_from_db()
         return self.model_instance
 
     def copy(self):
@@ -878,7 +879,9 @@ class ProviderFactory(FactoryBase):
 class LinkFactory(FactoryBase):
     factory_name = 'relation'
 
-    def create_sample(self, rel=None, sample=None, required_only=False, **kwargs):
+    def create_sample(
+        self, sample=None, name=None, db_create=False, rel=None, required_only=False, **kwargs
+    ):
         '''Create a data sample
 
         Args:
@@ -896,7 +899,14 @@ class LinkFactory(FactoryBase):
             The data sample.
         '''
         if rel:
-            return self.sample_class(rel=rel, sample=sample, required_only=required_only, **kwargs)
+            return self.sample_class(
+                sample=sample,
+                name=name,
+                db_create=db_create,
+                rel=rel,
+                required_only=required_only,
+                **kwargs
+            )
         self.last = self.get_last_name(self.last)
         return self.sample_class(
             rel=self.last, sample=sample, required_only=required_only, **kwargs
@@ -1000,7 +1010,7 @@ class ItemFactory(FactoryBase):
         Returns:
             The data sample
         '''
-        return super().create_sample(
+        sample = super().create_sample(
             sample,
             collection=collection,
             name=name,
@@ -1008,8 +1018,11 @@ class ItemFactory(FactoryBase):
             required_only=required_only,
             **kwargs
         )
+        if db_create:
+            collection.refresh_from_db()
+        return sample
 
-    def create_samples(self, samples, collection, db_create=False, **kwargs):
+    def create_samples(self, samples, collection, db_create=False, kwargs_list=True, **kwargs):
         '''Creates several Item samples
 
         Args:
@@ -1029,7 +1042,9 @@ class ItemFactory(FactoryBase):
         Returns:
             Array with the DB samples
         '''
-        return super().create_samples(samples, collection=collection, db_create=db_create, **kwargs)
+        return super().create_samples(
+            samples, collection=collection, db_create=db_create, kwargs_list=kwargs_list, **kwargs
+        )
 
 
 class AssetFactory(FactoryBase):
@@ -1078,6 +1093,7 @@ class AssetFactory(FactoryBase):
             )
         if db_create:
             data_sample.create()
+            item.refresh_from_db()
         if not db_create and create_asset_file:
             # when db_create is true, the asset file automatically created therefore it is not
             # necessary to explicitely create it again.
