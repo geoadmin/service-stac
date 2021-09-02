@@ -222,7 +222,8 @@ class CollectionSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         return {
             'proj:epsg': obj.summaries_proj_epsg or [],
             'eo:gsd': obj.summaries_eo_gsd or [],
-            'geoadmin:variant': obj.summaries_geoadmin_variant or []
+            'geoadmin:variant': obj.summaries_geoadmin_variant or [],
+            'geoadmin:lang': obj.summaries_geoadmin_lang or []
         }
 
     def get_extent(self, obj):

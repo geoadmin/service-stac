@@ -95,6 +95,7 @@ def generates_asset_triggers():
             item.collection_id,
             array_remove(array_agg(DISTINCT(asset.proj_epsg)), null) AS proj_epsg,
             array_remove(array_agg(DISTINCT(asset.geoadmin_variant)), null) AS geoadmin_variant,
+            array_remove(array_agg(DISTINCT(asset.geoadmin_lang)), null) AS geoadmin_lang,
             array_remove(array_agg(DISTINCT(asset.eo_gsd)), null) AS eo_gsd
         INTO collection_summaries
         FROM stac_api_item AS item
@@ -108,6 +109,7 @@ def generates_asset_triggers():
             etag = gen_random_uuid(),
             summaries_proj_epsg = collection_summaries.proj_epsg,
             summaries_geoadmin_variant = collection_summaries.geoadmin_variant,
+            summaries_geoadmin_lang = collection_summaries.geoadmin_lang,
             summaries_eo_gsd = collection_summaries.eo_gsd
         WHERE id = related_collection_id;
 
