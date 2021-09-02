@@ -298,3 +298,9 @@ EXTERNAL_SERVICE_TIMEOUT = 3
 # By default django_prometheus tracks the number of migrations
 # This causes troubles in various places so we disable it
 PROMETHEUS_EXPORT_MIGRATIONS = False
+
+# STAC Browser configuration for auto generated STAC links
+STAC_BROWSER_HOST = os.getenv(
+    'STAC_BROWSER_HOST', None
+)  # if None, the host is taken from the request url
+STAC_BROWSER_BASE_PATH = os.getenv('STAC_BROWSER_BASE_PATH', 'browser/index.html')

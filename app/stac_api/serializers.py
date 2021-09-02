@@ -26,6 +26,7 @@ from stac_api.serializers_utils import UpsertModelSerializerMixin
 from stac_api.serializers_utils import get_relation_links
 from stac_api.serializers_utils import update_or_create_links
 from stac_api.utils import build_asset_href
+from stac_api.utils import get_browser_url
 from stac_api.utils import get_url
 from stac_api.utils import isoformat
 from stac_api.validators import MEDIA_TYPES_MIMES
@@ -128,6 +129,12 @@ class LandingPageSerializer(serializers.ModelSerializer):
                 ("method", "POST"),
                 ("type", "application/json"),
                 ("title", "Search across feature collections"),
+            ]),
+            OrderedDict([
+                ("href", get_browser_url(request, 'browser-catalog')),
+                ("rel", "alternate"),
+                ("type", "text/html"),
+                ("title", "STAC Browser"),
             ]),
         ]
         return representation
@@ -349,7 +356,13 @@ class CollectionSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
             OrderedDict([
                 ('rel', 'items'),
                 ('href', get_url(request, 'items-list', [name])),
-            ])
+            ]),
+            OrderedDict([
+                ("rel", "alternate"),
+                ("title", "STAC Browser"),
+                ("type", "text/html"),
+                ("href", get_browser_url(request, 'browser-collection', collection=name)),
+            ]),
         ]
         return representation
 
@@ -651,7 +664,15 @@ class ItemSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
                 OrderedDict([
                     ('rel', 'collection'),
                     ('href', get_url(request, 'collection-detail', [collection])),
-                ])
+                ]),
+                OrderedDict([
+                    ("rel", "alternate"),
+                    ("title", "STAC Browser"),
+                    ("type", "text/html"),
+                    ("href", get_browser_url(
+                        request, 'browser-item', collection=collection, item=name
+                    )),
+                ]),
             ]
         return representation
 
