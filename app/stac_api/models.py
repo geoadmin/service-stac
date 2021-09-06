@@ -288,6 +288,9 @@ class Collection(models.Model):
     summaries_geoadmin_variant = ArrayField(
         models.CharField(max_length=25), default=list, blank=True, editable=False
     )
+    summaries_geoadmin_lang = ArrayField(
+        models.CharField(max_length=2), default=list, blank=True, editable=False
+    )
 
     title = models.CharField(blank=True, null=True, max_length=255)
 
