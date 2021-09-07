@@ -290,6 +290,8 @@ class StacTestMixin:
                 self._check_stac_dictsubset(path, value, current[i])
             elif isinstance(value, list):
                 self._check_stac_list(path, value, current[i])
+            elif i >= len(current):
+                self.fail(f'{parent_path}: List index {i} is out of bound: {expected} != {current}')
             else:
                 self.assertEqual(
                     value,

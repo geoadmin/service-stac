@@ -6,7 +6,7 @@ verify_ssl = true
 [dev-packages]
 yapf = "~=0.30.0"
 isort = "~=4.3.21"
-pylint = "*"
+pylint = "<2.9.0"
 pylint-django = "*"
 django-extensions = "*"
 django-debug-toolbar = ">=3.2.1"
@@ -39,6 +39,8 @@ py-multihash = "~=2.0.1"
 pypatch = "*"
 django-prometheus = "*"
 django-admin-autocomplete-filter = "~=0.6.1"
+django-pgtrigger = "~=2.3.2"
+base58 = "~=2.1.0"
 
 [requires]
 python_version = "3.7"

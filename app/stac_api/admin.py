@@ -86,14 +86,29 @@ class CollectionAdmin(admin.ModelAdmin):
         'published',
         'title',
         'description',
+        'created',
+        'updated',
         'extent_start_datetime',
         'extent_end_datetime',
-        'summaries',
         'extent_geometry',
-        'license'
+        'summaries_proj_epsg',
+        'summaries_geoadmin_variant',
+        'summaries_geoadmin_lang',
+        'summaries_eo_gsd',
+        'license',
+        'etag'
     ]
     readonly_fields = [
-        'extent_start_datetime', 'extent_end_datetime', 'summaries', 'extent_geometry'
+        'extent_start_datetime',
+        'extent_end_datetime',
+        'extent_geometry',
+        'created',
+        'updated',
+        'summaries_proj_epsg',
+        'summaries_geoadmin_variant',
+        'summaries_geoadmin_lang',
+        'summaries_eo_gsd',
+        'etag'
     ]
     inlines = [ProviderInline, CollectionLinkInline]
     search_fields = ['name']
@@ -153,10 +168,10 @@ class ItemAdmin(admin.GeoModelAdmin):
     inlines = [ItemLinkInline]
     autocomplete_fields = ['collection']
     search_fields = ['name', 'collection__name']
-    readonly_fields = ['collection_name']
+    readonly_fields = ['collection_name', 'created', 'updated', 'etag']
     fieldsets = (
         (None, {
-            'fields': ('name', 'collection')
+            'fields': ('name', 'collection', 'created', 'updated', 'etag')
         }),
         ('geometry', {
             'fields': (
@@ -234,11 +249,11 @@ class ItemAdmin(admin.GeoModelAdmin):
         if obj is None:
             # In case a new Item is added use the normal field 'collection' from model that have
             # a help text fort the search functionality.
-            fields[0][1]['fields'] = ('name', 'collection')
+            fields[0][1]['fields'] = ('name', 'collection', 'created', 'updated', 'etag')
             return fields
         # Otherwise if this is an update operation only display the read only field
         # without help text
-        fields[0][1]['fields'] = ('name', 'collection_name')
+        fields[0][1]['fields'] = ('name', 'collection_name', 'created', 'updated', 'etag')
         return fields
 
     # Populate text_geometry field with value of geometry
@@ -266,11 +281,13 @@ class AssetAdmin(admin.ModelAdmin):
 
     autocomplete_fields = ['item']
     search_fields = ['name', 'item__name', 'item__collection__name']
-    readonly_fields = ['item_name', 'collection_name', 'href', 'checksum_multihash']
+    readonly_fields = [
+        'item_name', 'collection_name', 'href', 'checksum_multihash', 'created', 'updated', 'etag'
+    ]
     list_display = ['name', 'item_name', 'collection_name', 'collection_published']
     fieldsets = (
         (None, {
-            'fields': ('name', 'item')
+            'fields': ('name', 'item', 'created', 'updated', 'etag')
         }),
         ('File', {
             'fields': ('file', 'media_type', 'href', 'checksum_multihash')
@@ -356,11 +373,13 @@ class AssetAdmin(admin.ModelAdmin):
         if obj is None:
             # In case a new Asset is added use the normal field 'item' from model that have
             # a help text fort the search functionality.
-            fields[0][1]['fields'] = ('name', 'item')
+            fields[0][1]['fields'] = ('name', 'item', 'created', 'updated', 'etag')
             return fields
         # Otherwise if this is an update operation only display the read only fields
         # without help text
-        fields[0][1]['fields'] = ('name', 'item_name', 'collection_name')
+        fields[0][1]['fields'] = (
+            'name', 'item_name', 'collection_name', 'created', 'updated', 'etag'
+        )
         return fields
 
 

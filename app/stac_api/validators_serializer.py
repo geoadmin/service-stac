@@ -259,8 +259,8 @@ class ValidateSearchRequest:
 
         # Raise ERROR with a list of parsed errors
         if self.errors:
-            for key in self.errors:
-                logger.error('%s: %s', key, self.errors[key])
+            for key, value in self.errors.items():
+                logger.error('%s: %s', key, value)
             raise ValidationError(code='query-invalid', detail=self.errors)
 
     def validate_query(self, query):

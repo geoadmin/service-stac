@@ -482,6 +482,9 @@ components:
             - kgrel
             - komb
             - krel
+            geoadmin:lang:
+            - de
+            - fr
             proj:epsg:
             - 2056
         title:
