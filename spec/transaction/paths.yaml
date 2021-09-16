@@ -474,7 +474,12 @@ paths:
         - Asset Upload Management
       summary: Create a new Asset's multipart upload
       description: |
-        Create a new Asset's multipart upload.
+        Create Asset's multipart upload.
+
+        A file part must be at least 5 MB except for the last one and at most 5 GB, otherwise the complete operation will fail.
+
+        *Note: in order to provide integrity check during the upload, the base64-encoded 128-bit MD5 digest of each part must
+        computed and passed in the create endpoint. Then this digest must also be passed as `Content-MD5` header during the upload.*
       operationId: createAssetUpload
       requestBody:
         content:
@@ -568,10 +573,11 @@ paths:
         - $ref: "./components/parameters.yaml#/components/parameters/presignedUrl"
         - name: Content-MD5
           in: header
-          description: Asset file part content MD5.
+          description: The base64-encoded 128-bit MD5 digest of this part.
           required: true
           schema:
             type: string
+            example: yLLiDqX2OL7mcIMTjob60A==
       responses:
         "200":
           description: Asset file uploaded part successfully

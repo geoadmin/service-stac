@@ -38,6 +38,7 @@ tags:
     ```python
     import os
     import hashlib
+    from base64 import b64encode
 
     import requests
     import multihash
@@ -56,6 +57,7 @@ tags:
       data = fd.read()
 
     checksum_multihash = multihash.to_hex_string(multihash.encode(hashlib.sha256(data).digest(), 'sha2-256'))
+    md5 = b64encode(hashlib.md5(data).digest()).decode('utf-8')
 
     # 1. Create a multipart upload
     response = requests.post(
@@ -63,13 +65,17 @@ tags:
       auth=(user, password),
       json={
         "number_parts": 1,
+        "md5_parts": [{
+          "part_number": 1,
+          "md5": md5
+        }],
         "checksum:multihash": checksum_multihash
       }
     )
     upload_id = response.json()['upload_id']
 
     # 2. Upload the part using the presigned url
-    response = requests.put(response.json()['urls'][0]['url'], data=data)
+    response = requests.put(response.json()['urls'][0]['url'], data=data, headers={'Content-MD5': md5})
     etag = response.headers['ETag']
 
     # 3. Complete the upload
@@ -79,6 +85,8 @@ tags:
       json={'parts': [{'etag': etag, 'part_number': 1}]}
     )
     ```
+
+    See https://aws.amazon.com/premiumsupport/knowledge-center/data-integrity-s3/ for other examples on how to compute the base64 MD5 of a part.
 - name: Authentication
   description: |
     All write requests require authentication. There is currently three type of supported authentications:
@@ -785,7 +793,12 @@ paths:
       - Asset Upload Management
       summary: Create a new Asset's multipart upload
       description: |
-        Create a new Asset's multipart upload.
+        Create Asset's multipart upload.
+
+        A file part must be at least 5 MB except for the last one and at most 5 GB, otherwise the complete operation will fail.
+
+        *Note: in order to provide integrity check during the upload, the base64-encoded 128-bit MD5 digest of each part must
+        computed and passed in the create endpoint. Then this digest must also be passed as `Content-MD5` header during the upload.*
       operationId: createAssetUpload
       requestBody:
         content:
@@ -879,10 +892,11 @@ paths:
       - $ref: "#/components/parameters/presignedUrl"
       - name: Content-MD5
         in: header
-        description: Asset file part content MD5.
+        description: The base64-encoded 128-bit MD5 digest of this part.
         required: true
         schema:
           type: string
+          example: yLLiDqX2OL7mcIMTjob60A==
       responses:
         "200":
           description: Asset file uploaded part successfully
@@ -2880,6 +2894,7 @@ components:
       - created
       - "checksum:multihash"
       - number_parts
+      - md5_parts
       properties:
         upload_id:
           $ref: "#/components/schemas/uploadId"
@@ -2887,6 +2902,8 @@ components:
           $ref: "#/components/schemas/status"
         number_parts:
           $ref: "#/components/schemas/number_parts"
+        md5_parts:
+          $ref: "#/components/schemas/md5_parts"
         urls:
           type: array
           description: |
@@ -3030,6 +3047,24 @@ components:
       type: integer
       minimum: 1
       maximum: 100
+    md5_parts:
+      description: MD5 checksums of each individual parts.
+      type: array
+      minItems: 1
+      maxItems: 100
+      items:
+        type: object
+        required:
+        - part_number
+        - md5
+        properties:
+          part_number:
+            $ref: "#/components/schemas/part_number"
+          md5:
+            description: The base64-encoded 128-bit MD5 digest of the associate part
+              data.
+            type: string
+            example: yLLiDqX2OL7mcIMTjob60A==
     part_number:
       description: Number of the part.
       type: integer
