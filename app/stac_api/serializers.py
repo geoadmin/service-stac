@@ -35,6 +35,7 @@ from stac_api.validators import validate_asset_name_with_media_type
 from stac_api.validators import validate_checksum_multihash_sha256
 from stac_api.validators import validate_geoadmin_variant
 from stac_api.validators import validate_item_properties_datetimes
+from stac_api.validators import validate_md5_parts
 from stac_api.validators import validate_name
 from stac_api.validators_serializer import validate_json_payload
 from stac_api.validators_serializer import validate_uniqueness_and_create
@@ -771,6 +772,7 @@ class AssetUploadSerializer(NonNullModelSerializer):
             'completed',
             'aborted',
             'number_parts',
+            'md5_parts',
             'urls',
             'ended',
             'parts'
@@ -783,6 +785,8 @@ class AssetUploadSerializer(NonNullModelSerializer):
         allow_blank=False,
         validators=[validate_checksum_multihash_sha256]
     )
+    # TODO BGDIINF_SB-1983 make the md5_parts required
+    md5_parts = serializers.JSONField(required=False)
 
     # write only fields
     ended = serializers.DateTimeField(write_only=True, required=False)
@@ -796,6 +800,13 @@ class AssetUploadSerializer(NonNullModelSerializer):
     urls = serializers.JSONField(read_only=True)
     completed = serializers.SerializerMethodField()
     aborted = serializers.SerializerMethodField()
+
+    def validate(self, attrs):
+        # TODO BGDIINF_SB-1983 md5_parts should be required not optional
+        # Check the md5 parts length
+        if 'md5_parts' in attrs:
+            validate_md5_parts(attrs['md5_parts'], attrs['number_parts'])
+        return attrs
 
     def get_completed(self, obj):
         if obj.status == AssetUpload.Status.COMPLETED:

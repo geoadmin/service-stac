@@ -797,7 +797,7 @@ paths:
 
         A file part must be at least 5 MB except for the last one and at most 5 GB, otherwise the complete operation will fail.
 
-        *Note: in order to provide integrity check during the upload, the base64-encoded 128-bit MD5 digest of each part must
+        *Note: in order to provide integrity check during the upload, the base64-encoded 128-bit MD5 digest of each part must be
         computed and passed in the create endpoint. Then this digest must also be passed as `Content-MD5` header during the upload.*
       operationId: createAssetUpload
       requestBody:
