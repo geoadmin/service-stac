@@ -367,7 +367,7 @@ def validate_md5_parts(md5_parts, number_parts):
     if len(sorted_md5_parts) != number_parts:
         logger.error(
             "Invalid md5_parts field value=%s: "
-            "list as too few, too many or duplicate part_number item(s), "
+            "list has too few, too many or duplicate part_number item(s), "
             "it should have a total of %d non duplicated item(s)",
             md5_parts,
             number_parts
