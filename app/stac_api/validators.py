@@ -14,6 +14,7 @@ from django.utils.translation import gettext_lazy as _
 
 from stac_api.utils import fromisoformat
 from stac_api.utils import geometry_from_bbox
+from stac_api.utils import is_valid_b64
 
 logger = logging.getLogger(__name__)
 
@@ -342,5 +343,94 @@ def validate_checksum_multihash_sha256(value):
         raise ValidationError(_('Invalid multihash value; %(error)s'),
                               params={'error': error}, code='invalid') from None
     if mhash.code != HASH_CODES['sha2-256']:
+        logger.error("Invalid multihash value: must be sha2-256 but is %s", CODE_HASHES[mhash.code])
         raise ValidationError(_('Invalid multihash value: must be sha2-256 but is %(code)s'),
                               params={'code': CODE_HASHES[mhash.code]}, code='invalid')
+
+
+def validate_md5_parts(md5_parts, number_parts):
+    '''Validate the md5_parts field.
+    '''
+
+    if not isinstance(md5_parts, list):
+        logger.error(
+            "Invalid md5_parts field %s, must be a list and is %s", md5_parts, type(md5_parts)
+        )
+        raise ValidationError(_('Invalid md5_parts field: must be a list but is %(type)s'),
+                              params={'type': type(md5_parts)}, code='invalid')
+    # sort and remove duplicate part number
+    sorted_md5_parts = sorted(
+        dict((item.get('part_number', 0) if isinstance(item, dict) else 0, item)
+             for item in md5_parts).values(),
+        key=lambda item: item.get('part_number', 0) if isinstance(item, dict) else 0
+    )
+    if len(sorted_md5_parts) != number_parts:
+        logger.error(
+            "Invalid md5_parts field value=%s: "
+            "list has too few, too many or duplicate part_number item(s), "
+            "it should have a total of %d non duplicated item(s)",
+            md5_parts,
+            number_parts
+        )
+        raise ValidationError(
+            _('Missing, too many or duplicate part_number in md5_parts field list: '
+              'list should have %(size)d item(s).'),
+            params={'size': number_parts},
+            code='invalid'
+        )
+    for i, item in enumerate(md5_parts):
+        if not isinstance(item, dict):
+            logger.error(
+                "Invalid md5_parts[%d] field value=%s, must be a dict and is %s",
+                i,
+                item,
+                type(item)
+            )
+            raise ValidationError(_('Invalid md5_parts[%(i)d] value: must be dict but is %(type)s'),
+                                  params={'i': i, 'type': type(item)}, code='invalid')
+        if 'part_number' not in item:
+            logger.error(
+                "Invalid md5_parts[%d] field value=%s, part_number field missing",
+                i,
+                item,
+            )
+            raise ValidationError(_('Invalid md5_parts[%(i)d] value: part_number field missing'),
+                                  params={'i': i}, code='invalid')
+        if (
+            not isinstance(item['part_number'], int) or
+            (item['part_number'] < 1 or item['part_number'] > number_parts)
+        ):
+            logger.error(
+                "Invalid md5_parts[%d].part_number field value=%s: "
+                "part_number field must be an int between 1 and %d",
+                i,
+                item['part_number'],
+                number_parts
+            )
+            raise ValidationError(
+                _('Invalid md5_parts[%(i)d].part_number value: '
+                  'part_number field must be an int between 1 and %(number_parts)d'),
+                params={'i': i, 'number_parts': number_parts}, code='invalid'
+            )
+        if 'md5' not in item:
+            logger.error(
+                "Invalid md5_parts[%d] field value=%s, md5 field missing",
+                i,
+                item,
+            )
+            raise ValidationError(_('Invalid md5_parts[%(i)d] value: md5 field missing'),
+                                  params={'i': i}, code='invalid')
+        if not isinstance(item['md5'], str) or item['md5'] == '' or not is_valid_b64(item['md5']):
+            logger.error(
+                "Invalid md5_parts[%d].md5 field value=%s: "
+                "md5 field must be a non empty b64 encoded string; type=%s valid_b64=%s",
+                i,
+                item['md5'],
+                type(item['md5']),
+                is_valid_b64(item['md5'])
+            )
+            raise ValidationError(
+                _('Invalid md5_parts[%(i)d].md5 value: '
+                  'md5 field must be a non empty b64 encoded string'),
+                params={'i': i - 1}, code='invalid'
+            )
