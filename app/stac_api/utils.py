@@ -1,6 +1,7 @@
 import hashlib
 import json
 import logging
+from base64 import b64decode
 from datetime import datetime
 from datetime import timezone
 from decimal import Decimal
@@ -362,3 +363,23 @@ def get_browser_url(request, view, collection='', item=''):
         return f'{base}#/item/{b58encode(collection_path).decode()}/{b58encode(item_path).decode()}'
     logger.error('Unknown view "%s", return the STAC browser base url %s', view, base)
     return base
+
+
+def is_valid_b64(value):
+    '''Check if the value is a valid b64 encoded string
+
+    Args:
+        value: string
+            Value to check
+
+    Returns:
+        bool - True if valid, False otherwise
+    '''
+    if not isinstance(value, str):
+        return False
+    try:
+        b64decode(value)
+    except (ValueError) as err:
+        logger.debug('Invalid b64 value %s: %s', value, err)
+        return False
+    return True
