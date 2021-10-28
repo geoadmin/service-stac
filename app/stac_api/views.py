@@ -623,17 +623,8 @@ class AssetUploadBase(generics.GenericAPIView):
             key, asset, validated_data['checksum_multihash']
         )
         urls = []
-        # TODO BGDIINF_SB-1983 md5_parts should be mandatory
-        if 'md5_parts' in validated_data:
-            sorted_md5_parts = sorted(validated_data['md5_parts'], key=itemgetter('part_number'))
-        else:
-            # dummy parts md5
-            sorted_md5_parts = map(
-                lambda i: {
-                    'part_number': i, 'md5': None
-                },
-                range(1, validated_data['number_parts'] + 1)
-            )
+        sorted_md5_parts = sorted(validated_data['md5_parts'], key=itemgetter('part_number'))
+
         for part in sorted_md5_parts:
             urls.append(
                 executor.create_presigned_url(

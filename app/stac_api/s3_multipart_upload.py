@@ -117,11 +117,9 @@ class MultipartUpload:
             'Bucket': settings.AWS_STORAGE_BUCKET_NAME,
             'Key': key,
             'UploadId': upload_id,
-            'PartNumber': part
+            'PartNumber': part,
+            'ContentMD5': part_md5,
         }
-        # TODO BGDIINF_SB-1983 part_md5 should be mandatory
-        if part_md5:
-            params['ContentMD5'] = part_md5
         url = self.call_s3_api(
             self.s3.generate_presigned_url,
             'upload_part',

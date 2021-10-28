@@ -4,6 +4,7 @@ from urllib.parse import urlparse
 
 from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry
+from django.core.exceptions import ValidationError
 
 from rest_framework import serializers
 from rest_framework.utils.serializer_helpers import ReturnDict
@@ -785,8 +786,7 @@ class AssetUploadSerializer(NonNullModelSerializer):
         allow_blank=False,
         validators=[validate_checksum_multihash_sha256]
     )
-    # TODO BGDIINF_SB-1983 make the md5_parts required
-    md5_parts = serializers.JSONField(required=False)
+    md5_parts = serializers.JSONField(required=True)
 
     # write only fields
     ended = serializers.DateTimeField(write_only=True, required=False)
@@ -802,10 +802,13 @@ class AssetUploadSerializer(NonNullModelSerializer):
     aborted = serializers.SerializerMethodField()
 
     def validate(self, attrs):
-        # TODO BGDIINF_SB-1983 md5_parts should be required not optional
+        # get partial from kwargs (if partial true and no md5 : ok, if false no md5 : error)
         # Check the md5 parts length
-        if 'md5_parts' in attrs:
+        if attrs.get('md5_parts') is not None:
             validate_md5_parts(attrs['md5_parts'], attrs['number_parts'])
+        elif not self.partial:
+            raise ValidationError('md5_parts parameter not set')
+
         return attrs
 
     def get_completed(self, obj):
