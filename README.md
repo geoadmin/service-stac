@@ -377,7 +377,8 @@ This service is to be deployed to the Kubernetes cluster once it is merged.
 
 ## Docker
 
-The service is encapsulated in a Docker image. Images are pushed on the public [Dockerhub](https://hub.docker.com/r/swisstopo/service-stac/tags) registry. From each github PR that are merged into develop branch, two Docker images are built and pushed with the following tags:
+The service is encapsulated in a Docker image. Images are pushed on the AWS elastic container registry (ECR).
+From each github PR that is merged into develop branch, two Docker images are built and pushed with the following tags:
 
 - develop.latest (prod image)
 - develop.latest-dev (dev image)
