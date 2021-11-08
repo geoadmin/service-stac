@@ -12,7 +12,7 @@ from django.utils.translation import gettext_lazy as _
 
 from rest_framework import generics
 from rest_framework import mixins
-from rest_framework.exceptions import ValidationError
+from rest_framework import serializers
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -623,17 +623,8 @@ class AssetUploadBase(generics.GenericAPIView):
             key, asset, validated_data['checksum_multihash']
         )
         urls = []
-        # TODO BGDIINF_SB-1983 md5_parts should be mandatory
-        if 'md5_parts' in validated_data:
-            sorted_md5_parts = sorted(validated_data['md5_parts'], key=itemgetter('part_number'))
-        else:
-            # dummy parts md5
-            sorted_md5_parts = map(
-                lambda i: {
-                    'part_number': i, 'md5': None
-                },
-                range(1, validated_data['number_parts'] + 1)
-            )
+        sorted_md5_parts = sorted(validated_data['md5_parts'], key=itemgetter('part_number'))
+
         for part in sorted_md5_parts:
             urls.append(
                 executor.create_presigned_url(
@@ -675,11 +666,13 @@ class AssetUploadBase(generics.GenericAPIView):
         key = get_asset_path(asset.item, asset.name)
         parts = validated_data.get('parts', None)
         if parts is None:
-            raise ValidationError({'parts': _("Missing required field")}, code='missing')
+            raise serializers.ValidationError({
+                'parts': _("Missing required field")
+            }, code='missing')
         if len(parts) > asset_upload.number_parts:
-            raise ValidationError({'parts': [_("Too many parts")]}, code='invalid')
+            raise serializers.ValidationError({'parts': [_("Too many parts")]}, code='invalid')
         if len(parts) < asset_upload.number_parts:
-            raise ValidationError({'parts': [_("Too few parts")]}, code='invalid')
+            raise serializers.ValidationError({'parts': [_("Too few parts")]}, code='invalid')
         executor.complete_multipart_upload(key, asset, parts, asset_upload.upload_id)
         asset_upload.update_asset_checksum_multihash()
         asset_upload.status = AssetUpload.Status.COMPLETED

@@ -87,7 +87,7 @@ class ApiPaginationTestCase(StacBaseTestCase):
 
                 response = self.client.get(f"/{STAC_BASE_V}/{endpoint}?limit=test")
                 self.assertStatusCode(400, response)
-                self.assertEqual(['invalid limit query parameter: must be an integer'],
+                self.assertEqual(['Invalid limit query parameter: must be an integer'],
                                  response.json()['description'],
                                  msg='Unexpected error message')
 
@@ -115,7 +115,8 @@ class ApiPaginationTestCase(StacBaseTestCase):
                 status=AssetUpload.Status.ABORTED,
                 checksum_multihash=get_sha256_multihash(b'upload-%d' % i),
                 number_parts=2,
-                ended=utc_aware(datetime.utcnow())
+                ended=utc_aware(datetime.utcnow()),
+                md5_parts=['md5-%d-1' % i, 'md5-%d-2' % i]
             )
         for endpoint, result_attribute in [
             ('collections', 'collections'),

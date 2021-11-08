@@ -4,8 +4,8 @@ from django.db import transaction
 from django.db.models.deletion import ProtectedError
 from django.utils.translation import gettext_lazy as _
 
+from rest_framework import serializers
 from rest_framework import status
-from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from stac_api.utils import get_link
@@ -160,6 +160,6 @@ class DestroyModelMixin:
                 child_name = 'items'
             elif instance.__class__.__name__ == 'Item':
                 child_name = 'assets'
-            raise ValidationError(
+            raise serializers.ValidationError(
                 _(f'Deleting {instance.__class__.__name__} with {child_name} not allowed')
             ) from None

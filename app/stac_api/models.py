@@ -570,11 +570,7 @@ class AssetUpload(models.Model):
     number_parts = models.IntegerField(
         validators=[MinValueValidator(1), MaxValueValidator(100)], null=False, blank=False
     )  # S3 doesn't support more that 10'000 parts
-    # TODO BGDIINF_SB-1983 make the md5_parts mandatory by setting blank=False and removing
-    # the default=list
-    md5_parts = models.JSONField(
-        encoder=DjangoJSONEncoder, blank=True, default=list, editable=False
-    )
+    md5_parts = models.JSONField(encoder=DjangoJSONEncoder, editable=False)
     urls = models.JSONField(default=list, encoder=DjangoJSONEncoder, blank=True)
     created = models.DateTimeField(auto_now_add=True)
     ended = models.DateTimeField(blank=True, null=True, default=None)
