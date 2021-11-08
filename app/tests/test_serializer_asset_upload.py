@@ -3,7 +3,7 @@
 import logging
 from uuid import uuid4
 
-from rest_framework.exceptions import ValidationError
+from rest_framework import serializers
 
 from stac_api.models import AssetUpload
 from stac_api.serializers import AssetUploadSerializer
@@ -31,11 +31,11 @@ class AssetUploadSerializationTestCase(StacBaseTestCase):
 
     def test_asset_upload_deserialization_invalid(self):
         serializer = AssetUploadSerializer(data={})
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(serializers.ValidationError):
             serializer.is_valid(raise_exception=True)
 
         serializer = AssetUploadSerializer(data={'checksum:multihash': ''})
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(serializers.ValidationError):
             serializer.is_valid(raise_exception=True)
 
         serializer = AssetUploadSerializer(
@@ -43,7 +43,7 @@ class AssetUploadSerializationTestCase(StacBaseTestCase):
                 'checksum:multihash': get_sha256_multihash(b'Test'), 'number_parts': 0
             }
         )
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(serializers.ValidationError):
             serializer.is_valid(raise_exception=True)
 
         serializer = AssetUploadSerializer(
@@ -51,7 +51,7 @@ class AssetUploadSerializationTestCase(StacBaseTestCase):
                 'checksum:multihash': get_sha256_multihash(b'Test'), 'number_parts': 10001
             }
         )
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(serializers.ValidationError):
             serializer.is_valid(raise_exception=True)
 
     def test_asset_upload_serialization_with_md5_parts(self):
@@ -128,7 +128,7 @@ class AssetUploadSerializationTestCase(StacBaseTestCase):
                 }]
             }
         )
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(serializers.ValidationError):
             serializer.is_valid(raise_exception=True)
 
         serializer = AssetUploadSerializer(
@@ -140,7 +140,7 @@ class AssetUploadSerializationTestCase(StacBaseTestCase):
                 }]
             }
         )
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(serializers.ValidationError):
             serializer.is_valid(raise_exception=True)
 
         serializer = AssetUploadSerializer(
@@ -152,7 +152,7 @@ class AssetUploadSerializationTestCase(StacBaseTestCase):
                 }
             }
         )
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(serializers.ValidationError):
             serializer.is_valid(raise_exception=True)
 
         serializer = AssetUploadSerializer(
@@ -164,7 +164,7 @@ class AssetUploadSerializationTestCase(StacBaseTestCase):
                 }]
             }
         )
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(serializers.ValidationError):
             serializer.is_valid(raise_exception=True)
 
         serializer = AssetUploadSerializer(
@@ -176,7 +176,7 @@ class AssetUploadSerializationTestCase(StacBaseTestCase):
                 }]
             }
         )
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(serializers.ValidationError):
             serializer.is_valid(raise_exception=True)
 
         serializer = AssetUploadSerializer(
@@ -188,7 +188,7 @@ class AssetUploadSerializationTestCase(StacBaseTestCase):
                 }]
             }
         )
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(serializers.ValidationError):
             serializer.is_valid(raise_exception=True)
 
         serializer = AssetUploadSerializer(
@@ -200,7 +200,7 @@ class AssetUploadSerializationTestCase(StacBaseTestCase):
                 }]
             }
         )
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(serializers.ValidationError):
             serializer.is_valid(raise_exception=True)
 
         serializer = AssetUploadSerializer(
@@ -214,7 +214,7 @@ class AssetUploadSerializationTestCase(StacBaseTestCase):
                 }]
             }
         )
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(serializers.ValidationError):
             serializer.is_valid(raise_exception=True)
 
         serializer = AssetUploadSerializer(
@@ -228,7 +228,7 @@ class AssetUploadSerializationTestCase(StacBaseTestCase):
                 }]
             }
         )
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(serializers.ValidationError):
             serializer.is_valid(raise_exception=True)
 
         serializer = AssetUploadSerializer(
@@ -242,7 +242,7 @@ class AssetUploadSerializationTestCase(StacBaseTestCase):
                 }]
             }
         )
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(serializers.ValidationError):
             serializer.is_valid(raise_exception=True)
 
         serializer = AssetUploadSerializer(
@@ -252,7 +252,7 @@ class AssetUploadSerializationTestCase(StacBaseTestCase):
                 "md5_parts": ['yLLiDqX2OL7mcIMTjob60A==', 'yLLiDqX2OL7mcIMTjob60A==']
             }
         )
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(serializers.ValidationError):
             serializer.is_valid(raise_exception=True)
 
         serializer = AssetUploadSerializer(
@@ -264,7 +264,7 @@ class AssetUploadSerializationTestCase(StacBaseTestCase):
                 }]
             }
         )
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(serializers.ValidationError):
             serializer.is_valid(raise_exception=True)
 
         serializer = AssetUploadSerializer(
@@ -276,5 +276,5 @@ class AssetUploadSerializationTestCase(StacBaseTestCase):
                 }]
             }
         )
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(serializers.ValidationError):
             serializer.is_valid(raise_exception=True)

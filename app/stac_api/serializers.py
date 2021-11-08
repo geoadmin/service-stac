@@ -4,7 +4,7 @@ from urllib.parse import urlparse
 
 from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry
-from django.core.exceptions import ValidationError
+from django.utils.translation import gettext_lazy as _
 
 from rest_framework import serializers
 from rest_framework.utils.serializer_helpers import ReturnDict
@@ -807,8 +807,9 @@ class AssetUploadSerializer(NonNullModelSerializer):
         if attrs.get('md5_parts') is not None:
             validate_md5_parts(attrs['md5_parts'], attrs['number_parts'])
         elif not self.partial:
-            raise ValidationError('md5_parts parameter not set')
-
+            raise serializers.ValidationError(
+                detail={'md5_parts': _('md5_parts parameter is missing')}, code='missing'
+            )
         return attrs
 
     def get_completed(self, obj):

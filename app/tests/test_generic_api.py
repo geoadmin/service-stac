@@ -87,7 +87,7 @@ class ApiPaginationTestCase(StacBaseTestCase):
 
                 response = self.client.get(f"/{STAC_BASE_V}/{endpoint}?limit=test")
                 self.assertStatusCode(400, response)
-                self.assertEqual(['invalid limit query parameter: must be an integer'],
+                self.assertEqual(['Invalid limit query parameter: must be an integer'],
                                  response.json()['description'],
                                  msg='Unexpected error message')
 

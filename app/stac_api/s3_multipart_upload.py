@@ -9,7 +9,7 @@ from multihash import to_hex_string
 
 from django.conf import settings
 
-from rest_framework.exceptions import ValidationError
+from rest_framework import serializers
 
 from stac_api.utils import get_s3_client
 from stac_api.utils import isoformat
@@ -178,7 +178,7 @@ class MultipartUpload:
                 }
             )
         except ClientError as error:
-            raise ValidationError(str(error), code='invalid') from None
+            raise serializers.ValidationError(str(error)) from None
 
         if 'Location' not in response:
             logger.error(
