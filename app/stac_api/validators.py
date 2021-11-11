@@ -66,6 +66,7 @@ MEDIA_TYPES = [
     ('text/plain', 'Text', ['.txt']),
     ('text/x.plain+zip', 'Zipped text', ['.zip']),
     ('application/x.dwg+zip', 'Zipped DWG', ['.zip']),
+    ('application/zip', 'Generic Zip File', ['.zip']),
 ]
 MEDIA_TYPES_MIMES = [x[0] for x in MEDIA_TYPES]
 MEDIA_TYPES_EXTENSIONS = [ext for media_type in MEDIA_TYPES for ext in media_type[2]]
