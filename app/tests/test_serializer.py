@@ -8,7 +8,7 @@ from pprint import pformat
 
 from django.conf import settings
 
-from rest_framework.exceptions import ValidationError
+from rest_framework import serializers
 from rest_framework.renderers import JSONRenderer
 from rest_framework.test import APIRequestFactory
 
@@ -292,7 +292,7 @@ class CollectionDeserializationTestCase(StacBaseTestCase):
 
         # translate to Python native:
         serializer = CollectionSerializer(data=data)
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(serializers.ValidationError):
             serializer.is_valid(raise_exception=True)
 
     def test_collection_deserialization_invalid_link(self):
@@ -301,7 +301,7 @@ class CollectionDeserializationTestCase(StacBaseTestCase):
 
         # translate to Python native:
         serializer = CollectionSerializer(data=data)
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(serializers.ValidationError):
             serializer.is_valid(raise_exception=True)
 
     def test_collection_deserialization_invalid_provider(self):
@@ -310,7 +310,7 @@ class CollectionDeserializationTestCase(StacBaseTestCase):
 
         # translate to Python native:
         serializer = CollectionSerializer(data=data)
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(serializers.ValidationError):
             serializer.is_valid(raise_exception=True)
 
 
@@ -528,7 +528,7 @@ class ItemDeserializationTestCase(StacBaseTestCase):
 
         # translate to Python native:
         serializer = ItemSerializer(data=data)
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(serializers.ValidationError):
             serializer.is_valid(raise_exception=True)
 
     def test_item_deserialization_invalid_data(self):
@@ -539,7 +539,7 @@ class ItemDeserializationTestCase(StacBaseTestCase):
 
         # translate to Python native:
         serializer = ItemSerializer(data=data)
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(serializers.ValidationError):
             serializer.is_valid(raise_exception=True)
 
     def test_item_deserialization_end_date_before_start_date(self):
@@ -556,7 +556,7 @@ class ItemDeserializationTestCase(StacBaseTestCase):
 
         # translate to Python native:
         serializer = ItemSerializer(data=sample.get_json('deserialize'))
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(serializers.ValidationError):
             serializer.is_valid(raise_exception=True)
 
     def test_item_deserialization_invalid_link(self):
@@ -567,7 +567,7 @@ class ItemDeserializationTestCase(StacBaseTestCase):
 
         # translate to Python native:
         serializer = ItemSerializer(data=sample.get_json('deserialize'))
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(serializers.ValidationError):
             serializer.is_valid(raise_exception=True)
 
 
@@ -706,7 +706,7 @@ class AssetDeserializationTestCase(StacBaseTestCase):
         serializer = AssetSerializer(
             data=sample.get_json('deserialize'), context={'request': request_mocker}
         )
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(serializers.ValidationError):
             serializer.is_valid(raise_exception=True)
 
     def test_asset_deserialization_invalid_proj_epsg(self):
@@ -722,7 +722,7 @@ class AssetDeserializationTestCase(StacBaseTestCase):
         serializer = AssetSerializer(
             data=sample.get_json('deserialize'), context={'request': request_mocker}
         )
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(serializers.ValidationError):
             serializer.is_valid(raise_exception=True)
 
     def test_asset_deserialization_missing_required_item(self):
@@ -740,5 +740,5 @@ class AssetDeserializationTestCase(StacBaseTestCase):
         serializer = AssetSerializer(
             data=sample.get_json('deserialize'), context={'request': request_mocker}
         )
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(serializers.ValidationError):
             serializer.is_valid(raise_exception=True)

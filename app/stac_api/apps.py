@@ -5,7 +5,7 @@ import django.core.exceptions
 from django.apps import AppConfig
 from django.conf import settings
 
-from rest_framework.exceptions import ValidationError
+from rest_framework import serializers
 from rest_framework.response import Response
 from rest_framework.views import exception_handler
 
@@ -33,7 +33,7 @@ def custom_exception_handler(exc, context):
         message = exc.message
         if exc.params:
             message %= exc.params
-        exc = ValidationError(exc.message, exc.code)
+        exc = serializers.ValidationError(exc.message, exc.code)
 
     # Then call REST framework's default exception handler, to get the standard error response.
     response = exception_handler(exc, context)

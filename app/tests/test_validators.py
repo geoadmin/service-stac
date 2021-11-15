@@ -1,7 +1,7 @@
-from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.exceptions import ValidationError
 from django.test import TestCase
 
-from rest_framework.exceptions import ValidationError
+from rest_framework import serializers
 
 from stac_api.validators import validate_item_properties_datetimes_dependencies
 from stac_api.validators_serializer import validate_asset_href_path
@@ -36,7 +36,8 @@ class TestValidators(TestCase):
             )
 
         with self.assertRaises(
-            ValidationError, msg="Invalid Asset href path did not raises ValidationError"
+            serializers.ValidationError,
+            msg="Invalid Asset href path did not raises serializers.ValidationError"
         ):
             validate_asset_href_path(item, 'asset-test', 'asset-test')
             validate_asset_href_path(item, 'asset-test', 'item-test/asset-test')
@@ -46,7 +47,7 @@ class TestValidators(TestCase):
             )
 
     def test_validate_function_invalid_datetime_string(self):
-        with self.assertRaises(DjangoValidationError):
+        with self.assertRaises(ValidationError):
             properties_datetime = None
             properties_start_datetime = "2001-22-66T08:00:00+00:00"
             properties_end_datetime = "2001-11-11T08:00:00+00:00"

@@ -63,7 +63,6 @@ confidence=
 # no Warning level messages displayed, use "--disable=all --enable=classes
 # --disable=W".
 disable=missing-docstring,
-    fixme, # TODO BGDIINF_SB-1983 remove once all the todos have been done
     missing-module-docstring,
     unused-argument,
     unused-variable,
