@@ -7,9 +7,7 @@ on:
       - reopened
       - synchronize
       - edited
-    branches:
-      - master
 
 jobs:
-  pr-auto-title:
-    uses: geoadmin/.github/.github/workflows/pr-semver-release-title.yml@master
+  pr-edit:
+    uses: geoadmin/.github/.github/workflows/pr-auto-semver.yml@master
