@@ -1,10 +1,11 @@
 import logging
 from collections import OrderedDict
 
-from django.urls import reverse
-
 from rest_framework import serializers
 from rest_framework.utils.serializer_helpers import ReturnDict
+
+from stac_api.utils import get_browser_url
+from stac_api.utils import get_url
 
 logger = logging.getLogger(__name__)
 
@@ -58,10 +59,73 @@ def update_or_create_links(model, instance, instance_type, links_data):
     )
 
 
-def get_relation_links(request, view, view_args):
+view_relations = {
+    'search-list': {
+        'parent': 'landing-page',
+        'browser': None,
+    },
+    'collections-list': {
+        'parent': 'landing-page',
+        'browser': 'browser-collection',
+    },
+    'collection-detail': {
+        'parent': 'landing-page',
+        'browser': 'browser-collection',
+    },
+    'items-list': {
+        'parent': 'collection-detail',
+        'browser': 'browser-item',
+    },
+    'item-detail': {
+        'parent': 'collection-detail',
+        'browser': 'browser-item',
+    },
+    'assets-list': {
+        'parent': 'item-detail',
+        'browser': None,
+    },
+    'asset-detail': {
+        'parent': 'item-detail',
+        'browser': None,
+    }
+}
+
+
+def get_parent_link(request, view, view_args=()):
+    '''Returns the parent relation link
+
+    Args:
+        request: HttpRequest
+            request object
+        view: string
+            name of the view that originate the call
+        view_args: list
+            args to construct the view path
+
+    Returns: OrderedDict
+        Parent link dictionary
+    '''
+
+    def parent_args(view, args):
+        if view.startswith('item'):
+            return args[:1]
+        if view.startswith('asset'):
+            return args[:2]
+        return None
+
+    return OrderedDict([
+        ('rel', 'parent'),
+        (
+            'href',
+            get_url(request, view_relations[view]['parent'], args=parent_args(view, view_args))
+        ),
+    ])
+
+
+def get_relation_links(request, view, view_args=()):
     '''Returns a list of auto generated relation links
 
-    Returns the self, root and parent auto generated links.
+    Returns the self, root, collection, items, parent and alternate auto generated links.
 
     Args:
         request: HttpRequest
@@ -74,21 +138,52 @@ def get_relation_links(request, view, view_args):
     Returns: list
         List of auto generated links
     '''
-    self_url = request.build_absolute_uri(reverse(view, args=view_args))
-    return [
+
+    links = [
         OrderedDict([
             ('rel', 'self'),
-            ('href', self_url),
+            ('href', get_url(request, view, args=view_args)),
         ]),
         OrderedDict([
             ('rel', 'root'),
-            ('href', request.build_absolute_uri(reverse('landing-page'))),
+            ('href', get_url(request, 'landing-page')),
         ]),
-        OrderedDict([
-            ('rel', 'parent'),
-            ('href', self_url.rsplit('/', maxsplit=1)[0]),
-        ]),
+        get_parent_link(request, view, view_args),
     ]
+
+    if view == 'collection-detail':
+        links.append(
+            OrderedDict([
+                ('rel', 'items'),
+                ('href', get_url(request, 'items-list', view_args)),
+            ])
+        )
+    elif view.startswith('item') or view.startswith('asset'):
+        links.append(
+            OrderedDict([
+                ('rel', 'collection'),
+                ('href', get_url(request, 'collection-detail', view_args[:1])),
+            ])
+        )
+        if view.startswith('asset'):
+            links.append(
+                OrderedDict([
+                    ('rel', 'item'),
+                    ('href', get_url(request, 'item-detail', view_args[:2])),
+                ])
+            )
+
+    if view_relations[view]['browser']:
+        links.append(
+            OrderedDict([
+                ("rel", "alternate"),
+                ("title", "STAC Browser"),
+                ("type", "text/html"),
+                ("href", get_browser_url(request, view_relations[view]['browser'], *view_args)),
+            ])
+        )
+
+    return links
 
 
 class UpsertModelSerializerMixin:

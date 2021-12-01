@@ -355,18 +355,7 @@ class CollectionSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         # We use OrderedDict, although it is not necessary, because the default serializer/model for
         # links already uses OrderedDict, this way we keep consistency between auto link and user
         # link
-        representation['links'][:0] = get_relation_links(request, 'collection-detail', [name]) + [
-            OrderedDict([
-                ('rel', 'items'),
-                ('href', get_url(request, 'items-list', [name])),
-            ]),
-            OrderedDict([
-                ("rel", "alternate"),
-                ("title", "STAC Browser"),
-                ("type", "text/html"),
-                ("href", get_browser_url(request, 'browser-collection', collection=name)),
-            ]),
-        ]
+        representation['links'][:0] = get_relation_links(request, 'collection-detail', [name])
         return representation
 
     def validate(self, attrs):
@@ -566,18 +555,9 @@ class AssetSerializer(AssetBaseSerializer):
         # We use OrderedDict, although it is not necessary, because the default serializer/model for
         # links already uses OrderedDict, this way we keep consistency between auto link and user
         # link
-        representation['links'] = \
-            get_relation_links(request, 'asset-detail', [collection, item, name]) \
-            + [
-                OrderedDict([
-                    ('rel', 'item'),
-                    ('href', get_url(request, 'item-detail', [collection, item])),
-                ]),
-                OrderedDict([
-                    ('rel', 'collection'),
-                    ('href', get_url(request, 'collection-detail', [collection])),
-                ])
-            ]
+        representation['links'] = get_relation_links(
+            request, 'asset-detail', [collection, item, name]
+        )
         return representation
 
 
@@ -661,22 +641,7 @@ class ItemSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         # We use OrderedDict, although it is not necessary, because the default serializer/model for
         # links already uses OrderedDict, this way we keep consistency between auto link and user
         # link
-        representation['links'][:0] = \
-            get_relation_links(request, 'item-detail', [collection, name]) \
-            + [
-                OrderedDict([
-                    ('rel', 'collection'),
-                    ('href', get_url(request, 'collection-detail', [collection])),
-                ]),
-                OrderedDict([
-                    ("rel", "alternate"),
-                    ("title", "STAC Browser"),
-                    ("type", "text/html"),
-                    ("href", get_browser_url(
-                        request, 'browser-item', collection=collection, item=name
-                    )),
-                ]),
-            ]
+        representation['links'][:0] = get_relation_links(request, 'item-detail', [collection, name])
         return representation
 
     def create(self, validated_data):

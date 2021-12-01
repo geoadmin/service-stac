@@ -77,7 +77,7 @@ components:
                   rel: self
                 - href: https://data.geo.admin.ch/api/stac/v0.9/
                   rel: root
-                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets
+                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019
                   rel: parent
                 - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019
                   rel: item
@@ -103,7 +103,7 @@ components:
                   rel: self
                 - href: https://data.geo.admin.ch/api/stac/v0.9/
                   rel: root
-                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets
+                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019
                   rel: parent
                 - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019
                   rel: item

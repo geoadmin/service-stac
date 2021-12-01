@@ -346,7 +346,7 @@ def get_url(request, view, args=None):
     return request.build_absolute_uri(reverse(view, args=args))
 
 
-def get_browser_url(request, view, collection='', item=''):
+def get_browser_url(request, view, collection=None, item=None):
     if settings.STAC_BROWSER_HOST:
         base = f'{settings.STAC_BROWSER_HOST}/{settings.STAC_BROWSER_BASE_PATH}'
     else:

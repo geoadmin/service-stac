@@ -145,7 +145,7 @@ class StacTestMixin:
             TEST_LINK_ROOT,
             {
                 'rel': 'parent',
-                'href': f'{TEST_LINK_ROOT_HREF}/collections',
+                'href': f'{TEST_LINK_ROOT_HREF}/',
             },
             {
                 'rel': 'items',
@@ -198,7 +198,7 @@ class StacTestMixin:
             TEST_LINK_ROOT,
             {
                 'rel': 'parent',
-                'href': f'{TEST_LINK_ROOT_HREF}/collections/{collection}/items',
+                'href': f'{TEST_LINK_ROOT_HREF}/collections/{collection}',
             },
             {
                 'rel': 'collection',
@@ -253,7 +253,7 @@ class StacTestMixin:
                 TEST_LINK_ROOT,
                 {
                     'rel': 'parent',
-                    'href': f'{TEST_LINK_ROOT_HREF}/collections/{collection}/items/{item}/assets',
+                    'href': f'{TEST_LINK_ROOT_HREF}/collections/{collection}/items/{item}',
                 },
                 {
                     'rel': 'item',
