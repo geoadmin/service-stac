@@ -8,6 +8,7 @@ from rest_framework import serializers
 from rest_framework import status
 from rest_framework.response import Response
 
+from stac_api.serializers_utils import get_parent_link
 from stac_api.utils import get_link
 
 logger = logging.getLogger(__name__)
@@ -137,10 +138,13 @@ class DestroyModelMixin:
             {
                 "code": status.HTTP_200_OK,
                 "description": f"{instance} successfully deleted",
-                "links": [{
-                    "rel": "parent",
-                    "href": request.build_absolute_uri('/'.join(request.path.split('/')[:-1]))
-                }]
+                "links": [
+                    get_parent_link(
+                        request,
+                        self.get_view_name(),
+                        [self.kwargs.get('collection_name'), self.kwargs.get('item_name')]
+                    )
+                ]
             },
             status=status.HTTP_200_OK,
         )
