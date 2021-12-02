@@ -87,7 +87,7 @@ class CollectionSerializationTestCase(StacBaseTransactionTestCase):
                 ]),
                 OrderedDict([
                     ('rel', 'parent'),
-                    ('href', 'http://testserver/api/stac/v0.9/collections'),
+                    ('href', 'http://testserver/api/stac/v0.9/'),
                 ]),
                 OrderedDict([
                     ('rel', 'items'),
@@ -178,7 +178,7 @@ class EmptyCollectionSerializationTestCase(StacBaseTransactionTestCase):
                 ]),
                 OrderedDict([
                     ('rel', 'parent'),
-                    ('href', 'http://testserver/api/stac/v0.9/collections'),
+                    ('href', 'http://testserver/api/stac/v0.9/'),
                 ]),
                 OrderedDict([
                     ('rel', 'items'),
