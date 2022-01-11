@@ -494,7 +494,7 @@ summon -p gopass -e {dev|int|prod} python3 ./multipart_upload_via_api.py {localh
 When testing on `localhost`, `summon` and `gopass` are not required. You can then simply export your locally defined username
 and password into the environment, using the `export` bash command, before running the script.
 
-The script [create_dummy_asset_for_multipart_testing.py](./scripts/dummy_asset_for_multipart_testing.zip) can be used for creating
+The script [create_dummy_asset_for_multipart_testing.py](./scripts/create_dummy_asset_for_multipart_testing.py) can be used for creating
 a dummy asset file for testing multipart uploads. The script takes the file size (in MB and as an integer value) of the unzipped dummy
 asset file as parameter and stores the resulting zipped asset file as `./scripts/dummy_asset_for_multipart_testing.zip`.
 You can run this script as follows:
