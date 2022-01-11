@@ -500,5 +500,5 @@ asset file as parameter and stores the resulting zipped asset file as `./scripts
 You can run this script as follows:
 
 ```bash
-python3 python3 ./create_dummy_asset_for_multipart_testing.py 30    
+python3 ./create_dummy_asset_for_multipart_testing.py 30    
 ```
