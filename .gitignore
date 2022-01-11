@@ -70,8 +70,7 @@ nose2-junit.xml
 .env.*local
 .volumes
 **/logs
-/scripts/xxxxxxl_asset_file.zip
-/scripts/dummy_asset_for_multipart_testing.zip
+/scripts/**/*.zip
 
 # Node modules
 node_modules/*
