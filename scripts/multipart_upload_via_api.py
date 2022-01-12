@@ -95,7 +95,8 @@ def main():
             "checksum:multihash": checksum_multihash
         }
     )
-    if 'Invalid username/password.' in response.json()["description"]["detail"]:
+    if response.status_code == 401 and 'Invalid username/password.' in response.json(
+    )["description"]["detail"]:
         raise Exception(
             "WARNING: Either no or the wrong credentials (username/password) were provided!"
         )
