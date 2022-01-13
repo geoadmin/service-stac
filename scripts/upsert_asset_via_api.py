@@ -36,7 +36,6 @@ def main():
 
     # parsing the args and defining variables
     args = get_args()
-    print(args)
 
     scheme = 'https'
 

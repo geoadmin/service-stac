@@ -97,10 +97,15 @@ def main():
     )
     if response.status_code == 401 and 'Invalid username/password.' in response.json(
     )["description"]["detail"]:
-        raise Exception(
-            "WARNING: Either no or the wrong credentials (username/password) were provided!"
-        )
-    upload_id = response.json()['upload_id']
+        print("WARNING: Either no or the wrong credentials (username/password) were provided!")
+        exit(1)
+
+    try:
+        upload_id = response.json()['upload_id']
+    except KeyError as err:
+        print(f"Request failed with the status {response.status_code} and the following message: " \
+            f"{response.json()['description']['detail']}")
+        exit(1)
 
     # 2. Upload the part using the presigned url
     print("Uploading the parts...")
