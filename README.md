@@ -488,7 +488,7 @@ Uploading assets required authentication. For this purpose, the `scripts` folder
 Running the scripts with gopass secret environment variables works as in the following example:
 
 ```bash
-summon -p gopass -e {dev|int|prod} python3 ./multipart_upload_via_api.py {localhost|DEV|INT|PROD} collection-name item-name asset-name ./dummy_asset_file_for_multipart_testing.zip --part-size 5
+summon -p gopass -e {dev|int|prod} python3 ./multipart_upload_via_api.py {localhost|DEV|INT|PROD} collection-name item-name asset-name ./dummy_asset_for_multipart_testing.zip --part-size 5
 ```
 
 When testing on `localhost`, `summon` and `gopass` are not required. You can then simply export your locally defined username
