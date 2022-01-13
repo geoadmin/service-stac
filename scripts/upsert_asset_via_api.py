@@ -26,6 +26,10 @@ def get_args():
     )
     parser.add_argument("--proj_epsg", help="EPSG code", type=int)
     parser.add_argument("--eo_gsd", help="Ground sample distance", type=float)
+    parser.add_argument("--username", help="If username is provided as argument, " \
+        "the potentially defined STAC_USER environment variable will be IGNORED")
+    parser.add_argument("--password", help="If password is provided as argument, " \
+        "the potentially defined STAC_PASSWORD environment variable will be IGNORED")
 
     args = parser.parse_args()
 
@@ -60,8 +64,8 @@ def main():
     eo_gsd = args.eo_gsd
 
     asset_path = f'collections/{collection}/items/{item}/assets/{asset}'
-    user = os.environ.get('STAC_USER')
-    password = os.environ.get('STAC_PASSWORD')
+    user = args.username if args.username else os.environ.get('STAC_USER')
+    password = args.password if args.password else os.environ.get('STAC_PASSWORD')
 
     print(f"Creating/updating asset {asset}")
     response = requests.put(

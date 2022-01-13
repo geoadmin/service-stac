@@ -491,6 +491,14 @@ Running the scripts with gopass secret environment variables works as in the fol
 summon -p gopass -e {dev|int|prod} python3 ./multipart_upload_via_api.py {localhost|DEV|INT|PROD} collection-name item-name asset-name ./dummy_asset_for_multipart_testing.zip --part-size 5
 ```
 
+Optionally username and password can be passed as arguments. When values for the `--userame` and `--password` arguments
+are passed to the script, the environment variables `STAC_USER` and `STAC_PASSWORD` will be **IGNORED** when they exist
+and the passed values will be used instead. You can get the credentials e.g. for DEV with:
+
+```bash
+gopass infra-gopass-bgdi/sys-data.dev.bgdi.ch/big_asset_uploader 
+```
+
 When testing on `localhost`, `summon` and `gopass` are not required. You can then simply export your locally defined username
 and password into the environment, using the `export` bash command, before running the script.
 
