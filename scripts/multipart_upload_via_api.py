@@ -41,6 +41,10 @@ def get_args():
         default=250,
         help="Size of the file parts in MB [Integer, default: 250 MB]"
     )
+    parser.add_argument("--username", help="If username is provided as argument, " \
+        "the potentially defined STAC_USER environment variable will be IGNORED")
+    parser.add_argument("--password", help="If password is provided as argument, " \
+        "the potentially defined STAC_PASSWORD environment variable will be IGNORED")
 
     args = parser.parse_args()
 
@@ -67,8 +71,8 @@ def main():
     item = args.item
     asset = args.asset
     asset_path = f'collections/{collection}/items/{item}/assets/{asset}'
-    user = os.environ.get('STAC_USER')
-    password = os.environ.get('STAC_PASSWORD')
+    user = args.username if args.username else os.environ.get('STAC_USER')
+    password = args.password if args.password else os.environ.get('STAC_PASSWORD')
     asset_file_name = args.filepath
     part_size = args.part_size * 1024**2
 
