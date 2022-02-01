@@ -6,7 +6,7 @@ from django.core.handlers.wsgi import WSGIRequest
 from django.utils.translation import gettext_lazy as _
 
 from rest_framework import pagination
-from rest_framework.exceptions import ValidationError
+from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.utils.urls import remove_query_param
@@ -75,9 +75,8 @@ def validate_page_size(size_string, max_page_size, log_extra=None):
         logger.error(
             'Invalid query parameter limit=%s: must be an integer', size_string, extra=log_extra
         )
-        raise ValidationError(
-            _('invalid limit query parameter: must be an integer'),
-            code='limit'
+        raise serializers.ValidationError(
+            _('Invalid limit query parameter: must be an integer'),
         ) from None
 
     if page_size <= 0:
@@ -86,9 +85,8 @@ def validate_page_size(size_string, max_page_size, log_extra=None):
             page_size,
             extra=log_extra
         )
-        raise ValidationError(
+        raise serializers.ValidationError(
             _('limit query parameter too small, must be in range 1..%d') % (max_page_size),
-            code='limit'
         )
     if max_page_size and page_size > max_page_size:
         logger.error(
@@ -97,9 +95,8 @@ def validate_page_size(size_string, max_page_size, log_extra=None):
             max_page_size,
             extra=log_extra
         )
-        raise ValidationError(
-            _('limit query parameter too big, must be in range 1..%d') % (max_page_size),
-            code='limit'
+        raise serializers.ValidationError(
+            _('limit query parameter too big, must be in range 1..%d') % (max_page_size)
         )
     return page_size
 
@@ -125,9 +122,8 @@ def validate_offset(offset_string, log_extra=None):
         logger.error(
             'Invalid query parameter offset=%s: must be an integer', offset_string, extra=log_extra
         )
-        raise ValidationError(
-            _('invalid offset query parameter: must be an integer'),
-            code='invalid'
+        raise serializers.ValidationError(
+            _('Invalid offset query parameter: must be an integer')
         ) from None
 
     if offset < 0:
@@ -136,9 +132,8 @@ def validate_offset(offset_string, log_extra=None):
             offset,
             extra=log_extra
         )
-        raise ValidationError(
-            _('offset query parameter too small, must be positive'),
-            code='invalid'
+        raise serializers.ValidationError(
+            _('offset query parameter too small, must be positive')
         )
     return offset
 

@@ -93,6 +93,7 @@ class CollectionAdmin(admin.ModelAdmin):
         'extent_geometry',
         'summaries_proj_epsg',
         'summaries_geoadmin_variant',
+        'summaries_geoadmin_lang',
         'summaries_eo_gsd',
         'license',
         'etag'
@@ -105,6 +106,7 @@ class CollectionAdmin(admin.ModelAdmin):
         'updated',
         'summaries_proj_epsg',
         'summaries_geoadmin_variant',
+        'summaries_geoadmin_lang',
         'summaries_eo_gsd',
         'etag'
     ]

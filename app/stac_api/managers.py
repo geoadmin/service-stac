@@ -6,7 +6,7 @@ from django.contrib.gis.geos import GEOSGeometry
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
-from rest_framework.exceptions import ValidationError
+from rest_framework import serializers
 
 from stac_api.utils import geometry_from_bbox
 from stac_api.validators import validate_geometry
@@ -38,8 +38,7 @@ class ItemQuerySet(models.QuerySet):
             logger.debug('Query parameter bbox = %s', bbox)
             bbox_geometry = geometry_from_bbox(bbox)
             validate_geometry(bbox_geometry)
-
-        except (ValueError, ValidationError, IndexError) as error:
+        except (ValueError, serializers.ValidationError, IndexError) as error:
             logger.error(
                 'Invalid bbox query parameter: '
                 'Could not transform bbox "%s" to a polygon; %s'
@@ -47,10 +46,9 @@ class ItemQuerySet(models.QuerySet):
                 bbox,
                 error
             )
-            raise ValidationError(
+            raise serializers.ValidationError(
                 _('Invalid bbox query parameter, '
                   ' has to contain 4 values. f.ex. bbox=5.96,45.82,10.49,47.81'),
-                code='bbox-invalid'
             ) from None
 
         return self.filter(geometry__intersects=bbox_geometry)
@@ -132,9 +130,8 @@ class ItemQuerySet(models.QuerySet):
             logger.error(
                 'Invalid datetime query parameter "%s", must be isoformat; %s', date_time, error
             )
-            raise ValidationError(
-                _('Invalid datetime query parameter, must be isoformat'),
-                code='datetime'
+            raise serializers.ValidationError(
+                _('Invalid datetime query parameter, must be isoformat')
             ) from None
 
         if end == '':
@@ -146,10 +143,9 @@ class ItemQuerySet(models.QuerySet):
                 'cannot start with open range when no end range is defined',
                 date_time
             )
-            raise ValidationError(
+            raise serializers.ValidationError(
                 _('Invalid datetime query parameter, '
-                  'cannot start with open range when no end range is defined'),
-                code='datetime'
+                  'cannot start with open range when no end range is defined')
             )
         return start, end
 

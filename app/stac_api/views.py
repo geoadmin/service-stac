@@ -1,7 +1,7 @@
 import json
 import logging
-from collections import OrderedDict
 from datetime import datetime
+from operator import itemgetter
 
 from django.conf import settings
 from django.db import IntegrityError
@@ -11,7 +11,7 @@ from django.utils.translation import gettext_lazy as _
 
 from rest_framework import generics
 from rest_framework import mixins
-from rest_framework.exceptions import ValidationError
+from rest_framework import serializers
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -34,6 +34,7 @@ from stac_api.serializers import CollectionSerializer
 from stac_api.serializers import ConformancePageSerializer
 from stac_api.serializers import ItemSerializer
 from stac_api.serializers import LandingPageSerializer
+from stac_api.serializers_utils import get_relation_links
 from stac_api.utils import get_asset_path
 from stac_api.utils import harmonize_post_get_for_search
 from stac_api.utils import utc_aware
@@ -142,6 +143,7 @@ def get_asset_upload_etag(request, *args, **kwargs):
 
 
 class LandingPageDetail(generics.RetrieveAPIView):
+    name = 'landing-page'  # this name must match the name in urls.py
     serializer_class = LandingPageSerializer
     queryset = LandingPage.objects.all()
 
@@ -150,6 +152,7 @@ class LandingPageDetail(generics.RetrieveAPIView):
 
 
 class ConformancePageDetail(generics.RetrieveAPIView):
+    name = 'conformance'  # this name must match the name in urls.py
     serializer_class = ConformancePageSerializer
     queryset = ConformancePage.objects.all()
 
@@ -158,6 +161,7 @@ class ConformancePageDetail(generics.RetrieveAPIView):
 
 
 class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
+    name = 'search-list'  # this name must match the name in urls.py
     permission_classes = [AllowAny]
     serializer_class = ItemSerializer
     pagination_class = GetPostCursorPagination
@@ -213,20 +217,7 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
             'type': 'FeatureCollection',
             'timeStamp': utc_aware(datetime.utcnow()),
             'features': serializer.data,
-            'links': [
-                OrderedDict([
-                    ('rel', 'self'),
-                    ('href', request.build_absolute_uri()),
-                ]),
-                OrderedDict([
-                    ('rel', 'root'),
-                    ('href', request.build_absolute_uri(f'/{settings.STAC_BASE_V}/')),
-                ]),
-                OrderedDict([
-                    ('rel', 'parent'),
-                    ('href', request.build_absolute_uri('.').rstrip('/')),
-                ])
-            ]
+            'links': get_relation_links(request, self.name)
         }
 
         if page is not None:
@@ -241,6 +232,7 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
 
 
 class CollectionList(generics.GenericAPIView):
+    name = 'collections-list'  # this name must match the name in urls.py
     serializer_class = CollectionSerializer
     # prefetch_related is a performance optimization to reduce the number
     # of DB queries.
@@ -256,23 +248,7 @@ class CollectionList(generics.GenericAPIView):
         else:
             serializer = self.get_serializer(queryset, many=True)
 
-        data = {
-            'collections': serializer.data,
-            'links': [
-                OrderedDict([
-                    ('rel', 'self'),
-                    ('href', request.build_absolute_uri()),
-                ]),
-                OrderedDict([
-                    ('rel', 'root'),
-                    ('href', request.build_absolute_uri(f'/{settings.STAC_BASE_V}/')),
-                ]),
-                OrderedDict([
-                    ('rel', 'parent'),
-                    ('href', request.build_absolute_uri('.')),
-                ])
-            ]
-        }
+        data = {'collections': serializer.data, 'links': get_relation_links(request, self.name)}
 
         if page is not None:
             return self.get_paginated_response(data)
@@ -285,6 +261,8 @@ class CollectionDetail(
     views_mixins.UpdateInsertModelMixin,
     views_mixins.DestroyModelMixin
 ):
+    # this name must match the name in urls.py and is used by the DestroyModelMixin
+    name = 'collection-detail'
     serializer_class = CollectionSerializer
     lookup_url_kwarg = "collection_name"
     lookup_field = "name"
@@ -337,6 +315,7 @@ class CollectionDetail(
 class ItemsList(generics.GenericAPIView):
     serializer_class = ItemSerializer
     ordering = ['name']
+    name = 'items-list'  # this name must match the name in urls.py
 
     def get_queryset(self):
         # filter based on the url
@@ -374,20 +353,7 @@ class ItemsList(generics.GenericAPIView):
             'type': 'FeatureCollection',
             'timeStamp': utc_aware(datetime.utcnow()),
             'features': serializer.data,
-            'links': [
-                OrderedDict([
-                    ('rel', 'self'),
-                    ('href', request.build_absolute_uri()),
-                ]),
-                OrderedDict([
-                    ('rel', 'root'),
-                    ('href', request.build_absolute_uri(f'/{settings.STAC_BASE_V}/')),
-                ]),
-                OrderedDict([
-                    ('rel', 'parent'),
-                    ('href', request.build_absolute_uri('.').rstrip('/')),
-                ])
-            ]
+            'links': get_relation_links(request, self.name, [self.kwargs['collection_name']])
         }
 
         if page is not None:
@@ -404,6 +370,8 @@ class ItemDetail(
     views_mixins.UpdateInsertModelMixin,
     views_mixins.DestroyModelMixin
 ):
+    # this name must match the name in urls.py and is used by the DestroyModelMixin
+    name = 'item-detail'
     serializer_class = ItemSerializer
     lookup_url_kwarg = "item_name"
     lookup_field = "name"
@@ -471,6 +439,7 @@ class ItemDetail(
 
 
 class AssetsList(generics.GenericAPIView):
+    name = 'assets-list'  # this name must match the name in urls.py
     serializer_class = AssetSerializer
     pagination_class = None
 
@@ -489,28 +458,10 @@ class AssetsList(generics.GenericAPIView):
 
         data = {
             'assets': serializer.data,
-            'links': [
-                OrderedDict([
-                    ('rel', 'self'),
-                    ('href', request.build_absolute_uri()),
-                ]),
-                OrderedDict([
-                    ('rel', 'root'),
-                    ('href', request.build_absolute_uri(f'/{settings.STAC_BASE_V}/')),
-                ]),
-                OrderedDict([
-                    ('rel', 'parent'),
-                    ('href', request.build_absolute_uri('.').rstrip('/')),
-                ]),
-                OrderedDict([
-                    ('rel', 'item'),
-                    ('href', request.build_absolute_uri('.').rstrip('/')),
-                ]),
-                OrderedDict([
-                    ('rel', 'collection'),
-                    ('href', request.build_absolute_uri('../..').rstrip('/')),
-                ])
-            ]
+            'links':
+                get_relation_links(
+                    request, self.name, [self.kwargs['collection_name'], self.kwargs['item_name']]
+                )
         }
         return Response(data)
 
@@ -521,6 +472,8 @@ class AssetDetail(
     views_mixins.UpdateInsertModelMixin,
     views_mixins.DestroyModelMixin
 ):
+    # this name must match the name in urls.py and is used by the DestroyModelMixin
+    name = 'asset-detail'
     serializer_class = AssetSerializer
     lookup_url_kwarg = "asset_name"
     lookup_field = "name"
@@ -622,10 +575,14 @@ class AssetUploadBase(generics.GenericAPIView):
             key, asset, validated_data['checksum_multihash']
         )
         urls = []
-        for part in range(
-            1, (validated_data['number_parts'] if 'number_parts' in validated_data else 0) + 1
-        ):
-            urls.append(executor.create_presigned_url(key, asset, part, upload_id))
+        sorted_md5_parts = sorted(validated_data['md5_parts'], key=itemgetter('part_number'))
+
+        for part in sorted_md5_parts:
+            urls.append(
+                executor.create_presigned_url(
+                    key, asset, part['part_number'], upload_id, part['md5']
+                )
+            )
 
         clean_up_required = False
         try:
@@ -661,11 +618,13 @@ class AssetUploadBase(generics.GenericAPIView):
         key = get_asset_path(asset.item, asset.name)
         parts = validated_data.get('parts', None)
         if parts is None:
-            raise ValidationError({'parts': _("Missing required field")}, code='missing')
+            raise serializers.ValidationError({
+                'parts': _("Missing required field")
+            }, code='missing')
         if len(parts) > asset_upload.number_parts:
-            raise ValidationError({'parts': [_("Too many parts")]}, code='invalid')
+            raise serializers.ValidationError({'parts': [_("Too many parts")]}, code='invalid')
         if len(parts) < asset_upload.number_parts:
-            raise ValidationError({'parts': [_("Too few parts")]}, code='invalid')
+            raise serializers.ValidationError({'parts': [_("Too few parts")]}, code='invalid')
         executor.complete_multipart_upload(key, asset, parts, asset_upload.upload_id)
         asset_upload.update_asset_checksum_multihash()
         asset_upload.status = AssetUpload.Status.COMPLETED

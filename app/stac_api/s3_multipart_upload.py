@@ -9,7 +9,7 @@ from multihash import to_hex_string
 
 from django.conf import settings
 
-from rest_framework.exceptions import ValidationError
+from rest_framework import serializers
 
 from stac_api.utils import get_s3_client
 from stac_api.utils import isoformat
@@ -92,7 +92,7 @@ class MultipartUpload:
         )
         return response['UploadId']
 
-    def create_presigned_url(self, key, asset, part, upload_id):
+    def create_presigned_url(self, key, asset, part, upload_id, part_md5):
         '''Create a presigned url for an upload part on the backend
 
         Args:
@@ -104,6 +104,8 @@ class MultipartUpload:
                 Part number for which to create a presigned url for upload part
             upload_id: string
                 Upload ID for which to create a presigned url
+            part_md5: string
+                base64 MD5 digest of the part
 
         Returns: dict(string, int, datetime)
             Dict {'url': string, 'part': int, 'expires': datetime}
@@ -111,15 +113,17 @@ class MultipartUpload:
         expires = utc_aware(
             datetime.utcnow() + timedelta(seconds=settings.AWS_PRESIGNED_URL_EXPIRES)
         )
+        params = {
+            'Bucket': settings.AWS_STORAGE_BUCKET_NAME,
+            'Key': key,
+            'UploadId': upload_id,
+            'PartNumber': part,
+            'ContentMD5': part_md5,
+        }
         url = self.call_s3_api(
             self.s3.generate_presigned_url,
             'upload_part',
-            Params={
-                'Bucket': settings.AWS_STORAGE_BUCKET_NAME,
-                'Key': key,
-                'UploadId': upload_id,
-                'PartNumber': part
-            },
+            Params=params,
             ExpiresIn=settings.AWS_PRESIGNED_URL_EXPIRES,
             HttpMethod='PUT',
             log_extra={
@@ -174,7 +178,7 @@ class MultipartUpload:
                 }
             )
         except ClientError as error:
-            raise ValidationError(str(error), code='invalid') from None
+            raise serializers.ValidationError(str(error)) from None
 
         if 'Location' not in response:
             logger.error(

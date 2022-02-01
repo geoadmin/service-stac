@@ -20,6 +20,7 @@ tags:
       ```python
       import os
       import hashlib
+      from base64 import b64encode
 
       import requests
       import multihash
@@ -38,6 +39,7 @@ tags:
         data = fd.read()
 
       checksum_multihash = multihash.to_hex_string(multihash.encode(hashlib.sha256(data).digest(), 'sha2-256'))
+      md5 = b64encode(hashlib.md5(data).digest()).decode('utf-8')
 
       # 1. Create a multipart upload
       response = requests.post(
@@ -45,13 +47,17 @@ tags:
         auth=(user, password),
         json={
           "number_parts": 1,
+          "md5_parts": [{
+            "part_number": 1,
+            "md5": md5
+          }],
           "checksum:multihash": checksum_multihash
         }
       )
       upload_id = response.json()['upload_id']
 
       # 2. Upload the part using the presigned url
-      response = requests.put(response.json()['urls'][0]['url'], data=data)
+      response = requests.put(response.json()['urls'][0]['url'], data=data, headers={'Content-MD5': md5})
       etag = response.headers['ETag']
 
       # 3. Complete the upload
@@ -61,6 +67,8 @@ tags:
         json={'parts': [{'etag': etag, 'part_number': 1}]}
       )
       ```
+
+      See https://aws.amazon.com/premiumsupport/knowledge-center/data-integrity-s3/ for other examples on how to compute the base64 MD5 of a part.
   - name: Authentication
     description: |
       All write requests require authentication. There is currently three type of supported authentications:

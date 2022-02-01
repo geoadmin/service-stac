@@ -3,7 +3,7 @@ import logging
 from django.http import Http404
 from django.utils.translation import gettext_lazy as _
 
-from rest_framework.exceptions import ValidationError
+from rest_framework import serializers
 
 from stac_api.models import Asset
 from stac_api.models import Collection
@@ -100,4 +100,4 @@ def validate_renaming(serializer, original_id, id_field='name', extra_log=None):
         if data[id_field] != original_id:
             message = 'Renaming is not allowed'
             logger.error(message, extra=extra_log)
-            raise ValidationError({'id': _(message)}, code='invalid')
+            raise serializers.ValidationError({'id': _(message)})

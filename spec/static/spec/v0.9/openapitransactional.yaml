@@ -38,6 +38,7 @@ tags:
     ```python
     import os
     import hashlib
+    from base64 import b64encode
 
     import requests
     import multihash
@@ -56,6 +57,7 @@ tags:
       data = fd.read()
 
     checksum_multihash = multihash.to_hex_string(multihash.encode(hashlib.sha256(data).digest(), 'sha2-256'))
+    md5 = b64encode(hashlib.md5(data).digest()).decode('utf-8')
 
     # 1. Create a multipart upload
     response = requests.post(
@@ -63,13 +65,17 @@ tags:
       auth=(user, password),
       json={
         "number_parts": 1,
+        "md5_parts": [{
+          "part_number": 1,
+          "md5": md5
+        }],
         "checksum:multihash": checksum_multihash
       }
     )
     upload_id = response.json()['upload_id']
 
     # 2. Upload the part using the presigned url
-    response = requests.put(response.json()['urls'][0]['url'], data=data)
+    response = requests.put(response.json()['urls'][0]['url'], data=data, headers={'Content-MD5': md5})
     etag = response.headers['ETag']
 
     # 3. Complete the upload
@@ -79,6 +85,8 @@ tags:
       json={'parts': [{'etag': etag, 'part_number': 1}]}
     )
     ```
+
+    See https://aws.amazon.com/premiumsupport/knowledge-center/data-integrity-s3/ for other examples on how to compute the base64 MD5 of a part.
 - name: Authentication
   description: |
     All write requests require authentication. There is currently three type of supported authentications:
@@ -785,7 +793,12 @@ paths:
       - Asset Upload Management
       summary: Create a new Asset's multipart upload
       description: |
-        Create a new Asset's multipart upload.
+        Create Asset's multipart upload.
+
+        A file part must be at least 5 MB except for the last one and at most 5 GB, otherwise the complete operation will fail.
+
+        *Note: in order to provide integrity check during the upload, the base64-encoded 128-bit MD5 digest of each part must be
+        computed and passed in the create endpoint. Then this digest must also be passed as `Content-MD5` header during the upload.*
       operationId: createAssetUpload
       requestBody:
         content:
@@ -879,13 +892,16 @@ paths:
       - $ref: "#/components/parameters/presignedUrl"
       - name: Content-MD5
         in: header
-        description: Asset file part content MD5.
+        description: The base64-encoded 128-bit MD5 digest of this part.
         required: true
         schema:
           type: string
+          example: yLLiDqX2OL7mcIMTjob60A==
       responses:
         "200":
-          description: Asset file uploaded part successfully
+          description: Asset file part uploaded part successfully (Response has no
+            content).
+          content: {}
           headers:
             ETag:
               schema:
@@ -903,6 +919,89 @@ paths:
                 at the same time. An entity-tag consists of an opaque quoted string.
               example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
               required: true
+        "400":
+          description: Asset file part corrupted.
+          content:
+            application/xml:
+              schema:
+                type: object
+                required:
+                - Error
+                properties:
+                  Error:
+                    type: object
+                    required:
+                    - Code
+                    - Message
+                    properties:
+                      Code:
+                        type: string
+                        enum:
+                        - 'BadDigest'
+                      Message:
+                        type: string
+                    additionalProperties:
+                      type: string
+              example: |
+                <?xml version="1.0" encoding="UTF-8"?>
+                <Error>
+                  <Code>BadDigest</Code>
+                  <Message>The Content-MD5 you specified did not match what we received.</Message>
+                  <ExpectedDigest>0b6vaU45Ys1BdrMhd4wnGA==</ExpectedDigest>
+                  <CalculatedDigest>4lDYLoS0vNfNdko/3cPJJQ==</CalculatedDigest>
+                  <RequestId>RAVFJXJQFXTCZHT3</RequestId>
+                  <HostId>kDMsU45sQ4oZjkTgba2SNBy/0RMshW2lEWmfKnaotvViav5Qlyz4aSQdmS9FRVKp1HgJUBj3h5w=</HostId>
+                </Error>
+        "403":
+          description: Asset file part upload Bad Request, Signature does not match
+            (e.g. missing Content-MD5 header).
+          content:
+            application/xml:
+              schema:
+                type: object
+                required:
+                - Error
+                properties:
+                  Error:
+                    type: object
+                    required:
+                    - Code
+                    - Message
+                    properties:
+                      Code:
+                        type: string
+                        enum:
+                        - 'SignatureDoesNotMatch'
+                      Message:
+                        type: string
+                    additionalProperties:
+                      type: string
+              example: |
+                <?xml version="1.0" encoding="UTF-8"?>
+                <Error>
+                  <Code>SignatureDoesNotMatch</Code>
+                  <Message>The request signature we calculated does not match the signature you provided. Check your key and signing method.</Message>
+                  <AWSAccessKeyId>dummy-key</AWSAccessKeyId>
+                  <StringToSign>
+                    AWS4-HMAC-SHA256
+                    20210922T110759Z
+                    20210922/eu-central-1/s3/aws4_request6f0cf4c9a56acf90d9354cb79629a159c0c848ffacdbe13c7b9ae014671fa5c3
+                  </StringToSign>
+                  <SignatureProvided>1c762db1e677a6535c0e4a91015dcd60c00e58f1e5136f8943636f157dc03d54</SignatureProvided>
+                  <StringToSignBytes>41 57 53 34 2d 48 4d 41 43 2d 53 48 41 32 35...</StringToSignBytes>
+                  <CanonicalRequest>
+                    PUT /service-stac-dev/test-e2e-asset-upload-UUID/test-e2e-asset-upload-UUID/test-e2e-asset-upload-UUID.txt
+                      X-Amz-Algorithm=AWS4-HMAC-SHA256&amp;X-Amz-Credential=...
+                      content-md5:
+                      host:s3.eu-central-1.amazonaws.com
+
+                      content-md5;host
+                      UNSIGNED-PAYLOAD
+                  </CanonicalRequest>
+                  <CanonicalRequestBytes>50 55 54 0a 2f 73...</CanonicalRequestBytes>
+                  <RequestId>F5SB90RJFYE21C0V</RequestId>
+                  <HostId>YnH6DNl93sXH5kL0nEk1TOhH+crwM+wnaRNhh7MNC6CW6XhAeJLKVV/WU+dsdRkJUzet5m7cZwU=</HostId>
+                </Error>
   /collections/{collectionId}/items/{featureId}/assets/{assetId}/uploads/{uploadId}/complete:
     parameters:
     - $ref: "#/components/parameters/collectionId"
@@ -1348,6 +1447,9 @@ components:
             - kgrel
             - komb
             - krel
+            geoadmin:lang:
+            - de
+            - fr
             proj:epsg:
             - 2056
         title:
@@ -1383,7 +1485,7 @@ components:
               rel: self
             - href: https://data.geo.admin.ch/api/stac/v0.9/
               rel: root
-            - href: https://data.geo.admin.ch/api/stac/v0.9/collections
+            - href: https://data.geo.admin.ch/api/stac/v0.9
               rel: parent
             - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items
               rel: items
@@ -1714,7 +1816,7 @@ components:
               rel: self
             - href: https://data.geo.admin.ch/api/stac/v0.9/
               rel: root
-            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
               rel: parent
             - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
               rel: collection
@@ -2653,7 +2755,7 @@ components:
               rel: self
             - href: https://data.geo.admin.ch/api/stac/v0.9/
               rel: root
-            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019
               rel: parent
             - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019
               rel: item
@@ -2679,7 +2781,7 @@ components:
               rel: self
             - href: https://data.geo.admin.ch/api/stac/v0.9/
               rel: root
-            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019
               rel: parent
             - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019
               rel: item
@@ -2877,6 +2979,7 @@ components:
       - created
       - "checksum:multihash"
       - number_parts
+      - md5_parts
       properties:
         upload_id:
           $ref: "#/components/schemas/uploadId"
@@ -2884,6 +2987,8 @@ components:
           $ref: "#/components/schemas/status"
         number_parts:
           $ref: "#/components/schemas/number_parts"
+        md5_parts:
+          $ref: "#/components/schemas/md5_parts"
         urls:
           type: array
           description: |
@@ -3027,6 +3132,24 @@ components:
       type: integer
       minimum: 1
       maximum: 100
+    md5_parts:
+      description: MD5 checksums of each individual parts.
+      type: array
+      minItems: 1
+      maxItems: 100
+      items:
+        type: object
+        required:
+        - part_number
+        - md5
+        properties:
+          part_number:
+            $ref: "#/components/schemas/part_number"
+          md5:
+            description: The base64-encoded 128-bit MD5 digest of the associate part
+              data.
+            type: string
+            example: yLLiDqX2OL7mcIMTjob60A==
     part_number:
       description: Number of the part.
       type: integer
@@ -3451,7 +3574,7 @@ components:
                   The array contain at least a link to the parent resource (`rel:
                   parent`).
                 example:
-                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items
+                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
                   rel: parent
             required:
             - code

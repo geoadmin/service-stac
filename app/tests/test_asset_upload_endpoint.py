@@ -1,6 +1,8 @@
 # pylint: disable=too-many-ancestors
+import hashlib
 import logging
 import os
+from base64 import b64encode
 from datetime import datetime
 from urllib import parse
 
@@ -27,6 +29,16 @@ logger = logging.getLogger(__name__)
 KB = 1024
 MB = 1024 * KB
 GB = 1024 * MB
+
+
+def base64_md5(data):
+    return b64encode(hashlib.md5(data).digest()).decode('utf-8')
+
+
+def create_md5_parts(number_parts, offset, file_like):
+    return [{
+        'part_number': i + 1, 'md5': base64_md5(file_like[i * offset:(i + 1) * offset])
+    } for i in range(number_parts)]
 
 
 class AssetUploadBaseTest(StacBaseTestCase, S3TestMixin):
@@ -174,10 +186,14 @@ class AssetUploadCreateEndpointTestCase(AssetUploadBaseTest):
         self.assertS3ObjectNotExists(key)
         number_parts = 2
         file_like, checksum_multihash = self.get_file_like_object(1 * KB)
+        offset = 1 * KB // number_parts
+        md5_parts = create_md5_parts(number_parts, offset, file_like)
         response = self.client.post(
             self.get_create_multipart_upload_path(),
             data={
-                'number_parts': number_parts, 'checksum:multihash': checksum_multihash
+                'number_parts': number_parts,
+                'checksum:multihash': checksum_multihash,
+                'md5_parts': md5_parts
             },
             content_type="application/json"
         )
@@ -213,10 +229,14 @@ class AssetUploadCreateEndpointTestCase(AssetUploadBaseTest):
         self.assertS3ObjectNotExists(key)
         number_parts = 2
         file_like, checksum_multihash = self.get_file_like_object(1 * KB)
+        offset = 1 * KB // number_parts
+        md5_parts = create_md5_parts(number_parts, offset, file_like)
         response = self.client.post(
             self.get_create_multipart_upload_path(),
             data={
-                'number_parts': number_parts, 'checksum:multihash': checksum_multihash
+                'number_parts': number_parts,
+                'checksum:multihash': checksum_multihash,
+                'md5_parts': md5_parts
             },
             content_type="application/json"
         )
@@ -228,7 +248,9 @@ class AssetUploadCreateEndpointTestCase(AssetUploadBaseTest):
         response = self.client.post(
             self.get_create_multipart_upload_path(),
             data={
-                'number_parts': number_parts, 'checksum:multihash': checksum_multihash
+                'number_parts': number_parts,
+                'checksum:multihash': checksum_multihash,
+                'md5_parts': md5_parts
             },
             content_type="application/json"
         )
@@ -252,7 +274,7 @@ class AssetUploadCreateEndpointTestCase(AssetUploadBaseTest):
 
 class AssetUpload1PartEndpointTestCase(AssetUploadBaseTest):
 
-    def test_asset_upload_1_part(self):
+    def test_asset_upload_1_part_no_md5(self):
         key = get_asset_path(self.item, self.asset.name)
         self.assertS3ObjectNotExists(key)
         number_parts = 1
@@ -262,6 +284,64 @@ class AssetUpload1PartEndpointTestCase(AssetUploadBaseTest):
             self.get_create_multipart_upload_path(),
             data={
                 'number_parts': number_parts, 'checksum:multihash': checksum_multihash
+            },
+            content_type="application/json"
+        )
+        self.assertStatusCode(400, response)
+        self.assertEqual(response.json()['description'], {'md5_parts': ['This field is required.']})
+
+    def test_asset_upload_1_part_md5_integrity(self):
+        key = get_asset_path(self.item, self.asset.name)
+        self.assertS3ObjectNotExists(key)
+        number_parts = 1
+        size = 1 * KB
+        file_like, checksum_multihash = self.get_file_like_object(size)
+        md5_parts = [{'part_number': 1, 'md5': base64_md5(file_like)}]
+        response = self.client.post(
+            self.get_create_multipart_upload_path(),
+            data={
+                'number_parts': number_parts,
+                'md5_parts': md5_parts,
+                'checksum:multihash': checksum_multihash
+            },
+            content_type="application/json"
+        )
+        self.assertStatusCode(201, response)
+        json_data = response.json()
+        self.check_created_response(json_data)
+        self.check_urls_response(json_data['urls'], number_parts)
+        self.assertIn('md5_parts', json_data)
+        self.assertEqual(json_data['md5_parts'], md5_parts)
+
+        parts = self.s3_upload_parts(json_data['upload_id'], file_like, size, number_parts)
+        response = self.client.post(
+            self.get_complete_multipart_upload_path(json_data['upload_id']),
+            data={'parts': parts},
+            content_type="application/json"
+        )
+        self.assertStatusCode(200, response)
+        self.check_completed_response(response.json())
+        self.assertS3ObjectExists(key)
+
+
+class AssetUpload2PartEndpointTestCase(AssetUploadBaseTest):
+
+    def test_asset_upload_2_parts_md5_integrity(self):
+        key = get_asset_path(self.item, self.asset.name)
+        self.assertS3ObjectNotExists(key)
+        number_parts = 2
+        size = 10 * MB  # Minimum upload part on S3 is 5 MB
+        file_like, checksum_multihash = self.get_file_like_object(size)
+
+        offset = size // number_parts
+        md5_parts = create_md5_parts(number_parts, offset, file_like)
+
+        response = self.client.post(
+            self.get_create_multipart_upload_path(),
+            data={
+                'number_parts': number_parts,
+                'md5_parts': md5_parts,
+                'checksum:multihash': checksum_multihash
             },
             content_type="application/json"
         )
@@ -281,10 +361,7 @@ class AssetUpload1PartEndpointTestCase(AssetUploadBaseTest):
         self.check_completed_response(response.json())
         self.assertS3ObjectExists(key)
 
-
-class AssetUpload2PartEndpointTestCase(AssetUploadBaseTest):
-
-    def test_asset_upload_2_parts(self):
+    def test_asset_upload_2_parts_no_md5(self):
         key = get_asset_path(self.item, self.asset.name)
         self.assertS3ObjectNotExists(key)
         number_parts = 2
@@ -298,26 +375,13 @@ class AssetUpload2PartEndpointTestCase(AssetUploadBaseTest):
             },
             content_type="application/json"
         )
-        self.assertStatusCode(201, response)
-        json_data = response.json()
-        self.check_created_response(json_data)
-        self.check_urls_response(json_data['urls'], number_parts)
-
-        parts = self.s3_upload_parts(json_data['upload_id'], file_like, size, number_parts)
-
-        response = self.client.post(
-            self.get_complete_multipart_upload_path(json_data['upload_id']),
-            data={'parts': parts},
-            content_type="application/json"
-        )
-        self.assertStatusCode(200, response)
-        self.check_completed_response(response.json())
-        self.assertS3ObjectExists(key)
+        self.assertStatusCode(400, response)
+        self.assertEqual(response.json()['description'], {'md5_parts': ['This field is required.']})
 
 
 class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
 
-    def test_asset_upload_create_invalid(self):
+    def test_asset_upload_create_empty_payload(self):
         response = self.client.post(
             self.get_create_multipart_upload_path(), data={}, content_type="application/json"
         )
@@ -326,14 +390,21 @@ class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
             response.json()['description'],
             {
                 'checksum:multihash': ['This field is required.'],
-                'number_parts': ['This field is required.']
+                'number_parts': ['This field is required.'],
+                'md5_parts': ['This field is required.']
             }
         )
+
+    def test_asset_upload_create_invalid_data(self):
 
         response = self.client.post(
             self.get_create_multipart_upload_path(),
             data={
-                'number_parts': 0, "checksum:multihash": 'abcdef'
+                'number_parts': 0,
+                "checksum:multihash": 'abcdef',
+                "md5_parts": [{
+                    "part_number": '0', "md5": 'abcdef'
+                }]
             },
             content_type="application/json"
         )
@@ -346,10 +417,15 @@ class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
             }
         )
 
+    def test_asset_upload_create_too_many_parts(self):
+
+        number_parts = 101
+        md5_parts = [{'part_number': i + 1, 'md5': 'abcdef'} for i in range(number_parts)]
+
         response = self.client.post(
             self.get_create_multipart_upload_path(),
             data={
-                'number_parts': 101, "checksum:multihash": 'abcdef'
+                'number_parts': 101, "checksum:multihash": 'abcdef', 'md5_parts': md5_parts
             },
             content_type="application/json"
         )
@@ -362,17 +438,126 @@ class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
             }
         )
 
+    def test_asset_upload_create_empty_md5_parts(self):
+
+        response = self.client.post(
+            self.get_create_multipart_upload_path(),
+            data={
+                'number_parts': 2,
+                "md5_parts": [],
+                "checksum:multihash":
+                    '12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC'
+            },
+            content_type="application/json"
+        )
+        self.assertStatusCode(400, response)
+        self.assertEqual(
+            response.json()['description'],
+            {
+                'non_field_errors': [
+                    'Missing, too many or duplicate part_number in md5_parts field list: '
+                    'list should have 2 item(s).'
+                ]
+            }
+        )
+
+    def test_asset_upload_create_duplicate_md5_parts(self):
+
+        response = self.client.post(
+            self.get_create_multipart_upload_path(),
+            data={
+                'number_parts': 3,
+                "md5_parts": [{
+                    'part_number': 1, 'md5': 'asdf'
+                }, {
+                    'part_number': 1, 'md5': 'asdf'
+                }, {
+                    'part_number': 2, 'md5': 'asdf'
+                }],
+                "checksum:multihash":
+                    '12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC'
+            },
+            content_type="application/json"
+        )
+        self.assertStatusCode(400, response)
+        self.assertEqual(
+            response.json()['description'],
+            {
+                'non_field_errors': [
+                    'Missing, too many or duplicate part_number in md5_parts field list: '
+                    'list should have 3 item(s).'
+                ]
+            }
+        )
+
+    def test_asset_upload_create_too_many_md5_parts(self):
+
+        response = self.client.post(
+            self.get_create_multipart_upload_path(),
+            data={
+                'number_parts': 2,
+                "md5_parts": [{
+                    'part_number': 1, 'md5': 'asdf'
+                }, {
+                    'part_number': 2, 'md5': 'asdf'
+                }, {
+                    'part_number': 3, 'md5': 'asdf'
+                }],
+                "checksum:multihash":
+                    '12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC'
+            },
+            content_type="application/json"
+        )
+        self.assertStatusCode(400, response)
+        self.assertEqual(
+            response.json()['description'],
+            {
+                'non_field_errors': [
+                    'Missing, too many or duplicate part_number in md5_parts field list: '
+                    'list should have 2 item(s).'
+                ]
+            }
+        )
+
+    def test_asset_upload_create_md5_parts_missing_part_number(self):
+
+        response = self.client.post(
+            self.get_create_multipart_upload_path(),
+            data={
+                'number_parts': 2,
+                "md5_parts": [
+                    {
+                        'part_number': 1, 'md5': 'asdf'
+                    },
+                    {
+                        'md5': 'asdf'
+                    },
+                ],
+                "checksum:multihash":
+                    '12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC'
+            },
+            content_type="application/json"
+        )
+        self.assertStatusCode(400, response)
+        self.assertEqual(
+            response.json()['description'],
+            {'non_field_errors': ['Invalid md5_parts[1] value: part_number field missing']}
+        )
+
     def test_asset_upload_2_parts_too_small(self):
         key = get_asset_path(self.item, self.asset.name)
         self.assertS3ObjectNotExists(key)
         number_parts = 2
         size = 1 * KB  # Minimum upload part on S3 is 5 MB
         file_like, checksum_multihash = self.get_file_like_object(size)
-
+        offset = size // number_parts
+        md5_parts = create_md5_parts(number_parts, offset, file_like)
         response = self.client.post(
             self.get_create_multipart_upload_path(),
             data={
-                'number_parts': number_parts, 'checksum:multihash': checksum_multihash
+                'number_parts': number_parts,
+                'checksum:multihash': checksum_multihash,
+                'md5_parts': md5_parts
             },
             content_type="application/json"
         )
@@ -403,11 +588,15 @@ class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
         number_parts = 1
         size = 1 * KB
         file_like, checksum_multihash = self.get_file_like_object(size)
+        offset = size // number_parts
+        md5_parts = create_md5_parts(number_parts, offset, file_like)
 
         response = self.client.post(
             self.get_create_multipart_upload_path(),
             data={
-                'number_parts': number_parts, 'checksum:multihash': checksum_multihash
+                'number_parts': number_parts,
+                'checksum:multihash': checksum_multihash,
+                'md5_parts': md5_parts
             },
             content_type="application/json"
         )
@@ -442,11 +631,15 @@ class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
         number_parts = 1
         size = 1 * KB
         file_like, checksum_multihash = self.get_file_like_object(size)
+        offset = size // number_parts
+        md5_parts = create_md5_parts(number_parts, offset, file_like)
 
         response = self.client.post(
             self.get_create_multipart_upload_path(),
             data={
-                'number_parts': number_parts, 'checksum:multihash': checksum_multihash
+                'number_parts': number_parts,
+                'checksum:multihash': checksum_multihash,
+                'md5_parts': md5_parts
             },
             content_type="application/json"
         )
@@ -470,11 +663,15 @@ class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
         number_parts = 2
         size = 10 * MB
         file_like, checksum_multihash = self.get_file_like_object(size)
+        offset = size // number_parts
+        md5_parts = create_md5_parts(number_parts, offset, file_like)
 
         response = self.client.post(
             self.get_create_multipart_upload_path(),
             data={
-                'number_parts': number_parts, 'checksum:multihash': checksum_multihash
+                'number_parts': number_parts,
+                'checksum:multihash': checksum_multihash,
+                'md5_parts': md5_parts
             },
             content_type="application/json"
         )
@@ -497,11 +694,15 @@ class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
         number_parts = 1
         size = 1 * KB
         file_like, checksum_multihash = self.get_file_like_object(size)
+        offset = size // number_parts
+        md5_parts = create_md5_parts(number_parts, offset, file_like)
 
         response = self.client.post(
             self.get_create_multipart_upload_path(),
             data={
-                'number_parts': number_parts, 'checksum:multihash': checksum_multihash
+                'number_parts': number_parts,
+                'checksum:multihash': checksum_multihash,
+                'md5_parts': md5_parts
             },
             content_type="application/json"
         )
@@ -554,11 +755,15 @@ class AssetUploadDeleteInProgressEndpointTestCase(AssetUploadBaseTest):
         number_parts = 2
         size = 10 * MB  # Minimum upload part on S3 is 5 MB
         file_like, checksum_multihash = self.get_file_like_object(size)
+        offset = size // number_parts
+        md5_parts = create_md5_parts(number_parts, offset, file_like)
 
         response = self.client.post(
             self.get_create_multipart_upload_path(),
             data={
-                'number_parts': number_parts, 'checksum:multihash': checksum_multihash
+                'number_parts': number_parts,
+                'checksum:multihash': checksum_multihash,
+                'md5_parts': md5_parts
             },
             content_type="application/json"
         )
@@ -608,7 +813,8 @@ class GetAssetUploadsEndpointTestCase(AssetUploadBaseTest):
                 status=AssetUpload.Status.ABORTED,
                 checksum_multihash=get_sha256_multihash(b'upload-%d' % i),
                 number_parts=2,
-                ended=utc_aware(datetime.utcnow())
+                ended=utc_aware(datetime.utcnow()),
+                md5_parts=[]
             )
         for i in range(4, 8):
             AssetUpload.objects.create(
@@ -617,14 +823,16 @@ class GetAssetUploadsEndpointTestCase(AssetUploadBaseTest):
                 status=AssetUpload.Status.COMPLETED,
                 checksum_multihash=get_sha256_multihash(b'upload-%d' % i),
                 number_parts=2,
-                ended=utc_aware(datetime.utcnow())
+                ended=utc_aware(datetime.utcnow()),
+                md5_parts=[]
             )
         AssetUpload.objects.create(
             asset=self.asset,
             upload_id='upload-8',
             status=AssetUpload.Status.IN_PROGRESS,
             checksum_multihash=get_sha256_multihash(b'upload-8'),
-            number_parts=2
+            number_parts=2,
+            md5_parts=[]
         )
         self.maxDiff = None  # pylint: disable=invalid-name
 
@@ -673,10 +881,14 @@ class AssetUploadListPartsEndpointTestCase(AssetUploadBaseTest):
         number_parts = 4
         size = 5 * MB * number_parts
         file_like, checksum_multihash = self.get_file_like_object(size)
+        offset = size // number_parts
+        md5_parts = create_md5_parts(number_parts, offset, file_like)
         response = self.client.post(
             self.get_create_multipart_upload_path(),
             data={
-                'number_parts': number_parts, 'checksum:multihash': checksum_multihash
+                'number_parts': number_parts,
+                'checksum:multihash': checksum_multihash,
+                'md5_parts': md5_parts
             },
             content_type="application/json"
         )

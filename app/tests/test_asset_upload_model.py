@@ -26,6 +26,7 @@ class AssetUploadTestCaseMixin:
             upload_id=upload_id,
             checksum_multihash=get_sha256_multihash(b'Test'),
             number_parts=1,
+            md5_parts=["this is an mad5 value"],
             **kwargs
         )
         asset_upload.full_clean()
@@ -129,7 +130,8 @@ class AssetUploadModelTestCase(TestCase, AssetUploadTestCaseMixin):
                 asset=self.asset_1,
                 upload_id='my-upload-id',
                 checksum_multihash=get_sha256_multihash(b'Test'),
-                number_parts=-1
+                number_parts=-1,
+                md5_parts=['fake_md5']
             )
             asset_upload.full_clean()
             asset_upload.save()

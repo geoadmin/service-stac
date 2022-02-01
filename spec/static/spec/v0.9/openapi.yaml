@@ -482,6 +482,9 @@ components:
             - kgrel
             - komb
             - krel
+            geoadmin:lang:
+            - de
+            - fr
             proj:epsg:
             - 2056
         title:
@@ -517,7 +520,7 @@ components:
               rel: self
             - href: https://data.geo.admin.ch/api/stac/v0.9/
               rel: root
-            - href: https://data.geo.admin.ch/api/stac/v0.9/collections
+            - href: https://data.geo.admin.ch/api/stac/v0.9
               rel: parent
             - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items
               rel: items
@@ -848,7 +851,7 @@ components:
               rel: self
             - href: https://data.geo.admin.ch/api/stac/v0.9/
               rel: root
-            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
               rel: parent
             - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
               rel: collection

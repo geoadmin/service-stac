@@ -13,8 +13,8 @@ from django.db import IntegrityError
 from django.db import transaction
 from django.utils.translation import gettext_lazy as _
 
+from rest_framework import serializers
 from rest_framework.exceptions import APIException
-from rest_framework.exceptions import ValidationError
 
 from stac_api.utils import create_multihash
 from stac_api.utils import create_multihash_string
@@ -36,7 +36,7 @@ def validate_json_payload(serializer):
         serializer: serializer for which payload is checked
 
     Raises:
-        ValidationError if extra or read-only fields in payload are found
+        serializers.ValidationError if extra or read-only fields in payload are found
     '''
 
     expected_payload = list(serializer.fields.keys())
@@ -54,7 +54,7 @@ def validate_json_payload(serializer):
             errors[key] = _("Found read-only property in payload")
 
     if errors:
-        raise ValidationError(code='payload', detail=errors)
+        raise serializers.ValidationError(code='payload', detail=errors)
 
 
 def validate_asset_href_path(item, asset_name, path):
@@ -72,7 +72,7 @@ def validate_asset_href_path(item, asset_name, path):
             Href path to validate
 
     Raises:
-        ValidationError in case of invalid path
+        serializers.ValidationError in case of invalid path
     '''
     expected_path = get_asset_path(item, asset_name)
     if settings.AWS_S3_CUSTOM_DOMAIN:
@@ -80,7 +80,7 @@ def validate_asset_href_path(item, asset_name, path):
         expected_path = '/'.join(prefix_path + [expected_path])
     if path != expected_path:
         logger.error("Invalid path %s; don't follow the convention %s", path, expected_path)
-        raise ValidationError({
+        raise serializers.ValidationError({
             'href': _(f"Invalid path; should be {expected_path} but got {path}")
         })
 
@@ -100,7 +100,7 @@ def validate_asset_file(href, original_name, attrs):
             Asset file expected multihash (must be a sha2-256 multihash !)
 
     Raises:
-        rest_framework.exceptions.ValidationError:
+        rest_framework.exceptions.serializers.ValidationError:
             in case of invalid Asset (asset doesn't exist or hash doesn't match)
         rest_framework.exceptions.APIException:
             in case of other networking errors
@@ -117,7 +117,9 @@ def validate_asset_file(href, original_name, attrs):
         logger.error('Failed to retrieve S3 object %s metadata: %s', asset_path, error)
         if error.response.get('Error', {}).get('Code', None) == '404':
             logger.error('Asset at href %s doesn\'t exists', href)
-            raise ValidationError({'href': _(f"Asset doesn't exists at href {href}")}) from error
+            raise serializers.ValidationError({
+                'href': _(f"Asset doesn't exists at href {href}")
+            }) from error
         raise APIException({'href': _("Error while checking href existence")}) from error
 
     # Get the hash from response
@@ -133,9 +135,10 @@ def validate_asset_file(href, original_name, attrs):
             "(x-amz-meta-sha256) for validation",
             href
         )
-        raise ValidationError(code='query-invalid', detail=_(
-            f"Asset at href {href} doesn't provide a mandatory checksum header "
-            "(x-amz-meta-sha256) for validation")) from None
+        raise serializers.ValidationError({
+            'href': _(f"Asset at href {href} doesn't provide a mandatory checksum header "
+                      "(x-amz-meta-sha256) for validation")
+        }) from None
 
     expected_multihash = attrs.get('checksum_multihash', None)
     if expected_multihash is None:
@@ -177,12 +180,11 @@ def _validate_asset_file_checksum(href, expected_multihash, asset_multihash):
             expected_multihash.name,
             to_hex_string(expected_multihash.digest)
         )
-        raise ValidationError(
-            code='href',
-            detail=_(f"Asset at href {href} has a {asset_multihash.name} multihash while a "
-                     f"{expected_multihash.name} multihash is defined in the checksum:multihash "
-                     "attribute")
-        )
+        raise serializers.ValidationError({
+            'href': _(f"Asset at href {href} has a {asset_multihash.name} multihash while a "
+                      f"{expected_multihash.name} multihash is defined in the checksum:multihash "
+                      "attribute")
+        })
 
     if asset_multihash != expected_multihash:
         logger.error(
@@ -194,12 +196,11 @@ def _validate_asset_file_checksum(href, expected_multihash, asset_multihash):
             expected_multihash.name,
             to_hex_string(expected_multihash.digest)
         )
-        raise ValidationError(
-            code='href',
-            detail=_(f"Asset at href {href} with {asset_multihash.name} hash "
-                     f"{to_hex_string(asset_multihash.digest)} doesn't match the "
-                     f"checksum:multihash {to_hex_string(expected_multihash.digest)}")
-        )
+        raise serializers.ValidationError({
+            'href': _(f"Asset at href {href} with {asset_multihash.name} hash "
+                      f"{to_hex_string(asset_multihash.digest)} doesn't match the "
+                      f"checksum:multihash {to_hex_string(expected_multihash.digest)}")
+        })
 
 
 class ValidateSearchRequest:
@@ -209,7 +210,7 @@ class ValidateSearchRequest:
     this class does nothing.
 
     If there are errors in the validation it sums them up and returns the summary
-    when raising a ValidationError.
+    when raising a serializers.ValidationError.
     '''
 
     def __init__(self):
@@ -236,7 +237,7 @@ class ValidateSearchRequest:
                 The Request (POST or GET)
 
         Raises:
-            ValidationError(code, details)
+            serializers.ValidationError(code, details)
         '''
         # harmonize GET and POST
         query_param = harmonize_post_get_for_search(request)
@@ -261,7 +262,7 @@ class ValidateSearchRequest:
         if self.errors:
             for key, value in self.errors.items():
                 logger.error('%s: %s', key, value)
-            raise ValidationError(code='query-invalid', detail=self.errors)
+            raise serializers.ValidationError(self.errors)
 
     def validate_query(self, query):
         '''Validates the query parameter
@@ -283,7 +284,7 @@ class ValidateSearchRequest:
             message = f"The application could not decode the query parameter" \
                       f"Please check the syntax ({error})." \
                       f"{query}"
-            raise ValidationError(code='query-invalid', detail=_(message)) from None
+            raise serializers.ValidationError(_(message)) from None
 
         self._query_validate_length_of_query(query_dict)
         for attribute in query_dict:
@@ -301,13 +302,13 @@ class ValidateSearchRequest:
             query_dict: dictionary
                 To test how many query attributes are provided
         Raise:
-            ValidationError
+            serializers.ValidationError
         '''
         if len(query_dict) > self.max_query_attributes:
             message = f"Too many attributes in query parameter. Max. " \
                       f"{self.max_query_attributes} allowed"
             logger.error(message)
-            raise ValidationError(code='query-invalid', detail=_(message))
+            raise serializers.ValidationError(_(message))
 
     def _query_validate_operators(self, query_dict, attribute):
         '''
@@ -474,7 +475,7 @@ class ValidateSearchRequest:
         try:
             validate_geometry(geometry_from_bbox(bbox))
 
-        except (ValueError, ValidationError, IndexError, GDALException) as error:
+        except (ValueError, serializers.ValidationError, IndexError, GDALException) as error:
             message = f"Invalid bbox query parameter: " \
                       f"f.ex. bbox=5.96,45.82,10.49,47.81, {bbox} ({error})"
             self.errors['bbox'] = _(message)
@@ -492,7 +493,7 @@ class ValidateSearchRequest:
         try:
             intersects_geometry = GEOSGeometry(geojson)
             validate_geometry(intersects_geometry)
-        except (ValueError, ValidationError, GDALException) as error:
+        except (ValueError, serializers.ValidationError, GDALException) as error:
             message = f"Invalid query: " \
                 f"Could not transform {geojson} to a geometry; {error}"
             self.errors['intersects'] = _(message)
@@ -530,7 +531,7 @@ def validate_uniqueness_and_create(model_class, validated_data):
     """Validate for uniqueness and create object
 
     Try to create an object and if it fails with db IntegrityError due to non unique object by name
-    re-raise a ValidationError(), otherwise re-raise the IntegrityError
+    re-raise a serializers.ValidationError(), otherwise re-raise the IntegrityError
 
     Args:
         model_class: Model
@@ -542,7 +543,7 @@ def validate_uniqueness_and_create(model_class, validated_data):
         the object created
 
     Raises:
-        ValidationError: when the new object is not unique by name in db.
+        serializers.ValidationError: when the new object is not unique by name in db.
         IntegrityError: for any other DB errors
     """
     try:
@@ -550,7 +551,7 @@ def validate_uniqueness_and_create(model_class, validated_data):
             return model_class.objects.create(**validated_data)
     except IntegrityError as error:
         if model_class.objects.all().filter(name=validated_data['name']).exists():
-            raise ValidationError(
-                code='unique', detail={'id': ['This field must be unique.']}
+            raise serializers.ValidationError(
+                code='unique', detail={'id': [_('This field must be unique.')]}
             ) from None
         raise

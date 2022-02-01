@@ -4,6 +4,7 @@ from urllib.parse import urlparse
 
 from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry
+from django.utils.translation import gettext_lazy as _
 
 from rest_framework import serializers
 from rest_framework.utils.serializer_helpers import ReturnDict
@@ -35,6 +36,7 @@ from stac_api.validators import validate_asset_name_with_media_type
 from stac_api.validators import validate_checksum_multihash_sha256
 from stac_api.validators import validate_geoadmin_variant
 from stac_api.validators import validate_item_properties_datetimes
+from stac_api.validators import validate_md5_parts
 from stac_api.validators import validate_name
 from stac_api.validators_serializer import validate_json_payload
 from stac_api.validators_serializer import validate_uniqueness_and_create
@@ -222,7 +224,8 @@ class CollectionSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         return {
             'proj:epsg': obj.summaries_proj_epsg or [],
             'eo:gsd': obj.summaries_eo_gsd or [],
-            'geoadmin:variant': obj.summaries_geoadmin_variant or []
+            'geoadmin:variant': obj.summaries_geoadmin_variant or [],
+            'geoadmin:lang': obj.summaries_geoadmin_lang or []
         }
 
     def get_extent(self, obj):
@@ -352,18 +355,7 @@ class CollectionSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         # We use OrderedDict, although it is not necessary, because the default serializer/model for
         # links already uses OrderedDict, this way we keep consistency between auto link and user
         # link
-        representation['links'][:0] = get_relation_links(request, 'collection-detail', [name]) + [
-            OrderedDict([
-                ('rel', 'items'),
-                ('href', get_url(request, 'items-list', [name])),
-            ]),
-            OrderedDict([
-                ("rel", "alternate"),
-                ("title", "STAC Browser"),
-                ("type", "text/html"),
-                ("href", get_browser_url(request, 'browser-collection', collection=name)),
-            ]),
-        ]
+        representation['links'][:0] = get_relation_links(request, 'collection-detail', [name])
         return representation
 
     def validate(self, attrs):
@@ -563,18 +555,9 @@ class AssetSerializer(AssetBaseSerializer):
         # We use OrderedDict, although it is not necessary, because the default serializer/model for
         # links already uses OrderedDict, this way we keep consistency between auto link and user
         # link
-        representation['links'] = \
-            get_relation_links(request, 'asset-detail', [collection, item, name]) \
-            + [
-                OrderedDict([
-                    ('rel', 'item'),
-                    ('href', get_url(request, 'item-detail', [collection, item])),
-                ]),
-                OrderedDict([
-                    ('rel', 'collection'),
-                    ('href', get_url(request, 'collection-detail', [collection])),
-                ])
-            ]
+        representation['links'] = get_relation_links(
+            request, 'asset-detail', [collection, item, name]
+        )
         return representation
 
 
@@ -658,22 +641,7 @@ class ItemSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         # We use OrderedDict, although it is not necessary, because the default serializer/model for
         # links already uses OrderedDict, this way we keep consistency between auto link and user
         # link
-        representation['links'][:0] = \
-            get_relation_links(request, 'item-detail', [collection, name]) \
-            + [
-                OrderedDict([
-                    ('rel', 'collection'),
-                    ('href', get_url(request, 'collection-detail', [collection])),
-                ]),
-                OrderedDict([
-                    ("rel", "alternate"),
-                    ("title", "STAC Browser"),
-                    ("type", "text/html"),
-                    ("href", get_browser_url(
-                        request, 'browser-item', collection=collection, item=name
-                    )),
-                ]),
-            ]
+        representation['links'][:0] = get_relation_links(request, 'item-detail', [collection, name])
         return representation
 
     def create(self, validated_data):
@@ -770,6 +738,7 @@ class AssetUploadSerializer(NonNullModelSerializer):
             'completed',
             'aborted',
             'number_parts',
+            'md5_parts',
             'urls',
             'ended',
             'parts'
@@ -782,6 +751,7 @@ class AssetUploadSerializer(NonNullModelSerializer):
         allow_blank=False,
         validators=[validate_checksum_multihash_sha256]
     )
+    md5_parts = serializers.JSONField(required=True)
 
     # write only fields
     ended = serializers.DateTimeField(write_only=True, required=False)
@@ -795,6 +765,17 @@ class AssetUploadSerializer(NonNullModelSerializer):
     urls = serializers.JSONField(read_only=True)
     completed = serializers.SerializerMethodField()
     aborted = serializers.SerializerMethodField()
+
+    def validate(self, attrs):
+        # get partial from kwargs (if partial true and no md5 : ok, if false no md5 : error)
+        # Check the md5 parts length
+        if attrs.get('md5_parts') is not None:
+            validate_md5_parts(attrs['md5_parts'], attrs['number_parts'])
+        elif not self.partial:
+            raise serializers.ValidationError(
+                detail={'md5_parts': _('md5_parts parameter is missing')}, code='missing'
+            )
+        return attrs
 
     def get_completed(self, obj):
         if obj.status == AssetUpload.Status.COMPLETED:

@@ -32,6 +32,8 @@
     - [**Database settings**](#database-settings)
     - [**Asset Storage settings (AWS S3)**](#asset-storage-settings-aws-s3)
     - [**Development settings (only for local environment and DEV staging)**](#development-settings-only-for-local-environment-and-dev-staging)
+- [Utility scripts](#utility-scripts)
+  - [How-to upload a multipart asset via the API](#how-to-upload-a-multipart-asset-via-the-api)
 
 ## Summary of the project
 
@@ -377,7 +379,8 @@ This service is to be deployed to the Kubernetes cluster once it is merged.
 
 ## Docker
 
-The service is encapsulated in a Docker image. Images are pushed on the public [Dockerhub](https://hub.docker.com/r/swisstopo/service-stac/tags) registry. From each github PR that are merged into develop branch, two Docker images are built and pushed with the following tags:
+The service is encapsulated in a Docker image. Images are pushed on the AWS elastic container registry (ECR).
+From each github PR that is merged into develop branch, two Docker images are built and pushed with the following tags:
 
 - develop.latest (prod image)
 - develop.latest-dev (dev image)
@@ -463,3 +466,39 @@ These settings are read from `settings_dev.py`
 |-------------|-----------------------|----------------------------------------|
 | DEBUG | `False` | Set django DEBUG flag |
 | DEBUG_PROPAGATE_API_EXCEPTIONS | `False` | When `True` the API exception are treated as in production, using a JSON response. Otherwise in DEBUG mode the API exception returns an HTML response with backtrace. |
+
+## Utility scripts
+
+The folder `scripts` contains several utility scripts that can be used for setting up local DBs,
+filling it with random data and the like and also for uploading files via the API.
+
+### How-to upload a multipart asset via the API
+
+The script [mulipart_upload_via_api.py](./scripts/multipart_upload_via_api.py) can be used for uploading
+large asset files via multipart upload using the API. Be sure to change your working directory to `scripts` first.
+The following will show a list of required and optional arguments:
+
+```bash
+cd scripts
+python3 multipart_upload_via_api.py -h
+```
+
+Uploading assets required authentication. For this purpose, the `scripts` folder contains a `secrets.yml`, so that
+`summon` can be used to inject `gopass` secrets into the environment variables.
+Running the scripts with gopass secret environment variables works as in the following example:
+
+```bash
+summon -p gopass -e {dev|int|prod} python3 ./multipart_upload_via_api.py {localhost|DEV|INT|PROD} collection-name item-name asset-name ./dummy_asset_for_multipart_testing.zip --part-size 5
+```
+
+When testing on `localhost`, `summon` and `gopass` are not required. You can then simply export your locally defined username
+and password into the environment, using the `export` bash command, before running the script.
+
+The script [create_dummy_asset_for_multipart_testing.py](./scripts/create_dummy_asset_for_multipart_testing.py) can be used for creating
+a dummy asset file for testing multipart uploads. The script takes the file size (in MB and as an integer value) of the unzipped dummy
+asset file as parameter and stores the resulting zipped asset file as `./scripts/dummy_asset_for_multipart_testing.zip`.
+You can run this script as follows:
+
+```bash
+python3 ./create_dummy_asset_for_multipart_testing.py 30    
+```

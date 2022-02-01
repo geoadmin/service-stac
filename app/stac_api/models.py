@@ -288,6 +288,9 @@ class Collection(models.Model):
     summaries_geoadmin_variant = ArrayField(
         models.CharField(max_length=25), default=list, blank=True, editable=False
     )
+    summaries_geoadmin_lang = ArrayField(
+        models.CharField(max_length=2), default=list, blank=True, editable=False
+    )
 
     title = models.CharField(blank=True, null=True, max_length=255)
 
@@ -567,6 +570,7 @@ class AssetUpload(models.Model):
     number_parts = models.IntegerField(
         validators=[MinValueValidator(1), MaxValueValidator(100)], null=False, blank=False
     )  # S3 doesn't support more that 10'000 parts
+    md5_parts = models.JSONField(encoder=DjangoJSONEncoder, editable=False)
     urls = models.JSONField(default=list, encoder=DjangoJSONEncoder, blank=True)
     created = models.DateTimeField(auto_now_add=True)
     ended = models.DateTimeField(blank=True, null=True, default=None)
