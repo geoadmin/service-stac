@@ -47,13 +47,13 @@ class CollectionsEndpointTestCase(StacBaseTestCase):
         self.assertStatusCode(200, response)
 
         # Check that the output is sorted by name
-        collection_ids = [collection['id'] for collection in response_json['collections']]
+        collection_ids = [collection['title'] for collection in response_json['collections']]
         self.assertListEqual(
             collection_ids, sorted(collection_ids), msg="Collections are not sorted by ID"
         )
 
         collection_samples = sorted([self.collection_1, self.collection_2, collection_3],
-                                    key=lambda collection: collection['name'])
+                                    key=lambda collection: collection['title'])
         for i, collection in enumerate(collection_samples):
             self.check_stac_collection(collection.json, response_json['collections'][i])
 
