@@ -44,7 +44,9 @@ class ApiPaginationTestCase(StacBaseTestCase):
     @classmethod
     def setUpTestData(cls):
         cls.factory = Factory()
-        cls.collections = cls.factory.create_collection_samples(3, db_create=True)
+        cls.collections = cls.factory.create_collection_samples(
+            3, title=['a title', 'better title', 'curious title'], db_create=True
+        )
 
     def setUp(self):
         self.client = Client()
