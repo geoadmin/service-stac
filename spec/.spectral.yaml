@@ -1,0 +1,7 @@
+rules:
+  array-of-arrays: warn
+  schema-description: warn
+  description-mentions-json: warn
+  property_case_convention: info
+  #- "lower_snake_case"
+  missing-required-properties: warn

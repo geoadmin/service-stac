@@ -32,8 +32,8 @@ build-specs: $(OPENAPI_TRANSACTIONAL)
 
 .PHONY: lint-specs
 lint-specs: build-specs
-	docker run --volume "$(PWD)":/data jamescooke/openapi-validator:0.54.0 -e $(OPENAPI)
-	docker run --volume "$(PWD)":/data jamescooke/openapi-validator:0.54.0 -e $(OPENAPI_TRANSACTIONAL)
+	docker run --volume "$(PWD)":/data jamescooke/openapi-validator -e $(OPENAPI)
+	docker run --volume "$(PWD)":/data jamescooke/openapi-validator -e $(OPENAPI_TRANSACTIONAL)
 
 
 # Start a little server that serves api.html and openapi.yaml
