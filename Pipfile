@@ -14,7 +14,6 @@ pip = "*"
 tblib = "*"  # needed for traceback when running tests in parallel
 mock = "~=4.0.2"
 responses = "!=0.12.1" # skip version 0.12.1 which has a bug see https://github.com/getsentry/responses/issues/358
-moto = {extras = [ "s3",], version = "*"}
 requests-mock = "*"
 
 [packages]
@@ -36,11 +35,13 @@ boto3 = "~=1.16.32"
 django-rest-framework-condition = "~=0.1.1"
 requests = "~=2.25.0"
 py-multihash = "~=2.0.1"
-pypatch = "*"
-django-prometheus = "*"
+django-prometheus = "~=2.2.0"
 django-admin-autocomplete-filter = "~=0.6.1"
 django-pgtrigger = "~=2.3.2"
-base58 = "~=2.1.0"
 
 [requires]
 python_version = "3.7"
+
+[dev-packages.moto]
+extras = [ "s3",]
+version = "*"
