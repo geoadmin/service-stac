@@ -238,7 +238,7 @@ class CollectionList(generics.GenericAPIView):
     # of DB queries.
     # see https://docs.djangoproject.com/en/3.1/ref/models/querysets/#prefetch-related
     queryset = Collection.objects.filter(published=True).prefetch_related('providers', 'links')
-    ordering = ['name']
+    ordering = ['title']
 
     def get(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())

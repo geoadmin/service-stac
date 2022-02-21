@@ -9,7 +9,6 @@ from urllib import parse
 
 import boto3
 import multihash
-from base58 import b58encode
 from botocore.client import Config
 
 from django.conf import settings
@@ -353,15 +352,18 @@ def get_browser_url(request, view, collection=None, item=None):
         base = request.build_absolute_uri(f'/{settings.STAC_BROWSER_BASE_PATH}')
 
     if view == 'browser-catalog':
-        return f'{base}'
-    if view == 'browser-collection':
-        collection_path = f'collections/{collection}'
-        return f'{base}#/{b58encode(collection_path).decode()}'
-    if view == 'browser-item':
-        collection_path = f'collections/{collection}'
-        item_path = f'{collection_path}/items/{item}'
-        return f'{base}#/item/{b58encode(collection_path).decode()}/{b58encode(item_path).decode()}'
-    logger.error('Unknown view "%s", return the STAC browser base url %s', view, base)
+        return f'{base}#/'
+    if view == 'browser-collection' and collection:
+        return f'{base}#/collections/{collection}'
+    if view == 'browser-item' and collection and item:
+        return f'{base}#/collections/{collection}/items/{item}'
+    logger.error(
+        'Failed to return STAC browser url for view=%s, collection=%s, item=%s, use then url=%s',
+        view,
+        collection,
+        item,
+        base
+    )
     return base
 
 

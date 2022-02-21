@@ -1,6 +1,7 @@
 version: 0.2
 
 env:
+  shell: bash
   variables:
     IMAGE_BASE_NAME: "service-stac"
     REGISTRY: "974517877189.dkr.ecr.eu-central-1.amazonaws.com"
@@ -24,15 +25,8 @@ phases:
   pre_build:
     commands:
       - echo "export of the image tag for build and push purposes"
-      # Reading git branch (the utility in the deploy script is unable to read it automatically
-      # on CodeBuild)
-      # see https://stackoverflow.com/questions/47657423/get-github-git-branch-for-aws-codebuild
-      - export GITHUB_BRANCH="$(git symbolic-ref HEAD --short 2>/dev/null)"
-      - |-
-        if [ "${GITHUB_BRANCH}" = "" ] ; then
-          GITHUB_BRANCH="$(git branch -a --contains HEAD | sed -n 2p | awk '{ printf $1 }')";
-          export GITHUB_BRANCH=${GITHUB_BRANCH#remotes/origin/};
-        fi
+      - echo "CODEBUILD_WEBHOOK_HEAD_REF=${CODEBUILD_WEBHOOK_HEAD_REF} CODEBUILD_WEBHOOK_BASE_REF=${CODEBUILD_WEBHOOK_BASE_REF}"
+      - export GITHUB_BRANCH="${CODEBUILD_WEBHOOK_HEAD_REF#refs/heads/}"
       - export COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
       - export GIT_TAG="$(git describe --tags || echo 'no version info')"
       - echo "GITHUB_BRANCH=${GITHUB_BRANCH} COMMIT_HASH=${COMMIT_HASH} GIT_TAG=${GIT_TAG}"
@@ -49,14 +43,14 @@ phases:
     commands:
       - |-
         if [ "${GIT_TAG}" = "undefined" ] ; then
-          DOCKER_IMG_TAG="${REGISTRY}/${IMAGE_BASE_NAME}:${GITHUB_BRANCH}.${COMMIT_HASH}"
+          DOCKER_IMG_TAG="${REGISTRY}/${IMAGE_BASE_NAME}:${GITHUB_BRANCH//\//_}.${COMMIT_HASH}"
         else
           DOCKER_IMG_TAG="${REGISTRY}/${IMAGE_BASE_NAME}:${GIT_TAG}"
         fi
       - export DOCKER_IMG_TAG=${DOCKER_IMG_TAG}
       - export DOCKER_IMG_TAG_DEV="${DOCKER_IMG_TAG}-dev"
-      - export DOCKER_IMG_TAG_LATEST="${REGISTRY}/${IMAGE_BASE_NAME}:${GITHUB_BRANCH}.latest"
-      - export DOCKER_IMG_TAG_LATEST_DEV="${REGISTRY}/${IMAGE_BASE_NAME}:${GITHUB_BRANCH}.latest-dev"
+      - export DOCKER_IMG_TAG_LATEST="${REGISTRY}/${IMAGE_BASE_NAME}:${GITHUB_BRANCH//\//_}.latest"
+      - export DOCKER_IMG_TAG_LATEST_DEV="${REGISTRY}/${IMAGE_BASE_NAME}:${GITHUB_BRANCH//\//_}.latest-dev"
       # Starting dev build for testing
       - echo "starting debug build on $(date)"
       - echo "Building docker debug image with tags ${DOCKER_IMG_TAG} and ${DOCKER_IMG_TAG_LATEST_DEV}"
