@@ -168,7 +168,7 @@ class CollectionsSummariesTestCase(StacBaseTransactionTestCase):
 
     def test_update_collection_summaries_empty_asset_delete(self):
         # This test has been introduced due to a bug when removing an asset without eo:gsd,
-        # proj:espg and geoadmin:variant from a collections with summaries
+        # proj:epsg and geoadmin:variant from a collections with summaries
         self.assertListEqual(self.collection.summaries_proj_epsg, [])
         self.assertListEqual(self.collection.summaries_geoadmin_variant, [])
         self.assertListEqual(self.collection.summaries_geoadmin_lang, [])

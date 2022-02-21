@@ -352,12 +352,18 @@ def get_browser_url(request, view, collection=None, item=None):
         base = request.build_absolute_uri(f'/{settings.STAC_BROWSER_BASE_PATH}')
 
     if view == 'browser-catalog':
-        return f'{base}'
-    if view == 'browser-collection':
+        return f'{base}#/'
+    if view == 'browser-collection' and collection:
         return f'{base}#/collections/{collection}'
-    if view == 'browser-item':
+    if view == 'browser-item' and collection and item:
         return f'{base}#/collections/{collection}/items/{item}'
-    logger.error('Unknown view "%s", return the STAC browser base url %s', view, base)
+    logger.error(
+        'Failed to return STAC browser url for view=%s, collection=%s, item=%s, use then url=%s',
+        view,
+        collection,
+        item,
+        base
+    )
     return base
 
 

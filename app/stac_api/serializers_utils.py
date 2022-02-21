@@ -66,7 +66,7 @@ view_relations = {
     },
     'collections-list': {
         'parent': 'landing-page',
-        'browser': 'browser-collection',
+        'browser': 'browser-catalog',
     },
     'collection-detail': {
         'parent': 'landing-page',
@@ -74,7 +74,7 @@ view_relations = {
     },
     'items-list': {
         'parent': 'collection-detail',
-        'browser': 'browser-item',
+        'browser': 'browser-collection',
     },
     'item-detail': {
         'parent': 'collection-detail',
