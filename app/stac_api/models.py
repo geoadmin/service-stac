@@ -181,6 +181,7 @@ class LandingPageLink(Link):
 
     class Meta:
         unique_together = (('rel', 'landing_page'))
+        ordering = ['pk']
 
 
 class ConformancePage(SingletonModel):
@@ -223,6 +224,7 @@ class Provider(models.Model):
 
     class Meta:
         unique_together = (('collection', 'name'),)
+        ordering = ['pk']
 
     def __str__(self):
         return self.name
@@ -311,6 +313,7 @@ class CollectionLink(Link):
 
     class Meta:
         unique_together = (('rel', 'collection'),)
+        ordering = ['pk']
 
 
 ITEM_KEEP_ORIGINAL_FIELDS = [
@@ -416,6 +419,10 @@ class ItemLink(Link):
         Item, related_name='links', related_query_name='link', on_delete=models.CASCADE
     )
 
+    class Meta:
+        unique_together = (('rel', 'item'),)
+        ordering = ['pk']
+
 
 def upload_asset_to_path_hook(instance, filename=None):
     '''This returns the asset upload path on S3 and compute the asset file multihash
@@ -467,6 +474,7 @@ class Asset(models.Model):
 
     class Meta:
         unique_together = (('item', 'name'),)
+        ordering = ['id']
 
     # using BigIntegerField as primary_key to deal with the expected large number of assets.
     id = models.BigAutoField(primary_key=True)
