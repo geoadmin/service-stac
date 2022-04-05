@@ -13,7 +13,7 @@ def get_args():
                     "of the unzipped dummy asset file."
     )
     parser.add_argument(
-        "size",
+        "--size",
         type=int,
         default=20,
         help="Size of the unzipped dummy asset file in MB [Integer, default: 20 MB]"
