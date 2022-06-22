@@ -180,7 +180,7 @@ class AssetsCreateEndpointTestCase(StacBaseTestCase):
         asset_name = asset['name']
 
         response = self.client.get(
-            reverse('asset-detail', args=[collection.name, item.name, asset_name])
+            reverse('stac_api:asset-detail', args=[collection.name, item.name, asset_name])
         )
         # Check that assert does not exist already
         self.assertStatusCode(404, response)
@@ -190,14 +190,15 @@ class AssetsCreateEndpointTestCase(StacBaseTestCase):
 
         # Now use upsert to create the new asset
         response = self.client.put(
-            reverse('asset-detail', args=[collection.name, item.name, asset_name]),
+            reverse('stac_api:asset-detail', args=[collection.name, item.name, asset_name]),
             data=asset.get_json('put'),
             content_type="application/json"
         )
         json_data = response.json()
         self.assertStatusCode(201, response)
         self.check_header_location(
-            reverse('asset-detail', args=[collection.name, item.name, asset_name]), response
+            reverse('stac_api:asset-detail', args=[collection.name, item.name, asset_name]),
+            response
         )
         self.check_stac_asset(asset.json, json_data, collection.name, item.name)
 
@@ -673,7 +674,8 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
         # Make sure that the ressource has not been created
         response = self.client.get(
             reverse(
-                'asset-detail', args=[self.collection['name'], self.item['name'], sample['name']]
+                'stac_api:asset-detail',
+                args=[self.collection['name'], self.item['name'], sample['name']]
             )
         )
         self.assertStatusCode(404, response)
@@ -704,7 +706,8 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
         # Make sure that the ressource has not been created
         response = self.client.get(
             reverse(
-                'asset-detail', args=[self.collection['name'], self.item['name'], sample['name']]
+                'stac_api:asset-detail',
+                args=[self.collection['name'], self.item['name'], sample['name']]
             )
         )
         self.assertStatusCode(200, response)
@@ -746,7 +749,7 @@ class AssetRaceConditionTest(StacBaseTransactionTestCase):
             client.login(username=self.username, password=self.password)
             return client.put(
                 reverse(
-                    'asset-detail',
+                    'stac_api:asset-detail',
                     args=[
                         self.collection_sample['name'],
                         self.item_sample['name'],

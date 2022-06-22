@@ -571,7 +571,7 @@ class ItemsCreateEndpointTestCase(StacBaseTestCase):
 
         # Make sure that the ressource has not been created
         response = self.client.get(
-            reverse('item-detail', args=[self.collection.name, sample['name']])
+            reverse('stac_api:item-detail', args=[self.collection.name, sample['name']])
         )
         self.assertStatusCode(404, response)
 
@@ -798,7 +798,7 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
 
         # Make sure that the ressource has not been created
         response = self.client.get(
-            reverse('item-detail', args=[self.collection['name'], sample['name']])
+            reverse('stac_api:item-detail', args=[self.collection['name'], sample['name']])
         )
         self.assertStatusCode(200, response)
         self.check_stac_item(self.item.json, response.json(), self.collection['name'])
@@ -823,7 +823,9 @@ class ItemRaceConditionTest(StacBaseTransactionTestCase):
             client = Client()
             client.login(username=self.username, password=self.password)
             return client.put(
-                reverse('item-detail', args=[collection_sample['name'], item_sample['name']]),
+                reverse(
+                    'stac_api:item-detail', args=[collection_sample['name'], item_sample['name']]
+                ),
                 data=item_sample.get_json('put'),
                 content_type='application/json'
             )

@@ -84,6 +84,7 @@ INSTALLED_APPS = [
     'pgtrigger',
     'config.apps.StacAdminConfig',
     'stac_api.apps.StacApiConfig',
+    'stac_api_v1.apps.StacApiV1Config'
 ]
 
 # Middlewares are executed in order, once for the incoming
