@@ -70,6 +70,7 @@ MEDIA_TYPES = [
     ('image/tiff', 'TIFF', ['.tiff', '.tif']),
     ('image/jpeg', 'JPEG', ['.jpeg', '.jpg']),
     ('image/png', 'PNG', ['.png']),
+    ('application/vnd.sqlite3', 'sqlite', ['.sqlite']),
 ]
 MEDIA_TYPES_MIMES = [x[0] for x in MEDIA_TYPES]
 MEDIA_TYPES_EXTENSIONS = [ext for media_type in MEDIA_TYPES for ext in media_type[2]]
