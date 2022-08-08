@@ -28,7 +28,7 @@ class RequestResponseLoggingMiddleware:
         ] and request.content_type == "application/json" and not request.path.startswith(
             '/api/stac/admin'
         ):
-            extra["request.payload"] = str(request.body[:200])
+            extra["request.payload"] = request.body[:200].decode()
 
         logger.info(
             "Request %s %s?%s",
@@ -53,7 +53,7 @@ class RequestResponseLoggingMiddleware:
         # HttpResponse and JSONResponse sure have
         # (e.g. WhiteNoiseFileResponse doesn't)
         if isinstance(response, (HttpResponse, JsonResponse)):
-            extra["response"]["payload"] = str(response.content)[:200]
+            extra["response"]["payload"] = response.content[:200].decode()
 
         logger.info("Response %s", response.status_code, extra=extra)
         # Code to be executed for each request/response after
