@@ -8,19 +8,19 @@ yapf = "~=0.30.0"
 isort = "~=4.3.21"
 pylint = "~=2.8.3"
 pylint-django = "~=2.4.4"
-django-extensions = "*"
-django-debug-toolbar = ">=3.2.1"
+django-extensions = "~=3.1.5"
+django-debug-toolbar = "~=3.2.4"
 pip = "*"
 tblib = "*"  # needed for traceback when running tests in parallel
 mock = "~=4.0.2"
 responses = "!=0.12.1" # skip version 0.12.1 which has a bug see https://github.com/getsentry/responses/issues/358
-requests-mock = "*"
+requests-mock = "~=1.9.3"
 
 [packages]
 gevent = "~=20.12.0"
 gunicorn = "~=19.9.0"
 psycopg2-binary = "~=2.8.5"
-logging-utilities = "~=1.2.0"
+logging-utilities = "~=1.3.0"
 numpy = "~=1.19.2"
 python-dotenv = "~=0.14.0"
 djangorestframework = "~=3.12.1"
