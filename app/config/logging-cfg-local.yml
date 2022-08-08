@@ -111,7 +111,7 @@ formatters:
           Access-Control-Allow-Methods: response.headers.Access-Control-Allow-Methods
           Access-Control-Allow-Origin: response.headers.Access-Control-Allow-Origin
           ETag: response.headers.ETag
-        duration: duration
+        duration: response.duration
         payload: response.payload
       message: message
 

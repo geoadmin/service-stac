@@ -44,9 +44,10 @@ class RequestResponseLoggingMiddleware:
         extra = {
             "request": request,
             "response": {
-                "code": response.status_code, "headers": dict(response.items())
+                "code": response.status_code,
+                "headers": dict(response.items()),
+                "duration": time.time() - start
             },
-            "duration": time.time() - start
         }
 
         # Not all response types have a 'content' attribute,
