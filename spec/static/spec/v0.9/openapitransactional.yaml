@@ -2179,6 +2179,8 @@ components:
           description: Human readable title of the Feature
           example: Feature title
           type: string
+          maxLength: 255
+          minLength: 1
       required:
       - created
       - updated
@@ -2669,6 +2671,8 @@ components:
       type: string
       description: Displayed title
       example: Thumbnail
+      minLength: 1
+      maxLength: 255
     type:
       type: string
       description: Media type of the asset
