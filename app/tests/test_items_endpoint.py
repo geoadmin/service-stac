@@ -719,6 +719,7 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
         json_data = response.json()
         self.assertStatusCode(200, response)
         self.assertEqual(self.item['name'], json_data['id'])
+        self.assertIn("title", json_data['properties'].keys())
         self.check_stac_item(data, json_data, self.collection["name"])
 
         # Check the data by reading it back
@@ -727,6 +728,23 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
         self.assertStatusCode(200, response)
         self.assertEqual(self.item['name'], json_data['id'])
         self.check_stac_item(data, json_data, self.collection["name"])
+        self.assertIn("title", json_data['properties'].keys())
+
+    def test_item_endpoint_remove_properties_title(self):
+        data = {"properties": {"title": None}}
+        path = f'/{STAC_BASE_V}/collections/{self.collection["name"]}/items/{self.item["name"]}'
+        response = self.client.patch(path, data=data, content_type="application/json")
+        json_data = response.json()
+        self.assertStatusCode(200, response)
+        self.assertEqual(self.item['name'], json_data['id'])
+        self.assertNotIn("title", json_data['properties'].keys())
+
+        # Check the data by reading it back
+        response = self.client.get(path)
+        json_data = response.json()
+        self.assertStatusCode(200, response)
+        self.assertEqual(self.item['name'], json_data['id'])
+        self.assertNotIn("title", json_data['properties'].keys())
 
     def test_item_endpoint_patch_extra_payload(self):
         data = {"crazy:stuff": "not allowed"}
