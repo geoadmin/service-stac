@@ -689,24 +689,6 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
             sample='item-2',
             name=self.item['name'],
             properties={
-                "title": None,
-                "start_datetime": "2020-10-18T00:00:00Z",
-                "end_datetime": "2020-10-19T00:00:00Z",
-            }
-        )
-        response = self.client.put(
-            path, data=sample.get_json('put'), content_type="application/json"
-        )
-        json_data = response.json()
-        self.assertStatusCode(200, response)
-        self.assertEqual(self.item['name'], json_data['id'])
-        self.assertNotIn("title", json_data['properties'].keys())
-
-        sample = self.factory.create_item_sample(
-            self.collection.model,
-            sample='item-2',
-            name=self.item['name'],
-            properties={
                 "title": "item title",
                 "start_datetime": "2020-10-18T00:00:00Z",
                 "end_datetime": "2020-10-19T00:00:00Z",
@@ -719,6 +701,24 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
         self.assertStatusCode(200, response)
         self.assertEqual(self.item['name'], json_data['id'])
         self.assertIn("title", json_data['properties'].keys())
+
+        sample = self.factory.create_item_sample(
+            self.collection.model,
+            sample='item-2',
+            name=self.item['name'],
+            properties={
+                "title": None,
+                "start_datetime": "2020-10-18T00:00:00Z",
+                "end_datetime": "2020-10-19T00:00:00Z",
+            }
+        )
+        response = self.client.put(
+            path, data=sample.get_json('put'), content_type="application/json"
+        )
+        json_data = response.json()
+        self.assertStatusCode(200, response)
+        self.assertEqual(self.item['name'], json_data['id'])
+        self.assertNotIn("title", json_data['properties'].keys())
 
     def test_item_endpoint_put_rename_item(self):
         sample = self.factory.create_item_sample(
