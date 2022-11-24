@@ -682,6 +682,44 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
         self.assertNotIn('datetime', json_data['properties'].keys())
         self.assertNotIn('title', json_data['properties'].keys())
 
+    def test_item_endpoint_put_remove_properties_title(self):
+        path = f'/{STAC_BASE_V}/collections/{self.collection["name"]}/items/{self.item["name"]}'
+        sample = self.factory.create_item_sample(
+            self.collection.model,
+            sample='item-2',
+            name=self.item['name'],
+            properties={
+                "title": "item title",
+                "start_datetime": "2020-10-18T00:00:00Z",
+                "end_datetime": "2020-10-19T00:00:00Z",
+            }
+        )
+        response = self.client.put(
+            path, data=sample.get_json('put'), content_type="application/json"
+        )
+        json_data = response.json()
+        self.assertStatusCode(200, response)
+        self.assertEqual(self.item['name'], json_data['id'])
+        self.assertIn("title", json_data['properties'].keys())
+
+        sample = self.factory.create_item_sample(
+            self.collection.model,
+            sample='item-2',
+            name=self.item['name'],
+            properties={
+                "title": None,
+                "start_datetime": "2020-10-18T00:00:00Z",
+                "end_datetime": "2020-10-19T00:00:00Z",
+            }
+        )
+        response = self.client.put(
+            path, data=sample.get_json('put'), content_type="application/json"
+        )
+        json_data = response.json()
+        self.assertStatusCode(200, response)
+        self.assertEqual(self.item['name'], json_data['id'])
+        self.assertNotIn("title", json_data['properties'].keys())
+
     def test_item_endpoint_put_rename_item(self):
         sample = self.factory.create_item_sample(
             self.collection.model,
@@ -719,6 +757,7 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
         json_data = response.json()
         self.assertStatusCode(200, response)
         self.assertEqual(self.item['name'], json_data['id'])
+        self.assertIn("title", json_data['properties'].keys())
         self.check_stac_item(data, json_data, self.collection["name"])
 
         # Check the data by reading it back
@@ -727,6 +766,31 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
         self.assertStatusCode(200, response)
         self.assertEqual(self.item['name'], json_data['id'])
         self.check_stac_item(data, json_data, self.collection["name"])
+        self.assertIn("title", json_data['properties'].keys())
+
+    def test_item_endpoint_patch_remove_properties_title(self):
+        path = f'/{STAC_BASE_V}/collections/{self.collection["name"]}/items/{self.item["name"]}'
+        # Check the data by reading, if there is a title on forehand
+        response = self.client.get(path)
+        json_data = response.json()
+        self.assertStatusCode(200, response)
+        self.assertEqual(self.item['name'], json_data['id'])
+        self.assertIn("title", json_data['properties'].keys())
+
+        # Remove properties_title
+        data = {"properties": {"title": None}}
+        response = self.client.patch(path, data=data, content_type="application/json")
+        json_data = response.json()
+        self.assertStatusCode(200, response)
+        self.assertEqual(self.item['name'], json_data['id'])
+        self.assertNotIn("title", json_data['properties'].keys())
+
+        # Check the data by reading it back
+        response = self.client.get(path)
+        json_data = response.json()
+        self.assertStatusCode(200, response)
+        self.assertEqual(self.item['name'], json_data['id'])
+        self.assertNotIn("title", json_data['properties'].keys())
 
     def test_item_endpoint_patch_extra_payload(self):
         data = {"crazy:stuff": "not allowed"}
