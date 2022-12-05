@@ -66,7 +66,9 @@ if __name__ == '__main__':
     options = {
         'bind': '%s:%s' % ('0.0.0.0', HTTP_PORT),
         'worker_class': 'gevent',
-        'workers': 2,  # scaling horizontally is left to Kubernetes
+        'workers': int(os.environ.get('GUNICORN_WORKERS',
+                                      '2')),  # scaling horizontally is left to Kubernetes
+        'worker_tmp_dir': os.environ.get('GUNICORN_WORKER_TMP_DIR', None),
         'timeout': 60,
         'logconfig_dict': get_logging_config()
     }
