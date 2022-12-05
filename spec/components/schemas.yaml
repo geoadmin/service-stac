@@ -997,11 +997,11 @@ components:
           items:
             type: array
             items:
-              type:	array
-              minItems:	4
+              type: array
+              minItems: 4
               items:
-                type:	array
-                minItems:	2
+                type: array
+                minItems: 2
                 items:
                   type: number
     itemProperties:
@@ -1033,6 +1033,9 @@ components:
           description: Human readable title of the Feature
           example: Feature title
           type: string
+          minLength: 1
+          maxLength: 255
+          nullable: true
       required:
         - created
         - updated
@@ -1513,6 +1516,9 @@ components:
       type: string
       description: Displayed title
       example: Thumbnail
+      nullable: true
+      minLength: 1
+      maxLength: 255
     type:
       type: string
       description: Media type of the asset

@@ -101,6 +101,15 @@ class StacTestMixin:
             expected_path, urlparse(response['Location']).path, msg="Wrong location path"
         )
 
+    def check_header_cors(self, response):
+        for header, value in {
+            'Access-Control-Allow-Headers': 'Content-Type,Accept',
+            'Access-Control-Allow-Methods': 'GET,HEAD',
+            'Access-Control-Allow-Origin': '*'
+        }.items():
+            self.assertTrue(response.has_header(header), msg=f"{header}: header is missing")
+            self.assertEqual(response[header], value)
+
     def check_stac_collection(self, expected, current, ignore=None):
         '''Check a STAC Collection data
 

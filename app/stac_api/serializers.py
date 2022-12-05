@@ -391,7 +391,12 @@ class ItemsPropertiesSerializer(serializers.Serializer):
         source='properties_end_datetime', required=False, default=None
     )
     title = serializers.CharField(
-        source='properties_title', required=False, allow_blank=False, max_length=255, default=None
+        source='properties_title',
+        required=False,
+        allow_blank=False,
+        allow_null=True,
+        max_length=255,
+        default=None
     )
     created = serializers.DateTimeField(read_only=True)
     updated = serializers.DateTimeField(read_only=True)

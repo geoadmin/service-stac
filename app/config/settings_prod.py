@@ -94,6 +94,7 @@ MIDDLEWARE = [
     'django_prometheus.middleware.PrometheusBeforeMiddleware',
     'middleware.logging.RequestResponseLoggingMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'middleware.cors.CORSHeadersMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -102,7 +103,6 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'middleware.cache_headers.CacheHeadersMiddleware',
-    'middleware.cors.CORSHeadersMiddleware',
     'middleware.exception.ExceptionLoggingMiddleware',
     'django_prometheus.middleware.PrometheusAfterMiddleware',
 ]

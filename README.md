@@ -433,6 +433,8 @@ The service is configured by Environment Variable:
 | PAGE_SIZE_LIMIT | `100` | Maximum page size allowed |
 | STAC_BROWSER_HOST | `None` | STAC Browser host (including HTTP schema). When `None` it takes the same host as the STAC API. |
 | STAC_BROWSER_BASE_PATH | `browser/index.html` | STAC Browser base path. |
+| GUNICORN_WORKERS | `2` | Number of Gunicorn workers |
+| GUNICORN_WORKER_TMP_DIR | `None` | Path to a tmpfs directory for Gunicorn. If `None` let gunicorn decide which path to use. See https://docs.gunicorn.org/en/stable/settings.html#worker-tmp-dir. |
 
 #### **Database settings**
 
