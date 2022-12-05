@@ -1,9 +1,10 @@
 from django.conf import settings
 from django.test import Client
-from django.test import TestCase
+
+from tests.base_test import StacBaseTestCase
 
 
-class IndexTestCase(TestCase):
+class IndexTestCase(StacBaseTestCase):
 
     def setUp(self):
         self.client = Client()
@@ -27,3 +28,9 @@ class IndexTestCase(TestCase):
                 set(),
                 msg="missing required attribute in the answer['links'] array"
             )
+
+    def test_landing_page_redirect(self):
+        response = self.client.get(f"/{settings.STAC_BASE_V}")
+        self.assertEqual(response.status_code, 301)
+        self.check_header_location(f"/{settings.STAC_BASE_V}/", response)
+        self.check_header_cors(response)
