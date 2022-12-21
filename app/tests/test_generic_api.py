@@ -404,19 +404,19 @@ class ApiCacheHeaderTestCase(StacBaseTestCase):
 
     @classmethod
     @mock_s3_asset_file
-    def setUpTestData(cls):
-        cls.factory = Factory()
-        cls.collection = cls.factory.create_collection_sample(
+    def setUp(self):
+        self.factory = Factory()
+        self.collection = self.factory.create_collection_sample(
             name='collection-1',
             db_create=True,
         )
-        cls.item = cls.factory.create_item_sample(
-            collection=cls.collection.model,
+        self.item = self.factory.create_item_sample(
+            collection=self.collection.model,
             name='item-1',
             db_create=True,
         )
-        cls.asset = cls.factory.create_asset_sample(
-            item=cls.item.model,
+        self.asset = self.factory.create_asset_sample(
+            item=self.item.model,
             db_create=True,
         )
 
@@ -491,15 +491,15 @@ class ApiCORSHeaderTestCase(StacBaseTestCase):
 
     @classmethod
     @mock_s3_asset_file
-    def setUpTestData(cls):
-        cls.factory = Factory()
-        cls.collection = cls.factory.create_collection_sample(db_create=True,)
-        cls.item = cls.factory.create_item_sample(
-            collection=cls.collection.model,
+    def setUp(self):
+        self.factory = Factory()
+        self.collection = self.factory.create_collection_sample(db_create=True,)
+        self.item = self.factory.create_item_sample(
+            collection=self.collection.model,
             db_create=True,
         )
-        cls.asset = cls.factory.create_asset_sample(
-            item=cls.item.model,
+        self.asset = self.factory.create_asset_sample(
+            item=self.item.model,
             db_create=True,
         )
 
