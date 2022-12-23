@@ -188,6 +188,9 @@ USE_TZ = True
 STATIC_HOST = os.environ.get('DJANGO_STATIC_HOST', '')
 STATIC_URL = f'{STATIC_HOST}/api/stac/static/'
 STATIC_SPEC_URL = f'{STATIC_URL}spec/v0.9/'
+# "manage.py collectstatic" will copy all static files to this directory, and
+# whitenoise will serve the static files that are in this directory (unless DEBUG=true in which case
+# it will serve the files from the same directories "manage.py collectstatic" collects data from)
 STATIC_ROOT = BASE_DIR / 'var' / 'www' / 'stac_api' / 'static_files'
 STATICFILES_DIRS = [BASE_DIR / "spec" / "static", BASE_DIR / "app" / "stac_api" / "templates"]
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'

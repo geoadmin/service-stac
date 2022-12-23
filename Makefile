@@ -221,7 +221,7 @@ dockerbuild-prod:
 .PHONY: dockerrun
 dockerrun: dockerbuild-debug
 	@echo "starting docker debug container with populating ENV from .env.local"
-	docker run -it --rm --env-file .env.local --net=host $(DOCKER_IMG_LOCAL_TAG_DEV) ./manage.py runserver
+	docker run -it --rm --env-file .env.local --net=host $(DOCKER_IMG_LOCAL_TAG_DEV) ./wsgi.py
 
 .PHONY: dockerpush-debug
 dockerpush-debug: dockerbuild-debug

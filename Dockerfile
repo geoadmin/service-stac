@@ -1,93 +1,131 @@
 ###########################################################
-# Base container with all necessary deps
-# Buster slim python 3.7 base image.
-FROM python:3.7-slim-buster as base
-ENV HTTP_PORT 8080
+# Container that contains basic configurations used by all other containers
+# It should only contain variables that don't change or change very infrequently
+# so that the cache is not needlessly invalidated
+FROM python:3.9-slim-bullseye as base
+ENV HTTP_PORT=8080
+ENV USER=geoadmin
+ENV GROUP=geoadmin
+ENV INSTALL_DIR=/opt/service-stac
 
-RUN groupadd -r geoadmin \
-    && useradd -r -s /bin/false -g geoadmin geoadmin \
-    && mkdir -p /logs && chown geoadmin:geoadmin /logs \
-    # install relevent packages
-    && apt-get update \
-    && apt-get install -y binutils libproj-dev gdal-bin \
-    # the following line contains debug tools that can be removed later
+RUN groupadd -r ${GROUP} \
+    && useradd -r -s /bin/false -g ${GROUP} ${USER} \
+    && mkdir -p ${INSTALL_DIR}/logs && chown ${USER}:${GROUP} ${INSTALL_DIR}/logs
+
+WORKDIR ${INSTALL_DIR}
+EXPOSE $HTTP_PORT
+# entrypoint is the manage command
+ENTRYPOINT ["python"]
+
+###########################################################
+# Container to perform tests/management/dev tasks
+FROM base as debug
+LABEL target=debug
+RUN apt-get update -qq \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y gdal-bin \
+    # dev dependencies
+    binutils libproj-dev \
+    # debug tools
     curl net-tools iputils-ping postgresql-client-common jq openssh-client \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && pip3 install pipenv \
     && pipenv --version
 
-COPY Pipfile* /tmp/
-RUN cd /tmp && \
-    pipenv install --system --deploy --ignore-pipfile
+ENV PIPENV_VENV_IN_PROJECT=1
+COPY Pipfile.lock Pipfile ./
+RUN pipenv sync --dev
 
-# Set the working dir and copy the app
-WORKDIR /app
-COPY --chown=geoadmin:geoadmin .env.default /
-COPY --chown=geoadmin:geoadmin ./spec /spec/
-COPY --chown=geoadmin:geoadmin ./app /app/
+# Is it safe for the executable files to be writable by the user who executes them? (At a first
+# glance, it seems to also work without this chown, but as I am not sure why this was added I left
+# it like this for the moment)
+COPY --chown=${USER}:${GROUP} .env.default ./
+COPY --chown=${USER}:${GROUP} spec/ spec/
+COPY --chown=${USER}:${GROUP} app/ app/
 
-ARG GIT_HASH=unknown
-ARG GIT_BRANCH=unknown
-ARG GIT_DIRTY=""
-ARG AUTHOR=unknown
-ARG VERSION=unknown
-ARG TARGET=
-LABEL git.hash=$GIT_HASH
-LABEL git.branch=$GIT_BRANCH
-LABEL git.dirty="$GIT_DIRTY"
-LABEL author=$AUTHOR
-LABEL version=$VERSION
-
-# Overwrite the version.py from source with the actual version
-RUN echo "APP_VERSION = '$VERSION'" > /app/config/version.py
-
-###########################################################
-# Container to perform tests/management/dev tasks
-FROM base as debug
-
-LABEL target=debug
-
-RUN cd /tmp && \
-    pipenv install --system --deploy --ignore-pipfile --dev
+# Activate virtualenv
+ENV VIRTUAL_ENV=${INSTALL_DIR}/.venv
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 # this is only used with the docker-compose setup within CI
 # to ensure that the app is only started once the DB container
 # is ready
 COPY ./wait-for-it.sh /app/
 
-# for testing/management, settings.py just imports settings_dev
-RUN echo "from .settings_dev import *" > /app/config/settings.py \
-    && chown geoadmin:geoadmin /app/config/settings.py
+# Overwrite the version.py from source with the actual version
+ARG VERSION=unknown
+RUN echo "APP_VERSION = '$VERSION'" > app/config/version.py
 
-# Collect static files, uses the .env.default settings to avoid django raising settings error
-RUN APP_ENV=default LOGGING_CFG=0 ./manage.py collectstatic --noinput
+ARG GIT_HASH=unknown
+ARG GIT_BRANCH=unknown
+ARG GIT_DIRTY=""
+ARG AUTHOR=unknown
+LABEL git.hash=$GIT_HASH
+LABEL git.branch=$GIT_BRANCH
+LABEL git.dirty="$GIT_DIRTY"
+LABEL author=$AUTHOR
+LABEL version=$VERSION
 
-USER geoadmin
+WORKDIR ${INSTALL_DIR}/app/
+USER ${USER}
 
-EXPOSE $HTTP_PORT
+###########################################################
+# Builder container
+FROM base as builder
+RUN apt-get update -qq \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y gdal-bin \
+    # dev dependencies
+    binutils libproj-dev \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip3 install pipenv \
+    && pipenv --version
 
-# entrypoint is the manage command
-ENTRYPOINT ["python3"]
+ENV PIPENV_VENV_IN_PROJECT=1
+COPY Pipfile.lock Pipfile ./
+RUN pipenv sync
+
+COPY --chown=${USER}:${GROUP} .env.default ./
+COPY --chown=${USER}:${GROUP} spec/ spec/
+COPY --chown=${USER}:${GROUP} app/ app/
+
+# on prod, settings.py needs to be replaced to import settings_prod instead of settings_dev
+RUN echo "from .settings_prod import *" > app/config/settings.py \
+    && chown ${USER}:${GROUP} app/config/settings.py
 
 
 ###########################################################
 # Container to use in production
 FROM base as production
-
 LABEL target=production
 
-# on prod, settings.py just import settings_prod
-RUN echo "from .settings_prod import *" > /app/config/settings.py \
-    && chown geoadmin:geoadmin /app/config/settings.py
+RUN apt-get update -qq \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y gdal-bin \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder ${INSTALL_DIR} ${INSTALL_DIR}
+
+# Activate virtual environnment
+ENV VIRTUAL_ENV=${INSTALL_DIR}/.venv
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+# Overwrite the version.py from source with the actual version
+ARG VERSION=unknown
+RUN echo "APP_VERSION = '$VERSION'" > app/config/version.py
 
 # Collect static files, uses the .env.default settings to avoid django raising settings error
-RUN APP_ENV=default LOGGING_CFG=0 ./manage.py collectstatic --noinput
+RUN APP_ENV=default LOGGING_CFG=0 app/manage.py collectstatic --noinput
 
+ARG GIT_HASH=unknown
+ARG GIT_BRANCH=unknown
+ARG GIT_DIRTY=""
+ARG AUTHOR=unknown
+LABEL git.hash=$GIT_HASH
+LABEL git.branch=$GIT_BRANCH
+LABEL git.dirty="$GIT_DIRTY"
+LABEL author=$AUTHOR
+LABEL version=$VERSION
 # production container must not run as root
-USER geoadmin
-
-EXPOSE $HTTP_PORT
-
-# Use a real WSGI server
-ENTRYPOINT ["python3"]
+WORKDIR ${INSTALL_DIR}/app/
+USER ${USER}
