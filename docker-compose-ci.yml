@@ -19,6 +19,9 @@ services:
     command: test --verbosity=2 --parallel=10 --no-input
     depends_on:
       - db
+    volumes:
+      - type: tmpfs
+        target: /tmp/gunicorn-workers
     environment:
       - DEBUG=True
       - LOGGING_CFG=/opt/service-stac/app/config/logging-cfg-unittest-ci.yml
