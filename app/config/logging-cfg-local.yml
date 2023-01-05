@@ -45,6 +45,9 @@ filters:
       - request.headers.Authorization
       - request.headers.Proxy-Authorization
       - request.headers.Cookie
+      # These two are present when using gunicorn and cannot be correctly jsonified.
+      - request.META.gunicorn
+      - request.META.wsgi
   console_django_filter_info:
     (): logging_utilities.filters.LevelFilter
     level: "INFO"
@@ -67,6 +70,7 @@ formatters:
     filter_attributes:
       - utc_isotime
     remove_empty: True
+    ignore_missing: True
     fmt:
       time: utc_isotime
       level: levelname
@@ -76,7 +80,6 @@ formatters:
       process: "%(process)x/%(thread)x"
       exc_info: exc_info
       request:
-        id: request.headers.X-Amz-Cf-Id
         path: request.path
         method: request.method
         queryString: request.META.QUERY_STRING
