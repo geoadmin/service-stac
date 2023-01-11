@@ -1,4 +1,12 @@
 #!/bin/bash
+# This script updates the Pipfile automatically. It will update all version strings of type
+# "~=x.x.x" to their respective latest version. Version strings of dependencies that use other
+# version specifiers (like "*") will be left untouched. All dependencies will be updated
+# (with "pipenv update") in the process.
+# A regex can be optionally specified as first argument. In this case, only the version strings
+# of packages matching the regex will be updated. (e.g. update_to_latest.sh 'django.*')
+# This script is meant as a helper only. Use git to revert unwanted changes made by this script.
+
 cd "$(dirname "$0")" || exit
 #If an argument was passed to the script, it will be used as a regular expression
 #Else we will simply match any package name
