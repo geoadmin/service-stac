@@ -14,7 +14,7 @@ env:
 phases:
   install:
     runtime-versions:
-      python: 3.7
+      python: 3.9
     commands:
       - echo "Installing necessary dependencies"
       - apt-get update
