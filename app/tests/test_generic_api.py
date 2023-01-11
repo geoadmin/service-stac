@@ -402,7 +402,6 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
 
 class ApiCacheHeaderTestCase(StacBaseTestCase):
 
-    @classmethod
     @mock_s3_asset_file
     def setUp(self):
         self.factory = Factory()
@@ -489,7 +488,6 @@ class ApiCacheHeaderTestCase(StacBaseTestCase):
 
 class ApiCORSHeaderTestCase(StacBaseTestCase):
 
-    @classmethod
     @mock_s3_asset_file
     def setUp(self):
         self.factory = Factory()

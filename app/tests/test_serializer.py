@@ -316,7 +316,6 @@ class CollectionDeserializationTestCase(StacBaseTestCase):
 
 class ItemSerializationTestCase(StacBaseTestCase):
 
-    @classmethod
     @mock_s3_asset_file
     def setUp(self):  # pylint: disable=invalid-name
         self.data_factory = Factory()
@@ -571,7 +570,6 @@ class ItemDeserializationTestCase(StacBaseTestCase):
 
 class AssetSerializationTestCase(StacBaseTestCase):
 
-    @classmethod
     @mock_s3_asset_file
     def setUp(self):
         self.data_factory = Factory()
