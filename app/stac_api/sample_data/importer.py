@@ -68,7 +68,7 @@ def import_collection(collection_dir):
         raise ValueError(f'Input is not a directory: {collection_dir}')
     logger.debug('Trying to import collection dir: %s', collection_dir)
     collection_json = os.path.join(collection_dir, "collection.json")
-    with open(collection_json) as collection_file:
+    with open(collection_json, encoding="utf-8") as collection_file:
         collection_data = json.load(collection_file)
     try:
         collection = parse_collection(collection_data)
@@ -112,7 +112,7 @@ def parse_collection(collection_data):
 
 
 def import_item(item_path):
-    with open(item_path) as item_file:
+    with open(item_path, encoding="utf-8") as item_file:
         item_data = json.load(item_file)
         item = parse_item(item_data)
         return item

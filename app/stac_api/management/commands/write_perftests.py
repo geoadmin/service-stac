@@ -55,6 +55,7 @@ GEOMETRIES = {
 class Handler(CommandHandler):
 
     def clean(self):
+        # pylint: disable=missing-timeout
         self.print("Starting cleaning %d %s...", self.options['n'], self.options['object_type'])
         headers = self.get_headers()
         auth = self.get_auth()
@@ -68,6 +69,7 @@ class Handler(CommandHandler):
         self.print_success('%d object deleted', deleted)
 
     def start(self):
+        # pylint: disable=missing-timeout
         self.print(
             "Starting write performance tests on %d %s...",
             self.options['n'],

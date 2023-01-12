@@ -118,7 +118,7 @@ class ApiPaginationTestCase(StacBaseTestCase):
                 checksum_multihash=get_sha256_multihash(b'upload-%d' % i),
                 number_parts=2,
                 ended=utc_aware(datetime.utcnow()),
-                md5_parts=['md5-%d-1' % i, 'md5-%d-2' % i]
+                md5_parts=[f'md5-{i}-1', f'md5-{i}-2']
             )
         for endpoint, result_attribute in [
             ('collections', 'collections'),

@@ -154,7 +154,7 @@ class Link(models.Model):
         abstract = True
 
     def __str__(self):
-        return '%s: %s' % (self.rel, self.href)
+        return f'{self.rel}: {self.href}'
 
 
 class LandingPage(SingletonModel):
@@ -214,9 +214,9 @@ class Provider(models.Model):
     allowed_roles = ['licensor', 'producer', 'processor', 'host']
     roles = ArrayField(
         models.CharField(max_length=9),
-        help_text=_("Comma-separated list of roles. Possible values are {}".format(
-            ', '.join(allowed_roles)
-        )),
+        help_text=_(
+            f"Comma-separated list of roles. Possible values are {', '.join(allowed_roles)}"
+        ),
         blank=True,
         null=True,
     )

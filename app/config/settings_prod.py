@@ -32,7 +32,7 @@ APP_ENV = os.environ.get('APP_ENV', 'local')
 
 # If we develop locally, load ENV from file
 if APP_ENV.lower() in ['local', 'default']:
-    print("Running locally hence injecting env vars from {}".format(BASE_DIR / f'.env.{APP_ENV}'))
+    print(f"Running locally hence injecting env vars from {BASE_DIR / f'.env.{APP_ENV}'}")
     # set the APP_ENV to local (in case it was set from default above)
     os.environ['APP_ENV'] = APP_ENV
     load_dotenv(BASE_DIR / f'.env.{APP_ENV}', override=True, verbose=True)
@@ -256,7 +256,7 @@ def get_logging_config():
     if log_config_file.lower() in ['none', '0', '', 'false', 'no']:
         return {}
     log_config = {}
-    with open(BASE_DIR / log_config_file, 'rt') as fd:
+    with open(BASE_DIR / log_config_file, 'rt', encoding="utf-8") as fd:
         log_config = yaml.safe_load(os.path.expandvars(fd.read()))
     return log_config
 

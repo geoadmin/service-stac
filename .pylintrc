@@ -69,10 +69,7 @@ disable=missing-docstring,
     pointless-string-statement,
     too-many-arguments,
     too-few-public-methods,
-    bad-continuation,   # bad-continuation doesn't comply with yapf, so lets
-                        # yapf correct indentation continuation issue
     useless-object-inheritance,
-    no-self-use,        # method signature often defined by django
     similarities        # currently similarities has a bug when running pylint with jobs>=2
 
 
@@ -162,7 +159,10 @@ ignore-on-opaque-inference=yes
 # List of class names for which member attributes should not be checked (useful
 # for classes with dynamically set attributes). This supports the use of
 # qualified names.
-ignored-classes=optparse.Values,thread._local,_thread._local
+# stac_api.models.Model: In "data_factory.py", class "SampleData", the type of the attribute
+# "model_class" is assumed to be "models.Model" even for inherited classes, which causes a lot of
+# E1101 "no-member" errors.
+ignored-classes=optparse.Values,thread._local,_thread._local,Model
 
 # List of module names for which member attributes should not be checked
 # (useful for modules/projects where namespaces are manipulated during runtime
@@ -208,13 +208,6 @@ max-line-length=100
 
 # Maximum number of lines in a module.
 max-module-lines=1000
-
-# List of optional constructs for which whitespace checking is disabled. `dict-
-# separator` is used to allow tabulation in dicts, etc.: {1  : 1,\n222: 2}.
-# `trailing-comma` allows a space between comma and closing bracket: (a, ).
-# `empty-line` allows space-only lines.
-no-space-check=trailing-comma,
-               dict-separator
 
 # Allow the body of a class to be on the same line as the declaration if body
 # contains single statement.

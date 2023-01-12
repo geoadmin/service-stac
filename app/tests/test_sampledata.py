@@ -39,7 +39,7 @@ class SampleDataTestCase(StacBaseTestCase):
     def _test_collection(self, collection_dir):
         collection = importer.import_collection(collection_dir)
 
-        with open(collection_dir / 'collection.json') as fd:
+        with open(collection_dir / 'collection.json', encoding="utf-8") as fd:
             collection_dict = json.load(fd)
 
         response = self.client.get(f"/{STAC_BASE_V}/collections/{collection.name}")
@@ -60,7 +60,7 @@ class SampleDataTestCase(StacBaseTestCase):
                 self._test_item(collection.name, item_file)
 
     def _test_item(self, collection_name, item_file):
-        with open(item_file) as fd:
+        with open(item_file, encoding="utf-8") as fd:
             item_dict = json.load(fd)
 
         response = self.client.get(

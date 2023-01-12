@@ -215,7 +215,7 @@ class CollectionSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         return ["http://www.opengis.net/def/crs/OGC/1.3/CRS84"]
 
     def get_stac_extensions(self, obj):
-        return list()
+        return []
 
     def get_stac_version(self, obj):
         return settings.STAC_VERSION
@@ -632,7 +632,7 @@ class ItemSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         return 'Feature'
 
     def get_stac_extensions(self, obj):
-        return list()
+        return []
 
     def get_stac_version(self, obj):
         return settings.STAC_VERSION
