@@ -28,6 +28,12 @@ class CacheHeadersMiddleware:
 
         response = self.get_response(request)
 
+        public_directives = {"public": True}
+
+        error_directives = {
+            "public": True, "must-revalidate": True, "no-cache": True, "no-store": True
+        }
+
         # Code to be executed for each request/response after
         # the view is called.
         # match /xxx or /api/stac/xxx
@@ -45,6 +51,9 @@ class CacheHeadersMiddleware:
                 extra={"request": request}
             )
             patch_response_headers(response, settings.CACHE_MIDDLEWARE_SECONDS)
-            patch_cache_control(response, public=True)
+            directive = error_directives if response.status_code in (
+                502, 503, 504, 507
+            ) else public_directives
+            patch_cache_control(response, **directive)
 
         return response
