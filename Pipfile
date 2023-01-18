@@ -44,4 +44,4 @@ python_version = "3.9"
 
 [dev-packages.moto]
 extras = [ "s3",]
-version = "*"
+version = "~=4.0.13"
