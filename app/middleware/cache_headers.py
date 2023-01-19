@@ -28,12 +28,20 @@ class CacheHeadersMiddleware:
 
         response = self.get_response(request)
 
+        if request.method not in ('GET', 'HEAD', 'OPTIONS'):
+            return response
+
         # Code to be executed for each request/response after
         # the view is called.
-        # match /xxx or /api/stac/xxx
+
+        # match /xxx or /api/stac/xxx or status code 502, 503, 504, 507
         # f.ex. /metrics, /checker, /api/stac/{healthcheck}, /api/stac/get-token
-        if re.match(fr'^(/{STAC_BASE})?/\w+$', request.path):
+        if re.match(fr'^(/{STAC_BASE})?/\w+$',
+                    request.path) or response.status_code in (502, 503, 504, 507):
             add_never_cache_headers(response)
+        elif response.status_code >= 500:
+            patch_cache_control(response, public=True)
+            patch_response_headers(response, cache_timeout=10)
         elif (
             request.method in ('GET', 'HEAD') and
             not request.path.startswith(urlparse(settings.STATIC_URL).path)
