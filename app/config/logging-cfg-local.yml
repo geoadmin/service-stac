@@ -30,12 +30,19 @@ loggers:
       - console
 
 filters:
+  type_validator:
+    (): logging_utilities.filters.attr_type_filter.AttrTypeFilter
+    typecheck_list:
+      request:
+        - django.http.request.HttpRequest
+        - builtins.dict
   isotime:
     (): logging_utilities.filters.TimeAttribute
     isotime: False
     utc_isotime: True
   django:
     (): logging_utilities.filters.django_request.JsonDjangoRequest
+    attr_name: request
     include_keys:
       - request.path
       - request.method
@@ -124,6 +131,7 @@ handlers:
     formatter: standard
     stream: ext://sys.stdout
     filters:
+      - type_validator
       - isotime
       - django
       - console_django_filter_info
@@ -134,6 +142,7 @@ handlers:
     filename: ${BASE_DIR}/logs/server-standard-logs.txt
     mode: w
     filters:
+      - type_validator
       - isotime
       - django
   file-json:
@@ -143,6 +152,7 @@ handlers:
     filename: ${BASE_DIR}/logs/server-json-logs.json
     mode: w
     filters:
+      - type_validator
       - isotime
       - django
 

@@ -44,6 +44,7 @@ filters:
     utc_isotime: True
   django:
     (): logging_utilities.filters.django_request.JsonDjangoRequest
+    attr_name: request
     include_keys:
       - request.path
       - request.method
