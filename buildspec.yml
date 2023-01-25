@@ -17,6 +17,8 @@ phases:
       python: 3.9
     commands:
       - echo "Installing necessary dependencies"
+      # Temporarely fixes an issue with the AWS codebuild base image (can be removed later)
+      - curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
       - apt-get update
       - apt-get install -y gdal-bin
       - aws --version
