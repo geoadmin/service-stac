@@ -30,12 +30,10 @@ loggers:
       - console
 
 filters:
-  type_validator:
+  type_filter:
     (): logging_utilities.filters.attr_type_filter.AttrTypeFilter
     typecheck_list:
-      request:
-        - django.http.request.HttpRequest
-        - builtins.dict
+      request: django.http.request.HttpRequest
   isotime:
     (): logging_utilities.filters.TimeAttribute
     isotime: False
@@ -131,9 +129,13 @@ handlers:
     formatter: standard
     stream: ext://sys.stdout
     filters:
-      - type_validator
+      # These filters modify the record in-place, and as the record is passed serially to each
+      # handler, they will affect every handler
+      - type_filter
       - isotime
       - django
+      # This filter only applies to the current handler (It does not modify the record in-place, but
+      # instead selects which logs to display)
       - console_django_filter_info
   file-standard:
     level: DEBUG
@@ -141,18 +143,10 @@ handlers:
     formatter: standard-file
     filename: ${BASE_DIR}/logs/server-standard-logs.txt
     mode: w
-    filters:
-      - type_validator
-      - isotime
-      - django
   file-json:
     level: DEBUG
     class: logging.FileHandler
     formatter: json
     filename: ${BASE_DIR}/logs/server-json-logs.json
     mode: w
-    filters:
-      - type_validator
-      - isotime
-      - django
 
