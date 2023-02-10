@@ -61,33 +61,37 @@ class AssetUploadBaseTest(StacBaseTestCase, S3TestMixin):
         )
 
     def get_delete_asset_path(self):
-        return reverse('asset-detail', args=[self.collection.name, self.item.name, self.asset.name])
+        return reverse(
+            'stac_api:asset-detail', args=[self.collection.name, self.item.name, self.asset.name]
+        )
 
     def get_get_multipart_uploads_path(self):
         return reverse(
-            'asset-uploads-list', args=[self.collection.name, self.item.name, self.asset.name]
+            'stac_api:asset-uploads-list',
+            args=[self.collection.name, self.item.name, self.asset.name]
         )
 
     def get_create_multipart_upload_path(self):
         return reverse(
-            'asset-uploads-list', args=[self.collection.name, self.item.name, self.asset.name]
+            'stac_api:asset-uploads-list',
+            args=[self.collection.name, self.item.name, self.asset.name]
         )
 
     def get_abort_multipart_upload_path(self, upload_id):
         return reverse(
-            'asset-upload-abort',
+            'stac_api:asset-upload-abort',
             args=[self.collection.name, self.item.name, self.asset.name, upload_id]
         )
 
     def get_complete_multipart_upload_path(self, upload_id):
         return reverse(
-            'asset-upload-complete',
+            'stac_api:asset-upload-complete',
             args=[self.collection.name, self.item.name, self.asset.name, upload_id]
         )
 
     def get_list_parts_path(self, upload_id):
         return reverse(
-            'asset-upload-parts-list',
+            'stac_api:asset-upload-parts-list',
             args=[self.collection.name, self.item.name, self.asset.name, upload_id]
         )
 

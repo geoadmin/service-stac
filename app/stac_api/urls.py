@@ -22,6 +22,8 @@ from stac_api.views import SearchList
 STAC_VERSION_SHORT = settings.STAC_VERSION_SHORT
 HEALTHCHECK_ENDPOINT = settings.HEALTHCHECK_ENDPOINT
 
+app_name = 'stac_api'
+
 asset_upload_urls = [
     path("<upload_id>", AssetUploadDetail.as_view(), name='asset-upload-detail'),
     path("<upload_id>/parts", AssetUploadPartsList.as_view(), name='asset-upload-parts-list'),

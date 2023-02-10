@@ -7,11 +7,12 @@ SERVICE_NAME := service-stac
 CURRENT_DIR := $(shell pwd)
 
 # Django specific
-APP_SRC_DIR := app
-DJANGO_MANAGER := $(CURRENT_DIR)/$(APP_SRC_DIR)/manage.py
+PROJECT_SRC_DIR := app
+APP_STAC_v09_SRC_DIR := $(PROJECT_SRC_DIR)/stac_api
+DJANGO_MANAGER := $(CURRENT_DIR)/$(PROJECT_SRC_DIR)/manage.py
 
 # Test report
-TEST_DIR := $(CURRENT_DIR)/$(APP_SRC_DIR)/tests
+TEST_DIR := $(CURRENT_DIR)/$(PROJECT_SRC_DIR)/tests
 
 # general targets timestamps
 TIMESTAMPS = .timestamps
@@ -19,7 +20,7 @@ SETTINGS_TIMESTAMP = $(TIMESTAMPS)/.settins.timestamp
 DOCKER_BUILD_TIMESTAMP = $(TIMESTAMPS)/.docker-test.timestamp
 
 # Find all python files that are not inside a hidden directory (directory starting with .)
-PYTHON_FILES := $(shell find $(APP_SRC_DIR) -type f -name "*.py" -print)
+PYTHON_FILES := $(shell find $(PROJECT_SRC_DIR) -type f -name "*.py" -print)
 
 # default configuration
 ENV ?= dev
@@ -101,7 +102,7 @@ $(TIMESTAMPS):
 
 $(SETTINGS_TIMESTAMP): $(TIMESTAMPS)
 # Check if we have a default settings.py
-	test -e $(APP_SRC_DIR)/config/settings.py || echo "from .settings_dev import *" > $(APP_SRC_DIR)/config/settings.py
+	test -e $(PROJECT_SRC_DIR)/config/settings.py || echo "from .settings_dev import *" > $(PROJECT_SRC_DIR)/config/settings.py
 # Check if there's a local env file
 	test -e $(CURRENT_DIR)/.env.local || (cp $(CURRENT_DIR)/.env.default $(CURRENT_DIR)/.env.local && \
 	echo -e "\n  \e[91ma local .env.local was created, adapt it to your needs\e[0m")
@@ -185,7 +186,7 @@ serve:
 
 .PHONY: gunicornserve
 gunicornserve:
-	$(PYTHON) $(APP_SRC_DIR)/wsgi.py
+	$(PYTHON) $(PROJECT_SRC_DIR)/wsgi.py
 
 .PHONY: serve-specs
 serve-specs:

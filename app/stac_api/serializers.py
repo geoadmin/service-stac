@@ -75,14 +75,16 @@ class LandingPageSerializer(serializers.ModelSerializer):
     links = LandingPageLinkSerializer(many=True, read_only=True)
     stac_version = serializers.SerializerMethodField()
 
-    def get_stac_version(self, obj):
+    def get_stac_version(self, obj=None):
         return settings.STAC_VERSION
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         request = self.context.get("request")
 
-        spec_base = urlparse(settings.STATIC_SPEC_URL).path.strip('/')
+        spec_base = urlparse(
+            f'{settings.STATIC_URL}spec/{".".join(self.get_stac_version().split(".")[:2])}'
+        ).path.strip('/')
         # Add auto links
         # We use OrderedDict, although it is not necessary, because the default serializer/model for
         # links already uses OrderedDict, this way we keep consistency between auto link and user

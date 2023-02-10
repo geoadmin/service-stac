@@ -242,7 +242,7 @@ class CollectionsCreateEndpointTestCase(StacBaseTestCase):
         self.assertEqual(response.json()['description'], "AttributeError('test exception')")
 
         # Make sure that the ressource has not been created
-        response = self.client.get(reverse('collection-detail', args=[sample['name']]))
+        response = self.client.get(reverse('stac_api:collection-detail', args=[sample['name']]))
         self.assertStatusCode(404, response)
 
 
@@ -423,7 +423,7 @@ class CollectionsUpdateEndpointTestCase(StacBaseTestCase):
         self.assertEqual(response.json()['description'], "AttributeError('test exception')")
 
         # Make sure that the ressource has not been created
-        response = self.client.get(reverse('collection-detail', args=[sample['name']]))
+        response = self.client.get(reverse('stac_api:collection-detail', args=[sample['name']]))
         self.assertStatusCode(200, response)
         self.check_stac_collection(self.collection.json, response.json())
 
@@ -440,7 +440,7 @@ class CollectionsDeleteEndpointTestCase(StacBaseTestCase):
 
     def test_authorized_collection_delete(self):
 
-        path = reverse('collection-detail', args=[self.collection["name"]])
+        path = reverse('stac_api:collection-detail', args=[self.collection["name"]])
         response = self.client.delete(path)
 
         self.assertStatusCode(400, response)
@@ -449,7 +449,9 @@ class CollectionsDeleteEndpointTestCase(StacBaseTestCase):
         )
 
         # delete first the item
-        item_path = reverse('item-detail', args=[self.collection["name"], self.item['name']])
+        item_path = reverse(
+            'stac_api:item-detail', args=[self.collection["name"], self.item['name']]
+        )
         response = self.client.delete(item_path)
         self.assertStatusCode(200, response)
 
@@ -490,7 +492,7 @@ class CollectionRaceConditionTest(StacBaseTransactionTestCase):
             client = Client()
             client.login(username=self.username, password=self.password)
             return client.put(
-                reverse('collection-detail', args=[sample['name']]),
+                reverse('stac_api:collection-detail', args=[sample['name']]),
                 data=sample.get_json('put'),
                 content_type='application/json'
             )

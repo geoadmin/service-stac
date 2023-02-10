@@ -342,7 +342,13 @@ def geometry_from_bbox(bbox):
 
 def get_url(request, view, args=None):
     '''Get an full url based on a view name'''
-    return request.build_absolute_uri(reverse(view, args=args))
+    return request.build_absolute_uri(
+        reverse(
+            f'stac_api:{view}',
+            args=args,
+            current_app=request.resolver_match.namespace if request.resolver_match else None
+        )
+    )
 
 
 def get_browser_url(request, view, collection=None, item=None):
