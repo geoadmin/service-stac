@@ -1,7 +1,7 @@
+from config.settings import STAC_BASE_V
+
 from django.test import Client
 from django.test import TestCase
-
-from config.settings import STAC_BASE_V
 
 
 class ConformanceTestCase(TestCase):

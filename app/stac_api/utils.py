@@ -122,7 +122,10 @@ def get_s3_client():
         AWS S3 client
     '''
     return boto3.client(
-        's3', endpoint_url=settings.AWS_S3_ENDPOINT_URL, config=Config(signature_version='s3v4')
+        's3',
+        endpoint_url=settings.AWS_S3_ENDPOINT_URL,
+        region_name=settings.AWS_S3_REGION_NAME,
+        config=Config(signature_version='s3v4'),
     )
 
 

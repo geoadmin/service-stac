@@ -4,7 +4,6 @@ import os
 import time
 from uuid import uuid4
 
-import pgtrigger
 from multihash import encode as multihash_encode
 from multihash import to_hex_string
 
@@ -154,7 +153,7 @@ class Link(models.Model):
         abstract = True
 
     def __str__(self):
-        return '%s: %s' % (self.rel, self.href)
+        return f'{self.rel}: {self.href}'
 
 
 class LandingPage(SingletonModel):
@@ -200,7 +199,6 @@ class ConformancePage(SingletonModel):
         verbose_name = "STAC Conformance Page"
 
 
-@pgtrigger.register(*generate_child_triggers('collection', 'Provider'))
 class Provider(models.Model):
     collection = models.ForeignKey(
         'stac_api.Collection',
@@ -214,9 +212,9 @@ class Provider(models.Model):
     allowed_roles = ['licensor', 'producer', 'processor', 'host']
     roles = ArrayField(
         models.CharField(max_length=9),
-        help_text=_("Comma-separated list of roles. Possible values are {}".format(
-            ', '.join(allowed_roles)
-        )),
+        help_text=_(
+            f"Comma-separated list of roles. Possible values are {', '.join(allowed_roles)}"
+        ),
         blank=True,
         null=True,
     )
@@ -225,6 +223,7 @@ class Provider(models.Model):
     class Meta:
         unique_together = (('collection', 'name'),)
         ordering = ['pk']
+        triggers = generate_child_triggers('collection', 'Provider')
 
     def __str__(self):
         return self.name
@@ -247,7 +246,6 @@ class Provider(models.Model):
 # For Collections and Items: No primary key will be defined, so that the auto-generated ones
 # will be used by Django. For assets, a primary key is defined as "BigAutoField" due the
 # expected large number of assets
-@pgtrigger.register(*generates_collection_triggers())
 class Collection(models.Model):
 
     class Meta:
@@ -255,6 +253,7 @@ class Collection(models.Model):
             models.Index(fields=['name'], name='collection_name_idx'),
             models.Index(fields=['published'], name='collection_published_idx')
         ]
+        triggers = generates_collection_triggers()
 
     published = models.BooleanField(
         default=True,
@@ -305,7 +304,6 @@ class Collection(models.Model):
         return self.name
 
 
-@pgtrigger.register(*generate_child_triggers('collection', 'CollectionLink'))
 class CollectionLink(Link):
     collection = models.ForeignKey(
         Collection, related_name='links', related_query_name='link', on_delete=models.CASCADE
@@ -314,6 +312,7 @@ class CollectionLink(Link):
     class Meta:
         unique_together = (('rel', 'collection'),)
         ordering = ['pk']
+        triggers = generate_child_triggers('collection', 'CollectionLink')
 
 
 ITEM_KEEP_ORIGINAL_FIELDS = [
@@ -324,7 +323,6 @@ ITEM_KEEP_ORIGINAL_FIELDS = [
 ]
 
 
-@pgtrigger.register(*generates_item_triggers())
 class Item(models.Model):
 
     class Meta:
@@ -349,6 +347,7 @@ class Item(models.Model):
                 name='item_dttme_start_end_dttm_idx'
             ),
         ]
+        triggers = generates_item_triggers()
 
     name = models.CharField('id', blank=False, max_length=255, validators=[validate_name])
     collection = models.ForeignKey(
@@ -413,7 +412,6 @@ class Item(models.Model):
         )
 
 
-@pgtrigger.register(*generate_child_triggers('item', 'ItemLink'))
 class ItemLink(Link):
     item = models.ForeignKey(
         Item, related_name='links', related_query_name='link', on_delete=models.CASCADE
@@ -422,6 +420,7 @@ class ItemLink(Link):
     class Meta:
         unique_together = (('rel', 'item'),)
         ordering = ['pk']
+        triggers = generate_child_triggers('item', 'ItemLink')
 
 
 def upload_asset_to_path_hook(instance, filename=None):
@@ -469,12 +468,12 @@ def upload_asset_to_path_hook(instance, filename=None):
     return get_asset_path(instance.item, instance.name)
 
 
-@pgtrigger.register(*generates_asset_triggers())
 class Asset(models.Model):
 
     class Meta:
         unique_together = (('item', 'name'),)
         ordering = ['id']
+        triggers = generates_asset_triggers()
 
     # using BigIntegerField as primary_key to deal with the expected large number of assets.
     id = models.BigAutoField(primary_key=True)
@@ -547,7 +546,6 @@ class Asset(models.Model):
         validate_asset_name_with_media_type(self.name, self.media_type)
 
 
-@pgtrigger.register(*generates_asset_upload_triggers())
 class AssetUpload(models.Model):
 
     class Meta:
@@ -560,6 +558,7 @@ class AssetUpload(models.Model):
                 name='unique_in_progress'
             )
         ]
+        triggers = generates_asset_upload_triggers()
 
     class Status(models.TextChoices):
         # pylint: disable=invalid-name

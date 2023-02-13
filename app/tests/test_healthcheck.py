@@ -1,8 +1,8 @@
-from django.test import Client
-from django.test import TestCase
-
 from config.settings import HEALTHCHECK_ENDPOINT
 from config.settings import STAC_BASE
+
+from django.test import Client
+from django.test import TestCase
 
 
 class HealthCheckTestCase(TestCase):

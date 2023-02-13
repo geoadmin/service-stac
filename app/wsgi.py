@@ -64,7 +64,7 @@ if __name__ == '__main__':
     HTTP_PORT = str(os.environ.get('HTTP_PORT', "8000"))
     # Bind to 0.0.0.0 to let your app listen to all network interfaces.
     options = {
-        'bind': '%s:%s' % ('0.0.0.0', HTTP_PORT),
+        'bind': f"{'0.0.0.0'}:{HTTP_PORT}",
         'worker_class': 'gevent',
         'workers': int(os.environ.get('GUNICORN_WORKERS',
                                       '2')),  # scaling horizontally is left to Kubernetes

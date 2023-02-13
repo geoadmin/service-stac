@@ -15,13 +15,13 @@ services:
     # spinning up postgis container takes some time, app needs to wait
     # for it to be ready before connecting
     # see: https://docs.docker.com/compose/startup-order/
-    entrypoint: ["/app/wait-for-it.sh", "db:5432", "--", "python3", "manage.py"]
+    entrypoint: ["/opt/service-stac/app/wait-for-it.sh", "db:5432", "--", "python3", "manage.py"]
     command: test --verbosity=2 --parallel=10 --no-input
     depends_on:
       - db
     environment:
       - DEBUG=True
-      - LOGGING_CFG=/app/config/logging-cfg-unittest-ci.yml
+      - LOGGING_CFG=/opt/service-stac/app/config/logging-cfg-unittest-ci.yml
       - DB_USER=postgres
       - DB_PW=postgres
       - DB_NAME=service_stac

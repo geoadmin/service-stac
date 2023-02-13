@@ -923,8 +923,13 @@ class CollectionFactory(FactoryBase):
     sample_class = CollectionSample
 
     def create_sample(
-        self, name=None, sample='collection-1', db_create=False, required_only=False, **kwargs
-    ):
+        self,
+        name=None,
+        sample='collection-1',
+        db_create=False,
+        required_only=False,
+        **kwargs
+    ):  # pylint: disable=arguments-renamed
         '''Create a collection data sample
 
         Args:
@@ -988,7 +993,7 @@ class ItemFactory(FactoryBase):
         db_create=False,
         required_only=False,
         **kwargs
-    ):
+    ):  # pylint: disable=arguments-renamed
         '''Create an Item data sample
 
         Args:
@@ -1022,7 +1027,7 @@ class ItemFactory(FactoryBase):
             collection.refresh_from_db()
         return sample
 
-    def create_samples(self, samples, collection, db_create=False, kwargs_list=True, **kwargs):
+    def create_samples(self, samples, collection, db_create=False, kwargs_list=True, **kwargs):  # pylint: disable=arguments-renamed
         '''Creates several Item samples
 
         Args:
@@ -1060,7 +1065,7 @@ class AssetFactory(FactoryBase):
         required_only=False,
         create_asset_file=False,
         **kwargs
-    ):
+    ):  # pylint: disable=arguments-renamed
         '''Create an Asset data sample
 
         Args:
@@ -1100,7 +1105,7 @@ class AssetFactory(FactoryBase):
             data_sample.create_asset_file()
         return data_sample
 
-    def create_samples(self, samples, item, db_create=False, create_asset_file=False, **kwargs):
+    def create_samples(self, samples, item, db_create=False, create_asset_file=False, **kwargs):  # pylint: disable=arguments-renamed
         '''Creates several Asset samples
 
         Args:
