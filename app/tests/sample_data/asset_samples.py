@@ -4,6 +4,9 @@ FILE_CONTENT_1 = b'Asset 1 file content'
 FILE_CONTENT_2 = b'Asset 2 file content'
 FILE_CONTENT_3 = b'Asset 3 file content'
 
+# The keys here are the attribute keys of the model. They are translated to
+# json keys when the api is called. (e.g. "name" will be translated to "id" when
+# making an api call)
 assets = {
     'asset-1': {
         'name': 'asset-1.tiff',
@@ -72,6 +75,18 @@ assets = {
         'proj_epsg': 'should be an int',
         'media_type': "dummy",
         'file': b'Asset 3 file content'
+    },
+    'asset-invalid-type': {
+        'name': 'asset-invalid-type.tiff',
+        'title': 'Asset invalid type Title',
+        'description': 'This is a full description of asset-invalid-type',
+        'eo_gsd': 3.4,
+        'geoadmin_lang': 'fr',
+        'geoadmin_variant': 'kgrs',
+        'proj_epsg': 2056,
+        'media_type': "image/tiff; application=Geotiff; profile=cloud-optimized",
+        'checksum_multihash': get_sha256_multihash(FILE_CONTENT_1),
+        'file': FILE_CONTENT_1
     },
     'asset-missing-required': {
         'name': 'asset-missing-required',

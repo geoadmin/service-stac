@@ -145,12 +145,12 @@ class AssetsCreateEndpointTestCase(StacBaseTestCase):
         collection_name = self.collection.name
         item_name = self.item.name
         asset = self.factory.create_asset_sample(item=self.item, required_only=True)
-
         path = \
             f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets/{asset["name"]}'
-        response = self.client.put(
-            path, data=asset.get_json('put'), content_type="application/json"
-        )
+        json_to_send = asset.get_json('put')
+        # Send a non normalized form of the type to see if it is also accepted
+        json_to_send['type'] = 'image/TIFF;application=geotiff; Profile=cloud-optimized'
+        response = self.client.put(path, data=json_to_send, content_type="application/json")
         json_data = response.json()
         self.assertStatusCode(201, response)
         self.check_header_location(f"{path}", response)
@@ -291,10 +291,10 @@ class AssetsCreateEndpointTestCase(StacBaseTestCase):
         for field in ['description', 'title', 'geoadmin:lang', 'geoadmin:variant']:
             self.assertIn(field, json_data['description'], msg=f'Field {field} error missing')
 
-    def test_asset_upsert_create_invalid_data(self):
+    def invalid_request_wrapper(self, sample_name, expected_error_messages, **extra_params):
         collection_name = self.collection.name
         item_name = self.item.name
-        asset = self.factory.create_asset_sample(item=self.item, sample='asset-invalid')
+        asset = self.factory.create_asset_sample(item=self.item, sample=sample_name, **extra_params)
 
         path = \
             f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets/{asset["name"]}'
@@ -303,12 +303,7 @@ class AssetsCreateEndpointTestCase(StacBaseTestCase):
         )
         self.assertStatusCode(400, response)
         self.assertEqual(
-            {
-                'eo:gsd': ['A valid number is required.'],
-                'geoadmin:lang': ['"12" is not a valid choice.'],
-                'proj:epsg': ['A valid integer is required.'],
-                'type': ['"dummy" is not a valid choice.']
-            },
+            expected_error_messages,
             response.json()['description'],
             msg='Unexpected error message',
         )
@@ -317,6 +312,37 @@ class AssetsCreateEndpointTestCase(StacBaseTestCase):
         self.assertFalse(
             Asset.objects.filter(name=asset.json['id']).exists(),
             msg="Invalid asset has been created in DB"
+        )
+
+    def test_asset_upsert_create_invalid_data(self):
+        self.invalid_request_wrapper(
+            'asset-invalid',
+            {
+                'eo:gsd': ['A valid number is required.'],
+                'geoadmin:lang': ['"12" is not a valid choice.'],
+                'proj:epsg': ['A valid integer is required.'],
+                'type': ['Invalid media type "dummy"']
+            }
+        )
+
+    def test_asset_upsert_create_invalid_type(self):
+        media_type_str = "image/tiff; application=Geotiff; profile=cloud-optimized"
+        self.invalid_request_wrapper(
+            'asset-invalid-type', {'type': [f'Invalid media type "{media_type_str}"']}
+        )
+
+    def test_asset_upsert_create_type_extension_mismatch(self):
+        media_type_str = "application/gml+xml"
+        self.invalid_request_wrapper(
+            'asset-invalid-type',
+            {
+                'non_field_errors': [
+                    f"Invalid id extension '.tiff', id must match its media type {media_type_str}"
+                ]
+            },
+            media_type=media_type_str,
+            # must be overridden, else extension will automatically match the type
+            name='asset-invalid-type.tiff'
         )
 
     def test_asset_upsert_create_characters_geoadmin_variant(self):
