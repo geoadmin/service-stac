@@ -105,7 +105,7 @@ from stac_api.models import ItemLink
 from stac_api.models import Provider
 from stac_api.utils import get_s3_resource
 from stac_api.utils import isoformat
-from stac_api.validators import MEDIA_TYPES_BY_TYPE
+from stac_api.validators import get_media_type
 
 from tests.sample_data.asset_samples import assets as asset_samples
 from tests.sample_data.collection_samples import collections as collection_samples
@@ -1140,9 +1140,10 @@ class AssetFactory(FactoryBase):
                 raise KeyError(f'Unknown {sample_name} sample: {error}') from None
             if 'media_type' in sample:
                 media = sample['media_type']
-        if media not in MEDIA_TYPES_BY_TYPE:
-            media = 'text/plain'
-        return MEDIA_TYPES_BY_TYPE[media][2][0]
+        try:
+            return get_media_type(media).extensions[0]
+        except KeyError:
+            return get_media_type('text/plain').extensions[0]
 
 
 class Factory:

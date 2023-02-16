@@ -8,7 +8,7 @@ from django.contrib.gis.geos import GEOSGeometry
 from django.core.management.base import BaseCommand
 
 from stac_api.utils import CommandHandler
-from stac_api.validators import MEDIA_TYPES_BY_TYPE
+from stac_api.validators import get_media_type
 
 logger = logging.getLogger(__name__)
 
@@ -163,7 +163,7 @@ class Handler(CommandHandler):
             return self.get_data_item(i, name=name)
         # else assets
         if init_data:
-            return self.get_data_asset(i, name=name, media_type=init_data['type'])
+            return self.get_data_asset(i, name=name, media_type_str=init_data['type'])
         return self.get_data_asset(i, name=name)
 
     def get_data_item(self, i, name=None):
@@ -173,21 +173,21 @@ class Handler(CommandHandler):
             'properties': self.get_item_properties(i)
         }
 
-    def get_data_asset(self, i, name=None, media_type=None):
-        media_types = ['text/plain', 'application/json', 'image/tiff; application=geotiff']
+    def get_data_asset(self, i, name=None, media_type_str=None):
+        media_type_strings = ['text/plain', 'application/json', 'image/tiff; application=geotiff']
         variants = [None, 'krel', 'komb', 'geoadmin']
         eo_gsds = [None, 1, 0.3, None, 4, 3.2, None]
         proj_epsgs = [None, 2056, None, 4326, 21726]
 
-        if media_type is None:
-            media_type = media_types[i % len(media_types)]
+        if media_type_str is None:
+            media_type_str = media_type_strings[i % len(media_type_strings)]
         variant = variants[i % len(variants)]
         eo_gsd = eo_gsds[i % len(eo_gsds)]
         proj_epsg = proj_epsgs[i % len(proj_epsgs)]
-        ext = MEDIA_TYPES_BY_TYPE[media_type][2][0]
+        ext = get_media_type(media_type_str)[2][0]
         data = {
             'id': name if name else f'{ self.get_name(i)}.{ext}',
-            'type': media_type,
+            'type': media_type_str,
         }
         if variant is not None:
             data['geoadmin:variant'] = variant

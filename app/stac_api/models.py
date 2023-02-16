@@ -37,6 +37,7 @@ from stac_api.validators import validate_geoadmin_variant
 from stac_api.validators import validate_geometry
 from stac_api.validators import validate_item_properties_datetimes
 from stac_api.validators import validate_link_rel
+from stac_api.validators import validate_media_type
 from stac_api.validators import validate_name
 
 logger = logging.getLogger(__name__)
@@ -519,7 +520,9 @@ class Asset(models.Model):
     proj_epsg = models.IntegerField(null=True, blank=True)
     # here we need to set blank=True otherwise the field is as required in the admin interface
     title = models.CharField(max_length=255, null=True, blank=True)
-    media_choices = [(x[0], f'{x[1]} ({x[0]})') for x in MEDIA_TYPES]
+    media_choices = [
+        (x.media_type_str, f'{x.description} ({x.media_type_str})') for x in MEDIA_TYPES
+    ]
     media_type = models.CharField(choices=media_choices, max_length=200, blank=False, null=False)
 
     created = models.DateTimeField(auto_now_add=True)
@@ -543,7 +546,11 @@ class Asset(models.Model):
             raise ValidationError(error.args[0]) from None
 
     def clean(self):
-        validate_asset_name_with_media_type(self.name, self.media_type)
+        # Although the media type is already validated, it still needs to be validated a second
+        # time as the clean method is run even if the field validation failed and there is no way
+        # to check what errors were already raised.
+        media_type = validate_media_type(self.media_type)
+        validate_asset_name_with_media_type(self.name, media_type)
 
 
 class AssetUpload(models.Model):
