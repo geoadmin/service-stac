@@ -1,5 +1,6 @@
 import logging
 import re
+from collections import namedtuple
 from datetime import datetime
 
 import multihash
@@ -18,63 +19,147 @@ from stac_api.utils import is_valid_b64
 
 logger = logging.getLogger(__name__)
 
+MediaType = namedtuple('MediaType', 'media_type_str, description, extensions')
+'''A MediaType is a tuple containing information about a media type that is accepted for asset data
+
+Attributes:
+    media_type_str: str
+        A media type string. It should already be normalized according to the rules described in the
+        "normalize_and_validate_media_type" function
+    description: str
+        A human readable description
+    extensions: [str]
+        A list of allowed extensions. Each string in this list should start with a dot.
+'''
 MEDIA_TYPES = [
-    ('application/x.ascii-grid+zip', 'Zipped ESRI ASCII raster format (.asc)', ['.zip']),
-    ('application/x.ascii-xyz+zip', 'Zipped XYZ (.xyz)', ['.zip']),
-    ('application/x.e00+zip', 'Zipped e00', ['.zip']),
-    ('image/tiff; application=geotiff', 'GeoTIFF', ['.tiff', '.tif']),
-    ('application/x.geotiff+zip', 'Zipped GeoTIFF', ['.zip']),
-    ('application/x.tiff+zip', 'Zipped TIFF', ['.zip']),
-    ('application/x.png+zip', 'Zipped PNG', ['.zip']),
-    ('application/x.jpeg+zip', 'Zipped JPEG', ['.zip']),
-    ('application/vnd.google-earth.kml+xml', 'KML', ['.kml']),
-    ('application/vnd.google-earth.kmz', 'Zipped KML', ['.kmz']),
-    ('application/x.dxf+zip', 'Zipped DXF', ['.zip']),
-    ('application/gml+xml', 'GML', ['.gml', '.xml']),
-    ('application/x.gml+zip', 'Zipped GML', ['.zip']),
-    ('application/vnd.las', 'LIDAR', ['.las']),
-    ('application/vnd.laszip', 'Zipped LIDAR', ['.laz', '.zip']),
-    ('application/x.shapefile+zip', 'Zipped Shapefile', ['.zip']),
-    ('application/x.filegdb+zip', 'Zipped File Geodatabase', ['.zip']),
-    ('application/x.ms-access+zip', 'Zipped Personal Geodatabase', ['.zip']),
-    ('application/x.ms-excel+zip', 'Zipped Excel', ['.zip']),
-    ('application/x.tab+zip', 'Zipped Mapinfo-TAB', ['.zip']),
-    ('application/x.tab-raster+zip', 'Zipped Mapinfo-Raster-TAB', ['.zip']),
-    ('application/x.csv+zip', 'Zipped CSV', ['.zip']),
-    ('text/csv', 'CSV', ['.csv']),
-    ('application/geopackage+sqlite3', 'Geopackage', ['.gpkg']),
-    ('application/x.geopackage+zip', 'Zipped Geopackage', ['.zip']),
-    ('application/geo+json', 'GeoJSON', ['.json', '.geojson']),
-    ('application/x.geojson+zip', 'Zipped GeoJSON', ['.zip']),
-    ('application/x.interlis; version=2.3', 'Interlis 2', ['.xtf', '.xml']),
-    ('application/x.interlis+zip; version=2.3', 'Zipped XTF (2.3)', ['.zip']),
-    ('application/x.interlis; version=1', 'Interlis 1', ['.itf']),
-    ('application/x.interlis+zip; version=1', 'Zipped ITF', ['.zip']),
-    (
+    MediaType('application/x.ascii-grid+zip', 'Zipped ESRI ASCII raster format (.asc)', ['.zip']),
+    MediaType('application/x.ascii-xyz+zip', 'Zipped XYZ (.xyz)', ['.zip']),
+    MediaType('application/x.e00+zip', 'Zipped e00', ['.zip']),
+    MediaType('application/x.geotiff+zip', 'Zipped GeoTIFF', ['.zip']),
+    MediaType('image/tiff; application=geotiff', 'GeoTIFF', ['.tiff', '.tif']),
+    MediaType('application/x.tiff+zip', 'Zipped TIFF', ['.zip']),
+    MediaType('application/x.png+zip', 'Zipped PNG', ['.zip']),
+    MediaType('application/x.jpeg+zip', 'Zipped JPEG', ['.zip']),
+    MediaType('application/vnd.google-earth.kml+xml', 'KML', ['.kml']),
+    MediaType('application/vnd.google-earth.kmz', 'Zipped KML', ['.kmz']),
+    MediaType('application/x.dxf+zip', 'Zipped DXF', ['.zip']),
+    MediaType('application/gml+xml', 'GML', ['.gml', '.xml']),
+    MediaType('application/x.gml+zip', 'Zipped GML', ['.zip']),
+    MediaType('application/vnd.las', 'LIDAR', ['.las']),
+    MediaType('application/vnd.laszip', 'Zipped LIDAR', ['.laz', '.zip']),
+    MediaType('application/x.shapefile+zip', 'Zipped Shapefile', ['.zip']),
+    MediaType('application/x.filegdb+zip', 'Zipped File Geodatabase', ['.zip']),
+    MediaType('application/x.ms-access+zip', 'Zipped Personal Geodatabase', ['.zip']),
+    MediaType('application/x.ms-excel+zip', 'Zipped Excel', ['.zip']),
+    MediaType('application/x.tab+zip', 'Zipped Mapinfo-TAB', ['.zip']),
+    MediaType('application/x.tab-raster+zip', 'Zipped Mapinfo-Raster-TAB', ['.zip']),
+    MediaType('application/x.csv+zip', 'Zipped CSV', ['.zip']),
+    MediaType('text/csv', 'CSV', ['.csv']),
+    MediaType('application/geopackage+sqlite3', 'Geopackage', ['.gpkg']),
+    MediaType('application/x.geopackage+zip', 'Zipped Geopackage', ['.zip']),
+    MediaType('application/geo+json', 'GeoJSON', ['.json', '.geojson']),
+    MediaType('application/x.geojson+zip', 'Zipped GeoJSON', ['.zip']),
+    MediaType('application/x.interlis; version=2.3', 'Interlis 2', ['.xtf', '.xml']),
+    MediaType('application/x.interlis+zip; version=2.3', 'Zipped XTF (2.3)', ['.zip']),
+    MediaType('application/x.interlis; version=1', 'Interlis 1', ['.itf']),
+    MediaType('application/x.interlis+zip; version=1', 'Zipped ITF', ['.zip']),
+    MediaType(
         'image/tiff; application=geotiff; profile=cloud-optimized',
         'Cloud Optimized GeoTIFF (COG)', ['.tiff', '.tif']
     ),
-    ('application/pdf', 'PDF', ['.pdf']),
-    ('application/x.pdf+zip', 'Zipped PDF', ['.zip']),
-    ('application/json', 'JSON', ['.json']),
-    ('application/x.json+zip', 'Zipped JSON', ['.zip']),
-    ('application/x-netcdf', 'NetCDF', ['.nc']),
-    ('application/x.netcdf+zip', 'Zipped NetCDF', ['.zip']),
-    ('application/xml', 'XML', ['.xml']),
-    ('application/x.xml+zip', 'Zipped XML', ['.zip']),
-    ('application/vnd.mapbox-vector-tile', 'mbtiles', ['.mbtiles']),
-    ('text/plain', 'Text', ['.txt']),
-    ('text/x.plain+zip', 'Zipped text', ['.zip']),
-    ('application/x.dwg+zip', 'Zipped DWG', ['.zip']),
-    ('application/zip', 'Generic Zip File', ['.zip']),
-    ('image/tiff', 'TIFF', ['.tiff', '.tif']),
-    ('image/jpeg', 'JPEG', ['.jpeg', '.jpg']),
-    ('image/png', 'PNG', ['.png']),
-    ('application/vnd.sqlite3', 'sqlite', ['.sqlite']),
+    MediaType('application/pdf', 'PDF', ['.pdf']),
+    MediaType('application/x.pdf+zip', 'Zipped PDF', ['.zip']),
+    MediaType('application/json', 'JSON', ['.json']),
+    MediaType('application/x.json+zip', 'Zipped JSON', ['.zip']),
+    MediaType('application/x-netcdf', 'NetCDF', ['.nc']),
+    MediaType('application/x.netcdf+zip', 'Zipped NetCDF', ['.zip']),
+    MediaType('application/xml', 'XML', ['.xml']),
+    MediaType('application/x.xml+zip', 'Zipped XML', ['.zip']),
+    MediaType('application/vnd.mapbox-vector-tile', 'mbtiles', ['.mbtiles']),
+    MediaType('text/plain', 'Text', ['.txt']),
+    MediaType('text/x.plain+zip', 'Zipped text', ['.zip']),
+    MediaType('application/x.dwg+zip', 'Zipped DWG', ['.zip']),
+    MediaType('application/zip', 'Generic Zip File', ['.zip']),
+    MediaType('image/tiff', 'TIFF', ['.tiff', '.tif']),
+    MediaType('image/jpeg', 'JPEG', ['.jpeg', '.jpg']),
+    MediaType('image/png', 'PNG', ['.png']),
+    MediaType('application/vnd.sqlite3', 'sqlite', ['.sqlite']),
 ]
-MEDIA_TYPES_MIMES = [x[0] for x in MEDIA_TYPES]
-MEDIA_TYPES_EXTENSIONS = [ext for media_type in MEDIA_TYPES for ext in media_type[2]]
-MEDIA_TYPES_BY_TYPE = {media[0]: media for media in MEDIA_TYPES}
+
+MT_VAR = "[0-9A-Za-z!#$%&'*+.^_`|~-]+"
+MEDIA_TYPE_ARGUMENT = re.compile(f"[ \t]*;[ \t]*({MT_VAR})=({MT_VAR})")
+MEDIA_TYPE_PATTERN = re.compile(f"^({MT_VAR}/{MT_VAR})((?:[ \t]*;[ \t]*{MT_VAR}={MT_VAR})*)$")
+
+
+def normalize_and_validate_media_type(media_type_str):
+    '''
+    Normalizes the media type string and validate it.
+
+    Normalizes the media type string and check that the media type string is one of the media types
+    accepted by the application.
+
+    To simplify comparasion, media type strings are normalized as soon as possible, and only
+    normalized strings can be saved in the database.
+
+    This list explains how the variants accepted by the norm are mapped to their respective
+    normalized form (variants accepted by the norm => normalized form)
+    - Types, subtypes and parameter names are case insensitive. => They are in lowercase
+    - Parameter values may be case sensitive => They are kept unchanged
+    - Order of the parameters is not important => They are ordered alphabetically
+    - no whitespace around "=" allowed. Whitespace only allowed around the ";" parameter separator
+      => No whitespaces before the semicolon, one whitespace after
+    - Parameter values are allowed to be quoted => Here we derogate from the norm to keep it simple.
+      Quoted parameters are considered malformed.
+
+    Args:
+        media_type_str: str
+            The media type string to normalize and validate
+
+    Returns:
+        The normalized media type string
+
+    Raises:
+        ValidationError:
+            Media type string is either malformed or not one of the accepted media types.
+    '''
+    try:
+        # May throw AttributeError on failed fullmatch => Malformed media type
+        media_type, args = MEDIA_TYPE_PATTERN.fullmatch(media_type_str).groups()
+        normalized_str = media_type.lower() + ''.join(
+            sorted(map(lambda x: f'; {x[0].lower()}={x[1]}', MEDIA_TYPE_ARGUMENT.findall(args)))
+        )
+        # May throw KeyError=> valid media type, but type is not in the list of accepted media types
+        return get_media_type(normalized_str).media_type_str
+    except (AttributeError, KeyError) as ex:
+        logger.error("Invalid media_type %s", media_type_str)
+        raise ValidationError(
+            _('Invalid media type "%(media_type)s"'),
+            params={'media_type': media_type_str},
+            code='invalid'
+        ) from ex
+
+
+MEDIA_TYPES_EXTENSIONS = frozenset([ext for media_type in MEDIA_TYPES for ext in media_type[2]])
+_MEDIA_TYPES_BY_STR = {media[0]: media for media in MEDIA_TYPES}
+
+
+def get_media_type(media_type_str):
+    '''Return a MediaType or raise a KeyError if no MediaType exists for the given string
+    '''
+    return _MEDIA_TYPES_BY_STR[media_type_str]
+
+
+def validate_media_type(media_type_str):
+    '''Like "get_media_type", but raise a ValidationError instead of a KeyError
+    '''
+    try:
+        return get_media_type(media_type_str)
+    except KeyError as ex:
+        raise ValidationError(
+            _('Invalid media type "%(media_type)s"'),
+            params={'media_type': media_type_str},
+            code='invalid'
+        ) from ex
 
 
 def validate_name(name):
@@ -109,25 +194,26 @@ def validate_asset_name(name):
 
 def validate_asset_name_with_media_type(name, media_type):
     '''Validate Asset name against the media type
+
+    Args:
+        name: string
+            Name of the asset
+        media_type: MediaType | str
+            The media type object or string that should be matched by the asset name
     '''
+    if isinstance(media_type, str):
+        media_type = get_media_type(media_type)
     ext = f".{name.rsplit('.', maxsplit=1)[-1]}"
-    if media_type not in MEDIA_TYPES_BY_TYPE:
-        logger.error("Invalid media_type %s for asset %s", media_type, name)
-        raise ValidationError(
-            _("Invalid media type %(media_type)s"),
-            params={'media_type': media_type},
-            code='invalid'
-        )
-    if ext not in MEDIA_TYPES_BY_TYPE[media_type][2]:
+    if ext not in media_type.extensions:
         logger.error(
             "Invalid name %s extension %s, don't match the media type %s",
             name,
             ext,
-            MEDIA_TYPES_BY_TYPE[media_type],
+            media_type,
         )
         raise ValidationError(
             _("Invalid id extension '%(ext)s', id must match its media type %(media_type)s"),
-            params={'ext': ext, 'media_type': media_type},
+            params={'ext': ext, 'media_type': media_type.media_type_str},
             code='invalid'
         )
 

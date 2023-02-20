@@ -3,6 +3,9 @@ from django.test import TestCase
 
 from rest_framework import serializers
 
+from stac_api.validators import MediaType
+from stac_api.validators import get_media_type
+from stac_api.validators import normalize_and_validate_media_type
 from stac_api.validators import validate_item_properties_datetimes_dependencies
 from stac_api.validators_serializer import validate_asset_href_path
 
@@ -54,3 +57,45 @@ class TestValidators(TestCase):
             validate_item_properties_datetimes_dependencies(
                 properties_datetime, properties_start_datetime, properties_end_datetime
             )
+
+
+class TestMediaTypeValidators(TestCase):
+
+    def test_normalized_media_type_str(self):
+        media_type_str = 'image/tiff; application=geotiff; profile=cloud-optimized'
+        media_type = MediaType(
+            'image/tiff; application=geotiff; profile=cloud-optimized',
+            'Cloud Optimized GeoTIFF (COG)', ['.tiff', '.tif']
+        )
+
+        self.assertEqual(normalize_and_validate_media_type(media_type_str), media_type[0])
+        self.assertEqual(normalize_and_validate_media_type(media_type_str), media_type_str)
+        self.assertTupleEqual(get_media_type(media_type_str), media_type)
+
+    def test_not_normalized_media_type_str(self):
+        media_type_str = 'image/TIFF;profile=cloud-optimized ; Application=geotiff'
+        media_type = MediaType(
+            'image/tiff; application=geotiff; profile=cloud-optimized',
+            'Cloud Optimized GeoTIFF (COG)', ['.tiff', '.tif']
+        )
+
+        self.assertEqual(normalize_and_validate_media_type(media_type_str), media_type[0])
+        self.assertTupleEqual(get_media_type(media_type[0]), media_type)
+        self.assertRaises(KeyError, get_media_type, media_type_str)
+
+    def test_malformed_or_invalid_media_type_strings(self):
+        media_type_strings = [
+            # Malformed media types
+            'image/"TIFF";profile="cloud-optimized" ; Application=geotiff',
+            'image/TIFF;profile=cloud-optimized Application=geotiff',
+            'image/TIFF;profile="cloud-optimized" ; Application = geotiff',
+            'image/tiff; "profile=cloud-optimized" ; Application=geotiff',
+            'image/tiff; application=Geotiff; profile=cloud-optimized',
+            # Valid according to the norm, but we do not accept quotes
+            'image/TIFF;profile="cloud-optimized" ; Application=geotiff',
+            # Valid media type, but not part of the list of accepted media types
+            'audio/mpeg'
+        ]
+        for media_type_str in media_type_strings:
+            self.assertRaises(ValidationError, normalize_and_validate_media_type, media_type_str)
+            self.assertRaises(KeyError, get_media_type, media_type_str)

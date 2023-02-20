@@ -30,7 +30,7 @@ from stac_api.utils import build_asset_href
 from stac_api.utils import get_browser_url
 from stac_api.utils import get_url
 from stac_api.utils import isoformat
-from stac_api.validators import MEDIA_TYPES_MIMES
+from stac_api.validators import normalize_and_validate_media_type
 from stac_api.validators import validate_asset_name
 from stac_api.validators import validate_asset_name_with_media_type
 from stac_api.validators import validate_checksum_multihash_sha256
@@ -468,12 +468,10 @@ class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         required=False, max_length=255, allow_null=True, allow_blank=False
     )
     description = serializers.CharField(required=False, allow_blank=False, allow_null=True)
-    type = serializers.ChoiceField(
-        source='media_type',
-        required=True,
-        choices=MEDIA_TYPES_MIMES,
-        allow_null=False,
-        allow_blank=False
+    # Can't be a ChoiceField, as the validate method normalizes the MIME string only after it
+    # is read. Consistency is nevertheless guaranteed by the validate() and validate_type() methods.
+    type = serializers.CharField(
+        source='media_type', required=True, allow_null=False, allow_blank=False
     )
     # Here we need to explicitely define these fields with the source, because they are renamed
     # in the get_fields() method
@@ -520,14 +518,17 @@ class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         asset, created = Asset.objects.update_or_create(**look_up, defaults=validated_data)
         return asset, created
 
+    def validate_type(self, value):
+        ''' Validates the the field "type"
+        '''
+        return normalize_and_validate_media_type(value)
+
     def validate(self, attrs):
-        if not self.partial:
-            validate_asset_name_with_media_type(attrs.get('name'), attrs.get('media_type'))
-        if self.partial and ('name' in attrs or 'media_type' in attrs):
-            validate_asset_name_with_media_type(
-                attrs.get('name', self.instance.name),
-                attrs.get('media_type', self.instance.media_type)
-            )
+        name = attrs['name'] if not self.partial else attrs.get('name', self.instance.name)
+        media_type = attrs['media_type'] if not self.partial else attrs.get(
+            'media_type', self.instance.media_type
+        )
+        validate_asset_name_with_media_type(name, media_type)
 
         validate_json_payload(self)
 
