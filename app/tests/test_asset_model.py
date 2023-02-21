@@ -116,7 +116,7 @@ class AssetsModelTestCase(StacBaseTransactionTestCase):
             exception.messages
         )
         self.assertIn(
-            'Invalid media type application/vnd.oai.openapi+yaml;version=3.0', exception.messages
+            'Invalid media type "application/vnd.oai.openapi+yaml;version=3.0"', exception.messages
         )
 
         with self.assertRaises(

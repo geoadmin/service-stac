@@ -12,7 +12,7 @@
 - [SPEC](#spec)
 - [Local development](#local-development)
   - [Dependencies](#dependencies)
-    - [Python3.7](#python37)
+    - [Python3.9](#python39)
     - [pipenv](#pipenv)
   - [Using Postgres on local host](#using-postgres-on-local-host)
   - [Creating the local environment](#creating-the-local-environment)
@@ -33,6 +33,7 @@
     - [**Asset Storage settings (AWS S3)**](#asset-storage-settings-aws-s3)
     - [**Development settings (only for local environment and DEV staging)**](#development-settings-only-for-local-environment-and-dev-staging)
 - [Utility scripts](#utility-scripts)
+- ["update\_to\_latest.sh" script](#update_to_latestsh-script)
 
 ## Summary of the project
 
@@ -48,24 +49,32 @@ See [SPEC](./spec/README.md)
 
 Prerequisites on host for development and build:
 
-- python version 3.7
+- python version 3.9
 - libgdal-dev
 - [pipenv](https://pipenv-fork.readthedocs.io/en/latest/install.html)
 - `docker` and `docker-compose`
 
-#### Python3.7
+#### Python3.9
 
-If your Ubuntu distribution is missing Python 3.7, you may use the `deadsnakes` PPA and install it:
+If your Ubuntu distribution is missing Python 3.9, you may use the `deadsnakes` PPA and install it:
 
 ```bash
 sudo add-apt-repository ppa:deadsnakes/ppa
 sudo apt-get update
-sudo apt-get install python3.7
+sudo apt-get install python3.9
 ```
 
 #### pipenv
 
-Generally, all modern distribution have already a [pipenv](https://pipenv-fork.readthedocs.io) package. If no, install from hand.
+Generally, all modern distributions have already a [pipenv](https://pipenv-fork.readthedocs.io) package.
+However, the version may be dated, which could result in problems during the installation. In this case,
+uninstall the version from apt and install it manually like this:
+
+```bash
+pip install --user pipenv
+```
+
+At the time of writing, version `2022.11.30` or never should be working fine.
 
 The other services that are used (Postgres with PostGIS extension for metadata and [MinIO](https://www.min.io) as local S3 replacement) are wrapped in a docker compose.
 
@@ -472,3 +481,9 @@ These settings are read from `settings_dev.py`
 
 The folder `scripts` contains several utility scripts that can be used for setting up local DBs,
 filling it with random data and the like and also for uploading files via the API.
+
+## "update_to_latest.sh" script
+
+In the main directory, there is a script named "update_to_latest.sh" which can be used to
+automatically update the version strings of the dependencies in the Pipfile. See the comment at
+the top of the script to learn how to use it.

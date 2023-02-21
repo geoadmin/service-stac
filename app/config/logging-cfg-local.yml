@@ -30,12 +30,17 @@ loggers:
       - console
 
 filters:
+  type_filter:
+    (): logging_utilities.filters.attr_type_filter.AttrTypeFilter
+    typecheck_list:
+      request: django.http.request.HttpRequest
   isotime:
     (): logging_utilities.filters.TimeAttribute
     isotime: False
     utc_isotime: True
   django:
     (): logging_utilities.filters.django_request.JsonDjangoRequest
+    attr_name: request
     include_keys:
       - request.path
       - request.method
@@ -45,6 +50,9 @@ filters:
       - request.headers.Authorization
       - request.headers.Proxy-Authorization
       - request.headers.Cookie
+      # These two are present when using gunicorn and cannot be correctly jsonified.
+      - request.META.gunicorn
+      - request.META.wsgi
   console_django_filter_info:
     (): logging_utilities.filters.LevelFilter
     level: "INFO"
@@ -67,6 +75,7 @@ formatters:
     filter_attributes:
       - utc_isotime
     remove_empty: True
+    ignore_missing: True
     fmt:
       time: utc_isotime
       level: levelname
@@ -76,7 +85,6 @@ formatters:
       process: "%(process)x/%(thread)x"
       exc_info: exc_info
       request:
-        id: request.headers.X-Amz-Cf-Id
         path: request.path
         method: request.method
         queryString: request.META.QUERY_STRING
@@ -121,8 +129,13 @@ handlers:
     formatter: standard
     stream: ext://sys.stdout
     filters:
+      # These filters modify the record in-place, and as the record is passed serially to each
+      # handler, they will affect every handler
+      - type_filter
       - isotime
       - django
+      # This filter only applies to the current handler (It does not modify the record in-place, but
+      # instead selects which logs to display)
       - console_django_filter_info
   file-standard:
     level: DEBUG
@@ -130,16 +143,10 @@ handlers:
     formatter: standard-file
     filename: ${BASE_DIR}/logs/server-standard-logs.txt
     mode: w
-    filters:
-      - isotime
-      - django
   file-json:
     level: DEBUG
     class: logging.FileHandler
     formatter: json
     filename: ${BASE_DIR}/logs/server-json-logs.json
     mode: w
-    filters:
-      - isotime
-      - django
 

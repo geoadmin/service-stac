@@ -19,7 +19,8 @@ def main():
         os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 
     try:
-        from django.core.management import execute_from_command_line  # pylint: disable=import-outside-toplevel
+        from django.core.management import \
+            execute_from_command_line  # pylint: disable=import-outside-toplevel
     except ImportError as exc:
         raise ImportError(
             "Couldn't import Django. Are you sure it's installed and "

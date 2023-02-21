@@ -316,17 +316,14 @@ class CollectionDeserializationTestCase(StacBaseTestCase):
 
 class ItemSerializationTestCase(StacBaseTestCase):
 
-    @classmethod
     @mock_s3_asset_file
-    def setUpTestData(cls):  # pylint: disable=invalid-name
-        cls.data_factory = Factory()
-        cls.collection = cls.data_factory.create_collection_sample(db_create=True)
-        cls.item = cls.data_factory.create_item_sample(
-            collection=cls.collection.model, db_create=True
-        )
-        cls.asset = cls.data_factory.create_asset_sample(item=cls.item.model, db_create=True)
-
     def setUp(self):  # pylint: disable=invalid-name
+        self.data_factory = Factory()
+        self.collection = self.data_factory.create_collection_sample(db_create=True)
+        self.item = self.data_factory.create_item_sample(
+            collection=self.collection.model, db_create=True
+        )
+        self.asset = self.data_factory.create_asset_sample(item=self.item.model, db_create=True)
         self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_item_serialization(self):
@@ -573,17 +570,14 @@ class ItemDeserializationTestCase(StacBaseTestCase):
 
 class AssetSerializationTestCase(StacBaseTestCase):
 
-    @classmethod
     @mock_s3_asset_file
-    def setUpTestData(cls):
-        cls.data_factory = Factory()
-        cls.collection = cls.data_factory.create_collection_sample(db_create=True)
-        cls.item = cls.data_factory.create_item_sample(
-            collection=cls.collection.model, db_create=True
+    def setUp(self):
+        self.data_factory = Factory()
+        self.collection = self.data_factory.create_collection_sample(db_create=True)
+        self.item = self.data_factory.create_item_sample(
+            collection=self.collection.model, db_create=True
         )
-        cls.asset = cls.data_factory.create_asset_sample(item=cls.item.model, db_create=True)
-
-    def setUp(self):  # pylint: disable=invalid-name
+        self.asset = self.data_factory.create_asset_sample(item=self.item.model, db_create=True)
         self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_asset_serialization(self):

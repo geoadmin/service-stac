@@ -32,7 +32,7 @@ def generate_child_triggers(parent_name, child_name):
 
     RETURN {child_obj};
     """
-    return (
+    return [
         pgtrigger.Trigger(
             name=f"add_{parent_name}_child_trigger",
             operation=pgtrigger.Insert,
@@ -58,7 +58,7 @@ def generate_child_triggers(parent_name, child_name):
                 parent_name=parent_name, child_obj="OLD", child_name=child_name
             )
         )
-    )
+    ]
 
 
 def generates_asset_triggers():
@@ -126,7 +126,7 @@ def generates_asset_triggers():
                 ('collection_summaries', 'RECORD'),
             ]
 
-    return (
+    return [
         UpdateCollectionSummariesTrigger(
             name='update_asset_collection_summaries_trigger',
             operation=pgtrigger.Update,
@@ -149,7 +149,7 @@ def generates_asset_triggers():
             when=pgtrigger.Before,
             func=AUTO_VARIABLES_FUNC
         )
-    )
+    ]
 
 
 def generates_item_triggers():
@@ -198,7 +198,7 @@ def generates_item_triggers():
                 ('collection_extent', 'RECORD'),
             ]
 
-    return (
+    return [
         pgtrigger.Trigger(
             name="add_item_auto_variables_trigger",
             operation=pgtrigger.Insert,
@@ -221,7 +221,7 @@ def generates_item_triggers():
             name='add_del_item_collection_extent_trigger',
             operation=pgtrigger.Delete | pgtrigger.Insert
         )
-    )
+    ]
 
 
 def generates_collection_triggers():
@@ -234,7 +234,7 @@ def generates_collection_triggers():
         tuple for all needed triggers
     '''
 
-    return (
+    return [
         pgtrigger.Trigger(
             name="add_collection_auto_variables_trigger",
             operation=pgtrigger.Insert,
@@ -248,7 +248,7 @@ def generates_collection_triggers():
             condition=pgtrigger.Condition('OLD.* IS DISTINCT FROM NEW.*'),
             func=AUTO_VARIABLES_FUNC
         ),
-    )
+    ]
 
 
 def generates_asset_upload_triggers():
@@ -267,7 +267,7 @@ def generates_asset_upload_triggers():
     RETURN NEW;
     """
 
-    return (
+    return [
         pgtrigger.Trigger(
             name="add_asset_upload_trigger",
             operation=pgtrigger.Insert,
@@ -281,4 +281,4 @@ def generates_asset_upload_triggers():
             when=pgtrigger.Before,
             func=etag_func
         ),
-    )
+    ]
