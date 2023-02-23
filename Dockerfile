@@ -25,13 +25,15 @@ ENTRYPOINT ["python"]
 # Container to perform tests/management/dev tasks
 FROM base as debug
 LABEL target=debug
-RUN apt-get update -qq \
-    && DEBIAN_FRONTEND=noninteractive apt-get install -y gdal-bin \
+RUN apt-get -qq update > /dev/null \
+    && DEBIAN_FRONTEND=noninteractive apt-get -qq -y install gdal-bin \
     # dev dependencies
     binutils libproj-dev \
     # debug tools
     curl net-tools iputils-ping postgresql-client-common jq openssh-client \
-    && apt-get clean \
+    # silent the install
+    > /dev/null \
+    && apt-get -qq clean \
     && rm -rf /var/lib/apt/lists/* \
     && pip3 install pipenv \
     && pipenv --version
@@ -76,11 +78,13 @@ USER ${USER}
 ###########################################################
 # Builder container
 FROM base as builder
-RUN apt-get update -qq \
-    && DEBIAN_FRONTEND=noninteractive apt-get install -y gdal-bin \
+RUN apt-get -qq update > /dev/null \
+    && DEBIAN_FRONTEND=noninteractive apt-get -qq -y install gdal-bin \
     # dev dependencies
     binutils libproj-dev \
-    && apt-get clean \
+    # silent the installation
+    > /dev/null \
+    && apt-get -qq clean \
     && rm -rf /var/lib/apt/lists/* \
     && pip3 install pipenv \
     && pipenv --version
@@ -102,9 +106,9 @@ RUN echo "from .settings_prod import *" > ${INSTALL_DIR}/app/config/settings.py 
 FROM base as production
 LABEL target=production
 
-RUN apt-get update -qq \
-    && DEBIAN_FRONTEND=noninteractive apt-get install -y gdal-bin \
-    && apt-get clean \
+RUN apt-get -qq update > /dev/null \
+    && DEBIAN_FRONTEND=noninteractive apt-get -qq -y install gdal-bin > /dev/null \
+    && apt-get -qq clean \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder ${INSTALL_DIR}/ ${INSTALL_DIR}/
