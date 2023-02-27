@@ -1,10 +1,10 @@
 # Cache Settings
 
-> `Status:`
+> `Status: Accepted`
 
 > `Date: 2023-02-27`
 
-> `Participants: Brice Schaffner, Christoph Böcklin`
+> `Participants: Brice Schaffner, Christoph Böcklin, Jürgen Hansmann`
 
 ## Context
 
@@ -62,15 +62,16 @@ scenario 4. and 5.
 - Currently an asset update (new upload) automatically updates the asset metadata fields; `checksum:multihash` and `update`
   - To be checked if the asset update did not changed (same `checksum:multihash`) not sure if the `update` field is also updated, it depends on django framework and/or DRF framework, our code doesn't do any check and write the DB with the same data, the `update` field is automatically updated by django.
 - Cloudfront cache invalidation takes time (> 20s) and it is independent of the path to invalidate. Every cache invalidation cost.
+- Cloudfront `no-cache` => means low cache `~1s`
   
 ## Proposal #1
 
-A proposal is to add a new field in the transactional API on the create asset; `update_rate`
+A proposal is to add a new field in the transactional API on the create asset; `update_interval`
 
 This field would be of type INT and in seconds. In a first step it would be only part of the transactional API (not in the read endpoints) and be saved together with the asset in the DB. The visualization of this field is left for a next step,
 where we might use an existing STAC extension like [Timestamps Extension Specification](https://github.com/stac-extensions/timestamps) or create a new extension, TBD.
 
-Here below an example of JSON body in the assert create request
+Here below an example of JSON body in the asset create request `POST http://data.geo.admin.ch/api/stac/v0.9/collections/{collectionId}/items/{featureId}/assets/{assetId}/uploads`
 
 ```json
 {
@@ -80,7 +81,7 @@ Here below an example of JSON body in the assert create request
   "proj:epsg": 2056,
   "eo:gsd": 2.5,
   "id": "smr50-263-2016-2056-kgrs-2.5.tiff",
-  "update_rate": 60
+  "update_interval": 60
 }
 ```
 
@@ -89,7 +90,7 @@ The value of this field could be checked via the admin interface only.
 :warning: This field only act on the cache settings of the asset data and API asset endpoint ! An asset upload automatically
 updates the asset metadata with the new `checksum:multihash`.
 
-`update_rate` less than 1 seconds would not be supported. Setting `update_rate` to `0` would mean `never` use case 4. and 5. above. So the default value of this field would be `0` and then the default cache settings would be applied.
+`update_interval` `0` means instantly (changes happens infrequently from 1 seconds to several hours, days, week, ...). Setting `update_interval` to `-1` would mean `never` use case 4. and 5. above. So the default value of this field would be `-1` and then the default cache settings would be applied.
 
 For any other value we would compute the cache settings for the asset data as follow:
 
@@ -108,6 +109,8 @@ Based on the values above we can say that this solution would cover use case `1.
 1. Using a smaller max cache settings, e.g. `10s`
 2. Using the `Expires` HTTP header, also it is not recommended by AWS CF. We could use `Expires` only for the data and `max-age` for the API metadata with a low value.
 
+> Chris: recommend to use the same mechanism with `Cache-Control` instead of `Expires` for use case 3.1. A first idea would be to have a service to deliver S3 data that can sets Cache-Control dynamically.
+
 ### Cache invalidation for use case 4.1
 
 For this case we have no other solution than doing a manual cache invalidation on Cloudfront. To start I propose to do this
@@ -115,22 +118,23 @@ manually via AWS CLI or AWS console. Depending on the future if this use case co
 
 ### Possible next step
 
-As next step, would be to provide any read infos about this `update_rate`. One possible solution would be to 
+As next step, would be to provide any read infos about this `update_interval`. One possible solution would be to 
 use the [Timestamps Extension Specification](https://github.com/stac-extensions/timestamps) where the `expires` asset
-field would be set based on the update time + `update_rate`. This field would be updated each time an asset upload is
+field would be set based on the update time + `update_interval`. This field would be updated each time an asset upload is
 either started or completed (TBD). If using this extension we need to keep in mind the collection/item/asset publication flag see [BGDIINF_SB-2676](https://jira.swisstopo.ch/browse/BGDIINF_SB-2676).
-
-## Other proposal
-
-TBD.
 
 ## Decision
 
-TBD.
+- Keep API independent from implementation
+- Proposal #1 accepted for use case `1.` and `2.`
+- Use case `3.` will be discussed in future when needed.
+- `update_interval` read-only in admin interface !
 
 ## Consequences
 
-TBD..
+- Implement and deploy on INT
+- Once on INT diemo developper needs to be notified.
+- Chris will do the SPEC, Brice the implementation.
 
 ## References
 
