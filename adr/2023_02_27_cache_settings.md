@@ -85,9 +85,10 @@ Here below an example of JSON body in the asset create request `POST http://data
 }
 ```
 
-The value of this field could be checked via the admin interface only.
+The value of this field could be checked via the admin interface only (read only field).
+This field is saved in the `AssetUpload` model and copied over in the `Asset` model on the asset upload complete action, similar to the `checksum:multihash` field.
 
-:warning: This field only act on the cache settings of the asset data and API asset endpoint ! An asset upload automatically
+:warning: This field act on the cache settings of the asset data and API asset endpoint ! An asset upload automatically
 updates the asset metadata with the new `checksum:multihash`.
 
 `update_interval` `0` means instantly (changes happens infrequently from 1 seconds to several hours, days, week, ...). Setting `update_interval` to `-1` would mean `never` use case 4. and 5. above. So the default value of this field would be `-1` and then the default cache settings would be applied.
