@@ -513,6 +513,115 @@ paths:
           $ref: "#/components/responses/PreconditionFailed"
         5XX:
           $ref: "#/components/responses/ServerError"
+  "{assetObjectHref}":
+    parameters:
+    - $ref: "#/components/parameters/assetObjectHref"
+    get:
+      tags:
+      - Data
+      summary: Get asset object
+      parameters:
+      - $ref: "#/components/parameters/IfNoneMatch"
+      operationId: getAssetObject
+      description: |
+        Return an asset object
+
+        ### Notes on Caching
+
+        Asset objects are cached by default for 2 hours (7200 seconds). Depending on the
+        update interval of an asset object (e.g. for frequently updated data)
+        the `Cache-Control` header can be different, in special cases it can even be
+        set to `no-cache` (e.g. for realtime data).
+
+        All endpoints support the precondition headers `If-Match` and `If-None-Match`.
+        To reduce unnecessary traffic it's highly recommended to use these headers
+        (mostly `If-None-Match`) when making calls.
+
+        In case your application is using frequently updated data and you want to
+        be sure not to miss an update of the data, the recommended procedure is as
+        follows:
+
+        ```python
+        import requests
+        import time
+
+        refresh_interval = 5
+
+        item_etag = "*"
+        item_url = "https://data.geo.admin.ch/collections/{collectionID}/items/{itemId}"
+
+        asset_id = 'data.json'
+        asset_etag = "*"
+
+        poll_for_new_data = True
+
+        while(poll_for_new_data):
+          item_response = requests.get(item_url, headers={'If-None-Match': f'"{item_etag}"'})
+          if item_response.status_code == 304:
+            # item metadata and hence any associated asset object didn't
+            # change since last call
+
+            time.sleep(refresh_interval)
+
+          elif item_response.status_code == 200:
+            # item metadata has changed since last visit
+
+            item_etag = item_response.headers.get("ETag") # save the new etag
+            asset_href = item_response.json['assets'][asset_id]['href'] # save the asset href
+
+            obj_response = requests.get(asset_href, headers={'If-None-Match': f'"{asset_etag}"'})
+            if obj_response.status_code == 304:
+              # "our" asset object didn't change since last call,
+              # we can ignore that the item metadata changed,
+              # it was a different asset that has changed
+
+              time.sleep(refresh_interval)
+
+            elif obj_response.status_code == 200:
+              # "our" asset object has changed, we load the new data
+
+              asset_etag = obj_response.headers.get("ETag")  # save the new asset etag
+              asset_checksum = obj_response.headers.get("X-Amz-Meta-Sha256")
+              object = obj_response.data
+
+              # calculate the sha256 checksum of the data in a proper way
+              checksum = calc_checksum(object)
+              if checksum != asset_checksum:
+                # Error: corrupted data from download
+                # do proper error handling
+
+              # do sth with the data
+            else:
+              # do proper error handling
+          else:
+            # do proper error handling
+        ```
+        Note that instead of using a fixed `refresh_interval`, this value could be set
+        based on the content of the `Cache-Control` `max-age` value.
+      responses:
+        "200":
+          description: The asset object
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
+            Cache-Control:
+              description: |
+                Cache header for the asset object
+              default: "public, max-age=7200"
+              schema:
+                type: string
+              required: true
+            Content-Type:
+              description: |
+                The content type of the asset object as specified in the [asset object
+                metadata](#tag/Data/operation/getFeature)
+              required: true
+        "304":
+          $ref: "#/components/responses/NotModified"
+        "404":
+          $ref: "#/components/responses/NotFoundS3"
+        "412":
+          $ref: "#/components/responses/PreconditionFailedS3"
   /conformance:
     get:
       description: >-
@@ -764,20 +873,20 @@ paths:
                   urls:
                   - url: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-4-2019/smr50-263-2016-2056-kgrs-2.5.tiff?uploadId=d77UbNnEVTaqCAyAz61AVqy7uuTGJ_YOUyPOklcRMr4ZPBthON9p6cpMREx683yQ_oeGVmGE_yTg4cmnEz3mTErEPKn0_m.3LBjo6A88Qxlj4vFrAdU6YBuourb.IqFF&partNumber=1&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4HDUVYWAM6ZB6SWO%2F20210414%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20210414T112742Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=d12763467eaffa0c69d601297a661a05c9f414d4008b4148fa6ba604f203be01
                     part: 1
-                    expires: '2019-08-24T14:15:22Z'
-                  created: '2019-08-24T14:15:22Z'
+                    expires: "2019-08-24T14:15:22Z"
+                  created: "2019-08-24T14:15:22Z"
                   checksum:multihash: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
                 - upload_id: KrFTuglD.N8ireqry_w3.oQqNwrYI7SfSXpVRiusKah0YaaegJNIUZg4R_No0MMW9FLU2UG5anTW0boTUYVxKfBZWCFXqnQTpjnQEo1K7la39MYpjSTvIbZgnG
                   status: completed
                   number_parts: 1
-                  created: '2019-08-24T14:15:22Z'
-                  completed: '2019-08-24T14:15:22Z'
+                  created: "2019-08-24T14:15:22Z"
+                  completed: "2019-08-24T14:15:22Z"
                   checksum:multihash: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
                 - upload_id: KrFTuglD.N8ireqry_w3.oQqNwrYI7SfSXpVRiusKah0YigDnuM06hfJNIUZg4R_No0MMW9FLU2UG5anTW0boTUYVxKfBZWCFXqnQTpjnQEo1K7la39MYpjSTvIbZgnG
                   status: aborted
                   number_parts: 1
-                  created: '2019-08-24T14:15:22Z'
-                  aborted: '2019-08-24T14:15:22Z'
+                  created: "2019-08-24T14:15:22Z"
+                  aborted: "2019-08-24T14:15:22Z"
                   checksum:multihash: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
                 links:
                 - rel: next
@@ -937,7 +1046,7 @@ paths:
                       Code:
                         type: string
                         enum:
-                        - 'BadDigest'
+                        - "BadDigest"
                       Message:
                         type: string
                     additionalProperties:
@@ -971,7 +1080,7 @@ paths:
                       Code:
                         type: string
                         enum:
-                        - 'SignatureDoesNotMatch'
+                        - "SignatureDoesNotMatch"
                       Message:
                         type: string
                     additionalProperties:
@@ -1154,6 +1263,446 @@ paths:
                 code: 400
                 description: "Unable to log in with provided credentials."
 components:
+  responses:
+    Collection:
+      headers:
+        ETag:
+          $ref: "#/components/headers/ETag"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/collection"
+      description: >-
+        Information about the feature collection with id `collectionId`.
+
+
+        The response contains a link to the items in the collection (path `/collections/{collectionId}/items`,
+        link relation `items`) as well as key information about the collection. This
+        information includes:
+
+
+        * A local identifier for the collection that is unique for the dataset
+
+        * A list of coordinate reference systems (CRS) in which geometries may be
+        returned by the server. The first CRS is the default coordinate reference
+        system (the default is always WGS 84 with axis order longitude/latitude)
+
+        * An optional title and description for the collection
+
+        * An optional extent that can be used to provide an indication of the spatial
+        and temporal extent of the collection - typically derived from the data
+
+        * An optional indicator about the type of the items in the collection (the
+        default value, if the indicator is not provided, is 'feature')
+    Collections:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/collections"
+      description: >-
+        The feature collections shared by this API.
+
+
+        The dataset is organized as one or more feature collections. This resource
+        provides information about and access to the collections.
+
+
+        The response contains the list of collections. For each collection, a link
+        to the items in the collection (path `/collections/{collectionId}/items`,
+        link relation `items`) as well as key information about the collection. This
+        information includes:
+
+
+        * A local identifier for the collection that is unique for the dataset
+
+        * A list of coordinate reference systems (CRS) in which geometries may be
+        returned by the server. The first CRS is the default coordinate reference
+        system (the default is always WGS 84 with axis order longitude/latitude)
+
+        * An optional title and description for the collection
+
+        * An optional extent that can be used to provide an indication of the spatial
+        and temporal extent of the collection - typically derived from the data
+
+        * An optional indicator about the type of the items in the collection (the
+        default value, if the indicator is not provided, is 'feature').
+
+        The `limit` parameter may be used to control the subset of the selected collections
+        that should be returned in the response, the page size. Each page include
+        links to support paging (link relation `next` and/or `previous`).
+    ConformanceDeclaration:
+      content:
+        application/json:
+          example:
+            conformsTo:
+            - http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/core
+            - http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/oas30
+            - http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/geojson
+          schema:
+            $ref: "#/components/schemas/confClasses"
+      description: >-
+        The URIs of all conformance classes supported by the server.
+
+
+        To support "generic" clients that want to access multiple OGC API Features
+        implementations - and not "just" a specific API / server, the server declares
+        the conformance classes it implements and conforms to.
+    Feature:
+      headers:
+        ETag:
+          $ref: "#/components/headers/ETag"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/item"
+      description: >-
+        Fetch the feature with id `featureId` in the feature collection with id `collectionId`
+    Features:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/items"
+      description: >-
+        The response is a document consisting of features in the collection. The features
+        included in the response are determined by the server based on the query parameters
+        of the request. To support access to larger collections without overloading
+        the client, the API supports paged access with links to the next page, if
+        more features are selected that the page size.
+
+
+        The `bbox` and `datetime` parameter can be used to select only a subset of
+        the features in the collection (the features that are in the bounding box
+        or time interval). The `bbox` parameter matches all features in the collection
+        that are not associated with a location, too. The `datetime` parameter matches
+        all features in the collection that are not associated with a time stamp or
+        interval, too.
+
+
+        The `limit` parameter may be used to control the subset of the selected features
+        that should be returned in the response, the page size. Each page include
+        links to support paging (link relation `next` and/or `previous`).
+    NotModified:
+      description: The cached resource was not modified since last request.
+    InvalidParameter:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/exception"
+          example:
+            code: 400
+            description: "Invalid parameter"
+      description: A query parameter has an invalid value.
+    LandingPage:
+      content:
+        application/json:
+          example:
+            description: Catalog of Swiss Geodata Downloads
+            id: ch
+            links:
+            - href: http://data.geo.admin.ch/api/stac/v0.9/
+              rel: self
+              type: application/json
+              title: this document
+            - href: http://data.geo.admin.ch/api/stac/v0.9/static/api.html
+              rel: service-doc
+              type: text/html
+              title: the API documentation
+            - href: http://data.geo.admin.ch/api/stac/v0.9/conformance
+              rel: conformance
+              type: application/json
+              title: OGC API conformance classes implemented by this server
+            - href: http://data.geo.admin.ch/api/stac/v0.9/collections
+              rel: data
+              type: application/json
+              title: Information about the feature collections
+            - href: http://data.geo.admin.ch/api/stac/v0.9/search
+              rel: search
+              type: application/json
+              title: Search across feature collections
+            stac_version: 0.9.0
+            title: data.geo.admin.ch
+          schema:
+            $ref: "#/components/schemas/landingPage"
+      description: >-
+        The landing page provides links to the API definition (link relations `service-desc`
+        and `service-doc`), the Conformance declaration (path `/conformance`, link
+        relation `conformance`), and the Feature Collections (path `/collections`,
+        link relation `data`).
+    NotFound:
+      description: The specified resource/URI was not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/exception"
+          example:
+            code: 404
+            description: "Resource not found"
+    NotFoundS3:
+      description: The specified asset object was not found
+      content:
+        application/xml:
+          schema:
+            $ref: "#/components/schemas/exceptionS3"
+          example: |
+            <?xml version="1.0" encoding="UTF-8"?>
+            <Error><Code>AccessDenied</Code>
+            <Message>Access Denied</Message>
+            <RequestId>BJE6DBWM0M1D9BDC</RequestId>
+            <HostId>N9hTgbJmEuiMnvb+W9Y1Y+fhFoZh92NYG13Z3K19PBZOZ4hbn7F7i3yYpjJgM7bIFmDH2BnE81U=</HostId>
+            </Error>
+    BadRequest:
+      description: The request was malformed or semantically invalid
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/exception"
+          example:
+            code: 400
+            description: "Invalid parameter"
+    PermissionDenied:
+      description: No Permission for this request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/exception"
+          example:
+            code: 403
+            description: "Permission denied"
+    PreconditionFailed:
+      description: Some condition specified by the request could not be met in the
+        server
+    PreconditionFailedS3:
+      description: Some condition specified by the request could not be met in the
+        server
+      content:
+        application/xml:
+          schema:
+            $ref: "#/components/schemas/exceptionS3"
+          example: |
+            <?xml version="1.0" encoding="UTF-8"?>
+            <Error><Code>PreconditionFailed</Code>
+            <Message>At least one of the pre-conditions you specified did not hold</Message>
+            <Condition>If-Match</Condition>
+            <RequestId>VWCQPYEAC5MMX985</RequestId>
+            <HostId>WmZ2NrcTLzim8v0z7S27BMmSRwdGVieLxDLsvBrojsyoPtkKEiFtEi7zLOWhpNUDa5LD7VtKPBE=</HostId>
+            </Error>
+    ServerError:
+      description: >-
+        The request was syntactically and semantically valid, but an error occurred
+        while trying to act upon it
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/exception"
+          example:
+            code: 500
+            description: "Internal server error"
+    Assets:
+      description: >-
+        The response is a document consisting of all assets of the feature.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/assets"
+    Asset:
+      description: >-
+        The response is a document consisting of one asset of the feature.
+      headers:
+        ETag:
+          $ref: "#/components/headers/ETag"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/readUpdateAsset"
+    DeletedResource:
+      description: Status of the delete resource
+      content:
+        application/json:
+          schema:
+            description: >-
+              Information about the deleted resource and a link to the parent resource
+            type: object
+            properties:
+              code:
+                type: integer
+                example: 200
+              description:
+                type: string
+                example: Resource successfully deleted
+              links:
+                type: array
+                items:
+                  $ref: "#/components/schemas/link"
+                description: >-
+                  The array contain at least a link to the parent resource (`rel:
+                  parent`).
+                example:
+                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+                  rel: parent
+            required:
+            - code
+            - links
+  parameters:
+    assetQuery:
+      description: >-
+        Query for properties in assets (e.g. mediatype). Use the JSON form of the
+        assetQueryFilter used in POST.
+      in: query
+      name: assetQuery
+      required: false
+      schema:
+        type: string
+    bbox:
+      explode: false
+      in: query
+      name: bbox
+      required: false
+      schema:
+        $ref: "#/components/schemas/bbox"
+      style: form
+    collectionId:
+      description: Local identifier of a collection
+      in: path
+      name: collectionId
+      required: true
+      schema:
+        type: string
+    collectionsArray:
+      explode: false
+      in: query
+      name: collections
+      required: false
+      schema:
+        $ref: "#/components/schemas/collectionsArray"
+    datetime:
+      explode: false
+      in: query
+      name: datetime
+      required: false
+      schema:
+        $ref: "#/components/schemas/datetimeQuery"
+      example: 2018-02-12T00%3A00%3A00Z%2F2018-03-18T12%3A31%3A12Z
+      style: form
+    featureId:
+      description: Local identifier of a feature
+      in: path
+      name: featureId
+      required: true
+      schema:
+        type: string
+    ids:
+      description: >-
+        Array of Item ids to return. All other filter parameters that further restrict
+        the number of search results are ignored
+      explode: false
+      in: query
+      name: ids
+      required: false
+      schema:
+        $ref: "#/components/schemas/ids"
+    limit:
+      explode: false
+      in: query
+      name: limit
+      required: false
+      schema:
+        $ref: "#/components/schemas/limit"
+      style: form
+    query:
+      description: Query for properties in items. Use the JSON form of the queryFilter
+        used in POST.
+      in: query
+      name: query
+      required: false
+      schema:
+        type: string
+    IfNoneMatch:
+      name: If-None-Match
+      in: header
+      schema:
+        type: string
+      description: >-
+        The RFC7232 `If-None-Match` header field makes the GET request method conditional.
+        It is composed of a comma separated list of ETags or value "*".
+
+
+        The server compares the client's ETags (sent with `If-None-Match`) with the
+        ETag for its current version of the resource, and if both values match (that
+        is, the resource has not changed), the server sends back a `304 Not Modified`
+        status, without a body, which tells the client that the cached version of
+        the response is still good to use (fresh).
+      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
+    IfMatch:
+      name: If-Match
+      in: header
+      schema:
+        type: string
+      description: >-
+        The RFC7232 `If-Match` header field makes the GET request method conditional.
+        It is composed of a comma separated list of ETags or value "*".
+
+
+        The server compares the client's ETags (sent with `If-Match`) with the ETag
+        for its current version of the resource, and if both values don't match (that
+        is, the resource has changed), the server sends back a `412 Precondition Failed`
+        status, without a body, which tells the client that the cached version of
+        the response is not good to use anymore.
+      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
+    assetId:
+      name: assetId
+      in: path
+      description: Local identifier of an asset.
+      required: true
+      schema:
+        type: string
+    assetObjectHref:
+      name: assetObjectHref
+      in: path
+      description: Full URL to asset object including protocol, host and path
+      schema:
+        type: string
+    uploadId:
+      name: uploadId
+      in: path
+      description: Local identifier of an asset's upload.
+      required: true
+      schema:
+        type: string
+    presignedUrl:
+      name: presignedUrl
+      in: path
+      description: Presigned url returned by [Create a new Asset's multipart upload](#operation/createAssetUpload).
+      required: true
+      schema:
+        type: string
+    IfMatchWrite:
+      name: If-Match
+      in: header
+      schema:
+        type: string
+      description: >-
+        The RFC7232 `If-Match` header field makes the PUT/PATCH/DEL request method
+        conditional. It is composed of a comma separated list of ETags or value "*".
+
+
+        The server compares the client's ETags (sent with `If-Match`) with the ETag
+        for its current version of the resource, and if both values don't match (that
+        is, the resource has changed), the server sends back a `412 Precondition Failed`
+        status, without a body, which tells the client that he would overwrite another
+        changes of the resource.
+      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
+  headers:
+    ETag:
+      schema:
+        type: string
+      description: >-
+        The RFC7232 ETag header field in a response provides the current entity- tag
+        for the selected resource. An entity-tag is an opaque identifier for different
+        versions of a resource over time, regardless whether multiple versions are
+        valid at the same time. An entity-tag consists of an opaque quoted string,
+        possibly prefixed by a weakness indicator.
+      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
+      required: true
   schemas:
     assetQuery:
       additionalProperties:
@@ -1622,6 +2171,30 @@ components:
       required:
       - code
       type: object
+    exceptionS3:
+      description: >-
+        Information about the exception
+      properties:
+        Code:
+          type: string
+          example: AccessDenied
+        Message:
+          type: string
+          example: Access Denied
+        RequestId:
+          type: string
+          example: BJE6DBWM0M1D9BDC
+        HostId:
+          type: string
+          example: N9hTgbJmEuiMnvb+W9Y1Y+fhFoZh92NYG13Z3K19PBZOZ4hbn7F7i3yYpjJgM7bIFmDH2BnE81U=
+      xml:
+        name: 'Error'
+      required:
+      - Code
+      - Message
+      - RequestId
+      - HostId
+      type: object
     extent:
       description: >-
         The extent of the features in the collection. In the Core only spatial and
@@ -1732,7 +2305,11 @@ components:
     href:
       type: string
       format: url
-      description: Link to the asset object
+      description: |
+        Link to the asset object.
+
+        Details about asset object calls, specifically information about caching behavior
+        can be found [here](#tag/Data/operation/getAssetObject)
       readOnly: true
       example: |
         http://data.geo.admin.ch/ch.swisstopo.swissimage/collections/cs/items/CS3-20160503_132130_04/thumb.png
@@ -2176,7 +2753,7 @@ components:
         updated:
           $ref: "#/components/schemas/updated"
         title:
-          description: Human readable title of the Feature. When `null` is set, the title will be removed.
+          description: Human readable title of the Feature
           example: Feature title
           type: string
           minLength: 1
@@ -2995,6 +3572,8 @@ components:
           $ref: "#/components/schemas/number_parts"
         md5_parts:
           $ref: "#/components/schemas/md5_parts"
+        update_interval:
+          $ref: "#/components/schemas/update_interval"
         urls:
           type: array
           description: |
@@ -3156,6 +3735,24 @@ components:
               data.
             type: string
             example: yLLiDqX2OL7mcIMTjob60A==
+    update_interval:
+      description: |
+        Duration in seconds until the next update of the data is expected
+
+        Regularly updated asset objects need different cache settings than the values
+        set by default (7200 seconds = 2 hours). The `update_interval` parameter has
+        to be set to notify the system on when the next update of this asset object is
+        expected so that cache headers can be set correctly by the system:
+        - `update_interval > 0` defines the interval in seconds until the
+        next update will be sent to the system (maximum is 1 week = 604800 seconds)
+        - `update_interval = 0` means the data can be updated anytime in the future,
+        but not deterministic.
+        - `update_interval = -1` (the default) means that the data is not regularly
+        updated
+      type: integer
+      minimum: -1
+      maximum: 604800
+      example: 30
     part_number:
       description: Number of the part.
       type: integer
@@ -3191,412 +3788,6 @@ components:
       type: string
       description: The RFC7232 ETag for the specified uploaded part.
       example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
-  parameters:
-    assetQuery:
-      description: >-
-        Query for properties in assets (e.g. mediatype). Use the JSON form of the
-        assetQueryFilter used in POST.
-      in: query
-      name: assetQuery
-      required: false
-      schema:
-        type: string
-    bbox:
-      explode: false
-      in: query
-      name: bbox
-      required: false
-      schema:
-        $ref: "#/components/schemas/bbox"
-      style: form
-    collectionId:
-      description: Local identifier of a collection
-      in: path
-      name: collectionId
-      required: true
-      schema:
-        type: string
-    collectionsArray:
-      explode: false
-      in: query
-      name: collections
-      required: false
-      schema:
-        $ref: "#/components/schemas/collectionsArray"
-    datetime:
-      explode: false
-      in: query
-      name: datetime
-      required: false
-      schema:
-        $ref: "#/components/schemas/datetimeQuery"
-      example: 2018-02-12T00%3A00%3A00Z%2F2018-03-18T12%3A31%3A12Z
-      style: form
-    featureId:
-      description: Local identifier of a feature
-      in: path
-      name: featureId
-      required: true
-      schema:
-        type: string
-    ids:
-      description: >-
-        Array of Item ids to return. All other filter parameters that further restrict
-        the number of search results are ignored
-      explode: false
-      in: query
-      name: ids
-      required: false
-      schema:
-        $ref: "#/components/schemas/ids"
-    limit:
-      explode: false
-      in: query
-      name: limit
-      required: false
-      schema:
-        $ref: "#/components/schemas/limit"
-      style: form
-    query:
-      description: Query for properties in items. Use the JSON form of the queryFilter
-        used in POST.
-      in: query
-      name: query
-      required: false
-      schema:
-        type: string
-    IfNoneMatch:
-      name: If-None-Match
-      in: header
-      schema:
-        type: string
-      description: >-
-        The RFC7232 `If-None-Match` header field makes the GET request method conditional.
-        It is composed of a comma separated list of ETags or value "*".
-
-
-        The server compares the client's ETags (sent with `If-None-Match`) with the
-        ETag for its current version of the resource, and if both values match (that
-        is, the resource has not changed), the server sends back a `304 Not Modified`
-        status, without a body, which tells the client that the cached version of
-        the response is still good to use (fresh).
-      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
-    IfMatch:
-      name: If-Match
-      in: header
-      schema:
-        type: string
-      description: >-
-        The RFC7232 `If-Match` header field makes the GET request method conditional.
-        It is composed of a comma separated list of ETags or value "*".
-
-
-        The server compares the client's ETags (sent with `If-Match`) with the ETag
-        for its current version of the resource, and if both values don't match (that
-        is, the resource has changed), the server sends back a `412 Precondition Failed`
-        status, without a body, which tells the client that the cached version of
-        the response is not good to use anymore.
-      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
-    assetId:
-      name: assetId
-      in: path
-      description: Local identifier of an asset.
-      required: true
-      schema:
-        type: string
-    uploadId:
-      name: uploadId
-      in: path
-      description: Local identifier of an asset's upload.
-      required: true
-      schema:
-        type: string
-    presignedUrl:
-      name: presignedUrl
-      in: path
-      description: Presigned url returned by [Create a new Asset's multipart upload](#operation/createAssetUpload).
-      required: true
-      schema:
-        type: string
-    IfMatchWrite:
-      name: If-Match
-      in: header
-      schema:
-        type: string
-      description: >-
-        The RFC7232 `If-Match` header field makes the PUT/PATCH/DEL request method
-        conditional. It is composed of a comma separated list of ETags or value "*".
-
-
-        The server compares the client's ETags (sent with `If-Match`) with the ETag
-        for its current version of the resource, and if both values don't match (that
-        is, the resource has changed), the server sends back a `412 Precondition Failed`
-        status, without a body, which tells the client that he would overwrite another
-        changes of the resource.
-      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
-  headers:
-    ETag:
-      schema:
-        type: string
-      description: >-
-        The RFC7232 ETag header field in a response provides the current entity- tag
-        for the selected resource. An entity-tag is an opaque identifier for different
-        versions of a resource over time, regardless whether multiple versions are
-        valid at the same time. An entity-tag consists of an opaque quoted string,
-        possibly prefixed by a weakness indicator.
-      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
-      required: true
-  responses:
-    Collection:
-      headers:
-        ETag:
-          $ref: "#/components/headers/ETag"
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/collection"
-      description: >-
-        Information about the feature collection with id `collectionId`.
-
-
-        The response contains a link to the items in the collection (path `/collections/{collectionId}/items`,
-        link relation `items`) as well as key information about the collection. This
-        information includes:
-
-
-        * A local identifier for the collection that is unique for the dataset
-
-        * A list of coordinate reference systems (CRS) in which geometries may be
-        returned by the server. The first CRS is the default coordinate reference
-        system (the default is always WGS 84 with axis order longitude/latitude)
-
-        * An optional title and description for the collection
-
-        * An optional extent that can be used to provide an indication of the spatial
-        and temporal extent of the collection - typically derived from the data
-
-        * An optional indicator about the type of the items in the collection (the
-        default value, if the indicator is not provided, is 'feature')
-    Collections:
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/collections"
-      description: >-
-        The feature collections shared by this API.
-
-
-        The dataset is organized as one or more feature collections. This resource
-        provides information about and access to the collections.
-
-
-        The response contains the list of collections. For each collection, a link
-        to the items in the collection (path `/collections/{collectionId}/items`,
-        link relation `items`) as well as key information about the collection. This
-        information includes:
-
-
-        * A local identifier for the collection that is unique for the dataset
-
-        * A list of coordinate reference systems (CRS) in which geometries may be
-        returned by the server. The first CRS is the default coordinate reference
-        system (the default is always WGS 84 with axis order longitude/latitude)
-
-        * An optional title and description for the collection
-
-        * An optional extent that can be used to provide an indication of the spatial
-        and temporal extent of the collection - typically derived from the data
-
-        * An optional indicator about the type of the items in the collection (the
-        default value, if the indicator is not provided, is 'feature').
-
-        The `limit` parameter may be used to control the subset of the selected collections
-        that should be returned in the response, the page size. Each page include
-        links to support paging (link relation `next` and/or `previous`).
-    ConformanceDeclaration:
-      content:
-        application/json:
-          example:
-            conformsTo:
-            - http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/core
-            - http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/oas30
-            - http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/geojson
-          schema:
-            $ref: "#/components/schemas/confClasses"
-      description: >-
-        The URIs of all conformance classes supported by the server.
-
-
-        To support "generic" clients that want to access multiple OGC API Features
-        implementations - and not "just" a specific API / server, the server declares
-        the conformance classes it implements and conforms to.
-    Feature:
-      headers:
-        ETag:
-          $ref: "#/components/headers/ETag"
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/item"
-      description: >-
-        Fetch the feature with id `featureId` in the feature collection with id `collectionId`
-    Features:
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/items"
-      description: >-
-        The response is a document consisting of features in the collection. The features
-        included in the response are determined by the server based on the query parameters
-        of the request. To support access to larger collections without overloading
-        the client, the API supports paged access with links to the next page, if
-        more features are selected that the page size.
-
-
-        The `bbox` and `datetime` parameter can be used to select only a subset of
-        the features in the collection (the features that are in the bounding box
-        or time interval). The `bbox` parameter matches all features in the collection
-        that are not associated with a location, too. The `datetime` parameter matches
-        all features in the collection that are not associated with a time stamp or
-        interval, too.
-
-
-        The `limit` parameter may be used to control the subset of the selected features
-        that should be returned in the response, the page size. Each page include
-        links to support paging (link relation `next` and/or `previous`).
-    NotModified:
-      description: The cached resource was not modified since last request.
-    InvalidParameter:
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/exception"
-          example:
-            code: 400
-            description: "Invalid parameter"
-      description: A query parameter has an invalid value.
-    LandingPage:
-      content:
-        application/json:
-          example:
-            description: Catalog of Swiss Geodata Downloads
-            id: ch
-            links:
-            - href: http://data.geo.admin.ch/api/stac/v0.9/
-              rel: self
-              type: application/json
-              title: this document
-            - href: http://data.geo.admin.ch/api/stac/v0.9/static/api.html
-              rel: service-doc
-              type: text/html
-              title: the API documentation
-            - href: http://data.geo.admin.ch/api/stac/v0.9/conformance
-              rel: conformance
-              type: application/json
-              title: OGC API conformance classes implemented by this server
-            - href: http://data.geo.admin.ch/api/stac/v0.9/collections
-              rel: data
-              type: application/json
-              title: Information about the feature collections
-            - href: http://data.geo.admin.ch/api/stac/v0.9/search
-              rel: search
-              type: application/json
-              title: Search across feature collections
-            stac_version: 0.9.0
-            title: data.geo.admin.ch
-          schema:
-            $ref: "#/components/schemas/landingPage"
-      description: >-
-        The landing page provides links to the API definition (link relations `service-desc`
-        and `service-doc`), the Conformance declaration (path `/conformance`, link
-        relation `conformance`), and the Feature Collections (path `/collections`,
-        link relation `data`).
-    NotFound:
-      description: The specified resource/URI was not found
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/exception"
-          example:
-            code: 404
-            description: "Resource not found"
-    BadRequest:
-      description: The request was malformed or semantically invalid
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/exception"
-          example:
-            code: 400
-            description: "Invalid parameter"
-    PermissionDenied:
-      description: No Permission for this request
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/exception"
-          example:
-            code: 403
-            description: "Permission denied"
-    PreconditionFailed:
-      description: Some condition specified by the request could not be met in the
-        server
-    ServerError:
-      description: >-
-        The request was syntactically and semantically valid, but an error occurred
-        while trying to act upon it
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/exception"
-          example:
-            code: 500
-            description: "Internal server error"
-    Assets:
-      description: >-
-        The response is a document consisting of all assets of the feature.
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/assets"
-    Asset:
-      description: >-
-        The response is a document consisting of one asset of the feature.
-      headers:
-        ETag:
-          $ref: "#/components/headers/ETag"
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/readUpdateAsset"
-    DeletedResource:
-      description: Status of the delete resource
-      content:
-        application/json:
-          schema:
-            description: >-
-              Information about the deleted resource and a link to the parent resource
-            type: object
-            properties:
-              code:
-                type: integer
-                example: 200
-              description:
-                type: string
-                example: Resource successfully deleted
-              links:
-                type: array
-                items:
-                  $ref: "#/components/schemas/link"
-                description: >-
-                  The array contain at least a link to the parent resource (`rel:
-                  parent`).
-                example:
-                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
-                  rel: parent
-            required:
-            - code
-            - links
   examples:
     inprogress:
       summary: In progress upload example

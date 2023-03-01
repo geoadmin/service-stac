@@ -471,6 +471,30 @@ components:
       required:
         - code
       type: object
+    exceptionS3:
+      description: >-
+        Information about the exception
+      properties:
+        Code:
+          type: string
+          example: AccessDenied
+        Message:
+          type: string
+          example: Access Denied
+        RequestId:
+          type: string
+          example: BJE6DBWM0M1D9BDC
+        HostId:
+          type: string
+          example: N9hTgbJmEuiMnvb+W9Y1Y+fhFoZh92NYG13Z3K19PBZOZ4hbn7F7i3yYpjJgM7bIFmDH2BnE81U=
+      xml:
+        name: 'Error'
+      required:
+        - Code
+        - Message
+        - RequestId
+        - HostId
+      type: object
     extent:
       description: >-
         The extent of the features in the collection. In the Core only spatial and temporal
@@ -580,7 +604,11 @@ components:
     href:
       type: string
       format: url
-      description: Link to the asset object
+      description: |
+        Link to the asset object.
+
+        Details about asset object calls, specifically information about caching behavior
+        can be found [here](#tag/Data/operation/getAssetObject)
       readOnly: true
       example: |
         http://data.geo.admin.ch/ch.swisstopo.swissimage/collections/cs/items/CS3-20160503_132130_04/thumb.png

@@ -191,6 +191,19 @@ components:
           example:
             code: 404
             description: "Resource not found"
+    NotFoundS3:
+      description: The specified asset object was not found
+      content:
+        application/xml:
+          schema:
+            $ref: "./schemas.yaml#/components/schemas/exceptionS3"
+          example: |
+            <?xml version="1.0" encoding="UTF-8"?>
+            <Error><Code>AccessDenied</Code>
+            <Message>Access Denied</Message>
+            <RequestId>BJE6DBWM0M1D9BDC</RequestId>
+            <HostId>N9hTgbJmEuiMnvb+W9Y1Y+fhFoZh92NYG13Z3K19PBZOZ4hbn7F7i3yYpjJgM7bIFmDH2BnE81U=</HostId>
+            </Error>
     BadRequest:
       description: The request was malformed or semantically invalid
       content:
@@ -219,6 +232,20 @@ components:
       #     example:
       #       code: 412
       #       description: "Precondition not met"
+    PreconditionFailedS3:
+      description: Some condition specified by the request could not be met in the server
+      content:
+        application/xml:
+          schema:
+            $ref: "./schemas.yaml#/components/schemas/exceptionS3"
+          example: |
+            <?xml version="1.0" encoding="UTF-8"?>
+            <Error><Code>PreconditionFailed</Code>
+            <Message>At least one of the pre-conditions you specified did not hold</Message>
+            <Condition>If-Match</Condition>
+            <RequestId>VWCQPYEAC5MMX985</RequestId>
+            <HostId>WmZ2NrcTLzim8v0z7S27BMmSRwdGVieLxDLsvBrojsyoPtkKEiFtEi7zLOWhpNUDa5LD7VtKPBE=</HostId>
+            </Error>
     ServerError:
       description: >-
         The request was syntactically and semantically valid, but an error occurred while trying

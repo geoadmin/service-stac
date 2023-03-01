@@ -142,8 +142,8 @@ paths:
                       [7.1035698, 45.9160977],
                       [7.1035146, 45.925093],
                       [7.0906249, 45.9250537],
-                      [7.0906823, 45.9160584]
-                    ]
+                      [7.0906823, 45.9160584],
+                    ],
                   ]
               properties:
                 datetime: "2016-05-03T13:22:30.040Z"
@@ -410,7 +410,6 @@ paths:
         "5XX":
           $ref: "../components/responses.yaml#/components/responses/ServerError"
 
-
   "/collections/{collectionId}/items/{featureId}/assets/{assetId}/uploads":
     parameters:
       - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
@@ -443,22 +442,22 @@ paths:
                     status: in-progress
                     number_parts: 1
                     urls:
-                    - url: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-4-2019/smr50-263-2016-2056-kgrs-2.5.tiff?uploadId=d77UbNnEVTaqCAyAz61AVqy7uuTGJ_YOUyPOklcRMr4ZPBthON9p6cpMREx683yQ_oeGVmGE_yTg4cmnEz3mTErEPKn0_m.3LBjo6A88Qxlj4vFrAdU6YBuourb.IqFF&partNumber=1&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4HDUVYWAM6ZB6SWO%2F20210414%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20210414T112742Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=d12763467eaffa0c69d601297a661a05c9f414d4008b4148fa6ba604f203be01
-                      part: 1
-                      expires: '2019-08-24T14:15:22Z'
-                    created: '2019-08-24T14:15:22Z'
+                      - url: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-4-2019/smr50-263-2016-2056-kgrs-2.5.tiff?uploadId=d77UbNnEVTaqCAyAz61AVqy7uuTGJ_YOUyPOklcRMr4ZPBthON9p6cpMREx683yQ_oeGVmGE_yTg4cmnEz3mTErEPKn0_m.3LBjo6A88Qxlj4vFrAdU6YBuourb.IqFF&partNumber=1&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4HDUVYWAM6ZB6SWO%2F20210414%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20210414T112742Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=d12763467eaffa0c69d601297a661a05c9f414d4008b4148fa6ba604f203be01
+                        part: 1
+                        expires: "2019-08-24T14:15:22Z"
+                    created: "2019-08-24T14:15:22Z"
                     checksum:multihash: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
                   - upload_id: KrFTuglD.N8ireqry_w3.oQqNwrYI7SfSXpVRiusKah0YaaegJNIUZg4R_No0MMW9FLU2UG5anTW0boTUYVxKfBZWCFXqnQTpjnQEo1K7la39MYpjSTvIbZgnG
                     status: completed
                     number_parts: 1
-                    created: '2019-08-24T14:15:22Z'
-                    completed: '2019-08-24T14:15:22Z'
+                    created: "2019-08-24T14:15:22Z"
+                    completed: "2019-08-24T14:15:22Z"
                     checksum:multihash: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
                   - upload_id: KrFTuglD.N8ireqry_w3.oQqNwrYI7SfSXpVRiusKah0YigDnuM06hfJNIUZg4R_No0MMW9FLU2UG5anTW0boTUYVxKfBZWCFXqnQTpjnQEo1K7la39MYpjSTvIbZgnG
                     status: aborted
                     number_parts: 1
-                    created: '2019-08-24T14:15:22Z'
-                    aborted: '2019-08-24T14:15:22Z'
+                    created: "2019-08-24T14:15:22Z"
+                    aborted: "2019-08-24T14:15:22Z"
                     checksum:multihash: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
                 links:
                   - rel: next
@@ -617,7 +616,7 @@ paths:
                     properties:
                       Code:
                         type: string
-                        enum: ['BadDigest']
+                        enum: ["BadDigest"]
                       Message:
                         type: string
                     additionalProperties:
@@ -649,7 +648,7 @@ paths:
                     properties:
                       Code:
                         type: string
-                        enum: ['SignatureDoesNotMatch']
+                        enum: ["SignatureDoesNotMatch"]
                       Message:
                         type: string
                     additionalProperties:
@@ -680,7 +679,6 @@ paths:
                   <RequestId>F5SB90RJFYE21C0V</RequestId>
                   <HostId>YnH6DNl93sXH5kL0nEk1TOhH+crwM+wnaRNhh7MNC6CW6XhAeJLKVV/WU+dsdRkJUzet5m7cZwU=</HostId>
                 </Error>
-
 
   "/collections/{collectionId}/items/{featureId}/assets/{assetId}/uploads/{uploadId}/complete":
     parameters:
@@ -776,7 +774,6 @@ paths:
           $ref: "../components/responses.yaml#/components/responses/NotFound"
         "5XX":
           $ref: "../components/responses.yaml#/components/responses/ServerError"
-
 
   "/get-token":
     servers:

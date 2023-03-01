@@ -8,6 +8,12 @@ components:
       required: true
       schema:
         type: string
+    assetObjectHref:
+      name: assetObjectHref
+      in: path
+      description: Full URL to asset object including protocol, host and path
+      schema:
+        type: string
     uploadId:
       name: uploadId
       in: path
