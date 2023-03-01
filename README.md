@@ -146,7 +146,8 @@ should be already be up. You can check with
   ```
 
 which should give you a result like this :
-  ```
+
+  ```text
   CONTAINER ID   IMAGE                  COMMAND                   CREATED        STATUS                      PORTS                     NAMES
   a63582388800   minio/mc               "/bin/sh -c '\n  set …"   39 hours ago   Exited (0) 40 seconds ago                             service-stac_s3-client_1
   33deededf690   minio/minio            "/usr/bin/docker-ent…"    39 hours ago   Up 41 seconds               0.0.0.0:9090->9000/tcp    service-stac_s3_1
