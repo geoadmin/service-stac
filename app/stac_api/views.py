@@ -6,6 +6,7 @@ from operator import itemgetter
 from django.conf import settings
 from django.db import IntegrityError
 from django.db import transaction
+from django.db.models import Min
 from django.db.models import Prefetch
 from django.utils.translation import gettext_lazy as _
 
@@ -200,11 +201,21 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
 
         return queryset
 
+    def get_min_update_interval(self, queryset):
+        update_interval = queryset.filter(update_interval__gt=-1
+                                         ).aggregate(Min('update_interval')
+                                                    ).get('update_interval__min', None)
+        if update_interval is None:
+            update_interval = -1
+        return update_interval
+
     def list(self, request, *args, **kwargs):
 
         validate_search_request = ValidateSearchRequest()
         validate_search_request.validate(request)  # validate the search request
         queryset = self.filter_queryset(self.get_queryset())
+
+        update_interval = self.get_min_update_interval(queryset)
 
         page = self.paginate_queryset(queryset)
 
@@ -221,8 +232,10 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
         }
 
         if page is not None:
-            return self.paginator.get_paginated_response(data, request)
-        return Response(data)
+            response = self.paginator.get_paginated_response(data, request)
+        response = Response(data)
+        views_mixins.patch_cache_settings_by_update_interval(response, update_interval)
+        return response
 
     def get(self, request, *args, **kwargs):
         return self.list(request, *args, **kwargs)

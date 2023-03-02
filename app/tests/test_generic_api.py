@@ -506,8 +506,7 @@ class ApiDynamicCacheHeaderTestCase(StacBaseTestCase, S3TestMixin):
 
     def test_get_dynamic_cache_header(self):
         for endpoint in [
-            # 'search',
-            # 'search?ids=item-1',
+            'search',
             f'collections/{self.collection.name}/items',
             f'collections/{self.collection.name}/items/{self.item.name}',
             f'collections/{self.collection.name}/items/{self.item.name}/assets',
@@ -537,8 +536,7 @@ class ApiNoCacheHeaderTestCase(StacBaseTestCase, S3TestMixin):
 
     def test_get_no_cache_header(self):
         for endpoint in [
-            # 'search',
-            # 'search?ids=item-1',
+            'search',
             f'collections/{self.collection.name}/items',
             f'collections/{self.collection.name}/items/{self.item.name}',
             f'collections/{self.collection.name}/items/{self.item.name}/assets',
