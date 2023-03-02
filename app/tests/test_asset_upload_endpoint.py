@@ -1,4 +1,4 @@
-# pylint: disable=too-many-ancestors
+# pylint: disable=too-many-ancestors,too-many-lines
 import hashlib
 import logging
 import os
@@ -274,6 +274,40 @@ class AssetUploadCreateEndpointTestCase(AssetUploadBaseTest):
 
 class AssetUpload1PartEndpointTestCase(AssetUploadBaseTest):
 
+    def upload_asset_with_dyn_cache(self, update_interval=None):
+        key = get_asset_path(self.item, self.asset.name)
+        self.assertS3ObjectNotExists(key)
+        number_parts = 1
+        size = 1 * KB
+        file_like, checksum_multihash = self.get_file_like_object(size)
+        md5_parts = [{'part_number': 1, 'md5': base64_md5(file_like)}]
+        response = self.client.post(
+            self.get_create_multipart_upload_path(),
+            data={
+                'number_parts': number_parts,
+                'md5_parts': md5_parts,
+                'checksum:multihash': checksum_multihash,
+                'update_interval': update_interval
+            },
+            content_type="application/json"
+        )
+        self.assertStatusCode(201, response)
+        json_data = response.json()
+        self.check_created_response(json_data)
+        self.check_urls_response(json_data['urls'], number_parts)
+        self.assertIn('md5_parts', json_data)
+        self.assertEqual(json_data['md5_parts'], md5_parts)
+
+        parts = self.s3_upload_parts(json_data['upload_id'], file_like, size, number_parts)
+        response = self.client.post(
+            self.get_complete_multipart_upload_path(json_data['upload_id']),
+            data={'parts': parts},
+            content_type="application/json"
+        )
+        self.assertStatusCode(200, response)
+        self.check_completed_response(response.json())
+        return key
+
     def test_asset_upload_1_part_no_md5(self):
         key = get_asset_path(self.item, self.asset.name)
         self.assertS3ObjectNotExists(key)
@@ -322,6 +356,17 @@ class AssetUpload1PartEndpointTestCase(AssetUploadBaseTest):
         self.assertStatusCode(200, response)
         self.check_completed_response(response.json())
         self.assertS3ObjectExists(key)
+        self.assertS3ObjectCacheControl(key, max_age=7200)
+
+    def test_asset_upload_dyn_cache(self):
+        key = self.upload_asset_with_dyn_cache(update_interval=600)
+        self.assertS3ObjectExists(key)
+        self.assertS3ObjectCacheControl(key, max_age=8)
+
+    def test_asset_upload_no_cache(self):
+        key = self.upload_asset_with_dyn_cache(update_interval=5)
+        self.assertS3ObjectExists(key)
+        self.assertS3ObjectCacheControl(key, no_cache=True)
 
 
 class AssetUpload2PartEndpointTestCase(AssetUploadBaseTest):
@@ -845,15 +890,38 @@ class GetAssetUploadsEndpointTestCase(AssetUploadBaseTest):
         self.assertIn('uploads', json_data)
         self.assertEqual(len(json_data['uploads']), self.get_asset_upload_queryset().count())
         self.assertEqual(
-            ['upload_id', 'status', 'created', 'aborted', 'number_parts', 'checksum:multihash'],
+            [
+                'upload_id',
+                'status',
+                'created',
+                'aborted',
+                'number_parts',
+                'update_interval',
+                'checksum:multihash'
+            ],
             list(json_data['uploads'][0].keys()),
         )
         self.assertEqual(
-            ['upload_id', 'status', 'created', 'completed', 'number_parts', 'checksum:multihash'],
+            [
+                'upload_id',
+                'status',
+                'created',
+                'completed',
+                'number_parts',
+                'update_interval',
+                'checksum:multihash'
+            ],
             list(json_data['uploads'][4].keys()),
         )
         self.assertEqual(
-            ['upload_id', 'status', 'created', 'number_parts', 'checksum:multihash'],
+            [
+                'upload_id',
+                'status',
+                'created',
+                'number_parts',
+                'update_interval',
+                'checksum:multihash'
+            ],
             list(json_data['uploads'][7].keys()),
         )
 

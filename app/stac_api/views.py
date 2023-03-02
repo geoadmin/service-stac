@@ -343,6 +343,9 @@ class ItemsList(generics.GenericAPIView):
     def list(self, request, *args, **kwargs):
         validate_collection(self.kwargs)
         queryset = self.filter_queryset(self.get_queryset())
+        update_interval = Collection.objects.values('update_interval').get(
+            name=self.kwargs['collection_name']
+        )['update_interval']
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
@@ -357,8 +360,10 @@ class ItemsList(generics.GenericAPIView):
         }
 
         if page is not None:
-            return self.get_paginated_response(data)
-        return Response(data)
+            response = self.get_paginated_response(data)
+        response = Response(data)
+        views_mixins.patch_cache_settings_by_update_interval(response, update_interval)
+        return response
 
     def get(self, request, *args, **kwargs):
         return self.list(request, *args, **kwargs)
@@ -366,7 +371,7 @@ class ItemsList(generics.GenericAPIView):
 
 class ItemDetail(
     generics.GenericAPIView,
-    mixins.RetrieveModelMixin,
+    views_mixins.RetrieveModelDynCacheMixin,
     views_mixins.UpdateInsertModelMixin,
     views_mixins.DestroyModelMixin
 ):
@@ -454,6 +459,10 @@ class AssetsList(generics.GenericAPIView):
         validate_item(self.kwargs)
 
         queryset = self.filter_queryset(self.get_queryset())
+        update_interval = Item.objects.values('update_interval').get(
+            collection__name=self.kwargs['collection_name'],
+            name=self.kwargs['item_name'],
+        )['update_interval']
         serializer = self.get_serializer(queryset, many=True)
 
         data = {
@@ -463,14 +472,16 @@ class AssetsList(generics.GenericAPIView):
                     request, self.name, [self.kwargs['collection_name'], self.kwargs['item_name']]
                 )
         }
-        return Response(data)
+        response = Response(data)
+        views_mixins.patch_cache_settings_by_update_interval(response, update_interval)
+        return response
 
 
 class AssetDetail(
     generics.GenericAPIView,
-    mixins.RetrieveModelMixin,
     views_mixins.UpdateInsertModelMixin,
-    views_mixins.DestroyModelMixin
+    views_mixins.DestroyModelMixin,
+    views_mixins.RetrieveModelDynCacheMixin
 ):
     # this name must match the name in urls.py and is used by the DestroyModelMixin
     name = 'asset-detail'
@@ -572,7 +583,7 @@ class AssetUploadBase(generics.GenericAPIView):
     def create_multipart_upload(self, executor, serializer, validated_data, asset):
         key = get_asset_path(asset.item, asset.name)
         upload_id = executor.create_multipart_upload(
-            key, asset, validated_data['checksum_multihash']
+            key, asset, validated_data['checksum_multihash'], validated_data['update_interval']
         )
         urls = []
         sorted_md5_parts = sorted(validated_data['md5_parts'], key=itemgetter('part_number'))
@@ -626,7 +637,7 @@ class AssetUploadBase(generics.GenericAPIView):
         if len(parts) < asset_upload.number_parts:
             raise serializers.ValidationError({'parts': [_("Too few parts")]}, code='invalid')
         executor.complete_multipart_upload(key, asset, parts, asset_upload.upload_id)
-        asset_upload.update_asset_checksum_multihash()
+        asset_upload.update_asset_from_upload()
         asset_upload.status = AssetUpload.Status.COMPLETED
         asset_upload.ended = utc_aware(datetime.utcnow())
         asset_upload.urls = []

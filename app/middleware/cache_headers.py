@@ -4,6 +4,7 @@ from urllib.parse import urlparse
 
 from django.conf import settings
 from django.utils.cache import add_never_cache_headers
+from django.utils.cache import get_max_age
 from django.utils.cache import patch_cache_control
 from django.utils.cache import patch_response_headers
 
@@ -44,10 +45,11 @@ class CacheHeadersMiddleware:
             patch_response_headers(response, cache_timeout=10)
         elif (
             request.method in ('GET', 'HEAD') and
-            not request.path.startswith(urlparse(settings.STATIC_URL).path)
+            not request.path.startswith(urlparse(settings.STATIC_URL).path) and
+            get_max_age(response) is None  # only set if not already set by the application
         ):
             logger.debug(
-                "Patching cache headers for request %s %s",
+                "Patching default cache headers for request %s %s",
                 request.method,
                 request.path,
                 extra={"request": request}

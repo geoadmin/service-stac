@@ -2,6 +2,9 @@ import logging
 
 from django.db import transaction
 from django.db.models.deletion import ProtectedError
+from django.utils.cache import add_never_cache_headers
+from django.utils.cache import patch_cache_control
+from django.utils.cache import patch_response_headers
 from django.utils.translation import gettext_lazy as _
 
 from rest_framework import serializers
@@ -9,6 +12,7 @@ from rest_framework import status
 from rest_framework.response import Response
 
 from stac_api.serializers_utils import get_parent_link
+from stac_api.utils import get_dynamic_max_age_value
 from stac_api.utils import get_link
 
 logger = logging.getLogger(__name__)
@@ -167,3 +171,28 @@ class DestroyModelMixin:
             raise serializers.ValidationError(
                 _(f'Deleting {instance.__class__.__name__} with {child_name} not allowed')
             ) from None
+
+
+def patch_cache_settings_by_update_interval(response, update_interval):
+    max_age = get_dynamic_max_age_value(update_interval)
+    if max_age == 0:
+        add_never_cache_headers(response)
+    elif max_age > 0:
+        patch_response_headers(response, cache_timeout=max_age)
+        patch_cache_control(response, public=True)
+
+
+class RetrieveModelDynCacheMixin:
+    """
+    Retrieve a model instance and set the cache-control header dynamically based on
+    `update_interval` model field.
+    """
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        response = Response(serializer.data)
+
+        patch_cache_settings_by_update_interval(response, instance.update_interval)
+
+        return response

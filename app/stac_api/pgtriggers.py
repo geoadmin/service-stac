@@ -64,8 +64,11 @@ def generate_child_triggers(parent_name, child_name):
 def generates_asset_triggers():
     '''Generates Asset triggers
 
-    Those triggers update the `updated` and `etag` fields of the assets and their parents on
-    update, insert or delete. It also update the collection summaries.
+    Those triggers act on `insert`, `update` and `delete` Asset event and do the followings:
+      - Update the `updated` and `etag` fields of the assets and their parents
+      - Update the parent collection summaries.
+      - Update the parent item `update_interval` by using the minimal aggregation of all of its
+        assets
 
     Returns: tuple
         tuple for all needed triggers
@@ -73,6 +76,11 @@ def generates_asset_triggers():
 
     class UpdateCollectionSummariesTrigger(pgtrigger.Trigger):
         when = pgtrigger.After
+        declare = [
+            ('asset_instance', 'stac_api_asset%ROWTYPE'),
+            ('related_collection_id', 'INT'),
+            ('collection_summaries', 'RECORD'),
+        ]
         func = '''
         asset_instance = COALESCE(NEW, OLD);
 
@@ -119,12 +127,32 @@ def generates_asset_triggers():
         RETURN asset_instance;
         '''
 
-        def get_declare(self, model):
-            return [
-                ('asset_instance', 'stac_api_asset%ROWTYPE'),
-                ('related_collection_id', 'INT'),
-                ('collection_summaries', 'RECORD'),
-            ]
+    class UpdateItemUpdateIntervalTrigger(pgtrigger.Trigger):
+        when = pgtrigger.After
+        declare = [
+            ('asset_instance', 'stac_api_asset%ROWTYPE'),
+            ('item_update_interval', 'RECORD'),
+        ]
+        func = '''
+        asset_instance = COALESCE(NEW, OLD);
+
+        -- Compute item update_interval (minimum aggregation of asset's update_interval)
+        SELECT
+            COALESCE(MIN(NULLIF(asset.update_interval, -1)), -1) AS min_update_interval
+        INTO item_update_interval
+        FROM stac_api_asset AS asset
+        WHERE asset.item_id = asset_instance.item_id;
+
+        -- Update related item update_interval variables
+        UPDATE stac_api_item SET
+            update_interval = item_update_interval.min_update_interval
+        WHERE id = asset_instance.item_id;
+
+        RAISE INFO 'item.id=% update_interval updated, due to asset.name=% updates.',
+            asset_instance.item_id, asset_instance.name;
+
+        RETURN asset_instance;
+        '''
 
     return [
         UpdateCollectionSummariesTrigger(
@@ -148,6 +176,15 @@ def generates_asset_triggers():
             condition=pgtrigger.Condition('OLD.* IS DISTINCT FROM NEW.*'),
             when=pgtrigger.Before,
             func=AUTO_VARIABLES_FUNC
+        ),
+        UpdateItemUpdateIntervalTrigger(
+            name='add_del_asset_item_update_interval_trigger',
+            operation=pgtrigger.Insert | pgtrigger.Delete,
+        ),
+        UpdateItemUpdateIntervalTrigger(
+            name='update_asset_item_update_interval_trigger',
+            operation=pgtrigger.Update,
+            condition=pgtrigger.Condition('OLD.* IS DISTINCT FROM NEW.*'),
         )
     ]
 
@@ -164,6 +201,10 @@ def generates_item_triggers():
 
     class UpdateCollectionExtentTrigger(pgtrigger.Trigger):
         when = pgtrigger.After
+        declare = [
+            ('item_instance', 'stac_api_item%ROWTYPE'),
+            ('collection_extent', 'RECORD'),
+        ]
         func = '''
         item_instance = COALESCE(NEW, OLD);
 
@@ -192,11 +233,32 @@ def generates_item_triggers():
         RETURN item_instance;
         '''
 
-        def get_declare(self, model):
-            return [
-                ('item_instance', 'stac_api_item%ROWTYPE'),
-                ('collection_extent', 'RECORD'),
-            ]
+    class UpdateCollectionUpdateIntervalTrigger(pgtrigger.Trigger):
+        when = pgtrigger.After
+        declare = [
+            ('item_instance', 'stac_api_item%ROWTYPE'),
+            ('collection_update_interval', 'RECORD'),
+        ]
+        func = '''
+        item_instance = COALESCE(NEW, OLD);
+
+        -- Compute collection update_interval (minimum aggregation of item's update_interval)
+        SELECT
+            COALESCE(MIN(NULLIF(item.update_interval, -1)), -1) AS min_update_interval
+        INTO collection_update_interval
+        FROM stac_api_item AS item
+        WHERE item.collection_id = item_instance.collection_id;
+
+        -- Update related collection update_interval variables
+        UPDATE stac_api_collection SET
+            update_interval = collection_update_interval.min_update_interval
+        WHERE id = item_instance.collection_id;
+
+        RAISE INFO 'collection.id=% update_interval updated, due to item.name=% updates.',
+            item_instance.collection_id, item_instance.name;
+
+        RETURN item_instance;
+        '''
 
     return [
         pgtrigger.Trigger(
@@ -220,6 +282,15 @@ def generates_item_triggers():
         UpdateCollectionExtentTrigger(
             name='add_del_item_collection_extent_trigger',
             operation=pgtrigger.Delete | pgtrigger.Insert
+        ),
+        UpdateCollectionUpdateIntervalTrigger(
+            name='add_del_item_collection_update_interval_trigger',
+            operation=pgtrigger.Insert | pgtrigger.Delete,
+        ),
+        UpdateCollectionUpdateIntervalTrigger(
+            name='update_item_collection_update_interval_trigger',
+            operation=pgtrigger.Update,
+            condition=pgtrigger.Condition('OLD.* IS DISTINCT FROM NEW.*'),
         )
     ]
 

@@ -32,5 +32,5 @@ class IndexTestCase(StacBaseTestCase):
     def test_landing_page_redirect(self):
         response = self.client.get(f"/{settings.STAC_BASE_V}")
         self.assertEqual(response.status_code, 301)
-        self.check_header_location(f"/{settings.STAC_BASE_V}/", response)
-        self.check_header_cors(response)
+        self.assertLocationHeader(f"/{settings.STAC_BASE_V}/", response)
+        self.assertCors(response)

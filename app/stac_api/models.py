@@ -301,6 +301,15 @@ class Collection(models.Model):
         blank=False, null=False, editable=False, max_length=56, default=compute_etag
     )
 
+    update_interval = models.IntegerField(
+        default=-1,
+        null=False,
+        blank=False,
+        validators=[MinValueValidator(-1)],
+        help_text="Minimal update interval in seconds "
+        "in which the underlying assets data are updated."
+    )
+
     def __str__(self):
         return self.name
 
@@ -347,6 +356,7 @@ class Item(models.Model):
                 ],
                 name='item_dttme_start_end_dttm_idx'
             ),
+            models.Index(fields=['update_interval'], name='item_update_interval_idx'),
         ]
         triggers = generates_item_triggers()
 
@@ -398,6 +408,15 @@ class Item(models.Model):
     # NOTE: hidden ETag field, this field is automatically updated by stac_api.pgtriggers
     etag = models.CharField(
         blank=False, null=False, editable=False, max_length=56, default=compute_etag
+    )
+
+    update_interval = models.IntegerField(
+        default=-1,
+        null=False,
+        blank=False,
+        validators=[MinValueValidator(-1)],
+        help_text="Minimal update interval in seconds "
+        "in which the underlying assets data are updated."
     )
 
     # Custom Manager that preselects the collection
@@ -454,6 +473,7 @@ def upload_asset_to_path_hook(instance, filename=None):
     # set the hash to the storage to use it for upload signing, this temporary attribute is
     # then used by storages.S3Storage to set the MetaData.sha256
     setattr(instance.file.storage, '_tmp_sha256', ctx.hexdigest())
+    setattr(instance.file.storage, '_tmp_update_interval', instance.update_interval)
     logger.debug(
         'Set uploaded file %s multihash %s to checksum:multihash; computation done in %.3fs',
         filename,
@@ -535,6 +555,15 @@ class Asset(models.Model):
         blank=False, null=False, editable=False, max_length=56, default=compute_etag
     )
 
+    update_interval = models.IntegerField(
+        default=-1,
+        null=False,
+        blank=False,
+        validators=[MinValueValidator(-1)],
+        help_text="Interval in seconds in which the asset data is updated."
+        "-1 means that the data is not on a regular basis updated."
+    )
+
     def __str__(self):
         return self.name
 
@@ -593,20 +622,33 @@ class AssetUpload(models.Model):
     # NOTE: hidden ETag field, this field is automatically updated by stac_api.pgtriggers
     etag = models.CharField(blank=False, null=False, max_length=56, default=compute_etag)
 
+    update_interval = models.IntegerField(
+        default=-1,
+        null=False,
+        blank=False,
+        validators=[MinValueValidator(-1)],
+        help_text="Interval in seconds in which the asset data is updated."
+        "-1 means that the data is not on a regular basis updated."
+        "This field is can only be set via the API."
+    )
+
     # Custom Manager that preselects the collection
     objects = AssetUploadManager()
 
-    def update_asset_checksum_multihash(self):
-        '''Updating the asset's checksum:multihash from the upload
+    def update_asset_from_upload(self):
+        '''Updating the asset's checksum:multihash and update_interval from the upload
 
-        When the upload is completed, the new checksum:multihash from the upload
+        When the upload is completed, the new checksum:multihash and update interval from the upload
         is set to its asset parent.
         '''
         logger.debug(
-            'Updating asset %s checksum:multihash from %s to %s due to upload complete',
+            'Updating asset %s checksum:multihash from %s to %s and update_interval from %d to %d '
+            'due to upload complete',
             self.asset.name,
             self.asset.checksum_multihash,
             self.checksum_multihash,
+            self.asset.update_interval,
+            self.update_interval,
             extra={
                 'upload_id': self.upload_id,
                 'asset': self.asset.name,
@@ -614,5 +656,7 @@ class AssetUpload(models.Model):
                 'collection': self.asset.item.collection.name
             }
         )
+
         self.asset.checksum_multihash = self.checksum_multihash
+        self.asset.update_interval = self.update_interval
         self.asset.save()
