@@ -6,6 +6,8 @@
 
 > `Participants: Brice Schaffner, Christoph Böcklin, Jürgen Hansmann`
 
+> `Updated: 2023-03-02 added proposal #2` 
+
 ## Context
 
 `service-stac` uses currently a static cache settings for all requests:
@@ -124,6 +126,37 @@ use the [Timestamps Extension Specification](https://github.com/stac-extensions/
 field would be set based on the update time + `update_interval`. This field would be updated each time an asset upload is
 either started or completed (TBD). If using this extension we need to keep in mind the collection/item/asset publication flag see [BGDIINF_SB-2676](https://jira.swisstopo.ch/browse/BGDIINF_SB-2676).
 
+## Proposal #2 (updated on 2023-03-02)
+
+During implementation the proposal #1 with two different linear approach, using a 10% for update_interval below 60s and 1% above shows an issue:
+
+- update_interval = 59s => 5.9s
+- update_interval = 60s => 0.6s
+
+Such jump are actually not really good, so after a quick experimentation with excell I came up with this mathematic expression
+
+```text
+max_age = round(log10(update_interval) * log9(update_interval))
+```
+
+Which result to this graph
+
+![cache-graph](cache-control-vs-update_interval-graph.png)
+
+A logarithmic approach gives better caching timeout number as a linear approach. Here below some numbers
+
+| update_interval [s]  | max-age [s]  |
+|-------------- | -------------- |
+|   10| 1|
+| 30| 2|
+| 60| 3|
+| 120| 5|
+| 600| 8|
+| 1800| 11|
+| 3600| 13|
+
+
+
 ## Decision
 
 - Keep API independent from implementation
@@ -136,6 +169,7 @@ either started or completed (TBD). If using this extension we need to keep in mi
 - Implement and deploy on INT
 - Once on INT diemo developper needs to be notified.
 - Chris will do the SPEC, Brice the implementation.
+- Uses proposal #2
 
 ## References
 
