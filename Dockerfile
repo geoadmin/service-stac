@@ -8,14 +8,11 @@ ENV USER=geoadmin
 ENV GROUP=geoadmin
 ENV INSTALL_DIR=/opt/service-stac
 ENV SRC_DIR=/usr/local/src/service-stac
-# K8S mounts a memory fs on this location to increase performance
-ENV GUNICORN_WORKER_TMP_DIR=/tmp/gunicorn-workers
 ENV PIPENV_VENV_IN_PROJECT=1
 
 RUN groupadd -r ${GROUP} \
     && useradd -r -s /bin/false -g ${GROUP} ${USER} \
-    && mkdir -p ${INSTALL_DIR}/logs && chown ${USER}:${GROUP} ${INSTALL_DIR}/logs \
-    && mkdir -p ${GUNICORN_WORKER_TMP_DIR} && chown ${USER}:${GROUP} ${GUNICORN_WORKER_TMP_DIR}
+    && mkdir -p ${INSTALL_DIR}/logs && chown ${USER}:${GROUP} ${INSTALL_DIR}/logs
 
 EXPOSE $HTTP_PORT
 # entrypoint is the manage command
