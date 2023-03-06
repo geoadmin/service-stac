@@ -58,6 +58,26 @@ class S3TestMixin():
         error = exception_context.exception
         self.assertEqual(error.response['Error']['Code'], "404")
 
+    def assertS3ObjectCacheControl(self, path, max_age=None, no_cache=False):  # pylint: disable=invalid-name
+        s3 = get_s3_resource()
+
+        try:
+            obj = s3.Object(settings.AWS_STORAGE_BUCKET_NAME, path)
+            obj.load()
+        except botocore.exceptions.ClientError as error:
+            if error.response['Error']['Code'] == "404":
+                # Object Was Not Found
+                self.fail("the object was not found at the expected location")
+            self.fail(f"object lookup failed for unexpected reason: {error}")
+
+        self.assertNotEqual(obj.cache_control, '', msg=f'S3 object {path} has no cache_control set')
+        if no_cache:
+            self.assertEqual(
+                obj.cache_control, 'max-age=0, no-cache, no-store, must-revalidate, private'
+            )
+        elif max_age is not None:
+            self.assertEqual(obj.cache_control, f'max-age={max_age}, public')
+
 
 def mock_s3_bucket():
     '''Mock an S3 bucket

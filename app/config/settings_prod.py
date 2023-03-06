@@ -107,11 +107,6 @@ MIDDLEWARE = [
     'django_prometheus.middleware.PrometheusAfterMiddleware',
 ]
 
-try:
-    CACHE_MIDDLEWARE_SECONDS = int(os.environ.get('HTTP_CACHE_SECONDS', '600'))
-except ValueError as error:
-    raise ValueError('Invalid HTTP_CACHE_SECONDS environment value: must be an integer') from error
-
 ROOT_URLCONF = 'config.urls'
 API_BASE = 'api'
 STAC_BASE = f'{API_BASE}/stac'
@@ -237,7 +232,14 @@ except KeyError as err:
 
 AWS_PRESIGNED_URL_EXPIRES = int(os.environ.get('AWS_PRESIGNED_URL_EXPIRES', '3600'))
 
-# Configure the admin upload caching
+# Configure the caching
+# API default cache control max-age
+try:
+    CACHE_MIDDLEWARE_SECONDS = int(os.environ.get('HTTP_CACHE_SECONDS', '600'))
+except ValueError as error:
+    raise ValueError('Invalid HTTP_CACHE_SECONDS environment value: must be an integer') from error
+
+# Asset data default cache control max-age
 try:
     STORAGE_ASSETS_CACHE_SECONDS = int(os.environ.get('HTTP_ASSETS_CACHE_SECONDS', '7200'))
 except ValueError as err:

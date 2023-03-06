@@ -96,7 +96,8 @@ class CollectionAdmin(admin.ModelAdmin):
         'summaries_geoadmin_lang',
         'summaries_eo_gsd',
         'license',
-        'etag'
+        'etag',
+        'update_interval'
     ]
     readonly_fields = [
         'extent_start_datetime',
@@ -108,7 +109,8 @@ class CollectionAdmin(admin.ModelAdmin):
         'summaries_geoadmin_variant',
         'summaries_geoadmin_lang',
         'summaries_eo_gsd',
-        'etag'
+        'etag',
+        'update_interval'
     ]
     inlines = [ProviderInline, CollectionLinkInline]
     search_fields = ['name']
@@ -168,10 +170,10 @@ class ItemAdmin(admin.GeoModelAdmin):
     inlines = [ItemLinkInline]
     autocomplete_fields = ['collection']
     search_fields = ['name', 'collection__name']
-    readonly_fields = ['collection_name', 'created', 'updated', 'etag']
+    readonly_fields = ['collection_name', 'created', 'updated', 'etag', 'update_interval']
     fieldsets = (
         (None, {
-            'fields': ('name', 'collection', 'created', 'updated', 'etag')
+            'fields': ('name', 'collection', 'created', 'updated', 'etag', 'update_interval')
         }),
         ('geometry', {
             'fields': (
@@ -249,11 +251,15 @@ class ItemAdmin(admin.GeoModelAdmin):
         if obj is None:
             # In case a new Item is added use the normal field 'collection' from model that have
             # a help text fort the search functionality.
-            fields[0][1]['fields'] = ('name', 'collection', 'created', 'updated', 'etag')
+            fields[0][1]['fields'] = (
+                'name', 'collection', 'created', 'updated', 'etag', 'update_interval'
+            )
             return fields
         # Otherwise if this is an update operation only display the read only field
         # without help text
-        fields[0][1]['fields'] = ('name', 'collection_name', 'created', 'updated', 'etag')
+        fields[0][1]['fields'] = (
+            'name', 'collection_name', 'created', 'updated', 'etag', 'update_interval'
+        )
         return fields
 
     # Populate text_geometry field with value of geometry
@@ -282,16 +288,25 @@ class AssetAdmin(admin.ModelAdmin):
     autocomplete_fields = ['item']
     search_fields = ['name', 'item__name', 'item__collection__name']
     readonly_fields = [
-        'item_name', 'collection_name', 'href', 'checksum_multihash', 'created', 'updated', 'etag'
+        'item_name',
+        'collection_name',
+        'href',
+        'checksum_multihash',
+        'created',
+        'updated',
+        'etag',
+        'update_interval'
     ]
     list_display = ['name', 'item_name', 'collection_name', 'collection_published']
     fieldsets = (
         (None, {
             'fields': ('name', 'item', 'created', 'updated', 'etag')
         }),
-        ('File', {
-            'fields': ('file', 'media_type', 'href', 'checksum_multihash')
-        }),
+        (
+            'File', {
+                'fields': ('file', 'media_type', 'href', 'checksum_multihash', 'update_interval')
+            }
+        ),
         ('Description', {
             'fields': ('title', 'description')
         }),
@@ -401,7 +416,8 @@ class AssetUploadAdmin(admin.ModelAdmin):
         'status',
         'urls_json',
         'number_parts',
-        'checksum_multihash'
+        'checksum_multihash',
+        'update_interval'
     ]
     list_display = [
         'short_upload_id', 'status', 'asset_name', 'item_name', 'collection_name', 'created'
@@ -411,8 +427,16 @@ class AssetUploadAdmin(admin.ModelAdmin):
             'fields': ('upload_id', 'asset_name', 'item_name', 'collection_name', 'status')
         }),
         (
-            'Attributes', {
-                'fields': ('number_parts', 'urls_json', 'checksum_multihash', 'created', 'ended')
+            'Attributes',
+            {
+                'fields': (
+                    'number_parts',
+                    'urls_json',
+                    'checksum_multihash',
+                    'created',
+                    'ended',
+                    'update_interval'
+                )
             }
         ),
     )

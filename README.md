@@ -227,6 +227,12 @@ You can uses `--parallel=20` which also speed up tests.
 
 You can use `--failfast` to stop at the first error.
 
+You can add the test python module to test as well
+
+```bash
+./manage.py test tests.test_asset_model
+```
+
 Alternatively you can use `make` to run the tests which will run all tests in parallel.
 
 ```bash

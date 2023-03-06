@@ -117,7 +117,7 @@ class ItemsReadEndpointTestCase(StacBaseTestCase):
 
         # The ETag change between each test call due to the created, updated time that are in the
         # hash computation of the ETag
-        self.check_header_etag(None, response)
+        self.assertEtagHeader(None, response)
 
         self.check_stac_item(item.json, json_data, self.collection.name)
 
@@ -536,7 +536,7 @@ class ItemsCreateEndpointTestCase(StacBaseTestCase):
         )
         json_data = response.json()
         self.assertStatusCode(201, response)
-        self.check_header_location(f'{path}', response)
+        self.assertLocationHeader(f'{path}', response)
 
         self.check_stac_item(sample.json, json_data, self.collection.name)
 
