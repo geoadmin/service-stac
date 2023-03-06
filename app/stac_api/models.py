@@ -473,6 +473,8 @@ def upload_asset_to_path_hook(instance, filename=None):
     # set the hash to the storage to use it for upload signing, this temporary attribute is
     # then used by storages.S3Storage to set the MetaData.sha256
     setattr(instance.file.storage, '_tmp_sha256', ctx.hexdigest())
+    # Same here for the update_interval that is used by the storages.S3Storage to set the asset's
+    # update_interval
     setattr(instance.file.storage, '_tmp_update_interval', instance.update_interval)
     logger.debug(
         'Set uploaded file %s multihash %s to checksum:multihash; computation done in %.3fs',
@@ -629,7 +631,7 @@ class AssetUpload(models.Model):
         validators=[MinValueValidator(-1)],
         help_text="Interval in seconds in which the asset data is updated."
         "-1 means that the data is not on a regular basis updated."
-        "This field is can only be set via the API."
+        "This field can only be set via the API."
     )
 
     # Custom Manager that preselects the collection

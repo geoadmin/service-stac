@@ -413,7 +413,7 @@ def get_dynamic_max_age_value(update_interval):
         return int(math.log(update_interval, 10) * math.log(update_interval, 9))
 
     if max_threshold <= update_interval:
-        raise ValueError('update_interval should not be less than 1h')
+        raise ValueError('update_interval should not be more than 1h')
 
     return -1  # means use default cache settings
 

@@ -31,7 +31,7 @@ class Migration(migrations.Migration):
             field=models.IntegerField(
                 default=-1,
                 help_text=
-                'Interval in seconds in which the asset data is updated.-1 means that the data is not on a regular basis updated.This field is can only be set via the API.',
+                'Interval in seconds in which the asset data is updated.-1 means that the data is not on a regular basis updated.This field can only be set via the API.',
                 validators=[django.core.validators.MinValueValidator(-1)]
             ),
         ),
