@@ -2,14 +2,14 @@ openapi: 3.0.1
 components:
   parameters:
     assetQuery:
-     description: >-
-       Query for properties in assets (e.g. mediatype). Use the JSON form of the assetQueryFilter
-       used in POST.
-     in: query
-     name: assetQuery
-     required: false
-     schema:
-       type: string
+      description: >-
+        Query for properties in assets (e.g. mediatype). Use the JSON form of the assetQueryFilter
+        used in POST.
+      in: query
+      name: assetQuery
+      required: false
+      schema:
+        type: string
     bbox:
       explode: false
       in: query
@@ -45,6 +45,20 @@ components:
       description: Local identifier of a feature
       in: path
       name: featureId
+      required: true
+      schema:
+        type: string
+    assetObjectHref:
+      name: assetObjectHref
+      in: path
+      description: Full URL to asset object including protocol, host and path
+      required: true
+      schema:
+        type: string
+    presignedUrl:
+      name: presignedUrl
+      in: path
+      description: Presigned url returned by [Create a new Asset's multipart upload](#operation/createAssetUpload).
       required: true
       schema:
         type: string

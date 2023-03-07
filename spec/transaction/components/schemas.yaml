@@ -282,6 +282,8 @@ components:
           items:
             $ref: "#/components/schemas/multipartUploadUrl"
           readOnly: true
+        update_interval:
+          $ref: "#/components/schemas/update_interval"
         created:
           $ref: "#/components/schemas/dtUploadCreated"
         completed:
@@ -309,6 +311,8 @@ components:
           $ref: "#/components/schemas/number_parts"
         md5_parts:
           $ref: "#/components/schemas/md5_parts"
+        update_interval:
+          $ref: "#/components/schemas/update_interval"
         urls:
           type: array
           description: |
@@ -364,8 +368,7 @@ components:
           type: string
           enum:
             - completed
-          example:
-            completed
+          example: completed
         number_parts:
           $ref: "#/components/schemas/number_parts"
         created:
@@ -393,8 +396,7 @@ components:
           type: string
           enum:
             - aborted
-          example:
-            aborted
+          example: aborted
         number_parts:
           $ref: "#/components/schemas/number_parts"
         created:
@@ -471,6 +473,28 @@ components:
             description: The base64-encoded 128-bit MD5 digest of the associate part data.
             type: string
             example: yLLiDqX2OL7mcIMTjob60A==
+    update_interval:
+      description: |
+        Duration in seconds until the next update of the data is expected
+
+        Regularly updated asset objects need different cache settings than the values
+        set by default (7200 seconds = 2 hours). The `update_interval` parameter has
+        to be set to notify the system on when the next update of this asset object is
+        expected so that cache headers can be set correctly by the system:
+        - `update_interval > 0` defines the interval in seconds until the
+        next update will be sent to the system (maximum is 1 week = 604800 seconds).
+        This should be used for near-real-time data that is updated e.g. every minute.
+        - `update_interval = 0` is the minimum value and should be used for real-time data
+        that is updated on a second-basis only.
+        - `update_interval = -1` (the default) means that the data is not regularly
+        updated
+
+        For data that is updated automatically but not in a regular interval it's
+        recommended to set the `update_interval` to a low value `> 0`, e.g. `10` seconds.
+      type: integer
+      minimum: -1
+      maximum: 604800
+      example: 30
     part_number:
       description: Number of the part.
       type: integer
