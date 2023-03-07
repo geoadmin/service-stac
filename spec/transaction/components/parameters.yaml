@@ -8,12 +8,6 @@ components:
       required: true
       schema:
         type: string
-    assetObjectHref:
-      name: assetObjectHref
-      in: path
-      description: Full URL to asset object including protocol, host and path
-      schema:
-        type: string
     uploadId:
       name: uploadId
       in: path
@@ -21,13 +15,13 @@ components:
       required: true
       schema:
         type: string
-    presignedUrl:
-      name: presignedUrl
-      in: path
-      description: Presigned url returned by [Create a new Asset's multipart upload](#operation/createAssetUpload).
-      required: true
-      schema:
-        type: string
+    # presignedUrl:
+    #   name: presignedUrl
+    #   in: path
+    #   description: Presigned url returned by [Create a new Asset's multipart upload](#operation/createAssetUpload).
+    #   required: true
+    #   schema:
+    #     type: string
     IfMatchWrite:
       name: If-Match
       in: header
