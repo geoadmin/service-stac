@@ -3,14 +3,14 @@ services:
   db:
     image: kartoza/postgis:12.0
     environment:
-      - POSTGRES_DB=service_stac_local
+      - POSTGRES_DB=${DB_NAME}
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_MULTIPLE_EXTENSIONS=postgis,postgis_topology
       - EXTRA_CONF=log_min_messages = 'INFO'\n
     user: ${UID}
     ports:
-      - 15432:5432
+      - ${DB_PORT}:5432
     volumes:
       - type: bind
         source: ${PWD}/.volumes/postgresql

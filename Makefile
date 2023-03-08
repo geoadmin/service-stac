@@ -6,6 +6,15 @@ SERVICE_NAME := service-stac
 
 CURRENT_DIR := $(shell pwd)
 
+# Imports the environment variables
+ifneq ("$(wildcard .env.local)","")
+include .env.local
+export
+else
+include .env.default
+export
+endif
+
 # Django specific
 APP_SRC_DIR := app
 DJANGO_MANAGER := $(CURRENT_DIR)/$(APP_SRC_DIR)/manage.py
@@ -23,10 +32,6 @@ PYTHON_FILES := $(shell find $(APP_SRC_DIR) -type f -name "*.py" -print)
 
 # default configuration
 ENV ?= dev
-HTTP_PORT ?= 8000
-DEBUG ?= 1
-LOGGING_CFG ?= logging-cfg-local.yml
-LOGGING_CFG_PATH := $(DJANGO_CONFIG_DIR)/$(LOGGING_CFG)
 
 # Commands
 PIPENV_RUN := pipenv run
@@ -119,8 +124,9 @@ setup: $(SETTINGS_TIMESTAMP)
 	mkdir -p .volumes/minio/service-stac-local
 	mkdir -p .volumes/postgresql
 	# create directory for unittests logs
-	mkdir -p logs
-	docker-compose up &
+	mkdir -m 777 -p ${LOGS_DIR}
+	docker-compose up -d
+	pipenv shell
 
 
 .PHONY: ci
@@ -221,7 +227,22 @@ dockerbuild-prod:
 .PHONY: dockerrun
 dockerrun: dockerbuild-debug
 	@echo "starting docker debug container with populating ENV from .env.local"
-	docker run -it --rm --env-file .env.local --net=host $(DOCKER_IMG_LOCAL_TAG_DEV) ./wsgi.py
+	docker run \
+		-it --rm \
+		--env-file .env.local \
+		--net=host \
+		--mount type=bind,source="${PWD}/${LOGS_DIR}",target=/opt/service-stac/logs \
+		$(DOCKER_IMG_LOCAL_TAG_DEV) ./wsgi.py
+
+.PHONY: dockerrun-prod
+dockerrun-prod: dockerbuild-prod
+	@echo "starting docker debug container with populating ENV from .env.local"
+	docker run \
+		-it --rm \
+		--env-file .env.local \
+		--net=host \
+		--mount type=bind,source="${PWD}/${LOGS_DIR}",target=/opt/service-stac/logs \
+		$(DOCKER_IMG_LOCAL_TAG) ./wsgi.py
 
 .PHONY: dockerpush-debug
 dockerpush-debug: dockerbuild-debug

@@ -141,12 +141,12 @@ handlers:
     level: DEBUG
     class: logging.FileHandler
     formatter: standard-file
-    filename: ${BASE_DIR}/logs/server-standard-logs.txt
+    filename: ${BASE_DIR}/${LOGS_DIR}/server-standard-logs.txt
     mode: w
   file-json:
     level: DEBUG
     class: logging.FileHandler
     formatter: json
-    filename: ${BASE_DIR}/logs/server-json-logs.json
+    filename: ${BASE_DIR}/${LOGS_DIR}/server-json-logs.json
     mode: w
 

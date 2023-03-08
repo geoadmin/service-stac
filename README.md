@@ -39,10 +39,10 @@
 
 `service-stac` provides and manages access to packaged geospatial data and their metadata. It implements and extends the **STAC API** specification version 0.9.0 [radiantearth/stac-spec/tree/v0.9.0/api-spec](https://github.com/radiantearth/stac-spec/tree/v0.9.0/api-spec). Currently the **STAC API** has been split from the main **STAC SPEC** repository into [radiantearth/stac-api-spec](https://github.com/radiantearth/stac-api-spec), which is under active development until the release 1.0-beta.
 
-
 ## SPEC
 
 See [SPEC](./spec/README.md)
+
 ## Local development
 
 ### Dependencies
@@ -74,7 +74,7 @@ uninstall the version from apt and install it manually like this:
 pip install --user pipenv
 ```
 
-At the time of writing, version `2022.11.30` or never should be working fine.
+At the time of writing, version `2022.11.30`, should be working fine.
 
 The other services that are used (Postgres with PostGIS extension for metadata and [MinIO](https://www.min.io) as local S3 replacement) are wrapped in a docker compose.
 
@@ -97,44 +97,51 @@ If you wish to use a local postgres instance rather than the dockerised one, you
 
 These steps will ensure you have everything needed to start working locally.
 
-- clone the repo
+- Clone the repo
 
   ```bash
   git clone git@github.com:geoadmin/service-stac.git
   cd service-stac
   ```
 
-- define the app environment (`APP_ENV=local` causes the settings to populate the env from `.env.local`, otherwise values are taken from the system ENV)
+- You can create and adapt your local environment variable in `.env.local`. This files is not under source control and if it doesn't exists during `make setup` it will be created from `.env.default`.
+
+- Install and prepare all the dependencies (pip packages, minio, postgresql, .env.local, ...) by running
 
   ```bash
-  export APP_ENV=local
+  make setup
   ```
 
-- create and adapt your local copy of `.env.default` with the values defined when creating the database:
+- The command above has generated the following for you
+  - python virtual environment with all dependencies (inclusive dev dependencies), you can locate the `venv` with `pipenv --venv`
+  - started a `minio` docker container as S3 storage for the assets
+  - started a PostGIS DB docker container
+
+- You manually stop/start the minio and PostGIS DB with (see also [Setting up the local database](#setting-up-the-local-database))
 
   ```bash
-  cp .env.default .env.local
+  docker-compose down
+  docker-compose up
   ```
 
-- and finally create your local copy of the `settings.py`, which is in the simplest case just a
+- Finally you can do the initial DB setup using django management commands
 
   ```bash
-  echo "from .settings_dev import *" > app/config/settings.py
+  # activate the python virtual environment
+  pipenv shell
+  # prepare the DB 
+  ./app/manage.py migrate
+  # Populate some test data in the DB
+  ./app/manage.py populate_testdb
+  # Create a superuser for the admin page
+  ./app/manage.py createsuperuser
   ```
 
-- creating a virtualenv and installing dependencies
-
-  ```bash
-  pipenv install
-  ```
-
-An alternative to ```pipenv install``` is to use the ```make setup``` command, which will install the environment,
-create the volumes needed by the Postgres and MinIO containers
-and run those containers. ```Make setup``` assume a standard local installation with a dev environment.
+- Now you are ready to work with a full setup and 2 samples colletions
 
 ### Setting up the local database
 
-The service use two other services to run, Posgres with a PostGIS extension and S3.
+The service use two other services to run, Postgres with a PostGIS extension and S3.
 For local development, we recommend using the services given through the [docker-compose.yml](docker-compose.yml) file, which will
 instantiate a Postgres container and a [MinIO](https://www.min.io/) container which act as a local S3 replacement.
 
@@ -166,16 +173,6 @@ Another way to start these containers (if, for example, they stopped) is with a 
   docker-compose up
   ```
 
-Lastly, once your databases have been set up, it is time to apply migrations (to have the latest model) and fill it with
-some default values to be able to start working with it. (From the root)
-  ```bash
-  pipenv shell
-  ./app/manage.py migrate
-  ./app/manage.py populate_testdb
-  ```
-
-the ```pipenv shell``` command activate the virtual environment provided by pipenv.
-
 ### Using a local PostGres database instead of a container
 
 To use a local postgres instance rather than a container, once you've ensured you've the needed dependencies, you should :
@@ -205,7 +202,7 @@ You might have to change your .env.local file especially the DB_PORT, if you're 
 ### Starting dev server
 
 ```bash
-# enable first your virtual environment and make sure that `APP_ENV=local` is set
+# enable first your virtual environment
 pipenv shell
 cd app
 ./manage.py runserver
@@ -435,8 +432,8 @@ The service is configured by Environment Variable:
 
 | Env         | Default               | Description                            |
 |-------------|-----------------------|----------------------------------------|
-| APP_ENV | `'local'` | Determine the application environment (local|dev|int|prod) |
-| LOGGING_CFG | `'logging-cfg-local.yml'` | Logging configuration file or '0' to disable logging             |
+| LOGGING_CFG | `'app/config/logging-cfg-local.yml'` | Logging configuration file or '0' to disable logging             |
+| LOGS_DIR | `''` | Relative path to log directory to use if logging is configured to logs into files. NOTE: the default value for local development is `logs`. :warning: This should only be used for local development. |
 | SECRET_KEY | - | Secret key for django |
 | ALLOWED_HOSTS | `''` | See django ALLOWED_HOSTS. On local development and DEV staging this is overwritten with `'*'` |
 | THIS_POD_IP | No default | The IP of the POD the service is running on |
@@ -444,7 +441,6 @@ The service is configured by Environment Variable:
 | HTTP_STATIC_CACHE_SECONDS | `3600` | Sets the `Cache-Control: max-age` header of GET, HEAD requests to the static files. |
 | STORAGE_ASSETS_CACHE_SECONDS | `7200` | Sets the `Cache-Control: max-age` and `Expires` headers of the GET and HEAD on the assets file uploaded via admin page. |
 | DJANGO_STATIC_HOST | `''` | See [Whitenoise use CDN](http://whitenoise.evans.io/en/stable/django.html#use-a-content-delivery-network). |
-| TEST_ENABLE_LOGGING | `False` | Enable logging in unittest |
 | PAGE_SIZE | `100` | Default page size |
 | PAGE_SIZE_LIMIT | `100` | Maximum page size allowed |
 | STAC_BROWSER_HOST | `None` | STAC Browser host (including HTTP schema). When `None` it takes the same host as the STAC API. |

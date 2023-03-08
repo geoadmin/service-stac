@@ -9,7 +9,9 @@ root:
 
 loggers:
   tests:
-    level: WARNING
+    level: DEBUG
+    handlers:
+      - console-tests
   botocore:
     level: INFO
   boto3:
@@ -56,6 +58,11 @@ formatters:
     format: "[%(utc_isotime)s] %(levelname)-8s - %(name)-26s : %(message)s"
     extra_fmt: " - collection: %(collection)s - item: %(item)s - asset: %(asset)s - duration: %(duration)s"
     # extra_pretty_print: True
+  standard-file:
+    (): logging_utilities.formatters.extra_formatter.ExtraFormatter
+    format: "[%(utc_isotime)s] %(levelname)-8s - %(name)-26s : %(message)s"
+    extra_fmt: " - extra: %s"
+    extra_pretty_print: True
   json:
     (): logging_utilities.formatters.json_formatter.JsonFormatter
     add_always_extra: True
@@ -74,10 +81,19 @@ formatters:
       message: message
 
 handlers:
-  console:
+  console-tests:
+    level: WARNING
     class: logging.StreamHandler
     formatter: standard
     stream: ext://sys.stdout
+    filters:
+      - isotime
+      - django
+  console:
+    level: CRITICAL
+    class: logging.StreamHandler
+    formatter: standard
+    stream: ext://sys.stderr
     filters:
       - isotime
       - django

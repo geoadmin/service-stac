@@ -12,7 +12,6 @@ import os.path
 from pathlib import Path
 
 import yaml
-from dotenv import load_dotenv
 
 from .version import APP_VERSION  # pylint: disable=unused-import
 
@@ -23,19 +22,6 @@ STAC_VERSION_SHORT = 'v0.9'
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 os.environ['BASE_DIR'] = str(BASE_DIR)
 print(f"BASE_DIR is {BASE_DIR}")
-
-# Determine the application environment (dev|int|prod)
-# Note: the preferred solution would be to have the default
-# APP_ENV 'prod', but have it 'local' by default simplifies
-# the setup
-APP_ENV = os.environ.get('APP_ENV', 'local')
-
-# If we develop locally, load ENV from file
-if APP_ENV.lower() in ['local', 'default']:
-    print(f"Running locally hence injecting env vars from {BASE_DIR / f'.env.{APP_ENV}'}")
-    # set the APP_ENV to local (in case it was set from default above)
-    os.environ['APP_ENV'] = APP_ENV
-    load_dotenv(BASE_DIR / f'.env.{APP_ENV}', override=True, verbose=True)
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('SECRET_KEY', None)
@@ -54,7 +40,11 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_CLOUDFRONT_FORWARDED_PROTO', 'https')
 # We need to have the IP of the Pod/localhost in ALLOWED_HOSTS
 # as well to be able to scrape prometheus /metrics
 # see kubernetes config on how `THIS_POD_IP` is obtained
-ALLOWED_HOSTS = [os.getenv('THIS_POD_IP')]
+
+ALLOWED_HOSTS = []
+THIS_POD_IP = os.getenv('THIS_POD_IP')
+if THIS_POD_IP:
+    ALLOWED_HOSTS.append(THIS_POD_IP)
 ALLOWED_HOSTS += os.getenv('ALLOWED_HOSTS', '').split(',')
 
 # SERVICE_HOST = os.getenv('SERVICE_HOST', '127.0.0.1:8000')
@@ -215,7 +205,7 @@ try:
     AWS_SECRET_ACCESS_KEY = os.environ['AWS_SECRET_ACCESS_KEY']
     AWS_STORAGE_BUCKET_NAME = os.environ['AWS_STORAGE_BUCKET_NAME']
     # The AWS region of the bucket
-    AWS_S3_REGION_NAME = os.environ['AWS_S3_REGION_NAME']
+    AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME', 'eu-central-1')
     # This is the URL where to reach the S3 service and is either minio
     # on localhost or https://s3.<region>.amazonaws.com
     AWS_S3_ENDPOINT_URL = os.environ.get('AWS_S3_ENDPOINT_URL', None)

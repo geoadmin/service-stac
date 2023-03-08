@@ -1,3 +1,4 @@
 .volumes
 */logs
 /scripts/xxxxxxl_asset_file.zip
+.env.*
