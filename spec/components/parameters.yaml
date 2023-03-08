@@ -55,13 +55,13 @@ components:
       required: true
       schema:
         type: string
-    presignedUrl:
-      name: presignedUrl
-      in: path
-      description: Presigned url returned by [Create a new Asset's multipart upload](#operation/createAssetUpload).
-      required: true
-      schema:
-        type: string
+    # presignedUrl:
+    #   name: presignedUrl
+    #   in: path
+    #   description: Presigned url returned by [Create a new Asset's multipart upload](#operation/createAssetUpload).
+    #   required: true
+    #   schema:
+    #     type: string
     ids:
       description: >-
         Array of Item ids to return. All other filter parameters that further

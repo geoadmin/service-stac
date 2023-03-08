@@ -137,7 +137,7 @@ paths:
     get:
       tags:
       - Data
-      summary: Get asset object
+      summary: Fetch an asset object
       parameters:
       - $ref: "#/components/parameters/IfNoneMatch"
       operationId: getAssetObject
@@ -163,7 +163,7 @@ paths:
         import requests
         import time
 
-        refresh_interval = 5
+        refresh_interval = 60
 
         item_etag = "*"
         item_url = "https://data.geo.admin.ch/collections/{collectionID}/items/{itemId}"
@@ -214,8 +214,6 @@ paths:
           else:
             # do proper error handling
         ```
-        Note that instead of using a fixed `refresh_interval`, this value could be set
-        based on the content of the `Cache-Control` `max-age` value.
       responses:
         "200":
           description: The asset object
@@ -242,138 +240,135 @@ paths:
           $ref: "#/components/responses/NotFoundS3"
         "412":
           $ref: "#/components/responses/PreconditionFailedS3"
-    put:
-      tags:
-      - Asset Upload Management
-      summary: Upload asset file part
-      description: >-
-        Upload an Asset file part using the presigned url(s) returned by [Create a
-        new Asset's multipart upload](#operation/createAssetUpload).
+  # /{assetObjectHref}:
+  #   servers:
+  #     - url: http://s3.geo.admin.ch/
+  #   put:
+  #     tags:
+  #       - Asset Upload Management
+  #     summary: Upload asset file part
+  #     description: >-
+  #       Upload an Asset file part using the presigned url(s) returned by
+  #       [Create a new Asset's multipart upload](#operation/createAssetUpload).
 
+  #       Parts that have been uploaded but not completed can be checked using
+  #       [Get an Asset's multipart upload](#operation/getAssetUpload)
 
-        Parts that have been uploaded but not completed can be checked using [Get
-        an Asset's multipart upload](#operation/getAssetUpload)
+  #       A file part must be at least 5 MB except for the last one and at most 5 GB, otherwise the
+  #       complete operation will fail.
 
+  #       *Note: this endpoint doesn't require any authentication as it is already part of the
+  #       presigned url*
+  #     operationId: uploadAssetFilePart
+  #     parameters:
+  #       - $ref: "#/components/parameters/assetObjectHref"
+  #       - name: Content-MD5
+  #         in: header
+  #         description: The base64-encoded 128-bit MD5 digest of this part.
+  #         required: true
+  #         schema:
+  #           type: string
+  #           example: yLLiDqX2OL7mcIMTjob60A==
+  #     responses:
+  #       "200":
+  #         description: Asset file part uploaded part successfully (Response has no content).
+  #         content: {}
+  #         headers:
+  #           ETag:
+  #             schema:
+  #               type: string
+  #             description: >-
+  #               The RFC7232 ETag header field in a response provides the current entity-
+  #               tag for the selected resource.
 
-        A file part must be at least 5 MB except for the last one and at most 5 GB,
-        otherwise the complete operation will fail.
+  #               This ETag is required in the complete multipart upload payload.
 
+  #               An entity-tag is an opaque identifier for
+  #               different versions of a resource over time, regardless whether multiple
+  #               versions are valid at the same time. An entity-tag consists of an opaque
+  #               quoted string.
+  #             example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
+  #             required: true
+  #       "400":
+  #         description: Asset file part corrupted.
+  #         content:
+  #           application/xml:
+  #             schema:
+  #               type: object
+  #               required:
+  #                 - Error
+  #               properties:
+  #                 Error:
+  #                   type: object
+  #                   required:
+  #                     - Code
+  #                     - Message
+  #                   properties:
+  #                     Code:
+  #                       type: string
+  #                       enum: ["BadDigest"]
+  #                     Message:
+  #                       type: string
+  #                   additionalProperties:
+  #                     type: string
+  #             example: |
+  #               <?xml version="1.0" encoding="UTF-8"?>
+  #               <Error>
+  #                 <Code>BadDigest</Code>
+  #                 <Message>The Content-MD5 you specified did not match what we received.</Message>
+  #                 <ExpectedDigest>0b6vaU45Ys1BdrMhd4wnGA==</ExpectedDigest>
+  #                 <CalculatedDigest>4lDYLoS0vNfNdko/3cPJJQ==</CalculatedDigest>
+  #                 <RequestId>RAVFJXJQFXTCZHT3</RequestId>
+  #                 <HostId>kDMsU45sQ4oZjkTgba2SNBy/0RMshW2lEWmfKnaotvViav5Qlyz4aSQdmS9FRVKp1HgJUBj3h5w=</HostId>
+  #               </Error>
+  #       "403":
+  #         description: Asset file part upload Bad Request, Signature does not match (e.g. missing Content-MD5 header).
+  #         content:
+  #           application/xml:
+  #             schema:
+  #               type: object
+  #               required:
+  #                 - Error
+  #               properties:
+  #                 Error:
+  #                   type: object
+  #                   required:
+  #                     - Code
+  #                     - Message
+  #                   properties:
+  #                     Code:
+  #                       type: string
+  #                       enum: ["SignatureDoesNotMatch"]
+  #                     Message:
+  #                       type: string
+  #                   additionalProperties:
+  #                     type: string
+  #             example: |
+  #               <?xml version="1.0" encoding="UTF-8"?>
+  #               <Error>
+  #                 <Code>SignatureDoesNotMatch</Code>
+  #                 <Message>The request signature we calculated does not match the signature you provided. Check your key and signing method.</Message>
+  #                 <AWSAccessKeyId>dummy-key</AWSAccessKeyId>
+  #                 <StringToSign>
+  #                   AWS4-HMAC-SHA256
+  #                   20210922T110759Z
+  #                   20210922/eu-central-1/s3/aws4_request6f0cf4c9a56acf90d9354cb79629a159c0c848ffacdbe13c7b9ae014671fa5c3
+  #                 </StringToSign>
+  #                 <SignatureProvided>1c762db1e677a6535c0e4a91015dcd60c00e58f1e5136f8943636f157dc03d54</SignatureProvided>
+  #                 <StringToSignBytes>41 57 53 34 2d 48 4d 41 43 2d 53 48 41 32 35...</StringToSignBytes>
+  #                 <CanonicalRequest>
+  #                   PUT /service-stac-dev/test-e2e-asset-upload-UUID/test-e2e-asset-upload-UUID/test-e2e-asset-upload-UUID.txt
+  #                     X-Amz-Algorithm=AWS4-HMAC-SHA256&amp;X-Amz-Credential=...
+  #                     content-md5:
+  #                     host:s3.eu-central-1.amazonaws.com
 
-        *Note: this endpoint doesn't require any authentication as it is already part
-        of the presigned url*
-      operationId: uploadAssetFilePart
-      parameters:
-      - $ref: "#/components/parameters/assetObjectHref"
-      - name: Content-MD5
-        in: header
-        description: The base64-encoded 128-bit MD5 digest of this part.
-        required: true
-        schema:
-          type: string
-          example: yLLiDqX2OL7mcIMTjob60A==
-      responses:
-        "200":
-          description: Asset file part uploaded part successfully (Response has no
-            content).
-          content: {}
-          headers:
-            ETag:
-              schema:
-                type: string
-              description: >-
-                The RFC7232 ETag header field in a response provides the current entity-
-                tag for the selected resource.
-
-
-                This ETag is required in the complete multipart upload payload.
-
-
-                An entity-tag is an opaque identifier for different versions of a
-                resource over time, regardless whether multiple versions are valid
-                at the same time. An entity-tag consists of an opaque quoted string.
-              example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
-              required: true
-        "400":
-          description: Asset file part corrupted.
-          content:
-            application/xml:
-              schema:
-                type: object
-                required:
-                - Error
-                properties:
-                  Error:
-                    type: object
-                    required:
-                    - Code
-                    - Message
-                    properties:
-                      Code:
-                        type: string
-                        enum: ["BadDigest"]
-                      Message:
-                        type: string
-                    additionalProperties:
-                      type: string
-              example: |
-                <?xml version="1.0" encoding="UTF-8"?>
-                <Error>
-                  <Code>BadDigest</Code>
-                  <Message>The Content-MD5 you specified did not match what we received.</Message>
-                  <ExpectedDigest>0b6vaU45Ys1BdrMhd4wnGA==</ExpectedDigest>
-                  <CalculatedDigest>4lDYLoS0vNfNdko/3cPJJQ==</CalculatedDigest>
-                  <RequestId>RAVFJXJQFXTCZHT3</RequestId>
-                  <HostId>kDMsU45sQ4oZjkTgba2SNBy/0RMshW2lEWmfKnaotvViav5Qlyz4aSQdmS9FRVKp1HgJUBj3h5w=</HostId>
-                </Error>
-        "403":
-          description: Asset file part upload Bad Request, Signature does not match
-            (e.g. missing Content-MD5 header).
-          content:
-            application/xml:
-              schema:
-                type: object
-                required:
-                - Error
-                properties:
-                  Error:
-                    type: object
-                    required:
-                    - Code
-                    - Message
-                    properties:
-                      Code:
-                        type: string
-                        enum: ["SignatureDoesNotMatch"]
-                      Message:
-                        type: string
-                    additionalProperties:
-                      type: string
-              example: |
-                <?xml version="1.0" encoding="UTF-8"?>
-                <Error>
-                  <Code>SignatureDoesNotMatch</Code>
-                  <Message>The request signature we calculated does not match the signature you provided. Check your key and signing method.</Message>
-                  <AWSAccessKeyId>dummy-key</AWSAccessKeyId>
-                  <StringToSign>
-                    AWS4-HMAC-SHA256
-                    20210922T110759Z
-                    20210922/eu-central-1/s3/aws4_request6f0cf4c9a56acf90d9354cb79629a159c0c848ffacdbe13c7b9ae014671fa5c3
-                  </StringToSign>
-                  <SignatureProvided>1c762db1e677a6535c0e4a91015dcd60c00e58f1e5136f8943636f157dc03d54</SignatureProvided>
-                  <StringToSignBytes>41 57 53 34 2d 48 4d 41 43 2d 53 48 41 32 35...</StringToSignBytes>
-                  <CanonicalRequest>
-                    PUT /service-stac-dev/test-e2e-asset-upload-UUID/test-e2e-asset-upload-UUID/test-e2e-asset-upload-UUID.txt
-                      X-Amz-Algorithm=AWS4-HMAC-SHA256&amp;X-Amz-Credential=...
-                      content-md5:
-                      host:s3.eu-central-1.amazonaws.com
-
-                      content-md5;host
-                      UNSIGNED-PAYLOAD
-                  </CanonicalRequest>
-                  <CanonicalRequestBytes>50 55 54 0a 2f 73...</CanonicalRequestBytes>
-                  <RequestId>F5SB90RJFYE21C0V</RequestId>
-                  <HostId>YnH6DNl93sXH5kL0nEk1TOhH+crwM+wnaRNhh7MNC6CW6XhAeJLKVV/WU+dsdRkJUzet5m7cZwU=</HostId>
-                </Error>
+  #                     content-md5;host
+  #                     UNSIGNED-PAYLOAD
+  #                 </CanonicalRequest>
+  #                 <CanonicalRequestBytes>50 55 54 0a 2f 73...</CanonicalRequestBytes>
+  #                 <RequestId>F5SB90RJFYE21C0V</RequestId>
+  #                 <HostId>YnH6DNl93sXH5kL0nEk1TOhH+crwM+wnaRNhh7MNC6CW6XhAeJLKVV/WU+dsdRkJUzet5m7cZwU=</HostId>
+  #               </Error>
   /conformance:
     get:
       description: >-
@@ -720,13 +715,6 @@ components:
       name: assetObjectHref
       in: path
       description: Full URL to asset object including protocol, host and path
-      required: true
-      schema:
-        type: string
-    presignedUrl:
-      name: presignedUrl
-      in: path
-      description: Presigned url returned by [Create a new Asset's multipart upload](#operation/createAssetUpload).
       required: true
       schema:
         type: string
