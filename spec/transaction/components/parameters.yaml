@@ -15,13 +15,17 @@ components:
       required: true
       schema:
         type: string
-    # presignedUrl:
-    #   name: presignedUrl
-    #   in: path
-    #   description: Presigned url returned by [Create a new Asset's multipart upload](#operation/createAssetUpload).
-    #   required: true
-    #   schema:
-    #     type: string
+    presignedUrl:
+      name: presignedUrl
+      in: path
+      description: >-
+        Presigned url returned by [Create a new Asset's multipart upload](#operation/createAssetUpload).
+
+        Note: the url returned by the above endpoint is the full url including
+        scheme, host and path
+      required: true
+      schema:
+        type: string
     IfMatchWrite:
       name: If-Match
       in: header
