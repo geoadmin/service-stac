@@ -7,7 +7,7 @@ from django.db import models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('stac_api', '0022_asset_update_asset_collection_summaries_trigger_and_more'),
+        ('stac_api', '0022_upgrade_to_django_4_0_8'),
     ]
 
     operations = [

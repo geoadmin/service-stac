@@ -8,6 +8,10 @@ from django.db import migrations
 
 class Migration(migrations.Migration):
 
+    replaces = [
+        ('stac_api', '0022_asset_update_asset_collection_summaries_trigger_and_more'),
+    ]
+
     dependencies = [
         ('stac_api', '0021_auto_20220705_1452'),
     ]

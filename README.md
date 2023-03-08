@@ -22,7 +22,11 @@
   - [Running tests](#running-tests)
     - [Unit test logging](#unit-test-logging)
   - [Using Django shell](#using-django-shell)
-  - [Migrate DB with Django](#migrate-db-with-django)
+- [Migrate DB with Django](#migrate-db-with-django)
+  - [How to generate a db migrations script?](#how-to-generate-a-db-migrations-script)
+  - [How to put the database to the state of a previous code base?](#how-to-put-the-database-to-the-state-of-a-previous-code-base)
+  - [How to create a clean PR with a singe migration script?](#how-to-create-a-clean-pr-with-a-singe-migration-script)
+  - [How to get a working database when migrations scripts screw up?](#how-to-get-a-working-database-when-migrations-scripts-screw-up)
   - [Linting and formatting your work](#linting-and-formatting-your-work)
 - [Initial Setup up the RDS database and the user](#initial-setup-up-the-rds-database-and-the-user)
 - [Deploying the project and continuous integration](#deploying-the-project-and-continuous-integration)
@@ -39,10 +43,10 @@
 
 `service-stac` provides and manages access to packaged geospatial data and their metadata. It implements and extends the **STAC API** specification version 0.9.0 [radiantearth/stac-spec/tree/v0.9.0/api-spec](https://github.com/radiantearth/stac-spec/tree/v0.9.0/api-spec). Currently the **STAC API** has been split from the main **STAC SPEC** repository into [radiantearth/stac-api-spec](https://github.com/radiantearth/stac-api-spec), which is under active development until the release 1.0-beta.
 
-
 ## SPEC
 
 See [SPEC](./spec/README.md)
+
 ## Local development
 
 ### Dependencies
@@ -168,6 +172,7 @@ Another way to start these containers (if, for example, they stopped) is with a 
 
 Lastly, once your databases have been set up, it is time to apply migrations (to have the latest model) and fill it with
 some default values to be able to start working with it. (From the root)
+
   ```bash
   pipenv shell
   ./app/manage.py migrate
@@ -277,7 +282,7 @@ For local development (or whenever you have a `*-dev` docker image deployed), th
 ./manage.py shell_plus
 ```
 
-### Migrate DB with Django
+## Migrate DB with Django
 
 With the Django shell ist is possible to migrate the state of the database according to the code base. Please consider following principles:
 
@@ -291,9 +296,9 @@ stac_api/migrations/
 ├── 0004_auto_20201028.py
 ```
 
-Please make sure, that per PR only one migrations script gets generated (_if possible_).
+Please make sure, that per PR only one migrations script gets generated (*if possible*).
 
-**How to generate a db migrations script?**
+### How to generate a db migrations script?
 
 1. First of all this will only happen, when a model has changed
 1. Following command will generate a new migration script:
@@ -302,7 +307,7 @@ Please make sure, that per PR only one migrations script gets generated (_if pos
     ./manage.py makemigrations
     ```
 
-**How to put the database to the state of a previous code base?**
+### How to put the database to the state of a previous code base?
 
 With the following command of the Django shell a specific state of the database can be achieved:
 
@@ -310,10 +315,10 @@ With the following command of the Django shell a specific state of the database 
 .manage.py migrate stac_api 0003_auto_20201022_1346
 ```
 
-**How to create a clean PR with a singe migration script?**
+### How to create a clean PR with a singe migration script?
 
 Under a clean PR, we mean that only one migration script comes along a PR.
-This can be obtained with the following steps (_only if more than one migration script exist for this PR_):
+This can be obtained with the following steps (*only if more than one migration script exist for this PR*):
 
 ```bash
 # 1. migrate back to the state before the PR
@@ -330,7 +335,7 @@ git add stac_api/migrations 0017_the_new_one.py
 **NOTE:** When going back to a certain migration step, you have to pay attention, that this also involves deleting fields, that have not been added yet.
 Which, of course, involves that its content will be purged as well.
 
-**How to get a working database when migrations scripts screw up?**
+### How to get a working database when migrations scripts screw up?
 
 With the following commands it is possible to get a proper state of the database:
 
@@ -376,7 +381,7 @@ service-stac-dev:
 
 ## Initial Setup up the RDS database and the user
 
-Right now the initial setup on the RDS database for the stagings _dev_, _int_ and _prod_ can be obtained
+Right now the initial setup on the RDS database for the stagings *dev*, *int* and *prod* can be obtained
 with the helper script `scripts/setup_rds_db.sh`. The credentials come from `gopass`. To
 setup the RDS database on int, run following command:
 
@@ -450,7 +455,7 @@ The service is configured by Environment Variable:
 | STAC_BROWSER_HOST | `None` | STAC Browser host (including HTTP schema). When `None` it takes the same host as the STAC API. |
 | STAC_BROWSER_BASE_PATH | `browser/index.html` | STAC Browser base path. |
 | GUNICORN_WORKERS | `2` | Number of Gunicorn workers |
-| GUNICORN_WORKER_TMP_DIR | `None` | Path to a tmpfs directory for Gunicorn. If `None` let gunicorn decide which path to use. See https://docs.gunicorn.org/en/stable/settings.html#worker-tmp-dir. |
+| GUNICORN_WORKER_TMP_DIR | `None` | Path to a tmpfs directory for Gunicorn. If `None` let gunicorn decide which path to use. See [https://docs.gunicorn.org/en/stable/settings.html#worker-tmp-dir](https://docs.gunicorn.org/en/stable/settings.html#worker-tmp-dir). |
 
 #### **Database settings**
 
@@ -473,7 +478,7 @@ The service is configured by Environment Variable:
 | AWS_S3_REGION_NAME | - | |
 | AWS_S3_ENDPOINT_URL | `None` | |
 | AWS_S3_CUSTOM_DOMAIN | `None` | |
-| AWS_PRESIGNED_URL_EXPIRES | 3600 | AWS presigned url for asset upload expire time in seconds | 
+| AWS_PRESIGNED_URL_EXPIRES | 3600 | AWS presigned url for asset upload expire time in seconds |
 
 #### **Development settings (only for local environment and DEV staging)**
 
