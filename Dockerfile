@@ -22,10 +22,10 @@ RUN apt-get -qq update > /dev/null \
 FROM base as builder
 RUN apt-get -qq update > /dev/null \
     && apt-get -qq -y install \
-        # dev dependencies
-        binutils libproj-dev \
-        # silent the installation
-        > /dev/null \
+    # dev dependencies
+    binutils libproj-dev \
+    # silent the installation
+    > /dev/null \
     && apt-get -qq clean \
     && rm -rf /var/lib/apt/lists/* \
     && pip3 install pipenv \
@@ -45,16 +45,16 @@ ENV DEBUG=1
 
 RUN apt-get -qq update > /dev/null \
     && apt-get -qq -y install \
-        curl \
-        net-tools \
-        iputils-ping \
-        postgresql-client-common \
-        jq \
-        openssh-client \
-        binutils \
-        libproj-dev \
-        # silent the install
-        > /dev/null \
+    curl \
+    net-tools \
+    iputils-ping \
+    postgresql-client-common \
+    jq \
+    openssh-client \
+    binutils \
+    libproj-dev \
+    # silent the install
+    > /dev/null \
     && apt-get -qq clean \
     && rm -rf /var/lib/apt/lists/* \
     && pip3 install pipenv \
@@ -105,6 +105,7 @@ ENTRYPOINT ["python"]
 # Container to use in production
 FROM base as production
 LABEL target=production
+ENV DEBUG=0
 
 COPY --from=builder ${SRC_DIR}/.venv/ ${INSTALL_DIR}/.venv/
 
