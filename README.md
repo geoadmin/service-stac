@@ -433,6 +433,7 @@ The service is configured by Environment Variable:
 | Env         | Default               | Description                            |
 |-------------|-----------------------|----------------------------------------|
 | LOGGING_CFG | `'app/config/logging-cfg-local.yml'` | Logging configuration file or '0' to disable logging             |
+| LOGS_DIR | `''` | Relative path to log directory to use if logging is configured to logs into files. NOTE: the default value for local development is `logs`. :warning: This should only be used for local development. |
 | SECRET_KEY | - | Secret key for django |
 | ALLOWED_HOSTS | `''` | See django ALLOWED_HOSTS. On local development and DEV staging this is overwritten with `'*'` |
 | THIS_POD_IP | No default | The IP of the POD the service is running on |

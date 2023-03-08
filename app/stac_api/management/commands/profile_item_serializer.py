@@ -1,5 +1,6 @@
 import cProfile
 import logging
+import os
 import pstats
 
 from django.conf import settings
@@ -30,10 +31,10 @@ class Handler(CommandHandler):
             'ItemSerializer(qs, context=context, many=True).data',
             None,
             locals(),
-            f'{settings.BASE_DIR}/logs/stats-file',
+            f'{settings.BASE_DIR}/{os.environ["LOGS_DIR"]}/stats-file',
             sort=self.options['sort']
         )
-        stats = pstats.Stats(f'{settings.BASE_DIR}/logs/stats-file')
+        stats = pstats.Stats(f'{settings.BASE_DIR}/{os.environ["LOGS_DIR"]}/stats-file')
         stats.sort_stats(self.options['sort']).print_stats()
 
         self.print_success('Done')

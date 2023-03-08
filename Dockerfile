@@ -15,8 +15,7 @@ RUN apt-get -qq update > /dev/null \
     && apt-get -qq clean \
     && rm -rf /var/lib/apt/lists/* \
     && groupadd -r ${GROUP} \
-    && useradd -r -s /bin/false -g ${GROUP} ${USER} \
-    && mkdir -p ${INSTALL_DIR}/logs && chown ${USER}:${GROUP} ${INSTALL_DIR}/logs
+    && useradd -r -s /bin/false -g ${GROUP} ${USER}
 
 ###########################################################
 # Builder container

@@ -102,7 +102,7 @@ handlers:
   file-standard:
     class: logging.FileHandler
     formatter: standard-file
-    filename: ${BASE_DIR}/logs/unittest-standard-logs.txt
+    filename: ${BASE_DIR}/${LOGS_DIR}/unittest-standard-logs.txt
     mode: w
     filters:
       - isotime
@@ -110,7 +110,7 @@ handlers:
   file-json:
     class: logging.FileHandler
     formatter: json
-    filename: ${BASE_DIR}/logs/unittest-json-logs.json
+    filename: ${BASE_DIR}/${LOGS_DIR}/unittest-json-logs.json
     mode: w
     filters:
       - isotime

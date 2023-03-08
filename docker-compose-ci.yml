@@ -25,7 +25,7 @@ services:
         target: /tmp/gunicorn-workers
     environment:
       - DEBUG=True
-      - LOGGING_CFG=app/config/logging-cfg-unittest.yml
+      - LOGGING_CFG=app/config/logging-cfg-unittest-ci.yml
       - DB_USER=postgres
       - DB_PW=postgres
       - DB_NAME=service_stac

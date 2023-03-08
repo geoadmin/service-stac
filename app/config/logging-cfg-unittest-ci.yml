@@ -3,25 +3,29 @@ disable_existing_loggers: False # this allow to get logger at module level
 
 root:
   handlers:
-    - file-standard
-    - file-json
     - console
-  level: INFO
+  level: DEBUG
   propagate: True
 
 loggers:
-  stac_api.management:
+  tests:
     level: DEBUG
     handlers:
-      - console-management
+      - console-tests
+  botocore:
+    level: INFO
+  boto3:
+    level: INFO
+  s3transfer:
+    level: INFO
   stac_api:
-    level: INFO
+    level: DEBUG
   middleware:
-    level: INFO
+    level: DEBUG
   django:
     level: INFO
   django.db:
-    level: DEBUG
+    level: INFO
   django.utils.autoreload:
     level: INFO
   gunicorn.error:
@@ -54,6 +58,11 @@ formatters:
     format: "[%(utc_isotime)s] %(levelname)-8s - %(name)-26s : %(message)s"
     extra_fmt: " - collection: %(collection)s - item: %(item)s - asset: %(asset)s - duration: %(duration)s"
     # extra_pretty_print: True
+  standard-file:
+    (): logging_utilities.formatters.extra_formatter.ExtraFormatter
+    format: "[%(utc_isotime)s] %(levelname)-8s - %(name)-26s : %(message)s"
+    extra_fmt: " - extra: %s"
+    extra_pretty_print: True
   json:
     (): logging_utilities.formatters.json_formatter.JsonFormatter
     add_always_extra: True
@@ -72,7 +81,7 @@ formatters:
       message: message
 
 handlers:
-  console-management:
+  console-tests:
     level: WARNING
     class: logging.StreamHandler
     formatter: standard
@@ -81,26 +90,10 @@ handlers:
       - isotime
       - django
   console:
-    level: ERROR
+    level: CRITICAL
     class: logging.StreamHandler
     formatter: standard
-    stream: ext://sys.stdout
-    filters:
-      - isotime
-      - django
-  file-standard:
-    class: logging.FileHandler
-    formatter: standard
-    filename: ${BASE_DIR}/${LOGS_DIR}/management-standard-logs.txt
-    mode: w
-    filters:
-      - isotime
-      - django
-  file-json:
-    class: logging.FileHandler
-    formatter: json
-    filename: ${BASE_DIR}/${LOGS_DIR}/management-json-logs.json
-    mode: w
+    stream: ext://sys.stderr
     filters:
       - isotime
       - django
