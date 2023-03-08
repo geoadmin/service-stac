@@ -45,7 +45,30 @@ class DummyDataHandler(CommandHandler):
 
     def clean(self):
         self.print_warning('Deleting all collections starting with "%s"...', NAME_PREFIX)
-        Collection.objects.filter(name__startswith=NAME_PREFIX).delete()
+        collections = map(
+            lambda obj: obj['name'],
+            Collection.objects.filter(name__startswith=NAME_PREFIX).values('name')
+        )
+        errors = 0
+        if self.options['parallel_collections'] > 1:
+            with ThreadPoolExecutor(max_workers=self.options['parallel_collections']) as executor:
+                futures_to_id = {
+                    executor.submit(self.delete_collection, collection_name): collection_name
+                    for collection_name in collections
+                }
+                for future in as_completed(futures_to_id):
+                    collection_name = futures_to_id[future]
+                    try:
+                        future.result()
+                    except Exception as exc:  # pylint: disable=broad-except
+                        self.print_error(
+                            'Delete collection %s generated an exception: %s', collection_name, exc
+                        )
+                        errors += 1
+        else:
+            for collection_name in collections:
+                self.delete_collection(collection_name)
+
         self.print_success('Done')
 
     def populate(self):
@@ -100,6 +123,42 @@ class DummyDataHandler(CommandHandler):
                 str(timedelta(seconds=duration))
             )
 
+    def delete_collection(self, collection_name):
+        items = map(
+            lambda obj: obj['name'],
+            Item.objects.filter(collection__name=collection_name).values('name')
+        )
+        errors = 0
+        if self.options['parallel_items'] > 1:
+            with ThreadPoolExecutor(max_workers=self.options['parallel_items']) as executor:
+                futures_to_name = {
+                    executor.submit(self.delete_item, collection_name, item_name): item_name
+                    for item_name in items
+                }
+                for future in as_completed(futures_to_name):
+                    item_name = futures_to_name[future]
+                    try:
+                        future.result()
+                    except Exception as exc:  # pylint: disable=broad-except
+                        self.print_error(
+                            'Delete item %s/%s generated an exception: %s',
+                            collection_name,
+                            item_name,
+                            exc
+                        )
+                        errors += 1
+
+            if errors:
+                raise Exception(
+                    f'Failed to delete collection\'s {collection_name} items: {errors} errors'
+                )
+        else:
+            for item_name in items:
+                self.delete_item(collection_name, item_name)
+
+        Collection.objects.get(name=collection_name).delete()
+        self.print('collection %s deleted', collection_name)
+
     def create_collection(self, collection_id, items, assets):
         collection, _ = Collection.objects.get_or_create(
             name=collection_id,
@@ -137,6 +196,13 @@ class DummyDataHandler(CommandHandler):
                 self.create_item(collection, item_id, assets)
 
         self.print('collection %s created', collection_id)
+
+    def delete_item(self, collection_name, item_name):
+        for asset in Asset.objects.filter(
+            item__collection__name=collection_name, item__name=item_name
+        ):
+            asset.delete()
+        Item.objects.get(collection__name=collection_name, name=item_name).delete()
 
     def create_item(self, collection, item_id, assets):
         xmin = random.randint(XMIN, XMAX)
