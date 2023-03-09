@@ -11,6 +11,7 @@ from django.conf import settings
 
 from rest_framework import serializers
 
+from stac_api.utils import get_s3_cache_control_value
 from stac_api.utils import get_s3_client
 from stac_api.utils import isoformat
 from stac_api.utils import parse_multihash
@@ -55,7 +56,7 @@ class MultipartUpload:
             response.get('NextUploadIdMarker', None),
         )
 
-    def create_multipart_upload(self, key, asset, checksum_multihash):
+    def create_multipart_upload(self, key, asset, checksum_multihash, update_interval):
         '''Create a multi part upload on the backend
 
         Args:
@@ -65,6 +66,8 @@ class MultipartUpload:
                 Asset metadata model associated with the S3 backend key
             checksum_multihash: string
                 Checksum multihash (must be sha256) of the future file to be uploaded
+            update_interval: int
+                Update interval in seconds used to compute the cache control setting
 
         Returns: string
             Upload Id of the created multipart upload
@@ -75,7 +78,7 @@ class MultipartUpload:
             Bucket=settings.AWS_STORAGE_BUCKET_NAME,
             Key=key,
             Metadata={'sha256': sha256},
-            CacheControl=', '.join(['public', f'max-age={settings.STORAGE_ASSETS_CACHE_SECONDS}']),
+            CacheControl=get_s3_cache_control_value(update_interval),
             ContentType=asset.media_type,
             log_extra={
                 'collection': asset.item.collection.name,

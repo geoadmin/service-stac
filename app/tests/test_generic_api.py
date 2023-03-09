@@ -7,12 +7,14 @@ from django.test import Client
 from django.test import override_settings
 
 from stac_api.models import AssetUpload
+from stac_api.utils import get_asset_path
 from stac_api.utils import get_link
 from stac_api.utils import get_sha256_multihash
 from stac_api.utils import utc_aware
 
 from tests.base_test import StacBaseTestCase
 from tests.data_factory import Factory
+from tests.utils import S3TestMixin
 from tests.utils import client_login
 from tests.utils import disableLogger
 from tests.utils import get_http_error_description
@@ -219,7 +221,7 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
         self.assertStatusCode(200, _response)
         # The ETag change between each test call due to the created,
         # updated time that are in the hash computation of the ETag
-        self.check_header_etag(None, _response)
+        self.assertEtagHeader(None, _response)
         return _response['ETag']
 
     def test_get_precondition(self):
@@ -234,7 +236,7 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
                 self.assertStatusCode(200, response1)
                 # The ETag change between each test call due to the created, updated time that are
                 # in the hash computation of the ETag
-                self.check_header_etag(None, response1)
+                self.assertEtagHeader(None, response1)
 
                 response2 = self.client.get(
                     f"/{STAC_BASE_V}/{endpoint}", HTTP_IF_NONE_MATCH=response1['ETag']
@@ -400,7 +402,7 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
                 self.assertStatusCode(200, response)
 
 
-class ApiCacheHeaderTestCase(StacBaseTestCase):
+class ApiCacheHeaderTestCase(StacBaseTestCase, S3TestMixin):
 
     @mock_s3_asset_file
     def setUp(self):
@@ -452,6 +454,11 @@ class ApiCacheHeaderTestCase(StacBaseTestCase):
                                        timedelta(seconds=3600).total_seconds(),
                                        delta=2)
 
+    def test_get_asset_object_cache_header(self):
+        key = get_asset_path(self.item.model, self.asset["name"])
+        self.assertS3ObjectExists(key)
+        self.assertS3ObjectCacheControl(key, max_age=7200)
+
     @override_settings(CACHE_MIDDLEWARE_SECONDS=3600)
     def test_head_cache_header(self):
         for endpoint in [
@@ -484,6 +491,66 @@ class ApiCacheHeaderTestCase(StacBaseTestCase):
                 self.assertAlmostEqual((expires - now).total_seconds(),
                                        timedelta(seconds=3600).total_seconds(),
                                        delta=2)
+
+
+class ApiDynamicCacheHeaderTestCase(StacBaseTestCase, S3TestMixin):
+
+    @mock_s3_asset_file
+    def setUp(self):
+        self.factory = Factory()
+        self.collection = self.factory.create_collection_sample(name='collection-1').model
+        self.item = self.factory.create_item_sample(collection=self.collection, name='item-1').model
+        self.asset = self.factory.create_asset_sample(
+            item=self.item, db_create=True, create_asset_file=True, update_interval=600
+        ).model
+
+    def test_get_dynamic_cache_header(self):
+        for endpoint in [
+            'search',
+            f'collections/{self.collection.name}/items',
+            f'collections/{self.collection.name}/items/{self.item.name}',
+            f'collections/{self.collection.name}/items/{self.item.name}/assets',
+            f'collections/{self.collection.name}/items/{self.item.name}/assets/{self.asset.name}',
+        ]:
+            with self.subTest(endpoint=endpoint):
+                response = self.client.get(f"/{STAC_BASE_V}/{endpoint}")
+                self.assertStatusCode(200, response)
+                self.assertCacheControl(response, max_age=8)
+
+    def test_get_asset_object_dyn_cache_header(self):
+        key = get_asset_path(self.item, self.asset.name)
+        self.assertS3ObjectExists(key)
+        self.assertS3ObjectCacheControl(key, max_age=8)
+
+
+class ApiNoCacheHeaderTestCase(StacBaseTestCase, S3TestMixin):
+
+    @mock_s3_asset_file
+    def setUp(self):
+        self.factory = Factory()
+        self.collection = self.factory.create_collection_sample(name='collection-1').model
+        self.item = self.factory.create_item_sample(collection=self.collection, name='item-1').model
+        self.asset = self.factory.create_asset_sample(
+            item=self.item, db_create=True, create_asset_file=True, update_interval=5
+        ).model
+
+    def test_get_no_cache_header(self):
+        for endpoint in [
+            'search',
+            f'collections/{self.collection.name}/items',
+            f'collections/{self.collection.name}/items/{self.item.name}',
+            f'collections/{self.collection.name}/items/{self.item.name}/assets',
+            f'collections/{self.collection.name}/items/{self.item.name}/assets/{self.asset.name}',
+        ]:
+            with self.subTest(endpoint=endpoint):
+                response = self.client.get(f"/{STAC_BASE_V}/{endpoint}")
+                self.assertStatusCode(200, response)
+                self.assertCacheControl(response, no_cache=True)
+
+    def test_get_asset_object_no_cache_header(self):
+        key = get_asset_path(self.item, self.asset.name)
+        self.assertS3ObjectExists(key)
+        self.assertS3ObjectCacheControl(key, no_cache=True)
 
 
 class ApiCORSHeaderTestCase(StacBaseTestCase):

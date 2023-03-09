@@ -747,7 +747,8 @@ class AssetUploadSerializer(NonNullModelSerializer):
             'md5_parts',
             'urls',
             'ended',
-            'parts'
+            'parts',
+            'update_interval'
         ]
 
     checksum_multihash = serializers.CharField(
@@ -758,6 +759,9 @@ class AssetUploadSerializer(NonNullModelSerializer):
         validators=[validate_checksum_multihash_sha256]
     )
     md5_parts = serializers.JSONField(required=True)
+    update_interval = serializers.IntegerField(
+        required=False, allow_null=False, min_value=-1, max_value=3600, default=-1
+    )
 
     # write only fields
     ended = serializers.DateTimeField(write_only=True, required=False)

@@ -104,7 +104,7 @@ class AssetsEndpointTestCase(StacBaseTestCase):
 
         # The ETag change between each test call due to the created, updated time that are in the
         # hash computation of the ETag
-        self.check_header_etag(None, response)
+        self.assertEtagHeader(None, response)
 
 
 class AssetsUnimplementedEndpointTestCase(StacBaseTestCase):
@@ -153,7 +153,7 @@ class AssetsCreateEndpointTestCase(StacBaseTestCase):
         response = self.client.put(path, data=json_to_send, content_type="application/json")
         json_data = response.json()
         self.assertStatusCode(201, response)
-        self.check_header_location(f"{path}", response)
+        self.assertLocationHeader(f"{path}", response)
         self.check_stac_asset(asset.json, json_data, collection_name, item_name)
 
         # Check the data by reading it back
@@ -196,7 +196,7 @@ class AssetsCreateEndpointTestCase(StacBaseTestCase):
         )
         json_data = response.json()
         self.assertStatusCode(201, response)
-        self.check_header_location(
+        self.assertLocationHeader(
             reverse('asset-detail', args=[collection.name, item.name, asset_name]), response
         )
         self.check_stac_asset(asset.json, json_data, collection.name, item.name)

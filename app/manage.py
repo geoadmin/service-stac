@@ -2,10 +2,20 @@
 """Django's command-line utility for administrative tasks."""
 import os
 import sys
+from pathlib import Path
+
+from dotenv import load_dotenv
 
 
 def main():
     """Run administrative tasks."""
+
+    # if we have .env.local file we are very likely on a development machine, therefore load it
+    # to have the correct environment when using manage.py commands.
+    env_file = '.env.local'
+    if Path(env_file).is_file():
+        print(f'WARNING: Load {env_file} environment')
+        load_dotenv(env_file, override=True, verbose=True)
 
     # use separate settings.py for tests
     if 'test' in sys.argv:

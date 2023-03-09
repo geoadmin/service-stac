@@ -69,7 +69,27 @@ class StacTestMixin:
             )
             self.assertEqual(code, json_data['code'], msg="invalid response code")
 
-    def check_header_etag(self, etag, response):
+    def assertCacheControl(self, response, max_age=None, no_cache=False):  # pylint: disable=invalid-name
+        '''Assert that Cache-Control header is present and correct
+
+        Args:
+            response: HttpResponse
+                Response to check
+            max_age: int | None
+                Check that the header is `public, max-age=x`
+            no_cache: bool
+                Check that the header is `max-age=0, no-cache, no-store, must-revalidate, private`
+        '''
+        self.assertTrue(response.has_header('Cache-Control'), msg="Cache-Control header missing")
+        if no_cache:
+            self.assertEqual(
+                response['Cache-Control'],
+                'max-age=0, no-cache, no-store, must-revalidate, private'
+            )
+        elif max_age is not None:
+            self.assertEqual(response['Cache-Control'], f'max-age={max_age}, public')
+
+    def assertEtagHeader(self, etag, response):  # pylint: disable=invalid-name
         '''Check for the ETag Header
 
         Args:
@@ -87,7 +107,7 @@ class StacTestMixin:
         if etag is not None:
             self.assertEqual(etag, response['ETag'], msg="ETag header missmatch")
 
-    def check_header_location(self, expected_path, response):
+    def assertLocationHeader(self, expected_path, response):  # pylint: disable=invalid-name
         '''Check the Location Header
 
         Args:
@@ -101,7 +121,7 @@ class StacTestMixin:
             expected_path, urlparse(response['Location']).path, msg="Wrong location path"
         )
 
-    def check_header_cors(self, response):
+    def assertCors(self, response):  # pylint: disable=invalid-name
         for header, value in {
             'Access-Control-Allow-Headers': 'Content-Type,Accept',
             'Access-Control-Allow-Methods': 'GET,HEAD',

@@ -7,6 +7,8 @@ from django.conf import settings
 
 from storages.backends.s3boto3 import S3Boto3Storage
 
+from stac_api.utils import get_s3_cache_control_value
+
 logger = logging.getLogger(__name__)
 
 
@@ -36,7 +38,9 @@ class S3Storage(S3Boto3Storage):
             logger.warning(
                 'Global cache-control header for S3 storage will be overwritten for %s', name
             )
-        params["CacheControl"] = f"max-age={settings.STORAGE_ASSETS_CACHE_SECONDS}, public"
+        params["CacheControl"] = get_s3_cache_control_value(
+            getattr(self, '_tmp_update_interval', -1)
+        )
 
         stamp = mktime(datetime.now().timetuple())
         params['Expires'] = format_date_time(stamp + settings.STORAGE_ASSETS_CACHE_SECONDS)

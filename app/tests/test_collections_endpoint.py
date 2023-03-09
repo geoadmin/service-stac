@@ -64,7 +64,7 @@ class CollectionsEndpointTestCase(StacBaseTestCase):
         self.assertStatusCode(200, response)
         # The ETag change between each test call due to the created, updated time that are in the
         # hash computation of the ETag
-        self.check_header_etag(None, response)
+        self.assertEtagHeader(None, response)
 
         self.check_stac_collection(self.collection_1.json, response_json)
 
@@ -134,7 +134,7 @@ class CollectionsCreateEndpointTestCase(StacBaseTestCase):
         response_json = response.json()
         logger.debug(response_json)
         self.assertStatusCode(201, response)
-        self.check_header_location(f'{path}', response)
+        self.assertLocationHeader(f'{path}', response)
         self.assertNotIn('title', response_json.keys())  # key does not exist
         self.assertNotIn('providers', response_json.keys())  # key does not exist
         self.check_stac_collection(collection.json, response_json)
@@ -173,7 +173,7 @@ class CollectionsCreateEndpointTestCase(StacBaseTestCase):
             path, data=collection_sample.get_json('put'), content_type='application/json'
         )
         self.assertStatusCode(201, response)
-        self.check_header_location(f'{path}', response)
+        self.assertLocationHeader(f'{path}', response)
         self.assertNotIn(
             'published', response.json(), msg="'published' flag should not be seen in answer"
         )

@@ -1,4 +1,5 @@
 import os
+from distutils.util import strtobool
 
 
 def check_toolbar_env(request):
@@ -8,7 +9,4 @@ def check_toolbar_env(request):
     https://django-debug-toolbar.readthedocs.io/en/latest/configuration.html#debug-toolbar-config  # pylint: disable=line-too-long
     """
 
-    if os.environ.get('APP_ENV', 'prod') in ['local', 'dev']:
-        return True
-
-    return False
+    return strtobool(os.environ.get('DEBUG', '0'))
