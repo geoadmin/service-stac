@@ -135,7 +135,6 @@ class CollectionsCreateEndpointTestCase(StacBaseTestCase):
         logger.debug(response_json)
         self.assertStatusCode(201, response)
         self.assertLocationHeader(f'{path}', response)
-        self.assertNotIn('title', response_json.keys())  # key does not exist
         self.assertNotIn('providers', response_json.keys())  # key does not exist
         self.check_stac_collection(collection.json, response_json)
 
@@ -155,6 +154,7 @@ class CollectionsCreateEndpointTestCase(StacBaseTestCase):
             {
                 'description': ['This field is required.'],
                 'license': ['This field is required.'],
+                'title': ['This field is required.']
             },
             response.json()['description'],
             msg='Unexpected error message',
@@ -337,9 +337,10 @@ class CollectionsUpdateEndpointTestCase(StacBaseTestCase):
         sample = self.collection_factory.create_sample(
             name=collection_name, sample='collection-1', required_only=True
         )
+        self.assertIsNone(sample.get('providers'), msg="sample should not have providers")
 
-        # for the start, the collection[1] has to have a title
-        self.assertNotEqual('', f'{self.collection["title"]}')
+        # for the start, the collection-1 sample has to have providers
+        self.assertIsNotNone(self.collection.get("providers"))
         response = self.client.put(
             f"/{STAC_BASE_V}/collections/{sample['name']}",
             data=sample.get_json('put'),
@@ -347,7 +348,6 @@ class CollectionsUpdateEndpointTestCase(StacBaseTestCase):
         )
         self.assertStatusCode(200, response)
         response_json = response.json()
-        self.assertNotIn('title', response_json.keys())  # key does not exist
         self.assertNotIn('providers', response_json.keys())  # key does not exist
 
     def test_collection_patch(self):

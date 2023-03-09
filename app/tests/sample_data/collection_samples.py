@@ -79,12 +79,14 @@ collections = {
     },
     'collection-invalid-links': {
         'name': 'collection-invalid-link',
+        'title': 'Invalid Link',
         'description': 'This is a collection with invalid user link',
         'license': 'proprietary',
         'links': [links_invalid['link-invalid']]
     },
     'collection-invalid-providers': {
         'name': 'collection-invalid-provider',
+        'title': 'Invalid provider',
         'description': 'This is a collection with invalid provider',
         'license': 'proprietary',
         'providers': providers_invalid.values()

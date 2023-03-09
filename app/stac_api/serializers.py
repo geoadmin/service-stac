@@ -194,7 +194,7 @@ class CollectionSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
     id = serializers.CharField(
         required=True, max_length=255, source="name", validators=[validate_name]
     )
-    title = serializers.CharField(required=False, allow_blank=False, default=None, max_length=255)
+    title = serializers.CharField(required=True, allow_blank=False, max_length=255)
     # Also links are required in the spec, the main links (self, root, items) are automatically
     # generated hence here it is set to required=False which allows to add optional links that
     # are not generated

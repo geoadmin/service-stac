@@ -314,6 +314,7 @@ components:
           $ref: "#/components/schemas/updated"
       required:
         - id
+        - title
         - stac_version
         - description
         - license

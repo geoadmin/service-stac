@@ -51,6 +51,7 @@ class AdminBaseTestCase(TestCase):
         # originating from the AdminInline and must be present
         data = {
             "name": "test_collection",
+            "title": "Test Collection",
             "license": "free",
             "description": "some very important collection",
             "published": "on",
@@ -381,6 +382,7 @@ class AdminCollectionTestCase(AdminBaseTestCase):
 
         data = {
             "name": "test_collection",
+            "title": "Test Collection",
             "license": "free",
             "description": "some very important collection",
             "links-TOTAL_FORMS": "0",

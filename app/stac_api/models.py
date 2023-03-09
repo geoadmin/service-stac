@@ -252,6 +252,7 @@ class Collection(models.Model):
     class Meta:
         indexes = [
             models.Index(fields=['name'], name='collection_name_idx'),
+            models.Index(fields=['title'], name='collection_title_idx'),
             models.Index(fields=['published'], name='collection_published_idx')
         ]
         triggers = generates_collection_triggers()
@@ -294,7 +295,7 @@ class Collection(models.Model):
         models.CharField(max_length=2), default=list, blank=True, editable=False
     )
 
-    title = models.CharField(blank=True, null=True, max_length=255)
+    title = models.CharField(blank=False, null=False, max_length=255)
 
     # NOTE: hidden ETag field, this field is automatically updated by stac_api.pgtriggers
     etag = models.CharField(

@@ -240,135 +240,6 @@ paths:
           $ref: "#/components/responses/NotFoundS3"
         "412":
           $ref: "#/components/responses/PreconditionFailedS3"
-  # /{assetObjectHref}:
-  #   servers:
-  #     - url: http://s3.geo.admin.ch/
-  #   put:
-  #     tags:
-  #       - Asset Upload Management
-  #     summary: Upload asset file part
-  #     description: >-
-  #       Upload an Asset file part using the presigned url(s) returned by
-  #       [Create a new Asset's multipart upload](#operation/createAssetUpload).
-
-  #       Parts that have been uploaded but not completed can be checked using
-  #       [Get an Asset's multipart upload](#operation/getAssetUpload)
-
-  #       A file part must be at least 5 MB except for the last one and at most 5 GB, otherwise the
-  #       complete operation will fail.
-
-  #       *Note: this endpoint doesn't require any authentication as it is already part of the
-  #       presigned url*
-  #     operationId: uploadAssetFilePart
-  #     parameters:
-  #       - $ref: "#/components/parameters/assetObjectHref"
-  #       - name: Content-MD5
-  #         in: header
-  #         description: The base64-encoded 128-bit MD5 digest of this part.
-  #         required: true
-  #         schema:
-  #           type: string
-  #           example: yLLiDqX2OL7mcIMTjob60A==
-  #     responses:
-  #       "200":
-  #         description: Asset file part uploaded part successfully (Response has no content).
-  #         content: {}
-  #         headers:
-  #           ETag:
-  #             schema:
-  #               type: string
-  #             description: >-
-  #               The RFC7232 ETag header field in a response provides the current entity-
-  #               tag for the selected resource.
-
-  #               This ETag is required in the complete multipart upload payload.
-
-  #               An entity-tag is an opaque identifier for
-  #               different versions of a resource over time, regardless whether multiple
-  #               versions are valid at the same time. An entity-tag consists of an opaque
-  #               quoted string.
-  #             example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
-  #             required: true
-  #       "400":
-  #         description: Asset file part corrupted.
-  #         content:
-  #           application/xml:
-  #             schema:
-  #               type: object
-  #               required:
-  #                 - Error
-  #               properties:
-  #                 Error:
-  #                   type: object
-  #                   required:
-  #                     - Code
-  #                     - Message
-  #                   properties:
-  #                     Code:
-  #                       type: string
-  #                       enum: ["BadDigest"]
-  #                     Message:
-  #                       type: string
-  #                   additionalProperties:
-  #                     type: string
-  #             example: |
-  #               <?xml version="1.0" encoding="UTF-8"?>
-  #               <Error>
-  #                 <Code>BadDigest</Code>
-  #                 <Message>The Content-MD5 you specified did not match what we received.</Message>
-  #                 <ExpectedDigest>0b6vaU45Ys1BdrMhd4wnGA==</ExpectedDigest>
-  #                 <CalculatedDigest>4lDYLoS0vNfNdko/3cPJJQ==</CalculatedDigest>
-  #                 <RequestId>RAVFJXJQFXTCZHT3</RequestId>
-  #                 <HostId>kDMsU45sQ4oZjkTgba2SNBy/0RMshW2lEWmfKnaotvViav5Qlyz4aSQdmS9FRVKp1HgJUBj3h5w=</HostId>
-  #               </Error>
-  #       "403":
-  #         description: Asset file part upload Bad Request, Signature does not match (e.g. missing Content-MD5 header).
-  #         content:
-  #           application/xml:
-  #             schema:
-  #               type: object
-  #               required:
-  #                 - Error
-  #               properties:
-  #                 Error:
-  #                   type: object
-  #                   required:
-  #                     - Code
-  #                     - Message
-  #                   properties:
-  #                     Code:
-  #                       type: string
-  #                       enum: ["SignatureDoesNotMatch"]
-  #                     Message:
-  #                       type: string
-  #                   additionalProperties:
-  #                     type: string
-  #             example: |
-  #               <?xml version="1.0" encoding="UTF-8"?>
-  #               <Error>
-  #                 <Code>SignatureDoesNotMatch</Code>
-  #                 <Message>The request signature we calculated does not match the signature you provided. Check your key and signing method.</Message>
-  #                 <AWSAccessKeyId>dummy-key</AWSAccessKeyId>
-  #                 <StringToSign>
-  #                   AWS4-HMAC-SHA256
-  #                   20210922T110759Z
-  #                   20210922/eu-central-1/s3/aws4_request6f0cf4c9a56acf90d9354cb79629a159c0c848ffacdbe13c7b9ae014671fa5c3
-  #                 </StringToSign>
-  #                 <SignatureProvided>1c762db1e677a6535c0e4a91015dcd60c00e58f1e5136f8943636f157dc03d54</SignatureProvided>
-  #                 <StringToSignBytes>41 57 53 34 2d 48 4d 41 43 2d 53 48 41 32 35...</StringToSignBytes>
-  #                 <CanonicalRequest>
-  #                   PUT /service-stac-dev/test-e2e-asset-upload-UUID/test-e2e-asset-upload-UUID/test-e2e-asset-upload-UUID.txt
-  #                     X-Amz-Algorithm=AWS4-HMAC-SHA256&amp;X-Amz-Credential=...
-  #                     content-md5:
-  #                     host:s3.eu-central-1.amazonaws.com
-
-  #                     content-md5;host
-  #                     UNSIGNED-PAYLOAD
-  #                 </CanonicalRequest>
-  #                 <CanonicalRequestBytes>50 55 54 0a 2f 73...</CanonicalRequestBytes>
-  #                 <RequestId>F5SB90RJFYE21C0V</RequestId>
-  #                 <HostId>YnH6DNl93sXH5kL0nEk1TOhH+crwM+wnaRNhh7MNC6CW6XhAeJLKVV/WU+dsdRkJUzet5m7cZwU=</HostId>
-  #               </Error>
   /conformance:
     get:
       description: >-
@@ -429,365 +300,6 @@ paths:
       tags:
       - STAC
 components:
-  responses:
-    Collection:
-      headers:
-        ETag:
-          $ref: "#/components/headers/ETag"
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/collection"
-      description: >-
-        Information about the feature collection with id `collectionId`.
-
-
-        The response contains a link to the items in the collection (path `/collections/{collectionId}/items`,
-        link relation `items`) as well as key information about the collection. This
-        information includes:
-
-
-        * A local identifier for the collection that is unique for the dataset
-
-        * A list of coordinate reference systems (CRS) in which geometries may be
-        returned by the server. The first CRS is the default coordinate reference
-        system (the default is always WGS 84 with axis order longitude/latitude)
-
-        * An optional title and description for the collection
-
-        * An optional extent that can be used to provide an indication of the spatial
-        and temporal extent of the collection - typically derived from the data
-
-        * An optional indicator about the type of the items in the collection (the
-        default value, if the indicator is not provided, is 'feature')
-    Collections:
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/collections"
-      description: >-
-        The feature collections shared by this API.
-
-
-        The dataset is organized as one or more feature collections. This resource
-        provides information about and access to the collections.
-
-
-        The response contains the list of collections. For each collection, a link
-        to the items in the collection (path `/collections/{collectionId}/items`,
-        link relation `items`) as well as key information about the collection. This
-        information includes:
-
-
-        * A local identifier for the collection that is unique for the dataset
-
-        * A list of coordinate reference systems (CRS) in which geometries may be
-        returned by the server. The first CRS is the default coordinate reference
-        system (the default is always WGS 84 with axis order longitude/latitude)
-
-        * An optional title and description for the collection
-
-        * An optional extent that can be used to provide an indication of the spatial
-        and temporal extent of the collection - typically derived from the data
-
-        * An optional indicator about the type of the items in the collection (the
-        default value, if the indicator is not provided, is 'feature').
-
-        The `limit` parameter may be used to control the subset of the selected collections
-        that should be returned in the response, the page size. Each page include
-        links to support paging (link relation `next` and/or `previous`).
-    ConformanceDeclaration:
-      content:
-        application/json:
-          example:
-            conformsTo:
-            - http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/core
-            - http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/oas30
-            - http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/geojson
-          schema:
-            $ref: "#/components/schemas/confClasses"
-      description: >-
-        The URIs of all conformance classes supported by the server.
-
-
-        To support "generic" clients that want to access multiple OGC API Features
-        implementations - and not "just" a specific API / server, the server declares
-        the conformance classes it implements and conforms to.
-    Feature:
-      headers:
-        ETag:
-          $ref: "#/components/headers/ETag"
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/item"
-      description: >-
-        Fetch the feature with id `featureId` in the feature collection with id `collectionId`
-    Features:
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/items"
-      description: >-
-        The response is a document consisting of features in the collection. The features
-        included in the response are determined by the server based on the query parameters
-        of the request. To support access to larger collections without overloading
-        the client, the API supports paged access with links to the next page, if
-        more features are selected that the page size.
-
-
-        The `bbox` and `datetime` parameter can be used to select only a subset of
-        the features in the collection (the features that are in the bounding box
-        or time interval). The `bbox` parameter matches all features in the collection
-        that are not associated with a location, too. The `datetime` parameter matches
-        all features in the collection that are not associated with a time stamp or
-        interval, too.
-
-
-        The `limit` parameter may be used to control the subset of the selected features
-        that should be returned in the response, the page size. Each page include
-        links to support paging (link relation `next` and/or `previous`).
-    NotModified:
-      description: The cached resource was not modified since last request.
-    InvalidParameter:
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/exception"
-          example:
-            code: 400
-            description: "Invalid parameter"
-      description: A query parameter has an invalid value.
-    LandingPage:
-      content:
-        application/json:
-          example:
-            description: Catalog of Swiss Geodata Downloads
-            id: ch
-            links:
-            - href: http://data.geo.admin.ch/api/stac/v0.9/
-              rel: self
-              type: application/json
-              title: this document
-            - href: http://data.geo.admin.ch/api/stac/v0.9/static/api.html
-              rel: service-doc
-              type: text/html
-              title: the API documentation
-            - href: http://data.geo.admin.ch/api/stac/v0.9/conformance
-              rel: conformance
-              type: application/json
-              title: OGC API conformance classes implemented by this server
-            - href: http://data.geo.admin.ch/api/stac/v0.9/collections
-              rel: data
-              type: application/json
-              title: Information about the feature collections
-            - href: http://data.geo.admin.ch/api/stac/v0.9/search
-              rel: search
-              type: application/json
-              title: Search across feature collections
-            stac_version: 0.9.0
-            title: data.geo.admin.ch
-          schema:
-            $ref: "#/components/schemas/landingPage"
-      description: >-
-        The landing page provides links to the API definition (link relations `service-desc`
-        and `service-doc`), the Conformance declaration (path `/conformance`, link
-        relation `conformance`), and the Feature Collections (path `/collections`,
-        link relation `data`).
-    NotFound:
-      description: The specified resource/URI was not found
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/exception"
-          example:
-            code: 404
-            description: "Resource not found"
-    NotFoundS3:
-      description: The specified asset object was not found
-      content:
-        application/xml:
-          schema:
-            $ref: "#/components/schemas/exceptionS3"
-          example: |
-            <?xml version="1.0" encoding="UTF-8"?>
-            <Error><Code>AccessDenied</Code>
-            <Message>Access Denied</Message>
-            <RequestId>BJE6DBWM0M1D9BDC</RequestId>
-            <HostId>N9hTgbJmEuiMnvb+W9Y1Y+fhFoZh92NYG13Z3K19PBZOZ4hbn7F7i3yYpjJgM7bIFmDH2BnE81U=</HostId>
-            </Error>
-    BadRequest:
-      description: The request was malformed or semantically invalid
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/exception"
-          example:
-            code: 400
-            description: "Invalid parameter"
-    PermissionDenied:
-      description: No Permission for this request
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/exception"
-          example:
-            code: 403
-            description: "Permission denied"
-    PreconditionFailed:
-      description: Some condition specified by the request could not be met in the
-        server
-    PreconditionFailedS3:
-      description: Some condition specified by the request could not be met in the
-        server
-      content:
-        application/xml:
-          schema:
-            $ref: "#/components/schemas/exceptionS3"
-          example: |
-            <?xml version="1.0" encoding="UTF-8"?>
-            <Error><Code>PreconditionFailed</Code>
-            <Message>At least one of the pre-conditions you specified did not hold</Message>
-            <Condition>If-Match</Condition>
-            <RequestId>VWCQPYEAC5MMX985</RequestId>
-            <HostId>WmZ2NrcTLzim8v0z7S27BMmSRwdGVieLxDLsvBrojsyoPtkKEiFtEi7zLOWhpNUDa5LD7VtKPBE=</HostId>
-            </Error>
-    ServerError:
-      description: >-
-        The request was syntactically and semantically valid, but an error occurred
-        while trying to act upon it
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/exception"
-          example:
-            code: 500
-            description: "Internal server error"
-  parameters:
-    assetQuery:
-      description: >-
-        Query for properties in assets (e.g. mediatype). Use the JSON form of the
-        assetQueryFilter used in POST.
-      in: query
-      name: assetQuery
-      required: false
-      schema:
-        type: string
-    bbox:
-      explode: false
-      in: query
-      name: bbox
-      required: false
-      schema:
-        $ref: "#/components/schemas/bbox"
-      style: form
-    collectionId:
-      description: Local identifier of a collection
-      in: path
-      name: collectionId
-      required: true
-      schema:
-        type: string
-    collectionsArray:
-      explode: false
-      in: query
-      name: collections
-      required: false
-      schema:
-        $ref: "#/components/schemas/collectionsArray"
-    datetime:
-      explode: false
-      in: query
-      name: datetime
-      required: false
-      schema:
-        $ref: "#/components/schemas/datetimeQuery"
-      example: 2018-02-12T00%3A00%3A00Z%2F2018-03-18T12%3A31%3A12Z
-      style: form
-    featureId:
-      description: Local identifier of a feature
-      in: path
-      name: featureId
-      required: true
-      schema:
-        type: string
-    assetObjectHref:
-      name: assetObjectHref
-      in: path
-      description: Full URL to asset object including protocol, host and path
-      required: true
-      schema:
-        type: string
-    ids:
-      description: >-
-        Array of Item ids to return. All other filter parameters that further restrict
-        the number of search results are ignored
-      explode: false
-      in: query
-      name: ids
-      required: false
-      schema:
-        $ref: "#/components/schemas/ids"
-    limit:
-      explode: false
-      in: query
-      name: limit
-      required: false
-      schema:
-        $ref: "#/components/schemas/limit"
-      style: form
-    query:
-      description: Query for properties in items. Use the JSON form of the queryFilter
-        used in POST.
-      in: query
-      name: query
-      required: false
-      schema:
-        type: string
-    IfNoneMatch:
-      name: If-None-Match
-      in: header
-      schema:
-        type: string
-      description: >-
-        The RFC7232 `If-None-Match` header field makes the GET request method conditional.
-        It is composed of a comma separated list of ETags or value "*".
-
-
-        The server compares the client's ETags (sent with `If-None-Match`) with the
-        ETag for its current version of the resource, and if both values match (that
-        is, the resource has not changed), the server sends back a `304 Not Modified`
-        status, without a body, which tells the client that the cached version of
-        the response is still good to use (fresh).
-      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
-    IfMatch:
-      name: If-Match
-      in: header
-      schema:
-        type: string
-      description: >-
-        The RFC7232 `If-Match` header field makes the GET request method conditional.
-        It is composed of a comma separated list of ETags or value "*".
-
-
-        The server compares the client's ETags (sent with `If-Match`) with the ETag
-        for its current version of the resource, and if both values don't match (that
-        is, the resource has changed), the server sends back a `412 Precondition Failed`
-        status, without a body, which tells the client that the cached version of
-        the response is not good to use anymore.
-      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
-  headers:
-    ETag:
-      schema:
-        type: string
-      description: >-
-        The RFC7232 ETag header field in a response provides the current entity- tag
-        for the selected resource. An entity-tag is an opaque identifier for different
-        versions of a resource over time, regardless whether multiple versions are
-        valid at the same time. An entity-tag consists of an opaque quoted string,
-        possibly prefixed by a weakness indicator.
-      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
-      required: true
   schemas:
     assetQuery:
       additionalProperties:
@@ -1096,6 +608,7 @@ components:
           $ref: "#/components/schemas/updated"
       required:
       - id
+      - title
       - stac_version
       - description
       - license
@@ -2343,3 +1856,362 @@ components:
       type: string
       format: date-time
       readOnly: true
+  parameters:
+    assetQuery:
+      description: >-
+        Query for properties in assets (e.g. mediatype). Use the JSON form of the
+        assetQueryFilter used in POST.
+      in: query
+      name: assetQuery
+      required: false
+      schema:
+        type: string
+    bbox:
+      explode: false
+      in: query
+      name: bbox
+      required: false
+      schema:
+        $ref: "#/components/schemas/bbox"
+      style: form
+    collectionId:
+      description: Local identifier of a collection
+      in: path
+      name: collectionId
+      required: true
+      schema:
+        type: string
+    collectionsArray:
+      explode: false
+      in: query
+      name: collections
+      required: false
+      schema:
+        $ref: "#/components/schemas/collectionsArray"
+    datetime:
+      explode: false
+      in: query
+      name: datetime
+      required: false
+      schema:
+        $ref: "#/components/schemas/datetimeQuery"
+      example: 2018-02-12T00%3A00%3A00Z%2F2018-03-18T12%3A31%3A12Z
+      style: form
+    featureId:
+      description: Local identifier of a feature
+      in: path
+      name: featureId
+      required: true
+      schema:
+        type: string
+    assetObjectHref:
+      name: assetObjectHref
+      in: path
+      description: Full URL to asset object including protocol, host and path
+      required: true
+      schema:
+        type: string
+    ids:
+      description: >-
+        Array of Item ids to return. All other filter parameters that further restrict
+        the number of search results are ignored
+      explode: false
+      in: query
+      name: ids
+      required: false
+      schema:
+        $ref: "#/components/schemas/ids"
+    limit:
+      explode: false
+      in: query
+      name: limit
+      required: false
+      schema:
+        $ref: "#/components/schemas/limit"
+      style: form
+    query:
+      description: Query for properties in items. Use the JSON form of the queryFilter
+        used in POST.
+      in: query
+      name: query
+      required: false
+      schema:
+        type: string
+    IfNoneMatch:
+      name: If-None-Match
+      in: header
+      schema:
+        type: string
+      description: >-
+        The RFC7232 `If-None-Match` header field makes the GET request method conditional.
+        It is composed of a comma separated list of ETags or value "*".
+
+
+        The server compares the client's ETags (sent with `If-None-Match`) with the
+        ETag for its current version of the resource, and if both values match (that
+        is, the resource has not changed), the server sends back a `304 Not Modified`
+        status, without a body, which tells the client that the cached version of
+        the response is still good to use (fresh).
+      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
+    IfMatch:
+      name: If-Match
+      in: header
+      schema:
+        type: string
+      description: >-
+        The RFC7232 `If-Match` header field makes the GET request method conditional.
+        It is composed of a comma separated list of ETags or value "*".
+
+
+        The server compares the client's ETags (sent with `If-Match`) with the ETag
+        for its current version of the resource, and if both values don't match (that
+        is, the resource has changed), the server sends back a `412 Precondition Failed`
+        status, without a body, which tells the client that the cached version of
+        the response is not good to use anymore.
+      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
+  responses:
+    Collection:
+      headers:
+        ETag:
+          $ref: "#/components/headers/ETag"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/collection"
+      description: >-
+        Information about the feature collection with id `collectionId`.
+
+
+        The response contains a link to the items in the collection (path `/collections/{collectionId}/items`,
+        link relation `items`) as well as key information about the collection. This
+        information includes:
+
+
+        * A local identifier for the collection that is unique for the dataset
+
+        * A list of coordinate reference systems (CRS) in which geometries may be
+        returned by the server. The first CRS is the default coordinate reference
+        system (the default is always WGS 84 with axis order longitude/latitude)
+
+        * An optional title and description for the collection
+
+        * An optional extent that can be used to provide an indication of the spatial
+        and temporal extent of the collection - typically derived from the data
+
+        * An optional indicator about the type of the items in the collection (the
+        default value, if the indicator is not provided, is 'feature')
+    Collections:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/collections"
+      description: >-
+        The feature collections shared by this API.
+
+
+        The dataset is organized as one or more feature collections. This resource
+        provides information about and access to the collections.
+
+
+        The response contains the list of collections. For each collection, a link
+        to the items in the collection (path `/collections/{collectionId}/items`,
+        link relation `items`) as well as key information about the collection. This
+        information includes:
+
+
+        * A local identifier for the collection that is unique for the dataset
+
+        * A list of coordinate reference systems (CRS) in which geometries may be
+        returned by the server. The first CRS is the default coordinate reference
+        system (the default is always WGS 84 with axis order longitude/latitude)
+
+        * An optional title and description for the collection
+
+        * An optional extent that can be used to provide an indication of the spatial
+        and temporal extent of the collection - typically derived from the data
+
+        * An optional indicator about the type of the items in the collection (the
+        default value, if the indicator is not provided, is 'feature').
+
+        The `limit` parameter may be used to control the subset of the selected collections
+        that should be returned in the response, the page size. Each page include
+        links to support paging (link relation `next` and/or `previous`).
+    ConformanceDeclaration:
+      content:
+        application/json:
+          example:
+            conformsTo:
+            - http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/core
+            - http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/oas30
+            - http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/geojson
+          schema:
+            $ref: "#/components/schemas/confClasses"
+      description: >-
+        The URIs of all conformance classes supported by the server.
+
+
+        To support "generic" clients that want to access multiple OGC API Features
+        implementations - and not "just" a specific API / server, the server declares
+        the conformance classes it implements and conforms to.
+    Feature:
+      headers:
+        ETag:
+          $ref: "#/components/headers/ETag"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/item"
+      description: >-
+        Fetch the feature with id `featureId` in the feature collection with id `collectionId`
+    Features:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/items"
+      description: >-
+        The response is a document consisting of features in the collection. The features
+        included in the response are determined by the server based on the query parameters
+        of the request. To support access to larger collections without overloading
+        the client, the API supports paged access with links to the next page, if
+        more features are selected that the page size.
+
+
+        The `bbox` and `datetime` parameter can be used to select only a subset of
+        the features in the collection (the features that are in the bounding box
+        or time interval). The `bbox` parameter matches all features in the collection
+        that are not associated with a location, too. The `datetime` parameter matches
+        all features in the collection that are not associated with a time stamp or
+        interval, too.
+
+
+        The `limit` parameter may be used to control the subset of the selected features
+        that should be returned in the response, the page size. Each page include
+        links to support paging (link relation `next` and/or `previous`).
+    NotModified:
+      description: The cached resource was not modified since last request.
+    InvalidParameter:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/exception"
+          example:
+            code: 400
+            description: "Invalid parameter"
+      description: A query parameter has an invalid value.
+    LandingPage:
+      content:
+        application/json:
+          example:
+            description: Catalog of Swiss Geodata Downloads
+            id: ch
+            links:
+            - href: http://data.geo.admin.ch/api/stac/v0.9/
+              rel: self
+              type: application/json
+              title: this document
+            - href: http://data.geo.admin.ch/api/stac/v0.9/static/api.html
+              rel: service-doc
+              type: text/html
+              title: the API documentation
+            - href: http://data.geo.admin.ch/api/stac/v0.9/conformance
+              rel: conformance
+              type: application/json
+              title: OGC API conformance classes implemented by this server
+            - href: http://data.geo.admin.ch/api/stac/v0.9/collections
+              rel: data
+              type: application/json
+              title: Information about the feature collections
+            - href: http://data.geo.admin.ch/api/stac/v0.9/search
+              rel: search
+              type: application/json
+              title: Search across feature collections
+            stac_version: 0.9.0
+            title: data.geo.admin.ch
+          schema:
+            $ref: "#/components/schemas/landingPage"
+      description: >-
+        The landing page provides links to the API definition (link relations `service-desc`
+        and `service-doc`), the Conformance declaration (path `/conformance`, link
+        relation `conformance`), and the Feature Collections (path `/collections`,
+        link relation `data`).
+    NotFound:
+      description: The specified resource/URI was not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/exception"
+          example:
+            code: 404
+            description: "Resource not found"
+    NotFoundS3:
+      description: The specified asset object was not found
+      content:
+        application/xml:
+          schema:
+            $ref: "#/components/schemas/exceptionS3"
+          example: |
+            <?xml version="1.0" encoding="UTF-8"?>
+            <Error><Code>AccessDenied</Code>
+            <Message>Access Denied</Message>
+            <RequestId>BJE6DBWM0M1D9BDC</RequestId>
+            <HostId>N9hTgbJmEuiMnvb+W9Y1Y+fhFoZh92NYG13Z3K19PBZOZ4hbn7F7i3yYpjJgM7bIFmDH2BnE81U=</HostId>
+            </Error>
+    BadRequest:
+      description: The request was malformed or semantically invalid
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/exception"
+          example:
+            code: 400
+            description: "Invalid parameter"
+    PermissionDenied:
+      description: No Permission for this request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/exception"
+          example:
+            code: 403
+            description: "Permission denied"
+    PreconditionFailed:
+      description: Some condition specified by the request could not be met in the
+        server
+    PreconditionFailedS3:
+      description: Some condition specified by the request could not be met in the
+        server
+      content:
+        application/xml:
+          schema:
+            $ref: "#/components/schemas/exceptionS3"
+          example: |
+            <?xml version="1.0" encoding="UTF-8"?>
+            <Error><Code>PreconditionFailed</Code>
+            <Message>At least one of the pre-conditions you specified did not hold</Message>
+            <Condition>If-Match</Condition>
+            <RequestId>VWCQPYEAC5MMX985</RequestId>
+            <HostId>WmZ2NrcTLzim8v0z7S27BMmSRwdGVieLxDLsvBrojsyoPtkKEiFtEi7zLOWhpNUDa5LD7VtKPBE=</HostId>
+            </Error>
+    ServerError:
+      description: >-
+        The request was syntactically and semantically valid, but an error occurred
+        while trying to act upon it
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/exception"
+          example:
+            code: 500
+            description: "Internal server error"
+  headers:
+    ETag:
+      schema:
+        type: string
+      description: >-
+        The RFC7232 ETag header field in a response provides the current entity- tag
+        for the selected resource. An entity-tag is an opaque identifier for different
+        versions of a resource over time, regardless whether multiple versions are
+        valid at the same time. An entity-tag consists of an opaque quoted string,
+        possibly prefixed by a weakness indicator.
+      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
+      required: true

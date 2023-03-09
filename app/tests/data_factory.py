@@ -371,7 +371,7 @@ class CollectionSample(SampleData):
     sample_name = 'collection'
     samples_dict = collection_samples
     key_mapping = {'name': 'id'}
-    optional_fields = ['title', 'providers', 'links']
+    optional_fields = ['providers', 'links']
     read_only_fields = [
         'crs',
         'created',
