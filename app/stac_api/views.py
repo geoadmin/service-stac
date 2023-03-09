@@ -215,14 +215,20 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
         validate_search_request.validate(request)  # validate the search request
         queryset = self.filter_queryset(self.get_queryset())
 
-        update_interval = self.get_min_update_interval(queryset)
-
         page = self.paginate_queryset(queryset)
 
         if page is not None:
             serializer = self.get_serializer(page, many=True)
         else:
             serializer = self.get_serializer(queryset, many=True)
+
+        min_update_interval = None
+        if request.method in ['GET', 'HEAD', 'OPTIONS']:
+            if page is None:
+                queryset_paginated = queryset
+            else:
+                queryset_paginated = Item.objects.filter(pk__in=map(lambda item: item.pk, page))
+            min_update_interval = self.get_min_update_interval(queryset_paginated)
 
         data = {
             'type': 'FeatureCollection',
@@ -234,14 +240,17 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
         if page is not None:
             response = self.paginator.get_paginated_response(data, request)
         response = Response(data)
-        views_mixins.patch_cache_settings_by_update_interval(response, update_interval)
-        return response
+
+        return response, min_update_interval
 
     def get(self, request, *args, **kwargs):
-        return self.list(request, *args, **kwargs)
+        response, min_update_interval = self.list(request, *args, **kwargs)
+        views_mixins.patch_cache_settings_by_update_interval(response, min_update_interval)
+        return response
 
     def post(self, request, *args, **kwargs):
-        return self.list(request, *args, **kwargs)
+        response, _ = self.list(request, *args, **kwargs)
+        return response
 
 
 class CollectionList(generics.GenericAPIView):
