@@ -5,6 +5,8 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.test import Client
+from django.test import override_settings
+from django.urls import reverse
 
 from stac_api.utils import fromisoformat
 from stac_api.utils import get_link
@@ -14,6 +16,7 @@ from stac_api.utils import utc_aware
 from tests.base_test import StacBaseTestCase
 from tests.data_factory import Factory
 from tests.utils import client_login
+from tests.utils import mock_s3_asset_file
 
 logger = logging.getLogger(__name__)
 
@@ -508,3 +511,74 @@ class SearchEndpointTestCaseTwo(StacBaseTestCase):
     def test_datetime_invalid_format_query_get(self):
         response = self.client.get(f"/{STAC_BASE_V}/search?datetime=NotADate&limit=100")
         self.assertStatusCode(400, response)
+
+
+@override_settings(CACHE_MIDDLEWARE_SECONDS=3600)
+class SearchEndpointCacheSettingTestCase(StacBaseTestCase):
+
+    @classmethod
+    @mock_s3_asset_file
+    def setUpTestData(cls):
+        cls.title_for_query = 'Item for cache settings test'
+        cls.factory = Factory()
+        cls.collections = cls.factory.create_collection_samples(3, db_create=True)
+        cls.items = [
+            item for items in map(
+                cls.factory.create_item_samples,
+                [10] * len(cls.collections),
+                map(lambda c: c.model, cls.collections),
+                [True] * len(cls.collections),
+            ) for item in items
+        ]
+        cls.assets = [
+            asset for assets in map(
+                cls.factory.create_asset_samples,
+                [3] * len(cls.items),
+                map(lambda i: i.model, cls.items),
+                [True] * len(cls.items),
+            ) for asset in assets
+        ]
+
+    def test_get_search_dft_cache_setting(self):
+        response = self.client.get(reverse('search-list'))
+        self.assertStatusCode(200, response)
+        self.assertCacheControl(response, max_age=3600)
+
+    def test_get_search_low_cache_setting(self):
+        self.factory.create_asset_sample(self.items[0].model, db_create=True, update_interval=60)
+        response = self.client.get(reverse('search-list'))
+        self.assertStatusCode(200, response)
+        self.assertCacheControl(response, max_age=3)
+
+    def test_get_search_no_cache_setting(self):
+        self.factory.create_asset_sample(self.items[0].model, db_create=True, update_interval=5)
+        response = self.client.get(reverse('search-list'))
+        self.assertStatusCode(200, response)
+        self.assertCacheControl(response, no_cache=True)
+
+    def test_get_search_low_cache_setting_out_of_page(self):
+        self.factory.create_asset_sample(self.items[-1].model, db_create=True, update_interval=60)
+        response = self.client.get(reverse('search-list'), QUERY_STRING="limit=1")
+        self.assertStatusCode(200, response)
+        self.assertCacheControl(response, max_age=3600)
+
+    def test_get_search_no_cache_setting_out_of_page(self):
+        self.factory.create_asset_sample(self.items[-1].model, db_create=True, update_interval=5)
+        response = self.client.get(reverse('search-list'), QUERY_STRING="limit=1")
+        self.assertStatusCode(200, response)
+        self.assertCacheControl(response, max_age=3600)
+
+    def test_post_search_no_cache_setting(self):
+        response = self.client.post(reverse('search-list'))
+        self.assertStatusCode(200, response)
+        self.assertFalse(
+            response.has_header('Cache-Control'),
+            msg="Unexpected Cache-Control header in POST response"
+        )
+        self.factory.create_asset_sample(self.items[0].model, db_create=True, update_interval=60)
+        response = self.client.post(reverse('search-list'))
+        self.assertStatusCode(200, response)
+        self.assertFalse(
+            response.has_header('Cache-Control'),
+            msg="Unexpected Cache-Control header in POST response"
+        )
