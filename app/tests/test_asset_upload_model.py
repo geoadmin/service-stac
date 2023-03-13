@@ -88,7 +88,7 @@ class AssetUploadModelTestCase(TestCase, AssetUploadTestCaseMixin):
         # therefore the following asset upload should be ok
         # collection-1/item-1/asset-1/default-upload
         # collection-2/item-1/asset-1/default-upload
-        collection_2 = self.factory.create_collection_sample().model
+        collection_2 = self.factory.create_collection_sample(title="Second Collection").model
         item_2 = self.factory.create_item_sample(collection_2, name=self.item.name).model
         asset_2 = self.factory.create_asset_sample(item_2, name=self.asset_1.name).model
         asset_upload_1 = self.create_asset_upload(self.asset_1, 'default-upload')

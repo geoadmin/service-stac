@@ -36,7 +36,9 @@ class CollectionSpatialExtentTestCase(StacBaseTransactionTestCase):
 
     def test_if_new_collection_has_extent(self):
         # a new collection has no bbox yet
-        collection_no_bbox = self.factory.create_collection_sample(name='collection-no-bbox').model
+        collection_no_bbox = self.factory.create_collection_sample(
+            name='collection-no-bbox', title="Collection without bbox"
+        ).model
         self.assertIsNone(collection_no_bbox.extent_geometry)
 
     def test_changing_bbox_with_bigger_item(self):

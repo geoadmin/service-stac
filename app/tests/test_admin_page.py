@@ -321,6 +321,23 @@ class AdminCollectionTestCase(AdminBaseTestCase):
             collection.title, data['title'], msg="Admin page collection title update did not work"
         )
 
+    def test_add_collection_duplicate_title(self):
+        # create an initial collection
+        collection, data = self._create_collection()[:2]
+
+        # create a seconde collection with the same title
+        data['name'] = 'new-collection'
+        response = self.client.post(reverse('admin:stac_api_collection_add'), data)
+
+        # Status code for unsuccessful creation is 200, since in the admin UI
+        # is returning an error message
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('Collection with this Title already exists.', response.content.decode())
+        self.assertFalse(
+            Collection.objects.filter(name=data["name"]).exists(),
+            msg="Collection with duplicate title has been added to db"
+        )
+
     def test_publish_collection(self):
         collection, data = self._create_collection()[:2]
 

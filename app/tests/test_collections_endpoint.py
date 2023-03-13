@@ -29,18 +29,18 @@ class CollectionsEndpointTestCase(StacBaseTestCase):
         self.client = Client()
         self.factory = CollectionFactory()
         self.collection_1 = self.factory.create_sample(
-            sample='collection-1', name='collection-1', db_create=True
+            sample='collection-1', name='collection-1', db_create=True, title="Collection 1"
         )
         self.collection_2 = self.factory.create_sample(
-            sample='collection-2', name='collection-2', db_create=True
+            sample='collection-2', name='collection-2', db_create=True, title="Collection 2"
         )
         self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_collections_endpoint(self):
-        # create a third collection with an ascendent name to make sure that collections
+        # create a third collection with an ascendent title to make sure that collections
         # ordering is working
         collection_3 = self.factory.create_sample(
-            sample='collection-2', name='collection-0', db_create=True
+            sample='collection-2', name='collection-0', db_create=True, title="A third collection"
         )
         response = self.client.get(f"/{STAC_BASE_V}/collections")
         response_json = response.json()
@@ -49,7 +49,7 @@ class CollectionsEndpointTestCase(StacBaseTestCase):
         # Check that the output is sorted by name
         collection_ids = [collection['title'] for collection in response_json['collections']]
         self.assertListEqual(
-            collection_ids, sorted(collection_ids), msg="Collections are not sorted by ID"
+            collection_ids, sorted(collection_ids), msg="Collections are not sorted by Title"
         )
 
         collection_samples = sorted([self.collection_1, self.collection_2, collection_3],
@@ -93,7 +93,6 @@ class CollectionsCreateEndpointTestCase(StacBaseTestCase):
         self.client = Client()
         client_login(self.client)
         self.factory = Factory()
-        self.collection = self.factory.create_collection_sample()
         self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_collection_upsert_create(self):
@@ -108,6 +107,20 @@ class CollectionsCreateEndpointTestCase(StacBaseTestCase):
         self.assertStatusCode(201, response)
 
         self.check_stac_collection(sample.json, response.json())
+
+    def test_collection_upsert_create_duplicate_title(self):
+        collection = self.factory.create_collection_sample(title="Duplicate title").model
+        sample = self.factory.create_collection_sample(title=collection.title)
+
+        self.assertNotEqual(collection.name, sample['name'], msg="Collection ID are identical")
+
+        response = self.client.put(
+            f"/{STAC_BASE_V}/collections/{sample['name']}",
+            data=sample.get_json('put'),
+            content_type='application/json'
+        )
+        self.assertStatusCode(400, response)
+        self.assertEqual(response.json()['description'], {'title': ['This field must be unique.']})
 
     def test_invalid_collections_create(self):
         # the dataset already exists in the database
@@ -166,7 +179,9 @@ class CollectionsCreateEndpointTestCase(StacBaseTestCase):
             2, collection=published_collection.model, name=['item-1-1', 'item-1-2'], db_create=True
         )
 
-        collection_sample = self.factory.create_collection_sample(published=False)
+        collection_sample = self.factory.create_collection_sample(
+            published=False, title="My second collection"
+        )
 
         path = f"/{STAC_BASE_V}/collections/{collection_sample['name']}"
         response = self.client.put(

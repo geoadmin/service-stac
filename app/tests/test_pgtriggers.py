@@ -16,7 +16,7 @@ class PgTriggersUpdateIntervalTestCase(StacBaseTransactionTestCase):
         self.item = self.factory.create_item_sample(collection=self.collection).model
 
         # Add a second collection with assets
-        self.collection2 = self.factory.create_collection_sample().model
+        self.collection2 = self.factory.create_collection_sample(title="My second collection").model
         self.item2 = self.factory.create_item_sample(collection=self.collection2,).model
         self.assets2 = [
             self.factory.create_asset_sample(item=self.item2, update_interval=1).model,

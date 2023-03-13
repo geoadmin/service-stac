@@ -265,6 +265,8 @@ class Collection(models.Model):
     )
     # using "name" instead of "id", as "id" has a default meaning in django
     name = models.CharField('id', unique=True, max_length=255, validators=[validate_name])
+    # the title is used
+    title = models.CharField(blank=False, null=False, unique=True, max_length=255)
     created = models.DateTimeField(auto_now_add=True)
     # NOTE: the updated field is automatically updated by stac_api.pgtriggers, we use auto_now_add
     # only for the initial value.
@@ -294,8 +296,6 @@ class Collection(models.Model):
     summaries_geoadmin_lang = ArrayField(
         models.CharField(max_length=2), default=list, blank=True, editable=False
     )
-
-    title = models.CharField(blank=False, null=False, max_length=255)
 
     # NOTE: hidden ETag field, this field is automatically updated by stac_api.pgtriggers
     etag = models.CharField(

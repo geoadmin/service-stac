@@ -4,6 +4,7 @@ from urllib.parse import urlparse
 
 from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry
+from django.db import IntegrityError
 from django.utils.translation import gettext_lazy as _
 
 from rest_framework import serializers
@@ -292,7 +293,7 @@ class CollectionSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         """
         providers_data = validated_data.pop('providers', [])
         links_data = validated_data.pop('links', [])
-        collection = validate_uniqueness_and_create(Collection, validated_data)
+        collection = validate_uniqueness_and_create(Collection, validated_data, unique_title=True)
         self._update_or_create_providers(collection=collection, providers_data=providers_data)
         update_or_create_links(
             instance_type="collection",
@@ -335,9 +336,25 @@ class CollectionSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         """
         providers_data = validated_data.pop('providers', [])
         links_data = validated_data.pop('links', [])
-        collection, created = Collection.objects.update_or_create(
-            **look_up, defaults=validated_data
+        try:
+            collection, created = Collection.objects.update_or_create(
+                **look_up, defaults=validated_data
+                )
+        except IntegrityError as error:
+            logger.warning(
+                'Failed to create/update collection %s: %s', validated_data.get('name'), error
             )
+            duplicate_titles = Collection.objects.all().filter(title=validated_data.get('title'))
+            if duplicate_titles.exists():
+                logger.warning(
+                    'Failed to create/update collection %s: duplicate title "%s" found in %s',
+                    validated_data.get('name'),
+                    validated_data.get('title'),
+                    ','.join([c.name for c in duplicate_titles])
+                )
+                raise serializers.ValidationError(
+                    code='unique', detail={'title': [_('This field must be unique.')]}
+                ) from None
         self._update_or_create_providers(collection=collection, providers_data=providers_data)
         update_or_create_links(
             instance_type="collection",

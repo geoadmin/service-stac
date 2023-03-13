@@ -1,5 +1,6 @@
 import logging
 from time import sleep
+from uuid import uuid4
 
 from django.core.exceptions import ValidationError
 
@@ -65,7 +66,10 @@ class CollectionsModelTestCase(StacBaseTransactionTestCase):
     def test_create_collection_with_providers_and_links(self):
         # try to create a valid collection with providers and links. Should not raise any errors.
         self.factory.create_collection_sample(
-            name="collection-links-providers", sample="collection-1", db_create=True
+            name="collection-links-providers",
+            sample="collection-1",
+            db_create=True,
+            title=f'My collection {uuid4()}'
         )
 
     def test_create_collection_only_required_attributes(self):
@@ -75,7 +79,8 @@ class CollectionsModelTestCase(StacBaseTransactionTestCase):
             name="collection-required-only",
             sample="collection-1",
             db_create=True,
-            required_only=True
+            required_only=True,
+            title=f'My collection {uuid4()}'
         )
 
     def test_collection_update_on_item_write_operations(self):

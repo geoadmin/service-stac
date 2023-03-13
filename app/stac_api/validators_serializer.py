@@ -527,7 +527,7 @@ class ValidateSearchRequest:
             )
 
 
-def validate_uniqueness_and_create(model_class, validated_data):
+def validate_uniqueness_and_create(model_class, validated_data, unique_title=False):
     """Validate for uniqueness and create object
 
     Try to create an object and if it fails with db IntegrityError due to non unique object by name
@@ -538,6 +538,8 @@ def validate_uniqueness_and_create(model_class, validated_data):
             A model Class to use for the create()
         validated_data: dict
             Validated data to use for the create method
+        unique_tile: boolean
+            In case of integrity error also check for unique title
 
     Returns:
         the object created
@@ -553,5 +555,12 @@ def validate_uniqueness_and_create(model_class, validated_data):
         if model_class.objects.all().filter(name=validated_data['name']).exists():
             raise serializers.ValidationError(
                 code='unique', detail={'id': [_('This field must be unique.')]}
+            ) from None
+        if (
+            unique_title and
+            model_class.objects.all().filter(title=validated_data['title']).exists()
+        ):
+            raise serializers.ValidationError(
+                code='unique', detail={'title': [_('This field must be unique.')]}
             ) from None
         raise

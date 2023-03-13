@@ -953,7 +953,7 @@ class CollectionFactory(FactoryBase):
             name=name, sample=sample, db_create=db_create, required_only=required_only, **kwargs
         )
 
-    def create_samples(self, samples, db_create=False, kwargs_list=True, **kwargs):
+    def create_samples(self, samples, db_create=False, **kwargs):
         '''Creates several Collection samples
 
         Args:
@@ -962,17 +962,19 @@ class CollectionFactory(FactoryBase):
                 in the dictionary keys of tests.sample_data.collection_samples.collections.
             db_create: bool
                 Create the sample in the DB.
-            kwargs_list: bool
-                If set to true, then kwargs with list values are distributed over the samples,
-                otherwise the kwargs are passed as is to the sample.
             **kwargs:
-                Key/value pairs used to overwrite arbitrary attribute in the sample.
+                Key/value pairs used to overwrite arbitrary attribute in the sample, for each key
+                the value must be a list to spread over each samples.
 
         Returns:
             Array with the DB samples
         '''
+        titles = kwargs.pop('title', None)
+        if titles is None:
+            n_samples = samples if isinstance(samples, int) else len(samples)
+            titles = [f'Collection {i}' for i in range(n_samples)]
         return super().create_samples(
-            samples, db_create=db_create, kwargs_list=kwargs_list, **kwargs
+            samples, db_create=db_create, kwargs_list=True, title=titles, **kwargs
         )
 
 

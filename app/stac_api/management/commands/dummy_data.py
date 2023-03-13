@@ -160,12 +160,13 @@ class DummyDataHandler(CommandHandler):
         self.print('collection %s deleted', collection_name)
 
     def create_collection(self, collection_id, items, assets):
+        collection_number = collection_id.replace(f'{NAME_PREFIX}-collection-', '')
         collection, _ = Collection.objects.get_or_create(
             name=collection_id,
             defaults={
                 'description': 'This is a description',
                 'license': 'test',
-                'title': 'Test title'
+                'title': f'Test title - {collection_number}'
             }
         )
 
