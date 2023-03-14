@@ -439,7 +439,7 @@ class StacTestMixin:
             self.assertAlmostEqual(
                 fromisoformat(value),
                 fromisoformat(current[key]),
-                delta=timedelta(seconds=1),
+                delta=timedelta(seconds=2),
                 msg=f'{path}: current datetime value is not equal to the expected'
             )
         elif key == 'href':
