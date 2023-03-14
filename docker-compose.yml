@@ -7,7 +7,7 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_MULTIPLE_EXTENSIONS=postgis,postgis_topology
-      - EXTRA_CONF=log_min_messages = 'INFO'\n
+      - EXTRA_CONF=log_min_messages = ${DB_LOG_LEVEL:-FATAL}
     user: ${UID}
     ports:
       - ${DB_PORT}:5432
@@ -25,7 +25,7 @@ services:
         source: ${PWD}/.volumes/minio
         target: /data
     ports:
-      - 9090:9000
+      - 9090:${S3_PORT:-9000}
   s3-client:
     image: minio/mc
     links:
@@ -35,13 +35,13 @@ services:
     entrypoint: >
       /bin/sh -c "
         set +o history;
-        while ! echo > /dev/tcp/s3/9000;
+        while ! echo > /dev/tcp/s3/${S3_PORT:-9000};
         do
           echo waiting for minio;
           sleep 1;
         done;
         echo minio server is up;
-        /usr/bin/mc alias set minio http://s3:9000 minioadmin minioadmin;
+        /usr/bin/mc alias set minio http://s3:${S3_PORT:-9000} minioadmin minioadmin;
         /usr/bin/mc policy set download minio/service-stac-local;
         exit 0;
       "
