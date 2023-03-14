@@ -7,6 +7,7 @@ from datetime import datetime
 from urllib import parse
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.test import Client
 from django.urls import reverse
 
@@ -19,6 +20,7 @@ from stac_api.utils import get_sha256_multihash
 from stac_api.utils import utc_aware
 
 from tests.base_test import StacBaseTestCase
+from tests.base_test import StacBaseTransactionTestCase
 from tests.data_factory import Factory
 from tests.utils import S3TestMixin
 from tests.utils import client_login
@@ -270,6 +272,142 @@ class AssetUploadCreateEndpointTestCase(AssetUploadBaseTest):
         response = s3.list_multipart_uploads(Bucket=settings.AWS_STORAGE_BUCKET_NAME, KeyMarker=key)
         self.assertIn('Uploads', response, msg='Failed to retrieve the upload list from s3')
         self.assertEqual(len(response['Uploads']), 1, msg='More or less uploads found on S3')
+
+    def test_asset_upload_create_multipart_duplicate_fast(self):
+        key = get_asset_path(self.item, self.asset.name)
+        self.assertS3ObjectNotExists(key)
+        number_parts = 2
+        file_like, checksum_multihash = self.get_file_like_object(1 * KB)
+        offset = 1 * KB // number_parts
+        md5_parts = create_md5_parts(number_parts, offset, file_like)
+        response = self.client.post(
+            self.get_create_multipart_upload_path(),
+            data={
+                'number_parts': number_parts,
+                'checksum:multihash': checksum_multihash,
+                'md5_parts': md5_parts
+            },
+            content_type="application/json"
+        )
+        response2 = self.client.post(
+            self.get_create_multipart_upload_path(),
+            data={
+                'number_parts': number_parts,
+                'checksum:multihash': checksum_multihash,
+                'md5_parts': md5_parts
+            },
+            content_type="application/json"
+        )
+        self.assertStatusCode(201, response)
+        json_data = response.json()
+        self.check_created_response(json_data)
+        self.check_urls_response(json_data['urls'], number_parts)
+
+        self.assertStatusCode(201, response2)
+
+        self.assertEqual(
+            self.get_asset_upload_queryset().filter(status=AssetUpload.Status.IN_PROGRESS).count(),
+            1,
+            msg='More than one upload in progress'
+        )
+        self.assertTrue(
+            self.get_asset_upload_queryset().filter(status=AssetUpload.Status.ABORTED).exists(),
+            msg='Aborted upload not found'
+        )
+        # check that there is only one multipart upload on S3
+        s3 = get_s3_client()
+        response = s3.list_multipart_uploads(Bucket=settings.AWS_STORAGE_BUCKET_NAME, KeyMarker=key)
+        self.assertIn('Uploads', response, msg='Failed to retrieve the upload list from s3')
+        self.assertEqual(len(response['Uploads']), 1, msg='More or less uploads found on S3')
+
+
+class AssetUploadCreateRaceConditionTest(StacBaseTransactionTestCase, S3TestMixin):
+
+    @mock_s3_asset_file
+    def setUp(self):
+        self.username = 'user'
+        self.password = 'dummy-password'
+        get_user_model().objects.create_superuser(self.username, password=self.password)
+        self.factory = Factory()
+        self.collection = self.factory.create_collection_sample().model
+        self.item = self.factory.create_item_sample(collection=self.collection).model
+        self.asset = self.factory.create_asset_sample(item=self.item, sample='asset-no-file').model
+
+    def get_file_like_object(self, size):
+        file_like = os.urandom(size)
+        checksum_multihash = get_sha256_multihash(file_like)
+        return file_like, checksum_multihash
+
+    def test_asset_upload_create_race_condition_auto_abort(self):
+        # we assure that at least 2 parallel request works
+        workers = 2
+
+        key = get_asset_path(self.item, self.asset.name)
+        self.assertS3ObjectNotExists(key)
+        number_parts = 2
+        file_like, checksum_multihash = self.get_file_like_object(1 * KB)
+        offset = 1 * KB // number_parts
+        md5_parts = create_md5_parts(number_parts, offset, file_like)
+        path = reverse(
+            'asset-uploads-list', args=[self.collection.name, self.item.name, self.asset.name]
+        )
+
+        def asset_upload_atomic_create_test(worker):
+            # This method run on separate thread therefore it requires to create a new client and
+            # to login it for each call.
+            client = Client()
+            client.login(username=self.username, password=self.password)
+            return client.post(
+                path,
+                data={
+                    'number_parts': number_parts,
+                    'checksum:multihash': checksum_multihash,
+                    'md5_parts': md5_parts
+                },
+                content_type="application/json"
+            )
+
+        # We call the PUT item several times in parallel with the same data to make sure
+        # that we don't have any race condition.
+        responses, errors = self.run_parallel(workers, asset_upload_atomic_create_test)
+
+        for worker, response in responses:
+            self.assertStatusCode(201, response)
+
+    def test_asset_upload_create_race_condition_auto_abort_failed(self):
+        workers = 10
+
+        key = get_asset_path(self.item, self.asset.name)
+        self.assertS3ObjectNotExists(key)
+        number_parts = 2
+        file_like, checksum_multihash = self.get_file_like_object(1 * KB)
+        offset = 1 * KB // number_parts
+        md5_parts = create_md5_parts(number_parts, offset, file_like)
+        path = reverse(
+            'asset-uploads-list', args=[self.collection.name, self.item.name, self.asset.name]
+        )
+
+        def asset_upload_atomic_create_test(worker):
+            # This method run on separate thread therefore it requires to create a new client and
+            # to login it for each call.
+            client = Client()
+            client.login(username=self.username, password=self.password)
+            return client.post(
+                path,
+                data={
+                    'number_parts': number_parts,
+                    'checksum:multihash': checksum_multihash,
+                    'md5_parts': md5_parts
+                },
+                content_type="application/json"
+            )
+
+        # We call the PUT item several times in parallel with the same data to make sure
+        # that we don't have any race condition.
+        responses, errors = self.run_parallel(workers, asset_upload_atomic_create_test)
+
+        for worker, response in responses:
+            self.assertStatusCode(201, response)
 
 
 class AssetUpload1PartEndpointTestCase(AssetUploadBaseTest):
