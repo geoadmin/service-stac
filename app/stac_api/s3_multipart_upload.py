@@ -29,6 +29,10 @@ class MultipartUpload:
     def __init__(self):
         self.s3 = get_s3_client()
 
+    @property
+    def client(self):
+        return self.s3
+
     def list_multipart_uploads(self, key=None, limit=100, start=None):
         '''List all in progress multipart uploads
 
