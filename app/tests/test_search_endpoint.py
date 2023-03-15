@@ -551,7 +551,7 @@ class SearchEndpointCacheSettingTestCase(StacBaseTestCase):
         self.assertCacheControl(response, max_age=3)
 
     def test_get_search_no_cache_setting(self):
-        self.factory.create_asset_sample(self.items[0].model, db_create=True, update_interval=5)
+        self.factory.create_asset_sample(self.items[0].model, db_create=True, update_interval=0)
         response = self.client.get(reverse('search-list'))
         self.assertStatusCode(200, response)
         self.assertCacheControl(response, no_cache=True)

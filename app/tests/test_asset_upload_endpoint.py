@@ -413,7 +413,7 @@ class AssetUpload1PartEndpointTestCase(AssetUploadBaseTest):
         self.assertS3ObjectCacheControl(key, max_age=8)
 
     def test_asset_upload_no_cache(self):
-        key = self.upload_asset_with_dyn_cache(update_interval=5)
+        key = self.upload_asset_with_dyn_cache(update_interval=0)
         self.assertS3ObjectExists(key)
         self.assertS3ObjectCacheControl(key, no_cache=True)
 

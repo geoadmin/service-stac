@@ -395,7 +395,8 @@ def get_dynamic_max_age_value(update_interval):
     '''Get the max_age value for dynamic cache based on `update_interval` DB field
 
     -       update_interval < 0  then use default cache settings
-    -  0 <= update_interval < 10 then no cache
+    -  0 == update_interval then no cache
+    -  0 < update_interval < 10 then cache of 1s
     - 10 <= update_interval then log10(update_interval)*log9(update_interval)
     Args:
         update_interval: int
@@ -406,8 +407,11 @@ def get_dynamic_max_age_value(update_interval):
     '''
     threshold_no_cache = 10
     max_threshold = 60 * 60  # 1h
-    if 0 <= update_interval < threshold_no_cache:
+    if 0 == update_interval < threshold_no_cache:
         return 0  # means never cache
+
+    if 0 < update_interval < threshold_no_cache:
+        return 1
 
     if threshold_no_cache <= update_interval < max_threshold:
         return int(math.log(update_interval, 10) * math.log(update_interval, 9))

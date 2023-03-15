@@ -531,7 +531,7 @@ class ApiNoCacheHeaderTestCase(StacBaseTestCase, S3TestMixin):
         self.collection = self.factory.create_collection_sample(name='collection-1').model
         self.item = self.factory.create_item_sample(collection=self.collection, name='item-1').model
         self.asset = self.factory.create_asset_sample(
-            item=self.item, db_create=True, create_asset_file=True, update_interval=5
+            item=self.item, db_create=True, create_asset_file=True, update_interval=0
         ).model
 
     def test_get_no_cache_header(self):
