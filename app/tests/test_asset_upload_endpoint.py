@@ -1,12 +1,12 @@
 # pylint: disable=too-many-ancestors,too-many-lines
 import hashlib
 import logging
-import os
 from base64 import b64encode
 from datetime import datetime
 from urllib import parse
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.test import Client
 from django.urls import reverse
 
@@ -19,9 +19,11 @@ from stac_api.utils import get_sha256_multihash
 from stac_api.utils import utc_aware
 
 from tests.base_test import StacBaseTestCase
+from tests.base_test import StacBaseTransactionTestCase
 from tests.data_factory import Factory
 from tests.utils import S3TestMixin
 from tests.utils import client_login
+from tests.utils import get_file_like_object
 from tests.utils import mock_s3_asset_file
 
 logger = logging.getLogger(__name__)
@@ -112,11 +114,6 @@ class AssetUploadBaseTest(StacBaseTestCase, S3TestMixin):
             parts.append({'etag': response['ETag'], 'part_number': part})
         return parts
 
-    def get_file_like_object(self, size):
-        file_like = os.urandom(size)
-        checksum_multihash = get_sha256_multihash(file_like)
-        return file_like, checksum_multihash
-
     def check_urls_response(self, urls, number_parts):
         now = utc_aware(datetime.utcnow())
         self.assertEqual(len(urls), number_parts)
@@ -185,7 +182,7 @@ class AssetUploadCreateEndpointTestCase(AssetUploadBaseTest):
         key = get_asset_path(self.item, self.asset.name)
         self.assertS3ObjectNotExists(key)
         number_parts = 2
-        file_like, checksum_multihash = self.get_file_like_object(1 * KB)
+        file_like, checksum_multihash = get_file_like_object(1 * KB)
         offset = 1 * KB // number_parts
         md5_parts = create_md5_parts(number_parts, offset, file_like)
         response = self.client.post(
@@ -228,7 +225,7 @@ class AssetUploadCreateEndpointTestCase(AssetUploadBaseTest):
         key = get_asset_path(self.item, self.asset.name)
         self.assertS3ObjectNotExists(key)
         number_parts = 2
-        file_like, checksum_multihash = self.get_file_like_object(1 * KB)
+        file_like, checksum_multihash = get_file_like_object(1 * KB)
         offset = 1 * KB // number_parts
         md5_parts = create_md5_parts(number_parts, offset, file_like)
         response = self.client.post(
@@ -254,22 +251,74 @@ class AssetUploadCreateEndpointTestCase(AssetUploadBaseTest):
             },
             content_type="application/json"
         )
-        self.assertStatusCode(201, response)
+        self.assertStatusCode(400, response)
+        self.assertEqual(response.json()['description'], ["Upload already in progress"])
 
         self.assertEqual(
             self.get_asset_upload_queryset().filter(status=AssetUpload.Status.IN_PROGRESS).count(),
             1,
             msg='More than one upload in progress'
         )
-        self.assertTrue(
-            self.get_asset_upload_queryset().filter(status=AssetUpload.Status.ABORTED).exists(),
-            msg='Aborted upload not found'
-        )
+
         # check that there is only one multipart upload on S3
         s3 = get_s3_client()
         response = s3.list_multipart_uploads(Bucket=settings.AWS_STORAGE_BUCKET_NAME, KeyMarker=key)
         self.assertIn('Uploads', response, msg='Failed to retrieve the upload list from s3')
         self.assertEqual(len(response['Uploads']), 1, msg='More or less uploads found on S3')
+
+
+class AssetUploadCreateRaceConditionTest(StacBaseTransactionTestCase, S3TestMixin):
+
+    @mock_s3_asset_file
+    def setUp(self):
+        self.username = 'user'
+        self.password = 'dummy-password'
+        get_user_model().objects.create_superuser(self.username, password=self.password)
+        self.factory = Factory()
+        self.collection = self.factory.create_collection_sample().model
+        self.item = self.factory.create_item_sample(collection=self.collection).model
+        self.asset = self.factory.create_asset_sample(item=self.item, sample='asset-no-file').model
+
+    def test_asset_upload_create_race_condition(self):
+        workers = 5
+
+        key = get_asset_path(self.item, self.asset.name)
+        self.assertS3ObjectNotExists(key)
+        number_parts = 2
+        file_like, checksum_multihash = get_file_like_object(1 * KB)
+        offset = 1 * KB // number_parts
+        md5_parts = create_md5_parts(number_parts, offset, file_like)
+        path = reverse(
+            'asset-uploads-list', args=[self.collection.name, self.item.name, self.asset.name]
+        )
+
+        def asset_upload_atomic_create_test(worker):
+            # This method run on separate thread therefore it requires to create a new client and
+            # to login it for each call.
+            client = Client()
+            client.login(username=self.username, password=self.password)
+            return client.post(
+                path,
+                data={
+                    'number_parts': number_parts,
+                    'checksum:multihash': checksum_multihash,
+                    'md5_parts': md5_parts
+                },
+                content_type="application/json"
+            )
+
+        # We call the POST asset upload several times in parallel with the same data to make sure
+        # that we don't have any race condition.
+        results, errors = self.run_parallel(workers, asset_upload_atomic_create_test)
+
+        for _, response in results:
+            self.assertStatusCode([201, 400], response)
+
+        ok_201 = [r for _, r in results if r.status_code == 201]
+        bad_400 = [r for _, r in results if r.status_code == 400]
+        self.assertEqual(len(ok_201), 1, msg="More than 1 parallel request was successful")
+        for response in bad_400:
+            self.assertEqual(response.json()['description'], ["Upload already in progress"])
 
 
 class AssetUpload1PartEndpointTestCase(AssetUploadBaseTest):
@@ -279,7 +328,7 @@ class AssetUpload1PartEndpointTestCase(AssetUploadBaseTest):
         self.assertS3ObjectNotExists(key)
         number_parts = 1
         size = 1 * KB
-        file_like, checksum_multihash = self.get_file_like_object(size)
+        file_like, checksum_multihash = get_file_like_object(size)
         md5_parts = [{'part_number': 1, 'md5': base64_md5(file_like)}]
         response = self.client.post(
             self.get_create_multipart_upload_path(),
@@ -313,7 +362,7 @@ class AssetUpload1PartEndpointTestCase(AssetUploadBaseTest):
         self.assertS3ObjectNotExists(key)
         number_parts = 1
         size = 1 * KB
-        file_like, checksum_multihash = self.get_file_like_object(size)
+        file_like, checksum_multihash = get_file_like_object(size)
         response = self.client.post(
             self.get_create_multipart_upload_path(),
             data={
@@ -329,7 +378,7 @@ class AssetUpload1PartEndpointTestCase(AssetUploadBaseTest):
         self.assertS3ObjectNotExists(key)
         number_parts = 1
         size = 1 * KB
-        file_like, checksum_multihash = self.get_file_like_object(size)
+        file_like, checksum_multihash = get_file_like_object(size)
         md5_parts = [{'part_number': 1, 'md5': base64_md5(file_like)}]
         response = self.client.post(
             self.get_create_multipart_upload_path(),
@@ -376,7 +425,7 @@ class AssetUpload2PartEndpointTestCase(AssetUploadBaseTest):
         self.assertS3ObjectNotExists(key)
         number_parts = 2
         size = 10 * MB  # Minimum upload part on S3 is 5 MB
-        file_like, checksum_multihash = self.get_file_like_object(size)
+        file_like, checksum_multihash = get_file_like_object(size)
 
         offset = size // number_parts
         md5_parts = create_md5_parts(number_parts, offset, file_like)
@@ -411,7 +460,7 @@ class AssetUpload2PartEndpointTestCase(AssetUploadBaseTest):
         self.assertS3ObjectNotExists(key)
         number_parts = 2
         size = 10 * MB  # Minimum upload part on S3 is 5 MB
-        file_like, checksum_multihash = self.get_file_like_object(size)
+        file_like, checksum_multihash = get_file_like_object(size)
 
         response = self.client.post(
             self.get_create_multipart_upload_path(),
@@ -594,7 +643,7 @@ class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
         self.assertS3ObjectNotExists(key)
         number_parts = 2
         size = 1 * KB  # Minimum upload part on S3 is 5 MB
-        file_like, checksum_multihash = self.get_file_like_object(size)
+        file_like, checksum_multihash = get_file_like_object(size)
         offset = size // number_parts
         md5_parts = create_md5_parts(number_parts, offset, file_like)
         response = self.client.post(
@@ -632,7 +681,7 @@ class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
         self.assertS3ObjectNotExists(key)
         number_parts = 1
         size = 1 * KB
-        file_like, checksum_multihash = self.get_file_like_object(size)
+        file_like, checksum_multihash = get_file_like_object(size)
         offset = size // number_parts
         md5_parts = create_md5_parts(number_parts, offset, file_like)
 
@@ -675,7 +724,7 @@ class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
         self.assertS3ObjectNotExists(key)
         number_parts = 1
         size = 1 * KB
-        file_like, checksum_multihash = self.get_file_like_object(size)
+        file_like, checksum_multihash = get_file_like_object(size)
         offset = size // number_parts
         md5_parts = create_md5_parts(number_parts, offset, file_like)
 
@@ -707,7 +756,7 @@ class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
     def test_asset_upload_2_parts_incomplete_upload(self):
         number_parts = 2
         size = 10 * MB
-        file_like, checksum_multihash = self.get_file_like_object(size)
+        file_like, checksum_multihash = get_file_like_object(size)
         offset = size // number_parts
         md5_parts = create_md5_parts(number_parts, offset, file_like)
 
@@ -738,7 +787,7 @@ class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
         self.assertS3ObjectNotExists(key)
         number_parts = 1
         size = 1 * KB
-        file_like, checksum_multihash = self.get_file_like_object(size)
+        file_like, checksum_multihash = get_file_like_object(size)
         offset = size // number_parts
         md5_parts = create_md5_parts(number_parts, offset, file_like)
 
@@ -799,7 +848,7 @@ class AssetUploadDeleteInProgressEndpointTestCase(AssetUploadBaseTest):
     def test_delete_asset_upload_in_progress(self):
         number_parts = 2
         size = 10 * MB  # Minimum upload part on S3 is 5 MB
-        file_like, checksum_multihash = self.get_file_like_object(size)
+        file_like, checksum_multihash = get_file_like_object(size)
         offset = size // number_parts
         md5_parts = create_md5_parts(number_parts, offset, file_like)
 
@@ -948,7 +997,7 @@ class AssetUploadListPartsEndpointTestCase(AssetUploadBaseTest):
         self.assertS3ObjectNotExists(key)
         number_parts = 4
         size = 5 * MB * number_parts
-        file_like, checksum_multihash = self.get_file_like_object(size)
+        file_like, checksum_multihash = get_file_like_object(size)
         offset = size // number_parts
         md5_parts = create_md5_parts(number_parts, offset, file_like)
         response = self.client.post(
