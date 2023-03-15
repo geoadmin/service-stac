@@ -54,8 +54,8 @@ class StacTestMixin:
                 return msg
             return 'Wrong status code'
 
-        code = code if isinstance(code, list) else [code]
-        self.assertIn(response.status_code, code, msg=get_error_msg(response.status_code))
+        codes = code if isinstance(code, list) else [code]
+        self.assertIn(response.status_code, codes, msg=get_error_msg(response.status_code))
         if response.status_code in [412, 304]:
             # HTTP 412 Precondition Failed and 304 Not Modified doesn't have a body.
             self.assertEqual(b'', response.content)
