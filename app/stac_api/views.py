@@ -166,7 +166,10 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
     permission_classes = [AllowAny]
     serializer_class = ItemSerializer
     pagination_class = GetPostCursorPagination
-    ordering = ['name']
+    # It is important to order the result by a unique identifier, because the search endpoint
+    # search overall collections and that the item name is only unique within a collection
+    # we must use the pk as ordering attribute, otherwise the cursor pagination will not work
+    ordering = ['pk']
 
     def get_queryset(self):
         queryset = Item.objects.filter(collection__published=True
