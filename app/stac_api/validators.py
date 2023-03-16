@@ -49,6 +49,7 @@ MEDIA_TYPES = [
     MediaType('application/vnd.laszip', 'Zipped LIDAR', ['.laz', '.zip']),
     MediaType('application/x.shapefile+zip', 'Zipped Shapefile', ['.zip']),
     MediaType('application/x.filegdb+zip', 'Zipped File Geodatabase', ['.zip']),
+    MediaType('application/x.filegdbp+zip', 'Zipped File Geodatabase (ArcGIS Pro)', ['.zip']),
     MediaType('application/x.ms-access+zip', 'Zipped Personal Geodatabase', ['.zip']),
     MediaType('application/x.ms-excel+zip', 'Zipped Excel', ['.zip']),
     MediaType('application/x.tab+zip', 'Zipped Mapinfo-TAB', ['.zip']),
