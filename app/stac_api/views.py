@@ -602,28 +602,11 @@ class AssetUploadBase(generics.GenericAPIView):
             item__collection__name=self.kwargs['collection_name']
         )
 
-    def create_multipart_upload(self, executor, serializer, validated_data, asset):
-        key = get_asset_path(asset.item, asset.name)
-        upload_id = executor.create_multipart_upload(
-            key, asset, validated_data['checksum_multihash'], validated_data['update_interval']
-        )
-        urls = []
-        sorted_md5_parts = sorted(validated_data['md5_parts'], key=itemgetter('part_number'))
-
-        for part in sorted_md5_parts:
-            urls.append(
-                executor.create_presigned_url(
-                    key, asset, part['part_number'], upload_id, part['md5']
-                )
-            )
-
-        clean_up_required = False
+    def _save_asset_upload(self, executor, serializer, key, asset, upload_id, urls):
         try:
             with transaction.atomic():
                 serializer.save(asset=asset, upload_id=upload_id, urls=urls)
         except IntegrityError as error:
-            exception_handled = False
-            clean_up_required = True
             logger.error(
                 'Failed to create asset upload multipart: %s',
                 error,
@@ -633,19 +616,32 @@ class AssetUploadBase(generics.GenericAPIView):
                     'asset': asset.name
                 }
             )
-            in_progress = self.get_in_progress_queryset()
-            if bool(in_progress):
-                # Abort the last upload in progress and retry
-                self.abort_multipart_upload(executor, in_progress.get(), asset)
-                # And retry to save the new upload
-                serializer.save(asset=asset, upload_id=upload_id, urls=urls)
-                exception_handled = True
-                clean_up_required = False
-            if not exception_handled:
-                raise
-        finally:
-            if clean_up_required:
-                executor.abort_multipart_upload(key, asset, upload_id)
+            if bool(self.get_in_progress_queryset()):
+                raise serializers.ValidationError(
+                    code='unique', detail=_('Upload already in progress')
+                ) from None
+            raise
+
+    def create_multipart_upload(self, executor, serializer, validated_data, asset):
+        key = get_asset_path(asset.item, asset.name)
+        upload_id = executor.create_multipart_upload(
+            key, asset, validated_data['checksum_multihash'], validated_data['update_interval']
+        )
+        urls = []
+        sorted_md5_parts = sorted(validated_data['md5_parts'], key=itemgetter('part_number'))
+
+        try:
+            for part in sorted_md5_parts:
+                urls.append(
+                    executor.create_presigned_url(
+                        key, asset, part['part_number'], upload_id, part['md5']
+                    )
+                )
+
+            self._save_asset_upload(executor, serializer, key, asset, upload_id, urls)
+        except serializers.ValidationError as err:
+            executor.abort_multipart_upload(key, asset, upload_id)
+            raise
 
     def complete_multipart_upload(self, executor, validated_data, asset_upload, asset):
         key = get_asset_path(asset.item, asset.name)

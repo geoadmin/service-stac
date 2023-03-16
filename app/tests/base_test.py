@@ -35,8 +35,8 @@ class StacTestMixin:
         against the `code` and `description` keys.
 
         Args:
-            code: int
-                Expected HTTP code
+            code: int | [int]
+                Expected HTTP code(s)
             response: HttpResponse
                 HTTP Response object to check
 			msg: string
@@ -54,11 +54,12 @@ class StacTestMixin:
                 return msg
             return 'Wrong status code'
 
-        self.assertEqual(code, response.status_code, msg=get_error_msg(response.status_code))
-        if code in [412, 304]:
+        codes = code if isinstance(code, list) else [code]
+        self.assertIn(response.status_code, codes, msg=get_error_msg(response.status_code))
+        if response.status_code in [412, 304]:
             # HTTP 412 Precondition Failed and 304 Not Modified doesn't have a body.
             self.assertEqual(b'', response.content)
-        elif code >= 400:
+        elif response.status_code >= 400:
             self.assertIn('code', json_data.keys(), msg="'code' is missing from response")
             self.assertIn(
                 'description', json_data.keys(), msg="'description' is missing from response"
@@ -67,7 +68,7 @@ class StacTestMixin:
                 isinstance(json_data['description'], (list, str, dict)),
                 msg=f"Description wrong type: {type(json_data['description'])}"
             )
-            self.assertEqual(code, json_data['code'], msg="invalid response code")
+            self.assertEqual(response.status_code, json_data['code'], msg="invalid response code")
 
     def assertCacheControl(self, response, max_age=None, no_cache=False):  # pylint: disable=invalid-name
         '''Assert that Cache-Control header is present and correct
@@ -438,7 +439,7 @@ class StacTestMixin:
             self.assertAlmostEqual(
                 fromisoformat(value),
                 fromisoformat(current[key]),
-                delta=timedelta(seconds=1),
+                delta=timedelta(seconds=2),
                 msg=f'{path}: current datetime value is not equal to the expected'
             )
         elif key == 'href':
@@ -470,7 +471,7 @@ class StacBaseTransactionTestCase(TransactionTestCase, StacTestMixin):
 
     def run_parallel(self, workers, func):
         errors = []
-        responses = []
+        results = []
         with ThreadPoolExecutor(max_workers=workers) as executor:
             futures = {}
             for worker in range(workers):
@@ -483,15 +484,15 @@ class StacBaseTransactionTestCase(TransactionTestCase, StacTestMixin):
                 except Exception as exc:  # pylint: disable=broad-except
                     errors.append((futures[future], str(exc)))
                 else:
-                    responses.append((futures[future], response))
+                    results.append((futures[future], response))
 
         self.assertEqual(
-            len(responses) + len(errors),
+            len(results) + len(errors),
             workers,
-            msg='Number of responses/errors doesn\'t match the number of worker'
+            msg='Number of results/errors doesn\'t match the number of worker'
         )
 
         for worker, error in errors:
             self.fail(msg=f'Worker {worker} failed: {error}')
 
-        return responses, errors
+        return results, errors

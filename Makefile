@@ -19,7 +19,12 @@ endif
 APP_SRC_DIR := app
 DJANGO_MANAGER := $(CURRENT_DIR)/$(APP_SRC_DIR)/manage.py
 
-# Test report
+# Test options
+ifeq ($(CI),"1")
+CI_TEST_OPTS := "--no-input"
+else
+CI_TEST_OPT :=
+endif
 TEST_DIR := $(CURRENT_DIR)/$(APP_SRC_DIR)/tests
 
 # general targets timestamps
@@ -73,9 +78,12 @@ help:
 	@echo "- format                   Format the python source code"
 	@echo "- ci-check-format          Format the python source code and check if any files has changed. This is meant to be used by the CI."
 	@echo "- lint                     Lint the python source code"
+	@echo "- django-checks            Run the django checks"
+	@echo "- django-check-migrations  Check that no django migration file is missing"
 	@echo "- test                     Run the tests"
 	@echo -e " \033[1mSPEC TARGETS\033[0m "
 	@echo "- lint-specs               Lint the openapi specs  (openapi.yaml and openapitransactional.yaml)"
+	@echo "- ci-build-check-specs     Checks that the specs have been built"
 	@echo "- build-specs              Build the openapi specs (openapi.yaml and openapitransactional.yaml)"
 	@echo "- serve-specs              Serve openapi specs  (openapi.yaml and openapitransactional.yaml)"
 	@echo -e " \033[1mLOCAL SERVER TARGETS\033[0m "
@@ -90,7 +98,9 @@ help:
 	@echo -e "                           \e[1mNote:\e[0m This will connect to your host Postgres DB. If you wanna test with a containerized DB, run 'docker-compose up'"
 	@echo -e " \033[1mCLEANING TARGETS\033[0m "
 	@echo "- clean                    Clean genereated files"
-	@echo "- clean_venv               Clean python venv"
+	@echo "- clean-logs               Clean generated logs files"
+	@echo "- clean-venv               Clean python venv"
+	@echo "- clean-all                Clean everything (generated files and virtual environment)"
 	@echo -e " \033[1mDJANGO TARGETS\033[0m "
 	@echo -e " invoke django targets such as \033[1mserve, test, migrate, ...\033[0m  directly by calling app/manage.py COMMAND. Useful COMMANDS"
 	@echo -e " > \033[1mhint:\033[0m source .venv/bin/activate to use the virualenv corresponding to this application before using app/manage.py"
@@ -113,27 +123,32 @@ $(SETTINGS_TIMESTAMP): $(TIMESTAMPS)
 	touch $(SETTINGS_TIMESTAMP)
 
 
+.PHONY: setup-logs
+setup-logs:
+	# create directory for unittests logs
+	mkdir -m 777 -p ${LOGS_DIR}
+	find ${LOGS_DIR} -type f -exec chmod 666 {} \;
+
 # Setup the development environment
 
-.PHONY: setup
-setup: $(SETTINGS_TIMESTAMP)
-	# Create virtual env with all packages for development
-	pipenv install --dev
+.PHONY: setup-s3-and-db
+setup-s3-and-db:
 	# Create volume directories for postgres and minio
 	# Note that the '/service_stac_local' part is already the bucket name
 	mkdir -p .volumes/minio/service-stac-local
 	mkdir -p .volumes/postgresql
-	# create directory for unittests logs
-	mkdir -m 777 -p ${LOGS_DIR}
 	docker-compose up -d
+
+.PHONY: setup
+setup: $(SETTINGS_TIMESTAMP) setup-s3-and-db setup-logs
+	# Create virtual env with all packages for development
+	pipenv install --dev
 	pipenv shell
 
-
 .PHONY: ci
-ci: $(SETTINGS_TIMESTAMP)
-# Create virtual env with all packages for development using the Pipfile.lock
+ci: $(SETTINGS_TIMESTAMP) setup-s3-and-db setup-logs
+	# Create virtual env with all packages for development using the Pipfile.lock
 	pipenv sync --dev
-
 
 # call yapf to make sure your code is easier to read and respects some conventions.
 .PHONY: format
@@ -162,13 +177,21 @@ lint:
 	@echo "Run pylint..."
 	LOGGING_CFG=0 DJANGO_SETTINGS_MODULE=config.settings $(PYLINT) $(PYTHON_FILES)
 
+.PHONY: django-checks
+django-checks:
+	$(PYTHON) $(DJANGO_MANAGER) check --fail-level WARNING
+
+.PHONY: django-check-migrations
+django-check-migrations:
+	@echo "Check for missing migration files"
+	$(PYTHON) $(DJANGO_MANAGER) makemigrations --no-input --check
 
 # Running tests locally
 .PHONY: test
 test:
 	# Collect static first to avoid warning in the test
 	$(PYTHON) $(DJANGO_MANAGER) collectstatic --noinput
-	$(PYTHON) $(DJANGO_MANAGER) test --verbosity=2 --parallel 20 $(TEST_DIR)
+	$(PYTHON) $(DJANGO_MANAGER) test --verbosity=2 --parallel 20 $(CI_TEST_OPT) $(TEST_DIR)
 
 
 ###################
@@ -182,15 +205,26 @@ build-specs:
 lint-specs:
 	cd spec && make lint-specs
 
+
+.PHONY: ci-build-check-specs
+ci-build-check-specs: build-specs
+	@if [[ -n `git status --porcelain --untracked-files=no` ]]; then \
+	 	>&2 echo "ERROR: the following files changed after building the spec"; \
+	 	>&2 echo "'git status --porcelain' reported changes in those files after a 'build-specs' :"; \
+		>&2 git status --porcelain --untracked-files=no; \
+		exit 1; \
+	fi
+
+
 ###################
 # Serve targets. Using these will run the application on your local machine. You can either serve with a wsgi front (like it would be within the container), or without.
 
 .PHONY: serve
-serve:
+serve: setup-logs
 	$(PYTHON) $(DJANGO_MANAGER) runserver $(HTTP_PORT)
 
 .PHONY: gunicornserve
-gunicornserve:
+gunicornserve: setup-logs
 	$(PYTHON) $(APP_SRC_DIR)/wsgi.py
 
 .PHONY: serve-specs
@@ -225,7 +259,7 @@ dockerbuild-prod:
 		--build-arg AUTHOR="$(AUTHOR)" -t $(DOCKER_IMG_LOCAL_TAG) --target production .
 
 .PHONY: dockerrun
-dockerrun: dockerbuild-debug
+dockerrun: dockerbuild-debug setup-logs
 	@echo "starting docker debug container with populating ENV from .env.local"
 	docker run \
 		-it --rm \
@@ -235,7 +269,7 @@ dockerrun: dockerbuild-debug
 		$(DOCKER_IMG_LOCAL_TAG_DEV) ./wsgi.py
 
 .PHONY: dockerrun-prod
-dockerrun-prod: dockerbuild-prod
+dockerrun-prod: dockerbuild-prod setup-logs
 	@echo "starting docker debug container with populating ENV from .env.local"
 	docker run \
 		-it --rm \
@@ -255,15 +289,21 @@ dockerpush-prod: dockerbuild-prod
 ###################
 # clean targets
 
-.PHONY: clean_venv
-clean_venv:
+.PHONY: clean-venv
+clean-venv:
 	# ignore pipenv errors by adding command prefix -
 	-pipenv --rm
 
+.PHONY: clean-logs
+clean-logs:
+	rm -rf $(LOGS_DIR)
 
 .PHONY: clean
-clean: clean_venv
+clean: clean-logs
 	docker-compose down
 	@# clean python cache files
 	find . -path ./.volumes -prune -o -name __pycache__ -type d -print0 | xargs -I {} -0 rm -rf "{}"
 	rm -rf $(TIMESTAMPS)
+
+.PHONY: clean-all
+clean-all: clean clean-venv

@@ -1,6 +1,7 @@
 import functools
 import hashlib
 import logging
+import os
 import time
 from io import BytesIO
 
@@ -218,3 +219,18 @@ class disableLogger:  # pylint: disable=invalid-name
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.logger.disabled = False
+
+
+def get_file_like_object(size):
+    '''Get a random file like object of size with its sha256 checksum
+
+    Args:
+        size: int
+            size of the file like object to retrieve
+
+    Returns: obj, str
+        Random file like object and its sha256 multihash checksum
+    '''
+    file_like = os.urandom(size)
+    checksum_multihash = get_sha256_multihash(file_like)
+    return file_like, checksum_multihash
