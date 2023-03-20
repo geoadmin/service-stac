@@ -357,22 +357,6 @@ class AssetUpload1PartEndpointTestCase(AssetUploadBaseTest):
         self.check_completed_response(response.json())
         return key
 
-    def test_asset_upload_1_part_no_md5(self):
-        key = get_asset_path(self.item, self.asset.name)
-        self.assertS3ObjectNotExists(key)
-        number_parts = 1
-        size = 1 * KB
-        file_like, checksum_multihash = get_file_like_object(size)
-        response = self.client.post(
-            self.get_create_multipart_upload_path(),
-            data={
-                'number_parts': number_parts, 'checksum:multihash': checksum_multihash
-            },
-            content_type="application/json"
-        )
-        self.assertStatusCode(400, response)
-        self.assertEqual(response.json()['description'], {'md5_parts': ['This field is required.']})
-
     def test_asset_upload_1_part_md5_integrity(self):
         key = get_asset_path(self.item, self.asset.name)
         self.assertS3ObjectNotExists(key)
@@ -455,6 +439,25 @@ class AssetUpload2PartEndpointTestCase(AssetUploadBaseTest):
         self.check_completed_response(response.json())
         self.assertS3ObjectExists(key)
 
+
+class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
+
+    def test_asset_upload_1_part_no_md5(self):
+        key = get_asset_path(self.item, self.asset.name)
+        self.assertS3ObjectNotExists(key)
+        number_parts = 1
+        size = 1 * KB
+        file_like, checksum_multihash = get_file_like_object(size)
+        response = self.client.post(
+            self.get_create_multipart_upload_path(),
+            data={
+                'number_parts': number_parts, 'checksum:multihash': checksum_multihash
+            },
+            content_type="application/json"
+        )
+        self.assertStatusCode(400, response)
+        self.assertEqual(response.json()['description'], {'md5_parts': ['This field is required.']})
+
     def test_asset_upload_2_parts_no_md5(self):
         key = get_asset_path(self.item, self.asset.name)
         self.assertS3ObjectNotExists(key)
@@ -471,9 +474,6 @@ class AssetUpload2PartEndpointTestCase(AssetUploadBaseTest):
         )
         self.assertStatusCode(400, response)
         self.assertEqual(response.json()['description'], {'md5_parts': ['This field is required.']})
-
-
-class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
 
     def test_asset_upload_create_empty_payload(self):
         response = self.client.post(
