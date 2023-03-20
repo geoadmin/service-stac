@@ -1,4 +1,4 @@
-openapi: 3.0.1
+openapi: 3.0.3
 components:
   schemas:
     assetId:
@@ -313,6 +313,8 @@ components:
           $ref: "#/components/schemas/md5_parts"
         update_interval:
           $ref: "#/components/schemas/update_interval"
+        content_encoding:
+          $ref: "#/components/schemas/content_encoding"
         urls:
           type: array
           description: |
@@ -495,6 +497,19 @@ components:
       minimum: -1
       maximum: 604800
       example: 30
+    content_encoding:
+      description: |
+        Content Encoding of the asset if compressed.
+
+        Tell the backend that the Asset data is compressed, this will add the `Content-Encoding` header
+        on the asset requests.
+
+        *NOTE:*
+         - *when uploading compressed data: the `checksum:multihash` refers to the checksum of the
+           uncompressed data, while the md5 checksum must be calculated of the compressed data*
+      type: string
+      pattern: (gzip|br|deflate|compress)
+      example: gzip
     part_number:
       description: Number of the part.
       type: integer
