@@ -628,7 +628,11 @@ class AssetUploadBase(generics.GenericAPIView):
     def create_multipart_upload(self, executor, serializer, validated_data, asset):
         key = get_asset_path(asset.item, asset.name)
         upload_id = executor.create_multipart_upload(
-            key, asset, validated_data['checksum_multihash'], validated_data['update_interval']
+            key,
+            asset,
+            validated_data['checksum_multihash'],
+            validated_data['update_interval'],
+            validated_data['content_encoding']
         )
         urls = []
         sorted_md5_parts = sorted(validated_data['md5_parts'], key=itemgetter('part_number'))

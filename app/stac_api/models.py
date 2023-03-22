@@ -343,7 +343,7 @@ class Item(models.Model):
             models.Index(fields=['properties_datetime'], name='item_datetime_idx'),
             models.Index(fields=['properties_start_datetime'], name='item_start_datetime_idx'),
             models.Index(fields=['properties_end_datetime'], name='item_end_datetime_idx'),
-            # created, updated, and title are "queriable" in the search endpoint
+            # created, updated, and title are "queryable" in the search endpoint
             # see: views.py:322 and 323
             models.Index(fields=['created'], name='item_created_idx'),
             models.Index(fields=['updated'], name='item_updated_idx'),
@@ -633,6 +633,8 @@ class AssetUpload(models.Model):
         "-1 means that the data is not on a regular basis updated."
         "This field can only be set via the API."
     )
+
+    content_encoding = models.CharField(blank=True, null=False, max_length=32, default='')
 
     # Custom Manager that preselects the collection
     objects = AssetUploadManager()

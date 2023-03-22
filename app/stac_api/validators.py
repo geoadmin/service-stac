@@ -526,3 +526,37 @@ def validate_md5_parts(md5_parts, number_parts):
                   'md5 field must be a non empty b64 encoded string'),
                 params={'i': i - 1}, code='invalid'
             )
+
+
+def validate_content_encoding(value):
+    '''Validate the content_encoding field
+
+    Args:
+        value: str
+            value to validate
+
+     Raises:
+        ValidationError in case of invalid content_encoding value
+    '''
+    # See https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Encoding for
+    # supported encoding
+    supported_encoding = set(['gzip', 'br', 'deflate', 'compress'])
+    encodings = list(map(lambda i: i.strip(), value.split(',')))
+    encodings_set = set(encodings)
+    invalids = encodings_set - supported_encoding
+    if invalids:
+        raise ValidationError(
+            _('Invalid encoding value(s) "%(invalids)s": must be any of "%(valids)s"'),
+            params={
+                'invalids': ', '.join(sorted(invalids)),
+                'valids': ', '.join(sorted(supported_encoding))
+            },
+            code='invalid'
+        )
+    # Check for duplicates
+    if len(encodings) != len(encodings_set):
+        raise ValidationError(
+            _('Duplicates encodings in "%(encodings)s"'),
+            params={'encodings': ', '.join(encodings)},
+            code='invalid'
+        )
