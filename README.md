@@ -21,9 +21,13 @@
   - [Starting dev server](#starting-dev-server)
   - [Running tests](#running-tests)
     - [Unit test logging](#unit-test-logging)
-  - [Using Django shell](#using-django-shell)
-  - [Migrate DB with Django](#migrate-db-with-django)
   - [Linting and formatting your work](#linting-and-formatting-your-work)
+  - [Using Django shell](#using-django-shell)
+- [Migrate DB with Django](#migrate-db-with-django)
+  - [How to generate a db migrations script?](#how-to-generate-a-db-migrations-script)
+  - [How to put the database to the state of a previous code base?](#how-to-put-the-database-to-the-state-of-a-previous-code-base)
+  - [How to create a clean PR with a single migration script?](#how-to-create-a-clean-pr-with-a-single-migration-script)
+  - [How to get a working database when migrations scripts screw up?](#how-to-get-a-working-database-when-migrations-scripts-screw-up)
 - [Initial Setup up the RDS database and the user](#initial-setup-up-the-rds-database-and-the-user)
 - [Deploying the project and continuous integration](#deploying-the-project-and-continuous-integration)
 - [Docker](#docker)
@@ -252,6 +256,24 @@ All logs are also added to two logs files; `app/tests/logs/unittest-json-logs.js
 
 Alternatively for a finer logging granularity during unit test, a new logging configuration base on `app/config/logging-cfg-unittest.yml` can be generated and set via `LOGGING_CFG` environment variable or logging can be completely disabled by setting `LOGGING_CFG=0`.
 
+### Linting and formatting your work
+
+In order to have a consistent code style the code should be formatted using `yapf`. Also to avoid syntax errors and non
+pythonic idioms code, the project uses the `pylint` linter. Both formatting and linter can be manually run using the
+following command:
+
+```bash
+make format
+```
+
+```bash
+make lint
+```
+
+**Formatting and linting should be at best integrated inside the IDE, for this look at
+[Integrate yapf and pylint into IDE](https://github.com/geoadmin/doc-guidelines/blob/master/PYTHON.md#yapf-and-pylint-ide-integration)**
+****
+
 ### Using Django shell
 
 Django shell can be use for development purpose (see [Django: Playing with the API](https://docs.djangoproject.com/en/3.1/intro/tutorial02/#playing-with-the-api))
@@ -274,7 +296,7 @@ For local development (or whenever you have a `*-dev` docker image deployed), th
 ./manage.py shell_plus
 ```
 
-### Migrate DB with Django
+## Migrate DB with Django
 
 With the Django shell ist is possible to migrate the state of the database according to the code base. Please consider following principles:
 
@@ -288,9 +310,9 @@ stac_api/migrations/
 ├── 0004_auto_20201028.py
 ```
 
-Please make sure, that per PR only one migrations script gets generated (_if possible_).
+Please make sure, that per PR only one migrations script gets generated (*if possible*).
 
-**How to generate a db migrations script?**
+### How to generate a db migrations script?
 
 1. First of all this will only happen, when a model has changed
 1. Following command will generate a new migration script:
@@ -299,7 +321,7 @@ Please make sure, that per PR only one migrations script gets generated (_if pos
     ./manage.py makemigrations
     ```
 
-**How to put the database to the state of a previous code base?**
+### How to put the database to the state of a previous code base?
 
 With the following command of the Django shell a specific state of the database can be achieved:
 
@@ -307,10 +329,10 @@ With the following command of the Django shell a specific state of the database 
 .manage.py migrate stac_api 0003_auto_20201022_1346
 ```
 
-**How to create a clean PR with a singe migration script?**
+### How to create a clean PR with a single migration script?
 
 Under a clean PR, we mean that only one migration script comes along a PR.
-This can be obtained with the following steps (_only if more than one migration script exist for this PR_):
+This can be obtained with the following steps (*only if more than one migration script exist for this PR*):
 
 ```bash
 # 1. migrate back to the state before the PR
@@ -327,7 +349,7 @@ git add stac_api/migrations 0017_the_new_one.py
 **NOTE:** When going back to a certain migration step, you have to pay attention, that this also involves deleting fields, that have not been added yet.
 Which, of course, involves that its content will be purged as well.
 
-**How to get a working database when migrations scripts screw up?**
+### How to get a working database when migrations scripts screw up?
 
 With the following commands it is possible to get a proper state of the database:
 
@@ -338,42 +360,9 @@ With the following commands it is possible to get a proper state of the database
 
 **Warning:** ```reset_db``` a destructive command and will delete all structure and content of the database.
 
-### Linting and formatting your work
-
-In order to have a consistent code style the code should be formatted using `yapf`. Also to avoid syntax errors and non
-pythonic idioms code, the project uses the `pylint` linter. Both formatting and linter can be manually run using the
-following command:
-
-```bash
-make format
-```
-
-```bash
-make lint
-```
-
-**Formatting and linting should be at best integrated inside the IDE, for this look at
-[Integrate yapf and pylint into IDE](https://github.com/geoadmin/doc-guidelines/blob/master/PYTHON.md#yapf-and-pylint-ide-integration)**
-
-<!--
-#### gopass summon provider
-
-For the DB connection, some makefile targets (`test`, `serve`, `gunicornserve`, ...) uses `summon -p gopass --up -e service-stac-$(ENV)` to gets the credentials as environment variables.
-
-This __summon__ command requires to have a `secrets.yml` file located higher up in the project folder hierarchy (e.g in `${HOME}/secrets.yml` if the project has been cloned in `${HOME}` or in a sub folder). This `secrets.yml` file must have two sections as follow:
-
-```yaml
-service-stac-dev:
-    DB_USER: !var path-to-the-db-user-variable
-    DB_PW: !var path-to-the-db-user-password
-    DB_HOST: !var path-to-the-db-host
-```
-
--->
-
 ## Initial Setup up the RDS database and the user
 
-Right now the initial setup on the RDS database for the stagings _dev_, _int_ and _prod_ can be obtained
+Right now the initial setup on the RDS database for the stagings *dev*, *int* and *prod* can be obtained
 with the helper script `scripts/setup_rds_db.sh`. The credentials come from `gopass`. To
 setup the RDS database on int, run following command:
 
@@ -469,7 +458,7 @@ The service is configured by Environment Variable:
 | AWS_S3_REGION_NAME | - | |
 | AWS_S3_ENDPOINT_URL | `None` | |
 | AWS_S3_CUSTOM_DOMAIN | `None` | |
-| AWS_PRESIGNED_URL_EXPIRES | 3600 | AWS presigned url for asset upload expire time in seconds | 
+| AWS_PRESIGNED_URL_EXPIRES | 3600 | AWS presigned url for asset upload expire time in seconds |
 
 #### **Development settings (only for local environment and DEV staging)**
 
