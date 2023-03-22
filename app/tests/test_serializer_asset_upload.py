@@ -347,12 +347,12 @@ class TestAssetUploadSerializationContentEncoding(StacBaseTestCase):
 
     def test_asset_upload_serialization_valid_content_encoding(self):
         data = self.get_asset_upload_default()
-        asset_upload = self.create_asset_upload(content_encoding='gzip, br', **data)
+        asset_upload = self.create_asset_upload(content_encoding='br', **data)
 
         serializer = AssetUploadSerializer(asset_upload)
         data = serializer.data
         self.assertIn('content_encoding', data)
-        self.assertEqual(data['content_encoding'], 'gzip, br')
+        self.assertEqual(data['content_encoding'], 'br')
 
 
 class TestAssetUploadDeserializationContentEncoding(StacBaseTestCase):
@@ -397,9 +397,9 @@ class TestAssetUploadDeserializationContentEncoding(StacBaseTestCase):
 
     def test_asset_upload_deserialization_with_valid_content_encoding(self):
         data = self.get_asset_upload_default()
-        data['content_encoding'] = 'gzip, br'
+        data['content_encoding'] = 'gzip'
         asset_upload = self.deserialize_asset_upload(data)
-        self.assertEqual(asset_upload.content_encoding, 'gzip, br')
+        self.assertEqual(asset_upload.content_encoding, 'gzip')
 
     def test_asset_upload_deserialization_with_invalid_content_encoding(self):
         data = self.get_asset_upload_default()

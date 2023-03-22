@@ -544,12 +544,8 @@ class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
         self.assertStatusCode(400, response)
         self.assertEqual(
             response.json()['description'],
-            {
-                'content_encoding': [
-                    'Invalid encoding value(s) "hello world": must be any of '
-                    '"br, compress, deflate, gzip"'
-                ]
-            }
+            {'content_encoding': ['Invalid encoding "hello world": must be one of '
+                                  '"br, gzip"']}
         )
 
     def test_asset_upload_1_part_no_md5(self):

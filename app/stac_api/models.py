@@ -605,6 +605,14 @@ class AssetUpload(models.Model):
         ABORTED = 'aborted'
         __empty__ = ''
 
+    class ContentEncoding(models.TextChoices):
+        # pylint: disable=invalid-name
+        GZIP = 'gzip'
+        BR = 'br'
+        # DEFLATE = 'deflate'
+        # COMPRESS = 'compress'
+        __empty__ = ''
+
     # using BigIntegerField as primary_key to deal with the expected large number of assets.
     id = models.BigAutoField(primary_key=True)
     asset = models.ForeignKey(Asset, related_name='+', on_delete=models.CASCADE)
@@ -634,7 +642,9 @@ class AssetUpload(models.Model):
         "This field can only be set via the API."
     )
 
-    content_encoding = models.CharField(blank=True, null=False, max_length=32, default='')
+    content_encoding = models.CharField(
+        choices=ContentEncoding.choices, blank=True, null=False, max_length=32, default=''
+    )
 
     # Custom Manager that preselects the collection
     objects = AssetUploadManager()
