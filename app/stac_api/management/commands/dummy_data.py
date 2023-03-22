@@ -30,7 +30,7 @@ YMAX = 1252000
 MIN_DATETIME = isoparse('1970-01-01T00:00:01Z')
 MAX_DATETIME = isoparse('2020-12-31T23:59:10Z')
 
-NAME_PREFIX = 'perftest'
+NAME_PREFIX = 'test-dummy-data'
 
 
 def random_datetime(start, end):
@@ -165,7 +165,9 @@ class DummyDataHandler(CommandHandler):
             defaults={
                 'description': 'This is a description',
                 'license': 'test',
-                'title': 'Test title'
+                # Title should start by a `A` in order to be on top of the list
+                # for E2E pagination tests
+                'title': 'A Collection for Test'
             }
         )
 
