@@ -1,4 +1,5 @@
 # pylint: disable=too-many-ancestors,too-many-lines
+import gzip
 import hashlib
 import logging
 from base64 import b64encode
@@ -357,22 +358,6 @@ class AssetUpload1PartEndpointTestCase(AssetUploadBaseTest):
         self.check_completed_response(response.json())
         return key
 
-    def test_asset_upload_1_part_no_md5(self):
-        key = get_asset_path(self.item, self.asset.name)
-        self.assertS3ObjectNotExists(key)
-        number_parts = 1
-        size = 1 * KB
-        file_like, checksum_multihash = get_file_like_object(size)
-        response = self.client.post(
-            self.get_create_multipart_upload_path(),
-            data={
-                'number_parts': number_parts, 'checksum:multihash': checksum_multihash
-            },
-            content_type="application/json"
-        )
-        self.assertStatusCode(400, response)
-        self.assertEqual(response.json()['description'], {'md5_parts': ['This field is required.']})
-
     def test_asset_upload_1_part_md5_integrity(self):
         key = get_asset_path(self.item, self.asset.name)
         self.assertS3ObjectNotExists(key)
@@ -405,17 +390,96 @@ class AssetUpload1PartEndpointTestCase(AssetUploadBaseTest):
         self.assertStatusCode(200, response)
         self.check_completed_response(response.json())
         self.assertS3ObjectExists(key)
-        self.assertS3ObjectCacheControl(key, max_age=7200)
+        obj = self.get_s3_object(key)
+        self.assertS3ObjectCacheControl(obj, key, max_age=7200)
+        self.assertS3ObjectContentEncoding(obj, key, None)
 
     def test_asset_upload_dyn_cache(self):
         key = self.upload_asset_with_dyn_cache(update_interval=600)
         self.assertS3ObjectExists(key)
-        self.assertS3ObjectCacheControl(key, max_age=8)
+        obj = self.get_s3_object(key)
+        self.assertS3ObjectCacheControl(obj, key, max_age=8)
 
     def test_asset_upload_no_cache(self):
         key = self.upload_asset_with_dyn_cache(update_interval=5)
         self.assertS3ObjectExists(key)
-        self.assertS3ObjectCacheControl(key, no_cache=True)
+        obj = self.get_s3_object(key)
+        self.assertS3ObjectCacheControl(obj, key, no_cache=True)
+
+    def test_asset_upload_no_content_encoding(self):
+        key = get_asset_path(self.item, self.asset.name)
+        self.assertS3ObjectNotExists(key)
+        number_parts = 1
+        size = 1 * KB
+        file_like, checksum_multihash = get_file_like_object(size)
+        md5_parts = [{'part_number': 1, 'md5': base64_md5(file_like)}]
+        response = self.client.post(
+            self.get_create_multipart_upload_path(),
+            data={
+                'number_parts': number_parts,
+                'md5_parts': md5_parts,
+                'checksum:multihash': checksum_multihash
+            },
+            content_type="application/json"
+        )
+        self.assertStatusCode(201, response)
+        json_data = response.json()
+        self.check_created_response(json_data)
+        self.check_urls_response(json_data['urls'], number_parts)
+        self.assertIn('md5_parts', json_data)
+        self.assertEqual(json_data['md5_parts'], md5_parts)
+
+        parts = self.s3_upload_parts(json_data['upload_id'], file_like, size, number_parts)
+        response = self.client.post(
+            self.get_complete_multipart_upload_path(json_data['upload_id']),
+            data={'parts': parts},
+            content_type="application/json"
+        )
+        self.assertStatusCode(200, response)
+        self.check_completed_response(response.json())
+        self.assertS3ObjectExists(key)
+        obj = self.get_s3_object(key)
+        self.assertS3ObjectContentEncoding(obj, key, None)
+
+    def test_asset_upload_gzip(self):
+        key = get_asset_path(self.item, self.asset.name)
+        self.assertS3ObjectNotExists(key)
+        number_parts = 1
+        size = 1 * MB
+        file_like, checksum_multihash = get_file_like_object(size)
+        file_like_compress = gzip.compress(file_like)
+        size_compress = len(file_like_compress)
+        md5_parts = [{'part_number': 1, 'md5': base64_md5(file_like_compress)}]
+        response = self.client.post(
+            self.get_create_multipart_upload_path(),
+            data={
+                'number_parts': number_parts,
+                'md5_parts': md5_parts,
+                'checksum:multihash': checksum_multihash,
+                'content_encoding': 'gzip'
+            },
+            content_type="application/json"
+        )
+        self.assertStatusCode(201, response)
+        json_data = response.json()
+        self.check_created_response(json_data)
+        self.check_urls_response(json_data['urls'], number_parts)
+        self.assertIn('md5_parts', json_data)
+        self.assertEqual(json_data['md5_parts'], md5_parts)
+
+        parts = self.s3_upload_parts(
+            json_data['upload_id'], file_like_compress, size_compress, number_parts
+        )
+        response = self.client.post(
+            self.get_complete_multipart_upload_path(json_data['upload_id']),
+            data={'parts': parts},
+            content_type="application/json"
+        )
+        self.assertStatusCode(200, response)
+        self.check_completed_response(response.json())
+        self.assertS3ObjectExists(key)
+        obj = self.get_s3_object(key)
+        self.assertS3ObjectContentEncoding(obj, key, encoding='gzip')
 
 
 class AssetUpload2PartEndpointTestCase(AssetUploadBaseTest):
@@ -455,6 +519,51 @@ class AssetUpload2PartEndpointTestCase(AssetUploadBaseTest):
         self.check_completed_response(response.json())
         self.assertS3ObjectExists(key)
 
+
+class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
+
+    def test_asset_upload_invalid_content_encoding(self):
+        key = get_asset_path(self.item, self.asset.name)
+        self.assertS3ObjectNotExists(key)
+        number_parts = 2
+        size = 10 * MB  # Minimum upload part on S3 is 5 MB
+        file_like, checksum_multihash = get_file_like_object(size)
+        offset = size // number_parts
+        md5_parts = create_md5_parts(number_parts, offset, file_like)
+
+        response = self.client.post(
+            self.get_create_multipart_upload_path(),
+            data={
+                'number_parts': number_parts,
+                'md5_parts': md5_parts,
+                'checksum:multihash': checksum_multihash,
+                'content_encoding': 'hello world'
+            },
+            content_type="application/json"
+        )
+        self.assertStatusCode(400, response)
+        self.assertEqual(
+            response.json()['description'],
+            {'content_encoding': ['Invalid encoding "hello world": must be one of '
+                                  '"br, gzip"']}
+        )
+
+    def test_asset_upload_1_part_no_md5(self):
+        key = get_asset_path(self.item, self.asset.name)
+        self.assertS3ObjectNotExists(key)
+        number_parts = 1
+        size = 1 * KB
+        file_like, checksum_multihash = get_file_like_object(size)
+        response = self.client.post(
+            self.get_create_multipart_upload_path(),
+            data={
+                'number_parts': number_parts, 'checksum:multihash': checksum_multihash
+            },
+            content_type="application/json"
+        )
+        self.assertStatusCode(400, response)
+        self.assertEqual(response.json()['description'], {'md5_parts': ['This field is required.']})
+
     def test_asset_upload_2_parts_no_md5(self):
         key = get_asset_path(self.item, self.asset.name)
         self.assertS3ObjectNotExists(key)
@@ -471,9 +580,6 @@ class AssetUpload2PartEndpointTestCase(AssetUploadBaseTest):
         )
         self.assertStatusCode(400, response)
         self.assertEqual(response.json()['description'], {'md5_parts': ['This field is required.']})
-
-
-class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
 
     def test_asset_upload_create_empty_payload(self):
         response = self.client.post(
@@ -897,8 +1003,7 @@ class AssetUploadDeleteInProgressEndpointTestCase(AssetUploadBaseTest):
 
 class GetAssetUploadsEndpointTestCase(AssetUploadBaseTest):
 
-    def setUp(self):
-        super().setUp()
+    def create_dummies_uploads(self):
         # Create some asset uploads
         for i in range(1, 4):
             AssetUpload.objects.create(
@@ -931,6 +1036,7 @@ class GetAssetUploadsEndpointTestCase(AssetUploadBaseTest):
         self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_get_asset_uploads(self):
+        self.create_dummies_uploads()
         response = self.client.get(self.get_get_multipart_uploads_path())
         self.assertStatusCode(200, response)
         json_data = response.json()
@@ -946,6 +1052,7 @@ class GetAssetUploadsEndpointTestCase(AssetUploadBaseTest):
                 'aborted',
                 'number_parts',
                 'update_interval',
+                'content_encoding',
                 'checksum:multihash'
             ],
             list(json_data['uploads'][0].keys()),
@@ -958,6 +1065,7 @@ class GetAssetUploadsEndpointTestCase(AssetUploadBaseTest):
                 'completed',
                 'number_parts',
                 'update_interval',
+                'content_encoding',
                 'checksum:multihash'
             ],
             list(json_data['uploads'][4].keys()),
@@ -969,10 +1077,44 @@ class GetAssetUploadsEndpointTestCase(AssetUploadBaseTest):
                 'created',
                 'number_parts',
                 'update_interval',
+                'content_encoding',
                 'checksum:multihash'
             ],
             list(json_data['uploads'][7].keys()),
         )
+
+    def test_get_asset_uploads_with_content_encoding(self):
+        AssetUpload.objects.create(
+            asset=self.asset,
+            upload_id='upload-content-encoding',
+            status=AssetUpload.Status.COMPLETED,
+            checksum_multihash=get_sha256_multihash(b'upload-content-encoding'),
+            number_parts=2,
+            ended=utc_aware(datetime.utcnow()),
+            md5_parts=[],
+            content_encoding='gzip'
+        )
+        response = self.client.get(self.get_get_multipart_uploads_path())
+        self.assertStatusCode(200, response)
+        json_data = response.json()
+        self.assertIn('links', json_data)
+        self.assertEqual(json_data['links'], [])
+        self.assertIn('uploads', json_data)
+        self.assertEqual(len(json_data['uploads']), self.get_asset_upload_queryset().count())
+        self.assertEqual(
+            [
+                'upload_id',
+                'status',
+                'created',
+                'completed',
+                'number_parts',
+                'update_interval',
+                'content_encoding',
+                'checksum:multihash'
+            ],
+            list(json_data['uploads'][0].keys()),
+        )
+        self.assertEqual('gzip', json_data['uploads'][0]['content_encoding'])
 
     def test_get_asset_uploads_status_query(self):
         response = self.client.get(

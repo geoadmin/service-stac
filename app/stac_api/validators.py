@@ -526,3 +526,24 @@ def validate_md5_parts(md5_parts, number_parts):
                   'md5 field must be a non empty b64 encoded string'),
                 params={'i': i - 1}, code='invalid'
             )
+
+
+def validate_content_encoding(value):
+    '''Validate the content_encoding field
+
+    Args:
+        value: str
+            value to validate
+
+     Raises:
+        ValidationError in case of invalid content_encoding value
+    '''
+    # To start we are restrictive and only support the most common encoding, but if needed in
+    # future we can enhanced it to other encoding (deflate and/or compress)
+    supported_encodings = ['br', 'gzip']
+    if value not in supported_encodings:
+        raise ValidationError(
+            _('Invalid encoding "%(encoding)s": must be one of "%(supported_encodings)s"'),
+            params={'encoding': value, 'supported_encodings': ', '.join(supported_encodings)},
+            code='invalid'
+        )

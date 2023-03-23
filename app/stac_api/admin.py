@@ -417,7 +417,8 @@ class AssetUploadAdmin(admin.ModelAdmin):
         'urls_json',
         'number_parts',
         'checksum_multihash',
-        'update_interval'
+        'update_interval',
+        'content_encoding'
     ]
     list_display = [
         'short_upload_id', 'status', 'asset_name', 'item_name', 'collection_name', 'created'
@@ -435,7 +436,8 @@ class AssetUploadAdmin(admin.ModelAdmin):
                     'checksum_multihash',
                     'created',
                     'ended',
-                    'update_interval'
+                    'update_interval',
+                    'content_encoding'
                 )
             }
         ),

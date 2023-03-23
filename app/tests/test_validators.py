@@ -6,6 +6,7 @@ from rest_framework import serializers
 from stac_api.validators import MediaType
 from stac_api.validators import get_media_type
 from stac_api.validators import normalize_and_validate_media_type
+from stac_api.validators import validate_content_encoding
 from stac_api.validators import validate_item_properties_datetimes_dependencies
 from stac_api.validators_serializer import validate_asset_href_path
 
@@ -57,6 +58,33 @@ class TestValidators(TestCase):
             validate_item_properties_datetimes_dependencies(
                 properties_datetime, properties_start_datetime, properties_end_datetime
             )
+
+    def test_validate_invalid_content_encoding(self):
+        for value in [
+            '', 'gzip ', 'hello', 'gzip, gzip', 'gzipp', 'gzip, hello', 'gzip hello', 'gzip br'
+        ]:
+            with self.subTest(msg=f"check invalid content_encoding: {value}"):
+                with self.assertRaises(
+                    ValidationError, msg=f'Validation error for "{value}" not raised'
+                ):
+                    validate_content_encoding(value)
+
+    def test_validate_valid_content_encoding(self):
+        for value in [
+            'gzip',
+            'br',
+            # 'gzip, br',
+            # 'br, gzip',
+            # 'compress',
+            # 'compress, br, gzip, deflate',
+            # 'gzip,br',
+            # 'gzip,     br'
+        ]:
+            with self.subTest(msg=f"check invalid content_encoding: {value}"):
+                try:
+                    validate_content_encoding(value)
+                except ValidationError as err:
+                    self.fail(f'Validation for valid content_encoding "{value}" failed: {err}')
 
 
 class TestMediaTypeValidators(TestCase):

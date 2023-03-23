@@ -34,6 +34,7 @@ from stac_api.validators import normalize_and_validate_media_type
 from stac_api.validators import validate_asset_name
 from stac_api.validators import validate_asset_name_with_media_type
 from stac_api.validators import validate_checksum_multihash_sha256
+from stac_api.validators import validate_content_encoding
 from stac_api.validators import validate_geoadmin_variant
 from stac_api.validators import validate_item_properties_datetimes
 from stac_api.validators import validate_md5_parts
@@ -748,7 +749,8 @@ class AssetUploadSerializer(NonNullModelSerializer):
             'urls',
             'ended',
             'parts',
-            'update_interval'
+            'update_interval',
+            'content_encoding'
         ]
 
     checksum_multihash = serializers.CharField(
@@ -761,6 +763,15 @@ class AssetUploadSerializer(NonNullModelSerializer):
     md5_parts = serializers.JSONField(required=True)
     update_interval = serializers.IntegerField(
         required=False, allow_null=False, min_value=-1, max_value=3600, default=-1
+    )
+    content_encoding = serializers.CharField(
+        required=False,
+        allow_null=False,
+        allow_blank=False,
+        min_length=1,
+        max_length=32,
+        default='',
+        validators=[validate_content_encoding]
     )
 
     # write only fields
