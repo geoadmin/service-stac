@@ -56,7 +56,9 @@ class MultipartUpload:
             response.get('NextUploadIdMarker', None),
         )
 
-    def create_multipart_upload(self, key, asset, checksum_multihash, update_interval):
+    def create_multipart_upload(
+        self, key, asset, checksum_multihash, update_interval, content_encoding
+    ):
         '''Create a multi part upload on the backend
 
         Args:
@@ -68,11 +70,17 @@ class MultipartUpload:
                 Checksum multihash (must be sha256) of the future file to be uploaded
             update_interval: int
                 Update interval in seconds used to compute the cache control setting
+            content_encoding: str
+                Content Encoding header to set to the asset. If empty no content-encoding
+                is set
 
         Returns: string
             Upload Id of the created multipart upload
         '''
         sha256 = to_hex_string(parse_multihash(checksum_multihash).digest)
+        extra_params = {}
+        if content_encoding:
+            extra_params['ContentEncoding'] = content_encoding
         response = self.call_s3_api(
             self.s3.create_multipart_upload,
             Bucket=settings.AWS_STORAGE_BUCKET_NAME,
@@ -80,6 +88,7 @@ class MultipartUpload:
             Metadata={'sha256': sha256},
             CacheControl=get_s3_cache_control_value(update_interval),
             ContentType=asset.media_type,
+            **extra_params,
             log_extra={
                 'collection': asset.item.collection.name,
                 'item': asset.item.name,

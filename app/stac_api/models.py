@@ -343,7 +343,7 @@ class Item(models.Model):
             models.Index(fields=['properties_datetime'], name='item_datetime_idx'),
             models.Index(fields=['properties_start_datetime'], name='item_start_datetime_idx'),
             models.Index(fields=['properties_end_datetime'], name='item_end_datetime_idx'),
-            # created, updated, and title are "queriable" in the search endpoint
+            # created, updated, and title are "queryable" in the search endpoint
             # see: views.py:322 and 323
             models.Index(fields=['created'], name='item_created_idx'),
             models.Index(fields=['updated'], name='item_updated_idx'),
@@ -605,6 +605,14 @@ class AssetUpload(models.Model):
         ABORTED = 'aborted'
         __empty__ = ''
 
+    class ContentEncoding(models.TextChoices):
+        # pylint: disable=invalid-name
+        GZIP = 'gzip'
+        BR = 'br'
+        # DEFLATE = 'deflate'
+        # COMPRESS = 'compress'
+        __empty__ = ''
+
     # using BigIntegerField as primary_key to deal with the expected large number of assets.
     id = models.BigAutoField(primary_key=True)
     asset = models.ForeignKey(Asset, related_name='+', on_delete=models.CASCADE)
@@ -632,6 +640,10 @@ class AssetUpload(models.Model):
         help_text="Interval in seconds in which the asset data is updated."
         "-1 means that the data is not on a regular basis updated."
         "This field can only be set via the API."
+    )
+
+    content_encoding = models.CharField(
+        choices=ContentEncoding.choices, blank=True, null=False, max_length=32, default=''
     )
 
     # Custom Manager that preselects the collection

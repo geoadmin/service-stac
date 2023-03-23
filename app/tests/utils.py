@@ -59,7 +59,7 @@ class S3TestMixin():
         error = exception_context.exception
         self.assertEqual(error.response['Error']['Code'], "404")
 
-    def assertS3ObjectCacheControl(self, path, max_age=None, no_cache=False):  # pylint: disable=invalid-name
+    def get_s3_object(self, path):
         s3 = get_s3_resource()
 
         try:
@@ -68,9 +68,11 @@ class S3TestMixin():
         except botocore.exceptions.ClientError as error:
             if error.response['Error']['Code'] == "404":
                 # Object Was Not Found
-                self.fail("the object was not found at the expected location")
-            self.fail(f"object lookup failed for unexpected reason: {error}")
+                self.fail(f"The S3 object {path} was not found at the expected location")
+            self.fail(f"The S3 object {path} lookup failed for unexpected reason: {error}")
+        return obj
 
+    def assertS3ObjectCacheControl(self, obj, path, max_age=None, no_cache=False):  # pylint: disable=invalid-name
         self.assertNotEqual(obj.cache_control, '', msg=f'S3 object {path} has no cache_control set')
         if no_cache:
             self.assertEqual(
@@ -78,6 +80,14 @@ class S3TestMixin():
             )
         elif max_age is not None:
             self.assertEqual(obj.cache_control, f'max-age={max_age}, public')
+
+    def assertS3ObjectContentEncoding(self, obj, path, encoding):  # pylint: disable=invalid-name
+        self.assertEqual(
+            obj.content_encoding,
+            encoding,
+            msg=f'S3 object {path} has a wrong content_encoding, '
+            f'is={obj.content_encoding}, expected={encoding}'
+        )
 
 
 def mock_s3_bucket():

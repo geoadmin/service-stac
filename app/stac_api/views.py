@@ -166,7 +166,10 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
     permission_classes = [AllowAny]
     serializer_class = ItemSerializer
     pagination_class = GetPostCursorPagination
-    ordering = ['name']
+    # It is important to order the result by a unique identifier, because the search endpoint
+    # search overall collections and that the item name is only unique within a collection
+    # we must use the pk as ordering attribute, otherwise the cursor pagination will not work
+    ordering = ['pk']
 
     def get_queryset(self):
         queryset = Item.objects.filter(collection__published=True
@@ -260,7 +263,7 @@ class CollectionList(generics.GenericAPIView):
     # of DB queries.
     # see https://docs.djangoproject.com/en/3.1/ref/models/querysets/#prefetch-related
     queryset = Collection.objects.filter(published=True).prefetch_related('providers', 'links')
-    ordering = ['title']
+    ordering = ['name']
 
     def get(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
@@ -625,7 +628,11 @@ class AssetUploadBase(generics.GenericAPIView):
     def create_multipart_upload(self, executor, serializer, validated_data, asset):
         key = get_asset_path(asset.item, asset.name)
         upload_id = executor.create_multipart_upload(
-            key, asset, validated_data['checksum_multihash'], validated_data['update_interval']
+            key,
+            asset,
+            validated_data['checksum_multihash'],
+            validated_data['update_interval'],
+            validated_data['content_encoding']
         )
         urls = []
         sorted_md5_parts = sorted(validated_data['md5_parts'], key=itemgetter('part_number'))

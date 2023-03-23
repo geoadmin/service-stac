@@ -457,7 +457,8 @@ class ApiCacheHeaderTestCase(StacBaseTestCase, S3TestMixin):
     def test_get_asset_object_cache_header(self):
         key = get_asset_path(self.item.model, self.asset["name"])
         self.assertS3ObjectExists(key)
-        self.assertS3ObjectCacheControl(key, max_age=7200)
+        obj = self.get_s3_object(key)
+        self.assertS3ObjectCacheControl(obj, key, max_age=7200)
 
     @override_settings(CACHE_MIDDLEWARE_SECONDS=3600)
     def test_head_cache_header(self):
@@ -520,7 +521,8 @@ class ApiDynamicCacheHeaderTestCase(StacBaseTestCase, S3TestMixin):
     def test_get_asset_object_dyn_cache_header(self):
         key = get_asset_path(self.item, self.asset.name)
         self.assertS3ObjectExists(key)
-        self.assertS3ObjectCacheControl(key, max_age=8)
+        obj = self.get_s3_object(key)
+        self.assertS3ObjectCacheControl(obj, key, max_age=8)
 
 
 class ApiNoCacheHeaderTestCase(StacBaseTestCase, S3TestMixin):
@@ -550,7 +552,8 @@ class ApiNoCacheHeaderTestCase(StacBaseTestCase, S3TestMixin):
     def test_get_asset_object_no_cache_header(self):
         key = get_asset_path(self.item, self.asset.name)
         self.assertS3ObjectExists(key)
-        self.assertS3ObjectCacheControl(key, no_cache=True)
+        obj = self.get_s3_object(key)
+        self.assertS3ObjectCacheControl(obj, key, no_cache=True)
 
 
 class ApiCORSHeaderTestCase(StacBaseTestCase):
