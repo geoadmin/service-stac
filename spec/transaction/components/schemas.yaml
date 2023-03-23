@@ -113,7 +113,7 @@ components:
     mediaTypeWrite:
       type: string
       description: |
-        Media type of the asset.
+        Media type of the asset (see [Supported Media Type](#section/Supported-Media-Type)).
 
         This type is automatically set as `Content-Type` header to the Asset's object when uploading.
 

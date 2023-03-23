@@ -30,6 +30,8 @@ Attributes:
         A human readable description
     extensions: [str]
         A list of allowed extensions. Each string in this list should start with a dot.
+
+NOTE: This list needs to be kept in sync with the openapi spec in ./spec/transaction/tags.yaml
 '''
 MEDIA_TYPES = [
     MediaType('application/x.ascii-grid+zip', 'Zipped ESRI ASCII raster format (.asc)', ['.zip']),

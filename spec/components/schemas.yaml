@@ -75,7 +75,6 @@ components:
       description: The `property name` defines the ID of the Asset.
       type: object
       required:
-        - type
         - created
         - updated
       properties:
@@ -83,8 +82,6 @@ components:
           $ref: "#/components/schemas/title"
         description:
           $ref: "#/components/schemas/description"
-        type:
-          $ref: "#/components/schemas/type"
         href:
           $ref: "#/components/schemas/href"
         checksum:multihash:
@@ -742,7 +739,14 @@ components:
       title: Assets
       description: List of Assets attached to this feature.
       additionalProperties:
-        $ref: "#/components/schemas/assetBase"
+        allOf:
+          - type: object
+            required:
+              - type
+            properties:
+              type:
+                $ref: "#/components/schemas/assetType"
+          - $ref: "#/components/schemas/assetBase"
       type: object
       readOnly: true
       example:
@@ -1554,8 +1558,9 @@ components:
       nullable: true
       minLength: 1
       maxLength: 255
-    type:
+    assetType:
       type: string
+      title: Media Type
       description: Media type of the asset
       example: image/tiff; application=geotiff
     updated:
