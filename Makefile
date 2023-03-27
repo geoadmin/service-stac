@@ -56,9 +56,12 @@ GIT_TAG := `git describe --tags || echo "no version info"`
 AUTHOR := $(USER)
 
 # Docker variables
+# the 'local' prefix in the tag is important for lifecycle policies within
+# ECR management. Those images, when pushed, are stored for a maximum of 30
+# days.
 DOCKER_REGISTRY = 974517877189.dkr.ecr.eu-central-1.amazonaws.com
-DOCKER_IMG_LOCAL_TAG = $(DOCKER_REGISTRY)/$(SERVICE_NAME):$(USER).$(GIT_TAG)
-DOCKER_IMG_LOCAL_TAG_DEV = $(DOCKER_REGISTRY)/$(SERVICE_NAME):$(USER).$(GIT_TAG)-dev
+DOCKER_IMG_LOCAL_TAG = $(DOCKER_REGISTRY)/$(SERVICE_NAME):local-$(USER).$(GIT_TAG)
+DOCKER_IMG_LOCAL_TAG_DEV = $(DOCKER_REGISTRY)/$(SERVICE_NAME):local-$(USER).$(GIT_TAG)-dev
 
 # AWS variables
 AWS_DEFAULT_REGION = eu-central-1
