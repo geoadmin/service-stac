@@ -89,6 +89,22 @@ class S3TestMixin():
             f'is={obj.content_encoding}, expected={encoding}'
         )
 
+    def assertS3ObjectContentType(self, obj, path, content_type):  # pylint: disable=invalid-name
+        self.assertEqual(
+            obj.content_type,
+            content_type,
+            msg=f'S3 object {path} has a wrong content_type, '
+            f'is={obj.content_type}, expected={content_type}'
+        )
+
+    def assertS3ObjectSha256(self, obj, path, sha256):  # pylint: disable=invalid-name
+        self.assertEqual(
+            obj.metadata['sha256'],
+            sha256,
+            msg=f'S3 object {path} has a wrong sha256, '
+            f'is={obj.metadata["sha256"]}, expected={sha256}'
+        )
+
 
 def mock_s3_bucket():
     '''Mock an S3 bucket
