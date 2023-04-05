@@ -16,18 +16,19 @@ STATIC_BASE_DIR = static/spec/v0.9
 OPENAPI = $(STATIC_BASE_DIR)/openapi.yaml
 OPENAPI_TRANSACTIONAL = $(STATIC_BASE_DIR)/openapitransactional.yaml
 
-
-$(OPENAPI): $(PARTS)
+.PHONY: build-spec-openapi
+build-spec-openapi: $(PARTS)
 	docker run --rm -v ${PWD}:/workdir mikefarah/yq:3.3.0 yq merge -x $(PARTS) | \
-	sed -E '/\$ref:/s/"\..*?(#.*?)"/"\1"/' > $@
+	sed -E '/\$ref:/s/"\..*?(#.*?)"/"\1"/' > $(OPENAPI)
 
-$(OPENAPI_TRANSACTIONAL): $(OPENAPI) $(PARTS_TRANSACTIONAL)
+.PHONY: build-spec-transactional
+build-spec-transactional: build-spec-openapi $(OPENAPI) $(PARTS_TRANSACTIONAL)
 	docker run --rm -v ${PWD}:/workdir mikefarah/yq:3.3.0 yq merge -x $(OPENAPI) $(PARTS_TRANSACTIONAL) | \
-	sed -E '/\$ref:/s/"\..*?(#.*?)"/"\1"/' > $@
+	sed -E '/\$ref:/s/"\..*?(#.*?)"/"\1"/' > $(OPENAPI_TRANSACTIONAL)
 
 
 .PHONY: build-specs
-build-specs: $(OPENAPI_TRANSACTIONAL)
+build-specs: build-spec-openapi build-spec-transactional
 
 
 .PHONY: lint-specs
