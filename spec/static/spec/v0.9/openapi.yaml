@@ -234,6 +234,18 @@ paths:
               required: true
               schema:
                 type: string
+            X-Amz-Meta-Sha256:
+              description: |
+                SHA256 checksum of the asset object.
+
+                This checksum can be compared with the asset metadata `checksum:multihash` field
+                (see [asset object metadata](#tag/Data/operation/getFeature)). Note that the
+                `checksum:multihash` field is a multihash while `X-Amz-Meta-Sha256` is a SHA256.
+                See [multihash](https://multiformats.io/multihash/) for more information.
+              required: true
+              example: 3dd6e1ead0760d278344394b0e7f017b5b6049e4fed3d2083b564fc268f07334
+              schema:
+                $ref: "#/components/schemas/sha256"
         "304":
           $ref: "#/components/responses/NotModified"
         "404":
@@ -477,6 +489,13 @@ components:
       properties:
         bbox:
           $ref: "#/components/schemas/bboxfilter"
+    sha256:
+      description: "`sha2-256` checksum"
+      example: 3dd6e1ead0760d278344394b0e7f017b5b6049e4fed3d2083b564fc268f07334
+      pattern: ^[a-f0-9]+$
+      title: sha256
+      format: digest
+      type: string
     checksumMultihash:
       description: >-
         `sha2-256` checksum of the asset in [multihash](https://multiformats.io/multihash/)
