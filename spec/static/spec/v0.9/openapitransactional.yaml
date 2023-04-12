@@ -763,14 +763,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/readUpdateAsset"
+              $ref: "#/components/schemas/assetWrite"
       responses:
         "200":
           description: Asset has been successfully updated.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/readUpdateAsset"
+                $ref: "#/components/schemas/assetWrite"
         "201":
           description: Asset has been newly created.
           headers:
@@ -782,7 +782,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/createAsset"
+                $ref: "#/components/schemas/assetWrite"
         "400":
           $ref: "#/components/responses/BadRequest"
         "404":
@@ -811,14 +811,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/readUpdateAsset"
+              $ref: "#/components/schemas/assetWrite"
       responses:
         "200":
           description: Returns the updated Asset.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/readUpdateAsset"
+                $ref: "#/components/schemas/assetWrite"
         "400":
           $ref: "#/components/responses/BadRequest"
         "404":
@@ -2855,7 +2855,7 @@ components:
       properties:
         assets:
           items:
-            $ref: "#/components/schemas/readUpdateAsset"
+            $ref: "#/components/schemas/assetWrite"
           type: array
         links:
           items:
@@ -2895,58 +2895,67 @@ components:
                 swisstopo
             - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
               rel: describedby
-    createAsset:
-      allOf:
-      - $ref: "#/components/schemas/assetBase"
-      - type: object
-        required:
-        - id
-        - links
-        properties:
-          id:
-            $ref: "#/components/schemas/assetId"
-          links:
-            items:
-              $ref: "#/components/schemas/link"
-            type: array
-            readOnly: true
-            example:
-            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets/smr50-263-2016-2056-kgrs-2.5.tiff
-              rel: self
-            - href: https://data.geo.admin.ch/api/stac/v0.9/
-              rel: root
-            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019
-              rel: parent
-            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019
-              rel: item
-            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
-              rel: collection
-    readUpdateAsset:
-      allOf:
-      - $ref: "#/components/schemas/assetBase"
-      - type: object
-        required:
-        - id
-        - links
-        properties:
-          id:
-            $ref: "#/components/schemas/assetId"
-          links:
-            items:
-              $ref: "#/components/schemas/link"
-            type: array
-            readOnly: true
-            example:
-            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets/smr50-263-2016-2056-kgrs-2.5.tiff
-              rel: self
-            - href: https://data.geo.admin.ch/api/stac/v0.9/
-              rel: root
-            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019
-              rel: parent
-            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019
-              rel: item
-            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
-              rel: collection
+    assetWrite:
+      title: Asset
+      description: The `property name` defines the ID of the Asset.
+      type: object
+      required:
+      - id
+      - type
+      - created
+      - updated
+      - links
+      properties:
+        id:
+          $ref: "#/components/schemas/assetId"
+        title:
+          $ref: "#/components/schemas/title"
+        description:
+          $ref: "#/components/schemas/description"
+        type:
+          $ref: "#/components/schemas/mediaTypeWrite"
+        href:
+          $ref: "#/components/schemas/href"
+        checksum:multihash:
+          $ref: "#/components/schemas/checksumMultihashReadOnly"
+        geoadmin:variant:
+          $ref: "#/components/schemas/geoadminVariant"
+        geoadmin:lang:
+          $ref: "#/components/schemas/geoadminLang"
+        proj:epsg:
+          $ref: "#/components/schemas/projEpsg"
+        eo:gsd:
+          $ref: "#/components/schemas/eoGsd"
+        created:
+          $ref: "#/components/schemas/created"
+        updated:
+          $ref: "#/components/schemas/updated"
+        links:
+          items:
+            $ref: "#/components/schemas/link"
+          type: array
+          readOnly: true
+          example:
+          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets/smr50-263-2016-2056-kgrs-2.5.tiff
+            rel: self
+          - href: https://data.geo.admin.ch/api/stac/v0.9/
+            rel: root
+          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019
+            rel: parent
+          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019
+            rel: item
+          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+            rel: collection
+    mediaTypeWrite:
+      type: string
+      description: |
+        Media type of the asset.
+
+        This type is automatically set as `Content-Type` header to the Asset's object when uploading.
+
+        **WARNING:** When updating the Asset's metadata media type, the Asset's object `Content-Type`
+        header is not automatically updated. The object needs to be uploaded again to have the correct header.
+      example: image/tiff; application=geotiff
     writeItem:
       allOf:
       - $ref: "#/components/schemas/itemBase"
@@ -3790,7 +3799,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/readUpdateAsset"
+            $ref: "#/components/schemas/assetWrite"
     DeletedResource:
       description: Status of the delete resource
       content:
