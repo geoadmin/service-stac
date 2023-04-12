@@ -548,7 +548,17 @@ class Asset(models.Model):
     media_choices = [
         (x.media_type_str, f'{x.description} ({x.media_type_str})') for x in MEDIA_TYPES
     ]
-    media_type = models.CharField(choices=media_choices, max_length=200, blank=False, null=False)
+    media_type = models.CharField(
+        choices=media_choices,
+        max_length=200,
+        blank=False,
+        null=False,
+        help_text=
+        "This media type will be used as <em>Content-Type</em> header for the asset's object upon "
+        "upload.</br></br>"
+        "<b>WARNING: when updating the Media Type, the asset's object Content-Type header is not "
+        "automatically updated, it needs to be uploaded again.</b>"
+    )
 
     created = models.DateTimeField(auto_now_add=True)
     # NOTE: the updated field is automatically updated by stac_api.pgtriggers, we use auto_now_add
