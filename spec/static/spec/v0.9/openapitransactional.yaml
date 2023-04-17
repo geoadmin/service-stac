@@ -966,6 +966,7 @@ paths:
         description: Filter the list by status.
         schema:
           $ref: "#/components/schemas/status"
+      - $ref: "#/components/parameters/limit"
       responses:
         "200":
           description: List of Asset's uploads
