@@ -14,7 +14,16 @@ logger = logging.getLogger(__name__)
 
 class S3Storage(S3Boto3Storage):
     # pylint: disable=abstract-method
-    # pylint: disable=no-member
+
+    object_sha256 = None
+    update_interval = -1
+    asset_content_type = None
+
+    def __init__(self):
+        super().__init__()
+        self.object_sha256 = None
+        self.update_interval = -1
+        self.asset_content_type = None
 
     def get_object_parameters(self, name):
         """
@@ -28,19 +37,24 @@ class S3Storage(S3Boto3Storage):
         Returns:
             Parameters from AWS_S3_OBJECT_PARAMETERS plus the file sha256 checksum as MetaData
         """
-        params = self.object_parameters.copy()
+        params = super().get_object_parameters(name)
+
+        # Set the content-type from the assets metadata
+        if self.asset_content_type is None:
+            raise ValueError(f'Missing content-type for asset {name}')
+        params["ContentType"] = self.asset_content_type
 
         if 'Metadata' not in params:
             params['Metadata'] = {}
-        params['Metadata']['sha256'] = getattr(self, '_tmp_sha256', None)
+        if self.object_sha256 is None:
+            raise ValueError(f'Missing asset object sh256 for {name}')
+        params['Metadata']['sha256'] = self.object_sha256
 
         if 'CacheControl' in params:
             logger.warning(
                 'Global cache-control header for S3 storage will be overwritten for %s', name
             )
-        params["CacheControl"] = get_s3_cache_control_value(
-            getattr(self, '_tmp_update_interval', -1)
-        )
+        params["CacheControl"] = get_s3_cache_control_value(self.update_interval)
 
         stamp = mktime(datetime.now().timetuple())
         params['Expires'] = format_date_time(stamp + settings.STORAGE_ASSETS_CACHE_SECONDS)

@@ -17,7 +17,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: "./schemas.yaml#/components/schemas/readUpdateAsset"
+            $ref: "./schemas.yaml#/components/schemas/assetWrite"
     DeletedResource:
       description: Status of the delete resource
       content:

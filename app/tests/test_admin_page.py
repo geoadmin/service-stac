@@ -2,6 +2,7 @@ import logging
 import time
 from io import BytesIO
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import Client
 from django.test import TestCase
@@ -13,6 +14,7 @@ from stac_api.models import CollectionLink
 from stac_api.models import Item
 from stac_api.models import ItemLink
 from stac_api.models import Provider
+from stac_api.utils import parse_multihash
 
 from tests.data_factory import Factory
 from tests.utils import S3TestMixin
@@ -834,3 +836,29 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
             Asset.objects.filter(item=self.item, name=sample["name"]).exists(),
             msg="Asset with invalid data has been added to db"
         )
+
+    @mock_s3_asset_file
+    def test_asset_file_metadata(self):
+        content_type = 'image/tiff; application=geotiff'
+        sample = self.factory.create_asset_sample(
+            self.item, name='asset.tiff', media_type=content_type
+        ).attributes
+
+        # Admin page doesn't uses the name for foreign key but the internal db id.
+        sample['item'] = self.item.id
+        response = self.client.post(reverse('admin:stac_api_asset_add'), sample)
+        # Status code for successful creation is 302, since in the admin UI
+        # you're redirected to the list view after successful creation
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(
+            Asset.objects.filter(item=self.item, name=sample["name"]).exists(),
+            msg="Admin page asset added not found in DB"
+        )
+        asset = Asset.objects.get(item=self.item, name=sample["name"])
+
+        path = f"{self.item.collection.name}/{self.item.name}/{sample['name']}"
+        sha256 = parse_multihash(asset.checksum_multihash).digest.hex()
+        obj = self.get_s3_object(path)
+        self.assertS3ObjectContentType(obj, path, content_type)
+        self.assertS3ObjectSha256(obj, path, sha256)
+        self.assertS3ObjectCacheControl(obj, path, max_age=settings.STORAGE_ASSETS_CACHE_SECONDS)

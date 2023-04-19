@@ -455,6 +455,9 @@ def upload_asset_to_path_hook(instance, filename=None):
     Returns:
         Asset file path to use on S3
     '''
+    # Sets the asset media type to the storage, this will be used as ContentType when uploading the
+    # asset on S3
+    instance.file.storage.asset_content_type = instance.media_type
     logger.debug(
         'Start computing asset file %s multihash (file size: %.1f MB)',
         filename,
@@ -472,10 +475,10 @@ def upload_asset_to_path_hook(instance, filename=None):
     mhash = to_hex_string(multihash_encode(ctx.digest(), 'sha2-256'))
     # set the hash to the storage to use it for upload signing, this temporary attribute is
     # then used by storages.S3Storage to set the MetaData.sha256
-    setattr(instance.file.storage, '_tmp_sha256', ctx.hexdigest())
+    instance.file.storage.object_sha256 = ctx.hexdigest()
     # Same here for the update_interval that is used by the storages.S3Storage to set the asset's
     # update_interval
-    setattr(instance.file.storage, '_tmp_update_interval', instance.update_interval)
+    instance.file.storage.update_interval = instance.update_interval
     logger.debug(
         'Set uploaded file %s multihash %s to checksum:multihash; computation done in %.3fs',
         filename,
@@ -545,7 +548,17 @@ class Asset(models.Model):
     media_choices = [
         (x.media_type_str, f'{x.description} ({x.media_type_str})') for x in MEDIA_TYPES
     ]
-    media_type = models.CharField(choices=media_choices, max_length=200, blank=False, null=False)
+    media_type = models.CharField(
+        choices=media_choices,
+        max_length=200,
+        blank=False,
+        null=False,
+        help_text=
+        "This media type will be used as <em>Content-Type</em> header for the asset's object upon "
+        "upload.</br></br>"
+        "<b>WARNING: when updating the Media Type, the asset's object Content-Type header is not "
+        "automatically updated, it needs to be uploaded again.</b>"
+    )
 
     created = models.DateTimeField(auto_now_add=True)
     # NOTE: the updated field is automatically updated by stac_api.pgtriggers, we use auto_now_add

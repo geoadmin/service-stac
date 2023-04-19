@@ -319,14 +319,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "./components/schemas.yaml#/components/schemas/readUpdateAsset"
+              $ref: "./components/schemas.yaml#/components/schemas/assetWrite"
       responses:
         "200":
           description: Asset has been successfully updated.
           content:
             application/json:
               schema:
-                $ref: "./components/schemas.yaml#/components/schemas/readUpdateAsset"
+                $ref: "./components/schemas.yaml#/components/schemas/assetWrite"
         "201":
           description: Asset has been newly created.
           headers:
@@ -338,7 +338,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "./components/schemas.yaml#/components/schemas/createAsset"
+                $ref: "./components/schemas.yaml#/components/schemas/assetWrite"
         "400":
           $ref: "../components/responses.yaml#/components/responses/BadRequest"
         "404":
@@ -367,14 +367,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "./components/schemas.yaml#/components/schemas/readUpdateAsset"
+              $ref: "./components/schemas.yaml#/components/schemas/assetWrite"
       responses:
         "200":
           description: Returns the updated Asset.
           content:
             application/json:
               schema:
-                $ref: "./components/schemas.yaml#/components/schemas/readUpdateAsset"
+                $ref: "./components/schemas.yaml#/components/schemas/assetWrite"
         "400":
           $ref: "../components/responses.yaml#/components/responses/BadRequest"
         "404":
@@ -429,6 +429,7 @@ paths:
           description: Filter the list by status.
           schema:
             $ref: "./components/schemas.yaml#/components/schemas/status"
+        - $ref: "../components/parameters.yaml#/components/parameters/limit"
       responses:
         200:
           description: List of Asset's uploads
