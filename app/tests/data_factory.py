@@ -738,7 +738,7 @@ class AssetSample(SampleData):
         file = getattr(self, 'attr_file', None)
         file_path = f'{item.collection.name}/{item.name}/{self.attr_name}'
         if isinstance(file, bytes):
-            self.attr_file = SimpleUploadedFile(file_path, file)
+            self.attr_file = SimpleUploadedFile(file_path, file, self.get('media_type'))
 
     def get_json(self, method='get', keep_read_only=False):
         '''Returns a json serializable representation of the sample data
