@@ -30,7 +30,7 @@ class RequestResponseLoggingMiddleware:
         ):
             extra["request.payload"] = request.body[:200].decode()
 
-        logger.info(
+        logger.debug(
             "Request %s %s?%s",
             request.method.upper(),
             request.path,
