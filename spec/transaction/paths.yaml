@@ -706,6 +706,16 @@ paths:
                 $ref: "./components/schemas.yaml#/components/schemas/assetUploadCompleted"
         "400":
           $ref: "../components/responses.yaml#/components/responses/BadRequest"
+        "409":
+          description: The complete operation was already performed.
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas.yaml#/components/schemas/exception"
+              example:
+                code: 409
+                description:
+                  detail: Upload not in progress
         "404":
           $ref: "../components/responses.yaml#/components/responses/NotFound"
         "5XX":
