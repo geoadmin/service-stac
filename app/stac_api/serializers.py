@@ -7,6 +7,7 @@ from django.contrib.gis.geos import GEOSGeometry
 from django.utils.translation import gettext_lazy as _
 
 from rest_framework import serializers
+from rest_framework.exceptions import APIException
 from rest_framework.utils.serializer_helpers import ReturnDict
 from rest_framework.validators import UniqueValidator
 from rest_framework_gis import serializers as gis_serializers
@@ -827,3 +828,9 @@ class AssetUploadPartsSerializer(serializers.Serializer):
     parts = serializers.ListField(
         source='Parts', child=UploadPartSerializer(), default=list, read_only=True
     )
+
+
+class UploadNotInProgressError(APIException):
+    status_code = 409
+    default_detail = 'Upload not in progress'
+    default_code = 'conflict'
