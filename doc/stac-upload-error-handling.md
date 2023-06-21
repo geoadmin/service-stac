@@ -79,4 +79,4 @@ Note this example is only recommended if the upload is recurrent (for example ev
 
         Service is momentarily not available, wait a short moment (100ms), then retry the request.
 
-![diagram](./assets/service-stac-upload-process.png)
+![diagram](./assets/service-stac-upload-process.svg)
