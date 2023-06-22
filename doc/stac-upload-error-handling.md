@@ -80,5 +80,5 @@ Note this example is only recommended if the upload is recurrent (for example ev
         Service is momentarily not available, wait a short moment (100ms), then retry the request.
 
 
-The following figure shows the flow of a multipart upload process (raw version of this figure can be found [here](/assets/service-stac-upload-process.dia). You need [Dia](http://live.gnome.org/Dia) to edit the figure.)
+The following figure shows the flow of a multipart upload process (raw version of this figure can be found [here](./assets/service-stac-upload-process.dia). You need [Dia](http://live.gnome.org/Dia) to edit the figure.)
 ![diagram](./assets/service-stac-upload-process.svg)
