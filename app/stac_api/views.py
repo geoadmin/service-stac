@@ -35,6 +35,7 @@ from stac_api.serializers import CollectionSerializer
 from stac_api.serializers import ConformancePageSerializer
 from stac_api.serializers import ItemSerializer
 from stac_api.serializers import LandingPageSerializer
+from stac_api.serializers import UploadNotInProgressError
 from stac_api.serializers_utils import get_relation_links
 from stac_api.utils import get_asset_path
 from stac_api.utils import harmonize_post_get_for_search
@@ -661,6 +662,8 @@ class AssetUploadBase(generics.GenericAPIView):
             raise serializers.ValidationError({'parts': [_("Too many parts")]}, code='invalid')
         if len(parts) < asset_upload.number_parts:
             raise serializers.ValidationError({'parts': [_("Too few parts")]}, code='invalid')
+        if asset_upload.status != AssetUpload.Status.IN_PROGRESS:
+            raise UploadNotInProgressError()
         executor.complete_multipart_upload(key, asset, parts, asset_upload.upload_id)
         asset_upload.update_asset_from_upload()
         asset_upload.status = AssetUpload.Status.COMPLETED
