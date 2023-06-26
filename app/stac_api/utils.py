@@ -6,6 +6,7 @@ from base64 import b64decode
 from datetime import datetime
 from datetime import timezone
 from decimal import Decimal
+from decimal import InvalidOperation
 from urllib import parse
 
 import boto3
@@ -329,17 +330,22 @@ def geometry_from_bbox(bbox):
     list_bbox_values = bbox.split(',')
     if len(list_bbox_values) != 4:
         raise ValueError('A bbox is based of four values')
-    if (
-        Decimal(list_bbox_values[0]) == Decimal(list_bbox_values[2]) and
-        Decimal(list_bbox_values[1]) == Decimal(list_bbox_values[3])
-    ):
-        bbox_geometry = Point(float(list_bbox_values[0]), float(list_bbox_values[1]))
+    try:
+        list_bbox_values = list(map(Decimal, list_bbox_values))
+    except InvalidOperation as exc:
+        raise ValueError(f'Cannot convert list {list_bbox_values} to bbox') from exc
+
+    if (list_bbox_values[0] == list_bbox_values[2] and list_bbox_values[1] == list_bbox_values[3]):
+        bbox_geometry = Point(list_bbox_values[:2])
     else:
         bbox_geometry = Polygon.from_bbox(list_bbox_values)
 
     # if large values, SRID is LV95. The default SRID is 4326
-    if Decimal(list_bbox_values[0]) > 360:
+    if list_bbox_values[0] > 360:
         bbox_geometry.srid = 2056
+
+    if not bbox_geometry.valid:
+        raise ValueError(f'{bbox_geometry.valid_reason} for bbox with {bbox_geometry.wkt}')
 
     return bbox_geometry
 

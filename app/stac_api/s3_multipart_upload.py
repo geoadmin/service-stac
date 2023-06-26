@@ -11,6 +11,7 @@ from django.conf import settings
 
 from rest_framework import serializers
 
+from stac_api.serializers import UploadNotInProgressError
 from stac_api.utils import get_s3_cache_control_value
 from stac_api.utils import get_s3_client
 from stac_api.utils import isoformat
@@ -191,6 +192,17 @@ class MultipartUpload:
             )
         except ClientError as error:
             raise serializers.ValidationError(str(error)) from None
+        except KeyError as error:
+            # If we try to complete an upload that has already be completed, then a KeyError is
+            # generated. Although this should never happens because we check the state of the upload
+            # via the DB before sending the complete command to S3, it could happend if the previous
+            # complete was abruptly aborted (e.g. server crash), leaving the S3 completed without
+            # updating the DB.
+            logger.error(
+                "Failed to complete upload, probably because the upload was not in progress: %s",
+                error
+            )
+            raise UploadNotInProgressError() from None
 
         if 'Location' not in response:
             logger.error(

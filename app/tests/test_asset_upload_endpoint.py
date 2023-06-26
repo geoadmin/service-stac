@@ -948,6 +948,46 @@ class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
         )
         self.assertS3ObjectNotExists(key)
 
+    def test_asset_upload_1_parts_duplicate_complete(self):
+        key = get_asset_path(self.item, self.asset.name)
+        self.assertS3ObjectNotExists(key)
+        number_parts = 1
+        size = 1 * KB
+        file_like, checksum_multihash = get_file_like_object(size)
+        offset = size // number_parts
+        md5_parts = create_md5_parts(number_parts, offset, file_like)
+
+        response = self.client.post(
+            self.get_create_multipart_upload_path(),
+            data={
+                'number_parts': number_parts,
+                'checksum:multihash': checksum_multihash,
+                'md5_parts': md5_parts
+            },
+            content_type="application/json"
+        )
+        self.assertStatusCode(201, response)
+        json_data = response.json()
+        self.check_urls_response(json_data['urls'], number_parts)
+
+        parts = self.s3_upload_parts(json_data['upload_id'], file_like, size, number_parts)
+
+        response = self.client.post(
+            self.get_complete_multipart_upload_path(json_data['upload_id']),
+            data={'parts': parts},
+            content_type="application/json"
+        )
+        self.assertStatusCode(200, response)
+
+        response = self.client.post(
+            self.get_complete_multipart_upload_path(json_data['upload_id']),
+            data={'parts': parts},
+            content_type="application/json"
+        )
+        self.assertStatusCode(409, response)
+        self.assertEqual(response.json()['code'], 409)
+        self.assertEqual(response.json()['description'], {'detail': 'Upload not in progress'})
+
 
 class AssetUploadDeleteInProgressEndpointTestCase(AssetUploadBaseTest):
 

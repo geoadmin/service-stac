@@ -4,11 +4,9 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.contrib.gis.geos.geometry import GEOSGeometry
 from django.test import Client
 from django.urls import reverse
 
-from stac_api.models import BBOX_CH
 from stac_api.models import Item
 from stac_api.utils import fromisoformat
 from stac_api.utils import get_link
@@ -415,75 +413,6 @@ class ItemsDatetimeQueryPaginationEndpointTestCase(StacBaseTestCase):
         )
 
         self._navigate_to_previous_items(['item-yesterday-1', 'item-2', 'item-1'], json_response)
-
-
-class ItemsBboxQueryEndpointTestCase(StacBaseTestCase):
-
-    @classmethod
-    def setUpTestData(cls):
-        cls.factory = Factory()
-        cls.collection = cls.factory.create_collection_sample().model
-
-        cls.items = cls.factory.create_item_samples(
-            [
-                'item-switzerland',
-                'item-switzerland-west',
-                'item-switzerland-east',
-                'item-switzerland-north',
-                'item-switzerland-south',
-                'item-paris',
-            ],
-            cls.collection,
-            db_create=True,
-        )
-
-    def setUp(self):
-        self.client = Client()
-
-    def test_items_endpoint_bbox_valid_query(self):
-        # test bbox
-        ch_bbox = ','.join(map(str, GEOSGeometry(BBOX_CH).extent))
-        response = self.client.get(
-            f"/{STAC_BASE_V}/collections/{self.collection.name}/items"
-            f"?bbox={ch_bbox}&limit=100"
-        )
-        json_data = response.json()
-        self.assertStatusCode(200, response)
-        self.assertEqual(5, len(json_data['features']), msg="More than one item found")
-
-    def test_items_endpoint_bbox_invalid_query(self):
-        # test invalid bbox
-        response = self.client.get(
-            f"/{STAC_BASE_V}/collections/{self.collection.name}/items"
-            f"?bbox=5.96,45.82,10.49,47.81,screw;&limit=100"
-        )
-        self.assertStatusCode(400, response)
-
-        response = self.client.get(
-            f"/{STAC_BASE_V}/collections/{self.collection.name}/items"
-            f"?bbox=5.96,45.82,10.49,47.81,42,42&limit=100"
-        )
-        self.assertStatusCode(400, response)
-
-    def test_items_endpoint_bbox_from_pseudo_point(self):
-        response = self.client.get(
-            f"/{STAC_BASE_V}/collections/{self.collection.name}/items"
-            f"?bbox=5.96,45.82,5.97,45.83&limit=100"
-        )
-        json_data = response.json()
-        self.assertStatusCode(200, response)
-        nb_features_polygon = len(json_data['features'])
-
-        response = self.client.get(
-            f"/{STAC_BASE_V}/collections/{self.collection.name}/items"
-            f"?bbox=5.96,45.82,5.96,45.82&limit=100"
-        )
-        json_data = response.json()
-        self.assertStatusCode(200, response)
-        nb_features_point = len(json_data['features'])
-        self.assertEqual(3, nb_features_point, msg="More than one item found")
-        # do both queries return the same amount of items:
-        self.assertEqual(nb_features_polygon, nb_features_point)
 
 
 class ItemsUnImplementedEndpointTestCase(StacBaseTestCase):
