@@ -503,6 +503,12 @@ paths:
           $ref: "../components/responses.yaml#/components/responses/BadRequest"
         "404":
           $ref: "../components/responses.yaml#/components/responses/NotFound"
+        "409":
+          description: Another upload is already in progress, you need first to complete or abort it before creating a new upload.
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas.yaml#/components/schemas/uploadInProgress"
         "5XX":
           $ref: "../components/responses.yaml#/components/responses/ServerError"
   "/collections/{collectionId}/items/{featureId}/assets/{assetId}/uploads/{uploadId}":
@@ -714,8 +720,7 @@ paths:
                 $ref: "./schemas.yaml#/components/schemas/exception"
               example:
                 code: 409
-                description:
-                  detail: Upload not in progress
+                description: Upload not in progress
         "404":
           $ref: "../components/responses.yaml#/components/responses/NotFound"
         "5XX":
