@@ -13,12 +13,15 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import generics
 from rest_framework import mixins
 from rest_framework import serializers
+from rest_framework.exceptions import APIException
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework_condition import etag
 
 from stac_api import views_mixins
+from stac_api.exceptions import UploadInProgressError
+from stac_api.exceptions import UploadNotInProgressError
 from stac_api.models import Asset
 from stac_api.models import AssetUpload
 from stac_api.models import Collection
@@ -35,7 +38,6 @@ from stac_api.serializers import CollectionSerializer
 from stac_api.serializers import ConformancePageSerializer
 from stac_api.serializers import ItemSerializer
 from stac_api.serializers import LandingPageSerializer
-from stac_api.serializers import UploadNotInProgressError
 from stac_api.serializers_utils import get_relation_links
 from stac_api.utils import get_asset_path
 from stac_api.utils import harmonize_post_get_for_search
@@ -621,8 +623,8 @@ class AssetUploadBase(generics.GenericAPIView):
                 }
             )
             if bool(self.get_in_progress_queryset()):
-                raise serializers.ValidationError(
-                    code='unique', detail=_('Upload already in progress')
+                raise UploadInProgressError(
+                    data={"upload_id": self.get_in_progress_queryset()[0].upload_id}
                 ) from None
             raise
 
@@ -647,7 +649,7 @@ class AssetUploadBase(generics.GenericAPIView):
                 )
 
             self._save_asset_upload(executor, serializer, key, asset, upload_id, urls)
-        except serializers.ValidationError as err:
+        except APIException as err:
             executor.abort_multipart_upload(key, asset, upload_id)
             raise
 

@@ -242,6 +242,7 @@ class AssetUploadCreateEndpointTestCase(AssetUploadBaseTest):
         json_data = response.json()
         self.check_created_response(json_data)
         self.check_urls_response(json_data['urls'], number_parts)
+        initial_upload_id = json_data['upload_id']
 
         response = self.client.post(
             self.get_create_multipart_upload_path(),
@@ -252,8 +253,18 @@ class AssetUploadCreateEndpointTestCase(AssetUploadBaseTest):
             },
             content_type="application/json"
         )
-        self.assertStatusCode(400, response)
-        self.assertEqual(response.json()['description'], ["Upload already in progress"])
+        self.assertStatusCode(409, response)
+        self.assertEqual(response.json()['description'], "Upload already in progress")
+        self.assertIn(
+            "upload_id",
+            response.json(),
+            msg="The upload id of the current upload is missing from response"
+        )
+        self.assertEqual(
+            initial_upload_id,
+            response.json()['upload_id'],
+            msg="Current upload ID not matching the one from the 409 Conflict response"
+        )
 
         self.assertEqual(
             self.get_asset_upload_queryset().filter(status=AssetUpload.Status.IN_PROGRESS).count(),
@@ -313,13 +324,13 @@ class AssetUploadCreateRaceConditionTest(StacBaseTransactionTestCase, S3TestMixi
         results, errors = self.run_parallel(workers, asset_upload_atomic_create_test)
 
         for _, response in results:
-            self.assertStatusCode([201, 400], response)
+            self.assertStatusCode([201, 409], response)
 
         ok_201 = [r for _, r in results if r.status_code == 201]
-        bad_400 = [r for _, r in results if r.status_code == 400]
+        bad_409 = [r for _, r in results if r.status_code == 409]
         self.assertEqual(len(ok_201), 1, msg="More than 1 parallel request was successful")
-        for response in bad_400:
-            self.assertEqual(response.json()['description'], ["Upload already in progress"])
+        for response in bad_409:
+            self.assertEqual(response.json()['description'], "Upload already in progress")
 
 
 class AssetUpload1PartEndpointTestCase(AssetUploadBaseTest):
@@ -986,7 +997,7 @@ class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
         )
         self.assertStatusCode(409, response)
         self.assertEqual(response.json()['code'], 409)
-        self.assertEqual(response.json()['description'], {'detail': 'Upload not in progress'})
+        self.assertEqual(response.json()['description'], 'No upload in progress')
 
 
 class AssetUploadDeleteInProgressEndpointTestCase(AssetUploadBaseTest):

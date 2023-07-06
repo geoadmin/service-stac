@@ -4,7 +4,9 @@ import sys
 import django.core.exceptions
 from django.apps import AppConfig
 from django.conf import settings
+from django.http import Http404
 
+import rest_framework.exceptions
 from rest_framework import serializers
 from rest_framework.response import Response
 from rest_framework.views import exception_handler
@@ -25,6 +27,7 @@ class StacApiConfig(AppConfig):
 def custom_exception_handler(exc, context):
     # NOTE: this exception handler is only called for REST Framework endpoints. Other endpoints
     # exception are handled via middleware.exception.
+
     if isinstance(exc, django.core.exceptions.ValidationError):
         # Translate django ValidationError to Rest Framework ValidationError,
         # this is required because some validation cannot be done in the Rest
@@ -34,6 +37,10 @@ def custom_exception_handler(exc, context):
         if exc.params:
             message %= exc.params
         exc = serializers.ValidationError(exc.message, exc.code)
+    elif isinstance(exc, Http404):
+        exc = rest_framework.exceptions.NotFound()
+    elif isinstance(exc, django.core.exceptions.PermissionDenied):
+        exc = rest_framework.exceptions.PermissionDenied()
 
     # Then call REST framework's default exception handler, to get the standard error response.
     response = exception_handler(exc, context)
@@ -42,7 +49,7 @@ def custom_exception_handler(exc, context):
         # pylint: disable=protected-access
         extra = {
             "request": context['request']._request,
-            "request.query": context['request']._request.GET.urlencode()
+            "request.query": context['request']._request.GET.urlencode(),
         }
 
         if (
@@ -53,7 +60,12 @@ def custom_exception_handler(exc, context):
             extra["request.payload"] = context['request'].data
 
         logger.error("Response %s: %s", response.status_code, response.data, extra=extra)
-        response.data = {'code': response.status_code, 'description': response.data}
+
+        data = {'code': response.status_code, 'description': exc.detail}
+        # Add any exception data object to the response if any (See StacAPIException)
+        if hasattr(exc, 'data'):
+            data.update(exc.data)
+        response.data = data
         return response
 
     # If we don't have a response that's means that we have an unhandled exception that needs to
