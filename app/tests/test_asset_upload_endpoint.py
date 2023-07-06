@@ -997,7 +997,7 @@ class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
         )
         self.assertStatusCode(409, response)
         self.assertEqual(response.json()['code'], 409)
-        self.assertEqual(response.json()['description'], 'Upload not in progress')
+        self.assertEqual(response.json()['description'], 'No upload in progress')
 
 
 class AssetUploadDeleteInProgressEndpointTestCase(AssetUploadBaseTest):

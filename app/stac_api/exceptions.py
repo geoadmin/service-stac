@@ -24,11 +24,11 @@ class StacAPIException(rest_framework.exceptions.APIException):
 
 class UploadNotInProgressError(StacAPIException):
     status_code = status.HTTP_409_CONFLICT
-    default_detail = _('Upload not in progress')
+    default_detail = _('No upload in progress')
     default_code = 'conflict'
 
 
 class UploadInProgressError(StacAPIException):
     status_code = status.HTTP_409_CONFLICT
-    default_detail = _('Upload in progress')
+    default_detail = _('Upload already in progress')
     default_code = 'conflict'

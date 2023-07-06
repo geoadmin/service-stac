@@ -1261,7 +1261,7 @@ paths:
                 $ref: "#/components/schemas/exception"
               example:
                 code: 409
-                description: Upload not in progress
+                description: No upload in progress
         "404":
           $ref: "#/components/responses/NotFound"
         5XX:

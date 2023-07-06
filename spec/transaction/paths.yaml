@@ -720,7 +720,7 @@ paths:
                 $ref: "./schemas.yaml#/components/schemas/exception"
               example:
                 code: 409
-                description: Upload not in progress
+                description: No upload in progress
         "404":
           $ref: "../components/responses.yaml#/components/responses/NotFound"
         "5XX":

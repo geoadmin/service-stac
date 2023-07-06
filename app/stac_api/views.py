@@ -624,8 +624,6 @@ class AssetUploadBase(generics.GenericAPIView):
             )
             if bool(self.get_in_progress_queryset()):
                 raise UploadInProgressError(
-                    code='unique',
-                    detail=_('Upload already in progress'),
                     data={"upload_id": self.get_in_progress_queryset()[0].upload_id}
                 ) from None
             raise
