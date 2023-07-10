@@ -1040,6 +1040,13 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "404":
           $ref: "#/components/responses/NotFound"
+        "409":
+          description: Another upload is already in progress, you need first to complete
+            or abort it before creating a new upload.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/uploadInProgress"
         5XX:
           $ref: "#/components/responses/ServerError"
   /collections/{collectionId}/items/{featureId}/assets/{assetId}/uploads/{uploadId}:
@@ -1254,8 +1261,7 @@ paths:
                 $ref: "#/components/schemas/exception"
               example:
                 code: 409
-                description:
-                  detail: Upload not in progress
+                description: No upload in progress
         "404":
           $ref: "#/components/responses/NotFound"
         5XX:
@@ -3950,6 +3956,25 @@ components:
       type: string
       description: The RFC7232 ETag for the specified uploaded part.
       example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
+    uploadInProgress:
+      description: Another upload is already in progress
+      properties:
+        code:
+          type: integer
+          example: 409
+        description:
+          type: string
+          description: Description of the error
+          example: Upload already in progress
+        upload_id:
+          title: ID
+          type: string
+          description: Current Asset upload unique identifier
+          example: KrFTuglD.N8ireqry_w3.oQqNwrYI7SfSXpVRiusKah0YigDnuM06hfJNIUZg4R_No0MMW9FLU2UG5anTW0boTUYVxKfBZWCFXqnQTpjnQEo1K7la39MYpjSTvIbZgnG
+      required:
+      - code
+      - upload_id
+      type: object
   examples:
     inprogress:
       summary: In progress upload example
