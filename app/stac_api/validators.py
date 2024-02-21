@@ -64,6 +64,8 @@ MEDIA_TYPES = [
     MediaType('application/x.geojson+zip', 'Zipped GeoJSON', ['.zip']),
     MediaType('application/x.interlis; version=2.3', 'Interlis 2', ['.xtf', '.xml']),
     MediaType('application/x.interlis+zip; version=2.3', 'Zipped XTF (2.3)', ['.zip']),
+    MediaType('application/x.interlis; version=2.4', 'Interlis 2', ['.xtf', '.xml']),
+    MediaType('application/x.interlis+zip; version=2.4', 'Zipped XTF (2.4)', ['.zip']),
     MediaType('application/x.interlis; version=1', 'Interlis 1', ['.itf']),
     MediaType('application/x.interlis+zip; version=1', 'Zipped ITF', ['.zip']),
     MediaType(
