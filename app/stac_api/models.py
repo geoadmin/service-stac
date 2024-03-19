@@ -144,7 +144,7 @@ def compute_etag():
 
 
 class Link(models.Model):
-    href = models.URLField()
+    href = models.URLField(max_length=2048)
     rel = models.CharField(max_length=30, validators=[validate_link_rel])
     # added link_ to the fieldname, as "type" is reserved
     link_type = models.CharField(blank=True, null=True, max_length=150)
@@ -219,7 +219,7 @@ class Provider(models.Model):
         blank=True,
         null=True,
     )
-    url = models.URLField(blank=True, null=True)
+    url = models.URLField(blank=True, null=True, max_length=2048)
 
     class Meta:
         unique_together = (('collection', 'name'),)
