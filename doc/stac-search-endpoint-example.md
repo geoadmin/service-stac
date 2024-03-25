@@ -2,7 +2,7 @@
 
 ## Jupyter notebook
 
-This [jupyter notebook](./assets/stach-search-ednpoint-example.ipynb) serves as a simple example for using the STAC API's POST /search endpoint. For the sake of readability, some best practices, such as proper error handling, checking checksums of the downloaded files, and the like, are not (fully) implemented in this notebook.
+This [jupyter notebook](./assets/stach-search-endpoint-example.ipynb) serves as a simple example for using the STAC API's POST /search endpoint. For the sake of readability, some best practices, such as proper error handling, checking checksums of the downloaded files, and the like, are not (fully) implemented in this notebook.
 
 ## Preparation
 
