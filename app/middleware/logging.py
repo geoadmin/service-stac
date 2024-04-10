@@ -54,7 +54,7 @@ class RequestResponseLoggingMiddleware:
         # HttpResponse and JSONResponse sure have
         # (e.g. WhiteNoiseFileResponse doesn't)
         if isinstance(response, (HttpResponse, JsonResponse)):
-            extra["response"]["payload"] = response.content[:200].decode()
+            extra["response"]["payload"] = response.content.decode()[:200]
 
         logger.info("Response %s", response.status_code, extra=extra)
         # Code to be executed for each request/response after
