@@ -31,6 +31,7 @@ def checker(request):
 urlpatterns = [
     path('', include('django_prometheus.urls')),
     path('checker', checker, name='checker'),
+    path('oidc/', include('mozilla_django_oidc.urls')),
     path(f'{STAC_BASE}/', include('stac_api.urls')),
     path(f'{STAC_BASE}/admin/', admin.site.urls),
 ]

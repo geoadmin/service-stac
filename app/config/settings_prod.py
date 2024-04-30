@@ -47,7 +47,7 @@ if THIS_POD_IP:
     ALLOWED_HOSTS.append(THIS_POD_IP)
 ALLOWED_HOSTS += os.getenv('ALLOWED_HOSTS', '').split(',')
 
-# SERVICE_HOST = os.getenv('SERVICE_HOST', '127.0.0.1:8000')
+SERVICE_HOST = os.getenv('SERVICE_HOST', 'localhost:8000')
 
 # Application definition
 # Apps are grouped according to
@@ -64,6 +64,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_gis',
     'rest_framework.authtoken',
+    'mozilla_django_oidc',
     #  Note: If you use TokenAuthentication in production you must ensure
     #  that your API is only available over https.
     'admin_auto_filters',
@@ -75,6 +76,22 @@ INSTALLED_APPS = [
     'config.apps.StacAdminConfig',
     'stac_api.apps.StacApiConfig',
 ]
+
+# Authentication backends that Django should use to authenticate users.
+AUTHENTICATION_BACKENDS = (
+    'mozilla_django_oidc.auth.OIDCAuthenticationBackend',
+)
+
+# OIDC client configuration
+OIDC_RP_CLIENT_ID = os.environ['OIDC_RP_CLIENT_ID']
+OIDC_RP_CLIENT_SECRET = os.environ['OIDC_RP_CLIENT_SECRET']
+OIDC_OP_AUTHORIZATION_ENDPOINT = os.environ['OIDC_OP_AUTHORIZATION_ENDPOINT']
+OIDC_OP_TOKEN_ENDPOINT = os.environ['OIDC_OP_TOKEN_ENDPOINT']
+OIDC_OP_USER_ENDPOINT = os.environ['OIDC_OP_USER_ENDPOINT']
+OIDC_RP_SIGN_ALGO = "RS256"
+OIDC_OP_JWKS_ENDPOINT = os.environ['OIDC_OP_JWKS_ENDPOINT']
+LOGIN_REDIRECT_URL = "/"
+LOGOUT_REDIRECT_URL = "/"
 
 # Middlewares are executed in order, once for the incoming
 # request top-down, once for the outgoing response bottom up
@@ -95,6 +112,7 @@ MIDDLEWARE = [
     'middleware.cache_headers.CacheHeadersMiddleware',
     'middleware.exception.ExceptionLoggingMiddleware',
     'django_prometheus.middleware.PrometheusAfterMiddleware',
+    'middleware.oidc.OIDCLoginMiddleware'
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -267,6 +285,7 @@ TEST_RUNNER = 'tests.runner.TestRunner'
 REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': ['rest_framework.renderers.JSONRenderer'],
     'DEFAULT_AUTHENTICATION_CLASSES': [
+        # 'mozilla_django_oidc.contrib.drf.OIDCAuthentication',
         'rest_framework.authentication.BasicAuthentication',
         'rest_framework.authentication.TokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',
