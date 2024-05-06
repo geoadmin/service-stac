@@ -34,6 +34,10 @@ Attributes:
 NOTE: This list needs to be kept in sync with the openapi spec in ./spec/transaction/tags.yaml
 '''
 MEDIA_TYPES = [
+    MediaType(
+        'application/vnd.apache.parquet',
+        'Apache Parquet column-oriented data file format', ['.parquet']
+    ),
     MediaType('application/x.ascii-grid+zip', 'Zipped ESRI ASCII raster format (.asc)', ['.zip']),
     MediaType('application/x.ascii-xyz+zip', 'Zipped XYZ (.xyz)', ['.zip']),
     MediaType('application/x.e00+zip', 'Zipped e00', ['.zip']),
