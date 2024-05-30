@@ -96,7 +96,7 @@ class DummyDataHandler(CommandHandler):
             with ThreadPoolExecutor(max_workers=self.options['parallel_collections']) as executor:
                 futures_to_id = {
                     executor.submit(self.create_collection, collection_id, items, assets):
-                    collection_id for collection_id in collections
+                        collection_id for collection_id in collections
                 }
                 for future in as_completed(futures_to_id):
                     collection_id = futures_to_id[future]
