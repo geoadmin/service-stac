@@ -305,15 +305,14 @@ class MultipartUpload:
                 extra=log_extra
             )
             raise
-        else:
-            log_extra.update({'duration': time.time() - time_started, 's3_response': response})
-            logger.debug(
-                'Successfully call %s(args=%s, kwargs=%s)',
-                func.__name__,
-                args,
-                kwargs,
-                extra=log_extra
-            )
+        log_extra.update({'duration': time.time() - time_started, 's3_response': response})
+        logger.debug(
+            'Successfully call %s(args=%s, kwargs=%s)',
+            func.__name__,
+            args,
+            kwargs,
+            extra=log_extra
+        )
 
         if (
             'ResponseMetadata' in response and 'HTTPStatusCode' in response['ResponseMetadata'] and

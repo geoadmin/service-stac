@@ -525,7 +525,7 @@ class Asset(models.Model):
     description = models.TextField(blank=True, null=True, default=None)
     eo_gsd = models.FloatField(null=True, blank=True, validators=[validate_eo_gsd])
 
-    class Language(models.TextChoices):
+    class Language(models.TextChoices):  # pylint: disable=too-many-ancestors
         # pylint: disable=invalid-name
         GERMAN = 'de', _('German')
         ITALIAN = 'it', _('Italian')
@@ -611,14 +611,14 @@ class AssetUpload(models.Model):
         ]
         triggers = generates_asset_upload_triggers()
 
-    class Status(models.TextChoices):
+    class Status(models.TextChoices):  # pylint: disable=too-many-ancestors
         # pylint: disable=invalid-name
         IN_PROGRESS = 'in-progress'
         COMPLETED = 'completed'
         ABORTED = 'aborted'
         __empty__ = ''
 
-    class ContentEncoding(models.TextChoices):
+    class ContentEncoding(models.TextChoices):  # pylint: disable=too-many-ancestors
         # pylint: disable=invalid-name
         GZIP = 'gzip'
         BR = 'br'

@@ -77,7 +77,7 @@ class AssetUploadModelTestCase(TestCase, AssetUploadTestCaseMixin):
         self.assertEqual(asset_upload.ended, None, msg="Wrong default value")
         self.assertAlmostEqual(
             utc_aware(datetime.utcnow()).timestamp(),
-            asset_upload.created.timestamp(),
+            asset_upload.created.timestamp(),  # pylint: disable=no-member
             delta=1,
             msg="Wrong default value"
         )

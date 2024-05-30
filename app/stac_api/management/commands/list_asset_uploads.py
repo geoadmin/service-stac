@@ -63,7 +63,7 @@ class ListAssetUploadsHandler(CommandHandler):
                 return False
 
             # Add all db uploads
-            for db_upload in db_uploads_qs:
+            for db_upload in db_uploads_qs:  # pylint: disable=possibly-used-before-assignment
                 s3_upload = next(
                     (
                         s3_upload for s3_upload in s3_uploads
@@ -96,6 +96,7 @@ class ListAssetUploadsHandler(CommandHandler):
             only_s3_uploads = s3_uploads
 
         print(
+            # pylint: disable=possibly-used-before-assignment
             json.dumps(
                 {
                     'uploads': uploads,
