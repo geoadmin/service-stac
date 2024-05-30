@@ -12,7 +12,7 @@
 - [SPEC](#spec)
 - [Local development](#local-development)
   - [Dependencies](#dependencies)
-    - [Python3.9](#python39)
+    - [Python3.12](#python312)
     - [pipenv](#pipenv)
   - [Using Postgres on local host](#using-postgres-on-local-host)
   - [Creating the local environment](#creating-the-local-environment)
@@ -53,19 +53,19 @@ See [SPEC](./spec/README.md)
 
 Prerequisites on host for development and build:
 
-- python version 3.9
+- python version 3.12
 - libgdal-dev
 - [pipenv](https://pipenv-fork.readthedocs.io/en/latest/install.html)
 - `docker` and `docker-compose`
 
-#### Python3.9
+#### Python3.12
 
-If your Ubuntu distribution is missing Python 3.9, you may use the `deadsnakes` PPA and install it:
+If your Ubuntu distribution is missing Python 3.12, you may use the `deadsnakes` PPA and install it:
 
 ```bash
 sudo add-apt-repository ppa:deadsnakes/ppa
 sudo apt-get update
-sudo apt-get install python3.9
+sudo apt-get install python3.12
 ```
 
 #### pipenv
