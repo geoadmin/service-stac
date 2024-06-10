@@ -159,7 +159,7 @@ class ItemAdminForm(forms.ModelForm):
 
 
 @admin.register(Item)
-class ItemAdmin(admin.GeoModelAdmin):
+class ItemAdmin(admin.ModelAdmin):
     form = ItemAdminForm
     modifiable = False
 

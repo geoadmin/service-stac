@@ -1,5 +1,6 @@
 import os
-from distutils.util import strtobool
+
+from helpers.utils import strtobool
 
 
 def check_toolbar_env(request):

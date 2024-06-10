@@ -2,7 +2,7 @@
 # Container that contains basic configurations used by all other containers
 # It should only contain variables that don't change or change very infrequently
 # so that the cache is not needlessly invalidated
-FROM python:3.9-slim-bullseye as base
+FROM python:3.12-slim-bullseye as base
 ENV HTTP_PORT=8080
 ENV USER=geoadmin
 ENV GROUP=geoadmin

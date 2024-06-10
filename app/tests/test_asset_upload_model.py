@@ -2,7 +2,6 @@ import logging
 from datetime import datetime
 
 from django.core.exceptions import ValidationError
-from django.db import IntegrityError
 from django.db.models import ProtectedError
 from django.test import TestCase
 from django.test import TransactionTestCase
@@ -78,7 +77,7 @@ class AssetUploadModelTestCase(TestCase, AssetUploadTestCaseMixin):
         self.assertEqual(asset_upload.ended, None, msg="Wrong default value")
         self.assertAlmostEqual(
             utc_aware(datetime.utcnow()).timestamp(),
-            asset_upload.created.timestamp(),
+            asset_upload.created.timestamp(),  # pylint: disable=no-member
             delta=1,
             msg="Wrong default value"
         )
@@ -112,7 +111,7 @@ class AssetUploadModelTestCase(TestCase, AssetUploadTestCaseMixin):
 
         # create a second upload on asset 1 should not be allowed.
         with self.assertRaises(
-            IntegrityError, msg="Existing asset upload already in progress could be re-created."
+            ValidationError, msg="Existing asset upload already in progress could be re-created."
         ):
             asset_upload_3 = self.create_asset_upload(self.asset_1, '2nd-upload')
 
