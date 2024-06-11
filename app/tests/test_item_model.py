@@ -150,3 +150,25 @@ class ItemsModelTestCase(TestCase):
             )
             item.full_clean()
             item.save()
+
+    def test_item_create_model_valid_point_geometry(self):
+        # a correct geometry should not pose any problems
+        item = Item(
+            collection=self.collection,
+            properties_datetime=utc_aware(datetime.utcnow()),
+            name='item-1',
+            geometry=GEOSGeometry('SRID=4326;POINT (5.96 45.82)')
+        )
+        item.full_clean()
+        item.save()
+
+    def test_item_create_model_valid_linestring_geometry(self):
+        # a correct geometry should not pose any problems
+        item = Item(
+            collection=self.collection,
+            properties_datetime=utc_aware(datetime.utcnow()),
+            name='item-1',
+            geometry=GEOSGeometry('SRID=4326;LINESTRING (5.96 45.82, 5.96 47.81)')
+        )
+        item.full_clean()
+        item.save()
