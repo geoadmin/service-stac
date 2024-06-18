@@ -350,9 +350,19 @@ def geometry_from_bbox(bbox):
     return bbox_geometry
 
 
+def get_stac_version(request):
+    version = 'v1'
+    if request is not None and hasattr(request, 'resolver_match'):
+        version = request.resolver_match.namespace
+    return '0.9.0' if version == 'v0.9' else '1.0.0'
+
+
 def get_url(request, view, args=None):
     '''Get an full url based on a view name'''
-    return request.build_absolute_uri(reverse(view, args=args))
+    ns = request.resolver_match.namespace
+    if ns is not None:
+        view = ns + ':' + view
+    return request.build_absolute_uri(reverse(view, current_app=ns, args=args))
 
 
 def get_browser_url(request, view, collection=None, item=None):

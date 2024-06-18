@@ -15,9 +15,6 @@ import yaml
 
 from .version import APP_VERSION  # pylint: disable=unused-import
 
-STAC_VERSION = "0.9.0"
-STAC_VERSION_SHORT = 'v0.9'
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 os.environ['BASE_DIR'] = str(BASE_DIR)
@@ -100,7 +97,6 @@ MIDDLEWARE = [
 ROOT_URLCONF = 'config.urls'
 API_BASE = 'api'
 STAC_BASE = f'{API_BASE}/stac'
-STAC_BASE_V = f'{STAC_BASE}/{STAC_VERSION_SHORT}'
 LOGIN_URL = "/api/stac/admin/login/"
 
 TEMPLATES = [
@@ -172,7 +168,7 @@ USE_TZ = True
 
 STATIC_HOST = os.environ.get('DJANGO_STATIC_HOST', '')
 STATIC_URL = f'{STATIC_HOST}/api/stac/static/'
-STATIC_SPEC_URL = f'{STATIC_URL}spec/v0.9/'
+STATIC_SPEC_URL = f'{STATIC_URL}spec/'
 # "manage.py collectstatic" will copy all static files to this directory, and
 # whitenoise will serve the static files that are in this directory (unless DEBUG=true in which case
 # it will serve the files from the same directories "manage.py collectstatic" collects data from)

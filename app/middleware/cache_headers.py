@@ -11,7 +11,6 @@ from django.utils.cache import patch_response_headers
 logger = logging.getLogger(__name__)
 
 STAC_BASE = settings.STAC_BASE
-STAC_BASE_V = settings.STAC_BASE_V
 
 
 class CacheHeadersMiddleware:
