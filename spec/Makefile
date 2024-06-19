@@ -1,4 +1,4 @@
-SHELL = /bin/bash
+SHELL = /bin/bash -o pipefail
 .DEFAULT_GOAL := help
 
 # List of files that should be merged.
