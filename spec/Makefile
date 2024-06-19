@@ -28,7 +28,6 @@ help:
 	@echo
 	@echo "Possible targets:"
 	@echo -e " \033[1mLOCAL DOCKER TARGETS\033[0m "
-	@echo "- dockerlogin              Login to the AWS ECR registery for pulling/pushing docker images"
 	@echo -e " \033[1mTREAT THE SPECS TARGETS\033[0m "
 	@echo "- build-specs              Build the specs"
 	@echo "- lint-specs               lint the specs"
