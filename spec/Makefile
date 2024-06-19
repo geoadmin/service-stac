@@ -19,6 +19,8 @@ STATIC_BASE_DIR = static/spec/v1
 OPENAPI = $(STATIC_BASE_DIR)/openapi.yaml
 OPENAPI_TRANSACTIONAL = $(STATIC_BASE_DIR)/openapitransactional.yaml
 
+DOCKER_REGISTRY = 974517877189.dkr.ecr.eu-central-1.amazonaws.com
+
 all: help
 
 
@@ -35,14 +37,18 @@ help:
 	@echo "- serve-specs              serve the specs locally on port $(SPEC_HTTP_PORT)"
 
 
+.PHONY: dockerlogin
+dockerlogin:
+	aws --profile swisstopo-bgdi-builder ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin $(DOCKER_REGISTRY)
+
 .PHONY: build-spec-openapi
 build-spec-openapi: $(PARTS)
-	docker run --rm -v ${PWD}:/workdir 974517877189.dkr.ecr.eu-central-1.amazonaws.com/external/openapi/yq:3.3.0 yq merge -x $(PARTS) | \
+	docker run --rm -v ${PWD}:/workdir $(DOCKER_REGISTRY)/external/openapi/yq:3.3.0 yq merge -x $(PARTS) | \
 	sed -E '/\$ref:/s/"\..*?(#.*?)"/"\1"/' > $(OPENAPI)
 
 .PHONY: build-spec-transactional
 build-spec-transactional: build-spec-openapi $(OPENAPI) $(PARTS_TRANSACTIONAL)
-	docker run --rm -v ${PWD}:/workdir 974517877189.dkr.ecr.eu-central-1.amazonaws.com/external/openapi/yq:3.3.0 yq merge -x $(OPENAPI) $(PARTS_TRANSACTIONAL) | \
+	docker run --rm -v ${PWD}:/workdir $(DOCKER_REGISTRY)/external/openapi/yq:3.3.0 yq merge -x $(OPENAPI) $(PARTS_TRANSACTIONAL) | \
 	sed -E '/\$ref:/s/"\..*?(#.*?)"/"\1"/' > $(OPENAPI_TRANSACTIONAL)
 
 
@@ -52,8 +58,8 @@ build-specs: build-spec-openapi build-spec-transactional
 
 .PHONY: lint-specs
 lint-specs: build-specs
-	docker run --volume "$(PWD)":/data 974517877189.dkr.ecr.eu-central-1.amazonaws.com/external/openapi/openapi-validator:0.54.0 -e $(OPENAPI)
-	docker run --volume "$(PWD)":/data 974517877189.dkr.ecr.eu-central-1.amazonaws.com/external/openapi/openapi-validator:0.54.0 -e $(OPENAPI_TRANSACTIONAL)
+	docker run --volume "$(PWD)":/data $(DOCKER_REGISTRY)/external/openapi/openapi-validator:0.54.0 -e $(OPENAPI)
+	docker run --volume "$(PWD)":/data $(DOCKER_REGISTRY)/external/openapi/openapi-validator:0.54.0 -e $(OPENAPI_TRANSACTIONAL)
 
 
 # Start a little server that serves api.html and openapi.yaml
