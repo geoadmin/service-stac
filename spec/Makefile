@@ -19,7 +19,7 @@ STATIC_BASE_DIR = static/spec/v1
 OPENAPI = $(STATIC_BASE_DIR)/openapi.yaml
 OPENAPI_TRANSACTIONAL = $(STATIC_BASE_DIR)/openapitransactional.yaml
 
-YQ ?= docker run --rm -v ${PWD}:/workdir 974517877189.dkr.ecr.eu-central-1.amazonaws.com/external/openapi/yq:3.3.0 yq
+YQ ?= docker run --rm -v ${PWD}:/workdir 974517877189.dkr.ecr.eu-central-1.amazonaws.com/external/openapi/yq:4.44.1
 OPENAPI_VALIDATOR ?= docker run --volume "$(PWD)":/data 974517877189.dkr.ecr.eu-central-1.amazonaws.com/external/openapi/openapi-validator:0.54.0
 
 all: help
@@ -38,11 +38,11 @@ help:
 
 
 $(OPENAPI): $(PARTS)
-	$(YQ) merge -x $(^) | \
+	$(YQ) eval-all '. as $$item ireduce ({}; . *nd $$item )' $(^) | \
 	sed -E '/\$ref:/s/"\..*?(#.*?)"/"\1"/' > $(@)
 
 $(OPENAPI_TRANSACTIONAL): $(OPENAPI) $(PARTS_TRANSACTIONAL)
-	$(YQ) merge -x $(^) | \
+	$(YQ) eval-all '. as $$item ireduce ({}; . *nd $$item )' $(^) | \
 	sed -E '/\$ref:/s/"\..*?(#.*?)"/"\1"/' > $(@)
 
 .PHONY: build-specs
