@@ -15,7 +15,7 @@ PARTS := openapi.yaml $(PARTS_COMPONENTS)
 TRANSACTIONAL_DIR = ./transaction
 PARTS_TRANSACTIONAL = $(shell find $(TRANSACTIONAL_DIR) -type f -name "*.yaml" -print)
 
-STATIC_BASE_DIR = static/spec/v0.9
+STATIC_BASE_DIR = static/spec/v1
 OPENAPI = $(STATIC_BASE_DIR)/openapi.yaml
 OPENAPI_TRANSACTIONAL = $(STATIC_BASE_DIR)/openapitransactional.yaml
 

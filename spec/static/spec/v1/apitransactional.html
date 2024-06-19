@@ -1,0 +1,48 @@
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <link rel="icon" href="/api/stac/static/style/favicon.ico">
+    <link rel="stylesheet" href="/api/stac/static/style/style.css" type="text/css">
+    <title>data.geo.admin.ch STAC API</title>
+</head>
+
+<body>
+    <header style="border-bottom:4px solid #dc0018;">
+        <a href="/api/stac/v0.9/" class="brand hidden-xs" title="Back to home">
+            <img src="/api/stac/static/style/logo-CH.svg" onerror="this.onerror=null; this.src='/api/stac/static/style/logo-CH.png'" alt="Back to home" />
+            <h1>data.geo.admin.ch STAC API</h1>
+        </a>
+    </header>
+
+    <div id="content" class="row" style="background-color:white;">
+        <script src="https://cdn.jsdelivr.net/npm/redoc@next/bundles/redoc.standalone.js"> </script>
+        <script type="text/javascript">
+               Redoc.init('openapitransactional.yaml', {
+                   expandResponses: "200,201,202,203,204",
+                   pathInMiddlePanel: true,
+                   hideDownloadButton: true
+               }, document.getElementById('content'));
+        </script>
+    </div>
+    <footer>
+        <div id="footer" class="row">
+            <div class="col-md-6 footer-columns footer-columns-adaptation-api ">
+                <p>
+                    <a href="https://www.geo.admin.ch/de/ueber-geo-admin/organisation.html">geo.admin.ch</a> |
+                    <a href="https://www.geo.admin.ch/de/ueber-geo-admin/impressum.html">Rechtliches</a> -
+                    <a href="https://www.geo.admin.ch/fr/geo-admin-ch/impressum.html"><i>Conditions d'utilisation</i></a>
+                </p>
+            </div>
+            <div class="col-md-6 footer-columns-api  right">
+                <p>
+                    <a href="http://www.disclaimer.admin.ch">www.disclaimer.admin.ch</a>
+                </p>
+            </div>
+        </div>
+    </footer>
+</body>
+
+</html>

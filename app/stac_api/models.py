@@ -269,7 +269,7 @@ class Collection(models.Model):
     # only for the initial value.
     updated = models.DateTimeField(auto_now_add=True)
     description = models.TextField()
-    extent_geometry = models.PolygonField(
+    extent_geometry = models.GeometryField(
         default=None, srid=4326, editable=False, blank=True, null=True
     )
     extent_start_datetime = models.DateTimeField(editable=False, null=True, blank=True)
@@ -364,7 +364,7 @@ class Item(models.Model):
     collection = models.ForeignKey(
         Collection, on_delete=models.PROTECT, help_text=_(SEARCH_TEXT_HELP_COLLECTION)
     )
-    geometry = models.PolygonField(
+    geometry = models.GeometryField(
         null=False, blank=False, default=BBOX_CH, srid=4326, validators=[validate_geometry]
     )
     created = models.DateTimeField(auto_now_add=True)

@@ -1,0 +1,4008 @@
+openapi: 3.0.3
+info:
+  contact:
+    name: API Specification (based on STAC)
+    url: http://data.geo.admin.ch/api/stac/v1/
+  description: >-
+    This is an OpenAPI definition of the API to query and access federal geodata on
+    data.geo.admin.ch. The API is based on the core SpatioTemporal Asset Catalog API
+    specification [STAC](http://stacspec.org) and adds two extensions for extended
+    searching possibilities.
+  title: The SpatioTemporal Asset Catalog API for data.geo.admin.ch
+  version: 1.0.0
+servers:
+- description: Data.geo.admin.ch
+  url: http://data.geo.admin.ch/api/stac/v1
+tags:
+- description: Essential characteristics of this API
+  name: Capabilities
+- description: Access to data (features)
+  name: Data
+- description: Extension to OGC API - Features to support STAC metadata model and
+    search API
+  name: STAC
+- name: Data Management
+  description: |
+    Metadata management requests. Theses requests are used to create, update or delete the STAC
+    metadata.
+
+    *NOTE: these requests require authentication as described in [here](#tag/Authentication).*
+
+    ## Supported Media Type
+
+    List of the current supported media types:
+
+    | Media Type | Description | File Extension(s) |
+    | ---------- | ----------- | ----------------- |
+    | application/x.ascii-grid+zip | Zipped ESRI ASCII raster format (.asc) | .zip |
+    | application/x.ascii-xyz+zip | Zipped XYZ (.xyz) | .zip |
+    | application/x.e00+zip | Zipped e00 | .zip |
+    | application/x.geotiff+zip | Zipped GeoTIFF | .zip |
+    | image/tiff; application=geotiff | GeoTIFF | .tiff, .tif |
+    | application/x.tiff+zip | Zipped TIFF | .zip |
+    | application/x.png+zip | Zipped PNG | .zip |
+    | application/x.jpeg+zip | Zipped JPEG | .zip |
+    | application/vnd.google-earth.kml+xml | KML | .kml |
+    | application/vnd.google-earth.kmz | Zipped KML | .kmz |
+    | application/x.dxf+zip | Zipped DXF | .zip |
+    | application/gml+xml | GML | .gml, .xml |
+    | application/x.gml+zip | Zipped GML | .zip |
+    | application/vnd.las | LIDAR | .las |
+    | application/vnd.laszip | Zipped LIDAR | .laz, .zip |
+    | application/x.shapefile+zip | Zipped Shapefile | .zip |
+    | application/x.filegdb+zip | Zipped File Geodatabase | .zip |
+    | application/x.filegdbp+zip | Zipped File Geodatabase (ArcGIS Pro) | .zip |
+    | application/x.ms-access+zip | Zipped Personal Geodatabase | .zip |
+    | application/x.ms-excel+zip | Zipped Excel | .zip |
+    | application/x.tab+zip | Zipped Mapinfo-TAB | .zip |
+    | application/x.tab-raster+zip | Zipped Mapinfo-Raster-TAB | .zip |
+    | application/x.csv+zip | Zipped CSV | .zip |
+    | text/csv | CSV | .csv |
+    | application/geopackage+sqlite3 | Geopackage | .gpkg |
+    | application/x.geopackage+zip | Zipped Geopackage | .zip |
+    | application/geo+json | GeoJSON (<span style="color: red">does not support auto HTTP compression !</span>) | .json, .geojson |
+    | application/x.geojson+zip | Zipped GeoJSON | .zip |
+    | application/x.interlis; version=2.3 | Interlis 2 | .xtf, .xml |
+    | application/x.interlis+zip; version=2.3 | Zipped XTF (2.3) | .zip |
+    | application/x.interlis; version=1 | Interlis 1 | .itf |
+    | application/x.interlis+zip; version=1 | Zipped ITF | .zip |
+    | image/tiff; application=geotiff; profile=cloud-optimized | Cloud Optimized GeoTIFF (COG) | .tiff, .tif |`
+    | application/pdf | PDF | .pdf |
+    | application/x.pdf+zip | Zipped PDF | .zip |
+    | application/json | JSON | .json |
+    | application/x.json+zip | Zipped JSON | .zip |
+    | application/x-netcdf | NetCDF | .nc |
+    | application/x.netcdf+zip | Zipped NetCDF | .zip |
+    | application/xml | XML | .xml |
+    | application/x.xml+zip | Zipped XML | .zip |
+    | application/vnd.mapbox-vector-tile | mbtiles | .mbtiles |
+    | text/plain | Text | .txt |
+    | text/x.plain+zip | Zipped text | .zip |
+    | application/x.dwg+zip | Zipped DWG | .zip |
+    | application/zip | Generic Zip File | .zip |
+    | image/tiff | TIFF | .tiff, .tif |
+    | image/jpeg | JPEG | .jpeg, .jpg |
+    | image/png | PNG | .png |
+    | application/vnd.sqlite3 | sqlite | .sqlite |
+- name: Asset Upload Management
+  description: |
+    Asset files are uploaded via the STAC API using the API requests described in this chapter.
+
+    - [Authentication](#section/Authentication)
+    - [Compression](#section/Compression)
+    - [Example](#section/Example)
+
+    <span style="color:red">***IMPORTANT NOTES:***</span>
+      - <span style="color:red">*Files bigger than 10 MB should use compression,
+        see [Compression](#section/Compression)*</span>
+
+
+    ## Authentication
+
+    POST/PUT requests require authentication as described in [here](#tag/Authentication).
+
+    ## Compression
+
+    Files between *1 MB* and *10 MB* are automatically compressed during download using *gzip* or
+    *br* based on the `Accept-Encoding` header of the request. But note that this compression is
+    only done for standard Media Type (see [File types that CloudFront compresses](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/ServingCompressedFiles.html#compressed-content-cloudfront-file-types)).
+
+    <span style="color: red">It is highly recommended to upload files bigger than *10 MB* using
+    a compressed media type (see [Supported Media Type](#section/Supported-Media-Type)) !
+    If this not possible (as e.g. for json directly usd in a browser application), the file should
+    be either compressed upfront (see below) or split in smaller files.</span>
+
+    ### Upfront Compression using `content_encoding`
+
+    In the case where you have a file bigger than 10 MB that you can't split into multiple files
+    or pack into a compressed media type, then you can use the upfront compression method together
+    with the `content_encoding` parameter.
+
+    For this you need to first compress the file using gzip or br compression algorithm and then
+    use the `content_encoding` parameter in the [Create Asset's multipart upload](#tag/Asset-Upload-Management/operation/createAssetUpload)
+
+    ***NOTES:***
+     - In this case the file will be always delivered compressed, which means that the client that
+     download the file needs to be compatible with the HTTP Compression algorithm defined in
+     `Content-Encoding` header.
+
+
+    ## Example
+
+    ```python
+    import os
+    import hashlib
+    from base64 import b64encode
+
+    import requests
+    import multihash
+
+    # variables
+    scheme = 'https'
+    hostname = 'data.geo.admin.ch'
+    collection = 'ch.swisstopo.pixelkarte-farbe-pk200.noscale'
+    item = 'smr200-200-4-2016'
+    asset = 'smr200-200-4-2016-2056-kgrs-10.tiff'
+    asset_path = f'collections/{collection}/items/{item}/assets/{asset}'
+    user = os.environ.get('STAC_USER', 'unknown-user')
+    password = os.environ.get('STAC_PASSWORD', 'unknown-password')
+
+    with open('smr200-200-4-2016-2056-kgrs-10.tiff', 'rb') as fd:
+      data = fd.read()
+
+    checksum_multihash = multihash.to_hex_string(multihash.encode(hashlib.sha256(data).digest(), 'sha2-256'))
+    md5 = b64encode(hashlib.md5(data).digest()).decode('utf-8')
+
+    # 1. Create a multipart upload
+    response = requests.post(
+      f"{scheme}://{hostname}/api/stac/v0.9/{asset_path}/uploads",
+      auth=(user, password),
+      json={
+        "number_parts": 1,
+        "md5_parts": [{
+          "part_number": 1,
+          "md5": md5
+        }],
+        "checksum:multihash": checksum_multihash
+      }
+    )
+    upload_id = response.json()['upload_id']
+
+    # 2. Upload the part using the presigned url
+    response = requests.put(response.json()['urls'][0]['url'], data=data, headers={'Content-MD5': md5})
+    etag = response.headers['ETag']
+
+    # 3. Complete the upload
+    response = requests.post(
+      f"{scheme}://{hostname}/api/stac/v0.9/{asset_path}/uploads/{upload_id}/complete",
+      auth=(user, password),
+      json={'parts': [{'etag': etag, 'part_number': 1}]}
+    )
+    ```
+
+    See https://aws.amazon.com/premiumsupport/knowledge-center/data-integrity-s3/ for other examples on how to compute the base64 MD5 of a part.
+- name: Authentication
+  description: |
+    All write requests require authentication. There is currently three type of supported authentications:
+
+    * [Session authentication](#section/Session-authentication)
+    * [Basic authentication](#section/Basic-authentication)
+    * [Token authentication](#section/Token-authentication)
+
+    ## Session authentication
+
+    When using the browsable API the user can simply use the admin interface for logging in.
+    Once logged in, the browsable API can be used to perform write requests.
+
+    ## Basic authentication
+
+    The username and password for authentication can be added to every write request the user wants to perform.
+    Here is an example of posting an asset using curl (_username_="MickeyMouse", _password_="I_love_Minnie_Mouse"):
+
+    ```
+    curl --request POST \
+      --user MickeyMouse:I_love_Minnie_Mouse \
+      --url https://data.geoadmin.ch/api/stac/v0.9/collections/ch.swisstopo.swisstlmregio/items/swisstlmregio-2020/assets \
+      --header 'Content-Type: application/json' \
+      --data '{
+        "id": "fancy_unique_id",
+        "item": "swisstlmregio-2020",
+        "title": "My title",
+        "type": "application/x.filegdb+zip",
+        "description": "My description",
+        "proj:epsg": 2056,
+        "checksum:multihash": "12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC"
+    }'
+    ```
+
+    ## Token authentication
+
+    A user specific token for authentication can be added to every write request the user wants to perform.
+    Here is an example of posting an asset using curl:
+
+    ```
+    curl --request POST \
+      --url https://data.geoadmin.ch/api/stac/v0.9/collections/ch.swisstopo.swisstlmregio/items/swisstlmregio-2020/assets \
+      --header 'Authorization: Token ccecf40693bfc52ba090cd46eb7f19e723fe831f' \
+      --header 'Content-Type: application/json' \
+      --data '{
+        "id": "fancy_unique_id",
+        "item": "swisstlmregio-2020",
+        "title": "My title",
+        "type": "application/x.filegdb+zip",
+        "description": "My description",
+        "proj:epsg": 2056,
+        "checksum:multihash": "12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC"
+    }'
+    ```
+
+    Tokens can either be generated in the admin interface or existing users can perform a POST request
+    on the get-token endpoint to request a token (also see [Request token for token authentication](#operation/getToken)).
+    Here is an example using curl:
+
+    ```
+    curl --request POST \
+      --url https://data.geoadmin.ch/api/stac/get-token \
+      --header 'Content-Type: application/json' \
+      --data '{"username": "MickeyMouse", "password": "I_love_Minnie_Mouse"}'
+    ```
+paths:
+  /:
+    get:
+      description: >-
+        The landing page provides links to the API definition, the conformance statements
+        and to the feature collections in this dataset.
+      operationId: getLandingPage
+      responses:
+        "200":
+          $ref: "#/components/responses/LandingPage"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      summary: Landing page
+      tags:
+      - Capabilities
+  /collections:
+    get:
+      operationId: getCollections
+      parameters:
+      - $ref: "#/components/parameters/limit"
+      responses:
+        "200":
+          $ref: "#/components/responses/Collections"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      summary: Fetch collections
+      description: The feature collections in the dataset
+      tags:
+      - Data
+  /collections/{collectionId}:
+    get:
+      operationId: describeCollection
+      parameters:
+      - $ref: "#/components/parameters/collectionId"
+      - $ref: "#/components/parameters/IfMatch"
+      - $ref: "#/components/parameters/IfNoneMatch"
+      responses:
+        "200":
+          $ref: "#/components/responses/Collection"
+        "304":
+          $ref: "#/components/responses/NotModified"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      summary: Fetch a single collection
+      description: Describe the feature collection with id `collectionId`
+      tags:
+      - Data
+    put:
+      tags:
+      - Data Management
+      summary: Update or create a collection
+      description: >-
+        Update or create a collection with Id `collectionId` with a complete collection
+        definition. If the collection doesn't exists it is then created.
+      operationId: updateCollection
+      parameters:
+      - $ref: "#/components/parameters/collectionId"
+      - $ref: "#/components/parameters/IfMatchWrite"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/collectionWrite"
+            example:
+              description: The National Map 1:200,000 is a topographic map giving
+                an overview of Switzerland.
+              id: ch.swisstopo.pixelkarte-farbe-pk200.noscale
+              license: proprietary
+              links:
+              - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
+                rel: license
+                title: Licence for the free geodata of the Federal Office of Topography
+                  swisstopo
+              - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
+                rel: describedby
+              providers:
+              - name: Federal Office of Topography - swisstopo
+                roles:
+                - producer
+                - licensor
+                url: https://www.swisstopo.admin.ch
+              title: National Map 1:200'000
+      responses:
+        "200":
+          description: Returns the updated Collection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/collection"
+        "201":
+          description: Returns the created Collection
+          headers:
+            Location:
+              description: A link to the collection
+              schema:
+                type: string
+                format: url
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/collection"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    patch:
+      tags:
+      - Data Management
+      summary: Partial update of a collection
+      description: >-
+        Update an existing collection with Id `collectionId` with a partial collection
+        definition
+      operationId: partialUpdateCollection
+      parameters:
+      - $ref: "#/components/parameters/collectionId"
+      - $ref: "#/components/parameters/IfMatch"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/collectionWrite"
+            example:
+              id: ch.swisstopo.pixelkarte-farbe-pk200.noscale
+              license: proprietary
+              links:
+              - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
+                rel: license
+                title: Licence for the free geodata of the Federal Office of Topography
+                  swisstopo
+              - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
+                rel: describedby
+              providers:
+              - name: Federal Office of Topography - swisstopo
+                roles:
+                - producer
+                - licensor
+                url: https://www.swisstopo.admin.ch
+              title: National Map 1:200'000
+      responses:
+        "200":
+          description: Returns the updated Collection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/collection"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "#/components/responses/ServerError"
+  /collections/{collectionId}/items:
+    get:
+      description: >-
+        Fetch features of the feature collection with id `collectionId`.
+
+
+        Every feature in a dataset belongs to a collection. A dataset may consist
+        of multiple feature collections. A feature collection is often a collection
+        of features of a similar type, based on a common schema.
+
+
+        Use content negotiation to request HTML or GeoJSON.
+      operationId: getFeatures
+      parameters:
+      - $ref: "#/components/parameters/collectionId"
+      - $ref: "#/components/parameters/limit"
+      - $ref: "#/components/parameters/bbox"
+      - $ref: "#/components/parameters/datetime"
+      responses:
+        "200":
+          $ref: "#/components/responses/Features"
+        "400":
+          $ref: "#/components/responses/InvalidParameter"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      summary: Fetch features
+      tags:
+      - Data
+  /collections/{collectionId}/items/{featureId}:
+    get:
+      description: >-
+        Fetch the feature with id `featureId` in the feature collection with id `collectionId`.
+
+
+        Use content negotiation to request HTML or GeoJSON.
+      operationId: getFeature
+      parameters:
+      - $ref: "#/components/parameters/collectionId"
+      - $ref: "#/components/parameters/featureId"
+      - $ref: "#/components/parameters/IfMatch"
+      - $ref: "#/components/parameters/IfNoneMatch"
+      responses:
+        "200":
+          $ref: "#/components/responses/Feature"
+        "304":
+          $ref: "#/components/responses/NotModified"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      summary: Fetch a single feature
+      tags:
+      - Data
+    put:
+      summary: Update or create a feature
+      description: >-
+        Update or create a feature with Id `featureId` with a complete feature definition.
+        If the feature doesn't exists it is then created.
+
+
+        *NOTE: Optional fields that are not part of the PUT payload, will be erased
+        in the resource. For example if the resource has a properties.title and the
+        PUT payload doesn't, then the resource's properties.title will be removed.*
+      operationId: putFeature
+      tags:
+      - Data Management
+      parameters:
+      - $ref: "#/components/parameters/collectionId"
+      - $ref: "#/components/parameters/featureId"
+      - $ref: "#/components/parameters/IfMatchWrite"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/updateItem"
+            example:
+              id: cs3-20160503_132131_05
+              geometry:
+                type: Polygon
+                coordinates:
+                - - - 7.0906823
+                    - 45.9160584
+                  - - 7.1035698
+                    - 45.9160977
+                  - - 7.1035146
+                    - 45.925093
+                  - - 7.0906249
+                    - 45.9250537
+                  - - 7.0906823
+                    - 45.9160584
+              properties:
+                datetime: "2016-05-03T13:22:30.040Z"
+                title: A CS3 item
+              links:
+              - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
+                rel: license
+                title: Licence for the free geodata of the Federal Office of Topography
+                  swisstopo
+              - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
+                rel: describedby
+      responses:
+        "200":
+          description: Returns the updated Item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/item"
+        "201":
+          description: Return the created Item.
+          headers:
+            Location:
+              description: A link to the item
+              schema:
+                type: string
+                format: url
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/item"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        5XX:
+          $ref: "#/components/responses/ServerError"
+    patch:
+      summary: Update an existing feature by Id with a partial item definition
+      description: >-
+        Use this method to update an existing feature. Requires a JSON fragment (containing
+        the fields to be updated) be submitted.
+      operationId: patchFeature
+      tags:
+      - Data Management
+      parameters:
+      - $ref: "#/components/parameters/collectionId"
+      - $ref: "#/components/parameters/featureId"
+      - $ref: "#/components/parameters/IfMatchWrite"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/partialItem"
+      responses:
+        "200":
+          description: Returns the updated Item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/item"
+        "201":
+          description: Returns the created Item
+          headers:
+            Location:
+              description: A link to the item
+              schema:
+                type: string
+                format: url
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/item"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        5XX:
+          $ref: "#/components/responses/ServerError"
+    delete:
+      summary: Delete an existing feature by Id
+      description: Use this method to delete an existing feature/item.
+      operationId: deleteFeature
+      tags:
+      - Data Management
+      parameters:
+      - $ref: "#/components/parameters/collectionId"
+      - $ref: "#/components/parameters/featureId"
+      - $ref: "#/components/parameters/IfMatchWrite"
+      responses:
+        "200":
+          $ref: "#/components/responses/DeletedResource"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        5XX:
+          $ref: "#/components/responses/ServerError"
+  /{assetObjectHref}:
+    servers:
+    - url: http://data.geo.admin.ch/
+    parameters:
+    - $ref: "#/components/parameters/assetObjectHref"
+    get:
+      tags:
+      - Data
+      summary: Fetch an asset object
+      parameters:
+      - $ref: "#/components/parameters/IfNoneMatch"
+      operationId: getAssetObject
+      description: |
+        Return an asset object
+
+        ### Notes on Caching
+
+        Asset objects are cached by default for 2 hours (7200 seconds). Depending on the
+        update interval of an asset object (e.g. for frequently updated data)
+        the `Cache-Control` header can be different, in special cases it can even be
+        set to `no-cache` (e.g. for realtime data).
+
+        All endpoints support the precondition headers `If-Match` and `If-None-Match`.
+        To reduce unnecessary traffic it's highly recommended to use these headers
+        (mostly `If-None-Match`) when making calls.
+
+        In case your application is using frequently updated data and you want to
+        be sure not to miss an update of the data, the recommended procedure is as
+        follows:
+
+        ```python
+        import requests
+        import time
+
+        refresh_interval = 60
+
+        item_etag = "*"
+        item_url = "https://data.geo.admin.ch/collections/{collectionID}/items/{itemId}"
+
+        asset_id = 'data.json'
+        asset_etag = "*"
+
+        poll_for_new_data = True
+
+        while(poll_for_new_data):
+          item_response = requests.get(item_url, headers={'If-None-Match': f'"{item_etag}"'})
+          if item_response.status_code == 304:
+            # item metadata and hence any associated asset object didn't
+            # change since last call
+
+            time.sleep(refresh_interval)
+
+          elif item_response.status_code == 200:
+            # item metadata has changed since last visit
+
+            item_etag = item_response.headers.get("ETag") # save the new etag
+            asset_href = item_response.json['assets'][asset_id]['href'] # save the asset href
+
+            obj_response = requests.get(asset_href, headers={'If-None-Match': f'"{asset_etag}"'})
+            if obj_response.status_code == 304:
+              # "our" asset object didn't change since last call,
+              # we can ignore that the item metadata changed,
+              # it was a different asset that has changed
+
+              time.sleep(refresh_interval)
+
+            elif obj_response.status_code == 200:
+              # "our" asset object has changed, we load the new data
+
+              asset_etag = obj_response.headers.get("ETag")  # save the new asset etag
+              asset_checksum = obj_response.headers.get("X-Amz-Meta-Sha256")
+              object = obj_response.data
+
+              # calculate the sha256 checksum of the data in a proper way
+              checksum = calc_checksum(object)
+              if checksum != asset_checksum:
+                # Error: corrupted data from download
+                # do proper error handling
+
+              # do sth with the data
+            else:
+              # do proper error handling
+          else:
+            # do proper error handling
+        ```
+      responses:
+        "200":
+          description: The asset object
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
+            Cache-Control:
+              description: |
+                Cache header for the asset object
+              example: "public, max-age=7200"
+              schema:
+                type: string
+              required: true
+            Content-Type:
+              description: |
+                The content type of the asset object as specified in the [asset object
+                metadata](#tag/Data/operation/getFeature)
+              required: true
+              schema:
+                type: string
+            X-Amz-Meta-Sha256:
+              description: |
+                SHA256 checksum of the asset object.
+
+                This checksum can be compared with the asset metadata `checksum:multihash` field
+                (see [asset object metadata](#tag/Data/operation/getFeature)). Note that the
+                `checksum:multihash` field is a multihash while `X-Amz-Meta-Sha256` is a SHA256.
+                See [multihash](https://multiformats.io/multihash/) for more information.
+              required: true
+              example: 3dd6e1ead0760d278344394b0e7f017b5b6049e4fed3d2083b564fc268f07334
+              schema:
+                $ref: "#/components/schemas/sha256"
+        "304":
+          $ref: "#/components/responses/NotModified"
+        "404":
+          $ref: "#/components/responses/NotFoundS3"
+        "412":
+          $ref: "#/components/responses/PreconditionFailedS3"
+  /conformance:
+    get:
+      description: >-
+        A list of all conformance classes specified in a standard that the server
+        conforms to.
+      operationId: getConformanceDeclaration
+      responses:
+        "200":
+          $ref: "#/components/responses/ConformanceDeclaration"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      summary: Information about specifications that this API conforms to
+      tags:
+      - Capabilities
+  /search:
+    get:
+      description: >-
+        Retrieve Items matching filters. Intended as a shorthand API for simple queries.
+      operationId: getSearchSTAC
+      parameters:
+      - $ref: "#/components/parameters/bbox"
+      - $ref: "#/components/parameters/datetime"
+      - $ref: "#/components/parameters/limit"
+      - $ref: "#/components/parameters/ids"
+      - $ref: "#/components/parameters/collectionsArray"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/itemsSearchGet"
+          description: A feature collection.
+        "500":
+          $ref: "#/components/responses/ServerError"
+      summary: Search STAC items with simple filtering.
+      tags:
+      - STAC
+    post:
+      description: >-
+        Retrieve items matching filters. Intended as the standard, full-featured query
+        API.
+      operationId: postSearchSTAC
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/searchBody"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/itemsSearchPost"
+          description: A feature collection.
+        "500":
+          $ref: "#/components/responses/ServerError"
+      summary: Search STAC items with full-featured filtering.
+      tags:
+      - STAC
+  /collections/{collectionId}/items/{featureId}/assets:
+    get:
+      description: >-
+        Fetch assets of the item with id `featureId`.
+
+        Every asset belongs to an item.
+      operationId: getAssets
+      parameters:
+      - $ref: "#/components/parameters/collectionId"
+      - $ref: "#/components/parameters/featureId"
+      responses:
+        "200":
+          $ref: "#/components/responses/Assets"
+        "400":
+          $ref: "#/components/responses/InvalidParameter"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      summary: Fetch all assets for a feature
+      tags:
+      - Data
+  /collections/{collectionId}/items/{featureId}/assets/{assetId}:
+    get:
+      description: >-
+        Fetch the asset with id `assetId` of the feature with id `featureId` in the
+        feature collection with id `collectionId`.
+      operationId: getAsset
+      parameters:
+      - $ref: "#/components/parameters/collectionId"
+      - $ref: "#/components/parameters/featureId"
+      - $ref: "#/components/parameters/assetId"
+      - $ref: "#/components/parameters/IfMatch"
+      - $ref: "#/components/parameters/IfNoneMatch"
+      responses:
+        "200":
+          $ref: "#/components/responses/Asset"
+        "304":
+          $ref: "#/components/responses/NotModified"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      summary: Fetch a single asset
+      tags:
+      - Data
+    put:
+      summary: Update or create an asset
+      description: >-
+        Update or create an asset with Id `assetId` with a complete asset definition.
+        If the asset doesn't exists it is then created.
+
+
+        *Note: to upload an asset file see [Asset Upload Management](#tag/Asset-Upload-Management)*
+      operationId: putAsset
+      tags:
+      - Data Management
+      parameters:
+      - $ref: "#/components/parameters/collectionId"
+      - $ref: "#/components/parameters/featureId"
+      - $ref: "#/components/parameters/assetId"
+      - $ref: "#/components/parameters/IfMatchWrite"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/assetWrite"
+      responses:
+        "200":
+          description: Asset has been successfully updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/assetWrite"
+        "201":
+          description: Asset has been newly created.
+          headers:
+            Location:
+              description: A link to the asset
+              schema:
+                type: string
+                format: url
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/assetWrite"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        5XX:
+          $ref: "#/components/responses/ServerError"
+    patch:
+      summary: Update an existing asset by Id with a partial asset definition
+      description: >-
+        Use this method to update an existing asset. Requires a JSON fragment (containing
+        the fields to be updated) be submitted.
+
+
+        *Note: to upload an asset file see [Asset Upload Management](#tag/Asset-Upload-Management)*
+      operationId: patchAsset
+      tags:
+      - Data Management
+      parameters:
+      - $ref: "#/components/parameters/collectionId"
+      - $ref: "#/components/parameters/featureId"
+      - $ref: "#/components/parameters/assetId"
+      - $ref: "#/components/parameters/IfMatchWrite"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/assetWrite"
+      responses:
+        "200":
+          description: Returns the updated Asset.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/assetWrite"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        5XX:
+          $ref: "#/components/responses/ServerError"
+    delete:
+      summary: Delete an existing asset by Id
+      description: >-
+        Use this method to delete an existing asset.
+
+
+        **NOTE: Asset file on S3 will be also removed !**
+      operationId: deleteAsset
+      tags:
+      - Data Management
+      parameters:
+      - $ref: "#/components/parameters/collectionId"
+      - $ref: "#/components/parameters/featureId"
+      - $ref: "#/components/parameters/assetId"
+      - $ref: "#/components/parameters/IfMatchWrite"
+      responses:
+        "200":
+          $ref: "#/components/responses/DeletedResource"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        5XX:
+          $ref: "#/components/responses/ServerError"
+  /collections/{collectionId}/items/{featureId}/assets/{assetId}/uploads:
+    parameters:
+    - $ref: "#/components/parameters/collectionId"
+    - $ref: "#/components/parameters/featureId"
+    - $ref: "#/components/parameters/assetId"
+    get:
+      tags:
+      - Asset Upload Management
+      summary: List all Asset's multipart uploads
+      description: >-
+        Return a list of all Asset's multipart uploads that are in progress and have
+        been completed or aborted.
+      operationId: getAssetUploads
+      parameters:
+      - name: status
+        in: query
+        description: Filter the list by status.
+        schema:
+          $ref: "#/components/schemas/status"
+      - $ref: "#/components/parameters/limit"
+      responses:
+        "200":
+          description: List of Asset's uploads
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/assetUploads"
+              example:
+                uploads:
+                - upload_id: KrFTuglD.N8ireqry_w3.oQqNwrYI7SfSXpVRiusKah0YigDnusebaJNIUZg4R_No0MMW9FLU2UG5anTW0boTUYVxKfBZWCFXqnQTpjnQEo1K7la39MYpjSTvIbZgnG
+                  status: in-progress
+                  number_parts: 1
+                  urls:
+                  - url: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-4-2019/smr50-263-2016-2056-kgrs-2.5.tiff
+                    part: 1
+                    expires: "2019-08-24T14:15:22Z"
+                  created: "2019-08-24T14:15:22Z"
+                  checksum:multihash: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
+                - upload_id: KrFTuglD.N8ireqry_w3.oQqNwrYI7SfSXpVRiusKah0YaaegJNIUZg4R_No0MMW9FLU2UG5anTW0boTUYVxKfBZWCFXqnQTpjnQEo1K7la39MYpjSTvIbZgnG
+                  status: completed
+                  number_parts: 1
+                  created: "2019-08-24T14:15:22Z"
+                  completed: "2019-08-24T14:15:22Z"
+                  checksum:multihash: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
+                - upload_id: KrFTuglD.N8ireqry_w3.oQqNwrYI7SfSXpVRiusKah0YigDnuM06hfJNIUZg4R_No0MMW9FLU2UG5anTW0boTUYVxKfBZWCFXqnQTpjnQEo1K7la39MYpjSTvIbZgnG
+                  status: aborted
+                  number_parts: 1
+                  created: "2019-08-24T14:15:22Z"
+                  aborted: "2019-08-24T14:15:22Z"
+                  checksum:multihash: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
+                links:
+                - rel: next
+                  href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets/smr50-263-2016-2056-kgrs-2.5.tiff/uploads?cursor=0d34
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        5XX:
+          $ref: "#/components/responses/ServerError"
+    post:
+      tags:
+      - Asset Upload Management
+      summary: Create a new Asset's multipart upload
+      description: |
+        Create Asset's multipart upload.
+
+        A file part must be at least 5 MB except for the last one and at most 5 GB, otherwise the complete operation will fail.
+
+        *Note: in order to provide integrity check during the upload, the base64-encoded 128-bit MD5 digest of each part must be
+        computed and passed in the create endpoint. Then this digest must also be passed as `Content-MD5` header during the upload.*
+      operationId: createAssetUpload
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/assetUploadCreate"
+      responses:
+        "201":
+          description: Created Asset's multipart upload
+          headers:
+            Location:
+              description: A link to the Asset's multipart upload object
+              schema:
+                type: string
+                format: url
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/assetUploadCreate"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Another upload is already in progress, you need first to complete
+            or abort it before creating a new upload.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/uploadInProgress"
+        5XX:
+          $ref: "#/components/responses/ServerError"
+  /collections/{collectionId}/items/{featureId}/assets/{assetId}/uploads/{uploadId}:
+    parameters:
+    - $ref: "#/components/parameters/collectionId"
+    - $ref: "#/components/parameters/featureId"
+    - $ref: "#/components/parameters/assetId"
+    - $ref: "#/components/parameters/uploadId"
+    get:
+      tags:
+      - Asset Upload Management
+      summary: Get an Asset's multipart upload
+      description: |
+        Return an Asset's multipart upload.
+      operationId: getAssetUpload
+      parameters:
+      - $ref: "#/components/parameters/IfMatch"
+      - $ref: "#/components/parameters/IfNoneMatch"
+      responses:
+        "200":
+          description: Asset's multipart upload description.
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/assetUpload"
+              examples:
+                inprogress:
+                  $ref: "#/components/examples/inprogress"
+                completed:
+                  $ref: "#/components/examples/completed"
+                aborted:
+                  $ref: "#/components/examples/aborted"
+        "304":
+          $ref: "#/components/responses/NotModified"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "#/components/responses/ServerError"
+  /storage-prefix/{presignedUrl}:
+    servers:
+    - url: https://s3.aws-region.amazonaws.com/
+    parameters:
+    - $ref: "#/components/parameters/presignedUrl"
+    put:
+      tags:
+      - Asset Upload Management
+      summary: Upload asset file part
+      description: >-
+        Upload an Asset file part using the presigned url(s) returned by [Create a
+        new Asset's multipart upload](#operation/createAssetUpload).
+
+        Parts that have been uploaded but not completed can be checked using [Get
+        an Asset's multipart upload](#operation/getAssetUpload)
+
+        A file part must be at least 5 MB except for the last one and at most 5 GB,
+        otherwise the complete operation will fail.
+
+        *Note: this endpoint doesn't require any authentication as it is already part
+        of the presigned url*
+      operationId: uploadAssetFilePart
+      parameters:
+      - name: Content-MD5
+        in: header
+        description: The base64-encoded 128-bit MD5 digest of this part.
+        required: true
+        schema:
+          type: string
+          example: yLLiDqX2OL7mcIMTjob60A==
+      responses:
+        "200":
+          description: Asset file part uploaded part successfully (Response has no
+            content).
+          content: {}
+          headers:
+            ETag:
+              schema:
+                type: string
+              description: >-
+                The RFC7232 ETag header field in a response provides the current entity-
+                tag for the selected resource.
+
+                This ETag is required in the complete multipart upload payload.
+
+                An entity-tag is an opaque identifier for different versions of a
+                resource over time, regardless whether multiple versions are valid
+                at the same time. An entity-tag consists of an opaque quoted string.
+              example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
+              required: true
+        "400":
+          description: Asset file part corrupted.
+          content:
+            application/xml:
+              schema:
+                type: object
+                required:
+                - Error
+                properties:
+                  Error:
+                    type: object
+                    required:
+                    - Code
+                    - Message
+                    properties:
+                      Code:
+                        type: string
+                        enum:
+                        - "BadDigest"
+                      Message:
+                        type: string
+                    additionalProperties:
+                      type: string
+              example: |
+                <?xml version="1.0" encoding="UTF-8"?>
+                <Error>
+                  <Code>BadDigest</Code>
+                  <Message>The Content-MD5 you specified did not match what we received.</Message>
+                  <ExpectedDigest>0b6vaU45Ys1BdrMhd4wnGA==</ExpectedDigest>
+                  <CalculatedDigest>4lDYLoS0vNfNdko/3cPJJQ==</CalculatedDigest>
+                  <RequestId>RAVFJXJQFXTCZHT3</RequestId>
+                  <HostId>kDMsU45sQ4oZjkTgba2SNBy/0RMshW2lEWmfKnaotvViav5Qlyz4aSQdmS9FRVKp1HgJUBj3h5w=</HostId>
+                </Error>
+        "403":
+          description: Asset file part upload Bad Request, Signature does not match
+            (e.g. missing Content-MD5 header).
+          content:
+            application/xml:
+              schema:
+                type: object
+                required:
+                - Error
+                properties:
+                  Error:
+                    type: object
+                    required:
+                    - Code
+                    - Message
+                    properties:
+                      Code:
+                        type: string
+                        enum:
+                        - "SignatureDoesNotMatch"
+                      Message:
+                        type: string
+                    additionalProperties:
+                      type: string
+              example: |
+                <?xml version="1.0" encoding="UTF-8"?>
+                <Error>
+                  <Code>SignatureDoesNotMatch</Code>
+                  <Message>The request signature we calculated does not match the signature you provided. Check your key and signing method.</Message>
+                  <AWSAccessKeyId>dummy-key</AWSAccessKeyId>
+                  <StringToSign>
+                    AWS4-HMAC-SHA256
+                    20210922T110759Z
+                    20210922/eu-central-1/s3/aws4_request6f0cf4c9a56acf90d9354cb79629a159c0c848ffacdbe13c7b9ae014671fa5c3
+                  </StringToSign>
+                  <SignatureProvided>1c762db1e677a6535c0e4a91015dcd60c00e58f1e5136f8943636f157dc03d54</SignatureProvided>
+                  <StringToSignBytes>41 57 53 34 2d 48 4d 41 43 2d 53 48 41 32 35...</StringToSignBytes>
+                  <CanonicalRequest>
+                    PUT /service-stac-dev/test-e2e-asset-upload-UUID/test-e2e-asset-upload-UUID/test-e2e-asset-upload-UUID.txt
+                      X-Amz-Algorithm=AWS4-HMAC-SHA256&amp;X-Amz-Credential=...
+                      content-md5:
+                      host:s3.eu-central-1.amazonaws.com
+
+                      content-md5;host
+                      UNSIGNED-PAYLOAD
+                  </CanonicalRequest>
+                  <CanonicalRequestBytes>50 55 54 0a 2f 73...</CanonicalRequestBytes>
+                  <RequestId>F5SB90RJFYE21C0V</RequestId>
+                  <HostId>YnH6DNl93sXH5kL0nEk1TOhH+crwM+wnaRNhh7MNC6CW6XhAeJLKVV/WU+dsdRkJUzet5m7cZwU=</HostId>
+                </Error>
+  /collections/{collectionId}/items/{featureId}/assets/{assetId}/uploads/{uploadId}/complete:
+    parameters:
+    - $ref: "#/components/parameters/collectionId"
+    - $ref: "#/components/parameters/featureId"
+    - $ref: "#/components/parameters/assetId"
+    - $ref: "#/components/parameters/uploadId"
+    post:
+      tags:
+      - Asset Upload Management
+      summary: Complete multipart upload
+      operationId: completeMultipartUpload
+      description: >-
+        Complete the multipart upload process. After completion, the Asset metadata
+        are updated with the new `checksum:multihash` from the upload and the parts
+        are automatically deleted. The Asset `href` field is also set if it was the
+        first upload.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/assetCompleteUpload"
+      responses:
+        "200":
+          description: Asset multipart upload completed successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/assetUploadCompleted"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          description: The complete operation was already performed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/exception"
+              example:
+                code: 409
+                description: No upload in progress
+        "404":
+          $ref: "#/components/responses/NotFound"
+        5XX:
+          $ref: "#/components/responses/ServerError"
+  /collections/{collectionId}/items/{featureId}/assets/{assetId}/uploads/{uploadId}/abort:
+    parameters:
+    - $ref: "#/components/parameters/collectionId"
+    - $ref: "#/components/parameters/featureId"
+    - $ref: "#/components/parameters/assetId"
+    - $ref: "#/components/parameters/uploadId"
+    post:
+      tags:
+      - Asset Upload Management
+      summary: Abort multipart upload
+      operationId: abortMultipartUpload
+      description: >-
+        Abort the multipart upload process. All already uploaded parts are automatically
+        deleted.
+      responses:
+        "200":
+          description: Asset multipart upload aborted successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/assetUploadAborted"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        5XX:
+          $ref: "#/components/responses/ServerError"
+  /collections/{collectionId}/items/{featureId}/assets/{assetId}/uploads/{uploadId}/parts:
+    parameters:
+    - $ref: "#/components/parameters/collectionId"
+    - $ref: "#/components/parameters/featureId"
+    - $ref: "#/components/parameters/assetId"
+    - $ref: "#/components/parameters/uploadId"
+    get:
+      tags:
+      - Asset Upload Management
+      summary: Get upload parts
+      operationId: getUploadParts
+      description: >-
+        Return the list of already uploaded parts.
+
+
+        ### Pagination
+
+        By default all parts are returned (maximum number of parts being 100). The
+        user can use pagination to reduce the number of returned parts. Pagination
+        is done via the `limit` query parameter (see below).
+      parameters:
+      - $ref: "#/components/parameters/limit"
+      responses:
+        "200":
+          description: List of parts already uploaded.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/assetUploadParts"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        5XX:
+          $ref: "#/components/responses/ServerError"
+  /get-token:
+    servers:
+    - url: http://data.geo.admin.ch/api/stac/
+    post:
+      tags:
+      - Authentication
+      summary: >-
+        Request token for token authentication.
+      operationId: getToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  description: name of user for whom token is requested
+                password:
+                  type: string
+                  description: password of user for whom token is requested
+              required:
+              - username
+              - password
+            example:
+              username: "Mickey Mouse"
+              password: "I_love_Minnie_Mouse"
+      responses:
+        "200":
+          description: Returns the token for the specified user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: generated token for specified user
+              example:
+                token: ccecf40693bfc52ba090cd46eb7f19e723fe831f
+        "400":
+          description: Wrong credentials were provided.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  description:
+                    type: string
+              example:
+                code: 400
+                description: "Unable to log in with provided credentials."
+components:
+  responses:
+    Collection:
+      headers:
+        ETag:
+          $ref: "#/components/headers/ETag"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/collection"
+      description: >-
+        Information about the feature collection with id `collectionId`.
+
+
+        The response contains a link to the items in the collection (path `/collections/{collectionId}/items`,
+        link relation `items`) as well as key information about the collection. This
+        information includes:
+
+
+        * A local identifier for the collection that is unique for the dataset
+
+        * A list of coordinate reference systems (CRS) in which geometries may be
+        returned by the server. The first CRS is the default coordinate reference
+        system (the default is always WGS 84 with axis order longitude/latitude)
+
+        * An optional title and description for the collection
+
+        * An optional extent that can be used to provide an indication of the spatial
+        and temporal extent of the collection - typically derived from the data
+
+        * An optional indicator about the type of the items in the collection (the
+        default value, if the indicator is not provided, is 'feature')
+    Collections:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/collections"
+      description: >-
+        The feature collections shared by this API.
+
+
+        The dataset is organized as one or more feature collections. This resource
+        provides information about and access to the collections.
+
+
+        The response contains the list of collections. For each collection, a link
+        to the items in the collection (path `/collections/{collectionId}/items`,
+        link relation `items`) as well as key information about the collection. This
+        information includes:
+
+
+        * A local identifier for the collection that is unique for the dataset
+
+        * A list of coordinate reference systems (CRS) in which geometries may be
+        returned by the server. The first CRS is the default coordinate reference
+        system (the default is always WGS 84 with axis order longitude/latitude)
+
+        * An optional title and description for the collection
+
+        * An optional extent that can be used to provide an indication of the spatial
+        and temporal extent of the collection - typically derived from the data
+
+        * An optional indicator about the type of the items in the collection (the
+        default value, if the indicator is not provided, is 'feature').
+
+        The `limit` parameter may be used to control the subset of the selected collections
+        that should be returned in the response, the page size. Each page include
+        links to support paging (link relation `next` and/or `previous`).
+    ConformanceDeclaration:
+      content:
+        application/json:
+          example:
+            conformsTo:
+            - http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/core
+            - http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/oas30
+            - http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/geojson
+          schema:
+            $ref: "#/components/schemas/confClasses"
+      description: >-
+        The URIs of all conformance classes supported by the server.
+
+
+        To support "generic" clients that want to access multiple OGC API Features
+        implementations - and not "just" a specific API / server, the server declares
+        the conformance classes it implements and conforms to.
+    Feature:
+      headers:
+        ETag:
+          $ref: "#/components/headers/ETag"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/item"
+      description: >-
+        Fetch the feature with id `featureId` in the feature collection with id `collectionId`
+    Features:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/items"
+      description: >-
+        The response is a document consisting of features in the collection. The features
+        included in the response are determined by the server based on the query parameters
+        of the request. To support access to larger collections without overloading
+        the client, the API supports paged access with links to the next page, if
+        more features are selected that the page size.
+
+
+        The `bbox` and `datetime` parameter can be used to select only a subset of
+        the features in the collection (the features that are in the bounding box
+        or time interval). The `bbox` parameter matches all features in the collection
+        that are not associated with a location, too. The `datetime` parameter matches
+        all features in the collection that are not associated with a time stamp or
+        interval, too.
+
+
+        The `limit` parameter may be used to control the subset of the selected features
+        that should be returned in the response, the page size. Each page include
+        links to support paging (link relation `next` and/or `previous`).
+    NotModified:
+      description: The cached resource was not modified since last request.
+    InvalidParameter:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/exception"
+          example:
+            code: 400
+            description: "Invalid parameter"
+      description: A query parameter has an invalid value.
+    LandingPage:
+      content:
+        application/json:
+          example:
+            description: Catalog of Swiss Geodata Downloads
+            id: ch
+            links:
+            - href: http://data.geo.admin.ch/api/stac/v0.9/
+              rel: self
+              type: application/json
+              title: this document
+            - href: http://data.geo.admin.ch/api/stac/v0.9/static/api.html
+              rel: service-doc
+              type: text/html
+              title: the API documentation
+            - href: http://data.geo.admin.ch/api/stac/v0.9/conformance
+              rel: conformance
+              type: application/json
+              title: OGC API conformance classes implemented by this server
+            - href: http://data.geo.admin.ch/api/stac/v0.9/collections
+              rel: data
+              type: application/json
+              title: Information about the feature collections
+            - href: http://data.geo.admin.ch/api/stac/v0.9/search
+              rel: search
+              type: application/json
+              title: Search across feature collections
+            stac_version: 0.9.0
+            title: data.geo.admin.ch
+          schema:
+            $ref: "#/components/schemas/landingPage"
+      description: >-
+        The landing page provides links to the API definition (link relations `service-desc`
+        and `service-doc`), the Conformance declaration (path `/conformance`, link
+        relation `conformance`), and the Feature Collections (path `/collections`,
+        link relation `data`).
+    NotFound:
+      description: The specified resource/URI was not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/exception"
+          example:
+            code: 404
+            description: "Resource not found"
+    NotFoundS3:
+      description: The specified asset object was not found
+      content:
+        application/xml:
+          schema:
+            $ref: "#/components/schemas/exceptionS3"
+          example: |
+            <?xml version="1.0" encoding="UTF-8"?>
+            <Error><Code>AccessDenied</Code>
+            <Message>Access Denied</Message>
+            <RequestId>BJE6DBWM0M1D9BDC</RequestId>
+            <HostId>N9hTgbJmEuiMnvb+W9Y1Y+fhFoZh92NYG13Z3K19PBZOZ4hbn7F7i3yYpjJgM7bIFmDH2BnE81U=</HostId>
+            </Error>
+    BadRequest:
+      description: The request was malformed or semantically invalid
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/exception"
+          example:
+            code: 400
+            description: "Invalid parameter"
+    PermissionDenied:
+      description: No Permission for this request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/exception"
+          example:
+            code: 403
+            description: "Permission denied"
+    PreconditionFailed:
+      description: Some condition specified by the request could not be met in the
+        server
+    PreconditionFailedS3:
+      description: Some condition specified by the request could not be met in the
+        server
+      content:
+        application/xml:
+          schema:
+            $ref: "#/components/schemas/exceptionS3"
+          example: |
+            <?xml version="1.0" encoding="UTF-8"?>
+            <Error><Code>PreconditionFailed</Code>
+            <Message>At least one of the pre-conditions you specified did not hold</Message>
+            <Condition>If-Match</Condition>
+            <RequestId>VWCQPYEAC5MMX985</RequestId>
+            <HostId>WmZ2NrcTLzim8v0z7S27BMmSRwdGVieLxDLsvBrojsyoPtkKEiFtEi7zLOWhpNUDa5LD7VtKPBE=</HostId>
+            </Error>
+    ServerError:
+      description: >-
+        The request was syntactically and semantically valid, but an error occurred
+        while trying to act upon it
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/exception"
+          example:
+            code: 500
+            description: "Internal server error"
+    Assets:
+      description: >-
+        The response is a document consisting of all assets of the feature.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/assets"
+    Asset:
+      description: >-
+        The response is a document consisting of one asset of the feature.
+      headers:
+        ETag:
+          $ref: "#/components/headers/ETag"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/assetWrite"
+    DeletedResource:
+      description: Status of the delete resource
+      content:
+        application/json:
+          schema:
+            description: >-
+              Information about the deleted resource and a link to the parent resource
+            type: object
+            properties:
+              code:
+                type: integer
+                example: 200
+              description:
+                type: string
+                example: Resource successfully deleted
+              links:
+                type: array
+                items:
+                  $ref: "#/components/schemas/link"
+                description: >-
+                  The array contain at least a link to the parent resource (`rel:
+                  parent`).
+                example:
+                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+                  rel: parent
+            required:
+            - code
+            - links
+  schemas:
+    assetQuery:
+      additionalProperties:
+        $ref: "#/components/schemas/assetQueryProp"
+      description: >-
+        Define which properties of the asset to query and the operations to apply.
+
+
+        The following properties can be queried:
+
+        - `type`: query for assets with this specific media type
+
+        - `proj:epsg`: query for assets with this specific epsg
+
+        - `eo:gsd`: query for assets with this specific gsd
+
+        - `geoadmin:variant`: query for assets with this specific variant
+      example:
+        type:
+          eq: image/tiff
+      type: object
+    assetQueryFilter:
+      description: Allows users to query asset properties for specific values
+      properties:
+        assetQuery:
+          $ref: "#/components/schemas/assetQuery"
+      type: object
+    assetQueryProp:
+      anyOf:
+      - description: >-
+          If the object doesn't contain any of the operators, it is equivalent to
+          using the equals operator
+      - description: Match using an operator
+        properties:
+          contains:
+            description: >-
+              Find items with a property that contains the specified literal string,
+              e.g., matches ".*<STRING>.*". A case-insensitive comparison must be
+              performed.
+            type: string
+          endsWith:
+            description: >-
+              Find items with a property that ends with the specified string. A case-insensitive
+              comparison must be performed.
+            type: string
+          eq:
+            description: >-
+              Find items with a property that is equal to the specified value. For
+              strings, a case-insensitive comparison must be performed.
+            nullable: true
+            oneOf:
+            - type: string
+            - type: number
+            - type: boolean
+          in:
+            description: >-
+              Find items with a property that equals at least one entry in the specified
+              array. A case-insensitive comparison must be performed.
+            items:
+              oneOf:
+              - type: string
+              - type: number
+            type: array
+          startsWith:
+            description: >-
+              Find items with a property that begins with the specified string. A
+              case-insensitive comparison must be performed.
+            type: string
+        type: object
+      description: Apply query operations to a specific property
+    assetBase:
+      title: Asset
+      description: The `property name` defines the ID of the Asset.
+      type: object
+      required:
+      - created
+      - updated
+      properties:
+        title:
+          $ref: "#/components/schemas/title"
+        description:
+          $ref: "#/components/schemas/description"
+        href:
+          $ref: "#/components/schemas/href"
+        checksum:multihash:
+          $ref: "#/components/schemas/checksumMultihashReadOnly"
+        geoadmin:variant:
+          $ref: "#/components/schemas/geoadminVariant"
+        geoadmin:lang:
+          $ref: "#/components/schemas/geoadminLang"
+        proj:epsg:
+          $ref: "#/components/schemas/projEpsg"
+        eo:gsd:
+          $ref: "#/components/schemas/eoGsd"
+        created:
+          $ref: "#/components/schemas/created"
+        updated:
+          $ref: "#/components/schemas/updated"
+    bbox:
+      description: |
+        The bounding box is provided as four numbers:
+
+        * Lower left corner, coordinate axis 1
+        * Lower left corner, coordinate axis 2
+        * Upper right corner, coordinate axis 1
+        * Upper right corner, coordinate axis 2
+
+        The coordinate reference system of the values is WGS84
+        longitude/latitude (http://www.opengis.net/def/crs/OGC/1.3/CRS84).
+
+        For WGS84 longitude/latitude the values are in most cases the sequence
+        of minimum longitude, minimum latitude, maximum longitude and maximum
+        latitude. However, in cases where the box spans the antimeridian the
+        first value (west-most box edge) is larger than the third value
+        (east-most box edge).
+
+        Example: The bounding box of Switzerland in
+        WGS 84 (from 5.96°E to 10.49°E and from 45.82°N to 47.81°N) would be
+        represented in JSON as `[5.96, 45.82, 10.49, 47.81]` and in a query as
+        `bbox=5.96,45.82,10.49,47.81`."
+      example:
+      - 7.0906249
+      - 45.9160584
+      - 7.1035698
+      - 45.925093
+      items:
+        type: number
+      maxItems: 4
+      minItems: 4
+      type: array
+      readOnly: true
+    bboxfilter:
+      description: >-
+        Only features that have a geometry that intersects the bounding box are selected.
+        The bounding box is provided as four numbers:
+
+
+        * Lower left corner, coordinate axis 1
+
+        * Lower left corner, coordinate axis 2
+
+        * Upper right corner, coordinate axis 1
+
+        * Upper right corner, coordinate axis 2
+
+
+        The coordinate reference system of the values is WGS84 longitude/latitude
+        (http://www.opengis.net/def/crs/OGC/1.3/CRS84).
+
+
+        For WGS84 longitude/latitude the values are in most cases the sequence of
+        minimum longitude, minimum latitude, maximum longitude and maximum latitude.
+        However, in cases where the box spans the antimeridian the first value (west-most
+        box edge) is larger than the third value (east-most box edge).
+
+
+        Example: The bounding box of Switzerland in WGS 84 (from 5.96°E to 10.49°E
+        and from 45.82°N to 47.81°N) would be represented in JSON as `[5.96, 45.82,
+        10.49, 47.81]` and in a query as `bbox=5.96,45.82,10.49,47.81`."
+      example:
+      - 7.0906249
+      - 45.9160584
+      - 7.1035698
+      - 45.925093
+      items:
+        type: number
+      maxItems: 4
+      minItems: 4
+      type: array
+      readOnly: false
+    bboxFilter:
+      properties:
+        bbox:
+          $ref: "#/components/schemas/bboxfilter"
+    sha256:
+      description: "`sha2-256` checksum"
+      example: 3dd6e1ead0760d278344394b0e7f017b5b6049e4fed3d2083b564fc268f07334
+      pattern: ^[a-f0-9]+$
+      title: sha256
+      format: digest
+      type: string
+    checksumMultihash:
+      description: >-
+        `sha2-256` checksum of the asset in [multihash](https://multiformats.io/multihash/)
+        format.
+      example: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
+      pattern: ^[a-f0-9]+$
+      title: Multihash
+      type: string
+    checksumMultihashReadOnly:
+      description: |
+        `sha2-256` checksum of the asset in [multihash](https://multiformats.io/multihash/) format.
+      example: 90e402107a7f2588a85362b9beea2a12d4514d45
+      pattern: ^[a-f0-9]+$
+      title: Multihash
+      type: string
+      readOnly: true
+    created:
+      description: RFC 3339 compliant datetime string, time when the object was created
+      example: 2018-02-12T23:20:50Z
+      type: string
+      format: date-time
+      readOnly: true
+    collectionBase:
+      properties:
+        crs:
+          default:
+          - http://www.opengis.net/def/crs/OGC/1.3/CRS84
+          description: The list of coordinate reference systems supported by the service
+          example:
+          - http://www.opengis.net/def/crs/OGC/1.3/CRS84
+          items:
+            type: string
+          type: array
+          readOnly: true
+        description:
+          description: A description of the features in the collection
+          example: >-
+            Swiss Map Raster are a conversion of the map image into a digital form
+            with no direct bearing on the individual map elements.
+
+
+            The information is structured only in colour layers. Swiss Map Raster
+            pixel maps are ideal for finding background information for a broad variety
+            of screen applications, web and mobile applications and services, as well
+            as for geographic information systems. They can also be used as basic
+            maps for a variety of purposes (digital printing, plots, offset printing,
+            etc.).
+          type: string
+        extent:
+          $ref: "#/components/schemas/extent"
+        id:
+          description: Identifier of the collection used, for example, in URIs
+          example: ch.swisstopo.pixelkarte-farbe-pk200.noscale
+          type: string
+        itemType:
+          default: Feature
+          description: >-
+            Indicator about the type of the items in the collection (the default value
+            is 'Feature').
+          type: string
+          readOnly: true
+        license:
+          $ref: "#/components/schemas/license"
+        providers:
+          $ref: "#/components/schemas/providers"
+        stac_version:
+          $ref: "#/components/schemas/stac_version"
+        summaries:
+          additionalProperties:
+            oneOf:
+            - items:
+                description: A value of any type.
+              title: Set of values
+              type: array
+            - description: >-
+                By default, only ranges with a minimum and a maximum value can be
+                specified. Ranges can be specified for ordinal values only, which
+                means they need to have a rank order. Therefore, ranges can only be
+                specified for numbers and some special types of strings. Examples:
+                grades (A to F), dates or times. Implementors are free to add other
+                derived statistical values to the object, for example `mean` or `stddev`.
+              properties:
+                max:
+                  anyOf:
+                  - type: string
+                  - type: number
+                min:
+                  anyOf:
+                  - type: string
+                  - type: number
+              required:
+              - min
+              - max
+              title: Statistics
+              type: object
+          description: >-
+            Summaries are either a unique set of all available values *or* statistics.
+            Statistics by default only specify the range (minimum and maximum values),
+            but can optionally be accompanied by additional statistical values. The
+            range can specify the potential range of values, but it is recommended
+            to be as precise as possible. The set of values must contain at least
+            one element and it is strongly recommended to list all values. It is recommended
+            to list as many properties as reasonable so that consumers get a full
+            overview of the Collection. Properties that are covered by the Collection
+            specification (e.g. `providers` and `license`) may not be repeated in
+            the summaries.
+          type: object
+          readOnly: true
+          example:
+            eo:gsd:
+            - 10
+            - 20
+            geoadmin:variant:
+            - kgrel
+            - komb
+            - krel
+            geoadmin:lang:
+            - de
+            - fr
+            proj:epsg:
+            - 2056
+        title:
+          description: Human readable title of the collection
+          example: National Map 1:200'000
+          type: string
+        created:
+          $ref: "#/components/schemas/created"
+        updated:
+          $ref: "#/components/schemas/updated"
+      required:
+      - id
+      - stac_version
+      - description
+      - license
+      - extent
+      - created
+      - updated
+      type: object
+    collection:
+      allOf:
+      - $ref: "#/components/schemas/collectionBase"
+      - type: object
+        required:
+        - links
+        properties:
+          links:
+            type: array
+            items:
+              $ref: "#/components/schemas/link"
+            example:
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+              rel: self
+            - href: https://data.geo.admin.ch/api/stac/v0.9/
+              rel: root
+            - href: https://data.geo.admin.ch/api/stac/v0.9
+              rel: parent
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items
+              rel: items
+            - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
+              rel: license
+              title: Licence for the free geodata of the Federal Office of Topography
+                swisstopo
+            - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
+              rel: describedby
+    collections:
+      properties:
+        collections:
+          items:
+            $ref: "#/components/schemas/collection"
+          type: array
+        links:
+          items:
+            $ref: "#/components/schemas/link"
+          example:
+          - href: https://data.geo.admin.ch/api/stac/v0.9/collections
+            rel: self
+          - href: https://data.geo.admin.ch/api/stac/v0.9/
+            rel: root
+          - href: https://data.geo.admin.ch/api/stac/v0.9/collections?cursor=10ab
+            rel: next
+          - href: https://data.geo.admin.ch/api/stac/v0.9/collections?cursor=10cd
+            rel: previous
+      required:
+      - links
+      - collections
+      type: object
+    collectionsArray:
+      description: >-
+        Array of Collection IDs to include in the search for items. Only Items in
+        one of the provided Collections will be searched.
+      items:
+        type: string
+      type: array
+    collectionsFilter:
+      description: Only returns the collections specified
+      properties:
+        collections:
+          $ref: "#/components/schemas/collectionsArray"
+      type: object
+      example:
+        collections:
+        - ch.swisstopo.swisstlmregio
+        - ch.bfe.energieschweiz
+    confClasses:
+      properties:
+        conformsTo:
+          items:
+            type: string
+          type: array
+      required:
+      - conformsTo
+      type: object
+    datetime:
+      description: RFC 3339 compliant datetime string
+      example: 2018-02-12T23:20:50Z
+      type: string
+      format: date-time
+    datetimeQuery:
+      description: >-
+        Either a date-time or an interval, open or closed. Date and time expressions
+        adhere to RFC 3339. Open intervals are expressed using double-dots.
+
+        Examples:
+
+
+        * A date-time: "2018-02-12T23:20:50Z"
+
+        * A closed interval: "2018-02-12T00:00:00Z/2018-03-18T12:31:12Z"
+
+        * Open intervals: "2018-02-12T00:00:00Z/.." or "../2018-03-18T12:31:12Z"
+
+
+        Only features that have a temporal property that intersects the value of `datetime`
+        are selected.
+
+
+        When used as URL query argument, the value must be correctly url-encoded.
+      example: 2018-02-12T00:00:00Z/2018-03-18T12:31:12Z
+      type: string
+    datetimeFilter:
+      properties:
+        datetime:
+          $ref: "#/components/schemas/datetimeQuery"
+    description:
+      description: >-
+        Detailed multi-line description to fully explain the catalog or collection.
+
+
+        [CommonMark 0.29](http://commonmark.org/) syntax MAY be used for rich text
+        representation.
+      type: string
+    eoGsd:
+      description: >-
+        GSD is the nominal Ground Sample Distance for the data, as measured in meters
+        on the ground.
+
+
+        There are many definitions of GSD. The value of this attribute should be related
+        to the spatial resolution at the sensor, rather than the pixel size of images
+        after ortho-rectification, pansharpening, or scaling. The GSD of a sensor
+        can vary depending on off-nadir and wavelength, so it is at the discretion
+        of the implementer to decide which value most accurately represents the GSD.
+        For example, Landsat8 optical and short-wave IR bands are all 30 meters, but
+        the panchromatic band is 15 meters. The eo:gsd should be 30 meters in this
+        case because that is nominal spatial resolution at the sensor. The Planet
+        PlanetScope Ortho Tile Product has an eo:gsd of 3.7 (or 4 if rounding), even
+        though the pixel size of the images is 3.125. For example, one might choose
+        for WorldView-2 the Multispectral 20° off-nadir value of 2.07 and for WorldView-3
+        the Multispectral 20° off-nadir value of 1.38.
+      example: 2.5
+      title: Ground Sample Distance
+      type: number
+    exception:
+      description: >-
+        Information about the exception: an error code plus an optional description.
+      properties:
+        code:
+          type: integer
+          example: 500
+        description:
+          anyOf:
+          - type: string
+          - type: array
+            items:
+              anyOf:
+              - type: string
+              - type: object
+          - type: object
+      required:
+      - code
+      type: object
+    exceptionS3:
+      description: >-
+        Information about the exception
+      properties:
+        Code:
+          type: string
+          example: AccessDenied
+        Message:
+          type: string
+          example: Access Denied
+        RequestId:
+          type: string
+          example: BJE6DBWM0M1D9BDC
+        HostId:
+          type: string
+          example: N9hTgbJmEuiMnvb+W9Y1Y+fhFoZh92NYG13Z3K19PBZOZ4hbn7F7i3yYpjJgM7bIFmDH2BnE81U=
+      xml:
+        name: 'Error'
+      required:
+      - Code
+      - Message
+      - RequestId
+      - HostId
+      type: object
+    extent:
+      description: >-
+        The extent of the features in the collection. In the Core only spatial and
+        temporal extents are specified. Extensions may add additional members to represent
+        other extents, for example, thermal or pressure ranges.
+      properties:
+        spatial:
+          description: The spatial extent of the features in the collection.
+          properties:
+            bbox:
+              description: >-
+                One or more bounding boxes that describe the spatial extent of the
+                dataset. In the Core only a single bounding box is supported. Extensions
+                may support additional areas. If multiple areas are provided, the
+                union of the bounding boxes describes the spatial extent.
+              items:
+                description: >-
+                  Each bounding box is provided as four or six numbers, depending
+                  on whether the coordinate reference system includes a vertical axis
+                  (height or depth):
+
+
+                  * Lower left corner, coordinate axis 1
+
+                  * Lower left corner, coordinate axis 2
+
+                  * Upper right corner, coordinate axis 1
+
+                  * Upper right corner, coordinate axis 2
+
+
+                  The coordinate reference system of the values is WGS 84 longitude/latitude
+                  (http://www.opengis.net/def/crs/OGC/1.3/CRS84).
+
+
+                  For WGS 84 longitude/latitude the values are in most cases the sequence
+                  of minimum longitude, minimum latitude, maximum longitude and maximum
+                  latitude. However, in cases where the box spans the antimeridian
+                  the first value (west-most box edge) is larger than the third value
+                  (east-most box edge).
+
+
+                  If the vertical axis is included, the third and the sixth number
+                  are the bottom and the top of the 3-dimensional bounding box.
+
+
+                  If a feature has multiple spatial geometry properties, it is the
+                  decision of the server whether only a single spatial geometry property
+                  is used to determine the extent or all relevant geometries.
+                example:
+                - 5.685114
+                - 45.534903
+                - 10.747775
+                - 47.982586
+                items:
+                  type: number
+                maxItems: 6
+                minItems: 4
+                type: array
+              minItems: 1
+              type: array
+          required:
+          - bbox
+          type: object
+        temporal:
+          description: The temporal extent of the features in the collection.
+          properties:
+            interval:
+              description: >-
+                One time interval that describe the temporal extent of the dataset.
+              items:
+                description: >-
+                  Begin and end times of the time interval.
+                example:
+                - "2019-01-01T00:00:00Z"
+                - "2019-01-02T00:00:00Z"
+                items:
+                  format: date-time
+                  nullable: false
+                  type: string
+                maxItems: 2
+                minItems: 2
+                type: array
+              minItems: 1
+              maxItems: 1
+              type: array
+          required:
+          - interval
+          type: object
+      required:
+      - spatial
+      - temporal
+      type: object
+      readOnly: true
+    geoadminLang:
+      enum:
+      - de
+      - it
+      - fr
+      - rm
+      - en
+      title: Product language
+      type: string
+    geoadminVariant:
+      example: komb
+      title: Product variants
+      type: string
+    href:
+      type: string
+      format: url
+      description: |
+        Link to the asset object.
+
+        Details about asset object calls, specifically information about caching behavior
+        can be found [here](#tag/Data/operation/getAssetObject)
+      readOnly: true
+      example: |
+        http://data.geo.admin.ch/ch.swisstopo.swissimage/collections/cs/items/CS3-20160503_132130_04/thumb.png
+    ids:
+      description: >-
+        Array of Item ids to return. All other filter parameters that further restrict
+        the number of search results are ignored
+      items:
+        type: string
+      type: array
+    idsFilter:
+      description: Only returns items that match the array of given ids
+      properties:
+        ids:
+          $ref: "#/components/schemas/ids"
+      type: object
+      example:
+        ids:
+        - swisstlmregio-2019
+        - swisstlmregio-2020
+    intersectsFilter:
+      description: Only returns items that intersect with the provided polygon.
+      properties:
+        intersects:
+          oneOf:
+          - $ref: "#/components/schemas/geoJsonPoint"
+          - $ref: "#/components/schemas/geoJsonLineString"
+          - $ref: "#/components/schemas/geoJsonPolygon"
+          - $ref: "#/components/schemas/geoJsonMultiPoint"
+          - $ref: "#/components/schemas/geoJsonMultiLineString"
+          - $ref: "#/components/schemas/geoJsonMultiPolygon"
+      type: object
+      example:
+        intersects:
+          type: "Point"
+          coordinates:
+          - 7
+          - 46
+    itemBase:
+      description: >-
+        A GeoJSON Feature augmented with foreign members that contain values relevant
+        to a STAC entity
+      properties:
+        assets:
+          $ref: "#/components/schemas/itemAssets"
+        bbox:
+          $ref: "#/components/schemas/bbox"
+        geometry:
+          $ref: "#/components/schemas/itemGeometry"
+        properties:
+          $ref: "#/components/schemas/itemProperties"
+          readOnly: true
+        stac_version:
+          $ref: "#/components/schemas/stac_version"
+          readOnly: true
+        type:
+          $ref: "#/components/schemas/itemType"
+      required:
+      - stac_version
+      - type
+      - geometry
+      - bbox
+      - properties
+      - assets
+      type: object
+    item:
+      allOf:
+      - type: object
+        required:
+        - id
+        - links
+        properties:
+          id:
+            $ref: "#/components/schemas/itemId"
+          links:
+            items:
+              $ref: "#/components/schemas/link"
+            type: array
+            example:
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr50-263-2016
+              rel: self
+            - href: https://data.geo.admin.ch/api/stac/v0.9/
+              rel: root
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+              rel: parent
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+              rel: collection
+      - $ref: "#/components/schemas/itemBase"
+    items:
+      description: >-
+        A FeatureCollection augmented with foreign members that contain values relevant
+        to a STAC entity
+      properties:
+        features:
+          items:
+            $ref: "#/components/schemas/item"
+          type: array
+        links:
+          items:
+            $ref: "#/components/schemas/link"
+          type: array
+          example:
+          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items
+            rel: self
+          - href: https://data.geo.admin.ch/api/stac/v0.9/
+            rel: root
+          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+            rel: parent
+          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items?cursor=10ab
+            rel: next
+          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items?cursor=10acd
+            rel: previous
+        type:
+          enum:
+          - FeatureCollection
+          type: string
+      required:
+      - features
+      - type
+      type: object
+    itemAssets:
+      title: Assets
+      description: List of Assets attached to this feature.
+      additionalProperties:
+        allOf:
+        - type: object
+          required:
+          - type
+          properties:
+            type:
+              $ref: "#/components/schemas/assetType"
+        - $ref: "#/components/schemas/assetBase"
+      type: object
+      readOnly: true
+      example:
+        smr50-263-2016-2056-kgrs-2.5.tiff:
+          checksum:multihash: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
+          created: "2020-07-14T12:30:00Z"
+          eo:gsd: 2.5
+          geoadmin:variant: kgrs
+          href: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr50-263-2016-2056-kgrs-2.5.tiff
+          proj:epsg: 2056
+          type: image/tiff; application=geotiff
+          updated: "2020-07-14T12:30:00Z"
+        smr50-263-2016-2056-komb-2.5.tiff:
+          checksum:multihash: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
+          created: "2020-07-14T12:30:00Z"
+          eo:gsd: 2.5
+          geoadmin:variant: komb
+          href: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr50-263-2016-2056-komb-2.5.tiff
+          proj:epsg: "2056"
+          type: image/tiff; application=geotiff
+          updated: "2020-07-14T12:30:00Z"
+        smr50-263-2016-2056-krel-2.5.tiff:
+          checksum:multihash: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
+          created: "2020-07-14T12:30:00Z"
+          eo:gsd: 2.5
+          geoadmin:variant: krel
+          href: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr50-263-2016-2056-krel-2.5.tiff
+          proj:epsg: "2056"
+          type: image/tiff; application=geotiff
+          updated: "2020-07-14T12:30:00Z"
+    itemsSearch:
+      description: >-
+        A GeoJSON FeatureCollection augmented with foreign members that contain values
+        relevant to a STAC entity
+      properties:
+        features:
+          items:
+            $ref: "#/components/schemas/item"
+          type: array
+        type:
+          enum:
+          - FeatureCollection
+          type: string
+      required:
+      - features
+      - type
+      type: object
+    itemsSearchGet:
+      allOf:
+      - $ref: "#/components/schemas/itemsSearch"
+      - type: object
+        properties:
+          links:
+            $ref: "#/components/schemas/itemsSearchLinks"
+    itemsSearchPost:
+      allOf:
+      - $ref: "#/components/schemas/itemsSearch"
+      - type: object
+        properties:
+          links:
+            $ref: "#/components/schemas/itemsSearchPostLinks"
+    itemsSearchLinks:
+      description: >-
+        An array of links. Can be used for pagination, e.g. by providing a link with
+        the `next` relation type.
+      example:
+      - href: https://data.geo.admin.ch/api/stac/v0.9/search
+        rel: self
+      - href: https://data.geo.admin.ch/api/stac/v0.9/search?cursor=10ab
+        rel: next
+      items:
+        $ref: "#/components/schemas/link"
+      type: array
+    itemsSearchPostLinks:
+      description: >-
+        An array of links. Can be used for pagination, e.g. by providing a link with
+        the `next` relation type.
+      example:
+      - href: https://data.geo.admin.ch/api/stac/v0.9/search
+        rel: self
+      - href: https://data.geo.admin.ch/api/stac/v0.9/search?cursor=10ab
+        rel: next
+        method: POST
+        body: {}
+        merge: true
+      items:
+        $ref: "#/components/schemas/linkPostSearch"
+      type: array
+    itemId:
+      title: ID
+      description: Feature identifier (unique per collection)
+      example: smr200-200-4-2019
+      type: string
+    itemGeometry:
+      $ref: "#/components/schemas/geoJsonPolygon"
+    geoJsonPoint:
+      title: GeoJSON Point
+      type: object
+      required:
+      - type
+      - coordinates
+      properties:
+        type:
+          type: string
+          enum:
+          - Point
+        coordinates:
+          description: >-
+            For type "Point", the "coordinates" member is a single position. The coordinate
+            reference system of the values is WGS84 longitude/latitude (http://www.opengis.net/def/crs/OGC/1.3/CRS84).
+          example:
+          - 7.0906823
+          - 45.9160584
+          type: array
+          minItems: 2
+          items:
+            type: number
+    geoJsonLineString:
+      title: GeoJSON LineString
+      type: object
+      required:
+      - type
+      - coordinates
+      properties:
+        type:
+          type: string
+          enum:
+          - LineString
+        coordinates:
+          description: >-
+            For type "LineString", the "coordinates" member is an array of two or
+            more positions. The coordinate reference system of the values is WGS84
+            longitude/latitude (http://www.opengis.net/def/crs/OGC/1.3/CRS84).
+          example:
+          - - - 7.0906823
+              - 45.9160584
+            - - 7.1035698
+              - 45.9160977
+          type: array
+          minItems: 2
+          items:
+            type: array
+            minItems: 2
+            items:
+              type: number
+    geoJsonPolygon:
+      title: GeoJSON Polygon
+      type: object
+      required:
+      - type
+      - coordinates
+      properties:
+        type:
+          type: string
+          enum:
+          - Polygon
+        coordinates:
+          description: >-
+            For type "Polygon", the "coordinates" member MUST be an array of linear
+            ring coordinate arrays. The coordinate reference system of the values
+            is WGS84 longitude/latitude (http://www.opengis.net/def/crs/OGC/1.3/CRS84).
+          example:
+          - - - 7.0906823
+              - 45.9160584
+            - - 7.1035698
+              - 45.9160977
+            - - 7.1035146
+              - 45.925093
+            - - 7.0906249
+              - 45.9250537
+            - - 7.0906823
+              - 45.9160584
+          type: array
+          items:
+            type: array
+            minItems: 4
+            items:
+              type: array
+              minItems: 2
+              items:
+                type: number
+    geoJsonMultiPoint:
+      title: GeoJSON MultiPoint
+      type: object
+      required:
+      - type
+      - coordinates
+      properties:
+        type:
+          type: string
+          enum:
+          - MultiPoint
+        coordinates:
+          description: >-
+            For type "MultiPoint", the "coordinates" member is an array of positions.
+            The coordinate reference system of the values is WGS84 longitude/latitude
+            (http://www.opengis.net/def/crs/OGC/1.3/CRS84).
+          example:
+          - - 7.0906823
+            - 45.9160584
+          - - 7.1035698
+            - 45.9160977
+          - - 7.1035146
+            - 45.925093
+          type: array
+          items:
+            type: array
+            minItems: 2
+            items:
+              type: number
+    geoJsonMultiLineString:
+      title: GeoJSON MultiLineString
+      type: object
+      required:
+      - type
+      - coordinates
+      properties:
+        type:
+          type: string
+          enum:
+          - MultiLineString
+        coordinates:
+          description: >-
+            For type "MultiLineString", the "coordinates" member is an array of LineString
+            coordinate arrays. The coordinate reference system of the values is WGS84
+            longitude/latitude (http://www.opengis.net/def/crs/OGC/1.3/CRS84).
+          example:
+          - - - 7.0906823
+              - 45.9160584
+            - - 7.1035698
+              - 45.9160977
+          - - - 7.1035146
+              - 45.925093
+            - - 7.0906249
+              - 45.9250537
+          type: array
+          items:
+            type: array
+            minItems: 2
+            items:
+              type: array
+              minItems: 2
+              items:
+                type: number
+    geoJsonMultiPolygon:
+      title: GeoJSON MultiPolygon
+      type: object
+      required:
+      - type
+      - coordinates
+      properties:
+        type:
+          type: string
+          enum:
+          - MultiPolygon
+        coordinates:
+          description: >-
+            For type "MultiPolygon", the "coordinates" member is an array of Polygon
+            coordinate arrays. The coordinate reference system of the values is WGS84
+            longitude/latitude (http://www.opengis.net/def/crs/OGC/1.3/CRS84).
+          example:
+          - - - - 7.0906823
+                - 45.9160584
+              - - 7.1035698
+                - 45.9160977
+              - - 7.1035146
+                - 45.925093
+              - - 7.0906249
+                - 45.9250537
+              - - 7.0906823
+                - 45.9160584
+          - - - - 8.5816399
+                - 45.7218735
+              - - 8.5944806
+                - 45.7217417
+              - - 8.5946699
+                - 45.7307358
+              - - 8.581827
+                - 45.7308676
+              - - 8.5816399
+                - 45.7218735
+          type: array
+          items:
+            type: array
+            items:
+              type: array
+              minItems: 4
+              items:
+                type: array
+                minItems: 2
+                items:
+                  type: number
+    itemProperties:
+      title: Properties
+      description: >-
+        Provides the core metadata fields plus extensions
+
+
+        The item's data timing information can be specified either with
+
+        * One datetime value in the field `datetime`
+
+        * A datetime range with a `start_datetime` and an `end_datetime`
+
+
+        One of the two is required
+      properties:
+        created:
+          $ref: "#/components/schemas/created"
+        datetime:
+          $ref: "#/components/schemas/datetime"
+        start_datetime:
+          $ref: "#/components/schemas/datetime"
+        end_datetime:
+          $ref: "#/components/schemas/datetime"
+        updated:
+          $ref: "#/components/schemas/updated"
+        title:
+          description: Human readable title of the Feature
+          example: Feature title
+          type: string
+          minLength: 1
+          maxLength: 255
+          nullable: true
+      required:
+      - created
+      - updated
+      type: object
+    itemType:
+      title: type
+      description: The GeoJSON type
+      enum:
+      - Feature
+      type: string
+      readOnly: true
+    landingPage:
+      properties:
+        description:
+          example: >-
+            Access to data about buildings in the city of Bonn via a Web API that
+            conforms to the OGC API Features specification.
+          type: string
+        id:
+          type: string
+        links:
+          items:
+            $ref: "#/components/schemas/link"
+          type: array
+        stac_version:
+          $ref: "#/components/schemas/stac_version"
+        title:
+          example: Buildings in Bonn
+          type: string
+      required:
+      - links
+      - stac_version
+      - id
+      - description
+      type: object
+    license:
+      description: >-
+        License(s) of the data as a SPDX [License identifier](https://spdx.org/licenses/).
+        Alternatively, use `proprietary` if the license is not on the SPDX license
+        list or `various` if multiple licenses apply. In these two cases links to
+        the license texts SHOULD be added, see the `license` link relation type.
+
+
+        Non-SPDX licenses SHOULD add a link to the license text with the `license`
+        relation in the links section. The license text MUST NOT be provided as a
+        value of this field. If there is no public license URL available, it is RECOMMENDED
+        to host the license text and link to it.
+      example: proprietary
+      type: string
+    limit:
+      default: 100
+      description: >-
+        The `limit` parameter limits the number of results that are included in the
+        response.
+
+
+        To retrieve the next bunch of result, use the `next` link in the `links` section
+        of the response.
+
+
+        Minimum = 1. Maximum = 100. Default = 100.
+      example: 20
+      maximum: 100
+      minimum: 1
+      type: integer
+    limitFilter:
+      description: Only returns maximum number of results (page size)
+      properties:
+        limit:
+          $ref: "#/components/schemas/limit"
+      type: object
+    linestringGeoJSON:
+      properties:
+        coordinates:
+          items:
+            items:
+              type: number
+            minItems: 2
+            type: array
+          minItems: 2
+          type: array
+        type:
+          enum:
+          - LineString
+          type: string
+      required:
+      - type
+      - coordinates
+      type: object
+    link:
+      properties:
+        href:
+          example: http://data.example.com/buildings/123
+          format: url
+          type: string
+        rel:
+          description: >-
+            Relationship between the current document and the linked document.
+
+
+            NOTE: the following relations are reserved and automatically generated:
+            `self`, `root`, `parent`, `items`, `collection`, `next`, `previous`
+          example: describedby
+          type: string
+        title:
+          example: Trierer Strasse 70, 53115 Bonn
+          type: string
+        type:
+          description: The media type of the link target
+          example: application/geo+json
+          type: string
+        method:
+          default: GET
+          description: Specifies the HTTP method that the link expects
+          enum:
+          - GET
+          - POST
+          type: string
+      required:
+      - href
+      - rel
+      title: Link
+      type: object
+    linkPostSearch:
+      allOf:
+      - $ref: "#/components/schemas/link"
+      - type: object
+        properties:
+          body:
+            default: {}
+            description: For `POST /search` requests, the link can specify the HTTP
+              body as a JSON object.
+            type: object
+          merge:
+            default: false
+            description: >-
+              This is only valid when the server is responding to `POST /search `request.
+
+
+              If merge is true, the client is expected to merge the body value into
+              the current request body before following the link. This avoids passing
+              large post bodies back and forth when following links, particularly
+              for navigating pages through the `POST /search` endpoint.
+            type: boolean
+    multilinestringGeoJSON:
+      properties:
+        coordinates:
+          items:
+            items:
+              items:
+                type: number
+              minItems: 2
+              type: array
+            minItems: 2
+            type: array
+          type: array
+        type:
+          enum:
+          - MultiLineString
+          type: string
+      required:
+      - type
+      - coordinates
+      type: object
+    multipointGeoJSON:
+      properties:
+        coordinates:
+          items:
+            items:
+              type: number
+            minItems: 2
+            type: array
+          type: array
+        type:
+          enum:
+          - MultiPoint
+          type: string
+      required:
+      - type
+      - coordinates
+      type: object
+    multipolygonGeoJSON:
+      properties:
+        coordinates:
+          items:
+            items:
+              items:
+                items:
+                  type: number
+                minItems: 2
+                type: array
+              minItems: 4
+              type: array
+            type: array
+          type: array
+        type:
+          enum:
+          - MultiPolygon
+          type: string
+      required:
+      - type
+      - coordinates
+      type: object
+    numberMatched:
+      description: >-
+        The number of features of the feature type that match the selection parameters
+        like `bbox`.
+      example: 127
+      minimum: 0
+      type: integer
+    numberReturned:
+      description: >-
+        The number of features in the feature collection.
+
+
+        A server may omit this information in a response, if the information about
+        the number of features is not known or difficult to compute.
+
+
+        If the value is provided, the value shall be identical to the number of items
+        in the "features" array.
+      example: 10
+      minimum: 0
+      type: integer
+    pointGeoJSON:
+      properties:
+        coordinates:
+          items:
+            type: number
+          minItems: 2
+          type: array
+        type:
+          enum:
+          - Point
+          type: string
+      required:
+      - type
+      - coordinates
+      type: object
+    polygonGeoJSON:
+      properties:
+        coordinates:
+          items:
+            items:
+              items:
+                type: number
+              minItems: 2
+              type: array
+            minItems: 4
+            type: array
+          type: array
+        type:
+          enum:
+          - Polygon
+          type: string
+      required:
+      - type
+      - coordinates
+      type: object
+      example:
+        coordinates:
+        - - - 7.242974548172171
+            - 46.57310580640624
+          - - 7.243756483316452
+            - 46.35721185723752
+          - - 7.698490766144817
+            - 46.357085154660915
+          - - 7.699524647567326
+            - 46.57297861624267
+          - - 7.242974548172171
+            - 46.57310580640624
+        type: Polygon
+    projEpsg:
+      description: >-
+        A Coordinate Reference System (CRS) is the data reference system (sometimes
+        called a 'projection') used by the asset data, and can usually be referenced
+        using an EPSG code. If the asset data does not have a CRS, such as in the
+        case of non-rectified imagery with Ground Control Points, proj:epsg should
+        be set to null. It should also be set to null if a CRS exists, but for which
+        there is no valid EPSG code.
+      example: 2056
+      title: EPSG code.
+      type: integer
+    providers:
+      description: >-
+        A list of providers, which may include all organizations capturing or processing
+        the data or the hosting provider. Providers should be listed in chronological
+        order with the most recent provider being the last element of the list.
+      items:
+        properties:
+          description:
+            description: >-
+              Multi-line description to add further provider information such as processing
+              details for processors and producers, hosting details for hosts or basic
+              contact information.
+
+
+              CommonMark 0.29 syntax MAY be used for rich text representation.
+            type: string
+          name:
+            description: The name of the organization or the individual.
+            type: string
+          roles:
+            description: >-
+              Roles of the provider.
+
+
+              The provider's role(s) can be one or more of the following elements:
+
+
+              * licensor: The organization that is licensing the dataset under
+
+
+                the license specified in the collection's license field.
+
+              * producer: The producer of the data is the provider that
+
+
+                initially captured and processed the source data, e.g. ESA for
+                Sentinel-2 data.
+
+              * processor: A processor is any provider who processed data to a
+
+
+                derived product.
+
+              * host: The host is the actual provider offering the data on their
+
+
+                storage. There should be no more than one host, specified as last
+                element of the list.
+            items:
+              enum:
+              - producer
+              - licensor
+              - processor
+              - host
+              type: string
+            type: array
+          url:
+            description: >-
+              Homepage on which the provider describes the dataset and publishes contact
+              information.
+            format: url
+            type: string
+        required:
+        - name
+        title: Provider
+        type: object
+      type: array
+      example:
+      - name: Federal Office of Topography - swisstopo
+        roles:
+        - producer
+        - licensor
+        url: https://www.swisstopo.admin.ch
+    query:
+      additionalProperties:
+        $ref: "#/components/schemas/queryProp"
+      description: Define which properties to query and the operations to apply
+      example:
+        title:
+          eq: "Swissregio"
+          contains: "Swiss"
+        created:
+          lte: "2021-01-01T00:00:00.000Z"
+        updated:
+          gte: "2020-01-01T00:00:00.000Z"
+      type: object
+    queryFilter:
+      description: Allows users to query properties for specific values
+      properties:
+        query:
+          $ref: "#/components/schemas/query"
+      type: object
+    queryProp:
+      anyOf:
+      - description: >-
+          If the object doesn't contain any of the operators, it is equivalent to
+          using the equals operator
+      - description: Match using an operator
+        properties:
+          contains:
+            description: >-
+              Find items with a property that contains the specified literal string,
+              e.g., matches ".*<STRING>.*". A case-insensitive comparison must be
+              performed.
+            type: string
+          endsWith:
+            description: >-
+              Find items with a property that ends with the specified string. A case-insensitive
+              comparison must be performed.
+            type: string
+          eq:
+            description: >-
+              Find items with a property that is equal to the specified value. For
+              strings, a case-insensitive comparison must be performed.
+            nullable: true
+            oneOf:
+            - type: string
+            - type: number
+            - type: boolean
+          gt:
+            description: Find items with a property value greater than the specified
+              value.
+            oneOf:
+            - format: date-time
+              type: string
+            - type: number
+          gte:
+            description: Find items with a property value greater than or equal the
+              specified value.
+            oneOf:
+            - format: date-time
+              type: string
+            - type: number
+          in:
+            description: >-
+              Find items with a property that equals at least one entry in the specified
+              array. A case-insensitive comparison must be performed.
+            items:
+              oneOf:
+              - type: string
+              - type: number
+            type: array
+          lt:
+            description: Find items with a property value less than the specified
+              value.
+            oneOf:
+            - format: date-time
+              type: string
+            - type: number
+          lte:
+            description: Find items with a property value less than or equal the specified
+              value.
+            oneOf:
+            - format: date-time
+              type: string
+            - type: number
+          neq:
+            description: >-
+              Find items that *don't* contain the specified value. For strings, a
+              case-insensitive comparison must be performed.
+            nullable: true
+            oneOf:
+            - type: string
+            - type: number
+            - type: boolean
+          startsWith:
+            description: >-
+              Find items with a property that begins with the specified string. A
+              case-insensitive comparison must be performed.
+            type: string
+        type: object
+      description: >-
+        Apply query operations to a specific property. The following properties are
+        currently supported: `created`, `updated`, `title`.
+    roles:
+      type: array
+      items:
+        type: string
+      description: Purposes of the asset
+      example:
+      - thumbnail
+    searchBody:
+      allOf:
+      - $ref: "#/components/schemas/queryFilter"
+      - $ref: "#/components/schemas/bboxFilter"
+      - $ref: "#/components/schemas/datetimeFilter"
+      - $ref: "#/components/schemas/intersectsFilter"
+      - $ref: "#/components/schemas/collectionsFilter"
+      - $ref: "#/components/schemas/idsFilter"
+      - $ref: "#/components/schemas/limitFilter"
+      description: The search criteria
+      type: object
+    stac_version:
+      example: 0.9.0
+      title: STAC version
+      type: string
+      readOnly: true
+    timeStamp:
+      description: This property indicates the time and date when the response was
+        generated.
+      example: "2017-08-17T08:05:32Z"
+      format: date-time
+      type: string
+    title:
+      type: string
+      description: Displayed title
+      example: Thumbnail
+      nullable: true
+      minLength: 1
+      maxLength: 255
+    assetType:
+      type: string
+      title: Media Type
+      description: Media type of the asset
+      example: image/tiff; application=geotiff
+    updated:
+      description: RFC 3339 compliant datetime string, time when the object was updated
+      example: 2018-02-12T23:20:50Z
+      type: string
+      format: date-time
+      readOnly: true
+    assetId:
+      type: string
+      pattern: ^[a-z0-9.-_]+$
+      title: ID
+      description: >-
+        The asset id uniquely identifies the asset for an item
+
+
+        **Note**: `id` must be unique for the item and must be identical to the filename.
+      example: smr50-263-2016-2056-kgrs-2.5.tiff
+    assets:
+      title: Assets
+      type: object
+      properties:
+        assets:
+          items:
+            $ref: "#/components/schemas/assetWrite"
+          type: array
+        links:
+          items:
+            $ref: "#/components/schemas/link"
+          type: array
+          example:
+          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets
+            rel: self
+          - href: https://data.geo.admin.ch/api/stac/v0.9/
+            rel: root
+          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019
+            rel: parent
+          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019
+            rel: item
+          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+            rel: collection
+    collectionWrite:
+      title: collection
+      allOf:
+      - $ref: "#/components/schemas/collectionBase"
+      - type: object
+        properties:
+          published:
+            type: boolean
+            default: True
+            description: |
+              Collection that are not published are not listed in the /collections endpoint. Same for collection's items,
+              they are then not listed in the /search endpoint when not published.
+          links:
+            type: array
+            items:
+              $ref: "#/components/schemas/link"
+            example:
+            - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
+              rel: license
+              title: Licence for the free geodata of the Federal Office of Topography
+                swisstopo
+            - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
+              rel: describedby
+    assetWrite:
+      title: Asset
+      description: The `property name` defines the ID of the Asset.
+      type: object
+      required:
+      - id
+      - type
+      - created
+      - updated
+      - links
+      properties:
+        id:
+          $ref: "#/components/schemas/assetId"
+        title:
+          $ref: "#/components/schemas/title"
+        description:
+          $ref: "#/components/schemas/description"
+        type:
+          $ref: "#/components/schemas/mediaTypeWrite"
+        href:
+          $ref: "#/components/schemas/href"
+        checksum:multihash:
+          $ref: "#/components/schemas/checksumMultihashReadOnly"
+        geoadmin:variant:
+          $ref: "#/components/schemas/geoadminVariant"
+        geoadmin:lang:
+          $ref: "#/components/schemas/geoadminLang"
+        proj:epsg:
+          $ref: "#/components/schemas/projEpsg"
+        eo:gsd:
+          $ref: "#/components/schemas/eoGsd"
+        created:
+          $ref: "#/components/schemas/created"
+        updated:
+          $ref: "#/components/schemas/updated"
+        links:
+          items:
+            $ref: "#/components/schemas/link"
+          type: array
+          readOnly: true
+          example:
+          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets/smr50-263-2016-2056-kgrs-2.5.tiff
+            rel: self
+          - href: https://data.geo.admin.ch/api/stac/v0.9/
+            rel: root
+          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019
+            rel: parent
+          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019
+            rel: item
+          - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+            rel: collection
+    mediaTypeWrite:
+      type: string
+      description: |
+        Media type of the asset (see [Supported Media Type](#section/Supported-Media-Type)).
+
+        This type is automatically set as `Content-Type` header to the Asset's object when uploading.
+
+        **WARNING:** When updating the Asset's metadata media type, the Asset's object `Content-Type`
+        header is not automatically updated. The object needs to be uploaded again to have the correct header.
+      example: image/tiff; application=geotiff
+    writeItem:
+      allOf:
+      - $ref: "#/components/schemas/itemBase"
+      - type: object
+        properties:
+          links:
+            items:
+              $ref: "#/components/schemas/link"
+            type: array
+            description: >-
+              Add additional link to the generated ones (`self`, `root`, `parent`,
+              `items`, `collection`, `next`, `previous`)
+    createItem:
+      allOf:
+      - type: object
+        required:
+        - id
+        properties:
+          id:
+            $ref: "#/components/schemas/itemId"
+      - $ref: "#/components/schemas/writeItem"
+    updateItem:
+      allOf:
+      - type: object
+        required:
+        - id
+        properties:
+          id:
+            $ref: "#/components/schemas/itemIdUpdate"
+      - $ref: "#/components/schemas/writeItem"
+    partialItem:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/itemIdUpdate"
+        geometry:
+          $ref: "#/components/schemas/itemGeometry"
+        properties:
+          $ref: "#/components/schemas/itemProperties"
+        links:
+          type: array
+          items:
+            $ref: "#/components/schemas/link"
+          description: >-
+            Add/update additional link to the generated ones (`self`, `root`, `parent`,
+            `items`, `collection`, `next`, `previous`)
+      example:
+        properties:
+          datetime: "2016-05-03T13:22:30.040Z"
+    partialCollection:
+      type: object
+      description: Allows for a set of partial metadata fields for a collection
+      properties:
+        id:
+          description: Identifier of the collection used, for example, in URIs
+          type: string
+          example: ch.swisstopo.pixelkarte-farbe-pk200.noscale
+        title:
+          description: Human readable title of the collection
+          type: string
+          example: National Map 1:200'000
+        description:
+          description: A description of the features in the collection
+          type: string
+          example: The National Map 1:200,000 is a topographic map giving an overview
+            of Switzerland.
+        links:
+          type: array
+          items:
+            $ref: "#/components/schemas/link"
+          example:
+          - href: http://data.example.com/buildings
+            rel: item
+          - href: http://example.com/concepts/buildings.html
+            rel: describedBy
+            type: text/html
+        extent:
+          $ref: "#/components/schemas/extent"
+        itemType:
+          description: >-
+            Indicator about the type of the items in the collection (the default value
+            is 'feature').
+          type: string
+          default: feature
+        crs:
+          description: The list of coordinate reference systems supported by the service
+          type: array
+          items:
+            type: string
+          default:
+          - http://www.opengis.net/def/crs/OGC/1.3/CRS84
+          example:
+          - http://www.opengis.net/def/crs/OGC/1.3/CRS84
+          - http://www.opengis.net/def/crs/EPSG/0/4326
+        example:
+          title: The new title of the collection
+    itemIdUpdate:
+      description: >-
+        Item identifier (unique per collection. If it doesn't match the `featureId`
+        in path parameters, then the Item is renamed.
+      example: smr200-200-4-2019
+      type: string
+    uploadId:
+      title: ID
+      type: string
+      description: Unique Asset upload identifier
+      example: KrFTuglD.N8ireqry_w3.oQqNwrYI7SfSXpVRiusKah0YigDnuM06hfJNIUZg4R_No0MMW9FLU2UG5anTW0boTUYVxKfBZWCFXqnQTpjnQEo1K7la39MYpjSTvIbZgnG
+      readOnly: true
+    dtUploadCreated:
+      title: created
+      description: Date and time when the Asset's upload has been created/started.
+      type: string
+      format: date-time
+      readOnly: true
+    dtUploadCompleted:
+      title: completed
+      description: |
+        Date and time when the Asset's upload has been completed.
+
+        *Note: this property is mutually exclusive with `aborted`*
+      type: string
+      format: date-time
+      readOnly: true
+    dtUploadAborted:
+      title: aborted
+      description: |
+        Date and time when the Asset's upload has been aborted.
+
+        *Note: this property is mutually exclusive with `completed`*
+      type: string
+      format: date-time
+      readOnly: true
+    assetUploads:
+      title: AssetUploads
+      type: object
+      required:
+      - uploads
+      - links
+      properties:
+        uploads:
+          description: List of uploads that are within the asset.
+          type: array
+          items:
+            $ref: "#/components/schemas/assetUpload"
+        links:
+          description: Next and/or previous links for the pagination.
+          type: array
+          items:
+            $ref: "#/components/schemas/link"
+          example:
+          - rel: next
+            href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets/smr50-263-2016-2056-kgrs-2.5.tiff/uploads?cursor=0d34
+    assetUpload:
+      title: AssetUpload
+      type: object
+      required:
+      - upload_id
+      - status
+      - created
+      - "checksum:multihash"
+      - number_parts
+      properties:
+        upload_id:
+          $ref: "#/components/schemas/uploadId"
+        status:
+          $ref: "#/components/schemas/status"
+        number_parts:
+          $ref: "#/components/schemas/number_parts"
+        urls:
+          type: array
+          description: |
+            Note: As soon as the multipart upload is completed or aborted, the `urls` property is removed.
+          items:
+            $ref: "#/components/schemas/multipartUploadUrl"
+          readOnly: true
+        update_interval:
+          $ref: "#/components/schemas/update_interval"
+        created:
+          $ref: "#/components/schemas/dtUploadCreated"
+        completed:
+          $ref: "#/components/schemas/dtUploadCompleted"
+        aborted:
+          $ref: "#/components/schemas/dtUploadAborted"
+        checksum:multihash:
+          $ref: "#/components/schemas/checksumMultihash"
+    assetUploadCreate:
+      title: AssetUpload
+      type: object
+      required:
+      - upload_id
+      - status
+      - created
+      - "checksum:multihash"
+      - number_parts
+      - md5_parts
+      properties:
+        upload_id:
+          $ref: "#/components/schemas/uploadId"
+        status:
+          $ref: "#/components/schemas/status"
+        number_parts:
+          $ref: "#/components/schemas/number_parts"
+        md5_parts:
+          $ref: "#/components/schemas/md5_parts"
+        update_interval:
+          $ref: "#/components/schemas/update_interval"
+        content_encoding:
+          $ref: "#/components/schemas/content_encoding"
+        urls:
+          type: array
+          description: |
+            Note: As soon as the multipart upload is completed or aborted, the `urls` property is removed.
+          items:
+            $ref: "#/components/schemas/multipartUploadUrl"
+          readOnly: true
+        created:
+          $ref: "#/components/schemas/dtUploadCreated"
+        checksum:multihash:
+          $ref: "#/components/schemas/checksumMultihash"
+    assetCompleteUpload:
+      title: CompleteUpload
+      type: object
+      required:
+      - parts
+      properties:
+        parts:
+          type: array
+          description: Parts that have been uploaded
+          items:
+            title: File parts that have been uploaded
+            type: object
+            required:
+            - etag
+            - part_number
+            properties:
+              etag:
+                title: ETag
+                type: string
+                description: >-
+                  ETag of the uploaded file part (returned in the header of the answer
+                  of [Upload asset file part](#operation/uploadAssetFilePart)).
+                example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
+              part_number:
+                $ref: "#/components/schemas/part_number"
+    assetUploadCompleted:
+      title: UploadCompleted
+      type: object
+      required:
+      - upload_id
+      - status
+      - number_parts
+      - created
+      - completed
+      - "checksum:multihash"
+      properties:
+        upload_id:
+          $ref: "#/components/schemas/uploadId"
+        status:
+          title: Status
+          description: Status of the Asset's multipart upload.
+          type: string
+          enum:
+          - completed
+          example: completed
+        number_parts:
+          $ref: "#/components/schemas/number_parts"
+        created:
+          $ref: "#/components/schemas/dtUploadCreated"
+        completed:
+          $ref: "#/components/schemas/dtUploadCompleted"
+        checksum:multihash:
+          $ref: "#/components/schemas/checksumMultihash"
+    assetUploadAborted:
+      title: UploadCompleted
+      type: object
+      required:
+      - upload_id
+      - status
+      - number_parts
+      - created
+      - aborted
+      - "checksum:multihash"
+      properties:
+        upload_id:
+          $ref: "#/components/schemas/uploadId"
+        status:
+          title: Status
+          description: Status of the Asset's multipart upload.
+          type: string
+          enum:
+          - aborted
+          example: aborted
+        number_parts:
+          $ref: "#/components/schemas/number_parts"
+        created:
+          $ref: "#/components/schemas/dtUploadCreated"
+        aborted:
+          $ref: "#/components/schemas/dtUploadAborted"
+        checksum:multihash:
+          $ref: "#/components/schemas/checksumMultihash"
+    assetUploadParts:
+      title: Parts
+      type: object
+      required:
+      - parts
+      - links
+      properties:
+        parts:
+          type: object
+          description: List of uploaded parts
+          required:
+          - etag
+          - part_number
+          - modified
+          - size
+          properties:
+            etag:
+              $ref: "#/components/schemas/uploadEtag"
+            part_number:
+              $ref: "#/components/schemas/part_number"
+            modified:
+              type: string
+              format: date-time
+              description: Date time when the part was added/modified
+            size:
+              type: integer
+              description: Part size in bytes
+              minimum: 0
+              example: 1024
+        links:
+          description: Next and/or previous links for the pagination.
+          type: array
+          items:
+            $ref: "#/components/schemas/link"
+          example:
+          - rel: next
+            href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets/smr50-263-2016-2056-kgrs-2.5.tiff/uploads/upload-id/parts?limit=50&offset=50
+    status:
+      title: Status
+      description: Status of the Asset's multipart upload.
+      type: string
+      enum:
+      - in-progress
+      - aborted
+      - completed
+      readOnly: true
+    number_parts:
+      description: Number of parts for the Asset's multipart upload.
+      type: integer
+      minimum: 1
+      maximum: 100
+    md5_parts:
+      description: MD5 checksums of each individual parts.
+      type: array
+      minItems: 1
+      maxItems: 100
+      items:
+        type: object
+        required:
+        - part_number
+        - md5
+        properties:
+          part_number:
+            $ref: "#/components/schemas/part_number"
+          md5:
+            description: The base64-encoded 128-bit MD5 digest of the associate part
+              data.
+            type: string
+            example: yLLiDqX2OL7mcIMTjob60A==
+    update_interval:
+      description: |
+        Duration in seconds until the next update of the data is expected
+
+        Regularly updated asset objects need different cache settings than the values
+        set by default (7200 seconds = 2 hours). The `update_interval` parameter has
+        to be set to notify the system on when the next update of this asset object is
+        expected so that cache headers can be set correctly by the system:
+        - `update_interval > 0` defines the interval in seconds until the
+        next update will be sent to the system (maximum is 1 week = 604800 seconds).
+        This should be used for near-real-time data that is updated e.g. every minute.
+        - `update_interval = 0` is the minimum value and should be used for real-time data
+        that is updated on a second-basis only.
+        - `update_interval = -1` (the default) means that the data is not regularly
+        updated
+
+        For data that is updated automatically but not in a regular interval it's
+        recommended to set the `update_interval` to a low value `> 0`, e.g. `10` seconds.
+      type: integer
+      minimum: -1
+      maximum: 604800
+      example: 30
+    content_encoding:
+      description: |
+        Content Encoding of the asset if compressed.
+
+        Tell the backend that the Asset data is compressed, this will add the `Content-Encoding` header
+        on the asset requests.
+
+        *NOTE:*
+         - *when uploading compressed data: the `checksum:multihash` refers to the checksum of the
+           uncompressed data, while the md5 checksum must be calculated of the compressed data*
+      type: string
+      pattern: (gzip|br|deflate|compress)
+      example: gzip
+    part_number:
+      description: Number of the part.
+      type: integer
+      minimum: 1
+      maximum: 100
+    multipartUploadUrl:
+      title: MultipartUploadUrl
+      description: Multipart upload url.
+      type: object
+      required:
+      - url
+      - part
+      - expires
+      properties:
+        url:
+          description: Presigned URL to use to upload the Asset File part using the
+            PUT method.
+          type: string
+          format: url
+          example: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-4-2019/smr50-263-2016-2056-kgrs-2.5.tiff
+        part:
+          description: Part number assigned to this presigned URL.
+          type: integer
+          minimum: 1
+          maximum: 100
+        expires:
+          description: Date time when this presigned URL expires and is not valid
+            anymore.
+          type: string
+          format: date-time
+    uploadEtag:
+      title: ETag
+      type: string
+      description: The RFC7232 ETag for the specified uploaded part.
+      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
+    uploadInProgress:
+      description: Another upload is already in progress
+      properties:
+        code:
+          type: integer
+          example: 409
+        description:
+          type: string
+          description: Description of the error
+          example: Upload already in progress
+        upload_id:
+          title: ID
+          type: string
+          description: Current Asset upload unique identifier
+          example: KrFTuglD.N8ireqry_w3.oQqNwrYI7SfSXpVRiusKah0YigDnuM06hfJNIUZg4R_No0MMW9FLU2UG5anTW0boTUYVxKfBZWCFXqnQTpjnQEo1K7la39MYpjSTvIbZgnG
+      required:
+      - code
+      - upload_id
+      type: object
+  parameters:
+    assetQuery:
+      description: >-
+        Query for properties in assets (e.g. mediatype). Use the JSON form of the
+        assetQueryFilter used in POST.
+      in: query
+      name: assetQuery
+      required: false
+      schema:
+        type: string
+    bbox:
+      explode: false
+      in: query
+      name: bbox
+      required: false
+      schema:
+        $ref: "#/components/schemas/bbox"
+      style: form
+    collectionId:
+      description: Local identifier of a collection
+      in: path
+      name: collectionId
+      required: true
+      schema:
+        type: string
+    collectionsArray:
+      explode: false
+      in: query
+      name: collections
+      required: false
+      schema:
+        $ref: "#/components/schemas/collectionsArray"
+    datetime:
+      explode: false
+      in: query
+      name: datetime
+      required: false
+      schema:
+        $ref: "#/components/schemas/datetimeQuery"
+      example: 2018-02-12T00%3A00%3A00Z%2F2018-03-18T12%3A31%3A12Z
+      style: form
+    featureId:
+      description: Local identifier of a feature
+      in: path
+      name: featureId
+      required: true
+      schema:
+        type: string
+    assetObjectHref:
+      name: assetObjectHref
+      in: path
+      description: Full URL to asset object including protocol, host and path
+      required: true
+      schema:
+        type: string
+    ids:
+      description: >-
+        Array of Item ids to return. All other filter parameters that further restrict
+        the number of search results are ignored
+      explode: false
+      in: query
+      name: ids
+      required: false
+      schema:
+        $ref: "#/components/schemas/ids"
+    limit:
+      explode: false
+      in: query
+      name: limit
+      required: false
+      schema:
+        $ref: "#/components/schemas/limit"
+      style: form
+    query:
+      description: Query for properties in items. Use the JSON form of the queryFilter
+        used in POST.
+      in: query
+      name: query
+      required: false
+      schema:
+        type: string
+    IfNoneMatch:
+      name: If-None-Match
+      in: header
+      schema:
+        type: string
+      description: >-
+        The RFC7232 `If-None-Match` header field makes the GET request method conditional.
+        It is composed of a comma separated list of ETags or value "*".
+
+
+        The server compares the client's ETags (sent with `If-None-Match`) with the
+        ETag for its current version of the resource, and if both values match (that
+        is, the resource has not changed), the server sends back a `304 Not Modified`
+        status, without a body, which tells the client that the cached version of
+        the response is still good to use (fresh).
+      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
+    IfMatch:
+      name: If-Match
+      in: header
+      schema:
+        type: string
+      description: >-
+        The RFC7232 `If-Match` header field makes the GET request method conditional.
+        It is composed of a comma separated list of ETags or value "*".
+
+
+        The server compares the client's ETags (sent with `If-Match`) with the ETag
+        for its current version of the resource, and if both values don't match (that
+        is, the resource has changed), the server sends back a `412 Precondition Failed`
+        status, without a body, which tells the client that the cached version of
+        the response is not good to use anymore.
+      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
+    assetId:
+      name: assetId
+      in: path
+      description: Local identifier of an asset.
+      required: true
+      schema:
+        type: string
+    uploadId:
+      name: uploadId
+      in: path
+      description: Local identifier of an asset's upload.
+      required: true
+      schema:
+        type: string
+    presignedUrl:
+      name: presignedUrl
+      in: path
+      description: >-
+        Presigned url returned by [Create a new Asset's multipart upload](#operation/createAssetUpload).
+
+        Note: the url returned by the above endpoint is the full url including scheme,
+        host and path
+      required: true
+      schema:
+        type: string
+    IfMatchWrite:
+      name: If-Match
+      in: header
+      schema:
+        type: string
+      description: >-
+        The RFC7232 `If-Match` header field makes the PUT/PATCH/DEL request method
+        conditional. It is composed of a comma separated list of ETags or value "*".
+
+
+        The server compares the client's ETags (sent with `If-Match`) with the ETag
+        for its current version of the resource, and if both values don't match (that
+        is, the resource has changed), the server sends back a `412 Precondition Failed`
+        status, without a body, which tells the client that he would overwrite another
+        changes of the resource.
+      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
+  headers:
+    ETag:
+      schema:
+        type: string
+      description: >-
+        The RFC7232 ETag header field in a response provides the current entity- tag
+        for the selected resource. An entity-tag is an opaque identifier for different
+        versions of a resource over time, regardless whether multiple versions are
+        valid at the same time. An entity-tag consists of an opaque quoted string,
+        possibly prefixed by a weakness indicator.
+      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
+      required: true
+  examples:
+    inprogress:
+      summary: In progress upload example
+      value:
+        upload_id: KrFTuglD.N8ireqry_w3.oQqNwrYI7SfSXpVRiusKah0YigDnuM06hfJNIUZg4R_No0MMW9FLU2UG5anTW0boTUYVxKfBZWCFXqnQTpjnQEo1K7la39MYpjSTvIbZgnG
+        status: in-progress
+        number_parts: 1
+        urls:
+        - url: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-4-2019/smr50-263-2016-2056-kgrs-2.5.tiff
+          part: 1
+          expires: '2019-08-24T14:15:22Z'
+        created: '2019-08-24T14:15:22Z'
+        checksum:multihash: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
+    completed:
+      summary: Completed upload example
+      value:
+        upload_id: KrFTuglD.N8ireqry_w3.oQqNwrYI7SfSXpVRiusKah0YigDnuM06hfJNIUZg4R_No0MMW9FLU2UG5anTW0boTUYVxKfBZWCFXqnQTpjnQEo1K7la39MYpjSTvIbZgnG
+        status: completed
+        number_parts: 1
+        created: '2019-08-24T14:15:22Z'
+        completed: '2019-08-24T14:15:22Z'
+        checksum:multihash: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
+    aborted:
+      summary: Aborted upload example
+      value:
+        upload_id: KrFTuglD.N8ireqry_w3.oQqNwrYI7SfSXpVRiusKah0YigDnuM06hfJNIUZg4R_No0MMW9FLU2UG5anTW0boTUYVxKfBZWCFXqnQTpjnQEo1K7la39MYpjSTvIbZgnG
+        status: completed
+        number_parts: 1
+        created: '2019-08-24T14:15:22Z'
+        aborted: '2019-08-24T14:15:22Z'
+        checksum:multihash: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC

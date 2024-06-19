@@ -5,7 +5,6 @@ from django.conf import settings
 logger = logging.getLogger(__name__)
 
 STAC_BASE = settings.STAC_BASE
-STAC_BASE_V = settings.STAC_BASE_V
 
 
 class CORSHeadersMiddleware:
@@ -31,7 +30,7 @@ class CORSHeadersMiddleware:
         # Access-Control-Allow-Methods:
         allow_methods = ['GET', 'HEAD']
         # For /search we allow POST as well
-        if request.path == f'/{STAC_BASE_V}/search':
+        if request.path in (f'/{STAC_BASE}/v0.9/search', f'/{STAC_BASE}/v1/search'):
             allow_methods.append('POST')
         response['Access-Control-Allow-Methods'] = ','.join(allow_methods)
         response['Access-Control-Allow-Headers'] = 'Content-Type,Accept'

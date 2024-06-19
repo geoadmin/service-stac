@@ -28,6 +28,7 @@ from stac_api.serializers_utils import get_relation_links
 from stac_api.serializers_utils import update_or_create_links
 from stac_api.utils import build_asset_href
 from stac_api.utils import get_browser_url
+from stac_api.utils import get_stac_version
 from stac_api.utils import get_url
 from stac_api.utils import isoformat
 from stac_api.validators import normalize_and_validate_media_type
@@ -77,13 +78,14 @@ class LandingPageSerializer(serializers.ModelSerializer):
     stac_version = serializers.SerializerMethodField()
 
     def get_stac_version(self, obj):
-        return settings.STAC_VERSION
+        return get_stac_version(self.context.get('request'))
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         request = self.context.get("request")
 
-        spec_base = urlparse(settings.STATIC_SPEC_URL).path.strip('/')
+        version = request.resolver_match.namespace
+        spec_base = f'{urlparse(settings.STATIC_SPEC_URL).path.strip(' / ')}/{version}'
         # Add auto links
         # We use OrderedDict, although it is not necessary, because the default serializer/model for
         # links already uses OrderedDict, this way we keep consistency between auto link and user
@@ -219,7 +221,7 @@ class CollectionSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         return []
 
     def get_stac_version(self, obj):
-        return settings.STAC_VERSION
+        return get_stac_version(self.context.get('request'))
 
     def get_summaries(self, obj):
         return {
@@ -637,7 +639,7 @@ class ItemSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         return []
 
     def get_stac_version(self, obj):
-        return settings.STAC_VERSION
+        return get_stac_version(self.context.get('request'))
 
     def to_representation(self, instance):
         collection = instance.collection.name
