@@ -841,13 +841,13 @@ components:
       example: smr200-200-4-2019
       type: string
     itemGeometry:
-      # oneOf:
-        # - $ref: "#/components/schemas/geoJsonPoint"
-        # - $ref: "#/components/schemas/geoJsonLineString"
-      $ref: "#/components/schemas/geoJsonPolygon"
-        # - $ref: "#/components/schemas/geoJsonMultiPoint"
-        # - $ref: "#/components/schemas/geoJsonMultiLineString"
-        # - $ref: "#/components/schemas/geoJsonMultiPolygon"
+      oneOf:
+        - $ref: "#/components/schemas/geoJsonPoint"
+        - $ref: "#/components/schemas/geoJsonLineString"
+        - $ref: "#/components/schemas/geoJsonPolygon"
+        - $ref: "#/components/schemas/geoJsonMultiPoint"
+        - $ref: "#/components/schemas/geoJsonMultiLineString"
+        - $ref: "#/components/schemas/geoJsonMultiPolygon"
     geoJsonPoint:
       title: GeoJSON Point
       type: object
