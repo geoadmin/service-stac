@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 
@@ -21,20 +22,32 @@ class TestValidators(TestCase):
         item = factory.create_item_sample(collection=collection, name='item-test').model
         validate_asset_href_path(item, 'asset-test', 'collection-test/item-test/asset-test')
 
-        with self.settings(AWS_S3_CUSTOM_DOMAIN='new-domain'):
+        with self.settings(AWS_LEGACY={**settings.AWS_LEGACY, 'S3_CUSTOM_DOMAIN': 'new-domain'}):
             validate_asset_href_path(item, 'asset-test', 'collection-test/item-test/asset-test')
 
-        with self.settings(AWS_S3_CUSTOM_DOMAIN='new-domain/with-prefix/'):
+        with self.settings(
+            AWS_LEGACY={
+                **settings.AWS_LEGACY, 'S3_CUSTOM_DOMAIN': 'new-domain/with-prefix/'
+            }
+        ):
             validate_asset_href_path(
                 item, 'asset-test', 'with-prefix/collection-test/item-test/asset-test'
             )
 
-        with self.settings(AWS_S3_CUSTOM_DOMAIN='//new-domain/with-prefix'):
+        with self.settings(
+            AWS_LEGACY={
+                **settings.AWS_LEGACY, 'S3_CUSTOM_DOMAIN': '//new-domain/with-prefix'
+            }
+        ):
             validate_asset_href_path(
                 item, 'asset-test', 'with-prefix/collection-test/item-test/asset-test'
             )
 
-        with self.settings(AWS_S3_CUSTOM_DOMAIN='//new domain/with-prefix'):
+        with self.settings(
+            AWS_LEGACY={
+                **settings.AWS_LEGACY, 'S3_CUSTOM_DOMAIN': '//new domain/with-prefix'
+            }
+        ):
             validate_asset_href_path(
                 item, 'asset-test', 'with-prefix/collection-test/item-test/asset-test'
             )

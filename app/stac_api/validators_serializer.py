@@ -61,7 +61,7 @@ def validate_asset_href_path(item, asset_name, path):
     '''Validate Asset href path
 
     The href path must follow the convention: [PREFIX/]COLLECTION_NAME/ITEM_NAME/ASSET_NAME
-    where PREFIX is parsed from settings.AWS_S3_CUSTOM_DOMAIN if available
+    where PREFIX is parsed from settings.AWS_LEGACY['S3_CUSTOM_DOMAIN'] if available
 
     Args:
         item: Item
@@ -75,8 +75,8 @@ def validate_asset_href_path(item, asset_name, path):
         serializers.ValidationError in case of invalid path
     '''
     expected_path = get_asset_path(item, asset_name)
-    if settings.AWS_S3_CUSTOM_DOMAIN:
-        prefix_path = settings.AWS_S3_CUSTOM_DOMAIN.strip('/').split('/', maxsplit=1)[1:]
+    if settings.AWS_LEGACY['S3_CUSTOM_DOMAIN']:
+        prefix_path = settings.AWS_LEGACY['S3_CUSTOM_DOMAIN'].strip('/').split('/', maxsplit=1)[1:]
         expected_path = '/'.join(prefix_path + [expected_path])
     if path != expected_path:
         logger.error("Invalid path %s; don't follow the convention %s", path, expected_path)
@@ -110,7 +110,7 @@ def validate_asset_file(href, original_name, attrs):
     asset_path = get_asset_path(attrs['item'], original_name)
     try:
         s3 = get_s3_resource()
-        obj = s3.Object(settings.AWS_STORAGE_BUCKET_NAME, asset_path)
+        obj = s3.Object(settings.AWS_LEGACY['STORAGE_BUCKET_NAME'], asset_path)
         obj.load()
         logger.debug('S3 obj %s etag=%s, metadata=%s', asset_path, obj.e_tag, obj.metadata)
     except botocore.exceptions.ClientError as error:
