@@ -37,26 +37,32 @@ help:
 	@echo "- serve-specs              serve the specs locally on port $(SPEC_HTTP_PORT)"
 
 
-.PHONY: build-spec-openapi
-build-spec-openapi: $(PARTS)
-	$(YQ) merge -x $(PARTS) | \
-	sed -E '/\$ref:/s/"\..*?(#.*?)"/"\1"/' > $(OPENAPI)
+$(OPENAPI): $(PARTS)
+	$(YQ) merge -x $(^) | \
+	sed -E '/\$ref:/s/"\..*?(#.*?)"/"\1"/' > $(@)
 
-.PHONY: build-spec-transactional
-build-spec-transactional: build-spec-openapi $(OPENAPI) $(PARTS_TRANSACTIONAL)
-	$(YQ) merge -x $(OPENAPI) $(PARTS_TRANSACTIONAL) | \
-	sed -E '/\$ref:/s/"\..*?(#.*?)"/"\1"/' > $(OPENAPI_TRANSACTIONAL)
-
+$(OPENAPI_TRANSACTIONAL): $(OPENAPI) $(PARTS_TRANSACTIONAL)
+	$(YQ) merge -x $(^) | \
+	sed -E '/\$ref:/s/"\..*?(#.*?)"/"\1"/' > $(@)
 
 .PHONY: build-specs
-build-specs: build-spec-openapi build-spec-transactional
+build-specs: clean $(OPENAPI) $(OPENAPI_TRANSACTIONAL)
 
+.PHONY: clean
+clean:
+	$(RM) $(OPENAPI) $(OPENAPI_TRANSACTIONAL)
 
 .PHONY: lint-specs
 lint-specs: build-specs
 	$(OPENAPI_VALIDATOR) -e $(OPENAPI)
 	$(OPENAPI_VALIDATOR) -e $(OPENAPI_TRANSACTIONAL)
 
+# This can be useful to distinguish style and semantic differences when we
+# update the tools. For example if you update yq and see lot of whitespace
+# changes, you can "make static/spec/v1/openapi.props" and diff that to check
+# for change in the properties themselves.
+%.props: %.yaml
+	$(YQ) -P 'sort_keys(..)' -o=props $(^) > $(@)
 
 # Start a little server that serves api.html and openapi.yaml
 # since ReDoc (the js library used in api.html) cannot load spec
