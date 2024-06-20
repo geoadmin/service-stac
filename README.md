@@ -455,6 +455,7 @@ The service is configured by Environment Variable:
 | AWS_ACCESS_KEY_ID | - | |
 | AWS_SECRET_ACCESS_KEY | - | |
 | AWS_STORAGE_BUCKET_NAME | - | |
+| AWS_STORAGE_MANAGED_BUCKET_NAME | - | |
 | AWS_S3_REGION_NAME | - | |
 | AWS_S3_ENDPOINT_URL | `None` | |
 | AWS_S3_CUSTOM_DOMAIN | `None` | |

@@ -108,7 +108,7 @@ class AssetUploadBaseTest(StacBaseTestCase, S3TestMixin):
             # mocking
             response = s3.upload_part(
                 Body=file_like[start:start + offset],
-                Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+                Bucket=settings.AWS_LEGACY['STORAGE_BUCKET_NAME'],
                 Key=key,
                 PartNumber=part,
                 UploadId=upload_id
@@ -221,7 +221,9 @@ class AssetUploadCreateEndpointTestCase(AssetUploadBaseTest):
         )
         # check that there is only one multipart upload on S3
         s3 = get_s3_client()
-        response = s3.list_multipart_uploads(Bucket=settings.AWS_STORAGE_BUCKET_NAME, KeyMarker=key)
+        response = s3.list_multipart_uploads(
+            Bucket=settings.AWS_LEGACY['STORAGE_BUCKET_NAME'], KeyMarker=key
+        )
         self.assertNotIn('Uploads', response, msg='uploads found on S3')
 
     def test_asset_upload_create_multipart_duplicate(self):
@@ -276,7 +278,9 @@ class AssetUploadCreateEndpointTestCase(AssetUploadBaseTest):
 
         # check that there is only one multipart upload on S3
         s3 = get_s3_client()
-        response = s3.list_multipart_uploads(Bucket=settings.AWS_STORAGE_BUCKET_NAME, KeyMarker=key)
+        response = s3.list_multipart_uploads(
+            Bucket=settings.AWS_LEGACY['STORAGE_BUCKET_NAME'], KeyMarker=key
+        )
         self.assertIn('Uploads', response, msg='Failed to retrieve the upload list from s3')
         self.assertEqual(len(response['Uploads']), 1, msg='More or less uploads found on S3')
 

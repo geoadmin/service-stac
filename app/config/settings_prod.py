@@ -195,22 +195,41 @@ UPLOAD_FILE_CHUNK_SIZE = 1024 * 1024  # Size in Bytes
 DEFAULT_FILE_STORAGE = 'stac_api.storages.S3Storage'
 
 try:
-    AWS_ACCESS_KEY_ID = os.environ['AWS_ACCESS_KEY_ID']
-    AWS_SECRET_ACCESS_KEY = os.environ['AWS_SECRET_ACCESS_KEY']
-    AWS_STORAGE_BUCKET_NAME = os.environ['AWS_STORAGE_BUCKET_NAME']
-    # The AWS region of the bucket
-    AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME', 'eu-central-1')
-    # This is the URL where to reach the S3 service and is either minio
-    # on localhost or https://s3.<region>.amazonaws.com
-    AWS_S3_ENDPOINT_URL = os.environ.get('AWS_S3_ENDPOINT_URL', None)
-    # The CUSTOM_DOMAIN is used to construct the correct URL when displaying
-    # a link to the file in the admin UI. It must only contain the domain, but not
-    # the scheme (http/https).
-    AWS_S3_CUSTOM_DOMAIN = os.environ.get('AWS_S3_CUSTOM_DOMAIN', None)
-    # AWS_DEFAULT_ACL depends on bucket/user config. The user might not have
-    # permissions to change ACL, then this setting must be None
-    AWS_DEFAULT_ACL = None
-    AWS_S3_SIGNATURE_VERSION = "s3v4"
+    AWS_LEGACY = {
+        "STORAGE_BUCKET_NAME": os.environ['AWS_STORAGE_BUCKET_NAME'],
+        "ACCESS_KEY_ID": os.environ['AWS_ACCESS_KEY_ID'],
+        "SECRET_ACCESS_KEY": os.environ['AWS_SECRET_ACCESS_KEY'],  # The AWS region of the bucket
+        "S3_REGION_NAME": os.environ.get('AWS_S3_REGION_NAME', 'eu-central-1'),
+        # This is the URL where to reach the S3 service and is either minio
+        # on localhost or https://s3.<region>.amazonaws.com
+        "S3_ENDPOINT_URL": os.environ.get('AWS_S3_ENDPOINT_URL', None),
+        # The CUSTOM_DOMAIN is used to construct the correct URL when displaying
+        # a link to the file in the admin UI. It must only contain the domain, but not
+        # the scheme (http/https).
+        "S3_CUSTOM_DOMAIN": os.environ.get('AWS_S3_CUSTOM_DOMAIN', None),
+        # AWS_DEFAULT_ACL depends on bucket/user config. The user might not have
+        # permissions to change ACL, then this setting must be None
+        "DEFAULT_ACL": None,
+        "S3_SIGNATURE_VERSION": "s3v4"
+    }
+
+    AWS_MANAGED = {
+        # STORAGE_BUCKET_NAME is the only required additional var
+        # The others are inferred by the ones above if they're not specified
+        # So if we have two buckets on the same server with the same access key, we needn't
+        # specify all the variables. But this still leaves the possibility to
+        # have it in a somewhere entirely different location
+        "STORAGE_BUCKET_NAME": os.environ['AWS_STORAGE_BUCKET_NAME_MANAGED'],
+        "ACCESS_KEY_ID": os.environ.get('AWS_ACCESS_KEY_ID_MANAGED', AWS_LEGACY['ACCESS_KEY_ID']),
+        "SECRET_ACCESS_KEY":
+            os.environ.get('AWS_SECRET_ACCESS_KEY_MANAGED', AWS_LEGACY['SECRET_ACCESS_KEY']),
+        "S3_REGION_NAME":
+            os.environ.get('AWS_S3_REGION_NAME_MANAGED', AWS_LEGACY['S3_REGION_NAME']),
+        "S3_ENDPOINT_URL": os.environ.get('AWS_S3_ENDPOINT_URL', AWS_LEGACY['S3_ENDPOINT_URL']),
+        "S3_CUSTOM_DOMAIN": os.environ.get('AWS_S3_CUSTOM_DOMAIN', AWS_LEGACY['S3_CUSTOM_DOMAIN']),
+        "DEFAULT_ACL": None,
+        "S3_SIGNATURE_VERSION": "s3v4"
+    }
 except KeyError as err:
     raise KeyError(f'AWS configuration {err} missing') from err
 

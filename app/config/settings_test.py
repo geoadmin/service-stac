@@ -15,9 +15,13 @@ s3mock.start()
 
 from config.settings import *
 
-AWS_ACCESS_KEY_ID = 'my-key'
-AWS_SECRET_ACCESS_KEY = 'my-key'
-AWS_DEFAULT_ACL = 'public-read'
-AWS_S3_REGION_NAME = 'wonderland'
-AWS_S3_ENDPOINT_URL = None
-AWS_S3_CUSTOM_DOMAIN = 'testserver'
+AWS_LEGACY = {
+    "ACCESS_KEY_ID": 'my-key',
+    "SECRET_ACCESS_KEY": 'my-key',
+    "DEFAULT_ACL": 'public-read',
+    "S3_REGION_NAME": 'wonderland',
+    "S3_ENDPOINT_URL": None,
+    "S3_CUSTOM_DOMAIN": 'testserver',
+    "STORAGE_BUCKET_NAME": 'doesntmatter',
+    "S3_SIGNATURE_VERSION": "s3v4"
+}

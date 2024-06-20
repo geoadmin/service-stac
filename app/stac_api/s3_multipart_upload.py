@@ -44,7 +44,7 @@ class MultipartUpload:
         Returns: ([], bool, string, string)
             Returns a tuple (uploads, has_next, next_key, next_upload_id)
         '''
-        kwargs = {'Bucket': settings.AWS_STORAGE_BUCKET_NAME, 'MaxUploads': limit}
+        kwargs = {'Bucket': settings.AWS_LEGACY['STORAGE_BUCKET_NAME'], 'MaxUploads': limit}
         if key is not None:
             kwargs['KeyMarker'] = key
         if start is not None:
@@ -84,7 +84,7 @@ class MultipartUpload:
             extra_params['ContentEncoding'] = content_encoding
         response = self.call_s3_api(
             self.s3.create_multipart_upload,
-            Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+            Bucket=settings.AWS_LEGACY['STORAGE_BUCKET_NAME'],
             Key=key,
             Metadata={'sha256': sha256},
             CacheControl=get_s3_cache_control_value(update_interval),
@@ -127,7 +127,7 @@ class MultipartUpload:
             datetime.utcnow() + timedelta(seconds=settings.AWS_PRESIGNED_URL_EXPIRES)
         )
         params = {
-            'Bucket': settings.AWS_STORAGE_BUCKET_NAME,
+            'Bucket': settings.AWS_LEGACY['STORAGE_BUCKET_NAME'],
             'Key': key,
             'UploadId': upload_id,
             'PartNumber': part,
@@ -178,7 +178,7 @@ class MultipartUpload:
         try:
             response = self.call_s3_api(
                 self.s3.complete_multipart_upload,
-                Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+                Bucket=settings.AWS_LEGACY['STORAGE_BUCKET_NAME'],
                 Key=key,
                 MultipartUpload={'Parts': parts},
                 UploadId=upload_id,
@@ -226,7 +226,7 @@ class MultipartUpload:
         '''
         self.call_s3_api(
             self.s3.abort_multipart_upload,
-            Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+            Bucket=settings.AWS_LEGACY['STORAGE_BUCKET_NAME'],
             Key=key,
             UploadId=upload_id,
             log_extra={
@@ -257,7 +257,7 @@ class MultipartUpload:
         '''
         response = self.call_s3_api(
             self.s3.list_parts,
-            Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+            Bucket=settings.AWS_LEGACY['STORAGE_BUCKET_NAME'],
             Key=key,
             UploadId=upload_id,
             MaxParts=limit,

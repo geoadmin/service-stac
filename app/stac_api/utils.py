@@ -110,24 +110,25 @@ def get_s3_resource():
         AWS S3 resource
     '''
     return boto3.resource(
-        's3', endpoint_url=settings.AWS_S3_ENDPOINT_URL, config=Config(signature_version='s3v4')
+        's3',
+        endpoint_url=settings.AWS_LEGACY['S3_ENDPOINT_URL'],
+        config=Config(signature_version='s3v4')
     )
 
 
 def get_s3_client():
     '''Returns an AWS S3 client
 
-    The authentication with the S3 server is configured via the AWS_ACCESS_KEY_ID and
-    AWS_SECRET_ACCESS_KEY environment variables.
-
     Returns:
         AWS S3 client
     '''
     return boto3.client(
         's3',
-        endpoint_url=settings.AWS_S3_ENDPOINT_URL,
-        region_name=settings.AWS_S3_REGION_NAME,
-        config=Config(signature_version='s3v4'),
+        endpoint_url=settings.AWS_LEGACY['S3_ENDPOINT_URL'],
+        region_name=settings.AWS_LEGACY['S3_REGION_NAME'],
+        config=Config(signature_version=settings.AWS_LEGACY['S3_SIGNATURE_VERSION']),
+        aws_access_key_id=settings.AWS_LEGACY['ACCESS_KEY_ID'],
+        aws_secret_access_key=settings.AWS_LEGACY['SECRET_ACCESS_KEY']
     )
 
 
@@ -148,12 +149,12 @@ def build_asset_href(request, path):
 
     # Assets file are served by an AWS S3 services. This service uses the same domain as
     # the API but could defer, especially for local development, so check first
-    # AWS_S3_CUSTOM_DOMAIN
-    if settings.AWS_S3_CUSTOM_DOMAIN:
+    # AWS_LEGACY['S3_CUSTOM_DOMAIN']
+    if settings.AWS_LEGACY['S3_CUSTOM_DOMAIN']:
         # By definition we should not mixed up HTTP Scheme (HTTP/HTTPS) within our service,
         # although the Assets file are not served by django we configure it with the same scheme
         # as django that's why it is kind of safe to use the django scheme.
-        return f'{request.scheme}://{settings.AWS_S3_CUSTOM_DOMAIN.strip("/")}/{path}'
+        return f"{request.scheme}://{settings.AWS_LEGACY['S3_CUSTOM_DOMAIN'].strip(" / ")}/{path}"
 
     return request.build_absolute_uri(f'/{path}')
 
