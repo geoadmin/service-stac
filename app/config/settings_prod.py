@@ -314,3 +314,6 @@ STAC_BROWSER_HOST = os.getenv(
     'STAC_BROWSER_HOST', None
 )  # if None, the host is taken from the request url
 STAC_BROWSER_BASE_PATH = os.getenv('STAC_BROWSER_BASE_PATH', 'browser/index.html')
+
+# Regex patterns of collections that should go to the managed bucket
+MANAGED_BUCKET_COLLECTION_PATTERNS = [r"^ch\.meteoschweiz\.ogd.*"]
