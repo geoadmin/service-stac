@@ -12,6 +12,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 
 from stac_api.utils import AVAILABLE_S3_BUCKETS
+from stac_api.utils import get_aws_settings
 from stac_api.utils import get_s3_resource
 from stac_api.utils import get_sha256_multihash
 
@@ -115,24 +116,21 @@ def mock_s3_bucket(s3_bucket=AVAILABLE_S3_BUCKETS.LEGACY):
     '''
     start = time.time()
     s3 = get_s3_resource(s3_bucket)
-    key = 'AWS_LEGACY' if s3_bucket == AVAILABLE_S3_BUCKETS.LEGACY else 'AWS_MANAGED'
-    conf = getattr(settings, key)
+
+    config = get_aws_settings(s3_bucket)
 
     try:
-
-        s3.meta.client.head_bucket(Bucket=conf['STORAGE_BUCKET_NAME'])
+        s3.meta.client.head_bucket(Bucket=config['STORAGE_BUCKET_NAME'])
     except botocore.exceptions.ClientError as error:
-
         # If a client error is thrown, then check that it was a 404 error.
-
         # If it was a 404 error, then the bucket does not exist.
 
         error_code = error.response['Error']['Code']
         if error_code == '404':
             # We need to create the bucket since this is all in Moto's 'virtual' AWS account
             s3.create_bucket(
-                Bucket=conf['STORAGE_BUCKET_NAME'],
-                CreateBucketConfiguration={'LocationConstraint': conf['S3_REGION_NAME']}
+                Bucket=config['STORAGE_BUCKET_NAME'],
+                CreateBucketConfiguration={'LocationConstraint': config['S3_REGION_NAME']}
             )
             logger.debug('Mock S3 bucket created in %fs', time.time() - start)
         else:
