@@ -41,6 +41,7 @@ from stac_api.serializers import LandingPageSerializer
 from stac_api.serializers_utils import get_relation_links
 from stac_api.utils import get_asset_path
 from stac_api.utils import harmonize_post_get_for_search
+from stac_api.utils import select_s3_bucket
 from stac_api.utils import utc_aware
 from stac_api.validators_serializer import ValidateSearchRequest
 from stac_api.validators_view import validate_asset
@@ -699,9 +700,13 @@ class AssetUploadsList(AssetUploadBase, mixins.ListModelMixin, views_mixins.Crea
         return {'Location': '/'.join([self.request.build_absolute_uri(), data['upload_id']])}
 
     def perform_create(self, serializer):
-        executor = MultipartUpload()
         data = serializer.validated_data
         asset = self.get_asset_or_404()
+        collection = asset.item.collection
+
+        s3_bucket = select_s3_bucket(collection.name)
+        executor = MultipartUpload(s3_bucket)
+
         self.create_multipart_upload(executor, serializer, data, asset)
 
     def get_queryset(self):
@@ -732,8 +737,13 @@ class AssetUploadComplete(AssetUploadBase, views_mixins.UpdateInsertModelMixin):
         return self.update(request, *args, **kwargs)
 
     def perform_update(self, serializer):
-        executor = MultipartUpload()
         asset = serializer.instance.asset
+
+        collection = asset.item.collection
+
+        s3_bucket = select_s3_bucket(collection.name)
+        executor = MultipartUpload(s3_bucket)
+
         self.complete_multipart_upload(
             executor, serializer.validated_data, serializer.instance, asset
         )
@@ -746,8 +756,12 @@ class AssetUploadAbort(AssetUploadBase, views_mixins.UpdateInsertModelMixin):
         return self.update(request, *args, **kwargs)
 
     def perform_update(self, serializer):
-        executor = MultipartUpload()
         asset = serializer.instance.asset
+
+        collection = asset.item.collection
+
+        s3_bucket = select_s3_bucket(collection.name)
+        executor = MultipartUpload(s3_bucket)
         self.abort_multipart_upload(executor, serializer.instance, asset)
 
 
@@ -759,9 +773,14 @@ class AssetUploadPartsList(AssetUploadBase):
         return self.list(request, *args, **kwargs)
 
     def list(self, request, *args, **kwargs):
-        executor = MultipartUpload()
         asset_upload = self.get_object()
         limit, offset = self.get_pagination_config(request)
+
+        collection = asset_upload.asset.item.collection
+        s3_bucket = select_s3_bucket(collection.name)
+
+        executor = MultipartUpload(s3_bucket)
+
         data, has_next = self.list_multipart_upload_parts(
             executor, asset_upload, asset_upload.asset, limit, offset
         )

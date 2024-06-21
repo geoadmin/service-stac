@@ -2,11 +2,13 @@ import hashlib
 import json
 import logging
 import math
+import re
 from base64 import b64decode
 from datetime import datetime
 from datetime import timezone
 from decimal import Decimal
 from decimal import InvalidOperation
+from enum import Enum
 from urllib import parse
 
 import boto3
@@ -19,6 +21,8 @@ from django.contrib.gis.geos import Polygon
 from django.urls import reverse
 
 logger = logging.getLogger(__name__)
+
+AVAILABLE_S3_BUCKETS = Enum('AVAILABLE_S3_BUCKETS', ['MANAGED', 'LEGACY'])
 
 
 def isoformat(date_time):
@@ -100,7 +104,7 @@ def get_asset_path(item, asset_name):
     return '/'.join([item.collection.name, item.name, asset_name])
 
 
-def get_s3_resource():
+def get_s3_resource(s3_bucket: AVAILABLE_S3_BUCKETS = AVAILABLE_S3_BUCKETS.LEGACY):
     '''Returns an AWS S3 resource
 
     The authentication with the S3 server is configured via the AWS_ACCESS_KEY_ID and
@@ -109,27 +113,33 @@ def get_s3_resource():
     Returns:
         AWS S3 resource
     '''
-    return boto3.resource(
-        's3',
-        endpoint_url=settings.AWS_LEGACY['S3_ENDPOINT_URL'],
-        config=Config(signature_version='s3v4')
-    )
+
+    config = get_aws_settings(s3_bucket)
+    endpoint_url = config['S3_ENDPOINT_URL']
+
+    return boto3.resource('s3', endpoint_url=endpoint_url, config=Config(signature_version='s3v4'))
 
 
-def get_s3_client():
+def get_s3_client(s3_bucket: AVAILABLE_S3_BUCKETS = AVAILABLE_S3_BUCKETS.LEGACY):
     '''Returns an AWS S3 client
+
 
     Returns:
         AWS S3 client
     '''
-    return boto3.client(
+
+    conf = get_aws_settings(s3_bucket)
+
+    client = boto3.client(
         's3',
-        endpoint_url=settings.AWS_LEGACY['S3_ENDPOINT_URL'],
-        region_name=settings.AWS_LEGACY['S3_REGION_NAME'],
-        config=Config(signature_version=settings.AWS_LEGACY['S3_SIGNATURE_VERSION']),
-        aws_access_key_id=settings.AWS_LEGACY['ACCESS_KEY_ID'],
-        aws_secret_access_key=settings.AWS_LEGACY['SECRET_ACCESS_KEY']
+        endpoint_url=conf['S3_ENDPOINT_URL'],
+        region_name=conf['S3_REGION_NAME'],
+        config=Config(signature_version=conf['S3_SIGNATURE_VERSION']),
+        aws_access_key_id=conf['ACCESS_KEY_ID'],
+        aws_secret_access_key=conf['SECRET_ACCESS_KEY']
     )
+
+    return client
 
 
 def build_asset_href(request, path):
@@ -445,3 +455,27 @@ def get_s3_cache_control_value(update_interval):
         return f'max-age={max_age}, public'
 
     return f'max-age={settings.STORAGE_ASSETS_CACHE_SECONDS}, public'
+
+
+def select_s3_bucket(collection_name) -> AVAILABLE_S3_BUCKETS:
+    """Select the s3 bucket based on the collection name
+
+    Select the correct s3 bucket based on matching patterns with the collection
+    name
+    """
+    patterns = settings.MANAGED_BUCKET_COLLECTION_PATTERNS
+
+    for pattern in patterns:
+        match = re.fullmatch(pattern, collection_name)
+        if match is not None:
+            return AVAILABLE_S3_BUCKETS.MANAGED
+
+    return AVAILABLE_S3_BUCKETS.LEGACY
+
+
+def get_aws_settings(s3_bucket: AVAILABLE_S3_BUCKETS = AVAILABLE_S3_BUCKETS.LEGACY):
+
+    if s3_bucket == AVAILABLE_S3_BUCKETS.LEGACY:
+        return settings.AWS_LEGACY
+
+    return settings.AWS_MANAGED
