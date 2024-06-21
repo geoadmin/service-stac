@@ -53,3 +53,6 @@ if DEBUG:
     )
 
 SHELL_PLUS_POST_IMPORTS = ['from tests.data_factory import Factory']
+
+# Regex patterns of collections that should go to the managed bucket
+MANAGED_BUCKET_COLLECTION_PATTERNS = [r"^ch\.meteoschweiz\.ogd.*"]
