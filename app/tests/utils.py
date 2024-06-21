@@ -11,6 +11,7 @@ from moto import mock_s3
 from django.conf import settings
 from django.contrib.auth import get_user_model
 
+from stac_api.utils import AVAILABLE_S3_BUCKETS
 from stac_api.utils import get_s3_resource
 from stac_api.utils import get_sha256_multihash
 
@@ -106,29 +107,36 @@ class S3TestMixin():
         )
 
 
-def mock_s3_bucket():
+def mock_s3_bucket(s3_bucket=AVAILABLE_S3_BUCKETS.LEGACY):
     '''Mock an S3 bucket
 
-    This functions check if a S3 bucket exists and create it if not. This
+    This functions checks if an S3 bucket exists and create it if not. This
     can be used to mock the bucket for unittest.
     '''
     start = time.time()
-    s3 = get_s3_resource()
+    s3 = get_s3_resource(s3_bucket)
+    key = 'AWS_LEGACY' if s3_bucket == AVAILABLE_S3_BUCKETS.LEGACY else 'AWS_MANAGED'
+    conf = getattr(settings, key)
+
     try:
-        s3.meta.client.head_bucket(Bucket=settings.AWS_LEGACY['STORAGE_BUCKET_NAME'])
+
+        s3.meta.client.head_bucket(Bucket=conf['STORAGE_BUCKET_NAME'])
     except botocore.exceptions.ClientError as error:
+
         # If a client error is thrown, then check that it was a 404 error.
+
         # If it was a 404 error, then the bucket does not exist.
+
         error_code = error.response['Error']['Code']
         if error_code == '404':
             # We need to create the bucket since this is all in Moto's 'virtual' AWS account
             s3.create_bucket(
-                Bucket=settings.AWS_LEGACY['STORAGE_BUCKET_NAME'],
-                CreateBucketConfiguration={
-                    'LocationConstraint': settings.AWS_LEGACY['S3_REGION_NAME']
-                }
+                Bucket=conf['STORAGE_BUCKET_NAME'],
+                CreateBucketConfiguration={'LocationConstraint': conf['S3_REGION_NAME']}
             )
             logger.debug('Mock S3 bucket created in %fs', time.time() - start)
+        else:
+            raise Exception("Unable to mock the s3 bucket") from error
     logger.debug('Mock S3 bucket in %fs', time.time() - start)
 
 
