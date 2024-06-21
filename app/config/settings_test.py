@@ -22,6 +22,17 @@ AWS_LEGACY = {
     "S3_REGION_NAME": 'wonderland',
     "S3_ENDPOINT_URL": None,
     "S3_CUSTOM_DOMAIN": 'testserver',
-    "STORAGE_BUCKET_NAME": 'doesntmatter',
+    "STORAGE_BUCKET_NAME": 'legacy',
+    "S3_SIGNATURE_VERSION": "s3v4"
+}
+
+AWS_MANAGED = {
+    "ACCESS_KEY_ID": 'my-key',
+    "SECRET_ACCESS_KEY": 'my-key',
+    "DEFAULT_ACL": 'public-read',
+    "S3_REGION_NAME": 'wonderland',
+    "S3_ENDPOINT_URL": None,
+    "S3_CUSTOM_DOMAIN": 'testserver',
+    "STORAGE_BUCKET_NAME": 'managed',
     "S3_SIGNATURE_VERSION": "s3v4"
 }
