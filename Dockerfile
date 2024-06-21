@@ -128,6 +128,7 @@ RUN LOGGING_CFG=0 \
     AWS_ACCESS_KEY_ID= \
     AWS_SECRET_ACCESS_KEY= \
     AWS_STORAGE_BUCKET_NAME= \
+    AWS_STORAGE_BUCKET_NAME_MANAGED= \
     ${INSTALL_DIR}/app/manage.py collectstatic --noinput
 
 ARG GIT_HASH=unknown
