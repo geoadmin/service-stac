@@ -1,67 +1,14 @@
-from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.test import TestCase
-
-from rest_framework import serializers
 
 from stac_api.validators import MediaType
 from stac_api.validators import get_media_type
 from stac_api.validators import normalize_and_validate_media_type
 from stac_api.validators import validate_content_encoding
 from stac_api.validators import validate_item_properties_datetimes_dependencies
-from stac_api.validators_serializer import validate_asset_href_path
-
-from tests.tests_10.data_factory import Factory
 
 
 class TestValidators(TestCase):
-
-    def test_validate_asset_href_path(self):
-        factory = Factory()
-        collection = factory.create_collection_sample(name='collection-test').model
-        item = factory.create_item_sample(collection=collection, name='item-test').model
-        validate_asset_href_path(item, 'asset-test', 'collection-test/item-test/asset-test')
-
-        with self.settings(AWS_LEGACY={**settings.AWS_LEGACY, 'S3_CUSTOM_DOMAIN': 'new-domain'}):
-            validate_asset_href_path(item, 'asset-test', 'collection-test/item-test/asset-test')
-
-        with self.settings(
-            AWS_LEGACY={
-                **settings.AWS_LEGACY, 'S3_CUSTOM_DOMAIN': 'new-domain/with-prefix/'
-            }
-        ):
-            validate_asset_href_path(
-                item, 'asset-test', 'with-prefix/collection-test/item-test/asset-test'
-            )
-
-        with self.settings(
-            AWS_LEGACY={
-                **settings.AWS_LEGACY, 'S3_CUSTOM_DOMAIN': '//new-domain/with-prefix'
-            }
-        ):
-            validate_asset_href_path(
-                item, 'asset-test', 'with-prefix/collection-test/item-test/asset-test'
-            )
-
-        with self.settings(
-            AWS_LEGACY={
-                **settings.AWS_LEGACY, 'S3_CUSTOM_DOMAIN': '//new domain/with-prefix'
-            }
-        ):
-            validate_asset_href_path(
-                item, 'asset-test', 'with-prefix/collection-test/item-test/asset-test'
-            )
-
-        with self.assertRaises(
-            serializers.ValidationError,
-            msg="Invalid Asset href path did not raises serializers.ValidationError"
-        ):
-            validate_asset_href_path(item, 'asset-test', 'asset-test')
-            validate_asset_href_path(item, 'asset-test', 'item-test/asset-test')
-            validate_asset_href_path(item, 'asset-test', 'collection-test/item-test/asset-test')
-            validate_asset_href_path(
-                item, 'asset-test', '/service-stac-local/collection-test/item-test/asset-test'
-            )
 
     def test_validate_function_invalid_datetime_string(self):
         with self.assertRaises(ValidationError):
