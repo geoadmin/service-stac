@@ -17,6 +17,7 @@ responses = "!=0.12.1" # skip version 0.12.1 which has a bug see https://github.
 requests-mock = "~=1.12.1"
 moto = {extras = [ "s3",], version = "~=4.0.13"}
 debugpy = "*"
+parameterized = "*"
 
 [packages]
 gevent = "~=24.2.1"
