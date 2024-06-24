@@ -5,7 +5,7 @@ from parameterized import parameterized
 from django.test import TestCase
 
 from stac_api.s3_multipart_upload import MultipartUpload
-from stac_api.utils import AVAILABLE_S3_BUCKETS
+from stac_api.utils import AVAILABLE_S3_BUCKETS, select_s3_bucket
 from stac_api.utils import get_asset_path
 from stac_api.utils import get_aws_settings
 
@@ -138,3 +138,32 @@ class MultipartUploadMultipleBucketTest(TestCase):
                 'upload_id': 'upload_id',
             }
         )
+
+
+class TestBucketSelector(TestCase):
+
+    @parameterized.expand([('ch.meteoschweiz.ogd.rainfall', AVAILABLE_S3_BUCKETS.MANAGED),
+                           ('ch.meteoschweiz.ogd.downpour', AVAILABLE_S3_BUCKETS.MANAGED),
+                           ('ch.meteoschweiz.precipitation', AVAILABLE_S3_BUCKETS.LEGACY),
+                           ('ch.swisstopo.bgdi', AVAILABLE_S3_BUCKETS.MANAGED),
+                           ('ch.bafu.slipouts', AVAILABLE_S3_BUCKETS.LEGACY)])
+    def test_bucket_selection(self, collection_name, expected_bucket):
+        """Test if the pattern selection works"""
+        patterns = [r'ch\.meteoschweiz\.ogd.*', r'ch\.swisstopo\.bgdi.*']
+        with self.settings(MANAGED_BUCKET_COLLECTION_PATTERNS=patterns):
+            bucket_name = select_s3_bucket(collection_name)
+
+        self.assertEqual(bucket_name, expected_bucket)
+
+    @parameterized.expand([
+        'ch.meteoschweiz.ogd',
+        'ch.meteoschweiz.ogd.heatwave',
+        'ch.meteoschweiz.ogd.snowstorms',
+    ])
+    def test_managed_bucket_patterns(self, collection_name):
+        """This one helps testing the configured patterns,
+         whether they really go to the new bucket
+         """
+        bucket_name = select_s3_bucket(collection_name)
+
+        self.assertEqual(bucket_name, AVAILABLE_S3_BUCKETS.MANAGED)
