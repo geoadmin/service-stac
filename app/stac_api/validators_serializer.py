@@ -1,12 +1,6 @@
 import json
 import logging
 
-import botocore
-import multihash
-from multihash import from_hex_string
-from multihash import to_hex_string
-
-from django.conf import settings
 from django.contrib.gis.gdal.error import GDALException
 from django.contrib.gis.geos import GEOSGeometry
 from django.db import IntegrityError
@@ -14,14 +8,9 @@ from django.db import transaction
 from django.utils.translation import gettext_lazy as _
 
 from rest_framework import serializers
-from rest_framework.exceptions import APIException
 
-from stac_api.utils import create_multihash
-from stac_api.utils import create_multihash_string
 from stac_api.utils import fromisoformat
 from stac_api.utils import geometry_from_bbox
-from stac_api.utils import get_asset_path
-from stac_api.utils import get_s3_resource
 from stac_api.utils import harmonize_post_get_for_search
 from stac_api.validators import validate_geometry
 
@@ -55,34 +44,6 @@ def validate_json_payload(serializer):
 
     if errors:
         raise serializers.ValidationError(code='payload', detail=errors)
-
-
-def validate_asset_href_path(item, asset_name, path):
-    '''Validate Asset href path
-
-    The href path must follow the convention: [PREFIX/]COLLECTION_NAME/ITEM_NAME/ASSET_NAME
-    where PREFIX is parsed from settings.AWS_LEGACY['S3_CUSTOM_DOMAIN'] if available
-
-    Args:
-        item: Item
-            Item object's in which the Assets is located
-        asset_name: string
-            Asset's name
-        path: string
-            Href path to validate
-
-    Raises:
-        serializers.ValidationError in case of invalid path
-    '''
-    expected_path = get_asset_path(item, asset_name)
-    if settings.AWS_LEGACY['S3_CUSTOM_DOMAIN']:
-        prefix_path = settings.AWS_LEGACY['S3_CUSTOM_DOMAIN'].strip('/').split('/', maxsplit=1)[1:]
-        expected_path = '/'.join(prefix_path + [expected_path])
-    if path != expected_path:
-        logger.error("Invalid path %s; don't follow the convention %s", path, expected_path)
-        raise serializers.ValidationError({
-            'href': _(f"Invalid path; should be {expected_path} but got {path}")
-        })
 
 
 class ValidateSearchRequest:
