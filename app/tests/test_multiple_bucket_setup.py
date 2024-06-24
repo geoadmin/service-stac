@@ -5,9 +5,10 @@ from parameterized import parameterized
 from django.test import TestCase
 
 from stac_api.s3_multipart_upload import MultipartUpload
-from stac_api.utils import AVAILABLE_S3_BUCKETS, select_s3_bucket
+from stac_api.utils import AVAILABLE_S3_BUCKETS
 from stac_api.utils import get_asset_path
 from stac_api.utils import get_aws_settings
+from stac_api.utils import select_s3_bucket
 
 from tests.tests_10.data_factory import Factory
 from tests.utils import get_file_like_object
