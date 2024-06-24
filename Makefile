@@ -140,6 +140,7 @@ setup-s3-and-db:
 	# Create volume directories for postgres and minio
 	# Note that the '/service_stac_local' part is already the bucket name
 	mkdir -p .volumes/minio/service-stac-local
+	mkdir -p .volumes/minio/service-stac-local-managed
 	mkdir -p .volumes/postgresql
 	docker compose up -d
 
