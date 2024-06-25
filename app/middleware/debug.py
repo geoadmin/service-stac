@@ -1,6 +1,6 @@
-import os
+import environ
 
-from helpers.utils import strtobool
+env = environ.Env()
 
 
 def check_toolbar_env(request):
@@ -10,4 +10,4 @@ def check_toolbar_env(request):
     https://django-debug-toolbar.readthedocs.io/en/latest/configuration.html#debug-toolbar-config  # pylint: disable=line-too-long
     """
 
-    return strtobool(os.environ.get('DEBUG', '0'))
+    return env.bool('DEBUG', False)
