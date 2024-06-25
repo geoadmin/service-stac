@@ -45,7 +45,7 @@ if DEBUG:
 DEBUG_TOOLBAR_CONFIG = {'SHOW_TOOLBAR_CALLBACK': 'middleware.debug.check_toolbar_env'}
 
 # use the default staticfiles mechanism
-STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+# STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
 
 if DEBUG:
     DEBUG_PROPAGATE_API_EXCEPTIONS = env.bool('DEBUG_PROPAGATE_API_EXCEPTIONS', 'False')
