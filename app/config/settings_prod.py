@@ -177,7 +177,7 @@ STATIC_SPEC_URL = f'{STATIC_URL}spec/'
 # it will serve the files from the same directories "manage.py collectstatic" collects data from)
 STATIC_ROOT = BASE_DIR / 'var' / 'www' / 'stac_api' / 'static_files'
 STATICFILES_DIRS = [BASE_DIR / "spec" / "static", BASE_DIR / "app" / "stac_api" / "templates"]
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+# STATICFILES_STORAGE =
 HEALTHCHECK_ENDPOINT = env('HEALTHCHECK_ENDPOINT', default='healthcheck')
 
 try:
@@ -195,7 +195,17 @@ WHITENOISE_MIMETYPES = {
 
 # Media files (i.e. uploaded content=assets in this project)
 UPLOAD_FILE_CHUNK_SIZE = 1024 * 1024  # Size in Bytes
-DEFAULT_FILE_STORAGE = 'stac_api.storages.S3Storage'
+STORAGES = {
+    'default': {
+        "BACKEND": "stac_api.storages.LegacyS3Storage"
+    },
+    'staticfiles': {
+        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+    },
+    'managed': {
+        "BACKEND": "stac_api.storages.ManagedS3Storage"
+    }
+}
 
 try:
     AWS_SETTINGS = {
