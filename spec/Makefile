@@ -1,4 +1,4 @@
-SHELL = /bin/bash
+SHELL = /bin/bash -o pipefail
 .DEFAULT_GOAL := help
 
 # List of files that should be merged.
@@ -19,6 +19,9 @@ STATIC_BASE_DIR = static/spec/v1
 OPENAPI = $(STATIC_BASE_DIR)/openapi.yaml
 OPENAPI_TRANSACTIONAL = $(STATIC_BASE_DIR)/openapitransactional.yaml
 
+YQ ?= docker run --rm -v ${PWD}:/workdir 974517877189.dkr.ecr.eu-central-1.amazonaws.com/external/openapi/yq:4.44.1
+OPENAPI_VALIDATOR ?= docker run --volume "$(PWD)":/data 974517877189.dkr.ecr.eu-central-1.amazonaws.com/external/openapi/openapi-validator:0.54.0
+
 all: help
 
 
@@ -28,33 +31,38 @@ help:
 	@echo
 	@echo "Possible targets:"
 	@echo -e " \033[1mLOCAL DOCKER TARGETS\033[0m "
-	@echo "- dockerlogin              Login to the AWS ECR registery for pulling/pushing docker images"
 	@echo -e " \033[1mTREAT THE SPECS TARGETS\033[0m "
 	@echo "- build-specs              Build the specs"
 	@echo "- lint-specs               lint the specs"
 	@echo "- serve-specs              serve the specs locally on port $(SPEC_HTTP_PORT)"
 
 
-.PHONY: build-spec-openapi
-build-spec-openapi: $(PARTS)
-	docker run --rm -v ${PWD}:/workdir 974517877189.dkr.ecr.eu-central-1.amazonaws.com/external/openapi/yq:3.3.0 yq merge -x $(PARTS) | \
-	sed -E '/\$ref:/s/"\..*?(#.*?)"/"\1"/' > $(OPENAPI)
+$(OPENAPI): $(PARTS)
+	$(YQ) eval-all '. as $$item ireduce ({}; . *nd $$item )' $(^) | \
+	sed -E '/\$ref:/s/"\..*?(#.*?)"/"\1"/' > $(@)
 
-.PHONY: build-spec-transactional
-build-spec-transactional: build-spec-openapi $(OPENAPI) $(PARTS_TRANSACTIONAL)
-	docker run --rm -v ${PWD}:/workdir 974517877189.dkr.ecr.eu-central-1.amazonaws.com/external/openapi/yq:3.3.0 yq merge -x $(OPENAPI) $(PARTS_TRANSACTIONAL) | \
-	sed -E '/\$ref:/s/"\..*?(#.*?)"/"\1"/' > $(OPENAPI_TRANSACTIONAL)
-
+$(OPENAPI_TRANSACTIONAL): $(OPENAPI) $(PARTS_TRANSACTIONAL)
+	$(YQ) eval-all '. as $$item ireduce ({}; . *nd $$item )' $(^) | \
+	sed -E '/\$ref:/s/"\..*?(#.*?)"/"\1"/' > $(@)
 
 .PHONY: build-specs
-build-specs: build-spec-openapi build-spec-transactional
+build-specs: clean $(OPENAPI) $(OPENAPI_TRANSACTIONAL)
 
+.PHONY: clean
+clean:
+	$(RM) $(OPENAPI) $(OPENAPI_TRANSACTIONAL)
 
 .PHONY: lint-specs
 lint-specs: build-specs
-	docker run --volume "$(PWD)":/data 974517877189.dkr.ecr.eu-central-1.amazonaws.com/external/openapi/openapi-validator:0.54.0 -e $(OPENAPI)
-	docker run --volume "$(PWD)":/data 974517877189.dkr.ecr.eu-central-1.amazonaws.com/external/openapi/openapi-validator:0.54.0 -e $(OPENAPI_TRANSACTIONAL)
+	$(OPENAPI_VALIDATOR) -e $(OPENAPI)
+	$(OPENAPI_VALIDATOR) -e $(OPENAPI_TRANSACTIONAL)
 
+# This can be useful to distinguish style and semantic differences when we
+# update the tools. For example if you update yq and see lot of whitespace
+# changes, you can "make static/spec/v1/openapi.props" and diff that to check
+# for change in the properties themselves.
+%.props: %.yaml
+	$(YQ) -P 'sort_keys(..)' -o=props $(^) > $(@)
 
 # Start a little server that serves api.html and openapi.yaml
 # since ReDoc (the js library used in api.html) cannot load spec
