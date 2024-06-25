@@ -318,4 +318,4 @@ STAC_BROWSER_HOST = env(
 STAC_BROWSER_BASE_PATH = env('STAC_BROWSER_BASE_PATH', default='browser/index.html')
 
 # Regex patterns of collections that should go to the managed bucket
-MANAGED_BUCKET_COLLECTION_PATTERNS = [r"^ch\.meteoschweiz\.ogd.*"]
+MANAGED_BUCKET_COLLECTION_PATTERNS = env.list('MANAGED_BUCKET_COLLECTION_PATTERNS', default=[])
