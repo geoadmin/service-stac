@@ -9,7 +9,6 @@ from django.test import TestCase
 from stac_api.s3_multipart_upload import MultipartUpload
 from stac_api.utils import AVAILABLE_S3_BUCKETS
 from stac_api.utils import get_asset_path
-from stac_api.utils import get_aws_settings
 from stac_api.utils import select_s3_bucket
 
 from tests.tests_10.data_factory import Factory
@@ -25,8 +24,8 @@ class MultipartUploadMultipleBucketTest(TestCase):
         self.item = self.factory.create_item_sample(collection=self.collection).model
         self.asset = self.factory.create_asset_sample(item=self.item, sample='asset-no-file').model
 
-        mock_s3_bucket(AVAILABLE_S3_BUCKETS.LEGACY)
-        mock_s3_bucket(AVAILABLE_S3_BUCKETS.MANAGED)
+        mock_s3_bucket(AVAILABLE_S3_BUCKETS.legacy)
+        mock_s3_bucket(AVAILABLE_S3_BUCKETS.managed)
 
     def test_create_multipart_upload(self):
         _, checksum_multihash = get_file_like_object(1024)
@@ -49,7 +48,7 @@ class MultipartUploadMultipleBucketTest(TestCase):
             return upload_id, url['url']
 
         # First upload goes to the legacy bucket
-        upload_id, url = get_url(AVAILABLE_S3_BUCKETS.LEGACY)
+        upload_id, url = get_url(AVAILABLE_S3_BUCKETS.legacy)
 
         self.assertIn(
             f"https://legacy.s3.amazonaws.com/collection-1/item-1/asset-1.tiff?uploadId={upload_id}",
@@ -57,7 +56,7 @@ class MultipartUploadMultipleBucketTest(TestCase):
         )
 
         # Second upload goes to the managed bucket
-        upload_id, url = get_url(AVAILABLE_S3_BUCKETS.MANAGED)
+        upload_id, url = get_url(AVAILABLE_S3_BUCKETS.managed)
 
         self.assertIn(
             f"https://managed.s3.amazonaws.com/collection-1/item-1/asset-1.tiff?uploadId={upload_id}",
@@ -65,8 +64,8 @@ class MultipartUploadMultipleBucketTest(TestCase):
         )
 
     @parameterized.expand([
-        AVAILABLE_S3_BUCKETS.LEGACY,
-        AVAILABLE_S3_BUCKETS.MANAGED,
+        AVAILABLE_S3_BUCKETS.legacy,
+        AVAILABLE_S3_BUCKETS.managed,
     ],)
     @patch("stac_api.s3_multipart_upload.MultipartUpload.call_s3_api")
     def test_complete_multipart_upload(self, s3_bucket, mock_call):
@@ -76,7 +75,7 @@ class MultipartUploadMultipleBucketTest(TestCase):
 
         executor.complete_multipart_upload("foo", self.asset, [], "upload_id")
 
-        config = get_aws_settings(s3_bucket)
+        config = settings.AWS_SETTINGS[s3_bucket.name]
 
         mock_call.assert_called_once_with(
             executor.s3.complete_multipart_upload,
@@ -94,8 +93,8 @@ class MultipartUploadMultipleBucketTest(TestCase):
         )
 
     @parameterized.expand([
-        AVAILABLE_S3_BUCKETS.LEGACY,
-        AVAILABLE_S3_BUCKETS.MANAGED,
+        AVAILABLE_S3_BUCKETS.legacy,
+        AVAILABLE_S3_BUCKETS.managed,
     ],)
     @patch("stac_api.s3_multipart_upload.MultipartUpload.call_s3_api")
     def test_abort_multipart_upload(self, s3_bucket, mock_call):
@@ -103,7 +102,7 @@ class MultipartUploadMultipleBucketTest(TestCase):
 
         executor.abort_multipart_upload("foo", self.asset, "upload_id")
 
-        config = get_aws_settings(s3_bucket)
+        config = settings.AWS_SETTINGS[s3_bucket.name]
 
         mock_call.assert_called_once_with(
             executor.s3.abort_multipart_upload,
@@ -116,8 +115,8 @@ class MultipartUploadMultipleBucketTest(TestCase):
         )
 
     @parameterized.expand([
-        AVAILABLE_S3_BUCKETS.LEGACY,
-        AVAILABLE_S3_BUCKETS.MANAGED,
+        AVAILABLE_S3_BUCKETS.legacy,
+        AVAILABLE_S3_BUCKETS.managed,
     ],)
     @patch("stac_api.s3_multipart_upload.MultipartUpload.call_s3_api")
     def test_list_upload_parts(self, s3_bucket, mock_call):
@@ -125,7 +124,7 @@ class MultipartUploadMultipleBucketTest(TestCase):
 
         executor.list_upload_parts("foo", self.asset, "upload_id", 3, 2)
 
-        config = get_aws_settings(s3_bucket)
+        config = settings.AWS_SETTINGS[s3_bucket.name]
 
         mock_call.assert_called_once_with(
             executor.s3.list_parts,
@@ -145,11 +144,11 @@ class MultipartUploadMultipleBucketTest(TestCase):
 
 class TestBucketSelector(TestCase):
 
-    @parameterized.expand([('ch.meteoschweiz.ogd-rainfall', AVAILABLE_S3_BUCKETS.MANAGED),
-                           ('ch.meteoschweiz.ogd-downpour', AVAILABLE_S3_BUCKETS.MANAGED),
-                           ('ch.meteoschweiz.precipitation', AVAILABLE_S3_BUCKETS.LEGACY),
-                           ('ch.swisstopo.bgdi', AVAILABLE_S3_BUCKETS.MANAGED),
-                           ('ch.bafu.slipouts', AVAILABLE_S3_BUCKETS.LEGACY)])
+    @parameterized.expand([('ch.meteoschweiz.ogd-rainfall', AVAILABLE_S3_BUCKETS.managed),
+                           ('ch.meteoschweiz.ogd-downpour', AVAILABLE_S3_BUCKETS.managed),
+                           ('ch.meteoschweiz.precipitation', AVAILABLE_S3_BUCKETS.legacy),
+                           ('ch.swisstopo.bgdi', AVAILABLE_S3_BUCKETS.managed),
+                           ('ch.bafu.slipouts', AVAILABLE_S3_BUCKETS.legacy)])
     def test_bucket_selection(self, collection_name, expected_bucket):
         """Test if the pattern selection works"""
         patterns = [r'ch\.meteoschweiz\.ogd-.*', r'ch\.swisstopo\.bgdi.*']
@@ -176,4 +175,4 @@ class TestBucketSelector(TestCase):
         with self.settings(MANAGED_BUCKET_COLLECTION_PATTERNS=patterns):
             bucket_name = select_s3_bucket(collection_name)
 
-        self.assertEqual(bucket_name, AVAILABLE_S3_BUCKETS.MANAGED)
+        self.assertEqual(bucket_name, AVAILABLE_S3_BUCKETS.managed)

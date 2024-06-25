@@ -12,7 +12,6 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 
 from stac_api.utils import AVAILABLE_S3_BUCKETS
-from stac_api.utils import get_aws_settings
 from stac_api.utils import get_s3_resource
 from stac_api.utils import get_sha256_multihash
 
@@ -45,7 +44,7 @@ class S3TestMixin():
         s3 = get_s3_resource()
 
         try:
-            s3.Object(settings.AWS_LEGACY['STORAGE_BUCKET_NAME'], path).load()
+            s3.Object(settings.AWS_SETTINGS['legacy']['STORAGE_BUCKET_NAME'], path).load()
         except botocore.exceptions.ClientError as error:
             if error.response['Error']['Code'] == "404":
                 # Object Was Not Found
@@ -57,7 +56,7 @@ class S3TestMixin():
         with self.assertRaises(
             botocore.exceptions.ClientError, msg=f'Object {path} found on S3'
         ) as exception_context:
-            s3.Object(settings.AWS_LEGACY['STORAGE_BUCKET_NAME'], path).load()
+            s3.Object(settings.AWS_SETTINGS['legacy']['STORAGE_BUCKET_NAME'], path).load()
         error = exception_context.exception
         self.assertEqual(error.response['Error']['Code'], "404")
 
@@ -65,7 +64,7 @@ class S3TestMixin():
         s3 = get_s3_resource()
 
         try:
-            obj = s3.Object(settings.AWS_LEGACY['STORAGE_BUCKET_NAME'], path)
+            obj = s3.Object(settings.AWS_SETTINGS['legacy']['STORAGE_BUCKET_NAME'], path)
             obj.load()
         except botocore.exceptions.ClientError as error:
             if error.response['Error']['Code'] == "404":
@@ -108,7 +107,7 @@ class S3TestMixin():
         )
 
 
-def mock_s3_bucket(s3_bucket=AVAILABLE_S3_BUCKETS.LEGACY):
+def mock_s3_bucket(s3_bucket: AVAILABLE_S3_BUCKETS = AVAILABLE_S3_BUCKETS.legacy):
     '''Mock an S3 bucket
 
     This functions checks if an S3 bucket exists and create it if not. This
@@ -116,21 +115,21 @@ def mock_s3_bucket(s3_bucket=AVAILABLE_S3_BUCKETS.LEGACY):
     '''
     start = time.time()
     s3 = get_s3_resource(s3_bucket)
-
-    config = get_aws_settings(s3_bucket)
-
     try:
-        s3.meta.client.head_bucket(Bucket=config['STORAGE_BUCKET_NAME'])
+        s3.meta.client.head_bucket(
+            Bucket=settings.AWS_SETTINGS[s3_bucket.name]['STORAGE_BUCKET_NAME']
+        )
     except botocore.exceptions.ClientError as error:
         # If a client error is thrown, then check that it was a 404 error.
         # If it was a 404 error, then the bucket does not exist.
-
         error_code = error.response['Error']['Code']
         if error_code == '404':
             # We need to create the bucket since this is all in Moto's 'virtual' AWS account
             s3.create_bucket(
-                Bucket=config['STORAGE_BUCKET_NAME'],
-                CreateBucketConfiguration={'LocationConstraint': config['S3_REGION_NAME']}
+                Bucket=settings.AWS_SETTINGS[s3_bucket.name]['STORAGE_BUCKET_NAME'],
+                CreateBucketConfiguration={
+                    'LocationConstraint': settings.AWS_SETTINGS[s3_bucket.name]['S3_REGION_NAME']
+                }
             )
             logger.debug('Mock S3 bucket created in %fs', time.time() - start)
         else:
@@ -166,7 +165,7 @@ def upload_file_on_s3(file_path, file, params=None):
             parameters to path to boto3.upload_fileobj() as ExtraArgs
     '''
     s3 = get_s3_resource()
-    obj = s3.Object(settings.AWS_LEGACY['STORAGE_BUCKET_NAME'], file_path)
+    obj = s3.Object(settings.AWS_SETTINGS['legacy']['STORAGE_BUCKET_NAME'], file_path)
     if isinstance(file, bytes):
         file = BytesIO(file)
     if params is not None:
