@@ -22,7 +22,7 @@ from django.urls import reverse
 
 logger = logging.getLogger(__name__)
 
-AVAILABLE_S3_BUCKETS = Enum('AVAILABLE_S3_BUCKETS', ['MANAGED', 'LEGACY'])
+AVAILABLE_S3_BUCKETS = Enum('AVAILABLE_S3_BUCKETS', list(settings.AWS_SETTINGS.keys()))
 
 
 def isoformat(date_time):
@@ -104,7 +104,7 @@ def get_asset_path(item, asset_name):
     return '/'.join([item.collection.name, item.name, asset_name])
 
 
-def get_s3_resource(s3_bucket: AVAILABLE_S3_BUCKETS = AVAILABLE_S3_BUCKETS.LEGACY):
+def get_s3_resource(s3_bucket: AVAILABLE_S3_BUCKETS = AVAILABLE_S3_BUCKETS.legacy):
     '''Returns an AWS S3 resource
 
     The authentication with the S3 server is configured via the AWS_ACCESS_KEY_ID and
@@ -114,13 +114,14 @@ def get_s3_resource(s3_bucket: AVAILABLE_S3_BUCKETS = AVAILABLE_S3_BUCKETS.LEGAC
         AWS S3 resource
     '''
 
-    config = get_aws_settings(s3_bucket)
-    endpoint_url = config['S3_ENDPOINT_URL']
+    s3_config = settings.AWS_SETTINGS[s3_bucket.name]
+    endpoint_url = s3_config['S3_ENDPOINT_URL']
+    signature_version = s3_config['S3_SIGNATURE_VERSION']
 
-    return boto3.resource('s3', endpoint_url=endpoint_url, config=Config(signature_version='s3v4'))
+    return boto3.resource('s3', endpoint_url=endpoint_url, config=Config(signature_version))
 
 
-def get_s3_client(s3_bucket: AVAILABLE_S3_BUCKETS = AVAILABLE_S3_BUCKETS.LEGACY):
+def get_s3_client(s3_bucket: AVAILABLE_S3_BUCKETS = AVAILABLE_S3_BUCKETS.legacy):
     '''Returns an AWS S3 client
 
 
@@ -128,7 +129,7 @@ def get_s3_client(s3_bucket: AVAILABLE_S3_BUCKETS = AVAILABLE_S3_BUCKETS.LEGACY)
         AWS S3 client
     '''
 
-    conf = get_aws_settings(s3_bucket)
+    conf = settings.AWS_SETTINGS[s3_bucket.name]
 
     client = boto3.client(
         's3',
@@ -160,11 +161,12 @@ def build_asset_href(request, path):
     # Assets file are served by an AWS S3 services. This service uses the same domain as
     # the API but could defer, especially for local development, so check first
     # AWS_LEGACY['S3_CUSTOM_DOMAIN']
-    if settings.AWS_LEGACY['S3_CUSTOM_DOMAIN']:
+    if settings.AWS_SETTINGS['legacy']['S3_CUSTOM_DOMAIN']:
         # By definition we should not mixed up HTTP Scheme (HTTP/HTTPS) within our service,
         # although the Assets file are not served by django we configure it with the same scheme
         # as django that's why it is kind of safe to use the django scheme.
-        return f"{request.scheme}://{settings.AWS_LEGACY['S3_CUSTOM_DOMAIN'].strip(" / ")}/{path}"
+        custom_domain = settings.AWS_SETTINGS['legacy']['S3_CUSTOM_DOMAIN'].strip(" / ")
+        return f"{request.scheme}://{custom_domain}/{path}"
 
     return request.build_absolute_uri(f'/{path}')
 
@@ -468,14 +470,6 @@ def select_s3_bucket(collection_name) -> AVAILABLE_S3_BUCKETS:
     for pattern in patterns:
         match = re.fullmatch(pattern, collection_name)
         if match is not None:
-            return AVAILABLE_S3_BUCKETS.MANAGED
+            return AVAILABLE_S3_BUCKETS.managed
 
-    return AVAILABLE_S3_BUCKETS.LEGACY
-
-
-def get_aws_settings(s3_bucket: AVAILABLE_S3_BUCKETS = AVAILABLE_S3_BUCKETS.LEGACY):
-
-    if s3_bucket == AVAILABLE_S3_BUCKETS.LEGACY:
-        return settings.AWS_LEGACY
-
-    return settings.AWS_MANAGED
+    return AVAILABLE_S3_BUCKETS.legacy

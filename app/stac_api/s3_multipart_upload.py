@@ -13,7 +13,6 @@ from rest_framework import serializers
 
 from stac_api.exceptions import UploadNotInProgressError
 from stac_api.utils import AVAILABLE_S3_BUCKETS
-from stac_api.utils import get_aws_settings
 from stac_api.utils import get_s3_cache_control_value
 from stac_api.utils import get_s3_client
 from stac_api.utils import isoformat
@@ -29,13 +28,13 @@ class MultipartUpload:
     Implement the Multipart upload with S3 backend.
     '''
 
-    def __init__(self, s3_bucket: AVAILABLE_S3_BUCKETS = AVAILABLE_S3_BUCKETS.LEGACY):
+    def __init__(self, s3_bucket: AVAILABLE_S3_BUCKETS = AVAILABLE_S3_BUCKETS.legacy):
         self.s3_bucket = s3_bucket
         self.s3 = get_s3_client(self.s3_bucket)
 
     @property
     def settings(self):
-        config = get_aws_settings(self.s3_bucket)
+        config = settings.AWS_SETTINGS[self.s3_bucket.name]
         return config
 
     def list_multipart_uploads(self, key=None, limit=100, start=None):

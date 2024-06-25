@@ -23,9 +23,9 @@ class S3Storage(S3Boto3Storage):
         # specifying the configuration as we're not using the
         # environment variables / globals settings (due two having two
         # buckets to access)
-        self.access_key = settings.AWS_LEGACY['ACCESS_KEY_ID']
-        self.secret_key = settings.AWS_LEGACY['SECRET_ACCESS_KEY']
-        self.bucket_name = settings.AWS_LEGACY['STORAGE_BUCKET_NAME']
+        self.access_key = settings.AWS_SETTINGS['legacy']['ACCESS_KEY_ID']
+        self.secret_key = settings.AWS_SETTINGS['legacy']['SECRET_ACCESS_KEY']
+        self.bucket_name = settings.AWS_SETTINGS['legacy']['STORAGE_BUCKET_NAME']
         super().__init__()
         self.object_sha256 = None
         self.update_interval = -1

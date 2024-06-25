@@ -762,7 +762,7 @@ class AssetSample(SampleData):
         item = data.pop('item')
         if 'href' in data and isinstance(data['href'], File):
             data['href'] = \
-                f'http://{settings.AWS_LEGACY["S3_CUSTOM_DOMAIN"]}/{item.collection.name}/{item.name}/{data["href"].name}'
+                f'http://{settings.AWS_SETTINGS["legacy"]["S3_CUSTOM_DOMAIN"]}/{item.collection.name}/{item.name}/{data["href"].name}'
         return data
 
     def create_asset_file(self):
@@ -779,7 +779,7 @@ class AssetSample(SampleData):
 
     def _create_file_on_s3(self, file_path, file):
         s3 = get_s3_resource()
-        obj = s3.Object(settings.AWS_LEGACY['STORAGE_BUCKET_NAME'], file_path)
+        obj = s3.Object(settings.AWS_SETTINGS['legacy']['STORAGE_BUCKET_NAME'], file_path)
         obj.upload_fileobj(
             file,
             ExtraArgs={
