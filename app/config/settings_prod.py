@@ -11,9 +11,12 @@ import os
 import os.path
 from pathlib import Path
 
+import environ
 import yaml
 
 from .version import APP_VERSION  # pylint: disable=unused-import
+
+env = environ.Env()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
@@ -21,7 +24,7 @@ os.environ['BASE_DIR'] = str(BASE_DIR)
 print(f"BASE_DIR is {BASE_DIR}")
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY', None)
+SECRET_KEY = env('SECRET_KEY', default=None)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
@@ -39,10 +42,10 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_CLOUDFRONT_FORWARDED_PROTO', 'https')
 # see kubernetes config on how `THIS_POD_IP` is obtained
 
 ALLOWED_HOSTS = []
-THIS_POD_IP = os.getenv('THIS_POD_IP')
+THIS_POD_IP = env('THIS_POD_IP', default=None)
 if THIS_POD_IP:
     ALLOWED_HOSTS.append(THIS_POD_IP)
-ALLOWED_HOSTS += os.getenv('ALLOWED_HOSTS', '').split(',')
+ALLOWED_HOSTS += env('ALLOWED_HOSTS', default='').split(',')
 
 # SERVICE_HOST = os.getenv('SERVICE_HOST', '127.0.0.1:8000')
 
@@ -124,13 +127,13 @@ WSGI_APPLICATION = 'wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': os.environ.get('DB_NAME', 'service_stac'),
-        'USER': os.environ.get('DB_USER', 'service_stac'),
-        'PASSWORD': os.environ.get('DB_PW', 'service_stac'),
-        'HOST': os.environ.get('DB_HOST', 'service_stac'),
-        'PORT': os.environ.get('DB_PORT', 5432),
+        'NAME': env('DB_NAME', default='service_stac'),
+        'USER': env('DB_USER', default='service_stac'),
+        'PASSWORD': env('DB_PW', default='service_stac'),
+        'HOST': env('DB_HOST', default='service_stac'),
+        'PORT': env.int('DB_PORT', default=5432),
         'TEST': {
-            'NAME': os.environ.get('DB_NAME_TEST', 'test_service_stac'),
+            'NAME': env('DB_NAME_TEST', default='test_service_stac'),
         }
     }
 }
@@ -166,7 +169,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
-STATIC_HOST = os.environ.get('DJANGO_STATIC_HOST', '')
+STATIC_HOST = env('DJANGO_STATIC_HOST', default='')
 STATIC_URL = f'{STATIC_HOST}/api/stac/static/'
 STATIC_SPEC_URL = f'{STATIC_URL}spec/'
 # "manage.py collectstatic" will copy all static files to this directory, and
@@ -175,10 +178,10 @@ STATIC_SPEC_URL = f'{STATIC_URL}spec/'
 STATIC_ROOT = BASE_DIR / 'var' / 'www' / 'stac_api' / 'static_files'
 STATICFILES_DIRS = [BASE_DIR / "spec" / "static", BASE_DIR / "app" / "stac_api" / "templates"]
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-HEALTHCHECK_ENDPOINT = os.environ.get('HEALTHCHECK_ENDPOINT', 'healthcheck')
+HEALTHCHECK_ENDPOINT = env('HEALTHCHECK_ENDPOINT', default='healthcheck')
 
 try:
-    WHITENOISE_MAX_AGE = int(os.environ.get('HTTP_STATIC_CACHE_SECONDS', '3600'))
+    WHITENOISE_MAX_AGE = env.int('HTTP_STATIC_CACHE_SECONDS', default=3600)
 except ValueError as error:
     raise ValueError(
         'Invalid HTTP_STATIC_CACHE_SECONDS environment value: must be an integer'
@@ -196,17 +199,17 @@ DEFAULT_FILE_STORAGE = 'stac_api.storages.S3Storage'
 
 try:
     AWS_LEGACY = {
-        "STORAGE_BUCKET_NAME": os.environ['AWS_STORAGE_BUCKET_NAME'],
-        "ACCESS_KEY_ID": os.environ['AWS_ACCESS_KEY_ID'],
-        "SECRET_ACCESS_KEY": os.environ['AWS_SECRET_ACCESS_KEY'],  # The AWS region of the bucket
-        "S3_REGION_NAME": os.environ.get('AWS_S3_REGION_NAME', 'eu-central-1'),
+        "STORAGE_BUCKET_NAME": env('AWS_STORAGE_BUCKET_NAME'),
+        "ACCESS_KEY_ID": env('AWS_ACCESS_KEY_ID'),
+        "SECRET_ACCESS_KEY": env('AWS_SECRET_ACCESS_KEY'),  # The AWS region of the bucket
+        "S3_REGION_NAME": env('AWS_S3_REGION_NAME', default='eu-central-1'),
         # This is the URL where to reach the S3 service and is either minio
         # on localhost or https://s3.<region>.amazonaws.com
-        "S3_ENDPOINT_URL": os.environ.get('AWS_S3_ENDPOINT_URL', None),
+        "S3_ENDPOINT_URL": env('AWS_S3_ENDPOINT_URL', default=None),
         # The CUSTOM_DOMAIN is used to construct the correct URL when displaying
         # a link to the file in the admin UI. It must only contain the domain, but not
         # the scheme (http/https).
-        "S3_CUSTOM_DOMAIN": os.environ.get('AWS_S3_CUSTOM_DOMAIN', None),
+        "S3_CUSTOM_DOMAIN": env('AWS_S3_CUSTOM_DOMAIN', default=None),
         # AWS_DEFAULT_ACL depends on bucket/user config. The user might not have
         # permissions to change ACL, then this setting must be None
         "DEFAULT_ACL": None,
@@ -219,32 +222,31 @@ try:
         # So if we have two buckets on the same server with the same access key, we needn't
         # specify all the variables. But this still leaves the possibility to
         # have it in a somewhere entirely different location
-        "STORAGE_BUCKET_NAME": os.environ['AWS_STORAGE_BUCKET_NAME_MANAGED'],
-        "ACCESS_KEY_ID": os.environ.get('AWS_ACCESS_KEY_ID_MANAGED', AWS_LEGACY['ACCESS_KEY_ID']),
+        "STORAGE_BUCKET_NAME": env('AWS_STORAGE_BUCKET_NAME_MANAGED'),
+        "ACCESS_KEY_ID": env('AWS_ACCESS_KEY_ID_MANAGED', default=AWS_LEGACY['ACCESS_KEY_ID']),
         "SECRET_ACCESS_KEY":
-            os.environ.get('AWS_SECRET_ACCESS_KEY_MANAGED', AWS_LEGACY['SECRET_ACCESS_KEY']),
-        "S3_REGION_NAME":
-            os.environ.get('AWS_S3_REGION_NAME_MANAGED', AWS_LEGACY['S3_REGION_NAME']),
-        "S3_ENDPOINT_URL": os.environ.get('AWS_S3_ENDPOINT_URL', AWS_LEGACY['S3_ENDPOINT_URL']),
-        "S3_CUSTOM_DOMAIN": os.environ.get('AWS_S3_CUSTOM_DOMAIN', AWS_LEGACY['S3_CUSTOM_DOMAIN']),
+            env('AWS_SECRET_ACCESS_KEY_MANAGED', default=AWS_LEGACY['SECRET_ACCESS_KEY']),
+        "S3_REGION_NAME": env('AWS_S3_REGION_NAME_MANAGED', default=AWS_LEGACY['S3_REGION_NAME']),
+        "S3_ENDPOINT_URL": env('AWS_S3_ENDPOINT_URL', default=AWS_LEGACY['S3_ENDPOINT_URL']),
+        "S3_CUSTOM_DOMAIN": env('AWS_S3_CUSTOM_DOMAIN', default=AWS_LEGACY['S3_CUSTOM_DOMAIN']),
         "DEFAULT_ACL": None,
         "S3_SIGNATURE_VERSION": "s3v4"
     }
 except KeyError as err:
     raise KeyError(f'AWS configuration {err} missing') from err
 
-AWS_PRESIGNED_URL_EXPIRES = int(os.environ.get('AWS_PRESIGNED_URL_EXPIRES', '3600'))
+AWS_PRESIGNED_URL_EXPIRES = env.int('AWS_PRESIGNED_URL_EXPIRES', default=3600)
 
 # Configure the caching
 # API default cache control max-age
 try:
-    CACHE_MIDDLEWARE_SECONDS = int(os.environ.get('HTTP_CACHE_SECONDS', '600'))
+    CACHE_MIDDLEWARE_SECONDS = env.int('HTTP_CACHE_SECONDS', default=600)
 except ValueError as error:
     raise ValueError('Invalid HTTP_CACHE_SECONDS environment value: must be an integer') from error
 
 # Asset data default cache control max-age
 try:
-    STORAGE_ASSETS_CACHE_SECONDS = int(os.environ.get('HTTP_ASSETS_CACHE_SECONDS', '7200'))
+    STORAGE_ASSETS_CACHE_SECONDS = env.int('HTTP_ASSETS_CACHE_SECONDS', default=7200)
 except ValueError as err:
     raise ValueError('Invalid HTTP_ASSETS_CACHE_SECONDS, must be an integer') from err
 
@@ -259,7 +261,7 @@ def get_logging_config():
     LOGGING_CFG and return it as dictionary
     Note: LOGGING_CFG is relative to the root of the repo
     '''
-    log_config_file = os.getenv('LOGGING_CFG', 'app/config/logging-cfg-local.yml')
+    log_config_file = env('LOGGING_CFG', default='app/config/logging-cfg-local.yml')
     if log_config_file.lower() in ['none', '0', '', 'false', 'no']:
         return {}
     log_config = {}
@@ -285,8 +287,8 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PAGINATION_CLASS': 'stac_api.pagination.CursorPagination',
-    'PAGE_SIZE': os.environ.get('PAGE_SIZE', 100),
-    'PAGE_SIZE_LIMIT': os.environ.get('PAGE_SIZE_LIMIT', 100),
+    'PAGE_SIZE': env.int('PAGE_SIZE', default=100),
+    'PAGE_SIZE_LIMIT': env.int('PAGE_SIZE_LIMIT', default=100),
     'EXCEPTION_HANDLER': 'stac_api.apps.custom_exception_handler',
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly',
@@ -310,10 +312,10 @@ EXTERNAL_SERVICE_TIMEOUT = 3
 PROMETHEUS_EXPORT_MIGRATIONS = False
 
 # STAC Browser configuration for auto generated STAC links
-STAC_BROWSER_HOST = os.getenv(
-    'STAC_BROWSER_HOST', None
+STAC_BROWSER_HOST = env(
+    'STAC_BROWSER_HOST', default=None
 )  # if None, the host is taken from the request url
-STAC_BROWSER_BASE_PATH = os.getenv('STAC_BROWSER_BASE_PATH', 'browser/index.html')
+STAC_BROWSER_BASE_PATH = env('STAC_BROWSER_BASE_PATH', default='browser/index.html')
 
 # Regex patterns of collections that should go to the managed bucket
 MANAGED_BUCKET_COLLECTION_PATTERNS = [r"^ch\.meteoschweiz\.ogd.*"]
