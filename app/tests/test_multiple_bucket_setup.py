@@ -1,7 +1,9 @@
 from unittest.mock import patch
 
+import environ
 from parameterized import parameterized
 
+from django.conf import settings
 from django.test import TestCase
 
 from stac_api.s3_multipart_upload import MultipartUpload
@@ -143,28 +145,35 @@ class MultipartUploadMultipleBucketTest(TestCase):
 
 class TestBucketSelector(TestCase):
 
-    @parameterized.expand([('ch.meteoschweiz.ogd.rainfall', AVAILABLE_S3_BUCKETS.MANAGED),
-                           ('ch.meteoschweiz.ogd.downpour', AVAILABLE_S3_BUCKETS.MANAGED),
+    @parameterized.expand([('ch.meteoschweiz.ogd-rainfall', AVAILABLE_S3_BUCKETS.MANAGED),
+                           ('ch.meteoschweiz.ogd-downpour', AVAILABLE_S3_BUCKETS.MANAGED),
                            ('ch.meteoschweiz.precipitation', AVAILABLE_S3_BUCKETS.LEGACY),
                            ('ch.swisstopo.bgdi', AVAILABLE_S3_BUCKETS.MANAGED),
                            ('ch.bafu.slipouts', AVAILABLE_S3_BUCKETS.LEGACY)])
     def test_bucket_selection(self, collection_name, expected_bucket):
         """Test if the pattern selection works"""
-        patterns = [r'ch\.meteoschweiz\.ogd.*', r'ch\.swisstopo\.bgdi.*']
+        patterns = [r'ch\.meteoschweiz\.ogd-.*', r'ch\.swisstopo\.bgdi.*']
         with self.settings(MANAGED_BUCKET_COLLECTION_PATTERNS=patterns):
             bucket_name = select_s3_bucket(collection_name)
 
         self.assertEqual(bucket_name, expected_bucket)
 
     @parameterized.expand([
-        'ch.meteoschweiz.ogd',
-        'ch.meteoschweiz.ogd.heatwave',
-        'ch.meteoschweiz.ogd.snowstorms',
+        'ch.meteoschweiz.ogd-heatwave',
+        'ch.meteoschweiz.ogd-snowstorms',
     ])
     def test_managed_bucket_patterns(self, collection_name):
-        """This one helps testing the configured patterns,
-         whether they really go to the new bucket
-         """
-        bucket_name = select_s3_bucket(collection_name)
+        """Test if the patterns in the environment work correctly. We take the
+        default environment explicitly here.
+        This might appear a bit artificial, but otherwise we have no way
+        to machine-test the functioning of getting the values from the env
+        list, use them as regex, and match the collection name.
+        """
+        env = environ.Env()
+        env.read_env("../.local.default")
+
+        patterns = env.list('MANAGED_BUCKET_COLLECTION_PATTERNS')
+        with self.settings(MANAGED_BUCKET_COLLECTION_PATTERNS=patterns):
+            bucket_name = select_s3_bucket(collection_name)
 
         self.assertEqual(bucket_name, AVAILABLE_S3_BUCKETS.MANAGED)
