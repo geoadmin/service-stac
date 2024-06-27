@@ -29,6 +29,7 @@ from stac_api.pgtriggers import generates_asset_upload_triggers
 from stac_api.pgtriggers import generates_collection_triggers
 from stac_api.pgtriggers import generates_item_triggers
 from stac_api.utils import get_asset_path
+from stac_api.utils import select_s3_bucket
 from stac_api.validators import MEDIA_TYPES
 from stac_api.validators import validate_asset_name
 from stac_api.validators import validate_asset_name_with_media_type
@@ -455,9 +456,6 @@ def upload_asset_to_path_hook(instance, filename=None):
     Returns:
         Asset file path to use on S3
     '''
-    # Sets the asset media type to the storage, this will be used as ContentType when uploading the
-    # asset on S3
-    instance.file.storage.asset_content_type = instance.media_type
     logger.debug(
         'Start computing asset file %s multihash (file size: %.1f MB)',
         filename,
@@ -494,6 +492,48 @@ def upload_asset_to_path_hook(instance, filename=None):
     return get_asset_path(instance.item, instance.name)
 
 
+class DynamicStorageFileField(models.FileField):
+
+    def pre_save(self, model_instance: "Asset", add):
+        """Determine the storage to use for this file
+
+        The storage is determined by the collection's name. See
+        settings.MANAGED_BUCKET_COLLECTION_PATTERNS
+        """
+        collection = model_instance.item.collection
+
+        bucket = select_s3_bucket(collection.name).name
+
+        # We need to explicitly instantiate the storage backend here
+        # Since the backends are configured as strings in the settings, we take these strings
+        # and import them by those string
+        # Example is stac_api.storages.LegacyS3Storage
+        parts = settings.STORAGES[bucket]['BACKEND'].split(".")
+
+        # join the first two parts of the module name together -> stac_api.storages
+        storage_module_name = ".".join(parts[:-1])
+
+        # the name of the storage class is the last part -> LegacyS3Storage
+        storage_cls_name = parts[-1:]
+
+        # import the module
+        storage_module = __import__(storage_module_name, fromlist=[parts[-2:-1]])
+
+        # get the class from the module
+        storage_cls = getattr(storage_module, storage_cls_name[0])
+
+        # .. and instantiate!
+        self.storage = storage_cls()
+
+        # we need to specify the storage for the actual
+        # file as well
+        model_instance.file.storage = self.storage
+
+        self.storage.asset_content_type = model_instance.media_type
+
+        return super().pre_save(model_instance, add)
+
+
 class Asset(models.Model):
 
     class Meta:
@@ -508,11 +548,18 @@ class Asset(models.Model):
         related_name='assets',
         related_query_name='asset',
         on_delete=models.PROTECT,
+
         help_text=_(SEARCH_TEXT_HELP_ITEM)
     )
+
     # using "name" instead of "id", as "id" has a default meaning in django
     name = models.CharField('id', max_length=255, validators=[validate_asset_name])
-    file = models.FileField(upload_to=upload_asset_to_path_hook, max_length=255)
+
+    # Disable weird pylint errors, where it doesn't take the inherited constructor
+    # into account when linting, somehow
+    # pylint: disable=unexpected-keyword-arg
+    # pylint: disable=no-value-for-parameter
+    file = DynamicStorageFileField(upload_to=upload_asset_to_path_hook, max_length=255)
 
     @property
     def filename(self):

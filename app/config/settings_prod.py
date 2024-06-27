@@ -198,6 +198,10 @@ UPLOAD_FILE_CHUNK_SIZE = 1024 * 1024  # Size in Bytes
 STORAGES = {
     'default': {
         "BACKEND": "stac_api.storages.LegacyS3Storage"
+    },  # repeating this here for an easy access in the code. Default
+    # is mandatory too
+    'legacy': {
+        "BACKEND": "stac_api.storages.LegacyS3Storage"
     },
     'staticfiles': {
         'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage'
