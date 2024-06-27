@@ -54,7 +54,7 @@ class BaseS3Storage(S3Boto3Storage):
         if 'Metadata' not in params:
             params['Metadata'] = {}
         if self.object_sha256 is None:
-            raise ValueError(f'Missing asset object sh256 for {name}')
+            raise ValueError(f'Missing asset object sha256 for {name}')
         params['Metadata']['sha256'] = self.object_sha256
 
         if 'CacheControl' in params:

@@ -133,7 +133,9 @@ def mock_s3_bucket(s3_bucket: AVAILABLE_S3_BUCKETS = AVAILABLE_S3_BUCKETS.legacy
             )
             logger.debug('Mock S3 bucket created in %fs', time.time() - start)
         else:
-            raise Exception("Unable to mock the s3 bucket") from error
+            raise Exception(
+                f"Unable to mock the s3 bucket: {error.response['Error']['Message']}"
+            ) from error
     logger.debug('Mock S3 bucket in %fs', time.time() - start)
 
 
