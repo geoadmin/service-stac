@@ -248,6 +248,9 @@ components:
             Indicator about the type of the items in the collection (the default value is 'Feature').
           type: string
           readOnly: true
+        type:
+          example: Collection
+          type: string
         license:
           $ref: "#/components/schemas/license"
         providers:
@@ -326,6 +329,7 @@ components:
         - extent
         - created
         - updated
+        - type
       type: object
     collection:
       allOf:
@@ -1105,11 +1109,15 @@ components:
         title:
           example: Buildings in Bonn
           type: string
+        type:
+          example: Catalog
+          type: string
       required:
         - links
         - stac_version
         - id
         - description
+        - type
       type: object
     license:
       description: >-

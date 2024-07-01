@@ -30,6 +30,7 @@ from stac_api.utils import build_asset_href
 from stac_api.utils import get_browser_url
 from stac_api.utils import get_stac_version
 from stac_api.utils import get_url
+from stac_api.utils import is_api_version_1
 from stac_api.utils import isoformat
 from stac_api.validators import normalize_and_validate_media_type
 from stac_api.validators import validate_asset_name
@@ -83,6 +84,13 @@ class LandingPageSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         request = self.context.get("request")
+
+        # Add hardcoded value Catalog to response to conform to stac spec v1.
+        representation['type'] = "Catalog"
+
+        # Remove property on older versions
+        if not is_api_version_1(request):
+            del representation['type']
 
         version = request.resolver_match.namespace
         spec_base = f'{urlparse(settings.STATIC_SPEC_URL).path.strip(' / ')}/{version}'
@@ -354,6 +362,14 @@ class CollectionSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         name = instance.name
         request = self.context.get("request")
         representation = super().to_representation(instance)
+
+        # Add hardcoded value Collection to response to conform to stac spec v1.
+        representation['type'] = "Collection"
+
+        # Remove property on older versions
+        if not is_api_version_1(request):
+            del representation['type']
+
         # Add auto links
         # We use OrderedDict, although it is not necessary, because the default serializer/model for
         # links already uses OrderedDict, this way we keep consistency between auto link and user

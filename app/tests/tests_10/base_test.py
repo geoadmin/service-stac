@@ -157,7 +157,8 @@ class StacTestMixin:
         for key, value in [
             ('stac_version', '1.0.0'),
             ('crs', ['http://www.opengis.net/def/crs/OGC/1.3/CRS84']),
-            ('itemType', 'Feature')
+            ('itemType', 'Feature'),
+            ('type', 'Collection')
         ]:
             self.assertIn(key, current)
             self.assertEqual(value, current[key])

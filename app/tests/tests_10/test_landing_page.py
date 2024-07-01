@@ -14,7 +14,7 @@ class IndexTestCase(StacBaseTestCase):
         response = self.client.get(f"/{STAC_BASE_V}/")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        required_keys = ['description', 'id', 'stac_version', 'links']
+        required_keys = ['description', 'id', 'stac_version', 'links', 'type']
         self.assertEqual(
             set(required_keys).difference(response.json().keys()),
             set(),
