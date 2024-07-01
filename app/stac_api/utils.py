@@ -130,15 +130,47 @@ def get_s3_client(s3_bucket: AVAILABLE_S3_BUCKETS = AVAILABLE_S3_BUCKETS.legacy)
 
     conf = settings.AWS_SETTINGS[s3_bucket.name]
 
+    sts_client = boto3.client('sts')
+
+    if 'ROLE_ARN' in conf:
+        if 'ACCESS_KEY_ID' in conf or 'SECRET_ACCESS_KEY' in conf:
+            # let's have some configuration validation
+            raise ValueError(
+                'Please configure either ROLE_ARN or ACCESS_KEY_ID/SECRET_ACCESS_KEY '
+                'for AWS accessing but not both simultaneously'
+            )
+
+        # Call the assume_role method of the STSConnection object and pass the role
+        # ARN and a role session name.
+        assumed_role_object = sts_client.assume_role(
+            # see the output of k8s
+            RoleArn=conf['ROLE_ARN'],
+            RoleSessionName="AssumeRoleSession1"
+        )
+
+        # From the response that contains the assumed role, get the temporary
+        # credentials that can be used to make subsequent API calls
+        credentials = assumed_role_object['Credentials']
+
+        client = boto3.client('s3',)
+        client_access_kwargs = {
+            "aws_access_key_id": credentials['AccessKeyId'],
+            "aws_secret_access_key": credentials['SecretAccessKey'],
+            "aws_session_token": credentials['SessionToken']
+        }
+    else:
+        client_access_kwargs = {
+            "aws_access_key_id": conf['ACCESS_KEY_ID'],
+            "aws_secret_access_key": conf['SECRET_ACCESS_KEY']
+        }
+
     client = boto3.client(
         's3',
         endpoint_url=conf['S3_ENDPOINT_URL'],
         region_name=conf['S3_REGION_NAME'],
         config=Config(signature_version=conf['S3_SIGNATURE_VERSION']),
-        aws_access_key_id=conf['ACCESS_KEY_ID'],
-        aws_secret_access_key=conf['SECRET_ACCESS_KEY']
+        **client_access_kwargs
     )
-
     return client
 
 

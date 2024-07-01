@@ -239,9 +239,7 @@ try:
             # This probably won't be for long, as we'll need some other means to access
             # the new bucket than the access_key
             "STORAGE_BUCKET_NAME": env('AWS_STORAGE_BUCKET_NAME_MANAGED'),
-            "ACCESS_KEY_ID": env('AWS_ACCESS_KEY_ID_MANAGED', default=env('AWS_ACCESS_KEY_ID')),
-            "SECRET_ACCESS_KEY":
-                env('AWS_SECRET_ACCESS_KEY_MANAGED', default=env('AWS_SECRET_ACCESS_KEY')),
+            "ROLE_ARN": env('AWS_ROLE_ARN_MANAGED', default=None),
             "S3_REGION_NAME":
                 env('AWS_S3_REGION_NAME_MANAGED', default=env('AWS_S3_REGION_NAME', default=None)),
             "S3_ENDPOINT_URL":
