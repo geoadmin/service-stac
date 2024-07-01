@@ -30,6 +30,7 @@ AWS_SETTINGS = {
         "ACCESS_KEY_ID": 'my-key',
         "SECRET_ACCESS_KEY": 'my-key',
         "DEFAULT_ACL": 'public-read',
+        "ROLE_ARN": "foo",
         "S3_REGION_NAME": 'wonderland',
         "S3_ENDPOINT_URL": None,
         "S3_CUSTOM_DOMAIN": 'testserver',
