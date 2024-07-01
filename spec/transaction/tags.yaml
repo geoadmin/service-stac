@@ -79,6 +79,34 @@ tags:
         - <span style="color:red">*Files bigger than 10 MB should use compression,
           see [Compression](#section/Compression)*</span>
 
+      ## Steps to upload Assets
+
+      To upload an assets file there are generally three steps involved:
+
+      <ol>
+        <li>Create new upload process</li>
+        <li>Upload parts/files</li>
+        <li>Complete upload process</li>
+      </ol>
+
+      Any file that is larger than 5 GB must be split into multiple parts. A file part must be at
+      least 5 MB except for the last one and at most 5 GB, otherwise the complete operation will fail.
+      If the file is less that 5 GB, you will only upload a single part, but must still start and complete the process as with multiple parts.
+
+      (1) Use the [create new upload](#tag/Asset-Upload-Management/operation/createAssetUpload) request to start a new upload.
+      It will return a list of urls.
+
+      (2) Use the urls to [upload asset file part](#tag/Asset-Upload-Management/operation/uploadAssetFilePart). Do this for each file part.
+
+      (3) Once all parts have been uploaded, execute the [complete the upload](#tag/Asset-Upload-Management/operation/completeMultipartUpload) request.
+      The new asset file be available to users after you have successfully completed the upload.
+
+      If any errors happen during the upload process, you can [abort the upload](#tag/Asset-Upload-Management/operation/abortMultipartUpload)
+      and restart the process.
+
+      There can only be 1 upload in progress per asset. If you wish to start a new upload you must first abort any existing upload that is in progress.
+      Use [list uploads](#tag/Asset-Upload-Management/operation/getAssetUploads) to see if any uploads
+      are in progress.
 
       ## Authentication
 
