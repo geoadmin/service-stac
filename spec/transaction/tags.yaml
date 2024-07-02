@@ -16,6 +16,7 @@ tags:
 
       | Media Type | Description | File Extension(s) |
       | ---------- | ----------- | ----------------- |
+      | application/vnd.apache.parquet | Apache Parquet column-oriented data file format | .parquet |
       | application/x.ascii-grid+zip | Zipped ESRI ASCII raster format (.asc) | .zip |
       | application/x.ascii-xyz+zip | Zipped XYZ (.xyz) | .zip |
       | application/x.e00+zip | Zipped e00 | .zip |
@@ -46,6 +47,8 @@ tags:
       | application/x.geojson+zip | Zipped GeoJSON | .zip |
       | application/x.interlis; version=2.3 | Interlis 2 | .xtf, .xml |
       | application/x.interlis+zip; version=2.3 | Zipped XTF (2.3) | .zip |
+      | application/x.interlis; version=2.4 | Interlis 2 | .xtf | .xml |
+      | application/x.interlis+zip; version=2.4 | Zipped XTF (2.4) | .zip |
       | application/x.interlis; version=1 | Interlis 1 | .itf |
       | application/x.interlis+zip; version=1 | Zipped ITF | .zip |
       | image/tiff; application=geotiff; profile=cloud-optimized | Cloud Optimized GeoTIFF (COG) | .tiff, .tif |`
