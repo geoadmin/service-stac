@@ -233,7 +233,7 @@ paths:
       summary: Delete an existing feature by Id
       description: |
         Use this method to delete an existing feature/item. The feature can only be deleted if all
-        its assets have been deleted first. Also see [Delete an existing asset by id](#tag/Data-Management/operation/deleteAsset).
+        its assets have been deleted first. See also [Delete an existing asset by id](#tag/Data-Management/operation/deleteAsset).
       operationId: deleteFeature
       tags:
         - Data Management
