@@ -9,18 +9,18 @@ https://docs.djangoproject.com/en/3.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.1/ref/settings/
 """
-from helpers.utils import strtobool
+import environ
 
 from .settings_prod import *  # pylint: disable=wildcard-import, unused-wildcard-import
 
+env = environ.Env()
+
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = bool(strtobool(os.getenv('DEBUG', 'False')))
+DEBUG = env.bool('DEBUG', 'False')
 
 # If set to True, this will enable logger.debug prints of the output of
 # EXPLAIN.. ANALYZE of certain queries and the corresponding SQL statement.
-DEBUG_ENABLE_DB_EXPLAIN_ANALYZE = bool(
-    strtobool(os.getenv('DEBUG_ENABLE_DB_EXPLAIN_ANALYZE', 'False'))
-)
+DEBUG_ENABLE_DB_EXPLAIN_ANALYZE = env.bool('DEBUG_ENABLE_DB_EXPLAIN_ANALYZE', 'False')
 
 if DEBUG:
     print('WARNING - running in debug mode !')
@@ -45,11 +45,14 @@ if DEBUG:
 DEBUG_TOOLBAR_CONFIG = {'SHOW_TOOLBAR_CALLBACK': 'middleware.debug.check_toolbar_env'}
 
 # use the default staticfiles mechanism
-STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+# STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
 
 if DEBUG:
-    DEBUG_PROPAGATE_API_EXCEPTIONS = bool(
-        strtobool(os.getenv('DEBUG_PROPAGATE_API_EXCEPTIONS', 'False'))
-    )
+    DEBUG_PROPAGATE_API_EXCEPTIONS = env.bool('DEBUG_PROPAGATE_API_EXCEPTIONS', 'False')
 
 SHELL_PLUS_POST_IMPORTS = ['from tests.data_factory import Factory']
+
+# Regex patterns of collections that should go to the managed bucket
+MANAGED_BUCKET_COLLECTION_PATTERNS = env.list(
+    'MANAGED_BUCKET_COLLECTION_PATTERNS', default=[r"^ch\.meteoschweiz\.ogd.*"]
+)

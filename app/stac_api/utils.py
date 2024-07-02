@@ -2,11 +2,13 @@ import hashlib
 import json
 import logging
 import math
+import re
 from base64 import b64decode
 from datetime import datetime
 from datetime import timezone
 from decimal import Decimal
 from decimal import InvalidOperation
+from enum import Enum
 from urllib import parse
 
 import boto3
@@ -19,6 +21,8 @@ from django.contrib.gis.geos import Polygon
 from django.urls import reverse
 
 logger = logging.getLogger(__name__)
+
+AVAILABLE_S3_BUCKETS = Enum('AVAILABLE_S3_BUCKETS', list(settings.AWS_SETTINGS.keys()))
 
 
 def isoformat(date_time):
@@ -100,7 +104,7 @@ def get_asset_path(item, asset_name):
     return '/'.join([item.collection.name, item.name, asset_name])
 
 
-def get_s3_resource():
+def get_s3_resource(s3_bucket: AVAILABLE_S3_BUCKETS = AVAILABLE_S3_BUCKETS.legacy):
     '''Returns an AWS S3 resource
 
     The authentication with the S3 server is configured via the AWS_ACCESS_KEY_ID and
@@ -109,26 +113,65 @@ def get_s3_resource():
     Returns:
         AWS S3 resource
     '''
-    return boto3.resource(
-        's3', endpoint_url=settings.AWS_S3_ENDPOINT_URL, config=Config(signature_version='s3v4')
-    )
+
+    config = settings.AWS_SETTINGS[s3_bucket.name]
+    endpoint_url = config['S3_ENDPOINT_URL']
+
+    return boto3.resource('s3', endpoint_url=endpoint_url, config=Config(signature_version='s3v4'))
 
 
-def get_s3_client():
+def get_s3_client(s3_bucket: AVAILABLE_S3_BUCKETS = AVAILABLE_S3_BUCKETS.legacy):
     '''Returns an AWS S3 client
 
-    The authentication with the S3 server is configured via the AWS_ACCESS_KEY_ID and
-    AWS_SECRET_ACCESS_KEY environment variables.
 
     Returns:
         AWS S3 client
     '''
-    return boto3.client(
+
+    conf = settings.AWS_SETTINGS[s3_bucket.name]
+
+    sts_client = boto3.client('sts')
+
+    if 'ROLE_ARN' in conf:
+        if 'ACCESS_KEY_ID' in conf or 'SECRET_ACCESS_KEY' in conf:
+            # let's have some configuration validation
+            raise ValueError(
+                'Please configure either ROLE_ARN or ACCESS_KEY_ID/SECRET_ACCESS_KEY '
+                'for AWS accessing but not both simultaneously'
+            )
+
+        # Call the assume_role method of the STSConnection object and pass the role
+        # ARN and a role session name.
+        assumed_role_object = sts_client.assume_role(
+            # see the output of k8s
+            RoleArn=conf['ROLE_ARN'],
+            RoleSessionName="AssumeRoleSession1"
+        )
+
+        # From the response that contains the assumed role, get the temporary
+        # credentials that can be used to make subsequent API calls
+        credentials = assumed_role_object['Credentials']
+
+        client = boto3.client('s3',)
+        client_access_kwargs = {
+            "aws_access_key_id": credentials['AccessKeyId'],
+            "aws_secret_access_key": credentials['SecretAccessKey'],
+            "aws_session_token": credentials['SessionToken']
+        }
+    else:
+        client_access_kwargs = {
+            "aws_access_key_id": conf['ACCESS_KEY_ID'],
+            "aws_secret_access_key": conf['SECRET_ACCESS_KEY']
+        }
+
+    client = boto3.client(
         's3',
-        endpoint_url=settings.AWS_S3_ENDPOINT_URL,
-        region_name=settings.AWS_S3_REGION_NAME,
-        config=Config(signature_version='s3v4'),
+        endpoint_url=conf['S3_ENDPOINT_URL'],
+        region_name=conf['S3_REGION_NAME'],
+        config=Config(signature_version=conf['S3_SIGNATURE_VERSION']),
+        **client_access_kwargs
     )
+    return client
 
 
 def build_asset_href(request, path):
@@ -148,12 +191,13 @@ def build_asset_href(request, path):
 
     # Assets file are served by an AWS S3 services. This service uses the same domain as
     # the API but could defer, especially for local development, so check first
-    # AWS_S3_CUSTOM_DOMAIN
-    if settings.AWS_S3_CUSTOM_DOMAIN:
+    # AWS_LEGACY['S3_CUSTOM_DOMAIN']
+    if settings.AWS_SETTINGS['legacy']['S3_CUSTOM_DOMAIN']:
         # By definition we should not mixed up HTTP Scheme (HTTP/HTTPS) within our service,
         # although the Assets file are not served by django we configure it with the same scheme
         # as django that's why it is kind of safe to use the django scheme.
-        return f'{request.scheme}://{settings.AWS_S3_CUSTOM_DOMAIN.strip("/")}/{path}'
+        custom_domain = settings.AWS_SETTINGS['legacy']['S3_CUSTOM_DOMAIN'].strip(" / ")
+        return f"{request.scheme}://{custom_domain}/{path}"
 
     return request.build_absolute_uri(f'/{path}')
 
@@ -444,3 +488,19 @@ def get_s3_cache_control_value(update_interval):
         return f'max-age={max_age}, public'
 
     return f'max-age={settings.STORAGE_ASSETS_CACHE_SECONDS}, public'
+
+
+def select_s3_bucket(collection_name) -> AVAILABLE_S3_BUCKETS:
+    """Select the s3 bucket based on the collection name
+
+    Select the correct s3 bucket based on matching patterns with the collection
+    name
+    """
+    patterns = settings.MANAGED_BUCKET_COLLECTION_PATTERNS
+
+    for pattern in patterns:
+        match = re.fullmatch(pattern, collection_name)
+        if match is not None:
+            return AVAILABLE_S3_BUCKETS.managed
+
+    return AVAILABLE_S3_BUCKETS.legacy

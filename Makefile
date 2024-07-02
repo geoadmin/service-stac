@@ -139,8 +139,9 @@ setup-s3-and-db:
 	# Create volume directories for postgres and minio
 	# Note that the '/service_stac_local' part is already the bucket name
 	mkdir -p .volumes/minio/service-stac-local
+	mkdir -p .volumes/minio/service-stac-local-managed
 	mkdir -p .volumes/postgresql
-	docker-compose up -d
+	docker compose up -d
 
 .PHONY: setup
 setup: $(SETTINGS_TIMESTAMP) setup-s3-and-db setup-logs
@@ -306,7 +307,7 @@ clean-logs:
 
 .PHONY: clean
 clean: clean-logs
-	docker-compose down
+	docker compose down
 	@# clean python cache files
 	find . -path ./.volumes -prune -o -name __pycache__ -type d -print0 | xargs -I {} -0 rm -rf "{}"
 	rm -rf $(TIMESTAMPS)
