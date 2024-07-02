@@ -265,7 +265,7 @@ tags:
             "part_number": 1,
             "md5": md5
           }],
-          "checksum:multihash": checksum_multihash
+          "file:multihash": checksum_multihash
         }
       )
       upload_id = response.json()['upload_id']
@@ -313,7 +313,7 @@ tags:
           "type": "application/x.filegdb+zip",
           "description": "My description",
           "proj:epsg": 2056,
-          "checksum:multihash": "12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC"
+          "file:multihash": "12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC"
       }'
       ```
 
@@ -334,7 +334,7 @@ tags:
           "type": "application/x.filegdb+zip",
           "description": "My description",
           "proj:epsg": 2056,
-          "checksum:multihash": "12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC"
+          "file:multihash": "12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC"
       }'
       ```
 

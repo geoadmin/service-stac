@@ -10,8 +10,10 @@ from stac_api.models import AssetUpload
 from stac_api.serializers import AssetUploadSerializer
 from stac_api.utils import get_sha256_multihash
 
+from tests.tests_09.base_test import STAC_BASE_V
 from tests.tests_09.base_test import StacBaseTestCase
 from tests.tests_09.data_factory import Factory
+from tests.tests_09.test_serializer import request_with_resolver
 from tests.utils import mock_s3_asset_file
 
 logger = logging.getLogger(__name__)
@@ -89,7 +91,8 @@ class AssetUploadSerializationTestCase(StacBaseTestCase):
         asset_upload.full_clean()
         asset_upload.save()
 
-        serializer = AssetUploadSerializer(asset_upload)
+        context = {'request': request_with_resolver(f'/{STAC_BASE_V}/')}
+        serializer = AssetUploadSerializer(asset_upload, context=context)
         data = serializer.data
         self.assertEqual(data['upload_id'], upload_id)
         self.assertEqual(data['checksum:multihash'], checksum)
@@ -110,6 +113,7 @@ class AssetUploadSerializationTestCase(StacBaseTestCase):
 
     def test_asset_upload_deserialization_with_md5_parts(self):
         checksum = get_sha256_multihash(b'Test')
+        context = {'request': request_with_resolver(f'/{STAC_BASE_V}/')}
         serializer = AssetUploadSerializer(
             data={
                 'checksum:multihash': checksum,
@@ -119,7 +123,8 @@ class AssetUploadSerializationTestCase(StacBaseTestCase):
                 }, {
                     'part_number': 2, 'md5': 'yLLiDqX2OL7mcIMTjob60A=='
                 }]
-            }
+            },
+            context=context
         )
         serializer.is_valid(raise_exception=True)
         asset_upload = serializer.save(asset=self.asset)
@@ -375,7 +380,8 @@ class TestAssetUploadDeserializationContentEncoding(StacBaseTestCase):
         }
 
     def deserialize_asset_upload(self, data):
-        serializer = AssetUploadSerializer(data=data)
+        context = {'request': request_with_resolver(f'/{STAC_BASE_V}/')}
+        serializer = AssetUploadSerializer(data=data, context=context)
         serializer.is_valid(raise_exception=True)
         asset_upload = serializer.save(asset=self.asset)
         return asset_upload

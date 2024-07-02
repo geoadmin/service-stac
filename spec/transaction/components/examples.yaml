@@ -12,7 +12,7 @@ components:
           part: 1
           expires: '2019-08-24T14:15:22Z'
         created: '2019-08-24T14:15:22Z'
-        checksum:multihash: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
+        file:multihash: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
     completed:
       summary: Completed upload example
       value:
@@ -21,7 +21,7 @@ components:
         number_parts: 1
         created: '2019-08-24T14:15:22Z'
         completed: '2019-08-24T14:15:22Z'
-        checksum:multihash: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
+        file:multihash: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
     aborted:
       summary: Aborted upload example
       value:
@@ -30,4 +30,4 @@ components:
         number_parts: 1
         created: '2019-08-24T14:15:22Z'
         aborted: '2019-08-24T14:15:22Z'
-        checksum:multihash: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
+        file:multihash: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC

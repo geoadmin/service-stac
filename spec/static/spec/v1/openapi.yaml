@@ -580,7 +580,7 @@ components:
           $ref: "#/components/schemas/description"
         href:
           $ref: "#/components/schemas/href"
-        checksum:multihash:
+        file:multihash:
           $ref: "#/components/schemas/checksumMultihashReadOnly"
         geoadmin:variant:
           $ref: "#/components/schemas/geoadminVariant"
@@ -1183,7 +1183,7 @@ components:
       readOnly: true
       example:
         smr50-263-2016-2056-kgrs-2.5.tiff:
-          checksum:multihash: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
+          file:multihash: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
           created: "2020-07-14T12:30:00Z"
           eo:gsd: 2.5
           geoadmin:variant: kgrs
@@ -1192,7 +1192,7 @@ components:
           type: image/tiff; application=geotiff
           updated: "2020-07-14T12:30:00Z"
         smr50-263-2016-2056-komb-2.5.tiff:
-          checksum:multihash: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
+          file:multihash: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
           created: "2020-07-14T12:30:00Z"
           eo:gsd: 2.5
           geoadmin:variant: komb
@@ -1201,7 +1201,7 @@ components:
           type: image/tiff; application=geotiff
           updated: "2020-07-14T12:30:00Z"
         smr50-263-2016-2056-krel-2.5.tiff:
-          checksum:multihash: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
+          file:multihash: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
           created: "2020-07-14T12:30:00Z"
           eo:gsd: 2.5
           geoadmin:variant: krel
