@@ -168,7 +168,7 @@ class AssetsCreateEndpointTestCase(StacBaseTestCase):
         self.assertNotIn('gsd', json_data)
         self.assertNotIn('description', json_data)
         self.assertNotIn('title', json_data)
-        self.assertNotIn('file:multihash', json_data)
+        self.assertNotIn('file:checksum', json_data)
 
     def test_asset_upsert_create(self):
         collection = self.collection
@@ -210,7 +210,7 @@ class AssetsCreateEndpointTestCase(StacBaseTestCase):
         self.assertIn('title', json_data)
 
         # Checksum multihash is set by the AssetUpload later on
-        self.assertNotIn('file:multihash', json_data)
+        self.assertNotIn('file:checksum', json_data)
 
         # Check the data by reading it back
         response = self.client.get(response['Location'])
@@ -552,7 +552,7 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
         self.assertStatusCode(400, response)
         self.assertEqual({
             'created': ['Found read-only property in payload'],
-            'file:multihash': ['Found read-only property in payload']
+            'file:checksum': ['Found read-only property in payload']
         },
                          response.json()['description'],
                          msg='Unexpected error message')

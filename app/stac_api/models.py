@@ -478,7 +478,7 @@ def upload_asset_to_path_hook(instance, filename=None):
     # update_interval
     instance.file.storage.update_interval = instance.update_interval
     logger.debug(
-        'Set uploaded file %s multihash %s to file:multihash; computation done in %.3fs',
+        'Set uploaded file %s multihash %s to file:checksum; computation done in %.3fs',
         filename,
         mhash,
         time.time() - start,
@@ -565,8 +565,8 @@ class Asset(models.Model):
     def filename(self):
         return os.path.basename(self.file.name)
 
-    # From v1 on the json representation of this field changed from "checksum:multihash" to "file:multihash". The two names
-    # may be used interchangeably for a now.
+    # From v1 on the json representation of this field changed from "checksum:multihash" to
+    # "file:checksum". The two names may be used interchangeably for a now.
     checksum_multihash = models.CharField(
         editable=False, max_length=255, blank=True, null=True, default=None
     )
@@ -691,8 +691,8 @@ class AssetUpload(models.Model):
     urls = models.JSONField(default=list, encoder=DjangoJSONEncoder, blank=True)
     created = models.DateTimeField(auto_now_add=True)
     ended = models.DateTimeField(blank=True, null=True, default=None)
-    # From v1 on the json representation of this field changed from "checksum:multihash" to "file:multihash". The two names
-    # may be used interchangeably for a now.
+    # From v1 on the json representation of this field changed from "checksum:multihash" to
+    # "file:checksum". The two names may be used interchangeably for a now.
     checksum_multihash = models.CharField(max_length=255, blank=False, null=False)
 
     # NOTE: hidden ETag field, this field is automatically updated by stac_api.pgtriggers
@@ -716,13 +716,13 @@ class AssetUpload(models.Model):
     objects = AssetUploadManager()
 
     def update_asset_from_upload(self):
-        '''Updating the asset's file:multihash and update_interval from the upload
+        '''Updating the asset's file:checksum and update_interval from the upload
 
-        When the upload is completed, the new file:multihash and update interval from the upload
+        When the upload is completed, the new file:checksum and update interval from the upload
         is set to its asset parent.
         '''
         logger.debug(
-            'Updating asset %s file:multihash from %s to %s and update_interval from %d to %d '
+            'Updating asset %s file:checksum from %s to %s and update_interval from %d to %d '
             'due to upload complete',
             self.asset.name,
             self.asset.checksum_multihash,

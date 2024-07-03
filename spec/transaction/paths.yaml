@@ -449,19 +449,19 @@ paths:
                         part: 1
                         expires: "2019-08-24T14:15:22Z"
                     created: "2019-08-24T14:15:22Z"
-                    file:multihash: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
+                    file:checksum: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
                   - upload_id: KrFTuglD.N8ireqry_w3.oQqNwrYI7SfSXpVRiusKah0YaaegJNIUZg4R_No0MMW9FLU2UG5anTW0boTUYVxKfBZWCFXqnQTpjnQEo1K7la39MYpjSTvIbZgnG
                     status: completed
                     number_parts: 1
                     created: "2019-08-24T14:15:22Z"
                     completed: "2019-08-24T14:15:22Z"
-                    file:multihash: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
+                    file:checksum: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
                   - upload_id: KrFTuglD.N8ireqry_w3.oQqNwrYI7SfSXpVRiusKah0YigDnuM06hfJNIUZg4R_No0MMW9FLU2UG5anTW0boTUYVxKfBZWCFXqnQTpjnQEo1K7la39MYpjSTvIbZgnG
                     status: aborted
                     number_parts: 1
                     created: "2019-08-24T14:15:22Z"
                     aborted: "2019-08-24T14:15:22Z"
-                    file:multihash: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
+                    file:checksum: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
                 links:
                   - rel: next
                     href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets/smr50-263-2016-2056-kgrs-2.5.tiff/uploads?cursor=0d34
@@ -698,7 +698,7 @@ paths:
       operationId: completeMultipartUpload
       description: >-
         Complete the multipart upload process. After completion, the Asset metadata are updated
-        with the new `file:multihash` from the upload and the parts are automatically deleted.
+        with the new `file:checksum` from the upload and the parts are automatically deleted.
         The Asset `href` field is also set if it was the first upload.
       requestBody:
         content:

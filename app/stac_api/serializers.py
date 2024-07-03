@@ -569,12 +569,12 @@ class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         fields['proj:epsg'] = fields.pop('proj_epsg')
         fields['geoadmin:variant'] = fields.pop('geoadmin_variant')
         fields['geoadmin:lang'] = fields.pop('geoadmin_lang')
-        fields['file:multihash'] = fields.pop('checksum_multihash')
+        fields['file:checksum'] = fields.pop('checksum_multihash')
 
         # Older versions of the api still use different name
         request = self.context.get('request')
         if not is_api_version_1(request):
-            fields['checksum:multihash'] = fields.pop('file:multihash')
+            fields['checksum:multihash'] = fields.pop('file:checksum')
             fields['eo:gsd'] = fields.pop('gsd')
 
         return fields
@@ -845,12 +845,12 @@ class AssetUploadSerializer(NonNullModelSerializer):
     def get_fields(self):
         fields = super().get_fields()
         # This is a hack to allow fields with special characters
-        fields['file:multihash'] = fields.pop('checksum_multihash')
+        fields['file:checksum'] = fields.pop('checksum_multihash')
 
         # Older versions of the api still use different name
         request = self.context.get('request')
         if not is_api_version_1(request):
-            fields['checksum:multihash'] = fields.pop('file:multihash')
+            fields['checksum:multihash'] = fields.pop('file:checksum')
         return fields
 
 

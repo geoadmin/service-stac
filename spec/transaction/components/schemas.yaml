@@ -78,7 +78,7 @@ components:
           $ref: "#/components/schemas/mediaTypeWrite"
         href:
           $ref: "#/components/schemas/href"
-        file:multihash:
+        file:checksum:
           $ref: "#/components/schemas/checksumMultihashReadOnly"
         # roles:
         #   $ref: '#/components/schemas/roles'
@@ -277,7 +277,7 @@ components:
         - upload_id
         - status
         - created
-        - "file:multihash"
+        - "file:checksum"
         - number_parts
       properties:
         upload_id:
@@ -301,7 +301,7 @@ components:
           $ref: "#/components/schemas/dtUploadCompleted"
         aborted:
           $ref: "#/components/schemas/dtUploadAborted"
-        "file:multihash":
+        "file:checksum":
           $ref: "../../components/schemas.yaml#/components/schemas/checksumMultihash"
     assetUploadCreate:
       title: AssetUpload
@@ -310,7 +310,7 @@ components:
         - upload_id
         - status
         - created
-        - "file:multihash"
+        - "file:checksum"
         - number_parts
         - md5_parts
       properties:
@@ -335,7 +335,7 @@ components:
           readOnly: true
         created:
           $ref: "#/components/schemas/dtUploadCreated"
-        "file:multihash":
+        "file:checksum":
           $ref: "../../components/schemas.yaml#/components/schemas/checksumMultihash"
     assetCompleteUpload:
       title: CompleteUpload
@@ -371,7 +371,7 @@ components:
         - number_parts
         - created
         - completed
-        - "file:multihash"
+        - "file:checksum"
       properties:
         upload_id:
           $ref: "#/components/schemas/uploadId"
@@ -388,7 +388,7 @@ components:
           $ref: "#/components/schemas/dtUploadCreated"
         completed:
           $ref: "#/components/schemas/dtUploadCompleted"
-        "file:multihash":
+        "file:checksum":
           $ref: "../../components/schemas.yaml#/components/schemas/checksumMultihash"
     assetUploadAborted:
       title: UploadCompleted
@@ -399,7 +399,7 @@ components:
         - number_parts
         - created
         - aborted
-        - "file:multihash"
+        - "file:checksum"
       properties:
         upload_id:
           $ref: "#/components/schemas/uploadId"
@@ -416,7 +416,7 @@ components:
           $ref: "#/components/schemas/dtUploadCreated"
         aborted:
           $ref: "#/components/schemas/dtUploadAborted"
-        "file:multihash":
+        "file:checksum":
           $ref: "../../components/schemas.yaml#/components/schemas/checksumMultihash"
     assetUploadParts:
       title: Parts
@@ -516,7 +516,7 @@ components:
         on the asset requests.
 
         *NOTE:*
-         - *when uploading compressed data: the `file:multihash` refers to the checksum of the
+         - *when uploading compressed data: the `file:checksum` refers to the checksum of the
            uncompressed data, while the md5 checksum must be calculated of the compressed data*
       type: string
       pattern: (gzip|br|deflate|compress)
