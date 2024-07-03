@@ -126,7 +126,7 @@ class CollectionSerializationTestCase(StacBaseTransactionTestCase):
             ],
             'stac_version': STAC_VERSION,
             'summaries': {
-                'eo:gsd': [3.4],
+                'gsd': [3.4],
                 'geoadmin:variant': ['kgrs'],
                 'proj:epsg': [2056],
             },

@@ -232,9 +232,18 @@ class CollectionSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         return get_stac_version(self.context.get('request'))
 
     def get_summaries(self, obj):
+        # Older versions of the api still use different name
+        request = self.context.get('request')
+        if not is_api_version_1(request):
+            return {
+                'proj:epsg': obj.summaries_proj_epsg or [],
+                'eo:gsd': obj.summaries_eo_gsd or [],
+                'geoadmin:variant': obj.summaries_geoadmin_variant or [],
+                'geoadmin:lang': obj.summaries_geoadmin_lang or []
+            }
         return {
             'proj:epsg': obj.summaries_proj_epsg or [],
-            'eo:gsd': obj.summaries_eo_gsd or [],
+            'gsd': obj.summaries_eo_gsd or [],
             'geoadmin:variant': obj.summaries_geoadmin_variant or [],
             'geoadmin:lang': obj.summaries_geoadmin_lang or []
         }
@@ -556,7 +565,7 @@ class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
     def get_fields(self):
         fields = super().get_fields()
         # This is a hack to allow fields with special characters
-        fields['eo:gsd'] = fields.pop('eo_gsd')
+        fields['gsd'] = fields.pop('eo_gsd')
         fields['proj:epsg'] = fields.pop('proj_epsg')
         fields['geoadmin:variant'] = fields.pop('geoadmin_variant')
         fields['geoadmin:lang'] = fields.pop('geoadmin_lang')
@@ -566,6 +575,7 @@ class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         request = self.context.get('request')
         if not is_api_version_1(request):
             fields['checksum:multihash'] = fields.pop('file:multihash')
+            fields['eo:gsd'] = fields.pop('gsd')
 
         return fields
 

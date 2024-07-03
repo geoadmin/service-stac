@@ -565,11 +565,15 @@ class Asset(models.Model):
     def filename(self):
         return os.path.basename(self.file.name)
 
+    # From v1 on the json representation of this field changed from "checksum:multihash" to "file:multihash". The two names
+    # may be used interchangeably for a now.
     checksum_multihash = models.CharField(
         editable=False, max_length=255, blank=True, null=True, default=None
     )
     # here we need to set blank=True otherwise the field is as required in the admin interface
     description = models.TextField(blank=True, null=True, default=None)
+    # From v1 on the json representation of this field changed from "eo:gsd" to "gsd". The two names
+    # may be used interchangeably for a now.
     eo_gsd = models.FloatField(null=True, blank=True, validators=[validate_eo_gsd])
 
     class Language(models.TextChoices):
@@ -687,7 +691,7 @@ class AssetUpload(models.Model):
     urls = models.JSONField(default=list, encoder=DjangoJSONEncoder, blank=True)
     created = models.DateTimeField(auto_now_add=True)
     ended = models.DateTimeField(blank=True, null=True, default=None)
-    # From v1 on the json representation of this field changed to "file:multihash". The two names
+    # From v1 on the json representation of this field changed from "checksum:multihash" to "file:multihash". The two names
     # may be used interchangeably for a now.
     checksum_multihash = models.CharField(max_length=255, blank=False, null=False)
 

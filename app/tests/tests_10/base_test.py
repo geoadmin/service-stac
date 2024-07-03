@@ -410,7 +410,7 @@ class StacTestMixin:
         self.assertEqual(expected, current, msg="Geometry are not equal")
 
     def _check_type(self, parent_path, key, value, current):
-        if key in ['eo:gsd'] and parent_path.split('.')[-1] != 'summaries':
+        if key in ['gsd'] and parent_path.split('.')[-1] != 'summaries':
             self.assertEqual(
                 type(float(value)),
                 type(current[key]),

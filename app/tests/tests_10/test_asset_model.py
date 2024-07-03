@@ -56,7 +56,7 @@ class AssetsModelTestCase(StacBaseTransactionTestCase):
         )
 
     def test_create_asset_invalid_eo_gsd(self):
-        with self.assertRaises(ValidationError, msg="asset with invalid eo:gsd was accepted."):
+        with self.assertRaises(ValidationError, msg="asset with invalid gsd was accepted."):
             self.factory.create_asset_sample(
                 item=self.item,
                 eo_gsd=0.0,

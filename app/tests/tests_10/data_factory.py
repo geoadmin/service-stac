@@ -698,7 +698,7 @@ class AssetSample(SampleData):
     samples_dict = asset_samples
     key_mapping = {
         'name': 'id',
-        'eo_gsd': 'eo:gsd',
+        'eo_gsd': 'gsd',
         'geoadmin_variant': 'geoadmin:variant',
         'geoadmin_lang': 'geoadmin:lang',
         'proj_epsg': 'proj:epsg',

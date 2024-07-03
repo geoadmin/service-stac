@@ -192,7 +192,7 @@ class Handler(CommandHandler):
         if variant is not None:
             data['geoadmin:variant'] = variant
         if eo_gsd is not None:
-            data['eo:gsd'] = eo_gsd
+            data['gsd'] = eo_gsd
         if proj_epsg is not None:
             data['proj:epsg'] = proj_epsg
 

@@ -390,7 +390,7 @@ def geometry_from_bbox(bbox):
 def get_api_version(request) -> API_VERSION:
     '''get the api version from the request, default to v1'''
     if request is not None and hasattr(request, 'resolver_match'):
-        if request.resolver_match.namespace == 'v0.9':
+        if request.resolver_match.namespace in ('v0.9', 'test_v0.9'):
             return API_VERSION.v09
     return API_VERSION.v1
 
