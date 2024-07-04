@@ -205,6 +205,11 @@ test-debug:
 	$(PYTHON) $(DJANGO_MANAGER_DEBUG) test --verbosity=2 $(CI_TEST_OPT) $(TEST_DIR)
 
 
+.PHONY: test-conformance
+test-conformance:
+	stac-api-validator \
+    --root-url http://localhost:$(HTTP_PORT)/api/stac/v1/ \
+    --conformance core
 
 ###################
 # Specs

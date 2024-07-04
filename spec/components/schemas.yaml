@@ -1112,12 +1112,17 @@ components:
         type:
           example: Catalog
           type: string
+        conformsTo:
+          items:
+            type: string
+          type: array
       required:
         - links
         - stac_version
         - id
         - description
         - type
+        - conformsTo
       type: object
     license:
       description: >-

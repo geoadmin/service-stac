@@ -15,7 +15,6 @@ from stac_api.models import Asset
 from stac_api.models import AssetUpload
 from stac_api.models import Collection
 from stac_api.models import CollectionLink
-from stac_api.models import ConformancePage
 from stac_api.models import Item
 from stac_api.models import ItemLink
 from stac_api.models import LandingPage
@@ -57,7 +56,7 @@ class LandingPageLinkSerializer(serializers.ModelSerializer):
 class ConformancePageSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = ConformancePage
+        model = LandingPage
         fields = ['conformsTo']
 
 
@@ -65,7 +64,7 @@ class LandingPageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = LandingPage
-        fields = ['id', 'title', 'description', 'links', 'stac_version']
+        fields = ['id', 'title', 'description', 'links', 'stac_version', 'conformsTo']
 
     # NOTE: when explicitely declaring fields, we need to add the validation as for the field
     # in model !
@@ -99,6 +98,11 @@ class LandingPageSerializer(serializers.ModelSerializer):
         # links already uses OrderedDict, this way we keep consistency between auto link and user
         # link
         representation['links'][:0] = [
+            OrderedDict([
+                ('rel', 'root'),
+                ('href', get_url(request, 'landing-page')),
+                ("type", "application/json"),
+            ]),
             OrderedDict([
                 ('rel', 'self'),
                 ('href', get_url(request, 'landing-page')),

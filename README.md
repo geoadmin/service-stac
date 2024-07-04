@@ -21,6 +21,7 @@
   - [Starting dev server](#starting-dev-server)
   - [Running tests](#running-tests)
     - [Unit test logging](#unit-test-logging)
+  - [Test Conformance](#test-conformance)
   - [Linting and formatting your work](#linting-and-formatting-your-work)
   - [Using Django shell](#using-django-shell)
 - [Migrate DB with Django](#migrate-db-with-django)
@@ -255,6 +256,14 @@ By default only `WARNING` logs of the `tests` module is printed in the console d
 All logs are also added to two logs files; `app/tests/logs/unittest-json-logs.json` and `app/tests/logs/unittest-standard-logs.txt`.
 
 Alternatively for a finer logging granularity during unit test, a new logging configuration base on `app/config/logging-cfg-unittest.yml` can be generated and set via `LOGGING_CFG` environment variable or logging can be completely disabled by setting `LOGGING_CFG=0`.
+
+### Test Conformance
+
+Use [stac-api-validator](https://github.com/stac-utils/stac-api-validator) to validate against the [STAC API](https://github.com/radiantearth/stac-api-spec) family of specifications.
+
+```bash
+make test-conformance
+```
 
 ### Linting and formatting your work
 

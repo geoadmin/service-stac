@@ -42,6 +42,7 @@ django-admin-autocomplete-filter = "~=0.7.1"
 django-pgtrigger = "~=4.11.1"
 logging-utilities = "~=4.4.1"
 django-environ = "*"
+stac-api-validator = "*"
 
 [requires]
 python_version = "3.12"

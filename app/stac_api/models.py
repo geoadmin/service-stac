@@ -19,8 +19,6 @@ from django.db.models import Q
 from django.db.models.deletion import ProtectedError
 from django.utils.translation import gettext_lazy as _
 
-from solo.models import SingletonModel
-
 from stac_api.managers import AssetUploadManager
 from stac_api.managers import ItemManager
 from stac_api.pgtriggers import generate_child_triggers
@@ -128,6 +126,7 @@ def get_conformance_default_links():
         a list of urls
     '''
     default_links = (
+        'https://api.stacspec.org/v1.0.0/core',
         'http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/core',
         'http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/oas30',
         'http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/geojson'
@@ -158,18 +157,27 @@ class Link(models.Model):
         return f'{self.rel}: {self.href}'
 
 
-class LandingPage(SingletonModel):
+class LandingPage(models.Model):
     # using "name" instead of "id", as "id" has a default meaning in django
     name = models.CharField(
-        'id', unique=True, max_length=255, validators=[validate_name], default='ch'
+        'id', unique=False, max_length=255, validators=[validate_name], default='ch'
     )
     title = models.CharField(max_length=255, default='data.geo.admin.ch')
     description = models.TextField(
         default='Data Catalog of the Swiss Federal Spatial Data Infrastructure'
     )
+    version = models.CharField(max_length=255, default='v1')
+
+    conformsTo = ArrayField(  # pylint: disable=invalid-name
+        models.URLField(
+            blank=False,
+            null=False
+        ),
+        default=get_conformance_default_links,
+        help_text=_("Comma-separated list of URLs for the value conformsTo"))
 
     def __str__(self):
-        return "STAC Landing Page"
+        return f'STAC Landing Page {self.version}'
 
     class Meta:
         verbose_name = "STAC Landing Page"
@@ -183,22 +191,6 @@ class LandingPageLink(Link):
     class Meta:
         unique_together = (('rel', 'landing_page'))
         ordering = ['pk']
-
-
-class ConformancePage(SingletonModel):
-    conformsTo = ArrayField(  # pylint: disable=invalid-name
-        models.URLField(
-            blank=False,
-            null=False
-        ),
-        default=get_conformance_default_links,
-        help_text=_("Comma-separated list of URLs for the value conformsTo"))
-
-    def __str__(self):
-        return "Conformance Page"
-
-    class Meta:
-        verbose_name = "STAC Conformance Page"
 
 
 class Provider(models.Model):

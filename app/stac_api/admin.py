@@ -15,14 +15,11 @@ from django.forms import Textarea
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 
-from solo.admin import SingletonModelAdmin
-
 from stac_api.models import BBOX_CH
 from stac_api.models import Asset
 from stac_api.models import AssetUpload
 from stac_api.models import Collection
 from stac_api.models import CollectionLink
-from stac_api.models import ConformancePage
 from stac_api.models import Item
 from stac_api.models import ItemLink
 from stac_api.models import LandingPage
@@ -41,12 +38,8 @@ class LandingPageLinkInline(admin.TabularInline):
 
 
 @admin.register(LandingPage)
-class LandingPageAdmin(SingletonModelAdmin):
+class LandingPageAdmin(admin.ModelAdmin):
     inlines = [LandingPageLinkInline]
-
-
-@admin.register(ConformancePage)
-class ConformancePageAdmin(SingletonModelAdmin):
     formfield_overrides = {
         ArrayField: {
             'widget': Textarea(attrs={
