@@ -260,7 +260,7 @@ class CollectionSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         if end is not None:
             end = isoformat(end)
 
-        bbox = []
+        bbox = [0, 0, 0, 0]
         if obj.extent_geometry is not None:
             bbox = list(GEOSGeometry(obj.extent_geometry).extent)
 

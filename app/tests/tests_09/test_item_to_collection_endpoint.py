@@ -52,7 +52,7 @@ class OneItemSpatialTestCase(StacBaseTransactionTestCase):
 
         bbox_collection = response_collection_json['extent']['spatial']['bbox'][0]
 
-        self.assertEqual(bbox_collection, [])
+        self.assertEqual(bbox_collection, [0, 0, 0, 0])
 
 
 class TwoItemsSpatialTestCase(StacBaseTransactionTestCase):

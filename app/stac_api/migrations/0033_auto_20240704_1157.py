@@ -25,6 +25,7 @@ def add_landing_page_version(apps, schema_editor):
     lp.version = 'v1'
     lp.conformsTo = [
         'https://api.stacspec.org/v1.0.0/core',
+        'https://api.stacspec.org/v1.0.0/collections',
         'http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/core',
         'http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/oas30',
         'http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/geojson'

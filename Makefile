@@ -85,6 +85,7 @@ help:
 	@echo "- django-checks            Run the django checks"
 	@echo "- django-check-migrations  Check that no django migration file is missing"
 	@echo "- test                     Run the tests"
+	@echo "- test-conformance         Run stac-api-validator, needs a valid collection name, e.g. collection=ch.are.agglomerationsverkehr"
 	@echo -e " \033[1mSPEC TARGETS\033[0m "
 	@echo "- lint-specs               Lint the openapi specs  (openapi.yaml and openapitransactional.yaml)"
 	@echo "- ci-build-check-specs     Checks that the specs have been built"
@@ -209,7 +210,9 @@ test-debug:
 test-conformance:
 	stac-api-validator \
     --root-url http://localhost:$(HTTP_PORT)/api/stac/v1/ \
-    --conformance core
+    --conformance core \
+    --conformance collections \
+    --collection $(collection)
 
 ###################
 # Specs
