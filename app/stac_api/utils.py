@@ -2,6 +2,7 @@ import hashlib
 import json
 import logging
 import math
+import os
 import re
 from base64 import b64decode
 from datetime import datetime
@@ -104,74 +105,64 @@ def get_asset_path(item, asset_name):
     return '/'.join([item.collection.name, item.name, asset_name])
 
 
+def _get_boto_access_kwargs(s3_bucket: AVAILABLE_S3_BUCKETS = AVAILABLE_S3_BUCKETS.legacy):
+    """Build the arguments for client and resource calls to boto3
+
+    Both boto3.resource and boto3.client need certain arguments to establish
+    a connection. Depending on the bucket configuration used, we pass more or
+    less arguments to those functions.
+    """
+    s3_config = settings.AWS_SETTINGS[s3_bucket.name]
+
+    # basic access configuration
+    client_access_kwargs = {
+        "endpoint_url": s3_config['S3_ENDPOINT_URL'],
+        "region_name": s3_config['S3_REGION_NAME'],
+        "config": Config(signature_version=s3_config['S3_SIGNATURE_VERSION']),
+    }
+
+    # for the key access type, use the configured key/secret
+    # otherwise let it use the environment (i.e. AWS_ROLE_ARN specifically)
+    if s3_config['access_type'] == "key":
+        client_access_kwargs.update({
+            "aws_access_key_id": s3_config['ACCESS_KEY_ID'],
+            "aws_secret_access_key": s3_config['SECRET_ACCESS_KEY']
+        })
+
+    # for the service account type, we need to make sure the environment contains
+    # the variable AWS_ROLE_ARN for it to work
+    # as it seems, we can't pass this explicitly
+    # The variable is set by AWS itself
+    if s3_config["access_type"] == "service_account":
+        needed_env_vars = ['AWS_ROLE_ARN', 'AWS_WEB_IDENTITY_TOKEN_FILE']
+        for env_var in needed_env_vars:
+            if env_var not in os.environ:
+                raise Exception(
+                    f"For the {s3_bucket} bucket the environment variable "
+                    "{env_var} must be configured"
+                )
+
+    return client_access_kwargs
+
+
 def get_s3_resource(s3_bucket: AVAILABLE_S3_BUCKETS = AVAILABLE_S3_BUCKETS.legacy):
     '''Returns an AWS S3 resource
-
-    The authentication with the S3 server is configured via the AWS_ACCESS_KEY_ID and
-    AWS_SECRET_ACCESS_KEY environment variables.
 
     Returns:
         AWS S3 resource
     '''
 
-    s3_config = settings.AWS_SETTINGS[s3_bucket.name]
-    endpoint_url = s3_config['S3_ENDPOINT_URL']
-    signature_version = s3_config['S3_SIGNATURE_VERSION']
-
-    return boto3.resource('s3', endpoint_url=endpoint_url, config=Config(signature_version))
+    return boto3.resource('s3', **(_get_boto_access_kwargs(s3_bucket)))
 
 
 def get_s3_client(s3_bucket: AVAILABLE_S3_BUCKETS = AVAILABLE_S3_BUCKETS.legacy):
     '''Returns an AWS S3 client
 
-
     Returns:
         AWS S3 client
     '''
+    client = boto3.client('s3', **(_get_boto_access_kwargs(s3_bucket)))
 
-    s3_config = settings.AWS_SETTINGS[s3_bucket.name]
-
-    sts_client = boto3.client('sts')
-
-    if 'ROLE_ARN' in s3_config:
-        if 'ACCESS_KEY_ID' in s3_config or 'SECRET_ACCESS_KEY' in s3_config:
-            # let's have some configuration validation
-            raise ValueError(
-                'Please configure either ROLE_ARN or ACCESS_KEY_ID/SECRET_ACCESS_KEY '
-                'for AWS accessing but not both simultaneously'
-            )
-
-        # Call the assume_role method of the STSConnection object and pass the role
-        # ARN and a role session name.
-        assumed_role_object = sts_client.assume_role(
-            # see the output of k8s
-            RoleArn=s3_config['ROLE_ARN'],
-            RoleSessionName="AssumeRoleSession1"
-        )
-
-        # From the response that contains the assumed role, get the temporary
-        # credentials that can be used to make subsequent API calls
-        credentials = assumed_role_object['Credentials']
-
-        client = boto3.client('s3',)
-        client_access_kwargs = {
-            "aws_access_key_id": credentials['AccessKeyId'],
-            "aws_secret_access_key": credentials['SecretAccessKey'],
-            "aws_session_token": credentials['SessionToken']
-        }
-    else:
-        client_access_kwargs = {
-            "aws_access_key_id": s3_config['ACCESS_KEY_ID'],
-            "aws_secret_access_key": s3_config['SECRET_ACCESS_KEY']
-        }
-
-    client = boto3.client(
-        's3',
-        endpoint_url=s3_config['S3_ENDPOINT_URL'],
-        region_name=s3_config['S3_REGION_NAME'],
-        config=Config(signature_version=s3_config['S3_SIGNATURE_VERSION']),
-        **client_access_kwargs
-    )
     return client
 
 

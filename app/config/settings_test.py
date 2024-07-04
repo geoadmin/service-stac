@@ -17,6 +17,7 @@ from config.settings import *
 
 AWS_SETTINGS = {
     'legacy': {
+        "access_type": "key",
         "ACCESS_KEY_ID": 'my-key',
         "SECRET_ACCESS_KEY": 'my-key',
         "DEFAULT_ACL": 'public-read',
@@ -27,10 +28,9 @@ AWS_SETTINGS = {
         "S3_SIGNATURE_VERSION": "s3v4"
     },
     "managed": {
-        "ACCESS_KEY_ID": 'my-key',
-        "SECRET_ACCESS_KEY": 'my-key',
+        "access_type": "service_account",
         "DEFAULT_ACL": 'public-read',
-        "ROLE_ARN": "foo",
+        "ROLE_ARN": 'Arnold',
         "S3_REGION_NAME": 'wonderland',
         "S3_ENDPOINT_URL": None,
         "S3_CUSTOM_DOMAIN": 'testserver',

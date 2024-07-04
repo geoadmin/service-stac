@@ -214,39 +214,28 @@ STORAGES = {
 try:
     AWS_SETTINGS = {
         'legacy': {
-            "STORAGE_BUCKET_NAME": env('AWS_STORAGE_BUCKET_NAME'),
-            "ACCESS_KEY_ID": env('AWS_ACCESS_KEY_ID'),
-            "SECRET_ACCESS_KEY": env('AWS_SECRET_ACCESS_KEY'),  # The AWS region of the bucket
-            "S3_REGION_NAME": env('AWS_S3_REGION_NAME', default='eu-central-1'),
+            # the legacy configuration will be read from the environment variables
+            # specifically configured for that
+            "access_type": "key",
+            "STORAGE_BUCKET_NAME": env("LEGACY_AWS_STORAGE_BUCKET_NAME"),
+            "ACCESS_KEY_ID": env('LEGACY_AWS_ACCESS_KEY_ID'),
+            "SECRET_ACCESS_KEY": env('LEGACY_AWS_SECRET_ACCESS_KEY'),
+            "S3_REGION_NAME": env('LEGACY_AWS_S3_REGION_NAME', default='eu-west-1'),
             # This is the URL where to reach the S3 service and is either minio
             # on localhost or https://s3.<region>.amazonaws.com
-            "S3_ENDPOINT_URL": env('AWS_S3_ENDPOINT_URL', default=None),
+            "S3_ENDPOINT_URL": env('LEGACY_AWS_S3_ENDPOINT_URL', default=None),
             # The CUSTOM_DOMAIN is used to construct the correct URL when displaying
             # a link to the file in the admin UI. It must only contain the domain, but not
             # the scheme (http/https).
-            "S3_CUSTOM_DOMAIN": env('AWS_S3_CUSTOM_DOMAIN', default=None),
-            # AWS_DEFAULT_ACL depends on bucket/user config. The user might not have
-            # permissions to change ACL, then this setting must be None
-            "DEFAULT_ACL": None,
+            "S3_CUSTOM_DOMAIN": env('LEGACY_AWS_S3_CUSTOM_DOMAIN', default=None),
             "S3_SIGNATURE_VERSION": "s3v4"
         },
         'managed': {
-            # STORAGE_BUCKET_NAME is the only required additional var
-            # The others are inferred by the ones above if they're not specified
-            # So if we have two buckets on the same server with the same access key, we needn't
-            # specify all the variables. But this still leaves the possibility to
-            # have it in a somewhere entirely different location
-            # This probably won't be for long, as we'll need some other means to access
-            # the new bucket than the access_key
-            "STORAGE_BUCKET_NAME": env('AWS_STORAGE_BUCKET_NAME_MANAGED'),
-            "ROLE_ARN": env('AWS_ROLE_ARN_MANAGED', default=None),
-            "S3_REGION_NAME":
-                env('AWS_S3_REGION_NAME_MANAGED', default=env('AWS_S3_REGION_NAME', default=None)),
-            "S3_ENDPOINT_URL":
-                env('AWS_S3_ENDPOINT_URL', default=env('AWS_S3_ENDPOINT_URL', default=None)),
-            "S3_CUSTOM_DOMAIN":
-                env('AWS_S3_CUSTOM_DOMAIN', default=env('AWS_S3_CUSTOM_DOMAIN', default=None)),
-            "DEFAULT_ACL": None,
+            # The managed configuration will be passed directly via env
+            "access_type": "service_account",
+            "S3_REGION_NAME": env('AWS_S3_REGION_NAME', default='eu-central-1'),
+            "S3_ENDPOINT_URL": env('AWS_S3_ENDPOINT_URL', None),
+            "S3_CUSTOM_DOMAIN": env('AWS_S3_CUSTOM_DOMAIN', None),
             "S3_SIGNATURE_VERSION": "s3v4"
         }
     }

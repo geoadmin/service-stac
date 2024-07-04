@@ -1,6 +1,5 @@
 from unittest.mock import patch
 
-import botocore
 import environ
 from parameterized import parameterized
 
@@ -10,7 +9,6 @@ from django.test import TestCase
 from stac_api.s3_multipart_upload import MultipartUpload
 from stac_api.utils import AVAILABLE_S3_BUCKETS
 from stac_api.utils import get_asset_path
-from stac_api.utils import get_s3_client
 from stac_api.utils import select_s3_bucket
 
 from tests.tests_10.data_factory import Factory
@@ -178,39 +176,3 @@ class TestBucketSelector(TestCase):
             bucket_name = select_s3_bucket(collection_name)
 
         self.assertEqual(bucket_name, AVAILABLE_S3_BUCKETS.managed)
-
-    def test_s3_client_creator_configuration_validation(self):
-        """Test that the s3 client creator function validates the configuration
-        """
-
-        # without arguments, we get the legacy bucket
-        client = get_s3_client()
-
-        # there's no real s3 client class, it's created on the fly
-        # by botocore, hence we test for BaseClient and the string
-        self.assertTrue(isinstance(client, botocore.client.BaseClient))
-        self.assertEqual(str(client.__class__), "<class 'botocore.client.S3'>")
-
-        # role_arn in combination with access_key_id must not work
-        with self.settings(
-            AWS_SETTINGS={
-                "managed": {
-                    "ROLE_ARN": "something there",
-                    "ACCESS_KEY_ID": "some access key",
-                }
-            }
-        ):
-            with self.assertRaises(ValueError):
-                get_s3_client(AVAILABLE_S3_BUCKETS.managed)
-
-        # role_arn in combination with secret_access_key must not work
-        with self.settings(
-            AWS_SETTINGS={
-                "managed": {
-                    "ROLE_ARN": "something there",
-                    "SECRET_ACCESS_KEY": "some access key",
-                }
-            }
-        ):
-            with self.assertRaises(ValueError):
-                get_s3_client(AVAILABLE_S3_BUCKETS.managed)
