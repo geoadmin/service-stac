@@ -79,7 +79,7 @@ class MultipartUploadMultipleBucketTest(TestCase):
 
         mock_call.assert_called_once_with(
             executor.s3.complete_multipart_upload,
-            Bucket=config['STORAGE_BUCKET_NAME'],
+            Bucket=config['S3_BUCKET_NAME'],
             Key="foo",
             MultipartUpload={'Parts': []},
             UploadId="upload_id",
@@ -106,7 +106,7 @@ class MultipartUploadMultipleBucketTest(TestCase):
 
         mock_call.assert_called_once_with(
             executor.s3.abort_multipart_upload,
-            Bucket=config['STORAGE_BUCKET_NAME'],
+            Bucket=config['S3_BUCKET_NAME'],
             Key="foo",
             UploadId="upload_id",
             log_extra={
@@ -128,7 +128,7 @@ class MultipartUploadMultipleBucketTest(TestCase):
 
         mock_call.assert_called_once_with(
             executor.s3.list_parts,
-            Bucket=config['STORAGE_BUCKET_NAME'],
+            Bucket=config['S3_BUCKET_NAME'],
             Key="foo",
             UploadId="upload_id",
             MaxParts=3,

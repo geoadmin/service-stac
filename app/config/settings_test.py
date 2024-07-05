@@ -24,7 +24,7 @@ AWS_SETTINGS = {
         "S3_REGION_NAME": 'wonderland',
         "S3_ENDPOINT_URL": None,
         "S3_CUSTOM_DOMAIN": 'testserver',
-        "STORAGE_BUCKET_NAME": 'legacy',
+        "S3_BUCKET_NAME": 'legacy',
         "S3_SIGNATURE_VERSION": "s3v4"
     },
     "managed": {
@@ -34,7 +34,7 @@ AWS_SETTINGS = {
         "S3_REGION_NAME": 'wonderland',
         "S3_ENDPOINT_URL": None,
         "S3_CUSTOM_DOMAIN": 'testserver',
-        "STORAGE_BUCKET_NAME": 'managed',
+        "S3_BUCKET_NAME": 'managed',
         "S3_SIGNATURE_VERSION": "s3v4"
     }
 }

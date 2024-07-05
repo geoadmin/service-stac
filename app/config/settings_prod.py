@@ -217,7 +217,7 @@ try:
             # the legacy configuration will be read from the environment variables
             # specifically configured for that
             "access_type": "key",
-            "STORAGE_BUCKET_NAME": env("LEGACY_AWS_STORAGE_BUCKET_NAME"),
+            "S3_BUCKET_NAME": env("LEGACY_AWS_S3_BUCKET_NAME"),
             "ACCESS_KEY_ID": env('LEGACY_AWS_ACCESS_KEY_ID'),
             "SECRET_ACCESS_KEY": env('LEGACY_AWS_SECRET_ACCESS_KEY'),
             "S3_REGION_NAME": env('LEGACY_AWS_S3_REGION_NAME', default='eu-west-1'),
@@ -233,9 +233,10 @@ try:
         'managed': {
             # The managed configuration will be passed directly via env
             "access_type": "service_account",
+            "S3_BUCKET_NAME": env("AWS_S3_BUCKET_NAME"),
             "S3_REGION_NAME": env('AWS_S3_REGION_NAME', default='eu-central-1'),
-            "S3_ENDPOINT_URL": env('AWS_S3_ENDPOINT_URL', None),
-            "S3_CUSTOM_DOMAIN": env('AWS_S3_CUSTOM_DOMAIN', None),
+            "S3_ENDPOINT_URL": env('AWS_S3_ENDPOINT_URL', default=None),
+            "S3_CUSTOM_DOMAIN": env('AWS_S3_CUSTOM_DOMAIN', default=None),
             "S3_SIGNATURE_VERSION": "s3v4"
         }
     }

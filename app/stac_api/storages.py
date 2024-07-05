@@ -78,7 +78,7 @@ class LegacyS3Storage(BaseS3Storage):
         # buckets to access)
         self.access_key = settings.AWS_SETTINGS['legacy']['ACCESS_KEY_ID']
         self.secret_key = settings.AWS_SETTINGS['legacy']['SECRET_ACCESS_KEY']
-        self.bucket_name = settings.AWS_SETTINGS['legacy']['STORAGE_BUCKET_NAME']
+        self.bucket_name = settings.AWS_SETTINGS['legacy']['S3_BUCKET_NAME']
         self.endpoint_url = settings.AWS_SETTINGS['legacy']['S3_ENDPOINT_URL']
 
         super().__init__()
@@ -93,7 +93,7 @@ class ManagedS3Storage(BaseS3Storage):
         # buckets to access)
         self.access_key = settings.AWS_SETTINGS['managed']['ACCESS_KEY_ID']
         self.secret_key = settings.AWS_SETTINGS['managed']['SECRET_ACCESS_KEY']
-        self.bucket_name = settings.AWS_SETTINGS['managed']['STORAGE_BUCKET_NAME']
+        self.bucket_name = settings.AWS_SETTINGS['managed']['S3_BUCKET_NAME']
         self.endpoint_url = settings.AWS_SETTINGS['managed']['S3_ENDPOINT_URL']
 
         super().__init__()

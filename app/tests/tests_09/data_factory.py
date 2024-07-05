@@ -779,7 +779,7 @@ class AssetSample(SampleData):
 
     def _create_file_on_s3(self, file_path, file):
         s3 = get_s3_resource()
-        obj = s3.Object(settings.AWS_SETTINGS['legacy']['STORAGE_BUCKET_NAME'], file_path)
+        obj = s3.Object(settings.AWS_SETTINGS['legacy']['S3_BUCKET_NAME'], file_path)
         obj.upload_fileobj(
             file,
             ExtraArgs={

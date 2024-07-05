@@ -22,7 +22,7 @@ class DummyAssetHandler(CommandHandler):
     def clean(self):
         self.print_warning("Deleting all assets with prefix %s on S3...", PREFIX)
         s3 = get_s3_resource()
-        obj_iter = s3.Bucket(settings.AWS_SETTINGS['legacy']['STORAGE_BUCKET_NAME']
+        obj_iter = s3.Bucket(settings.AWS_SETTINGS['legacy']['S3_BUCKET_NAME']
                             ).objects.filter(Prefix=PREFIX)
         for obj in obj_iter:
             obj.delete()
@@ -48,7 +48,7 @@ class DummyAssetHandler(CommandHandler):
                         media_extension = random.choice(random.choice(MEDIA_TYPES)[2])
 
                     file = f'{collection_id}/{item_id}/{asset_id}{media_extension}'
-                    obj = s3.Object(settings.AWS_SETTINGS['legacy']['STORAGE_BUCKET_NAME'], file)
+                    obj = s3.Object(settings.AWS_SETTINGS['legacy']['S3_BUCKET_NAME'], file)
                     content = f'Dummy Asset data: {uuid.uuid4()}'.encode()
                     filelike = BytesIO(content)
                     obj.upload_fileobj(
