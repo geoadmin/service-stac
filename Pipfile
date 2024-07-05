@@ -16,6 +16,7 @@ mock = "~=5.1.0"
 responses = "!=0.12.1" # skip version 0.12.1 which has a bug see https://github.com/getsentry/responses/issues/358
 requests-mock = "~=1.12.1"
 moto = {extras = [ "s3",], version = "~=4.0.13"}
+debugpy = "*"
 
 [packages]
 gevent = "~=24.2.1"
