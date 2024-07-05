@@ -18,6 +18,7 @@ endif
 # Django specific
 APP_SRC_DIR := app
 DJANGO_MANAGER := $(CURRENT_DIR)/$(APP_SRC_DIR)/manage.py
+DJANGO_MANAGER_DEBUG := -m debugpy --listen localhost:5678 --wait-for-client $(CURRENT_DIR)/$(APP_SRC_DIR)/manage.py
 
 # Test options
 ifeq ($(CI),"1")
@@ -196,6 +197,13 @@ test:
 	$(PYTHON) $(DJANGO_MANAGER) collectstatic --noinput
 	$(PYTHON) $(DJANGO_MANAGER) test --verbosity=2 --parallel 20 $(CI_TEST_OPT) $(TEST_DIR)
 
+.PHONY: test-debug
+test-debug:
+	# Collect static first to avoid warning in the test
+	$(PYTHON) $(DJANGO_MANAGER) collectstatic --noinput
+	$(PYTHON) $(DJANGO_MANAGER_DEBUG) test --verbosity=2 $(CI_TEST_OPT) $(TEST_DIR)
+
+
 
 ###################
 # Specs
@@ -228,6 +236,10 @@ ci-build-check-specs:
 .PHONY: serve
 serve: setup-logs
 	$(PYTHON) $(DJANGO_MANAGER) runserver $(HTTP_PORT)
+
+.PHONY: serve-debug
+serve-debug: setup-logs
+	$(PYTHON) $(DJANGO_MANAGER_DEBUG) runserver $(HTTP_PORT)
 
 .PHONY: gunicornserve
 gunicornserve: setup-logs
