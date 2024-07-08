@@ -190,12 +190,13 @@ django-check-migrations:
 	@echo "Check for missing migration files"
 	$(PYTHON) $(DJANGO_MANAGER) makemigrations --no-input --check
 
-# Running tests locally
+# Running tests locally and on ci
 .PHONY: test
 test:
 	# Collect static first to avoid warning in the test
 	$(PYTHON) $(DJANGO_MANAGER) collectstatic --noinput
-	$(PYTHON) $(DJANGO_MANAGER) test --verbosity=2 --parallel 20 $(CI_TEST_OPT) $(TEST_DIR)
+	$(PYTHON) -m coverage run --source="." $(DJANGO_MANAGER) test --verbosity=2 --parallel 20 $(CI_TEST_OPT) $(TEST_DIR)
+	$(PYTHON) -m coverage xml
 
 .PHONY: test-debug
 test-debug:
