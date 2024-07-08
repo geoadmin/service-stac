@@ -56,3 +56,12 @@ SHELL_PLUS_POST_IMPORTS = ['from tests.data_factory import Factory']
 MANAGED_BUCKET_COLLECTION_PATTERNS = env.list(
     'MANAGED_BUCKET_COLLECTION_PATTERNS', default=[r"^ch\.meteoschweiz\.ogd-*"]
 )
+
+# Since it's impossible to recreate the service-account situation with minio
+# we inject some configuration in here to access the second bucket
+# in the same way as first bucket, via access/secrets
+# Like this we can leave the base (prod) configuration clean, while fixing
+# the local setup
+AWS_SETTINGS['managed']['access_type'] = "key"
+AWS_SETTINGS['managed']['ACCESS_KEY_ID'] = env("LEGACY_AWS_ACCESS_KEY_ID")
+AWS_SETTINGS['managed']['SECRET_ACCESS_KEY'] = env("LEGACY_AWS_SECRET_ACCESS_KEY")

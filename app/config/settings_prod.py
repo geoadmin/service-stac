@@ -232,6 +232,7 @@ try:
         },
         'managed': {
             # The managed configuration will be passed directly via env
+            # The access to the managed bucket is done via service account
             "access_type": "service_account",
             "S3_BUCKET_NAME": env("AWS_S3_BUCKET_NAME"),
             "S3_REGION_NAME": env('AWS_S3_REGION_NAME', default='eu-central-1'),
