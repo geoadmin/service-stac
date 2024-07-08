@@ -1,0 +1,16 @@
+name: Show coverage report
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - edited
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Code Coverage Report
+      uses: irongut/CodeCoverageSummary@v1.3.0
+      with:
+        filename: coverage.xml
