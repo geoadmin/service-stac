@@ -12,6 +12,7 @@ assets = {
         'name': 'asset-1.tiff',
         'title': 'Asset 1 Title',
         'description': 'This is a full description of asset 1',
+        'roles': ['data', 'visual'],
         'eo_gsd': 3.4,
         'geoadmin_lang': 'fr',
         'geoadmin_variant': 'kgrs',

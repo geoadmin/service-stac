@@ -1794,6 +1794,8 @@ components:
           $ref: "#/components/schemas/href"
         file:checksum:
           $ref: "#/components/schemas/checksumMultihashReadOnly"
+        roles:
+          $ref: '#/components/schemas/roles'
         geoadmin:variant:
           $ref: "#/components/schemas/geoadminVariant"
         geoadmin:lang:
@@ -3258,6 +3260,8 @@ components:
           $ref: "#/components/schemas/href"
         file:checksum:
           $ref: "#/components/schemas/checksumMultihashReadOnly"
+        roles:
+          $ref: '#/components/schemas/roles'
         geoadmin:variant:
           $ref: "#/components/schemas/geoadminVariant"
         geoadmin:lang:

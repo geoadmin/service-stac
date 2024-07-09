@@ -301,7 +301,7 @@ class AssetAdmin(admin.ModelAdmin):
             }
         ),
         ('Description', {
-            'fields': ('title', 'description')
+            'fields': ('title', 'description', 'roles')
         }),
         ('Attributes', {
             'fields': ('eo_gsd', 'proj_epsg', 'geoadmin_variant', 'geoadmin_lang')

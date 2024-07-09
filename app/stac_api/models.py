@@ -552,6 +552,9 @@ class Asset(models.Model):
     # pylint: disable=unexpected-keyword-arg
     # pylint: disable=no-value-for-parameter
     file = DynamicStorageFileField(upload_to=upload_asset_to_path_hook, max_length=255)
+    roles = ArrayField(
+        models.CharField(max_length=255), editable=True, blank=True, null=True, default=None,
+        help_text=_("Comma-separated list of roles to describe the purpose of the asset"))
 
     @property
     def filename(self):

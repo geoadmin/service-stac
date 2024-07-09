@@ -482,6 +482,7 @@ class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
             'href',
             'description',
             'eo_gsd',
+            'roles',
             'geoadmin_lang',
             'geoadmin_variant',
             'proj_epsg',
@@ -580,6 +581,7 @@ class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         if not is_api_version_1(request):
             fields['checksum:multihash'] = fields.pop('file:checksum')
             fields['eo:gsd'] = fields.pop('gsd')
+            fields.pop('roles', None)
 
         return fields
 
@@ -622,6 +624,7 @@ class AssetsForItemSerializer(AssetBaseSerializer):
             'type',
             'href',
             'description',
+            'roles',
             'eo_gsd',
             'geoadmin_lang',
             'geoadmin_variant',
