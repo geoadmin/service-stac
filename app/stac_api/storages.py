@@ -7,6 +7,7 @@ from django.conf import settings
 
 from storages.backends.s3boto3 import S3Boto3Storage
 
+from stac_api.utils import AVAILABLE_S3_BUCKETS
 from stac_api.utils import get_s3_cache_control_value
 
 logger = logging.getLogger(__name__)
@@ -24,9 +25,17 @@ class BaseS3Storage(S3Boto3Storage):
     bucket_name = None
     endpoint_url = None
 
-    def __init__(self):
-        if (not self.access_key or not self.secret_key or not self.bucket_name):
-            raise Exception("Implement this in subclass")
+    def __init__(self, s3_bucket: AVAILABLE_S3_BUCKETS):
+        s3_config = settings.AWS_SETTINGS[s3_bucket.name]
+
+        if s3_config['access_type'] == 'key':
+            self.access_key = s3_config['ACCESS_KEY_ID']
+            self.secret_key = s3_config['SECRET_ACCESS_KEY']
+        # else: let it infer from the environment
+
+        self.bucket_name = s3_config['S3_BUCKET_NAME']
+        self.endpoint_url = s3_config['S3_ENDPOINT_URL']
+
         super().__init__()
         self.object_sha256 = None
         self.update_interval = -1
@@ -73,27 +82,11 @@ class LegacyS3Storage(BaseS3Storage):
     # pylint: disable=abstract-method
 
     def __init__(self):
-        # specifying the configuration as we're not using the
-        # environment variables / globals settings (due two having two
-        # buckets to access)
-        self.access_key = settings.AWS_SETTINGS['legacy']['ACCESS_KEY_ID']
-        self.secret_key = settings.AWS_SETTINGS['legacy']['SECRET_ACCESS_KEY']
-        self.bucket_name = settings.AWS_SETTINGS['legacy']['S3_BUCKET_NAME']
-        self.endpoint_url = settings.AWS_SETTINGS['legacy']['S3_ENDPOINT_URL']
-
-        super().__init__()
+        super().__init__(AVAILABLE_S3_BUCKETS.legacy)
 
 
 class ManagedS3Storage(BaseS3Storage):
     # pylint: disable=abstract-method
 
     def __init__(self):
-        # specifying the configuration as we're not using the
-        # environment variables / globals settings (due two having two
-        # buckets to access)
-        self.access_key = settings.AWS_SETTINGS['managed']['ACCESS_KEY_ID']
-        self.secret_key = settings.AWS_SETTINGS['managed']['SECRET_ACCESS_KEY']
-        self.bucket_name = settings.AWS_SETTINGS['managed']['S3_BUCKET_NAME']
-        self.endpoint_url = settings.AWS_SETTINGS['managed']['S3_ENDPOINT_URL']
-
-        super().__init__()
+        super().__init__(AVAILABLE_S3_BUCKETS.managed)
