@@ -125,9 +125,11 @@ RUN echo "APP_VERSION = '$VERSION'" > ${INSTALL_DIR}/app/config/version.py
 
 # Collect static files, some variables like AWS_ are mandatory so set them to avoid exceptions.
 RUN LOGGING_CFG=0 \
-    AWS_ACCESS_KEY_ID= \
-    AWS_SECRET_ACCESS_KEY= \
-    AWS_STORAGE_BUCKET_NAME= \
+    LEGACY_AWS_ACCESS_KEY_ID= \
+    LEGACY_AWS_SECRET_ACCESS_KEY= \
+    LEGACY_AWS_S3_BUCKET_NAME= \
+    AWS_S3_BUCKET_NAME= \
+    AWS_ROLE_ARN= \
     ${INSTALL_DIR}/app/manage.py collectstatic --noinput
 
 ARG GIT_HASH=unknown

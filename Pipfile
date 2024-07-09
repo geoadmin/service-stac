@@ -17,6 +17,7 @@ responses = "!=0.12.1" # skip version 0.12.1 which has a bug see https://github.
 requests-mock = "~=1.12.1"
 moto = {extras = [ "s3",], version = "~=4.0.13"}
 debugpy = "*"
+parameterized = "*"
 
 [packages]
 gevent = "~=24.2.1"
@@ -40,6 +41,7 @@ django-prometheus = "~=2.3.1"
 django-admin-autocomplete-filter = "~=0.7.1"
 django-pgtrigger = "~=4.11.1"
 logging-utilities = "~=4.4.1"
+django-environ = "*"
 
 [requires]
 python_version = "3.12"

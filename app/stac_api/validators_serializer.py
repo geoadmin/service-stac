@@ -1,12 +1,6 @@
 import json
 import logging
 
-import botocore
-import multihash
-from multihash import from_hex_string
-from multihash import to_hex_string
-
-from django.conf import settings
 from django.contrib.gis.gdal.error import GDALException
 from django.contrib.gis.geos import GEOSGeometry
 from django.db import IntegrityError
@@ -14,14 +8,9 @@ from django.db import transaction
 from django.utils.translation import gettext_lazy as _
 
 from rest_framework import serializers
-from rest_framework.exceptions import APIException
 
-from stac_api.utils import create_multihash
-from stac_api.utils import create_multihash_string
 from stac_api.utils import fromisoformat
 from stac_api.utils import geometry_from_bbox
-from stac_api.utils import get_asset_path
-from stac_api.utils import get_s3_resource
 from stac_api.utils import harmonize_post_get_for_search
 from stac_api.validators import validate_geometry
 
@@ -55,152 +44,6 @@ def validate_json_payload(serializer):
 
     if errors:
         raise serializers.ValidationError(code='payload', detail=errors)
-
-
-def validate_asset_href_path(item, asset_name, path):
-    '''Validate Asset href path
-
-    The href path must follow the convention: [PREFIX/]COLLECTION_NAME/ITEM_NAME/ASSET_NAME
-    where PREFIX is parsed from settings.AWS_S3_CUSTOM_DOMAIN if available
-
-    Args:
-        item: Item
-            Item object's in which the Assets is located
-        asset_name: string
-            Asset's name
-        path: string
-            Href path to validate
-
-    Raises:
-        serializers.ValidationError in case of invalid path
-    '''
-    expected_path = get_asset_path(item, asset_name)
-    if settings.AWS_S3_CUSTOM_DOMAIN:
-        prefix_path = settings.AWS_S3_CUSTOM_DOMAIN.strip('/').split('/', maxsplit=1)[1:]
-        expected_path = '/'.join(prefix_path + [expected_path])
-    if path != expected_path:
-        logger.error("Invalid path %s; don't follow the convention %s", path, expected_path)
-        raise serializers.ValidationError({
-            'href': _(f"Invalid path; should be {expected_path} but got {path}")
-        })
-
-
-def validate_asset_file(href, original_name, attrs):
-    '''Validate Asset file
-
-    Validate the Asset file located at href. The file must exist and match the multihash. The file
-    hash is retrieved by doing a HTTP HEAD request at href.
-
-    Args:
-        href: string
-            Asset file href to validate
-        original_name: string
-            Asset original name in case of renaming
-        expected_multihash: string (optional)
-            Asset file expected multihash (must be a sha2-256 multihash !)
-
-    Raises:
-        rest_framework.exceptions.serializers.ValidationError:
-            in case of invalid Asset (asset doesn't exist or hash doesn't match)
-        rest_framework.exceptions.APIException:
-            in case of other networking errors
-    '''
-    logger.debug('Validate asset file at %s with attrs %s', href, attrs)
-
-    asset_path = get_asset_path(attrs['item'], original_name)
-    try:
-        s3 = get_s3_resource()
-        obj = s3.Object(settings.AWS_STORAGE_BUCKET_NAME, asset_path)
-        obj.load()
-        logger.debug('S3 obj %s etag=%s, metadata=%s', asset_path, obj.e_tag, obj.metadata)
-    except botocore.exceptions.ClientError as error:
-        logger.error('Failed to retrieve S3 object %s metadata: %s', asset_path, error)
-        if error.response.get('Error', {}).get('Code', None) == '404':
-            logger.error('Asset at href %s doesn\'t exists', href)
-            raise serializers.ValidationError({
-                'href': _(f"Asset doesn't exists at href {href}")
-            }) from error
-        raise APIException({'href': _("Error while checking href existence")}) from error
-
-    # Get the hash from response
-    asset_multihash = None
-    asset_sha256 = obj.metadata.get('sha256', None)
-    logger.debug('Asset file %s checksums from headers: sha256=%s', href, asset_sha256)
-    if asset_sha256:
-        asset_multihash = create_multihash(asset_sha256, 'sha2-256')
-
-    if asset_multihash is None:
-        logger.error(
-            "Asset at href %s doesn't provide a mandatory checksum header "
-            "(x-amz-meta-sha256) for validation",
-            href
-        )
-        raise serializers.ValidationError({
-            'href': _(f"Asset at href {href} doesn't provide a mandatory checksum header "
-                      "(x-amz-meta-sha256) for validation")
-        }) from None
-
-    expected_multihash = attrs.get('checksum_multihash', None)
-    if expected_multihash is None:
-        # checksum_multihash attribute not found in attributes, therefore set it with the multihash
-        # created from the HEAD Header and terminates the validation
-        attrs['checksum_multihash'] = create_multihash_string(
-            asset_multihash.digest, asset_multihash.code
-        )
-        return attrs
-
-    # When a checksum_multihash is found in attributes then make sure that it match the checksum of
-    # found in the HEAD header.
-
-    _validate_asset_file_checksum(href, expected_multihash, asset_multihash)
-
-    return attrs
-
-
-def _validate_asset_file_checksum(href, expected_multihash, asset_multihash):
-    expected_multihash = multihash.decode(from_hex_string(expected_multihash))
-
-    logger.debug(
-        'Validate asset file checksum at %s with multihash %s/%s (from headers), expected %s/%s '
-        '(from checksum:multishash attribute)',
-        href,
-        to_hex_string(asset_multihash.digest),
-        asset_multihash.name,
-        to_hex_string(expected_multihash.digest),
-        expected_multihash.name
-    )
-
-    if asset_multihash.name != expected_multihash.name:
-        logger.error(
-            'Asset at href %s, with multihash name=%s digest=%s, doesn\'t match the expected '
-            'multihash name=%s digest=%s defined in checksum:multihash attribute',
-            href,
-            asset_multihash.name,
-            to_hex_string(asset_multihash.digest),
-            expected_multihash.name,
-            to_hex_string(expected_multihash.digest)
-        )
-        raise serializers.ValidationError({
-            'href': _(f"Asset at href {href} has a {asset_multihash.name} multihash while a "
-                      f"{expected_multihash.name} multihash is defined in the checksum:multihash "
-                      "attribute")
-        })
-
-    if asset_multihash != expected_multihash:
-        logger.error(
-            'Asset at href %s, with multihash name=%s digest=%s, doesn\'t match the '
-            'checksum:multihash value name=%s digest=%s',
-            href,
-            asset_multihash.name,
-            to_hex_string(asset_multihash.digest),
-            expected_multihash.name,
-            to_hex_string(expected_multihash.digest)
-        )
-        raise serializers.ValidationError({
-            'href': _(f"Asset at href {href} with {asset_multihash.name} hash "
-                      f"{to_hex_string(asset_multihash.digest)} doesn't match the "
-                      f"checksum:multihash {to_hex_string(expected_multihash.digest)}")
-        })
 
 
 class ValidateSearchRequest:
