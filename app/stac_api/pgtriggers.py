@@ -189,6 +189,95 @@ def generates_asset_triggers():
     ]
 
 
+def generate_collection_asset_triggers():
+    '''Generates collection asset triggers
+    Triggers act on `insert`, `update` and `delete` collection asset event and do the following:
+      - Update the `updated` and `etag` fields of the assets and their parents
+      - Update the parent collection summaries.
+      - Update the parent collection `update_interval` by using the minimal aggregation of all
+        of its assets
+    Returns: tuple
+        tuple for all needed triggers
+    '''
+
+    class UpdateCollectionSummariesTrigger(pgtrigger.Trigger):
+        when = pgtrigger.After
+        declare = [
+            ('asset_instance', 'stac_api_collectionasset%ROWTYPE'),
+            ('related_collection_id', 'INT'),
+        ]
+        func = '''
+        asset_instance = COALESCE(NEW, OLD);
+        related_collection_id = (
+            SELECT collection_id FROM stac_api_collectionasset
+            WHERE id = asset_instance.id
+        );
+        -- Update related collection (auto variables + summaries)
+        UPDATE stac_api_collection SET
+            updated = now(),
+            etag = gen_random_uuid(),
+            summaries_proj_epsg = array_remove(ARRAY(SELECT DISTINCT UNNEST(array_append(summaries_proj_epsg, asset_instance.proj_epsg))), NULL),
+            summaries_geoadmin_variant = array_remove(ARRAY(SELECT DISTINCT UNNEST(array_append(summaries_geoadmin_variant, asset_instance.geoadmin_variant))), NULL),
+            summaries_geoadmin_lang = array_remove(ARRAY(SELECT DISTINCT UNNEST(array_append(summaries_geoadmin_lang, asset_instance.geoadmin_lang))), NULL),
+            summaries_eo_gsd = array_remove(ARRAY(SELECT DISTINCT UNNEST(array_append(summaries_eo_gsd, asset_instance.eo_gsd))), NULL)
+        WHERE id = related_collection_id;
+        RAISE INFO 'collection.id=% summaries updated, due to collection asset.name=% update.',
+            related_collection_id, asset_instance.name;
+        RETURN asset_instance;
+        '''
+
+    class UpdateCollectionUpdateIntervalTrigger(pgtrigger.Trigger):
+        when = pgtrigger.After
+        declare = [
+            ('asset_instance', 'stac_api_collectionasset%ROWTYPE'),
+        ]
+        func = '''
+        asset_instance = COALESCE(NEW, OLD);
+        -- Update related collection update_interval variables
+        -- if new value is lower than existing one.
+        UPDATE stac_api_collection SET
+            update_interval = COALESCE(LEAST(NULLIF(asset_instance.update_interval, -1), update_interval), -1)
+        WHERE id = asset_instance.collection_id;
+        RAISE INFO 'collection.id=% update_interval updated, due to collectionasset.name=% updates.',
+            asset_instance.collection_id, asset_instance.name;
+        RETURN asset_instance;
+        '''
+
+    return [
+        UpdateCollectionSummariesTrigger(
+            name='update_col_asset_collection_summaries_trigger',
+            operation=pgtrigger.Update,
+            condition=pgtrigger.Condition('OLD.* IS DISTINCT FROM NEW.*')
+        ),
+        UpdateCollectionSummariesTrigger(
+            name='add_del_col_asset_collection_summaries_trigger',
+            operation=pgtrigger.Delete | pgtrigger.Insert,
+        ),
+        pgtrigger.Trigger(
+            name="add_col_asset_auto_variables_trigger",
+            operation=pgtrigger.Insert,
+            when=pgtrigger.Before,
+            func=AUTO_VARIABLES_FUNC
+        ),
+        pgtrigger.Trigger(
+            name="update_col_asset_auto_variables_trigger",
+            operation=pgtrigger.Update,
+            condition=pgtrigger.Condition('OLD.* IS DISTINCT FROM NEW.*'),
+            when=pgtrigger.Before,
+            func=AUTO_VARIABLES_FUNC
+        ),
+        UpdateCollectionUpdateIntervalTrigger(
+            name='add_del_col_asset_col_update_interval_trigger',
+            operation=pgtrigger.Insert | pgtrigger.Delete,
+        ),
+        UpdateCollectionUpdateIntervalTrigger(
+            name='update_col_asset_col_update_interval_trigger',
+            operation=pgtrigger.Update,
+            condition=pgtrigger.Condition('OLD.* IS DISTINCT FROM NEW.*'),
+        )
+    ]
+
+
 def generates_item_triggers():
     '''Generates Item triggers
 

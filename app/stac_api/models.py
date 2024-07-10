@@ -22,11 +22,13 @@ from django.utils.translation import gettext_lazy as _
 from stac_api.managers import AssetUploadManager
 from stac_api.managers import ItemManager
 from stac_api.pgtriggers import generate_child_triggers
+from stac_api.pgtriggers import generate_collection_asset_triggers
 from stac_api.pgtriggers import generates_asset_triggers
 from stac_api.pgtriggers import generates_asset_upload_triggers
 from stac_api.pgtriggers import generates_collection_triggers
 from stac_api.pgtriggers import generates_item_triggers
 from stac_api.utils import get_asset_path
+from stac_api.utils import get_collection_asset_path
 from stac_api.utils import select_s3_bucket
 from stac_api.validators import MEDIA_TYPES
 from stac_api.validators import validate_asset_name
@@ -448,14 +450,15 @@ def upload_asset_to_path_hook(instance, filename=None):
     Returns:
         Asset file path to use on S3
     '''
+    item_name = 'no item on collection asset'
+    if hasattr(instance, 'item'):
+        item_name = instance.item.name
     logger.debug(
         'Start computing asset file %s multihash (file size: %.1f MB)',
         filename,
         instance.file.size / 1024**2,
         extra={
-            "collection": instance.item.collection.name,
-            "item": instance.item.name,
-            "asset": instance.name
+            "collection": instance.get_collection().name, "item": item_name, "asset": instance.name
         }
     )
     start = time.time()
@@ -475,24 +478,22 @@ def upload_asset_to_path_hook(instance, filename=None):
         mhash,
         time.time() - start,
         extra={
-            "collection": instance.item.collection.name,
-            "item": instance.item.name,
-            "asset": instance.name
+            "collection": instance.get_collection().name, "item": item_name, "asset": instance.name
         }
     )
     instance.checksum_multihash = mhash
-    return get_asset_path(instance.item, instance.name)
+    return instance.get_asset_path()
 
 
 class DynamicStorageFileField(models.FileField):
 
-    def pre_save(self, model_instance: "Asset", add):
+    def pre_save(self, model_instance: "AssetBase", add):
         """Determine the storage to use for this file
 
         The storage is determined by the collection's name. See
         settings.MANAGED_BUCKET_COLLECTION_PATTERNS
         """
-        collection = model_instance.item.collection
+        collection = model_instance.get_collection()
 
         bucket = select_s3_bucket(collection.name).name
 
@@ -526,23 +527,13 @@ class DynamicStorageFileField(models.FileField):
         return super().pre_save(model_instance, add)
 
 
-class Asset(models.Model):
+class AssetBase(models.Model):
 
     class Meta:
-        unique_together = (('item', 'name'),)
-        ordering = ['id']
-        triggers = generates_asset_triggers()
+        abstract = True
 
     # using BigIntegerField as primary_key to deal with the expected large number of assets.
     id = models.BigAutoField(primary_key=True)
-    item = models.ForeignKey(
-        Item,
-        related_name='assets',
-        related_query_name='asset',
-        on_delete=models.PROTECT,
-
-        help_text=_(SEARCH_TEXT_HELP_ITEM)
-    )
 
     # using "name" instead of "id", as "id" has a default meaning in django
     name = models.CharField('id', max_length=255, validators=[validate_asset_name])
@@ -641,6 +632,50 @@ class Asset(models.Model):
         # to check what errors were already raised.
         media_type = validate_media_type(self.media_type)
         validate_asset_name_with_media_type(self.name, media_type)
+
+
+class Asset(AssetBase):
+
+    class Meta:
+        unique_together = (('item', 'name'),)
+        ordering = ['id']
+        triggers = generates_asset_triggers()
+
+    item = models.ForeignKey(
+        Item,
+        related_name='assets',
+        related_query_name='asset',
+        on_delete=models.PROTECT,
+        help_text=_(SEARCH_TEXT_HELP_ITEM)
+    )
+
+    def get_collection(self):
+        return self.item.collection
+
+    def get_asset_path(self):
+        return get_asset_path(self.item, self.name)
+
+
+class CollectionAsset(AssetBase):
+
+    class Meta:
+        unique_together = (('collection', 'name'),)
+        ordering = ['id']
+        triggers = generate_collection_asset_triggers()
+
+    collection = models.ForeignKey(
+        Collection,
+        related_name='assets',
+        related_query_name='asset',
+        on_delete=models.PROTECT,
+        help_text=_(SEARCH_TEXT_HELP_ITEM)
+    )
+
+    def get_collection(self):
+        return self.collection
+
+    def get_asset_path(self):
+        return get_collection_asset_path(self.collection, self.name)
 
 
 class AssetUpload(models.Model):

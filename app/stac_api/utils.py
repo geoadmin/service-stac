@@ -106,6 +106,23 @@ def get_asset_path(item, asset_name):
     return '/'.join([item.collection.name, item.name, asset_name])
 
 
+def get_collection_asset_path(collection, asset_name):
+    '''Returns the asset path on S3.
+
+    The path is defined as follow: COLLECTION_NAME/ASSET_NAME
+
+    Args:
+        collection: Collection
+            Collection instance in which the asset is attached
+        asset_name: string
+            Asset's name
+
+    Returns:
+        Assets path on S3
+    '''
+    return '/'.join([collection.name, asset_name])
+
+
 def _get_boto_access_kwargs(s3_bucket: AVAILABLE_S3_BUCKETS = AVAILABLE_S3_BUCKETS.legacy):
     """Build the arguments for client and resource calls to boto3
 

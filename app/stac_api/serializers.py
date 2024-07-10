@@ -177,224 +177,6 @@ class CollectionLinkSerializer(NonNullModelSerializer):
     )
 
 
-class CollectionSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
-
-    class Meta:
-        model = Collection
-        fields = [
-            'published',
-            'stac_version',
-            'stac_extensions',
-            'id',
-            'title',
-            'description',
-            'summaries',
-            'extent',
-            'providers',
-            'license',
-            'created',
-            'updated',
-            'links',
-            'crs',
-            'itemType'
-        ]
-        # crs not in sample data, but in specs..
-        validators = []  # Remove a default "unique together" constraint.
-        # (see:
-        # https://www.django-rest-framework.org/api-guide/validators/#limitations-of-validators)
-
-    published = serializers.BooleanField(write_only=True, default=True)
-    # NOTE: when explicitely declaring fields, we need to add the validation as for the field
-    # in model !
-    id = serializers.CharField(
-        required=True, max_length=255, source="name", validators=[validate_name]
-    )
-    title = serializers.CharField(required=False, allow_blank=False, default=None, max_length=255)
-    # Also links are required in the spec, the main links (self, root, items) are automatically
-    # generated hence here it is set to required=False which allows to add optional links that
-    # are not generated
-    links = CollectionLinkSerializer(required=False, many=True)
-    providers = ProviderSerializer(required=False, many=True)
-
-    # read only fields
-    crs = serializers.SerializerMethodField(read_only=True)
-    created = serializers.DateTimeField(read_only=True)
-    updated = serializers.DateTimeField(read_only=True)
-    extent = serializers.SerializerMethodField(read_only=True)
-    summaries = serializers.SerializerMethodField(read_only=True)
-    stac_extensions = serializers.SerializerMethodField(read_only=True)
-    stac_version = serializers.SerializerMethodField(read_only=True)
-    itemType = serializers.ReadOnlyField(default="Feature")  # pylint: disable=invalid-name
-
-    def get_crs(self, obj):
-        return ["http://www.opengis.net/def/crs/OGC/1.3/CRS84"]
-
-    def get_stac_extensions(self, obj):
-        return []
-
-    def get_stac_version(self, obj):
-        return get_stac_version(self.context.get('request'))
-
-    def get_summaries(self, obj):
-        # Older versions of the api still use different name
-        request = self.context.get('request')
-        if not is_api_version_1(request):
-            return {
-                'proj:epsg': obj.summaries_proj_epsg or [],
-                'eo:gsd': obj.summaries_eo_gsd or [],
-                'geoadmin:variant': obj.summaries_geoadmin_variant or [],
-                'geoadmin:lang': obj.summaries_geoadmin_lang or []
-            }
-        return {
-            'proj:epsg': obj.summaries_proj_epsg or [],
-            'gsd': obj.summaries_eo_gsd or [],
-            'geoadmin:variant': obj.summaries_geoadmin_variant or [],
-            'geoadmin:lang': obj.summaries_geoadmin_lang or []
-        }
-
-    def get_extent(self, obj):
-        start = obj.extent_start_datetime
-        end = obj.extent_end_datetime
-        if start is not None:
-            start = isoformat(start)
-        if end is not None:
-            end = isoformat(end)
-
-        bbox = [0, 0, 0, 0]
-        if obj.extent_geometry is not None:
-            bbox = list(GEOSGeometry(obj.extent_geometry).extent)
-
-        return {
-            "spatial": {
-                "bbox": [bbox]
-            },
-            "temporal": {
-                "interval": [[start, end]]
-            },
-        }
-
-    def _update_or_create_providers(self, collection, providers_data):
-        provider_ids = []
-        for provider_data in providers_data:
-            provider, created = Provider.objects.get_or_create(
-                collection=collection,
-                name=provider_data["name"],
-                defaults={
-                    'description': provider_data.get('description', None),
-                    'roles': provider_data.get('roles', None),
-                    'url': provider_data.get('url', None)
-                }
-            )
-            logger.debug(
-                '%s provider %s',
-                'created' if created else 'updated',
-                provider.name,
-                extra={"provider": provider_data}
-            )
-            provider_ids.append(provider.id)
-            # the duplicate here is necessary to update the values in
-            # case the object already exists
-            provider.description = provider_data.get('description', provider.description)
-            provider.roles = provider_data.get('roles', provider.roles)
-            provider.url = provider_data.get('url', provider.url)
-            provider.full_clean()
-            provider.save()
-
-        # Delete providers that were not mentioned in the payload anymore
-        deleted = Provider.objects.filter(collection=collection).exclude(id__in=provider_ids
-                                                                        ).delete()
-        logger.info(
-            "deleted %d stale providers for collection %s",
-            deleted[0],
-            collection.name,
-            extra={"collection": collection.name}
-        )
-
-    def create(self, validated_data):
-        """
-        Create and return a new `Collection` instance, given the validated data.
-        """
-        providers_data = validated_data.pop('providers', [])
-        links_data = validated_data.pop('links', [])
-        collection = validate_uniqueness_and_create(Collection, validated_data)
-        self._update_or_create_providers(collection=collection, providers_data=providers_data)
-        update_or_create_links(
-            instance_type="collection",
-            model=CollectionLink,
-            instance=collection,
-            links_data=links_data
-        )
-        return collection
-
-    def update(self, instance, validated_data):
-        """
-        Update and return an existing `Collection` instance, given the validated data.
-        """
-        providers_data = validated_data.pop('providers', [])
-        links_data = validated_data.pop('links', [])
-        self._update_or_create_providers(collection=instance, providers_data=providers_data)
-        update_or_create_links(
-            instance_type="collection",
-            model=CollectionLink,
-            instance=instance,
-            links_data=links_data
-        )
-        return super().update(instance, validated_data)
-
-    def update_or_create(self, look_up, validated_data):
-        """
-        Update or create the collection object selected by kwargs and return the instance.
-
-        When no collection object matching the kwargs selection, a new object is created.
-
-        Args:
-            validated_data: dict
-                Copy of the validated_data to use for update
-            kwargs: dict
-                Object selection arguments (NOTE: the selection arguments must match a unique
-                object in DB otherwise an IntegrityError will be raised)
-
-        Returns: tuple
-            Collection instance and True if created otherwise false
-        """
-        providers_data = validated_data.pop('providers', [])
-        links_data = validated_data.pop('links', [])
-        collection, created = Collection.objects.update_or_create(
-            **look_up, defaults=validated_data
-            )
-        self._update_or_create_providers(collection=collection, providers_data=providers_data)
-        update_or_create_links(
-            instance_type="collection",
-            model=CollectionLink,
-            instance=collection,
-            links_data=links_data
-        )
-        return collection, created
-
-    def to_representation(self, instance):
-        name = instance.name
-        request = self.context.get("request")
-        representation = super().to_representation(instance)
-
-        # Add hardcoded value Collection to response to conform to stac spec v1.
-        representation['type'] = "Collection"
-
-        # Remove property on older versions
-        if not is_api_version_1(request):
-            del representation['type']
-
-        # Add auto links
-        # We use OrderedDict, although it is not necessary, because the default serializer/model for
-        # links already uses OrderedDict, this way we keep consistency between auto link and user
-        # link
-        representation['links'][:0] = get_relation_links(request, 'collection-detail', [name])
-        return representation
-
-    def validate(self, attrs):
-        validate_json_payload(self)
-        return attrs
-
-
 class ItemLinkSerializer(NonNullModelSerializer):
 
     class Meta:
@@ -633,6 +415,226 @@ class AssetsForItemSerializer(AssetBaseSerializer):
             'created',
             'updated'
         ]
+
+
+class CollectionSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
+
+    class Meta:
+        model = Collection
+        fields = [
+            'published',
+            'stac_version',
+            'stac_extensions',
+            'id',
+            'title',
+            'description',
+            'summaries',
+            'extent',
+            'providers',
+            'license',
+            'created',
+            'updated',
+            'links',
+            'crs',
+            'itemType',
+            'assets'
+        ]
+        # crs not in sample data, but in specs..
+        validators = []  # Remove a default "unique together" constraint.
+        # (see:
+        # https://www.django-rest-framework.org/api-guide/validators/#limitations-of-validators)
+
+    published = serializers.BooleanField(write_only=True, default=True)
+    # NOTE: when explicitely declaring fields, we need to add the validation as for the field
+    # in model !
+    id = serializers.CharField(
+        required=True, max_length=255, source="name", validators=[validate_name]
+    )
+    title = serializers.CharField(required=False, allow_blank=False, default=None, max_length=255)
+    # Also links are required in the spec, the main links (self, root, items) are automatically
+    # generated hence here it is set to required=False which allows to add optional links that
+    # are not generated
+    links = CollectionLinkSerializer(required=False, many=True)
+    providers = ProviderSerializer(required=False, many=True)
+
+    # read only fields
+    crs = serializers.SerializerMethodField(read_only=True)
+    created = serializers.DateTimeField(read_only=True)
+    updated = serializers.DateTimeField(read_only=True)
+    extent = serializers.SerializerMethodField(read_only=True)
+    summaries = serializers.SerializerMethodField(read_only=True)
+    stac_extensions = serializers.SerializerMethodField(read_only=True)
+    stac_version = serializers.SerializerMethodField(read_only=True)
+    itemType = serializers.ReadOnlyField(default="Feature")  # pylint: disable=invalid-name
+    assets = AssetsForItemSerializer(many=True, read_only=True)
+
+    def get_crs(self, obj):
+        return ["http://www.opengis.net/def/crs/OGC/1.3/CRS84"]
+
+    def get_stac_extensions(self, obj):
+        return []
+
+    def get_stac_version(self, obj):
+        return get_stac_version(self.context.get('request'))
+
+    def get_summaries(self, obj):
+        # Older versions of the api still use different name
+        request = self.context.get('request')
+        if not is_api_version_1(request):
+            return {
+                'proj:epsg': obj.summaries_proj_epsg or [],
+                'eo:gsd': obj.summaries_eo_gsd or [],
+                'geoadmin:variant': obj.summaries_geoadmin_variant or [],
+                'geoadmin:lang': obj.summaries_geoadmin_lang or []
+            }
+        return {
+            'proj:epsg': obj.summaries_proj_epsg or [],
+            'gsd': obj.summaries_eo_gsd or [],
+            'geoadmin:variant': obj.summaries_geoadmin_variant or [],
+            'geoadmin:lang': obj.summaries_geoadmin_lang or []
+        }
+
+    def get_extent(self, obj):
+        start = obj.extent_start_datetime
+        end = obj.extent_end_datetime
+        if start is not None:
+            start = isoformat(start)
+        if end is not None:
+            end = isoformat(end)
+
+        bbox = [0, 0, 0, 0]
+        if obj.extent_geometry is not None:
+            bbox = list(GEOSGeometry(obj.extent_geometry).extent)
+
+        return {
+            "spatial": {
+                "bbox": [bbox]
+            },
+            "temporal": {
+                "interval": [[start, end]]
+            },
+        }
+
+    def _update_or_create_providers(self, collection, providers_data):
+        provider_ids = []
+        for provider_data in providers_data:
+            provider, created = Provider.objects.get_or_create(
+                collection=collection,
+                name=provider_data["name"],
+                defaults={
+                    'description': provider_data.get('description', None),
+                    'roles': provider_data.get('roles', None),
+                    'url': provider_data.get('url', None)
+                }
+            )
+            logger.debug(
+                '%s provider %s',
+                'created' if created else 'updated',
+                provider.name,
+                extra={"provider": provider_data}
+            )
+            provider_ids.append(provider.id)
+            # the duplicate here is necessary to update the values in
+            # case the object already exists
+            provider.description = provider_data.get('description', provider.description)
+            provider.roles = provider_data.get('roles', provider.roles)
+            provider.url = provider_data.get('url', provider.url)
+            provider.full_clean()
+            provider.save()
+
+        # Delete providers that were not mentioned in the payload anymore
+        deleted = Provider.objects.filter(collection=collection).exclude(id__in=provider_ids
+                                                                        ).delete()
+        logger.info(
+            "deleted %d stale providers for collection %s",
+            deleted[0],
+            collection.name,
+            extra={"collection": collection.name}
+        )
+
+    def create(self, validated_data):
+        """
+        Create and return a new `Collection` instance, given the validated data.
+        """
+        providers_data = validated_data.pop('providers', [])
+        links_data = validated_data.pop('links', [])
+        collection = validate_uniqueness_and_create(Collection, validated_data)
+        self._update_or_create_providers(collection=collection, providers_data=providers_data)
+        update_or_create_links(
+            instance_type="collection",
+            model=CollectionLink,
+            instance=collection,
+            links_data=links_data
+        )
+        return collection
+
+    def update(self, instance, validated_data):
+        """
+        Update and return an existing `Collection` instance, given the validated data.
+        """
+        providers_data = validated_data.pop('providers', [])
+        links_data = validated_data.pop('links', [])
+        self._update_or_create_providers(collection=instance, providers_data=providers_data)
+        update_or_create_links(
+            instance_type="collection",
+            model=CollectionLink,
+            instance=instance,
+            links_data=links_data
+        )
+        return super().update(instance, validated_data)
+
+    def update_or_create(self, look_up, validated_data):
+        """
+        Update or create the collection object selected by kwargs and return the instance.
+
+        When no collection object matching the kwargs selection, a new object is created.
+
+        Args:
+            validated_data: dict
+                Copy of the validated_data to use for update
+            kwargs: dict
+                Object selection arguments (NOTE: the selection arguments must match a unique
+                object in DB otherwise an IntegrityError will be raised)
+
+        Returns: tuple
+            Collection instance and True if created otherwise false
+        """
+        providers_data = validated_data.pop('providers', [])
+        links_data = validated_data.pop('links', [])
+        collection, created = Collection.objects.update_or_create(
+            **look_up, defaults=validated_data
+            )
+        self._update_or_create_providers(collection=collection, providers_data=providers_data)
+        update_or_create_links(
+            instance_type="collection",
+            model=CollectionLink,
+            instance=collection,
+            links_data=links_data
+        )
+        return collection, created
+
+    def to_representation(self, instance):
+        name = instance.name
+        request = self.context.get("request")
+        representation = super().to_representation(instance)
+
+        # Add hardcoded value Collection to response to conform to stac spec v1.
+        representation['type'] = "Collection"
+
+        # Remove property on older versions
+        if not is_api_version_1(request):
+            del representation['type']
+
+        # Add auto links
+        # We use OrderedDict, although it is not necessary, because the default serializer/model for
+        # links already uses OrderedDict, this way we keep consistency between auto link and user
+        # link
+        representation['links'][:0] = get_relation_links(request, 'collection-detail', [name])
+        return representation
+
+    def validate(self, attrs):
+        validate_json_payload(self)
+        return attrs
 
 
 class ItemSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):

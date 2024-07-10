@@ -19,6 +19,7 @@ from stac_api.models import BBOX_CH
 from stac_api.models import Asset
 from stac_api.models import AssetUpload
 from stac_api.models import Collection
+from stac_api.models import CollectionAsset
 from stac_api.models import CollectionLink
 from stac_api.models import Item
 from stac_api.models import ItemLink
@@ -269,6 +270,106 @@ class ItemAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         obj.geometry = form.cleaned_data['text_geometry']
         return super().save_model(request, obj, form, change)
+
+
+@admin.register(CollectionAsset)
+class CollectionAssetAdmin(admin.ModelAdmin):
+
+    class Media:
+        js = ('js/admin/asset_help_search.js',)
+        css = {'all': ('style/hover.css',)}
+
+    autocomplete_fields = ['collection']
+    search_fields = ['name', 'collection__name']
+    readonly_fields = [
+        'collection_name',
+        'href',
+        'checksum_multihash',
+        'created',
+        'updated',
+        'etag',
+        'update_interval'
+    ]
+    list_display = ['name', 'collection_name', 'collection_published']
+    fieldsets = (
+        (None, {
+            'fields': ('name', 'collection', 'created', 'updated', 'etag')
+        }),
+        (
+            'File', {
+                'fields': ('file', 'media_type', 'href', 'checksum_multihash', 'update_interval')
+            }
+        ),
+        ('Description', {
+            'fields': ('title', 'description', 'roles')
+        }),
+        ('Attributes', {
+            'fields': ('eo_gsd', 'proj_epsg', 'geoadmin_variant', 'geoadmin_lang')
+        }),
+    )
+    list_filter = [AutocompleteFilterFactory('Collection name', 'collection', use_pk_exact=True)]
+
+    def get_search_results(self, request, queryset, search_term):
+        queryset, use_distinct = super().get_search_results(request, queryset, search_term)
+        if search_term.startswith('"') and search_term.endswith('"'):
+            search_terms = search_term.strip('"').split('/', maxsplit=2)
+            if len(search_terms) == 2:
+                collection_name = search_terms[0]
+                asset_name = search_terms[1]
+            else:
+                collection_name = None
+                asset_name = search_terms[0]
+            queryset |= self.model.objects.filter(name__exact=asset_name)
+            if collection_name:
+                queryset &= self.model.objects.filter(collection__name__exact=collection_name)
+        return queryset, use_distinct
+
+    def collection_published(self, instance):
+        return instance.collection.published
+
+    collection_published.admin_order_field = 'collection__published'
+    collection_published.short_description = 'Published'
+    collection_published.boolean = True
+
+    def collection_name(self, instance):
+        return instance.collection.name
+
+    collection_name.admin_order_field = 'collection__name'
+    collection_name.short_description = 'Collection Id'
+
+    def save_model(self, request, obj, form, change):
+        if obj.description == '':
+            # The admin interface with TextArea uses empty string instead
+            # of None. We use None for empty value, None value are stripped
+            # then in the output will empty string not.
+            obj.description = None
+
+        super().save_model(request, obj, form, change)
+
+    # Note: this is a bit hacky and only required to get access
+    # to the request object in 'href' method.
+    def get_form(self, request, obj=None, **kwargs):  # pylint: disable=arguments-differ
+        self.request = request  # pylint: disable=attribute-defined-outside-init
+        return super().get_form(request, obj, **kwargs)
+
+    def href(self, instance):
+        path = instance.file.name
+        return build_asset_href(self.request, path)
+
+    # We don't want to move the assets on S3
+    # That's why some fields like the name of the asset are set readonly here
+    # for update operations
+    def get_fieldsets(self, request, obj=None):
+        fields = super().get_fieldsets(request, obj)
+        if obj is None:
+            # In case a new Asset is added use the normal field 'collection' from model that have
+            # a help text fort the search functionality.
+            fields[0][1]['fields'] = ('name', 'collection', 'created', 'updated', 'etag')
+            return fields
+        # Otherwise if this is an update operation only display the read only fields
+        # without help text
+        fields[0][1]['fields'] = ('name', 'collection_name', 'created', 'updated', 'etag')
+        return fields
 
 
 @admin.register(Asset)
