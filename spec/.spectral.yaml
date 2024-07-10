@@ -1,0 +1,9 @@
+extends: '@ibm-cloud/openapi-ruleset'
+rules:
+  # We generally follow the naming conventions from the upstream spec
+  # which does not match the IBM API naming conventions. So we turn off
+  # these specific validation rules.
+  ibm-parameter-casing-convention: off
+  ibm-property-casing-convention: off
+  ibm-enum-casing-convention: off
+  ibm-path-segment-casing-convention: off
