@@ -1874,7 +1874,9 @@ components:
       example: 3dd6e1ead0760d278344394b0e7f017b5b6049e4fed3d2083b564fc268f07334
       pattern: ^[a-f0-9]+$
       title: sha256
-      format: digest
+      format: binary
+      minLength: 64
+      maxLength: 64
       type: string
     checksumMultihash:
       description: >-
