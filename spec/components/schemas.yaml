@@ -666,10 +666,8 @@ components:
           $ref: "#/components/schemas/itemGeometry"
         properties:
           $ref: "#/components/schemas/itemProperties"
-          readOnly: true
         stac_version:
           $ref: "#/components/schemas/stac_version"
-          readOnly: true
         type:
           $ref: "#/components/schemas/itemType"
       required:
@@ -1079,6 +1077,7 @@ components:
         - created
         - updated
       type: object
+      readOnly: true
     itemType:
       title: type
       description: The GeoJSON type
