@@ -20,7 +20,7 @@ OPENAPI = $(STATIC_BASE_DIR)/openapi.yaml
 OPENAPI_TRANSACTIONAL = $(STATIC_BASE_DIR)/openapitransactional.yaml
 
 YQ ?= docker run --rm -v ${PWD}:/workdir 974517877189.dkr.ecr.eu-central-1.amazonaws.com/external/openapi/yq:4.44.1
-OPENAPI_VALIDATOR ?= docker run --volume "$(PWD)":/data 974517877189.dkr.ecr.eu-central-1.amazonaws.com/external/openapi/openapi-validator:0.54.0
+OPENAPI_VALIDATOR ?= docker run --volume "$(PWD)":/data 974517877189.dkr.ecr.eu-central-1.amazonaws.com/external/openapi/openapi-validator:1.19.2
 
 all: help
 
