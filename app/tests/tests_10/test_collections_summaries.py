@@ -67,7 +67,7 @@ class CollectionsSummariesTestCase(StacBaseTransactionTestCase):
 
         self.assertListEqual(
             self.collection.summaries_eo_gsd, [1.2],
-            "Collection's summaries[eo:gsd] has not been correctly updated "
+            "Collection's summaries[gsd] has not been correctly updated "
             "after asset has been inserted."
         )
         self.assertListEqual(
@@ -90,7 +90,7 @@ class CollectionsSummariesTestCase(StacBaseTransactionTestCase):
 
         self.assertListEqual(
             self.collection.summaries_eo_gsd, [1.2, 2.1],
-            "Collection's summaries[eo:gsd] has not been correctly updated "
+            "Collection's summaries[gsd] has not been correctly updated "
             "after asset has been inserted."
         )
         self.assertListEqual(
@@ -123,7 +123,7 @@ class CollectionsSummariesTestCase(StacBaseTransactionTestCase):
 
         self.assertListEqual(
             self.collection.summaries_eo_gsd, [asset1.eo_gsd],
-            "Collection's summaries[eo:gsd] has not been correctly updated "
+            "Collection's summaries[gsd] has not been correctly updated "
             "after asset has been deleted."
         )
         self.assertListEqual(
@@ -147,7 +147,7 @@ class CollectionsSummariesTestCase(StacBaseTransactionTestCase):
 
         self.assertListEqual(
             self.collection.summaries_eo_gsd, [],
-            "Collection's summaries[eo:gsd] has not been correctly updated "
+            "Collection's summaries[gsd] has not been correctly updated "
             "after asset has been deleted."
         )
         self.assertListEqual(
@@ -167,7 +167,7 @@ class CollectionsSummariesTestCase(StacBaseTransactionTestCase):
         )
 
     def test_update_collection_summaries_empty_asset_delete(self):
-        # This test has been introduced due to a bug when removing an asset without eo:gsd,
+        # This test has been introduced due to a bug when removing an asset without gsd,
         # proj:epsg and geoadmin:variant from a collections with summaries
         self.assertListEqual(self.collection.summaries_proj_epsg, [])
         self.assertListEqual(self.collection.summaries_geoadmin_variant, [])
@@ -235,7 +235,7 @@ class CollectionsSummariesTestCase(StacBaseTransactionTestCase):
 
         self.assertListEqual(
             self.collection.summaries_eo_gsd, [2.1, 12.34],
-            "Collection's summaries[eo:gsd] has not been correctly "
+            "Collection's summaries[gsd] has not been correctly "
             "updated after asset has been inserted."
         )
         self.assertListEqual(

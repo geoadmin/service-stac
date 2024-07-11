@@ -67,7 +67,6 @@ INSTALLED_APPS = [
     #  Note: If you use TokenAuthentication in production you must ensure
     #  that your API is only available over https.
     'admin_auto_filters',
-    'solo.apps.SoloAppConfig',
     'storages',
     'whitenoise.runserver_nostatic',
     'django_prometheus',

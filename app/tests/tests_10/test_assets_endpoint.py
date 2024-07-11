@@ -165,10 +165,10 @@ class AssetsCreateEndpointTestCase(StacBaseTestCase):
         self.assertNotIn('geoadmin:lang', json_data)
         self.assertNotIn('geoadmin:variant', json_data)
         self.assertNotIn('proj:epsg', json_data)
-        self.assertNotIn('eo:gsd', json_data)
+        self.assertNotIn('gsd', json_data)
         self.assertNotIn('description', json_data)
         self.assertNotIn('title', json_data)
-        self.assertNotIn('checksum:multihash', json_data)
+        self.assertNotIn('file:checksum', json_data)
 
     def test_asset_upsert_create(self):
         collection = self.collection
@@ -205,12 +205,12 @@ class AssetsCreateEndpointTestCase(StacBaseTestCase):
         self.assertIn('geoadmin:lang', json_data)
         self.assertIn('geoadmin:variant', json_data)
         self.assertIn('proj:epsg', json_data)
-        self.assertIn('eo:gsd', json_data)
+        self.assertIn('gsd', json_data)
         self.assertIn('description', json_data)
         self.assertIn('title', json_data)
 
         # Checksum multihash is set by the AssetUpload later on
-        self.assertNotIn('checksum:multihash', json_data)
+        self.assertNotIn('file:checksum', json_data)
 
         # Check the data by reading it back
         response = self.client.get(response['Location'])
@@ -318,7 +318,7 @@ class AssetsCreateEndpointTestCase(StacBaseTestCase):
         self.invalid_request_wrapper(
             'asset-invalid',
             {
-                'eo:gsd': ['A valid number is required.'],
+                'gsd': ['A valid number is required.'],
                 'geoadmin:lang': ['"12" is not a valid choice.'],
                 'proj:epsg': ['A valid integer is required.'],
                 'type': ['Invalid media type "dummy"']
@@ -552,7 +552,7 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
         self.assertStatusCode(400, response)
         self.assertEqual({
             'created': ['Found read-only property in payload'],
-            'checksum:multihash': ['Found read-only property in payload']
+            'file:checksum': ['Found read-only property in payload']
         },
                          response.json()['description'],
                          msg='Unexpected error message')

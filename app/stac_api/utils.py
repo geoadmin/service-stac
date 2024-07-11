@@ -24,6 +24,7 @@ from django.urls import reverse
 logger = logging.getLogger(__name__)
 
 AVAILABLE_S3_BUCKETS = Enum('AVAILABLE_S3_BUCKETS', list(settings.AWS_SETTINGS.keys()))
+API_VERSION = Enum('API_VERSION', ['v09', 'v1'])
 
 
 def isoformat(date_time):
@@ -386,11 +387,20 @@ def geometry_from_bbox(bbox):
     return bbox_geometry
 
 
-def get_stac_version(request):
-    version = 'v1'
+def get_api_version(request) -> API_VERSION:
+    '''get the api version from the request, default to v1'''
     if request is not None and hasattr(request, 'resolver_match'):
-        version = request.resolver_match.namespace
-    return '0.9.0' if version == 'v0.9' else '1.0.0'
+        if request.resolver_match.namespace in ('v0.9', 'test_v0.9'):
+            return API_VERSION.v09
+    return API_VERSION.v1
+
+
+def get_stac_version(request):
+    return '0.9.0' if get_api_version(request) == API_VERSION.v09 else '1.0.0'
+
+
+def is_api_version_1(request):
+    return get_api_version(request) == API_VERSION.v1
 
 
 def get_url(request, view, args=None):

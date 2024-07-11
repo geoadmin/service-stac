@@ -35,13 +35,13 @@ class AssetUploadSerializationTestCase(StacBaseTestCase):
         with self.assertRaises(serializers.ValidationError, msg='no data'):
             serializer.is_valid(raise_exception=True)
 
-        serializer = AssetUploadSerializer(data={'checksum:multihash': ''})
-        with self.assertRaises(serializers.ValidationError, msg='checksum:multihash=""'):
+        serializer = AssetUploadSerializer(data={'file:checksum': ''})
+        with self.assertRaises(serializers.ValidationError, msg='file:checksum=""'):
             serializer.is_valid(raise_exception=True)
 
         serializer = AssetUploadSerializer(
             data={
-                'checksum:multihash': get_sha256_multihash(b'Test'), 'number_parts': 0
+                'file:checksum': get_sha256_multihash(b'Test'), 'number_parts': 0
             }
         )
         with self.assertRaises(serializers.ValidationError, msg='number_parts=0'):
@@ -49,7 +49,7 @@ class AssetUploadSerializationTestCase(StacBaseTestCase):
 
         serializer = AssetUploadSerializer(
             data={
-                'checksum:multihash': get_sha256_multihash(b'Test'), 'number_parts': 10001
+                'file:checksum': get_sha256_multihash(b'Test'), 'number_parts': 10001
             }
         )
         with self.assertRaises(serializers.ValidationError, msg='number_parts=10001'):
@@ -58,7 +58,7 @@ class AssetUploadSerializationTestCase(StacBaseTestCase):
         for value in ['', 12, 'gzipp', 'gzip,gzip', 'hello', 'gzip, hello']:
             serializer = AssetUploadSerializer(
                 data={
-                    'checksum:multihash': get_sha256_multihash(b'Test'),
+                    'file:checksum': get_sha256_multihash(b'Test'),
                     'number_parts': 1,
                     'md5_parts': [{
                         'part_number': 1, 'md5': 'yLLiDqX2OL7mcIMTjob60A=='
@@ -92,7 +92,7 @@ class AssetUploadSerializationTestCase(StacBaseTestCase):
         serializer = AssetUploadSerializer(asset_upload)
         data = serializer.data
         self.assertEqual(data['upload_id'], upload_id)
-        self.assertEqual(data['checksum:multihash'], checksum)
+        self.assertEqual(data['file:checksum'], checksum)
         self.assertEqual(data['status'], 'in-progress')
         self.assertEqual(data['number_parts'], 2)
         self.assertEqual(
@@ -112,7 +112,7 @@ class AssetUploadSerializationTestCase(StacBaseTestCase):
         checksum = get_sha256_multihash(b'Test')
         serializer = AssetUploadSerializer(
             data={
-                'checksum:multihash': checksum,
+                'file:checksum': checksum,
                 "number_parts": 2,
                 "md5_parts": [{
                     'part_number': 1, 'md5': 'yLLiDqX2OL7mcIMTjob60A=='
@@ -139,7 +139,7 @@ class AssetUploadSerializationTestCase(StacBaseTestCase):
         checksum = get_sha256_multihash(b'Test')
         serializer = AssetUploadSerializer(
             data={
-                'checksum:multihash': checksum,
+                'file:checksum': checksum,
                 "number_parts": 2,
                 "md5_parts": [{
                     'part_number': 1, 'md5': 'yLLiDqX2OL7mcIMTjob60A=='
@@ -151,7 +151,7 @@ class AssetUploadSerializationTestCase(StacBaseTestCase):
 
         serializer = AssetUploadSerializer(
             data={
-                'checksum:multihash': checksum,
+                'file:checksum': checksum,
                 "number_parts": 1,
                 "md5_parts": [{
                     'md5': 'yLLiDqX2OL7mcIMTjob60A=='
@@ -163,7 +163,7 @@ class AssetUploadSerializationTestCase(StacBaseTestCase):
 
         serializer = AssetUploadSerializer(
             data={
-                'checksum:multihash': checksum,
+                'file:checksum': checksum,
                 "number_parts": 1,
                 "md5_parts": {
                     'part_number': 1, 'md5': 'yLLiDqX2OL7mcIMTjob60A=='
@@ -175,7 +175,7 @@ class AssetUploadSerializationTestCase(StacBaseTestCase):
 
         serializer = AssetUploadSerializer(
             data={
-                'checksum:multihash': checksum,
+                'file:checksum': checksum,
                 "number_parts": 1,
                 "md5_parts": [{
                     'part_number': 'a', 'md5': 'yLLiDqX2OL7mcIMTjob60A=='
@@ -187,9 +187,7 @@ class AssetUploadSerializationTestCase(StacBaseTestCase):
 
         serializer = AssetUploadSerializer(
             data={
-                'checksum:multihash': checksum,
-                "number_parts": 1,
-                "md5_parts": [{
+                'file:checksum': checksum, "number_parts": 1, "md5_parts": [{
                     'part_number': 1
                 }]
             }
@@ -199,7 +197,7 @@ class AssetUploadSerializationTestCase(StacBaseTestCase):
 
         serializer = AssetUploadSerializer(
             data={
-                'checksum:multihash': checksum,
+                'file:checksum': checksum,
                 "number_parts": 1,
                 "md5_parts": [{
                     'part_number': 2, 'md5': 'yLLiDqX2OL7mcIMTjob60A=='
@@ -211,7 +209,7 @@ class AssetUploadSerializationTestCase(StacBaseTestCase):
 
         serializer = AssetUploadSerializer(
             data={
-                'checksum:multihash': checksum,
+                'file:checksum': checksum,
                 "number_parts": 1,
                 "md5_parts": [{
                     'part_number': 0, 'md5': 'yLLiDqX2OL7mcIMTjob60A=='
@@ -223,7 +221,7 @@ class AssetUploadSerializationTestCase(StacBaseTestCase):
 
         serializer = AssetUploadSerializer(
             data={
-                'checksum:multihash': checksum,
+                'file:checksum': checksum,
                 "number_parts": 1,
                 "md5_parts": [{
                     'part_number': 1, 'md5': 'yLLiDqX2OL7mcIMTjob60A=='
@@ -237,7 +235,7 @@ class AssetUploadSerializationTestCase(StacBaseTestCase):
 
         serializer = AssetUploadSerializer(
             data={
-                'checksum:multihash': checksum,
+                'file:checksum': checksum,
                 "number_parts": 2,
                 "md5_parts": [{
                     'part_number': 1, 'md5': 'yLLiDqX2OL7mcIMTjob60A=='
@@ -251,7 +249,7 @@ class AssetUploadSerializationTestCase(StacBaseTestCase):
 
         serializer = AssetUploadSerializer(
             data={
-                'checksum:multihash': checksum,
+                'file:checksum': checksum,
                 "number_parts": 2,
                 "md5_parts": [{
                     'part_number': 1, 'md5': 'yLLiDqX2OL7mcIMTjob60A=='
@@ -265,7 +263,7 @@ class AssetUploadSerializationTestCase(StacBaseTestCase):
 
         serializer = AssetUploadSerializer(
             data={
-                'checksum:multihash': checksum,
+                'file:checksum': checksum,
                 "number_parts": 2,
                 "md5_parts": ['yLLiDqX2OL7mcIMTjob60A==', 'yLLiDqX2OL7mcIMTjob60A==']
             }
@@ -275,7 +273,7 @@ class AssetUploadSerializationTestCase(StacBaseTestCase):
 
         serializer = AssetUploadSerializer(
             data={
-                'checksum:multihash': checksum,
+                'file:checksum': checksum,
                 "number_parts": 1,
                 "md5_parts": [{
                     'part_number': 1, 'md5': ''
@@ -287,7 +285,7 @@ class AssetUploadSerializationTestCase(StacBaseTestCase):
 
         serializer = AssetUploadSerializer(
             data={
-                'checksum:multihash': checksum,
+                'file:checksum': checksum,
                 "number_parts": 1,
                 "md5_parts": [{
                     'part_number': 1, 'md5': 2
@@ -367,7 +365,7 @@ class TestAssetUploadDeserializationContentEncoding(StacBaseTestCase):
 
     def get_asset_upload_default(self):
         return {
-            'checksum:multihash': get_sha256_multihash(b'Test'),
+            'file:checksum': get_sha256_multihash(b'Test'),
             "number_parts": 1,
             "md5_parts": [{
                 'part_number': 1, 'md5': 'yLLiDqX2OL7mcIMTjob60A=='

@@ -687,7 +687,7 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
         with self.settings(DEBUG_PROPAGATE_API_EXCEPTIONS=True), disableLogger('stac_api.apps'):
             response = self.client.put(
                 reverse(
-                    'test-asset-detail-http-500',
+                    'test_v0.9:test-asset-detail-http-500',
                     args=[self.collection['name'], self.item['name'], sample['name']]
                 ),
                 data=sample.get_json('put'),
@@ -718,7 +718,7 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
             # console therefore disable it.
             response = self.client.put(
                 reverse(
-                    'test-asset-detail-http-500',
+                    'test_v0.9:test-asset-detail-http-500',
                     args=[self.collection['name'], self.item['name'], sample['name']]
                 ),
                 data=sample.get_json('put'),

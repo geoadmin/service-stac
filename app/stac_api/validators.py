@@ -253,7 +253,7 @@ def validate_geoadmin_variant(variant):
 
 
 def validate_eo_gsd(value):
-    '''Validate eo:gsd
+    '''Validate gsd
 
     Args:
         value: float
@@ -262,9 +262,9 @@ def validate_eo_gsd(value):
         ValidationError: When the value is not valid
     '''
     if value <= 0:
-        logger.error("Invalid eo:gsd property \"%f\", value must be > 0", value)
+        logger.error("Invalid gsd property \"%f\", value must be > 0", value)
         raise ValidationError(
-            _('Invalid eo:gsd "%(eo_gsd)f", '
+            _('Invalid gsd "%(eo_gsd)f", '
               'value must be a positive number bigger than 0'),
             params={'eo_gsd': value},
             code="invalid"

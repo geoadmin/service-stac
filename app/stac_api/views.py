@@ -25,7 +25,6 @@ from stac_api.exceptions import UploadNotInProgressError
 from stac_api.models import Asset
 from stac_api.models import AssetUpload
 from stac_api.models import Collection
-from stac_api.models import ConformancePage
 from stac_api.models import Item
 from stac_api.models import LandingPage
 from stac_api.pagination import ExtApiPagination
@@ -41,6 +40,7 @@ from stac_api.serializers import LandingPageSerializer
 from stac_api.serializers_utils import get_relation_links
 from stac_api.utils import get_asset_path
 from stac_api.utils import harmonize_post_get_for_search
+from stac_api.utils import is_api_version_1
 from stac_api.utils import select_s3_bucket
 from stac_api.utils import utc_aware
 from stac_api.validators_serializer import ValidateSearchRequest
@@ -153,16 +153,20 @@ class LandingPageDetail(generics.RetrieveAPIView):
     queryset = LandingPage.objects.all()
 
     def get_object(self):
-        return LandingPage.get_solo()
+        if not is_api_version_1(self.request):
+            return LandingPage.objects.get(version='v0.9')
+        return LandingPage.objects.get(version='v1')
 
 
 class ConformancePageDetail(generics.RetrieveAPIView):
     name = 'conformance'  # this name must match the name in urls.py
     serializer_class = ConformancePageSerializer
-    queryset = ConformancePage.objects.all()
+    queryset = LandingPage.objects.all()
 
     def get_object(self):
-        return ConformancePage.get_solo()
+        if not is_api_version_1(self.request):
+            return LandingPage.objects.get(version='v0.9')
+        return LandingPage.objects.get(version='v1')
 
 
 class SearchList(generics.GenericAPIView, mixins.ListModelMixin):

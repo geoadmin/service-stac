@@ -173,6 +173,12 @@ components:
                 title: Search across feature collections
             stac_version: 0.9.0
             title: data.geo.admin.ch
+            type: Catalog
+            conformsTo:
+              - https://api.stacspec.org/v1.0.0/core
+              - http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/core
+              - http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/oas30
+              - http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/geojson
           schema:
             $ref: "./schemas.yaml#/components/schemas/landingPage"
       description: >-

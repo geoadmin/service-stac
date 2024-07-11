@@ -19,8 +19,6 @@ from django.db.models import Q
 from django.db.models.deletion import ProtectedError
 from django.utils.translation import gettext_lazy as _
 
-from solo.models import SingletonModel
-
 from stac_api.managers import AssetUploadManager
 from stac_api.managers import ItemManager
 from stac_api.pgtriggers import generate_child_triggers
@@ -128,6 +126,7 @@ def get_conformance_default_links():
         a list of urls
     '''
     default_links = (
+        'https://api.stacspec.org/v1.0.0/core',
         'http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/core',
         'http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/oas30',
         'http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/geojson'
@@ -158,18 +157,27 @@ class Link(models.Model):
         return f'{self.rel}: {self.href}'
 
 
-class LandingPage(SingletonModel):
+class LandingPage(models.Model):
     # using "name" instead of "id", as "id" has a default meaning in django
     name = models.CharField(
-        'id', unique=True, max_length=255, validators=[validate_name], default='ch'
+        'id', unique=False, max_length=255, validators=[validate_name], default='ch'
     )
     title = models.CharField(max_length=255, default='data.geo.admin.ch')
     description = models.TextField(
         default='Data Catalog of the Swiss Federal Spatial Data Infrastructure'
     )
+    version = models.CharField(max_length=255, default='v1')
+
+    conformsTo = ArrayField(  # pylint: disable=invalid-name
+        models.URLField(
+            blank=False,
+            null=False
+        ),
+        default=get_conformance_default_links,
+        help_text=_("Comma-separated list of URLs for the value conformsTo"))
 
     def __str__(self):
-        return "STAC Landing Page"
+        return f'STAC Landing Page {self.version}'
 
     class Meta:
         verbose_name = "STAC Landing Page"
@@ -183,22 +191,6 @@ class LandingPageLink(Link):
     class Meta:
         unique_together = (('rel', 'landing_page'))
         ordering = ['pk']
-
-
-class ConformancePage(SingletonModel):
-    conformsTo = ArrayField(  # pylint: disable=invalid-name
-        models.URLField(
-            blank=False,
-            null=False
-        ),
-        default=get_conformance_default_links,
-        help_text=_("Comma-separated list of URLs for the value conformsTo"))
-
-    def __str__(self):
-        return "Conformance Page"
-
-    class Meta:
-        verbose_name = "STAC Conformance Page"
 
 
 class Provider(models.Model):
@@ -478,7 +470,7 @@ def upload_asset_to_path_hook(instance, filename=None):
     # update_interval
     instance.file.storage.update_interval = instance.update_interval
     logger.debug(
-        'Set uploaded file %s multihash %s to checksum:multihash; computation done in %.3fs',
+        'Set uploaded file %s multihash %s to file:checksum; computation done in %.3fs',
         filename,
         mhash,
         time.time() - start,
@@ -565,11 +557,15 @@ class Asset(models.Model):
     def filename(self):
         return os.path.basename(self.file.name)
 
+    # From v1 on the json representation of this field changed from "checksum:multihash" to
+    # "file:checksum". The two names may be used interchangeably for a now.
     checksum_multihash = models.CharField(
         editable=False, max_length=255, blank=True, null=True, default=None
     )
     # here we need to set blank=True otherwise the field is as required in the admin interface
     description = models.TextField(blank=True, null=True, default=None)
+    # From v1 on the json representation of this field changed from "eo:gsd" to "gsd". The two names
+    # may be used interchangeably for a now.
     eo_gsd = models.FloatField(null=True, blank=True, validators=[validate_eo_gsd])
 
     class Language(models.TextChoices):
@@ -687,6 +683,8 @@ class AssetUpload(models.Model):
     urls = models.JSONField(default=list, encoder=DjangoJSONEncoder, blank=True)
     created = models.DateTimeField(auto_now_add=True)
     ended = models.DateTimeField(blank=True, null=True, default=None)
+    # From v1 on the json representation of this field changed from "checksum:multihash" to
+    # "file:checksum". The two names may be used interchangeably for a now.
     checksum_multihash = models.CharField(max_length=255, blank=False, null=False)
 
     # NOTE: hidden ETag field, this field is automatically updated by stac_api.pgtriggers
@@ -710,13 +708,13 @@ class AssetUpload(models.Model):
     objects = AssetUploadManager()
 
     def update_asset_from_upload(self):
-        '''Updating the asset's checksum:multihash and update_interval from the upload
+        '''Updating the asset's file:checksum and update_interval from the upload
 
-        When the upload is completed, the new checksum:multihash and update interval from the upload
+        When the upload is completed, the new file:checksum and update interval from the upload
         is set to its asset parent.
         '''
         logger.debug(
-            'Updating asset %s checksum:multihash from %s to %s and update_interval from %d to %d '
+            'Updating asset %s file:checksum from %s to %s and update_interval from %d to %d '
             'due to upload complete',
             self.asset.name,
             self.asset.checksum_multihash,

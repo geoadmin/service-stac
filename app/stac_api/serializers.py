@@ -15,7 +15,6 @@ from stac_api.models import Asset
 from stac_api.models import AssetUpload
 from stac_api.models import Collection
 from stac_api.models import CollectionLink
-from stac_api.models import ConformancePage
 from stac_api.models import Item
 from stac_api.models import ItemLink
 from stac_api.models import LandingPage
@@ -30,6 +29,7 @@ from stac_api.utils import build_asset_href
 from stac_api.utils import get_browser_url
 from stac_api.utils import get_stac_version
 from stac_api.utils import get_url
+from stac_api.utils import is_api_version_1
 from stac_api.utils import isoformat
 from stac_api.validators import normalize_and_validate_media_type
 from stac_api.validators import validate_asset_name
@@ -56,7 +56,7 @@ class LandingPageLinkSerializer(serializers.ModelSerializer):
 class ConformancePageSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = ConformancePage
+        model = LandingPage
         fields = ['conformsTo']
 
 
@@ -64,7 +64,7 @@ class LandingPageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = LandingPage
-        fields = ['id', 'title', 'description', 'links', 'stac_version']
+        fields = ['id', 'title', 'description', 'links', 'stac_version', 'conformsTo']
 
     # NOTE: when explicitely declaring fields, we need to add the validation as for the field
     # in model !
@@ -84,6 +84,13 @@ class LandingPageSerializer(serializers.ModelSerializer):
         representation = super().to_representation(instance)
         request = self.context.get("request")
 
+        # Add hardcoded value Catalog to response to conform to stac spec v1.
+        representation['type'] = "Catalog"
+
+        # Remove property on older versions
+        if not is_api_version_1(request):
+            del representation['type']
+
         version = request.resolver_match.namespace
         spec_base = f'{urlparse(settings.STATIC_SPEC_URL).path.strip(' / ')}/{version}'
         # Add auto links
@@ -91,6 +98,11 @@ class LandingPageSerializer(serializers.ModelSerializer):
         # links already uses OrderedDict, this way we keep consistency between auto link and user
         # link
         representation['links'][:0] = [
+            OrderedDict([
+                ('rel', 'root'),
+                ('href', get_url(request, 'landing-page')),
+                ("type", "application/json"),
+            ]),
             OrderedDict([
                 ('rel', 'self'),
                 ('href', get_url(request, 'landing-page')),
@@ -224,9 +236,18 @@ class CollectionSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         return get_stac_version(self.context.get('request'))
 
     def get_summaries(self, obj):
+        # Older versions of the api still use different name
+        request = self.context.get('request')
+        if not is_api_version_1(request):
+            return {
+                'proj:epsg': obj.summaries_proj_epsg or [],
+                'eo:gsd': obj.summaries_eo_gsd or [],
+                'geoadmin:variant': obj.summaries_geoadmin_variant or [],
+                'geoadmin:lang': obj.summaries_geoadmin_lang or []
+            }
         return {
             'proj:epsg': obj.summaries_proj_epsg or [],
-            'eo:gsd': obj.summaries_eo_gsd or [],
+            'gsd': obj.summaries_eo_gsd or [],
             'geoadmin:variant': obj.summaries_geoadmin_variant or [],
             'geoadmin:lang': obj.summaries_geoadmin_lang or []
         }
@@ -239,7 +260,7 @@ class CollectionSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         if end is not None:
             end = isoformat(end)
 
-        bbox = []
+        bbox = [0, 0, 0, 0]
         if obj.extent_geometry is not None:
             bbox = list(GEOSGeometry(obj.extent_geometry).extent)
 
@@ -354,6 +375,14 @@ class CollectionSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         name = instance.name
         request = self.context.get("request")
         representation = super().to_representation(instance)
+
+        # Add hardcoded value Collection to response to conform to stac spec v1.
+        representation['type'] = "Collection"
+
+        # Remove property on older versions
+        if not is_api_version_1(request):
+            del representation['type']
+
         # Add auto links
         # We use OrderedDict, although it is not necessary, because the default serializer/model for
         # links already uses OrderedDict, this way we keep consistency between auto link and user
@@ -540,11 +569,18 @@ class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
     def get_fields(self):
         fields = super().get_fields()
         # This is a hack to allow fields with special characters
-        fields['eo:gsd'] = fields.pop('eo_gsd')
+        fields['gsd'] = fields.pop('eo_gsd')
         fields['proj:epsg'] = fields.pop('proj_epsg')
         fields['geoadmin:variant'] = fields.pop('geoadmin_variant')
         fields['geoadmin:lang'] = fields.pop('geoadmin_lang')
-        fields['checksum:multihash'] = fields.pop('checksum_multihash')
+        fields['file:checksum'] = fields.pop('checksum_multihash')
+
+        # Older versions of the api still use different name
+        request = self.context.get('request')
+        if not is_api_version_1(request):
+            fields['checksum:multihash'] = fields.pop('file:checksum')
+            fields['eo:gsd'] = fields.pop('gsd')
+
         return fields
 
 
@@ -813,7 +849,12 @@ class AssetUploadSerializer(NonNullModelSerializer):
     def get_fields(self):
         fields = super().get_fields()
         # This is a hack to allow fields with special characters
-        fields['checksum:multihash'] = fields.pop('checksum_multihash')
+        fields['file:checksum'] = fields.pop('checksum_multihash')
+
+        # Older versions of the api still use different name
+        request = self.context.get('request')
+        if not is_api_version_1(request):
+            fields['checksum:multihash'] = fields.pop('file:checksum')
         return fields
 
 

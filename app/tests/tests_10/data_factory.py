@@ -33,7 +33,7 @@ base with the `sample` argument.
 NOTE: the sample attribute should not have any special characters and should be the same as the
 Django model fields name. Each sample class as a `key_mapping` attribute that maps the sample
 attribute name from model to JSON: for example the Asset `name` attribute is mapped into `id`,
-the Asset `checksum_multihash` is mapped into `checksum:multihash`, etc.
+the Asset `checksum_multihash` is mapped into `file:checksum`, etc.
 
 You can also creates multiple samples at a time:
 
@@ -698,12 +698,12 @@ class AssetSample(SampleData):
     samples_dict = asset_samples
     key_mapping = {
         'name': 'id',
-        'eo_gsd': 'eo:gsd',
+        'eo_gsd': 'gsd',
         'geoadmin_variant': 'geoadmin:variant',
         'geoadmin_lang': 'geoadmin:lang',
         'proj_epsg': 'proj:epsg',
         'media_type': 'type',
-        'checksum_multihash': 'checksum:multihash',
+        'checksum_multihash': 'file:checksum',
         'file': 'href'
     }
     optional_fields = [
@@ -715,7 +715,7 @@ class AssetSample(SampleData):
         'proj_epsg',
         'checksum_multihash'
     ]
-    read_only_fields = ['created', 'updated', 'href', 'checksum:multihash']
+    read_only_fields = ['created', 'updated', 'href', 'file:checksum']
 
     def __init__(self, item, sample='asset-1', name=None, required_only=False, **kwargs):
         '''Create a item sample data

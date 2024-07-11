@@ -432,6 +432,12 @@ components:
                 title: Search across feature collections
             stac_version: 0.9.0
             title: data.geo.admin.ch
+            type: Catalog
+            conformsTo:
+              - https://api.stacspec.org/v1.0.0/core
+              - http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/core
+              - http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/oas30
+              - http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/geojson
           schema:
             $ref: "#/components/schemas/landingPage"
       description: >-
@@ -579,7 +585,7 @@ components:
           $ref: "#/components/schemas/description"
         href:
           $ref: "#/components/schemas/href"
-        checksum:multihash:
+        file:checksum:
           $ref: "#/components/schemas/checksumMultihashReadOnly"
         geoadmin:variant:
           $ref: "#/components/schemas/geoadminVariant"
@@ -724,6 +730,9 @@ components:
             Indicator about the type of the items in the collection (the default value is 'Feature').
           type: string
           readOnly: true
+        type:
+          example: Collection
+          type: string
         license:
           $ref: "#/components/schemas/license"
         providers:
@@ -786,6 +795,7 @@ components:
         - extent
         - created
         - updated
+        - type
       type: object
     collection:
       allOf:
@@ -1178,7 +1188,7 @@ components:
       readOnly: true
       example:
         smr50-263-2016-2056-kgrs-2.5.tiff:
-          checksum:multihash: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
+          file:checksum: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
           created: "2020-07-14T12:30:00Z"
           eo:gsd: 2.5
           geoadmin:variant: kgrs
@@ -1187,7 +1197,7 @@ components:
           type: image/tiff; application=geotiff
           updated: "2020-07-14T12:30:00Z"
         smr50-263-2016-2056-komb-2.5.tiff:
-          checksum:multihash: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
+          file:checksum: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
           created: "2020-07-14T12:30:00Z"
           eo:gsd: 2.5
           geoadmin:variant: komb
@@ -1196,7 +1206,7 @@ components:
           type: image/tiff; application=geotiff
           updated: "2020-07-14T12:30:00Z"
         smr50-263-2016-2056-krel-2.5.tiff:
-          checksum:multihash: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
+          file:checksum: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
           created: "2020-07-14T12:30:00Z"
           eo:gsd: 2.5
           geoadmin:variant: krel
@@ -1519,11 +1529,20 @@ components:
         title:
           example: Buildings in Bonn
           type: string
+        type:
+          example: Catalog
+          type: string
+        conformsTo:
+          items:
+            type: string
+          type: array
       required:
         - links
         - stac_version
         - id
         - description
+        - type
+        - conformsTo
       type: object
     license:
       description: >-

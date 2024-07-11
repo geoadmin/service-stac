@@ -148,7 +148,7 @@ class AssetUploadBaseTest(StacBaseTestCase, S3TestMixin):
         self.assertIn('upload_id', json_response)
         self.assertIn('status', json_response)
         self.assertIn('number_parts', json_response)
-        self.assertIn('checksum:multihash', json_response)
+        self.assertIn('file:checksum', json_response)
         self.assertIn('urls', json_response)
         self.assertEqual(json_response['status'], 'in-progress')
 
@@ -158,7 +158,7 @@ class AssetUploadBaseTest(StacBaseTestCase, S3TestMixin):
         self.assertIn('upload_id', json_response)
         self.assertIn('status', json_response)
         self.assertIn('number_parts', json_response)
-        self.assertIn('checksum:multihash', json_response)
+        self.assertIn('file:checksum', json_response)
         self.assertIn('completed', json_response)
         self.assertEqual(json_response['status'], 'completed')
         self.assertGreater(
@@ -171,7 +171,7 @@ class AssetUploadBaseTest(StacBaseTestCase, S3TestMixin):
         self.assertIn('upload_id', json_response)
         self.assertIn('status', json_response)
         self.assertIn('number_parts', json_response)
-        self.assertIn('checksum:multihash', json_response)
+        self.assertIn('file:checksum', json_response)
         self.assertIn('aborted', json_response)
         self.assertEqual(json_response['status'], 'aborted')
         self.assertGreater(
@@ -192,7 +192,7 @@ class AssetUploadCreateEndpointTestCase(AssetUploadBaseTest):
             self.get_create_multipart_upload_path(),
             data={
                 'number_parts': number_parts,
-                'checksum:multihash': checksum_multihash,
+                'file:checksum': checksum_multihash,
                 'md5_parts': md5_parts
             },
             content_type="application/json"
@@ -237,7 +237,7 @@ class AssetUploadCreateEndpointTestCase(AssetUploadBaseTest):
             self.get_create_multipart_upload_path(),
             data={
                 'number_parts': number_parts,
-                'checksum:multihash': checksum_multihash,
+                'file:checksum': checksum_multihash,
                 'md5_parts': md5_parts
             },
             content_type="application/json"
@@ -252,7 +252,7 @@ class AssetUploadCreateEndpointTestCase(AssetUploadBaseTest):
             self.get_create_multipart_upload_path(),
             data={
                 'number_parts': number_parts,
-                'checksum:multihash': checksum_multihash,
+                'file:checksum': checksum_multihash,
                 'md5_parts': md5_parts
             },
             content_type="application/json"
@@ -319,7 +319,7 @@ class AssetUploadCreateRaceConditionTest(StacBaseTransactionTestCase, S3TestMixi
                 path,
                 data={
                     'number_parts': number_parts,
-                    'checksum:multihash': checksum_multihash,
+                    'file:checksum': checksum_multihash,
                     'md5_parts': md5_parts
                 },
                 content_type="application/json"
@@ -353,7 +353,7 @@ class AssetUpload1PartEndpointTestCase(AssetUploadBaseTest):
             data={
                 'number_parts': number_parts,
                 'md5_parts': md5_parts,
-                'checksum:multihash': checksum_multihash,
+                'file:checksum': checksum_multihash,
                 'update_interval': update_interval
             },
             content_type="application/json"
@@ -387,7 +387,7 @@ class AssetUpload1PartEndpointTestCase(AssetUploadBaseTest):
             data={
                 'number_parts': number_parts,
                 'md5_parts': md5_parts,
-                'checksum:multihash': checksum_multihash
+                'file:checksum': checksum_multihash
             },
             content_type="application/json"
         )
@@ -435,7 +435,7 @@ class AssetUpload1PartEndpointTestCase(AssetUploadBaseTest):
             data={
                 'number_parts': number_parts,
                 'md5_parts': md5_parts,
-                'checksum:multihash': checksum_multihash
+                'file:checksum': checksum_multihash
             },
             content_type="application/json"
         )
@@ -472,7 +472,7 @@ class AssetUpload1PartEndpointTestCase(AssetUploadBaseTest):
             data={
                 'number_parts': number_parts,
                 'md5_parts': md5_parts,
-                'checksum:multihash': checksum_multihash,
+                'file:checksum': checksum_multihash,
                 'content_encoding': 'gzip'
             },
             content_type="application/json"
@@ -516,7 +516,7 @@ class AssetUpload2PartEndpointTestCase(AssetUploadBaseTest):
             data={
                 'number_parts': number_parts,
                 'md5_parts': md5_parts,
-                'checksum:multihash': checksum_multihash
+                'file:checksum': checksum_multihash
             },
             content_type="application/json"
         )
@@ -553,7 +553,7 @@ class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
             data={
                 'number_parts': number_parts,
                 'md5_parts': md5_parts,
-                'checksum:multihash': checksum_multihash,
+                'file:checksum': checksum_multihash,
                 'content_encoding': 'hello world'
             },
             content_type="application/json"
@@ -574,7 +574,7 @@ class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
         response = self.client.post(
             self.get_create_multipart_upload_path(),
             data={
-                'number_parts': number_parts, 'checksum:multihash': checksum_multihash
+                'number_parts': number_parts, 'file:checksum': checksum_multihash
             },
             content_type="application/json"
         )
@@ -591,7 +591,7 @@ class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
         response = self.client.post(
             self.get_create_multipart_upload_path(),
             data={
-                'number_parts': number_parts, 'checksum:multihash': checksum_multihash
+                'number_parts': number_parts, 'file:checksum': checksum_multihash
             },
             content_type="application/json"
         )
@@ -606,7 +606,7 @@ class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
         self.assertEqual(
             response.json()['description'],
             {
-                'checksum:multihash': ['This field is required.'],
+                'file:checksum': ['This field is required.'],
                 'number_parts': ['This field is required.'],
                 'md5_parts': ['This field is required.']
             }
@@ -618,7 +618,7 @@ class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
             self.get_create_multipart_upload_path(),
             data={
                 'number_parts': 0,
-                "checksum:multihash": 'abcdef',
+                "file:checksum": 'abcdef',
                 "md5_parts": [{
                     "part_number": '0', "md5": 'abcdef'
                 }]
@@ -629,7 +629,7 @@ class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
         self.assertEqual(
             response.json()['description'],
             {
-                'checksum:multihash': ['Invalid multihash value; Invalid varint provided'],
+                'file:checksum': ['Invalid multihash value; Invalid varint provided'],
                 'number_parts': ['Ensure this value is greater than or equal to 1.']
             }
         )
@@ -642,7 +642,7 @@ class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
         response = self.client.post(
             self.get_create_multipart_upload_path(),
             data={
-                'number_parts': 101, "checksum:multihash": 'abcdef', 'md5_parts': md5_parts
+                'number_parts': 101, "file:checksum": 'abcdef', 'md5_parts': md5_parts
             },
             content_type="application/json"
         )
@@ -650,7 +650,7 @@ class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
         self.assertEqual(
             response.json()['description'],
             {
-                'checksum:multihash': ['Invalid multihash value; Invalid varint provided'],
+                'file:checksum': ['Invalid multihash value; Invalid varint provided'],
                 'number_parts': ['Ensure this value is less than or equal to 100.']
             }
         )
@@ -662,7 +662,7 @@ class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
             data={
                 'number_parts': 2,
                 "md5_parts": [],
-                "checksum:multihash":
+                "file:checksum":
                     '12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC'
             },
             content_type="application/json"
@@ -691,7 +691,7 @@ class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
                 }, {
                     'part_number': 2, 'md5': 'asdf'
                 }],
-                "checksum:multihash":
+                "file:checksum":
                     '12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC'
             },
             content_type="application/json"
@@ -720,7 +720,7 @@ class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
                 }, {
                     'part_number': 3, 'md5': 'asdf'
                 }],
-                "checksum:multihash":
+                "file:checksum":
                     '12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC'
             },
             content_type="application/json"
@@ -750,7 +750,7 @@ class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
                         'md5': 'asdf'
                     },
                 ],
-                "checksum:multihash":
+                "file:checksum":
                     '12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC'
             },
             content_type="application/json"
@@ -773,7 +773,7 @@ class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
             self.get_create_multipart_upload_path(),
             data={
                 'number_parts': number_parts,
-                'checksum:multihash': checksum_multihash,
+                'file:checksum': checksum_multihash,
                 'md5_parts': md5_parts
             },
             content_type="application/json"
@@ -812,7 +812,7 @@ class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
             self.get_create_multipart_upload_path(),
             data={
                 'number_parts': number_parts,
-                'checksum:multihash': checksum_multihash,
+                'file:checksum': checksum_multihash,
                 'md5_parts': md5_parts
             },
             content_type="application/json"
@@ -855,7 +855,7 @@ class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
             self.get_create_multipart_upload_path(),
             data={
                 'number_parts': number_parts,
-                'checksum:multihash': checksum_multihash,
+                'file:checksum': checksum_multihash,
                 'md5_parts': md5_parts
             },
             content_type="application/json"
@@ -887,7 +887,7 @@ class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
             self.get_create_multipart_upload_path(),
             data={
                 'number_parts': number_parts,
-                'checksum:multihash': checksum_multihash,
+                'file:checksum': checksum_multihash,
                 'md5_parts': md5_parts
             },
             content_type="application/json"
@@ -918,7 +918,7 @@ class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
             self.get_create_multipart_upload_path(),
             data={
                 'number_parts': number_parts,
-                'checksum:multihash': checksum_multihash,
+                'file:checksum': checksum_multihash,
                 'md5_parts': md5_parts
             },
             content_type="application/json"
@@ -978,7 +978,7 @@ class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
             self.get_create_multipart_upload_path(),
             data={
                 'number_parts': number_parts,
-                'checksum:multihash': checksum_multihash,
+                'file:checksum': checksum_multihash,
                 'md5_parts': md5_parts
             },
             content_type="application/json"
@@ -1019,7 +1019,7 @@ class AssetUploadDeleteInProgressEndpointTestCase(AssetUploadBaseTest):
             self.get_create_multipart_upload_path(),
             data={
                 'number_parts': number_parts,
-                'checksum:multihash': checksum_multihash,
+                'file:checksum': checksum_multihash,
                 'md5_parts': md5_parts
             },
             content_type="application/json"
@@ -1110,7 +1110,7 @@ class GetAssetUploadsEndpointTestCase(AssetUploadBaseTest):
                 'number_parts',
                 'update_interval',
                 'content_encoding',
-                'checksum:multihash'
+                'file:checksum'
             ],
             list(json_data['uploads'][0].keys()),
         )
@@ -1123,7 +1123,7 @@ class GetAssetUploadsEndpointTestCase(AssetUploadBaseTest):
                 'number_parts',
                 'update_interval',
                 'content_encoding',
-                'checksum:multihash'
+                'file:checksum'
             ],
             list(json_data['uploads'][4].keys()),
         )
@@ -1135,7 +1135,7 @@ class GetAssetUploadsEndpointTestCase(AssetUploadBaseTest):
                 'number_parts',
                 'update_interval',
                 'content_encoding',
-                'checksum:multihash'
+                'file:checksum'
             ],
             list(json_data['uploads'][7].keys()),
         )
@@ -1167,7 +1167,7 @@ class GetAssetUploadsEndpointTestCase(AssetUploadBaseTest):
                 'number_parts',
                 'update_interval',
                 'content_encoding',
-                'checksum:multihash'
+                'file:checksum'
             ],
             list(json_data['uploads'][0].keys()),
         )
@@ -1203,7 +1203,7 @@ class AssetUploadListPartsEndpointTestCase(AssetUploadBaseTest):
             self.get_create_multipart_upload_path(),
             data={
                 'number_parts': number_parts,
-                'checksum:multihash': checksum_multihash,
+                'file:checksum': checksum_multihash,
                 'md5_parts': md5_parts
             },
             content_type="application/json"

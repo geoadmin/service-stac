@@ -157,7 +157,7 @@ def parse_asset(item, asset_name, asset_data):
         defaults={
             "file": SimpleUploadedFile(asset_name, b'Asset dummy content'),
             "media_type": asset_data["type"],
-            "eo_gsd": asset_data.get("eo:gsd", None),
+            "eo_gsd": asset_data.get("gsd", None),
             "proj_epsg": asset_data.get("proj:epsg", None),
             "geoadmin_lang": asset_data.get("geoadmin:lang", None),
             "geoadmin_variant": asset_data.get("geoadmin:variant", None),
