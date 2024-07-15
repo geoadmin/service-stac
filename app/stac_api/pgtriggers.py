@@ -100,16 +100,23 @@ def generates_asset_triggers():
 
         -- Compute collection summaries
         SELECT
-            item.collection_id,
-            array_remove(array_agg(DISTINCT(asset.proj_epsg)), null) AS proj_epsg,
-            array_remove(array_agg(DISTINCT(asset.geoadmin_variant)), null) AS geoadmin_variant,
-            array_remove(array_agg(DISTINCT(asset.geoadmin_lang)), null) AS geoadmin_lang,
-            array_remove(array_agg(DISTINCT(asset.eo_gsd)), null) AS eo_gsd
+            collection_id,
+            array_remove(array_agg(DISTINCT(proj_epsg)), null) AS proj_epsg,
+            array_remove(array_agg(DISTINCT(geoadmin_variant)), null) AS geoadmin_variant,
+            array_remove(array_agg(DISTINCT(geoadmin_lang)), null) AS geoadmin_lang,
+            array_remove(array_agg(DISTINCT(eo_gsd)), null) AS eo_gsd
         INTO collection_summaries
-        FROM stac_api_item AS item
-            LEFT JOIN stac_api_asset AS asset ON (asset.item_id = item.id)
-        WHERE item.collection_id = related_collection_id
-        GROUP BY item.collection_id;
+        FROM (
+                SELECT item.collection_id, asset.proj_epsg, asset.geoadmin_variant, asset.geoadmin_lang, asset.eo_gsd
+                FROM stac_api_item AS item
+                    LEFT JOIN stac_api_asset AS asset ON (asset.item_id = item.id)
+                WHERE collection_id = related_collection_id
+                UNION
+                SELECT collection_id, proj_epsg, geoadmin_variant, geoadmin_lang, eo_gsd
+                FROM stac_api_collectionasset
+                WHERE collection_id = related_collection_id
+            ) a
+        GROUP BY collection_id;
 
         -- Update related collection (auto variables + summaries)
         UPDATE stac_api_collection SET
@@ -204,25 +211,43 @@ def generate_collection_asset_triggers():
         when = pgtrigger.After
         declare = [
             ('asset_instance', 'stac_api_collectionasset%ROWTYPE'),
-            ('related_collection_id', 'INT'),
+            ('collection_summaries', 'RECORD'),
         ]
         func = '''
         asset_instance = COALESCE(NEW, OLD);
-        related_collection_id = (
-            SELECT collection_id FROM stac_api_collectionasset
-            WHERE id = asset_instance.id
-        );
+
+        -- Compute collection summaries
+        SELECT
+            a.collection_id,
+            array_remove(array_agg(DISTINCT(a.proj_epsg)), null) AS proj_epsg,
+            array_remove(array_agg(DISTINCT(a.geoadmin_variant)), null) AS geoadmin_variant,
+            array_remove(array_agg(DISTINCT(a.geoadmin_lang)), null) AS geoadmin_lang,
+            array_remove(array_agg(DISTINCT(a.eo_gsd)), null) AS eo_gsd
+        INTO collection_summaries
+        FROM (
+            SELECT item.collection_id, asset.proj_epsg, asset.geoadmin_variant, asset.geoadmin_lang, asset.eo_gsd
+            FROM stac_api_item AS item
+                LEFT JOIN stac_api_asset AS asset ON (asset.item_id = item.id)
+            WHERE collection_id = asset_instance.collection_id
+            UNION
+            SELECT collection_id, proj_epsg, geoadmin_variant, geoadmin_lang, eo_gsd
+            FROM stac_api_collectionasset
+            WHERE collection_id = asset_instance.collection_id
+        ) a
+        GROUP BY a.collection_id;
+
         -- Update related collection (auto variables + summaries)
         UPDATE stac_api_collection SET
             updated = now(),
             etag = gen_random_uuid(),
-            summaries_proj_epsg = array_remove(ARRAY(SELECT DISTINCT UNNEST(array_append(summaries_proj_epsg, asset_instance.proj_epsg))), NULL),
-            summaries_geoadmin_variant = array_remove(ARRAY(SELECT DISTINCT UNNEST(array_append(summaries_geoadmin_variant, asset_instance.geoadmin_variant))), NULL),
-            summaries_geoadmin_lang = array_remove(ARRAY(SELECT DISTINCT UNNEST(array_append(summaries_geoadmin_lang, asset_instance.geoadmin_lang))), NULL),
-            summaries_eo_gsd = array_remove(ARRAY(SELECT DISTINCT UNNEST(array_append(summaries_eo_gsd, asset_instance.eo_gsd))), NULL)
-        WHERE id = related_collection_id;
+            summaries_proj_epsg = collection_summaries.proj_epsg,
+            summaries_geoadmin_variant = collection_summaries.geoadmin_variant,
+            summaries_geoadmin_lang = collection_summaries.geoadmin_lang,
+            summaries_eo_gsd = collection_summaries.eo_gsd
+        WHERE id = asset_instance.collection_id;
+
         RAISE INFO 'collection.id=% summaries updated, due to collection asset.name=% update.',
-            related_collection_id, asset_instance.name;
+            asset_instance.collection_id, asset_instance.name;
         RETURN asset_instance;
         '''
 

@@ -56,6 +56,18 @@ class CollectionsSummariesTestCase(StacBaseTransactionTestCase):
         self.collection.refresh_from_db()
         return asset
 
+    def add_collection_asset(self, eo_gsd, geoadmin_variant, proj_epsg, geoadmin_lang=None):
+        asset = self.data_factory.create_collection_asset_sample(
+            collection=self.collection,
+            eo_gsd=eo_gsd,
+            geoadmin_variant=geoadmin_variant,
+            geoadmin_lang=geoadmin_lang,
+            proj_epsg=proj_epsg,
+            db_create=True
+        ).model
+        self.collection.refresh_from_db()
+        return asset
+
     def test_update_collection_summaries_asset_insertion(self):
         # Tests if the collection's summaries are updated when an asset is
         # added to the collection's two items
@@ -109,6 +121,29 @@ class CollectionsSummariesTestCase(StacBaseTransactionTestCase):
             "after asset has been inserted."
         )
 
+        self.add_collection_asset(3.2, "kgrs", 5678, 'it')
+
+        self.assertListEqual(
+            self.collection.summaries_eo_gsd, [1.2, 2.1, 3.2],
+            "Collection's summaries[gsd] has not been correctly updated "
+            "after asset has been inserted."
+        )
+        self.assertListEqual(
+            self.collection.summaries_geoadmin_variant, ["kgrs", "komb"],
+            "Collection's summaries[geoadmin:variant] has not been correctly "
+            "updated after asset has been inserted."
+        )
+        self.assertListEqual(
+            self.collection.summaries_geoadmin_lang, ["de", "fr", "it"],
+            "Collection's summaries[geoadmin:lang] has not been correctly "
+            "updated after asset has been inserted."
+        )
+        self.assertListEqual(
+            self.collection.summaries_proj_epsg, [1234, 4321, 5678],
+            "Collection's summaries[proj:epsg] has not been correctly updated "
+            "after asset has been inserted."
+        )
+
     def test_update_collection_summaries_asset_deletion(self):
         # Tests if the collection's summaries are updated when assets are
         # deleted from the collection
@@ -117,8 +152,35 @@ class CollectionsSummariesTestCase(StacBaseTransactionTestCase):
 
         asset1 = self.add_asset(item1, 1.2, "kgrs", 1234, 'de')
         asset2 = self.add_asset(item1, 2.1, "komb", 4321, 'fr')
+        col_asset1 = self.add_collection_asset(3.2, "abcd", 5678, 'it')
 
         asset2.delete()
+        self.collection.refresh_from_db()
+
+        self.assertCountEqual(
+            self.collection.summaries_eo_gsd, [asset1.eo_gsd, col_asset1.eo_gsd],
+            "Collection's summaries[gsd] has not been correctly updated "
+            "after asset has been deleted."
+        )
+        self.assertCountEqual(
+            self.collection.summaries_geoadmin_variant,
+            [asset1.geoadmin_variant, col_asset1.geoadmin_variant],
+            "Collection's summaries[geoadmin:variant] has not been correctly "
+            "updated after asset has been deleted."
+        )
+        self.assertCountEqual(
+            self.collection.summaries_geoadmin_lang,
+            [asset1.geoadmin_lang, col_asset1.geoadmin_lang],
+            "Collection's summaries[geoadmin:lang] has not been correctly "
+            "updated after asset has been deleted."
+        )
+        self.assertCountEqual(
+            self.collection.summaries_proj_epsg, [asset1.proj_epsg, col_asset1.proj_epsg],
+            "Collection's summaries[proj:epsg] has not been correctly updated "
+            "after asset has been deleted."
+        )
+
+        col_asset1.delete()
         self.collection.refresh_from_db()
 
         self.assertListEqual(
@@ -189,6 +251,19 @@ class CollectionsSummariesTestCase(StacBaseTransactionTestCase):
         self.assertListEqual(self.collection.summaries_geoadmin_variant, [])
         self.assertListEqual(self.collection.summaries_geoadmin_lang, [])
         self.assertListEqual(self.collection.summaries_eo_gsd, [])
+        col_asset = self.data_factory.create_collection_asset_sample(
+            collection=self.collection,
+            required_only=True,
+            geoadmin_variant=None,
+            geoadmin_lang=None,
+            eo_gsd=None,
+            proj_epsg=None,
+            db_create=True
+        ).model
+        self.assertListEqual(self.collection.summaries_proj_epsg, [])
+        self.assertListEqual(self.collection.summaries_geoadmin_variant, [])
+        self.assertListEqual(self.collection.summaries_geoadmin_lang, [])
+        self.assertListEqual(self.collection.summaries_eo_gsd, [])
         asset2 = self.data_factory.create_asset_sample(
             item=item,
             required_only=True,
@@ -206,6 +281,12 @@ class CollectionsSummariesTestCase(StacBaseTransactionTestCase):
         self.assertListEqual(self.collection.summaries_eo_gsd, [2])
 
         asset.delete()
+        self.collection.refresh_from_db()
+        self.assertListEqual(self.collection.summaries_proj_epsg, [2056])
+        self.assertListEqual(self.collection.summaries_geoadmin_variant, ['krel'])
+        self.assertListEqual(self.collection.summaries_geoadmin_lang, ['en'])
+        self.assertListEqual(self.collection.summaries_eo_gsd, [2])
+        col_asset.delete()
         self.collection.refresh_from_db()
         self.assertListEqual(self.collection.summaries_proj_epsg, [2056])
         self.assertListEqual(self.collection.summaries_geoadmin_variant, ['krel'])
@@ -254,6 +335,36 @@ class CollectionsSummariesTestCase(StacBaseTransactionTestCase):
             "updated after asset has been inserted."
         )
 
+        col_asset1 = self.add_collection_asset(3.2, "abcd", 5678, 'it')
+        col_asset1.eo_gsd = 13.2
+        col_asset1.geoadmin_variant = "dcba"
+        col_asset1.geoadmin_lang = "rm"
+        col_asset1.proj_epsg = 6666
+        col_asset1.full_clean()
+        col_asset1.save()
+        self.collection.refresh_from_db()
+
+        self.assertCountEqual(
+            self.collection.summaries_eo_gsd, [2.1, 12.34, 13.2],
+            "Collection's summaries[gsd] has not been correctly "
+            "updated after asset has been inserted."
+        )
+        self.assertCountEqual(
+            self.collection.summaries_geoadmin_variant, ["komb", "krel", "dcba"],
+            "Collection's summaries[geoadmin:variant] has not been "
+            "correctly updated after asset has been inserted."
+        )
+        self.assertCountEqual(
+            self.collection.summaries_geoadmin_lang, ["en", "fr", "rm"],
+            "Collection's summaries[geoadmin:lang] has not been "
+            "correctly updated after asset has been inserted."
+        )
+        self.assertCountEqual(
+            self.collection.summaries_proj_epsg, [4321, 9999, 6666],
+            "Collection's summaries[proj:epsg] has not been correctly "
+            "updated after asset has been inserted."
+        )
+
     def test_update_collection_summaries_none_values(self):
         # update a variant, that as been None as a start value
         item = self.data_factory.create_item_sample(collection=self.collection).model
@@ -274,3 +385,21 @@ class CollectionsSummariesTestCase(StacBaseTransactionTestCase):
         self.assertListEqual(self.collection.summaries_eo_gsd, [2.0])
         self.assertListEqual(self.collection.summaries_geoadmin_variant, ['krel'])
         self.assertListEqual(self.collection.summaries_geoadmin_lang, ['rm'])
+
+        col_asset = self.add_collection_asset(None, None, None, None)
+        self.assertListEqual(self.collection.summaries_proj_epsg, [2056])
+        self.assertListEqual(self.collection.summaries_eo_gsd, [2.0])
+        self.assertListEqual(self.collection.summaries_geoadmin_variant, ['krel'])
+        self.assertListEqual(self.collection.summaries_geoadmin_lang, ['rm'])
+        col_asset.geoadmin_variant = "abcd"
+        col_asset.eo_gsd = 3
+        col_asset.proj_epsg = 4102
+        col_asset.geoadmin_lang = 'en'
+        col_asset.full_clean()
+        col_asset.save()
+
+        self.collection.refresh_from_db()
+        self.assertListEqual(self.collection.summaries_proj_epsg, [2056, 4102])
+        self.assertListEqual(self.collection.summaries_eo_gsd, [2.0, 3.0])
+        self.assertListEqual(self.collection.summaries_geoadmin_variant, ['abcd', 'krel'])
+        self.assertListEqual(self.collection.summaries_geoadmin_lang, ['en', 'rm'])
