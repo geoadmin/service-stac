@@ -566,9 +566,13 @@ class AssetDetail(
         )
         lookup['item__collection__name'] = item.collection.name
         lookup['item__name'] = item.name
-        return serializer.upsert(
-            lookup, item=item, file=get_asset_path(item, self.kwargs['asset_name'])
-        )
+
+        if 'file' in serializer.validated_data:
+            file = serializer.validated_data['file']
+        else:
+            file = get_asset_path(item, self.kwargs['asset_name'])
+
+        return serializer.upsert(lookup, item=item, file=file)
 
     @etag(get_asset_etag)
     def get(self, request, *args, **kwargs):

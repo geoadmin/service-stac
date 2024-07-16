@@ -250,6 +250,9 @@ class HrefField(serializers.Field):
 
         return build_asset_href(request, path)
 
+    def to_internal_value(self, data):
+        return data
+
 
 class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
     '''Asset serializer base class
@@ -309,7 +312,7 @@ class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
     proj_epsg = serializers.IntegerField(source='proj_epsg', allow_null=True, required=False)
     # read only fields
     checksum_multihash = serializers.CharField(source='checksum_multihash', read_only=True)
-    href = HrefField(source='file', read_only=True)
+    href = HrefField(source='file', required=False)
     created = serializers.DateTimeField(read_only=True)
     updated = serializers.DateTimeField(read_only=True)
 
