@@ -112,7 +112,7 @@ def generates_asset_triggers():
                     LEFT JOIN stac_api_asset AS asset ON (asset.item_id = item.id)
                 WHERE collection_id = related_collection_id
                 UNION
-                SELECT collection_id, proj_epsg, geoadmin_variant, geoadmin_lang, eo_gsd
+                SELECT collection_id, proj_epsg, NULL, NULL, NULL
                 FROM stac_api_collectionasset
                 WHERE collection_id = related_collection_id
             ) a
@@ -219,18 +219,15 @@ def generate_collection_asset_triggers():
         -- Compute collection summaries
         SELECT
             a.collection_id,
-            array_remove(array_agg(DISTINCT(a.proj_epsg)), null) AS proj_epsg,
-            array_remove(array_agg(DISTINCT(a.geoadmin_variant)), null) AS geoadmin_variant,
-            array_remove(array_agg(DISTINCT(a.geoadmin_lang)), null) AS geoadmin_lang,
-            array_remove(array_agg(DISTINCT(a.eo_gsd)), null) AS eo_gsd
+            array_remove(array_agg(DISTINCT(a.proj_epsg)), null) AS proj_epsg
         INTO collection_summaries
         FROM (
-            SELECT item.collection_id, asset.proj_epsg, asset.geoadmin_variant, asset.geoadmin_lang, asset.eo_gsd
+            SELECT item.collection_id, asset.proj_epsg
             FROM stac_api_item AS item
                 LEFT JOIN stac_api_asset AS asset ON (asset.item_id = item.id)
             WHERE collection_id = asset_instance.collection_id
             UNION
-            SELECT collection_id, proj_epsg, geoadmin_variant, geoadmin_lang, eo_gsd
+            SELECT collection_id, proj_epsg
             FROM stac_api_collectionasset
             WHERE collection_id = asset_instance.collection_id
         ) a
@@ -240,10 +237,7 @@ def generate_collection_asset_triggers():
         UPDATE stac_api_collection SET
             updated = now(),
             etag = gen_random_uuid(),
-            summaries_proj_epsg = collection_summaries.proj_epsg,
-            summaries_geoadmin_variant = collection_summaries.geoadmin_variant,
-            summaries_geoadmin_lang = collection_summaries.geoadmin_lang,
-            summaries_eo_gsd = collection_summaries.eo_gsd
+            summaries_proj_epsg = collection_summaries.proj_epsg
         WHERE id = asset_instance.collection_id;
 
         RAISE INFO 'collection.id=% summaries updated, due to collection asset.name=% update.',

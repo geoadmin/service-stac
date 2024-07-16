@@ -48,57 +48,6 @@ class CollectionAssetsModelTestCase(StacBaseTransactionTestCase):
                 db_create=True,
             )
 
-    def test_create_asset_valid_geoadmin_variant(self):
-        # try to create an asset with valid geoadmin variant. This should not raise any error.
-        self.factory.create_collection_asset_sample(
-            collection=self.collection,
-            sample="asset-valid-geoadmin-variant",
-            db_create=True,
-        )
-
-    def test_create_asset_invalid_eo_gsd(self):
-        with self.assertRaises(ValidationError, msg="asset with invalid gsd was accepted."):
-            self.factory.create_collection_asset_sample(
-                collection=self.collection,
-                eo_gsd=0.0,
-                db_create=True,
-            )
-
-    def test_create_asset_valid_eo_gsd(self):
-        asset = self.factory.create_collection_asset_sample(
-            collection=self.collection, eo_gsd=1.33, db_create=True
-        ).model
-        self.collection.refresh_from_db()
-        self.assertListEqual(self.collection.summaries_proj_epsg, [2056])
-        self.assertListEqual(self.collection.summaries_eo_gsd, [1.33, 3.4])
-        self.assertListEqual(self.collection.summaries_geoadmin_variant, ['kgrs'])
-        asset.delete()
-        self.collection.refresh_from_db()
-        self.assertListEqual(self.collection.summaries_proj_epsg, [2056])
-        self.assertListEqual(self.collection.summaries_eo_gsd, [3.4])
-        self.assertListEqual(self.collection.summaries_geoadmin_variant, ['kgrs'])
-
-    def test_create_asset_invalid_geoadmin_variant(self):
-        # try to create an asset with invalid geoadmin variant.
-        with self.assertRaises(
-            ValidationError, msg="asset with invalid geoadmin variant was accepted."
-        ):
-            self.factory.create_collection_asset_sample(
-                collection=self.collection,
-                sample="asset-invalid-geoadmin-variant",
-                db_create=True,
-            )
-
-    def test_create_asset_only_required_attributes(self):
-        # try to create an asset with with only the required attributes.
-        # Should not raise any errors.
-        self.factory.create_collection_asset_sample(
-            collection=self.collection,
-            sample="asset-valid-geoadmin-variant",
-            db_create=True,
-            required_only=True
-        )
-
     def test_create_update_asset_invalid_media_type(self):
         # try to create an asset with invalid media type
         with self.assertRaises(

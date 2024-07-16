@@ -109,6 +109,7 @@ from stac_api.utils import isoformat
 from stac_api.validators import get_media_type
 
 from tests.tests_10.sample_data.asset_samples import assets as asset_samples
+from tests.tests_10.sample_data.asset_samples import collection_assets as collection_asset_samples
 from tests.tests_10.sample_data.collection_samples import collections as collection_samples
 from tests.tests_10.sample_data.collection_samples import links as collection_link_samples
 from tests.tests_10.sample_data.collection_samples import providers as provider_samples
@@ -797,7 +798,7 @@ class CollectionAssetSample(SampleData):
     '''
     model_class = CollectionAsset
     sample_name = 'asset'
-    samples_dict = asset_samples
+    samples_dict = collection_asset_samples
     key_mapping = {
         'name': 'id',
         'eo_gsd': 'gsd',

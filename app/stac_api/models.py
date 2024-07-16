@@ -558,27 +558,7 @@ class AssetBase(models.Model):
     )
     # here we need to set blank=True otherwise the field is as required in the admin interface
     description = models.TextField(blank=True, null=True, default=None)
-    # From v1 on the json representation of this field changed from "eo:gsd" to "gsd". The two names
-    # may be used interchangeably for a now.
-    eo_gsd = models.FloatField(null=True, blank=True, validators=[validate_eo_gsd])
 
-    class Language(models.TextChoices):
-        # pylint: disable=invalid-name
-        GERMAN = 'de', _('German')
-        ITALIAN = 'it', _('Italian')
-        FRENCH = 'fr', _('French')
-        ROMANSH = 'rm', _('Romansh')
-        ENGLISH = 'en', _('English')
-        __empty__ = _('')
-
-    # here we need to set blank=True otherwise the field is as required in the admin interface
-    geoadmin_lang = models.CharField(
-        max_length=2, choices=Language.choices, default=None, null=True, blank=True
-    )
-    # here we need to set blank=True otherwise the field is as required in the admin interface
-    geoadmin_variant = models.CharField(
-        max_length=25, null=True, blank=True, validators=[validate_geoadmin_variant]
-    )
     proj_epsg = models.IntegerField(null=True, blank=True)
     # here we need to set blank=True otherwise the field is as required in the admin interface
     title = models.CharField(max_length=255, null=True, blank=True)
@@ -647,6 +627,27 @@ class Asset(AssetBase):
         related_query_name='asset',
         on_delete=models.PROTECT,
         help_text=_(SEARCH_TEXT_HELP_ITEM)
+    )
+    # From v1 on the json representation of this field changed from "eo:gsd" to "gsd". The two names
+    # may be used interchangeably for a now.
+    eo_gsd = models.FloatField(null=True, blank=True, validators=[validate_eo_gsd])
+
+    class Language(models.TextChoices):
+        # pylint: disable=invalid-name
+        GERMAN = 'de', _('German')
+        ITALIAN = 'it', _('Italian')
+        FRENCH = 'fr', _('French')
+        ROMANSH = 'rm', _('Romansh')
+        ENGLISH = 'en', _('English')
+        __empty__ = _('')
+
+    # here we need to set blank=True otherwise the field is as required in the admin interface
+    geoadmin_lang = models.CharField(
+        max_length=2, choices=Language.choices, default=None, null=True, blank=True
+    )
+    # here we need to set blank=True otherwise the field is as required in the admin interface
+    geoadmin_variant = models.CharField(
+        max_length=25, null=True, blank=True, validators=[validate_geoadmin_variant]
     )
 
     def get_collection(self):

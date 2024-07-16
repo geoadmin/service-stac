@@ -304,7 +304,7 @@ class CollectionAssetAdmin(admin.ModelAdmin):
             'fields': ('title', 'description', 'roles')
         }),
         ('Attributes', {
-            'fields': ('eo_gsd', 'proj_epsg', 'geoadmin_variant', 'geoadmin_lang')
+            'fields': ['proj_epsg']
         }),
     )
     list_filter = [AutocompleteFilterFactory('Collection name', 'collection', use_pk_exact=True)]
