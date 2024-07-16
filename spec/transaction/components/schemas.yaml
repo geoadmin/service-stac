@@ -88,7 +88,7 @@ components:
           $ref: "#/components/schemas/geoadminLang"
         "proj:epsg":
           $ref: "#/components/schemas/projEpsg"
-        "eo:gsd":
+        "gsd":
           $ref: "#/components/schemas/eoGsd"
         created:
           $ref: "#/components/schemas/created"

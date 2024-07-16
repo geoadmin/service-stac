@@ -14,7 +14,7 @@ components:
 
        - `proj:epsg`: query for assets with this specific epsg
 
-       - `eo:gsd`: query for assets with this specific gsd
+       - `gsd`: query for assets with this specific gsd
 
        - `geoadmin:variant`: query for assets with this specific variant
      example:
@@ -94,7 +94,7 @@ components:
           $ref: "#/components/schemas/geoadminLang"
         "proj:epsg":
           $ref: "#/components/schemas/projEpsg"
-        "eo:gsd":
+        "gsd":
           $ref: "#/components/schemas/eoGsd"
         created:
           $ref: "#/components/schemas/created"
@@ -301,7 +301,7 @@ components:
           type: object
           readOnly: true
           example:
-            eo:gsd:
+            gsd:
               - 10
               - 20
             geoadmin:variant:
@@ -456,9 +456,9 @@ components:
         pansharpening, or scaling. The GSD of a sensor can vary depending on off-nadir and
         wavelength, so it is at the discretion of the implementer to decide which value most
         accurately represents the GSD. For example, Landsat8 optical and short-wave IR bands are
-        all 30 meters, but the panchromatic band is 15 meters. The eo:gsd should be 30 meters in
+        all 30 meters, but the panchromatic band is 15 meters. The gsd should be 30 meters in
         this case because that is nominal spatial resolution at the sensor. The Planet PlanetScope
-        Ortho Tile Product has an eo:gsd of 3.7 (or 4 if rounding), even though the pixel size of
+        Ortho Tile Product has an gsd of 3.7 (or 4 if rounding), even though the pixel size of
         the images is 3.125. For example, one might choose for WorldView-2 the Multispectral 20°
         off-nadir value of 2.07 and for WorldView-3 the Multispectral 20° off-nadir value of 1.38.
       example: 2.5
@@ -759,7 +759,7 @@ components:
         smr50-263-2016-2056-kgrs-2.5.tiff:
           file:checksum: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
           created: "2020-07-14T12:30:00Z"
-          eo:gsd: 2.5
+          gsd: 2.5
           geoadmin:variant: kgrs
           href: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr50-263-2016-2056-kgrs-2.5.tiff
           proj:epsg: 2056
@@ -768,7 +768,7 @@ components:
         smr50-263-2016-2056-komb-2.5.tiff:
           file:checksum: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
           created: "2020-07-14T12:30:00Z"
-          eo:gsd: 2.5
+          gsd: 2.5
           geoadmin:variant: komb
           href: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr50-263-2016-2056-komb-2.5.tiff
           proj:epsg: "2056"
@@ -777,7 +777,7 @@ components:
         smr50-263-2016-2056-krel-2.5.tiff:
           file:checksum: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
           created: "2020-07-14T12:30:00Z"
-          eo:gsd: 2.5
+          gsd: 2.5
           geoadmin:variant: krel
           href: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr50-263-2016-2056-krel-2.5.tiff
           proj:epsg: "2056"
