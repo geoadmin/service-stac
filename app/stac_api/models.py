@@ -596,6 +596,12 @@ class AssetBase(models.Model):
         "-1 means that the data is not on a regular basis updated."
     )
 
+    # whether this asset is hosted externally
+    is_external = models.BooleanField(
+        default=False,
+        help_text=_("Whether this asset is hosted externally")
+    )
+
     def __str__(self):
         return self.name
 
