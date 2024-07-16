@@ -1996,6 +1996,8 @@ components:
           $ref: "#/components/schemas/created"
         updated:
           $ref: "#/components/schemas/updated"
+        assets:
+          $ref: "#/components/schemas/itemAssets"
       required:
         - id
         - stac_version
