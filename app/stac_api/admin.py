@@ -373,11 +373,38 @@ class CollectionAssetAdmin(admin.ModelAdmin):
         return fields
 
 
+class AssetAdminForm(forms.ModelForm):
+
+    def __init__(self, *args, **kwargs):
+        """Add some logic to the is_external field"""
+        super().__init__(*args, **kwargs)
+
+        if not getattr(self.instance, 'item', False):
+            # on creation time, we don't show the flag because we don't know
+            # the asset yet
+            are_external_assets_allowed = False
+        else:
+            are_external_assets_allowed = self.instance.item.collection.allow_external_assets
+
+        if are_external_assets_allowed:
+            # turn the file field into a char field if it's external
+            # so the user can set the url
+            if self.instance.is_external:
+                self.fields['file'] = forms.CharField()
+        else:
+            # collection doesn't allow external assets
+            # let's hide it from the user
+            # also see the javascript file for the missing implementation detail
+            external_field = self.fields['is_external']
+            external_field.disabled = True
+
+
 @admin.register(Asset)
 class AssetAdmin(admin.ModelAdmin):
+    form = AssetAdminForm
 
     class Media:
-        js = ('js/admin/asset_help_search.js',)
+        js = ('js/admin/asset_help_search.js', 'js/admin/asset_external_fields.js')
         css = {'all': ('style/hover.css',)}
 
     autocomplete_fields = ['item']
@@ -398,8 +425,16 @@ class AssetAdmin(admin.ModelAdmin):
             'fields': ('name', 'item', 'created', 'updated', 'etag')
         }),
         (
-            'File', {
-                'fields': ('file', 'media_type', 'href', 'checksum_multihash', 'update_interval')
+            'File',
+            {
+                'fields': (
+                    'is_external',
+                    'file',
+                    'media_type',
+                    'href',
+                    'checksum_multihash',
+                    'update_interval'
+                )
             }
         ),
         ('Description', {
@@ -465,20 +500,20 @@ class AssetAdmin(admin.ModelAdmin):
 
         super().save_model(request, obj, form, change)
 
-    # Note: this is a bit hacky and only required to get access
-    # to the request object in 'href' method.
-    def get_form(self, request, obj=None, **kwargs):  # pylint: disable=arguments-differ
-        self.request = request  # pylint: disable=attribute-defined-outside-init
-        return super().get_form(request, obj, **kwargs)
-
     def href(self, instance):
         path = instance.file.name
+        if instance.is_external:
+            return path
         return build_asset_href(self.request, path)
 
     # We don't want to move the assets on S3
     # That's why some fields like the name of the asset are set readonly here
     # for update operations
     def get_fieldsets(self, request, obj=None):
+        # Note: this is a bit hacky and only required to get access
+        # to the request object in 'href' method.
+        self.request = request  # pylint: disable=attribute-defined-outside-init
+
         fields = super().get_fieldsets(request, obj)
         if obj is None:
             # In case a new Asset is added use the normal field 'item' from model that have
