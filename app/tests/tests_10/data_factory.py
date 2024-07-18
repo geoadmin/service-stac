@@ -99,6 +99,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 
 from stac_api.models import Asset
 from stac_api.models import Collection
+from stac_api.models import CollectionAsset
 from stac_api.models import CollectionLink
 from stac_api.models import Item
 from stac_api.models import ItemLink
@@ -108,6 +109,7 @@ from stac_api.utils import isoformat
 from stac_api.validators import get_media_type
 
 from tests.tests_10.sample_data.asset_samples import assets as asset_samples
+from tests.tests_10.sample_data.asset_samples import collection_assets as collection_asset_samples
 from tests.tests_10.sample_data.collection_samples import collections as collection_samples
 from tests.tests_10.sample_data.collection_samples import links as collection_link_samples
 from tests.tests_10.sample_data.collection_samples import providers as provider_samples
@@ -791,6 +793,109 @@ class AssetSample(SampleData):
         )
 
 
+class CollectionAssetSample(SampleData):
+    '''Collection Asset Sample Data
+    '''
+    model_class = CollectionAsset
+    sample_name = 'asset'
+    samples_dict = collection_asset_samples
+    key_mapping = {
+        'name': 'id',
+        'eo_gsd': 'gsd',
+        'geoadmin_variant': 'geoadmin:variant',
+        'geoadmin_lang': 'geoadmin:lang',
+        'proj_epsg': 'proj:epsg',
+        'media_type': 'type',
+        'checksum_multihash': 'file:checksum',
+        'file': 'href'
+    }
+    optional_fields = [
+        'title',
+        'description',
+        'eo_gsd',
+        'geoadmin_variant',
+        'geoadmin_lang',
+        'proj_epsg',
+        'checksum_multihash'
+    ]
+    read_only_fields = ['created', 'updated', 'href', 'file:checksum']
+
+    def __init__(self, collection, sample='asset-1', name=None, required_only=False, **kwargs):
+        '''Create a item sample data
+
+        Args:
+            collection: Collection
+                Collection DB object relations.
+            sample: string
+                Name of the sample based to use, see tests.sample_data.asset_samples.assets.
+            name: string
+                Overwrite the sample name.
+            required_only: bool
+                Return only attributes that are required (minimum sample data).
+            **kwargs:
+                Any parameter will overwrite existing attributes.
+        '''
+        self.attr_name = name
+        super().__init__(
+            sample, collection=collection, name=name, required_only=required_only, **kwargs
+        )
+
+        file = getattr(self, 'attr_file', None)
+        file_path = f'{collection.name}/{self.attr_name}'
+        if isinstance(file, bytes):
+            self.attr_file = SimpleUploadedFile(file_path, file, self.get('media_type'))
+
+    def get_json(self, method='get', keep_read_only=False):
+        '''Returns a json serializable representation of the sample data
+
+        This json payload can then be used in the write API payload (with method='post', 'put' or
+        'patch') or to check the read API payload. It can also be directly used as the serializer
+        data.
+
+        Args:
+            method: string
+                Method for which the JSON would be used; 'get', 'post', 'put', 'patch', 'serialize',
+                'deserialize'.
+            keep_read_only: bool
+                keep read only fields in the json output. By default they are removed if the method
+                is 'post', 'put' or 'patch'
+
+        Returns
+            A dictionary with the sample data.
+        '''
+        data = super().get_json(method, keep_read_only)
+        collection = data.pop('collection')
+        if 'href' in data and isinstance(data['href'], File):
+            data['href'] = \
+                f'http://{settings.AWS_SETTINGS["legacy"]["S3_CUSTOM_DOMAIN"]}/{collection.name}/{data["href"].name}'
+        return data
+
+    def create_asset_file(self):
+        '''Create the asset File on S3 based on the binary content of attribute file
+
+        NOTE: This method will overwrite any existing file on S3
+        '''
+        collection = getattr(self, 'attr_collection')
+        file = getattr(self, 'attr_file', None)
+        file_path = f'{collection.name}/{self.attr_name}'
+        if file is None:
+            raise ValueError('Cannot create Asset file on S3 when attribute file is None')
+        self._create_file_on_s3(file_path, self.attr_file)
+
+    def _create_file_on_s3(self, file_path, file):
+        s3 = get_s3_resource()
+        obj = s3.Object(settings.AWS_SETTINGS['legacy']['S3_BUCKET_NAME'], file_path)
+        obj.upload_fileobj(
+            file,
+            ExtraArgs={
+                'Metadata': {
+                    'sha256': hashlib.sha256(file.read()).hexdigest()
+                },
+                "CacheControl": f"max-age={settings.STORAGE_ASSETS_CACHE_SECONDS}, public"
+            }
+        )
+
+
 class FactoryBase:
     '''Factory base class
     '''
@@ -1146,6 +1251,111 @@ class AssetFactory(FactoryBase):
             return get_media_type('text/plain').extensions[0]
 
 
+class CollectionAssetFactory(FactoryBase):
+    factory_name = 'collection-asset'
+    sample_class = CollectionAssetSample
+
+    def create_sample(
+        self,
+        collection,
+        name=None,
+        sample='asset-1',
+        db_create=False,
+        required_only=False,
+        create_asset_file=False,
+        **kwargs
+    ):  # pylint: disable=arguments-renamed
+        '''Create an Asset data sample
+
+        Args:
+            collection: Collection
+                Collection model object in which to create an Asset.
+            name: string
+                Data name, if not given it creates a 'asset-n' with n being incremented
+                after each function call.
+            sample: string
+                Sample based on the sample named found in tests.sample_data.asset_samples.assets
+                dictionary.
+            required_only: bool
+                Return only attributes that are required (minimum sample data).
+            create_asset_file: bool
+                Create the asset file on S3.
+            **kwargs:
+                Key/value pairs used to overwrite arbitrary attribute in the sample.
+
+        Returns:
+            The data sample
+        '''
+        if name:
+            data_sample = CollectionAssetSample(
+                collection, sample=sample, name=name, required_only=required_only, **kwargs
+            )
+        else:
+            self.last = self.get_last_name(self.last, extension=self._get_extension(sample, kwargs))
+            data_sample = CollectionAssetSample(
+                collection, sample=sample, name=self.last, required_only=required_only, **kwargs
+            )
+        if db_create:
+            data_sample.create()
+            collection.refresh_from_db()
+        if not db_create and create_asset_file:
+            # when db_create is true, the asset file automatically created therefore it is not
+            # necessary to explicitely create it again.
+            data_sample.create_asset_file()
+        return data_sample
+
+    def create_samples(
+        self,
+        samples,
+        collection,
+        db_create=False,
+        create_asset_file=False,
+        **kwargs
+    ):  # pylint: disable=arguments-renamed
+        '''Creates several Asset samples
+
+        Args:
+            samples: integer | [string]
+                Number of DB sample to create or list of sample data name. These names should be
+                in the dictionary keys of tests.sample_data.asset_samples.assets.
+            db_create: bool
+                Create the sample in the DB.
+            kwargs_list: bool
+                If set to true, then kwargs with list values are distributed over the samples,
+                otherwise the kwargs are passed as is to the sample.
+            create_asset_file: bool
+                Create the asset file on S3.
+            **kwargs:
+                Key/value pairs used to overwrite arbitrary attribute in the sample.
+
+        Returns:
+            Array with the DB samples.
+        '''
+        return super().create_samples(
+            samples,
+            collection=collection,
+            db_create=db_create,
+            create_asset_file=create_asset_file,
+            **kwargs
+        )
+
+    def _get_extension(self, sample_name, kwargs):
+        media = 'text/plain'
+        if 'media_type' in kwargs:
+            media = kwargs['media_type']
+        else:
+            try:
+                sample = AssetSample.samples_dict[sample_name]
+            except KeyError as error:
+                raise KeyError(f'Unknown {sample_name} sample: {error}') from None
+            if 'media_type' in sample:
+                media = sample['media_type']
+        try:
+            return get_media_type(media).extensions[0]
+        except KeyError:
+            return get_media_type('text/plain').extensions[0]
+
+
 class Factory:
     '''Factory for data samples (Collection, Item and Asset)
     '''
@@ -1154,6 +1364,7 @@ class Factory:
         self.collections = CollectionFactory()
         self.items = ItemFactory()
         self.assets = AssetFactory()
+        self.collection_assets = CollectionAssetFactory()
 
     def create_collection_sample(
         self, name=None, sample='collection-1', db_create=False, required_only=False, **kwargs
@@ -1327,4 +1538,71 @@ class Factory:
         '''
         return self.assets.create_samples(
             samples, item, db_create=db_create, create_asset_file=create_asset_file, **kwargs
+        )
+
+    def create_collection_asset_sample(
+        self,
+        collection,
+        name=None,
+        sample='asset-1',
+        db_create=False,
+        required_only=False,
+        create_asset_file=False,
+        **kwargs
+    ):
+        '''Create an Asset data sample
+
+        Args:
+            collection: Collection
+                Collection model object in which to create an Asset.
+            name: string
+                Data name, if not given it creates a 'asset-n' with n being incremented
+                after each function call.
+            sample: string
+                Sample based on the sample named found in tests.sample_data.asset_samples.assets
+                dictionary.
+            required_only: bool
+                Return only attributes that are required (minimum sample data).
+            create_asset_file: bool
+                Create the asset file on S3.
+            **kwargs:
+                Key/value pairs used to overwrite arbitrary attribute in the sample.
+
+        Returns:
+            The data sample.
+        '''
+        return self.collection_assets.create_sample(
+            collection,
+            name=name,
+            sample=sample,
+            db_create=db_create,
+            required_only=required_only,
+            create_asset_file=create_asset_file,
+            **kwargs
+        )
+
+    def create_collection_asset_samples(
+        self, samples, collection, db_create=False, create_asset_file=False, **kwargs
+    ):
+        '''Creates several Asset samples
+
+        Args:
+            samples: integer | [string]
+                Number of DB sample to create or list of sample data name. These names should be
+                in the dictionary keys of tests.sample_data.asset_samples.assets.
+            db_create: bool
+                Create the sample in the DB.
+            kwargs_list: bool
+                If set to true, then kwargs with list values are distributed over the samples,
+                otherwise the kwargs are passed as is to the sample.
+            create_asset_file: bool
+                Create the asset file on S3.
+            **kwargs:
+                Key/value pairs used to overwrite arbitrary attribute in the sample.
+
+        Returns:
+            Array with the DB samples-.
+        '''
+        return self.collection_assets.create_samples(
+            samples, collection, db_create=db_create, create_asset_file=create_asset_file, **kwargs
         )

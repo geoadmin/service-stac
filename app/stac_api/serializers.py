@@ -177,6 +177,246 @@ class CollectionLinkSerializer(NonNullModelSerializer):
     )
 
 
+class ItemLinkSerializer(NonNullModelSerializer):
+
+    class Meta:
+        model = ItemLink
+        fields = ['href', 'rel', 'title', 'type']
+
+    # NOTE: when explicitely declaring fields, we need to add the validation as for the field
+    # in model !
+    type = serializers.CharField(
+        required=False, allow_blank=True, max_length=255, source="link_type"
+    )
+
+
+class ItemsPropertiesSerializer(serializers.Serializer):
+    # pylint: disable=abstract-method
+    # ItemsPropertiesSerializer is a nested serializer and don't directly create/write instances
+    # therefore we don't need to implement the super method create() and update()
+
+    # NOTE: when explicitely declaring fields, we need to add the validation as for the field
+    # in model !
+    datetime = serializers.DateTimeField(source='properties_datetime', required=False, default=None)
+    start_datetime = serializers.DateTimeField(
+        source='properties_start_datetime', required=False, default=None
+    )
+    end_datetime = serializers.DateTimeField(
+        source='properties_end_datetime', required=False, default=None
+    )
+    title = serializers.CharField(
+        source='properties_title',
+        required=False,
+        allow_blank=False,
+        allow_null=True,
+        max_length=255,
+        default=None
+    )
+    created = serializers.DateTimeField(read_only=True)
+    updated = serializers.DateTimeField(read_only=True)
+
+
+class BboxSerializer(gis_serializers.GeoFeatureModelSerializer):
+
+    class Meta:
+        model = Item
+        geo_field = "geometry"
+        auto_bbox = True
+        fields = ['geometry']
+
+    def to_representation(self, instance):
+        python_native = super().to_representation(instance)
+        return python_native['bbox']
+
+
+class AssetsDictSerializer(DictSerializer):
+    '''Assets serializer list to dictionary
+
+    This serializer returns an asset dictionary with the asset name as keys.
+    '''
+    # pylint: disable=abstract-method
+    key_identifier = 'id'
+
+
+class HrefField(serializers.Field):
+    '''Special Href field for Assets'''
+
+    # pylint: disable=abstract-method
+
+    def to_representation(self, value):
+        # build an absolute URL from the file path
+        request = self.context.get("request")
+        path = value.name
+
+        return build_asset_href(request, path)
+
+
+class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
+    '''Asset serializer base class
+    '''
+
+    class Meta:
+        model = Asset
+        fields = [
+            'id',
+            'title',
+            'type',
+            'href',
+            'description',
+            'eo_gsd',
+            'roles',
+            'geoadmin_lang',
+            'geoadmin_variant',
+            'proj_epsg',
+            'checksum_multihash',
+            'created',
+            'updated'
+        ]
+        validators = []  # Remove a default "unique together" constraint.
+        # (see:
+        # https://www.django-rest-framework.org/api-guide/validators/#limitations-of-validators)
+
+    # NOTE: when explicitely declaring fields, we need to add the validation as for the field
+    # in model !
+    id = serializers.CharField(source='name', max_length=255, validators=[validate_asset_name])
+    title = serializers.CharField(
+        required=False, max_length=255, allow_null=True, allow_blank=False
+    )
+    description = serializers.CharField(required=False, allow_blank=False, allow_null=True)
+    # Can't be a ChoiceField, as the validate method normalizes the MIME string only after it
+    # is read. Consistency is nevertheless guaranteed by the validate() and validate_type() methods.
+    type = serializers.CharField(
+        source='media_type', required=True, allow_null=False, allow_blank=False
+    )
+    # Here we need to explicitely define these fields with the source, because they are renamed
+    # in the get_fields() method
+    eo_gsd = serializers.FloatField(source='eo_gsd', required=False, allow_null=True)
+    geoadmin_lang = serializers.ChoiceField(
+        source='geoadmin_lang',
+        choices=Asset.Language.values,
+        required=False,
+        allow_null=True,
+        allow_blank=False
+    )
+    geoadmin_variant = serializers.CharField(
+        source='geoadmin_variant',
+        max_length=25,
+        allow_blank=False,
+        allow_null=True,
+        required=False,
+        validators=[validate_geoadmin_variant]
+    )
+    proj_epsg = serializers.IntegerField(source='proj_epsg', allow_null=True, required=False)
+    # read only fields
+    checksum_multihash = serializers.CharField(source='checksum_multihash', read_only=True)
+    href = HrefField(source='file', read_only=True)
+    created = serializers.DateTimeField(read_only=True)
+    updated = serializers.DateTimeField(read_only=True)
+
+    def create(self, validated_data):
+        asset = validate_uniqueness_and_create(Asset, validated_data)
+        return asset
+
+    def update_or_create(self, look_up, validated_data):
+        """
+        Update or create the asset object selected by kwargs and return the instance.
+        When no asset object matching the kwargs selection, a new asset is created.
+        Args:
+            validated_data: dict
+                Copy of the validated_data to use for update
+            kwargs: dict
+                Object selection arguments (NOTE: the selection arguments must match a unique
+                object in DB otherwise an IntegrityError will be raised)
+        Returns: tuple
+            Asset instance and True if created otherwise false
+        """
+        asset, created = Asset.objects.update_or_create(**look_up, defaults=validated_data)
+        return asset, created
+
+    def validate_type(self, value):
+        ''' Validates the the field "type"
+        '''
+        return normalize_and_validate_media_type(value)
+
+    def validate(self, attrs):
+        name = attrs['name'] if not self.partial else attrs.get('name', self.instance.name)
+        media_type = attrs['media_type'] if not self.partial else attrs.get(
+            'media_type', self.instance.media_type
+        )
+        validate_asset_name_with_media_type(name, media_type)
+
+        validate_json_payload(self)
+
+        return attrs
+
+    def get_fields(self):
+        fields = super().get_fields()
+        # This is a hack to allow fields with special characters
+        fields['gsd'] = fields.pop('eo_gsd')
+        fields['proj:epsg'] = fields.pop('proj_epsg')
+        fields['geoadmin:variant'] = fields.pop('geoadmin_variant')
+        fields['geoadmin:lang'] = fields.pop('geoadmin_lang')
+        fields['file:checksum'] = fields.pop('checksum_multihash')
+
+        # Older versions of the api still use different name
+        request = self.context.get('request')
+        if not is_api_version_1(request):
+            fields['checksum:multihash'] = fields.pop('file:checksum')
+            fields['eo:gsd'] = fields.pop('gsd')
+            fields.pop('roles', None)
+
+        return fields
+
+
+class AssetSerializer(AssetBaseSerializer):
+    '''Asset serializer for the asset views
+
+    This serializer adds the links list attribute.
+    '''
+
+    def to_representation(self, instance):
+        collection = instance.item.collection.name
+        item = instance.item.name
+        name = instance.name
+        request = self.context.get("request")
+        representation = super().to_representation(instance)
+        # Add auto links
+        # We use OrderedDict, although it is not necessary, because the default serializer/model for
+        # links already uses OrderedDict, this way we keep consistency between auto link and user
+        # link
+        representation['links'] = get_relation_links(
+            request, 'asset-detail', [collection, item, name]
+        )
+        return representation
+
+
+class AssetsForItemSerializer(AssetBaseSerializer):
+    '''Assets serializer for nesting them inside the item
+
+    Assets should be nested inside their item but using a dictionary instead of a list and without
+    links.
+    '''
+
+    class Meta:
+        model = Asset
+        list_serializer_class = AssetsDictSerializer
+        fields = [
+            'id',
+            'title',
+            'type',
+            'href',
+            'description',
+            'roles',
+            'eo_gsd',
+            'geoadmin_lang',
+            'geoadmin_variant',
+            'proj_epsg',
+            'checksum_multihash',
+            'created',
+            'updated'
+        ]
+
+
 class CollectionSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
 
     class Meta:
@@ -196,7 +436,8 @@ class CollectionSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
             'updated',
             'links',
             'crs',
-            'itemType'
+            'itemType',
+            'assets'
         ]
         # crs not in sample data, but in specs..
         validators = []  # Remove a default "unique together" constraint.
@@ -225,6 +466,7 @@ class CollectionSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
     stac_extensions = serializers.SerializerMethodField(read_only=True)
     stac_version = serializers.SerializerMethodField(read_only=True)
     itemType = serializers.ReadOnlyField(default="Feature")  # pylint: disable=invalid-name
+    assets = AssetsForItemSerializer(many=True, read_only=True)
 
     def get_crs(self, obj):
         return ["http://www.opengis.net/def/crs/OGC/1.3/CRS84"]
@@ -393,243 +635,6 @@ class CollectionSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
     def validate(self, attrs):
         validate_json_payload(self)
         return attrs
-
-
-class ItemLinkSerializer(NonNullModelSerializer):
-
-    class Meta:
-        model = ItemLink
-        fields = ['href', 'rel', 'title', 'type']
-
-    # NOTE: when explicitely declaring fields, we need to add the validation as for the field
-    # in model !
-    type = serializers.CharField(
-        required=False, allow_blank=True, max_length=255, source="link_type"
-    )
-
-
-class ItemsPropertiesSerializer(serializers.Serializer):
-    # pylint: disable=abstract-method
-    # ItemsPropertiesSerializer is a nested serializer and don't directly create/write instances
-    # therefore we don't need to implement the super method create() and update()
-
-    # NOTE: when explicitely declaring fields, we need to add the validation as for the field
-    # in model !
-    datetime = serializers.DateTimeField(source='properties_datetime', required=False, default=None)
-    start_datetime = serializers.DateTimeField(
-        source='properties_start_datetime', required=False, default=None
-    )
-    end_datetime = serializers.DateTimeField(
-        source='properties_end_datetime', required=False, default=None
-    )
-    title = serializers.CharField(
-        source='properties_title',
-        required=False,
-        allow_blank=False,
-        allow_null=True,
-        max_length=255,
-        default=None
-    )
-    created = serializers.DateTimeField(read_only=True)
-    updated = serializers.DateTimeField(read_only=True)
-
-
-class BboxSerializer(gis_serializers.GeoFeatureModelSerializer):
-
-    class Meta:
-        model = Item
-        geo_field = "geometry"
-        auto_bbox = True
-        fields = ['geometry']
-
-    def to_representation(self, instance):
-        python_native = super().to_representation(instance)
-        return python_native['bbox']
-
-
-class AssetsDictSerializer(DictSerializer):
-    '''Assets serializer list to dictionary
-
-    This serializer returns an asset dictionary with the asset name as keys.
-    '''
-    # pylint: disable=abstract-method
-    key_identifier = 'id'
-
-
-class HrefField(serializers.Field):
-    '''Special Href field for Assets'''
-
-    # pylint: disable=abstract-method
-
-    def to_representation(self, value):
-        # build an absolute URL from the file path
-        request = self.context.get("request")
-        path = value.name
-
-        return build_asset_href(request, path)
-
-
-class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
-    '''Asset serializer base class
-    '''
-
-    class Meta:
-        model = Asset
-        fields = [
-            'id',
-            'title',
-            'type',
-            'href',
-            'description',
-            'eo_gsd',
-            'geoadmin_lang',
-            'geoadmin_variant',
-            'proj_epsg',
-            'checksum_multihash',
-            'created',
-            'updated'
-        ]
-        validators = []  # Remove a default "unique together" constraint.
-        # (see:
-        # https://www.django-rest-framework.org/api-guide/validators/#limitations-of-validators)
-
-    # NOTE: when explicitely declaring fields, we need to add the validation as for the field
-    # in model !
-    id = serializers.CharField(source='name', max_length=255, validators=[validate_asset_name])
-    title = serializers.CharField(
-        required=False, max_length=255, allow_null=True, allow_blank=False
-    )
-    description = serializers.CharField(required=False, allow_blank=False, allow_null=True)
-    # Can't be a ChoiceField, as the validate method normalizes the MIME string only after it
-    # is read. Consistency is nevertheless guaranteed by the validate() and validate_type() methods.
-    type = serializers.CharField(
-        source='media_type', required=True, allow_null=False, allow_blank=False
-    )
-    # Here we need to explicitely define these fields with the source, because they are renamed
-    # in the get_fields() method
-    eo_gsd = serializers.FloatField(source='eo_gsd', required=False, allow_null=True)
-    geoadmin_lang = serializers.ChoiceField(
-        source='geoadmin_lang',
-        choices=Asset.Language.values,
-        required=False,
-        allow_null=True,
-        allow_blank=False
-    )
-    geoadmin_variant = serializers.CharField(
-        source='geoadmin_variant',
-        max_length=25,
-        allow_blank=False,
-        allow_null=True,
-        required=False,
-        validators=[validate_geoadmin_variant]
-    )
-    proj_epsg = serializers.IntegerField(source='proj_epsg', allow_null=True, required=False)
-    # read only fields
-    checksum_multihash = serializers.CharField(source='checksum_multihash', read_only=True)
-    href = HrefField(source='file', read_only=True)
-    created = serializers.DateTimeField(read_only=True)
-    updated = serializers.DateTimeField(read_only=True)
-
-    def create(self, validated_data):
-        asset = validate_uniqueness_and_create(Asset, validated_data)
-        return asset
-
-    def update_or_create(self, look_up, validated_data):
-        """
-        Update or create the asset object selected by kwargs and return the instance.
-        When no asset object matching the kwargs selection, a new asset is created.
-        Args:
-            validated_data: dict
-                Copy of the validated_data to use for update
-            kwargs: dict
-                Object selection arguments (NOTE: the selection arguments must match a unique
-                object in DB otherwise an IntegrityError will be raised)
-        Returns: tuple
-            Asset instance and True if created otherwise false
-        """
-        asset, created = Asset.objects.update_or_create(**look_up, defaults=validated_data)
-        return asset, created
-
-    def validate_type(self, value):
-        ''' Validates the the field "type"
-        '''
-        return normalize_and_validate_media_type(value)
-
-    def validate(self, attrs):
-        name = attrs['name'] if not self.partial else attrs.get('name', self.instance.name)
-        media_type = attrs['media_type'] if not self.partial else attrs.get(
-            'media_type', self.instance.media_type
-        )
-        validate_asset_name_with_media_type(name, media_type)
-
-        validate_json_payload(self)
-
-        return attrs
-
-    def get_fields(self):
-        fields = super().get_fields()
-        # This is a hack to allow fields with special characters
-        fields['gsd'] = fields.pop('eo_gsd')
-        fields['proj:epsg'] = fields.pop('proj_epsg')
-        fields['geoadmin:variant'] = fields.pop('geoadmin_variant')
-        fields['geoadmin:lang'] = fields.pop('geoadmin_lang')
-        fields['file:checksum'] = fields.pop('checksum_multihash')
-
-        # Older versions of the api still use different name
-        request = self.context.get('request')
-        if not is_api_version_1(request):
-            fields['checksum:multihash'] = fields.pop('file:checksum')
-            fields['eo:gsd'] = fields.pop('gsd')
-
-        return fields
-
-
-class AssetSerializer(AssetBaseSerializer):
-    '''Asset serializer for the asset views
-
-    This serializer adds the links list attribute.
-    '''
-
-    def to_representation(self, instance):
-        collection = instance.item.collection.name
-        item = instance.item.name
-        name = instance.name
-        request = self.context.get("request")
-        representation = super().to_representation(instance)
-        # Add auto links
-        # We use OrderedDict, although it is not necessary, because the default serializer/model for
-        # links already uses OrderedDict, this way we keep consistency between auto link and user
-        # link
-        representation['links'] = get_relation_links(
-            request, 'asset-detail', [collection, item, name]
-        )
-        return representation
-
-
-class AssetsForItemSerializer(AssetBaseSerializer):
-    '''Assets serializer for nesting them inside the item
-
-    Assets should be nested inside their item but using a dictionary instead of a list and without
-    links.
-    '''
-
-    class Meta:
-        model = Asset
-        list_serializer_class = AssetsDictSerializer
-        fields = [
-            'id',
-            'title',
-            'type',
-            'href',
-            'description',
-            'eo_gsd',
-            'geoadmin_lang',
-            'geoadmin_variant',
-            'proj_epsg',
-            'checksum_multihash',
-            'created',
-            'updated'
-        ]
 
 
 class ItemSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):

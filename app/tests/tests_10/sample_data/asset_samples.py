@@ -12,6 +12,7 @@ assets = {
         'name': 'asset-1.tiff',
         'title': 'Asset 1 Title',
         'description': 'This is a full description of asset 1',
+        'roles': ['data', 'visual'],
         'eo_gsd': 3.4,
         'geoadmin_lang': 'fr',
         'geoadmin_variant': 'kgrs',
@@ -120,6 +121,81 @@ assets = {
         'eo_gsd': 3.4,
         'geoadmin_lang': 'fr',
         'geoadmin_variant': 'kgrs',
+        'proj_epsg': 2056,
+        'media_type': "image/tiff; application=geotiff; profile=cloud-optimized",
+        # use a path instead of a bytes object to avoid creating a file
+        'file': 'collection-1/item-1/asset-1.tiff'
+    },
+}
+
+collection_assets = {
+    'asset-1': {
+        'name': 'asset-1.tiff',
+        'title': 'Asset 1 Title',
+        'description': 'This is a full description of asset 1',
+        'roles': ['data', 'visual'],
+        'proj_epsg': 2056,
+        'media_type': "image/tiff; application=geotiff; profile=cloud-optimized",
+        'checksum_multihash': get_sha256_multihash(FILE_CONTENT_1),
+        'file': FILE_CONTENT_1
+    },
+    'asset-no-checksum': {
+        'name': 'asset-1.tiff',
+        'title': 'Asset 1 Title',
+        'description': 'This is a full description of asset 1',
+        'proj_epsg': 2056,
+        'media_type': "image/tiff; application=geotiff; profile=cloud-optimized",
+        'file': FILE_CONTENT_1
+    },
+    'asset-1-updated': {
+        'name': 'asset-2.txt',
+        'title': 'Asset 2 Title',
+        'description': 'This is a full description of asset 2',
+        'proj_epsg': 2057,
+        'media_type': "text/plain"
+    },
+    'asset-2': {
+        'name': 'asset-2.txt',
+        'title': 'Asset 2 Title',
+        'description': 'This is a full description of asset 2',
+        'proj_epsg': 2057,
+        'media_type': "text/plain",
+        'checksum_multihash': get_sha256_multihash(FILE_CONTENT_2),
+        'file': FILE_CONTENT_2
+    },
+    'asset-3': {
+        'name': 'asset-3.pdf',
+        'title': 'Asset 3 Title',
+        'description': 'This is a full description of asset 3',
+        'proj_epsg': 2058,
+        'media_type': "application/pdf",
+        'checksum_multihash': get_sha256_multihash(FILE_CONTENT_3),
+        'file': FILE_CONTENT_3
+    },
+    'asset-invalid': {
+        'name': 'asset invalid name + other invalid fields',
+        'title': 10,
+        'description': 56,
+        'proj_epsg': 'should be an int',
+        'media_type': "dummy",
+        'file': b'Asset 3 file content'
+    },
+    'asset-invalid-type': {
+        'name': 'asset-invalid-type.tiff',
+        'title': 'Asset invalid type Title',
+        'description': 'This is a full description of asset-invalid-type',
+        'proj_epsg': 2056,
+        'media_type': "image/tiff; application=Geotiff; profile=cloud-optimized",
+        'checksum_multihash': get_sha256_multihash(FILE_CONTENT_1),
+        'file': FILE_CONTENT_1
+    },
+    'asset-missing-required': {
+        'name': 'asset-missing-required',
+    },
+    'asset-no-file': {
+        'name': 'asset-1.tiff',
+        'title': 'Asset 1 Title',
+        'description': 'This is a full description of asset 1',
         'proj_epsg': 2056,
         'media_type': "image/tiff; application=geotiff; profile=cloud-optimized",
         # use a path instead of a bytes object to avoid creating a file

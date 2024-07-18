@@ -13,11 +13,13 @@ from stac_api.utils import utc_aware
 from tests.tests_10.base_test import STAC_BASE_V
 from tests.tests_10.base_test import StacBaseTestCase
 from tests.tests_10.base_test import StacBaseTransactionTestCase
+from tests.tests_10.data_factory import CollectionAssetFactory
 from tests.tests_10.data_factory import CollectionFactory
 from tests.tests_10.data_factory import Factory
 from tests.tests_10.utils import reverse_version
 from tests.utils import client_login
 from tests.utils import disableLogger
+from tests.utils import mock_s3_asset_file
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +29,7 @@ class CollectionsEndpointTestCase(StacBaseTestCase):
     def setUp(self):  # pylint: disable=invalid-name
         self.client = Client()
         self.factory = CollectionFactory()
+        self.asset_factory = CollectionAssetFactory()
         self.collection_1 = self.factory.create_sample(
             sample='collection-1', name='collection-1', db_create=True
         )
@@ -66,6 +69,26 @@ class CollectionsEndpointTestCase(StacBaseTestCase):
         self.assertEtagHeader(None, response)
 
         self.check_stac_collection(self.collection_1.json, response_json)
+
+    @mock_s3_asset_file
+    def test_single_collection_assets_endpoint(self):
+        asset_count = 3
+        collection = self.collection_1.model
+        self.asset_factory.create_samples(
+            collection=collection, samples=asset_count, db_create=True
+        )
+
+        response = self.client.get(f"/{STAC_BASE_V}/collections/{collection.name}")
+        response_json = response.json()
+        self.assertStatusCode(200, response)
+        # The ETag change between each test call due to the created, updated time that are in the
+        # hash computation of the ETag
+        self.assertEtagHeader(None, response)
+
+        self.check_stac_collection(self.collection_1.json, response_json)
+        self.assertEqual(
+            len(response_json['assets']), asset_count, msg="Integrated assets length don't match"
+        )
 
 
 class CollectionsUnImplementedEndpointTestCase(StacBaseTestCase):
