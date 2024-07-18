@@ -248,6 +248,8 @@ class HrefField(serializers.Field):
         request = self.context.get("request")
         path = value.name
 
+        if value.instance.is_external:
+            return path
         return build_asset_href(request, path)
 
     def to_internal_value(self, data):
