@@ -275,7 +275,7 @@ class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
             'proj_epsg',
             'checksum_multihash',
             'created',
-            'updated'
+            'updated',
         ]
         validators = []  # Remove a default "unique together" constraint.
         # (see:
@@ -318,6 +318,10 @@ class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
     created = serializers.DateTimeField(read_only=True)
     updated = serializers.DateTimeField(read_only=True)
 
+    # helper variable to provide the collection for upsert validation
+    # see views.AssetDetail.perform_upsert
+    collection = None
+
     def create(self, validated_data):
         asset = validate_uniqueness_and_create(Asset, validated_data)
         return asset
@@ -343,12 +347,30 @@ class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         '''
         return normalize_and_validate_media_type(value)
 
+    def _validate_href_field(self, attrs):
+        """Only allow the href field if the collection allows for external assets
+
+        Raise an exception, this replicates the previous behaviour when href
+        was always read_only
+        """
+        if 'file' in attrs:
+            if self.collection:
+                collection = self.collection
+            else:
+                raise Exception("Implementation error")
+
+            if not collection.allow_external_assets:
+                errors = {'href': _("Found read-only property in payload")}
+                raise serializers.ValidationError(code="payload", detail=errors)
+
     def validate(self, attrs):
         name = attrs['name'] if not self.partial else attrs.get('name', self.instance.name)
         media_type = attrs['media_type'] if not self.partial else attrs.get(
             'media_type', self.instance.media_type
         )
         validate_asset_name_with_media_type(name, media_type)
+
+        self._validate_href_field(attrs)
 
         validate_json_payload(self)
 

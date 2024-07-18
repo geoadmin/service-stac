@@ -94,8 +94,10 @@ class UpdateInsertModelMixin:
     @transaction.atomic
     def upsert(self, request, *args, **kwargs):
         data = self.get_write_request_data(request, *args, **kwargs)
+
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
+
         lookup = {}
         if self.lookup_url_kwarg:
             lookup = {self.lookup_field: self.kwargs[self.lookup_url_kwarg]}

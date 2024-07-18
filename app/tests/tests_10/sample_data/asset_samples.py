@@ -126,6 +126,18 @@ assets = {
         # use a path instead of a bytes object to avoid creating a file
         'file': 'collection-1/item-1/asset-1.tiff'
     },
+    'external-asset': {
+        'name': 'test.jpg',
+        'title': 'An external asset',
+        'description': 'This asset is hosted externally',
+        'eo_gsd': 3.3,
+        'geoadmin_lang': 'fr',
+        'geoadmin_variant': 'kgrs',
+        'proj_epsg': 2056,
+        'media_type': 'image/jpeg',
+        'file': 'https://sys-data.dev.bgdi.ch/ch.bgdi.test/test.jpg',
+        'is_external': True
+    }
 }
 
 collection_assets = {

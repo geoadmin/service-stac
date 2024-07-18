@@ -1494,6 +1494,8 @@ class Factory:
             sample: string
                 Sample based on the sample named found in tests.sample_data.asset_samples.assets
                 dictionary.
+            db_create: bool
+                Whether to create it in the database
             required_only: bool
                 Return only attributes that are required (minimum sample data).
             create_asset_file: bool
