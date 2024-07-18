@@ -667,6 +667,7 @@ class AssetUploadBase(generics.GenericAPIView):
 
     def create_multipart_upload(self, executor, serializer, validated_data, asset):
         key = get_asset_path(asset.item, asset.name)
+
         upload_id = executor.create_multipart_upload(
             key,
             asset,
@@ -725,8 +726,18 @@ class AssetUploadBase(generics.GenericAPIView):
 
 class AssetUploadsList(AssetUploadBase, mixins.ListModelMixin, views_mixins.CreateModelMixin):
 
+    class ExternalDisallowedException(Exception):
+        pass
+
     def post(self, request, *args, **kwargs):
-        return self.create(request, *args, **kwargs)
+        try:
+            return self.create(request, *args, **kwargs)
+        except self.ExternalDisallowedException as ex:
+            data = {
+                "code": 400,
+                "description": "Not allowed to create multipart uploads on external assets"
+            }
+            return Response(status=400, exception=True, data=data)
 
     def get(self, request, *args, **kwargs):
         validate_asset(self.kwargs)
@@ -739,6 +750,9 @@ class AssetUploadsList(AssetUploadBase, mixins.ListModelMixin, views_mixins.Crea
         data = serializer.validated_data
         asset = self.get_asset_or_404()
         collection = asset.item.collection
+
+        if asset.is_external:
+            raise self.ExternalDisallowedException()
 
         s3_bucket = select_s3_bucket(collection.name)
         executor = MultipartUpload(s3_bucket)
