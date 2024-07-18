@@ -91,7 +91,8 @@ class CollectionAdmin(admin.ModelAdmin):
         'summaries_eo_gsd',
         'license',
         'etag',
-        'update_interval'
+        'update_interval',
+        'allow_external_assets'
     ]
     readonly_fields = [
         'extent_start_datetime',

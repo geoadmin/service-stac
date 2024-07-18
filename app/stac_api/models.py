@@ -305,6 +305,11 @@ class Collection(models.Model):
         "in which the underlying assets data are updated."
     )
 
+    allow_external_assets = models.BooleanField(
+        default=False,
+        help_text=_('Whether this collection can have assets that are hosted externally')
+    )
+
     def __str__(self):
         return self.name
 
