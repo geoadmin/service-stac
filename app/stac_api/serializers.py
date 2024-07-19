@@ -350,7 +350,7 @@ class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         '''
         return normalize_and_validate_media_type(value)
 
-    def _validate_href_url(self, url):
+    def _validate_general_url_pattern(self, url):
         # thanks https://stackoverflow.com/questions/3809401/
         # what-is-a-good-regular-expression-to-match-a-url
         url_regex = (
@@ -362,8 +362,15 @@ class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
             errors = {'href': _('Invalid URL provided')}
             raise serializers.ValidationError(code='payload', detail=errors)
 
-        # validate the url against a list of patterns in the collection
+    def _validate_configured_url_pattern(self, url):
+        # get the collection regex. if there's none, allow all urls
+        collection_regex = self.collection.external_asset_pattern or r".*"
 
+        if not re.search(collection_regex, url):
+            errors = {'href': _("Invalid URL provided. It doesn't match the collection pattern")}
+            raise serializers.ValidationError(code='payload', detail=errors)
+
+    def _validate_reachability(self, url):
         try:
             response = requests.head(url, timeout=settings.EXTERNAL_URL_REACHABLE_TIMEOUT)
             if response.status_code != 200:
@@ -372,6 +379,11 @@ class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         except requests.Timeout as timeout:
             errors = {'href': _('Checking href URL resulted in timeout')}
             raise serializers.ValidationError(code='payload', detail=errors)
+
+    def _validate_href_url(self, url):
+        self._validate_general_url_pattern(url)
+        self._validate_configured_url_pattern(url)
+        self._validate_reachability(url)
 
     def _validate_href_field(self, attrs):
         """Only allow the href field if the collection allows for external assets
