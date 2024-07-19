@@ -4,6 +4,7 @@ from json import dumps
 from json import loads
 from pprint import pformat
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import Client
 from django.urls import reverse
@@ -391,8 +392,7 @@ class AssetsCreateEndpointTestCase(StacBaseTestCase):
             'id': 'clouds.jpg',
             'description': 'High in the sky',
             'type': 'image/jpeg',  # specify the file explicitly
-            'href':
-                'https://sys-data.int.bgdi.ch/ch.meteoschweiz.ogd-swisstopo-test/ch.meteoschweiz.ogd-swisstopo-testitem/clouds.jpg'
+            'href': settings.EXTERNAL_TEST_ASSET_URL
         }
 
         # create the asset, which isn't allowed
@@ -432,7 +432,7 @@ class AssetsCreateEndpointTestCase(StacBaseTestCase):
         asset = self.factory.create_asset_sample(item=self.item, sample='asset-1', db_create=True)
 
         asset_data = asset.get_json('put')
-        asset_data['href'] = "https://sys-data.dev.bgdi.ch/ch.bgdi/test.jpg"
+        asset_data['href'] = settings.EXTERNAL_TEST_ASSET_URL
 
         response = self.client.put(
             reverse_version('asset-detail', args=[collection.name, item.name, asset.attr_name]),
@@ -463,6 +463,35 @@ class AssetsCreateEndpointTestCase(StacBaseTestCase):
         json_data = response.json()
 
         self.assertEqual(json_data['href'], asset.attr_file)
+
+    def test_create_asset_with_invalid_external_url(self):
+        collection = self.collection
+        item = self.item
+
+        collection.allow_external_assets = True
+        collection.save()
+
+        asset_data = {
+            'id': 'clouds.jpg',
+            'description': 'High in the sky',
+            'type': 'image/jpeg',  # specify the file explicitly
+            'href': 'this-is-not-a-url'
+        }
+
+        # create the asset
+        response = self.client.put(
+            reverse_version('asset-detail', args=[collection.name, item.name, asset_data['id']]),
+            data=asset_data,
+            content_type="application/json"
+        )
+
+        self.assertStatusCode(400, response)
+        description = response.json()['description']
+        self.assertIn('href', description, msg=f'Unexpected field error {description}')
+
+        self.assertEqual(
+            "Invalid URL provided", description['href'][0], msg="Unexpected error message"
+        )
 
 
 class AssetsWriteEndpointAssetFileTestCase(StacBaseTestCase):

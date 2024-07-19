@@ -1,3 +1,5 @@
+from django.conf import settings
+
 from stac_api.utils import get_sha256_multihash
 
 FILE_CONTENT_1 = b'Asset 1 file content'
@@ -135,7 +137,7 @@ assets = {
         'geoadmin_variant': 'kgrs',
         'proj_epsg': 2056,
         'media_type': 'image/jpeg',
-        'file': 'https://sys-data.dev.bgdi.ch/ch.bgdi.test/test.jpg',
+        'file': settings.EXTERNAL_TEST_ASSET_URL,
         'is_external': True
     }
 }

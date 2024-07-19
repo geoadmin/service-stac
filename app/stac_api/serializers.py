@@ -1,5 +1,6 @@
 import logging
 from collections import OrderedDict
+import re
 from urllib.parse import urlparse
 
 from django.conf import settings
@@ -347,6 +348,20 @@ class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         '''
         return normalize_and_validate_media_type(value)
 
+    def _validate_href_url(self, url):
+        # thanks https://stackoverflow.com/questions/3809401/
+        # what-is-a-good-regular-expression-to-match-a-url
+        url_regex = (
+            r'https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}'
+            r'\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)'
+        )
+
+        if not re.match(url_regex, url):
+            errors = {'href': _('Invalid URL provided')}
+            raise serializers.ValidationError(code='payload', detail=errors)
+
+            # validate the url against a list of patterns in the collection
+
     def _validate_href_field(self, attrs):
         """Only allow the href field if the collection allows for external assets
 
@@ -362,6 +377,8 @@ class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
             if not collection.allow_external_assets:
                 errors = {'href': _("Found read-only property in payload")}
                 raise serializers.ValidationError(code="payload", detail=errors)
+
+            self._validate_href_url(attrs['file'])
 
     def validate(self, attrs):
         name = attrs['name'] if not self.partial else attrs.get('name', self.instance.name)
