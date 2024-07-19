@@ -307,7 +307,15 @@ class Collection(models.Model):
 
     allow_external_assets = models.BooleanField(
         default=False,
+
         help_text=_('Whether this collection can have assets that are hosted externally')
+    )
+
+    external_asset_pattern = models.CharField(
+        max_length=1024,
+        null=False,
+        blank=True,
+        help_text=_("The allowed regex pattern for external URLs")
     )
 
     def __str__(self):
