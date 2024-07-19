@@ -92,7 +92,8 @@ class CollectionAdmin(admin.ModelAdmin):
         'license',
         'etag',
         'update_interval',
-        'allow_external_assets'
+        'allow_external_assets',
+        'external_asset_pattern'
     ]
     readonly_fields = [
         'extent_start_datetime',
