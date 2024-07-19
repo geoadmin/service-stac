@@ -364,9 +364,13 @@ class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
 
         # validate the url against a list of patterns in the collection
 
-        response = requests.head(url)
-        if response.status_code != 200:
-            errors = {'href': _('Provided URL is unreachable')}
+        try:
+            response = requests.head(url, timeout=settings.EXTERNAL_URL_REACHABLE_TIMEOUT)
+            if response.status_code != 200:
+                errors = {'href': _('Provided URL is unreachable')}
+                raise serializers.ValidationError(code='payload', detail=errors)
+        except requests.Timeout as timeout:
+            errors = {'href': _('Checking href URL resulted in timeout')}
             raise serializers.ValidationError(code='payload', detail=errors)
 
     def _validate_href_field(self, attrs):
