@@ -1,7 +1,9 @@
 import logging
-from collections import OrderedDict
 import re
+from collections import OrderedDict
 from urllib.parse import urlparse
+
+import requests
 
 from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry
@@ -360,7 +362,12 @@ class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
             errors = {'href': _('Invalid URL provided')}
             raise serializers.ValidationError(code='payload', detail=errors)
 
-            # validate the url against a list of patterns in the collection
+        # validate the url against a list of patterns in the collection
+
+        response = requests.head(url)
+        if response.status_code != 200:
+            errors = {'href': _('Provided URL is unreachable')}
+            raise serializers.ValidationError(code='payload', detail=errors)
 
     def _validate_href_field(self, attrs):
         """Only allow the href field if the collection allows for external assets

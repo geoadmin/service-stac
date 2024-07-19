@@ -493,6 +493,44 @@ class AssetsCreateEndpointTestCase(StacBaseTestCase):
             "Invalid URL provided", description['href'][0], msg="Unexpected error message"
         )
 
+    def test_create_asset_with_inexistent_external_url(self):
+        collection = self.collection
+        item = self.item
+
+        collection.allow_external_assets = True
+        collection.save()
+
+        asset_data = {
+            'id': 'clouds.jpg',
+            'description': 'High in the sky',
+            'type': 'image/jpeg',  # specify the file explicitly
+            'href': 'https://sys-data.dev.bgdi.ch/ch.bgdi.test/test.jpg'
+        }
+
+        # create the asset with an existing one
+        response = self.client.put(
+            reverse_version('asset-detail', args=[collection.name, item.name, asset_data['id']]),
+            data=asset_data,
+            content_type="application/json"
+        )
+
+        self.assertStatusCode(201, response)
+
+        asset_data['href'] = 'https://sys-data.dev.bgdi.ch/ch.bgdi.test/inexistent.jpg'
+        # create the asset with an existing one
+        response = self.client.put(
+            reverse_version('asset-detail', args=[collection.name, item.name, asset_data['id']]),
+            data=asset_data,
+            content_type="application/json"
+        )
+
+        description = response.json()['description']
+        self.assertIn('href', description, msg=f'Unexpected field error {description}')
+
+        self.assertEqual(
+            "Provided URL is unreachable", description['href'][0], msg="Unexpected error message"
+        )
+
 
 class AssetsWriteEndpointAssetFileTestCase(StacBaseTestCase):
 
