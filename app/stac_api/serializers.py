@@ -7,6 +7,8 @@ import requests
 
 from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry
+from django.core import exceptions
+from django.core.validators import URLValidator
 from django.utils.translation import gettext_lazy as _
 
 from rest_framework import serializers
@@ -351,16 +353,12 @@ class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         return normalize_and_validate_media_type(value)
 
     def _validate_general_url_pattern(self, url):
-        # thanks https://stackoverflow.com/questions/3809401/
-        # what-is-a-good-regular-expression-to-match-a-url
-        url_regex = (
-            r'https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}'
-            r'\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)'
-        )
-
-        if not re.match(url_regex, url):
+        try:
+            validator = URLValidator()
+            validator(url)
+        except exceptions.ValidationError as exc:
             errors = {'href': _('Invalid URL provided')}
-            raise serializers.ValidationError(code='payload', detail=errors)
+            raise serializers.ValidationError(code='payload', detail=errors) from exc
 
     def _validate_configured_url_pattern(self, url):
         # get the collection regex. if there's none, allow all urls
