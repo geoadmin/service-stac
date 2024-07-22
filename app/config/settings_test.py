@@ -38,3 +38,8 @@ AWS_SETTINGS = {
         "S3_SIGNATURE_VERSION": "s3v4"
     }
 }
+
+try:
+    EXTERNAL_TEST_ASSET_URL = env('EXTERNAL_TEST_ASSET_URL')
+except KeyError as err:
+    raise KeyError('External asset URL must be set for unit testing') from err
