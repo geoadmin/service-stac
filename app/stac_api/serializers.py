@@ -420,14 +420,16 @@ class AssetSerializer(AssetBaseSerializer):
             raise serializers.ValidationError(code='payload', detail=errors)
 
     def _validate_reachability(self, url):
+        unreachable_error = {'href': _('Provided URL is unreachable')}
         try:
             response = requests.head(url, timeout=settings.EXTERNAL_URL_REACHABLE_TIMEOUT)
-            if response.status_code != 200:
-                errors = {'href': _('Provided URL is unreachable')}
-                raise serializers.ValidationError(code='payload', detail=errors)
-        except requests.Timeout as timeout:
+            if response.status_code > 400:
+                raise serializers.ValidationError(code='payload', detail=unreachable_error)
+        except requests.Timeout as exc:
             errors = {'href': _('Checking href URL resulted in timeout')}
-            raise serializers.ValidationError(code='payload', detail=errors)
+            raise serializers.ValidationError(code='payload', detail=errors) from exc
+        except requests.ConnectionError as exc:
+            raise serializers.ValidationError(code='payload', detail=unreachable_error) from exc
 
     def _validate_href_url(self, url):
         self._validate_general_url_pattern(url)
@@ -440,6 +442,7 @@ class AssetSerializer(AssetBaseSerializer):
         Raise an exception, this replicates the previous behaviour when href
         was always read_only
         """
+        # the href field is translated to the file field here
         if 'file' in attrs:
             if self.collection:
                 collection = self.collection
