@@ -608,12 +608,6 @@ class AssetBase(models.Model):
         "-1 means that the data is not on a regular basis updated."
     )
 
-    # whether this asset is hosted externally
-    is_external = models.BooleanField(
-        default=False,
-        help_text=_("Whether this asset is hosted externally")
-    )
-
     def __str__(self):
         return self.name
 
@@ -668,6 +662,12 @@ class Asset(AssetBase):
         max_length=25, null=True, blank=True, validators=[validate_geoadmin_variant]
     )
 
+    # whether this asset is hosted externally
+    is_external = models.BooleanField(
+        default=False,
+        help_text=_("Whether this asset is hosted externally")
+    )
+
     def get_collection(self):
         return self.item.collection
 
@@ -689,6 +689,9 @@ class CollectionAsset(AssetBase):
         on_delete=models.PROTECT,
         help_text=_(SEARCH_TEXT_HELP_ITEM)
     )
+
+    # CollectionAssets are never external
+    is_external = False
 
     def get_collection(self):
         return self.collection

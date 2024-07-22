@@ -352,6 +352,57 @@ class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         '''
         return normalize_and_validate_media_type(value)
 
+    def validate(self, attrs):
+        name = attrs['name'] if not self.partial else attrs.get('name', self.instance.name)
+        media_type = attrs['media_type'] if not self.partial else attrs.get(
+            'media_type', self.instance.media_type
+        )
+        validate_asset_name_with_media_type(name, media_type)
+
+        validate_json_payload(self)
+
+        return attrs
+
+    def get_fields(self):
+        fields = super().get_fields()
+        # This is a hack to allow fields with special characters
+        fields['gsd'] = fields.pop('eo_gsd')
+        fields['proj:epsg'] = fields.pop('proj_epsg')
+        fields['geoadmin:variant'] = fields.pop('geoadmin_variant')
+        fields['geoadmin:lang'] = fields.pop('geoadmin_lang')
+        fields['file:checksum'] = fields.pop('checksum_multihash')
+
+        # Older versions of the api still use different name
+        request = self.context.get('request')
+        if not is_api_version_1(request):
+            fields['checksum:multihash'] = fields.pop('file:checksum')
+            fields['eo:gsd'] = fields.pop('gsd')
+            fields.pop('roles', None)
+
+        return fields
+
+
+class AssetSerializer(AssetBaseSerializer):
+    '''Asset serializer for the asset views
+
+    This serializer adds the links list attribute.
+    '''
+
+    def to_representation(self, instance):
+        collection = instance.item.collection.name
+        item = instance.item.name
+        name = instance.name
+        request = self.context.get("request")
+        representation = super().to_representation(instance)
+        # Add auto links
+        # We use OrderedDict, although it is not necessary, because the default serializer/model for
+        # links already uses OrderedDict, this way we keep consistency between auto link and user
+        # link
+        representation['links'] = get_relation_links(
+            request, 'asset-detail', [collection, item, name]
+        )
+        return representation
+
     def _validate_general_url_pattern(self, url):
         try:
             validator = URLValidator()
@@ -402,57 +453,8 @@ class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
             self._validate_href_url(attrs['file'])
 
     def validate(self, attrs):
-        name = attrs['name'] if not self.partial else attrs.get('name', self.instance.name)
-        media_type = attrs['media_type'] if not self.partial else attrs.get(
-            'media_type', self.instance.media_type
-        )
-        validate_asset_name_with_media_type(name, media_type)
-
         self._validate_href_field(attrs)
-
-        validate_json_payload(self)
-
-        return attrs
-
-    def get_fields(self):
-        fields = super().get_fields()
-        # This is a hack to allow fields with special characters
-        fields['gsd'] = fields.pop('eo_gsd')
-        fields['proj:epsg'] = fields.pop('proj_epsg')
-        fields['geoadmin:variant'] = fields.pop('geoadmin_variant')
-        fields['geoadmin:lang'] = fields.pop('geoadmin_lang')
-        fields['file:checksum'] = fields.pop('checksum_multihash')
-
-        # Older versions of the api still use different name
-        request = self.context.get('request')
-        if not is_api_version_1(request):
-            fields['checksum:multihash'] = fields.pop('file:checksum')
-            fields['eo:gsd'] = fields.pop('gsd')
-            fields.pop('roles', None)
-
-        return fields
-
-
-class AssetSerializer(AssetBaseSerializer):
-    '''Asset serializer for the asset views
-
-    This serializer adds the links list attribute.
-    '''
-
-    def to_representation(self, instance):
-        collection = instance.item.collection.name
-        item = instance.item.name
-        name = instance.name
-        request = self.context.get("request")
-        representation = super().to_representation(instance)
-        # Add auto links
-        # We use OrderedDict, although it is not necessary, because the default serializer/model for
-        # links already uses OrderedDict, this way we keep consistency between auto link and user
-        # link
-        representation['links'] = get_relation_links(
-            request, 'asset-detail', [collection, item, name]
-        )
-        return representation
+        return super().validate(attrs)
 
 
 class AssetsForItemSerializer(AssetBaseSerializer):
