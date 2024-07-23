@@ -310,11 +310,10 @@ class Collection(models.Model):
         help_text=_('Whether this collection can have assets that are hosted externally')
     )
 
-    external_asset_pattern = models.CharField(
-        max_length=1024,
-        null=False,
-        blank=True,
-        help_text=_("The regex pattern for allowed external URLs")
+    external_asset_whitelist = ArrayField(
+        models.CharField(max_length=255), blank=True, default=list,
+        help_text=_('Provide a comma separated list of '
+                    'protocol://domain values for the external asset url validation')
     )
 
     def __str__(self):

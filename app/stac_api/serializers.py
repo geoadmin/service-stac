@@ -1,5 +1,4 @@
 import logging
-import re
 from collections import OrderedDict
 from urllib.parse import urlparse
 
@@ -412,12 +411,16 @@ class AssetSerializer(AssetBaseSerializer):
             raise serializers.ValidationError(code='payload', detail=errors) from exc
 
     def _validate_configured_url_pattern(self, url):
-        # get the collection regex. if there's none, allow all urls
-        collection_regex = self.collection.external_asset_pattern or r".*"
+        """Validate the URL against the whitelist"""
+        whitelist = self.collection.external_asset_whitelist
 
-        if not re.search(collection_regex, url):
-            errors = {'href': _("Invalid URL provided. It doesn't match the collection pattern")}
-            raise serializers.ValidationError(code='payload', detail=errors)
+        for entry in whitelist:
+            if url.startswith(entry):
+                return True
+
+        # none of the prefixes matches
+        errors = {'href': _("Invalid URL provided. It doesn't match the collection whitelist")}
+        raise serializers.ValidationError(code='payload', detail=errors)
 
     def _validate_reachability(self, url):
         unreachable_error = {'href': _('Provided URL is unreachable')}

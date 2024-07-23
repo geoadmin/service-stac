@@ -93,7 +93,7 @@ class CollectionAdmin(admin.ModelAdmin):
         'etag',
         'update_interval',
         'allow_external_assets',
-        'external_asset_pattern'
+        'external_asset_whitelist'
     ]
     readonly_fields = [
         'extent_start_datetime',
@@ -112,6 +112,18 @@ class CollectionAdmin(admin.ModelAdmin):
     search_fields = ['name']
     list_display = ['name', 'published']
     list_filter = ['published']
+
+    def render_change_form(self, request, context, *args, **kwargs):
+        form_instance = context['adminform'].form
+        form_instance.fields['external_asset_whitelist'].widget = Textarea(
+            attrs={
+                'rows': 10,
+                'cols': 60,
+                'placeholder': 'https://map.geo.admin.ch,https://swisstopo.ch'
+            }
+        )
+
+        return super().render_change_form(request, context, *args, **kwargs)
 
     def get_search_results(self, request, queryset, search_term):
         queryset, use_distinct = super().get_search_results(request, queryset, search_term)

@@ -47,6 +47,7 @@ class AssetsExternalAssetEndpointTestCase(StacBaseTestCase):
         self.assertStatusCode(400, response)
 
         collection.allow_external_assets = True
+        collection.external_asset_whitelist = [settings.EXTERNAL_TEST_ASSET_URL]
         collection.save()
 
         # create the asset, now it's allowed
@@ -69,6 +70,7 @@ class AssetsExternalAssetEndpointTestCase(StacBaseTestCase):
         item = self.item
 
         collection.allow_external_assets = True
+        collection.external_asset_whitelist = [settings.EXTERNAL_TEST_ASSET_URL]
         collection.save()
 
         asset = self.factory.create_asset_sample(item=self.item, sample='asset-1', db_create=True)
@@ -140,6 +142,9 @@ class AssetsExternalAssetEndpointTestCase(StacBaseTestCase):
         item = self.item
 
         collection.allow_external_assets = True
+        collection.external_asset_whitelist = [
+            settings.EXTERNAL_TEST_ASSET_URL, 'https://map.geo.admin.ch'
+        ]
         collection.save()
 
         asset_data = {
@@ -179,6 +184,7 @@ class AssetsExternalAssetEndpointTestCase(StacBaseTestCase):
         item = self.item
 
         collection.allow_external_assets = True
+        collection.external_asset_whitelist = ['https://swiss']
         collection.save()
 
         asset_data = {
@@ -205,16 +211,21 @@ class AssetsExternalAssetEndpointTestCase(StacBaseTestCase):
         )
 
     @parameterized.expand([
-        ('test-domain.test', 'https://test-domain.test/collection/test.jpg', True),
-        ('^https://test-domain.test', 'https://test-domain.test/collection/test.jpg', True),
-        ('https://test-domain.test', 'https://test-domain.test/collection/test.jpg', True),
-        ('test-domain.test.*?/collection', 'https://test-domain.test/collection/test.jpg',
+        (['https://test-domain.test'], 'https://test-domain.test/collection/test.jpg', True),
+        (['https://test-domain'], 'https://test-domain.test/collection/test.jpg', True),
+        (['https://test-domaine', 'https://test-domain'],
+         'https://test-domain.test/collection/test.jpg',
+         True),  # trying to keep the formatting stable
+        (['https://test-domain.test/collection'],
+         'https://test-domain.test/collection/test.jpg',
          True),  # trying to keep the formatting stable here
-        ('test-domain.tst', 'https://test-domain.test/collection/test.jpg', False),
-        ('test-domain.test', 'https://test-domain.tst/collection/test.jpg', False),
-        ('https://test-domain.test', 'http://test-domain.test/collection/test.jpg', False)
+        (['https://test-domain.tst', 'https://something-else.ch'],
+         'https://test-domain.test/collection/test.jpg',
+         False),
+        (['http://test-domain.test'], 'https://test-domain.tst/collection/test.jpg', False),
+        (['https://test-domain.test'], 'http://test-domain.test/collection/test.jpg', False)
     ])
-    def test_create_external_asset_with_collection_pattern(self, pattern, href, result):
+    def test_create_external_asset_with_collection_pattern(self, patterns, href, result):
         collection = self.collection
 
         # item = self.item
@@ -223,11 +234,10 @@ class AssetsExternalAssetEndpointTestCase(StacBaseTestCase):
 
             @property
             def collection(self):
+                collection.external_asset_whitelist = patterns
+                collection.save()
 
-                class Collection:
-                    external_asset_pattern = pattern
-
-                return Collection()
+                return collection
 
         if result:
             # pylint: disable=W0212:protected-access
