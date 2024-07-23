@@ -418,6 +418,13 @@ class AssetSerializer(AssetBaseSerializer):
             if url.startswith(entry):
                 return True
 
+        logger.info(
+            "Attempted external asset upload didn't match the whitelist",
+            extra={
+                'url': url, 'whitelist': whitelist, 'collection': self.collection
+            }
+        )
+
         # none of the prefixes matches
         errors = {'href': _("Invalid URL provided. It doesn't match the collection whitelist")}
         raise serializers.ValidationError(code='payload', detail=errors)
@@ -426,12 +433,38 @@ class AssetSerializer(AssetBaseSerializer):
         unreachable_error = {'href': _('Provided URL is unreachable')}
         try:
             response = requests.head(url, timeout=settings.EXTERNAL_URL_REACHABLE_TIMEOUT)
+
             if response.status_code > 400:
+                logger.info(
+                    "Attempted external asset upload failed the reachability check",
+                    extra={
+                        'url': url,
+                        'collection': self.collection,
+                        'response': response,
+                    }
+                )
                 raise serializers.ValidationError(code='payload', detail=unreachable_error)
         except requests.Timeout as exc:
+            logger.info(
+                "Attempted external asset upload resulted in a timeout",
+                extra={
+                    'url': url,
+                    'collection': self.collection,
+                    'exception': exc,
+                    'timeout': settings.EXTERNAL_URL_REACHABLE_TIMEOUT
+                }
+            )
             errors = {'href': _('Checking href URL resulted in timeout')}
             raise serializers.ValidationError(code='payload', detail=errors) from exc
         except requests.ConnectionError as exc:
+            logger.info(
+                "Attempted external asset upload resulted in connection error",
+                extra={
+                    'url': url,
+                    'collection': self.collection,
+                    'exception': exc,
+                }
+            )
             raise serializers.ValidationError(code='payload', detail=unreachable_error) from exc
 
     def _validate_href_url(self, url):
@@ -453,6 +486,12 @@ class AssetSerializer(AssetBaseSerializer):
                 raise Exception("Implementation error")
 
             if not collection.allow_external_assets:
+                logger.info(
+                    'Attempted external asset upload with no permission',
+                    extra={
+                        'collection': self.collection, 'attrs': attrs
+                    }
+                )
                 errors = {'href': _("Found read-only property in payload")}
                 raise serializers.ValidationError(code="payload", detail=errors)
 
