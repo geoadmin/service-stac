@@ -1,14 +1,31 @@
 import pgtrigger
 
-AUTO_VARIABLES_FUNC = """
--- update auto variables
-NEW.etag = gen_random_uuid();
-NEW.updated = now();
 
-RAISE INFO 'Updated auto fields of %.id=% due to table updates.', TG_TABLE_NAME, NEW.id;
+def auto_variables_triggers(name):
+    auto_variables_func = '''
+    -- update auto variables
+    NEW.etag = gen_random_uuid();
+    NEW.updated = now();
 
-RETURN NEW;
-"""
+    RAISE INFO 'Updated auto fields of %.id=% due to table updates.', TG_TABLE_NAME, NEW.id;
+
+    RETURN NEW;
+    '''
+    return [
+        pgtrigger.Trigger(
+            name=f"add_{name}_auto_variables_trigger",
+            operation=pgtrigger.Insert,
+            when=pgtrigger.Before,
+            func=auto_variables_func
+        ),
+        pgtrigger.Trigger(
+            name=f"update_{name}_auto_variables_trigger",
+            operation=pgtrigger.Update,
+            when=pgtrigger.Before,
+            condition=pgtrigger.Condition('OLD.* IS DISTINCT FROM NEW.*'),
+            func=auto_variables_func
+        )
+    ]
 
 
 def generate_child_triggers(parent_name, child_name):
@@ -89,15 +106,6 @@ def generates_asset_triggers():
             WHERE id = asset_instance.item_id
         );
 
-        -- Update related item auto variables
-        UPDATE stac_api_item SET
-            updated = now(),
-            etag = gen_random_uuid()
-        WHERE id = asset_instance.item_id;
-
-        RAISE INFO 'item.id=% auto fields updated, due to asset.name=% updates.',
-            asset_instance.item_id, asset_instance.name;
-
         -- Compute collection summaries
         SELECT
             collection_id,
@@ -120,8 +128,6 @@ def generates_asset_triggers():
 
         -- Update related collection (auto variables + summaries)
         UPDATE stac_api_collection SET
-            updated = now(),
-            etag = gen_random_uuid(),
             summaries_proj_epsg = collection_summaries.proj_epsg,
             summaries_geoadmin_variant = collection_summaries.geoadmin_variant,
             summaries_geoadmin_lang = collection_summaries.geoadmin_lang,
@@ -162,27 +168,21 @@ def generates_asset_triggers():
         '''
 
     return [
+        *auto_variables_triggers('asset'),
+        *generate_child_triggers('item', "Asset"),
         UpdateCollectionSummariesTrigger(
             name='update_asset_collection_summaries_trigger',
             operation=pgtrigger.Update,
-            condition=pgtrigger.Condition('OLD.* IS DISTINCT FROM NEW.*')
+            condition=pgtrigger.Condition(
+                '''OLD.proj_epsg IS DISTINCT FROM NEW.proj_epsg OR
+                OLD.geoadmin_variant IS DISTINCT FROM NEW.geoadmin_variant OR
+                OLD.geoadmin_lang IS DISTINCT FROM NEW.geoadmin_lang OR
+                OLD.eo_gsd IS DISTINCT FROM NEW.eo_gsd'''
+            )
         ),
         UpdateCollectionSummariesTrigger(
             name='add_del_asset_collection_summaries_trigger',
             operation=pgtrigger.Delete | pgtrigger.Insert,
-        ),
-        pgtrigger.Trigger(
-            name="add_asset_auto_variables_trigger",
-            operation=pgtrigger.Insert,
-            when=pgtrigger.Before,
-            func=AUTO_VARIABLES_FUNC
-        ),
-        pgtrigger.Trigger(
-            name="update_asset_auto_variables_trigger",
-            operation=pgtrigger.Update,
-            condition=pgtrigger.Condition('OLD.* IS DISTINCT FROM NEW.*'),
-            when=pgtrigger.Before,
-            func=AUTO_VARIABLES_FUNC
         ),
         UpdateItemUpdateIntervalTrigger(
             name='add_del_asset_item_update_interval_trigger',
@@ -191,7 +191,8 @@ def generates_asset_triggers():
         UpdateItemUpdateIntervalTrigger(
             name='update_asset_item_update_interval_trigger',
             operation=pgtrigger.Update,
-            condition=pgtrigger.Condition('OLD.* IS DISTINCT FROM NEW.*'),
+            condition=pgtrigger.
+            Condition('OLD.update_interval IS DISTINCT FROM NEW.update_interval'),
         )
     ]
 
@@ -235,8 +236,6 @@ def generate_collection_asset_triggers():
 
         -- Update related collection (auto variables + summaries)
         UPDATE stac_api_collection SET
-            updated = now(),
-            etag = gen_random_uuid(),
             summaries_proj_epsg = collection_summaries.proj_epsg
         WHERE id = asset_instance.collection_id;
 
@@ -263,6 +262,8 @@ def generate_collection_asset_triggers():
         '''
 
     return [
+        *auto_variables_triggers('col_asset'),
+        *generate_child_triggers('collection', "CollectionAsset"),
         UpdateCollectionSummariesTrigger(
             name='update_col_asset_collection_summaries_trigger',
             operation=pgtrigger.Update,
@@ -271,19 +272,6 @@ def generate_collection_asset_triggers():
         UpdateCollectionSummariesTrigger(
             name='add_del_col_asset_collection_summaries_trigger',
             operation=pgtrigger.Delete | pgtrigger.Insert,
-        ),
-        pgtrigger.Trigger(
-            name="add_col_asset_auto_variables_trigger",
-            operation=pgtrigger.Insert,
-            when=pgtrigger.Before,
-            func=AUTO_VARIABLES_FUNC
-        ),
-        pgtrigger.Trigger(
-            name="update_col_asset_auto_variables_trigger",
-            operation=pgtrigger.Update,
-            condition=pgtrigger.Condition('OLD.* IS DISTINCT FROM NEW.*'),
-            when=pgtrigger.Before,
-            func=AUTO_VARIABLES_FUNC
         ),
         UpdateCollectionUpdateIntervalTrigger(
             name='add_del_col_asset_col_update_interval_trigger',
@@ -329,8 +317,6 @@ def generates_item_triggers():
 
         -- Update related collection (auto variables + extent)
         UPDATE stac_api_collection SET
-            updated = now(),
-            etag = gen_random_uuid(),
             extent_geometry = collection_extent.extent_geometry,
             extent_start_datetime = collection_extent.extent_start_datetime,
             extent_end_datetime = collection_extent.extent_end_datetime
@@ -369,23 +355,18 @@ def generates_item_triggers():
         '''
 
     return [
-        pgtrigger.Trigger(
-            name="add_item_auto_variables_trigger",
-            operation=pgtrigger.Insert,
-            when=pgtrigger.Before,
-            func=AUTO_VARIABLES_FUNC
-        ),
-        pgtrigger.Trigger(
-            name="update_item_auto_variables_trigger",
-            operation=pgtrigger.Update,
-            when=pgtrigger.Before,
-            condition=pgtrigger.Condition('OLD.* IS DISTINCT FROM NEW.*'),
-            func=AUTO_VARIABLES_FUNC
-        ),
+        *auto_variables_triggers('item'),
+        *generate_child_triggers('collection', 'Item'),
         UpdateCollectionExtentTrigger(
             name='update_item_collection_extent_trigger',
             operation=pgtrigger.Update,
-            condition=pgtrigger.Condition('OLD.* IS DISTINCT FROM NEW.*')
+            # condition=pgtrigger.Condition('OLD.* IS DISTINCT FROM NEW.*')
+            condition=pgtrigger.Condition(
+                '''NOT ST_EQUALS(OLD.geometry, NEW.geometry) OR
+                OLD.properties_start_datetime IS DISTINCT FROM NEW.properties_start_datetime OR
+                OLD.properties_end_datetime IS DISTINCT FROM NEW.properties_end_datetime OR
+                OLD.properties_datetime IS DISTINCT FROM NEW.properties_datetime'''
+            )
         ),
         UpdateCollectionExtentTrigger(
             name='add_del_item_collection_extent_trigger',
@@ -398,7 +379,8 @@ def generates_item_triggers():
         UpdateCollectionUpdateIntervalTrigger(
             name='update_item_collection_update_interval_trigger',
             operation=pgtrigger.Update,
-            condition=pgtrigger.Condition('OLD.* IS DISTINCT FROM NEW.*'),
+            condition=pgtrigger.
+            Condition('OLD.update_interval IS DISTINCT FROM NEW.update_interval'),
         )
     ]
 
@@ -414,19 +396,7 @@ def generates_collection_triggers():
     '''
 
     return [
-        pgtrigger.Trigger(
-            name="add_collection_auto_variables_trigger",
-            operation=pgtrigger.Insert,
-            when=pgtrigger.Before,
-            func=AUTO_VARIABLES_FUNC
-        ),
-        pgtrigger.Trigger(
-            name="update_collection_auto_variables_trigger",
-            operation=pgtrigger.Update,
-            when=pgtrigger.Before,
-            condition=pgtrigger.Condition('OLD.* IS DISTINCT FROM NEW.*'),
-            func=AUTO_VARIABLES_FUNC
-        ),
+        *auto_variables_triggers('collection'),
     ]
 
 
