@@ -520,14 +520,19 @@ The service is configured by Environment Variable:
 
 | Env         | Default               | Description                            |
 |-------------|-----------------------|----------------------------------------|
-| AWS_ACCESS_KEY_ID | - | |
-| AWS_SECRET_ACCESS_KEY | - | |
-| AWS_STORAGE_BUCKET_NAME | - | |
-| AWS_STORAGE_MANAGED_BUCKET_NAME | - | |
-| AWS_S3_REGION_NAME | - | |
-| AWS_S3_ENDPOINT_URL | `None` | |
+| LEGACY_AWS_ACCESS_KEY_ID | - | |
+| LEGACY_AWS_SECRET_ACCESS_KEY | - | |
+| LEGACY_AWS_S3_BUCKET_NAME | - | The name of the legacy bucket |
+| LEGACY_AWS_S3_REGION_NAME | `"eu-west-1"` | |
+| LEGACY_AWS_S3_ENDPOINT_URL | `None` | |
+| LEGACY_AWS_S3_CUSTOM_DOMAIN | `None` | |
+| AWS_S3_BUCKET_NAME | - | The name of the managed bucket |
+| AWS_S3_REGION_NAME | `"eu-central-1"` | The region of the managed bucket |
+| AWS_S3_ENDPOINT_URL | `None` |  |
 | AWS_S3_CUSTOM_DOMAIN | `None` | |
 | AWS_PRESIGNED_URL_EXPIRES | 3600 | AWS presigned url for asset upload expire time in seconds |
+| MANAGED_BUCKET_COLLECTION_PATTERNS | - | A list of regex patterns for collections that go to the managed bucket |
+| EXTERNAL_URL_REACHABLE_TIMEOUT | `5` | How long the external asset URL validator should try to connect to given asset in seconds |
 
 #### **Development settings (only for local environment and DEV staging)**
 
@@ -537,6 +542,7 @@ These settings are read from `settings_dev.py`
 |-------------|-----------------------|----------------------------------------|
 | DEBUG | `False` | Set django DEBUG flag |
 | DEBUG_PROPAGATE_API_EXCEPTIONS | `False` | When `True` the API exception are treated as in production, using a JSON response. Otherwise in DEBUG mode the API exception returns an HTML response with backtrace. |
+| EXTERNAL_TEST_ASSET_URL | `"https://prod-[...].jpg"`  | The URL of an externally hosted jpg file that's used in the external asset tests |
 
 ## Utility scripts
 
