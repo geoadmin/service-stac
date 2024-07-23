@@ -210,6 +210,20 @@ class AssetsExternalAssetEndpointTestCase(StacBaseTestCase):
             "Provided URL is unreachable", description['href'][0], msg="Unexpected error message"
         )
 
+    def test_delete_asset_with_external_url(self):
+        collection = self.collection
+        item = self.item
+
+        asset = self.factory.create_asset_sample(
+            item=self.item, sample='external-asset', db_create=True
+        )
+
+        response = self.client.delete(
+            reverse_version('asset-detail', args=[collection.name, item.name, asset.attr_name])
+        )
+
+        self.assertStatusCode(200, response)
+
     @parameterized.expand([
         (['https://test-domain.test'], 'https://test-domain.test/collection/test.jpg', True),
         (['https://test-domain'], 'https://test-domain.test/collection/test.jpg', True),
