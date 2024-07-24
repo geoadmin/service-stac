@@ -67,7 +67,7 @@ class AssetsModelTestCase(StacBaseTransactionTestCase):
         asset = self.factory.create_asset_sample(item=self.item, eo_gsd=1.33, db_create=True).model
         self.collection.refresh_from_db()
         self.assertListEqual(self.collection.summaries_proj_epsg, [2056])
-        self.assertListEqual(self.collection.summaries_eo_gsd, [1.33, 3.4])
+        self.assertCountEqual(self.collection.summaries_eo_gsd, [1.33, 3.4])
         self.assertListEqual(self.collection.summaries_geoadmin_variant, ['kgrs'])
         asset.delete()
         self.collection.refresh_from_db()

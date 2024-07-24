@@ -311,7 +311,7 @@ class CollectionsSummariesTestCase(StacBaseTransactionTestCase):
             "Collection's summaries[geoadmin:variant] has not been "
             "correctly updated after asset has been inserted."
         )
-        self.assertListEqual(
+        self.assertCountEqual(
             self.collection.summaries_geoadmin_lang, ["en", "fr"],
             "Collection's summaries[geoadmin:lang] has not been "
             "correctly updated after asset has been inserted."

@@ -1,3 +1,5 @@
+from enum import Enum
+
 import pgtrigger
 
 
@@ -78,67 +80,99 @@ def generate_child_triggers(parent_name, child_name):
     ]
 
 
-def generates_asset_triggers():
-    '''Generates Asset triggers
+def asset_counter_trigger(count_table, value_field):
+    '''Creates triggers to adjust the asset summary on a counter table.
 
-    Those triggers act on `insert`, `update` and `delete` Asset event and do the followings:
-      - Update the `updated` and `etag` fields of the assets and their parents
-      - Update the parent collection summaries.
-      - Update the parent item `update_interval` by using the minimal aggregation of all of its
-        assets
+    Args:
+         count_table: tha table name to be updated (without prefix stac_api_)
+         value_field: summary field name on the asset
 
-    Returns: tuple
-        tuple for all needed triggers
+    Returns:
+        List of triggers
     '''
 
-    class UpdateCollectionSummariesTrigger(pgtrigger.Trigger):
+    class UpdateDeleteCounterTrigger(pgtrigger.Trigger):
         when = pgtrigger.After
-        declare = [
-            ('asset_instance', 'stac_api_asset%ROWTYPE'),
-            ('related_collection_id', 'INT'),
-            ('collection_summaries', 'RECORD'),
-        ]
-        func = '''
-        asset_instance = COALESCE(NEW, OLD);
+        declare = [('asset_instance', 'stac_api_asset%ROWTYPE'), ('related_collection_id', 'INT')]
+        func = f'''
+        asset_instance = OLD;
 
         related_collection_id = (
             SELECT collection_id FROM stac_api_item
             WHERE id = asset_instance.item_id
         );
 
-        -- Compute collection summaries
-        SELECT
-            collection_id,
-            array_remove(array_agg(DISTINCT(proj_epsg)), null) AS proj_epsg,
-            array_remove(array_agg(DISTINCT(geoadmin_variant)), null) AS geoadmin_variant,
-            array_remove(array_agg(DISTINCT(geoadmin_lang)), null) AS geoadmin_lang,
-            array_remove(array_agg(DISTINCT(eo_gsd)), null) AS eo_gsd
-        INTO collection_summaries
-        FROM (
-                SELECT item.collection_id, asset.proj_epsg, asset.geoadmin_variant, asset.geoadmin_lang, asset.eo_gsd
-                FROM stac_api_item AS item
-                    LEFT JOIN stac_api_asset AS asset ON (asset.item_id = item.id)
-                WHERE collection_id = related_collection_id
-                UNION
-                SELECT collection_id, proj_epsg, NULL, NULL, NULL
-                FROM stac_api_collectionasset
-                WHERE collection_id = related_collection_id
-            ) a
-        GROUP BY collection_id;
+        UPDATE stac_api_{count_table}
+        SET count = count-1
+        WHERE collection_id = related_collection_id
+            AND value = asset_instance.{value_field};
 
-        -- Update related collection (auto variables + summaries)
-        UPDATE stac_api_collection SET
-            summaries_proj_epsg = collection_summaries.proj_epsg,
-            summaries_geoadmin_variant = collection_summaries.geoadmin_variant,
-            summaries_geoadmin_lang = collection_summaries.geoadmin_lang,
-            summaries_eo_gsd = collection_summaries.eo_gsd
-        WHERE id = related_collection_id;
-
-        RAISE INFO 'collection.id=% summaries updated, due to asset.name=% update.',
-            related_collection_id, asset_instance.name;
+        RAISE INFO
+            '{count_table} (collection_id, value) (% %) count updated, due to asset.name=% update.',
+            related_collection_id, asset_instance.{value_field}, asset_instance.name;
 
         RETURN asset_instance;
         '''
+
+    class UpdateInsertCounterTrigger(pgtrigger.Trigger):
+        when = pgtrigger.After
+        declare = [('asset_instance', 'stac_api_asset%ROWTYPE'), ('related_collection_id', 'INT')]
+        func = f'''
+        asset_instance = NEW;
+
+        related_collection_id = (
+            SELECT collection_id FROM stac_api_item
+            WHERE id = asset_instance.item_id
+        );
+
+        INSERT INTO stac_api_{count_table} (collection_id, value, count)
+        VALUES (related_collection_id, asset_instance.{value_field}, 1)
+        ON CONFLICT (collection_id, value)
+        DO UPDATE SET count = stac_api_{count_table}.count+1;
+
+        RAISE INFO
+            '{count_table} (collection_id, value) (% %) count updated, due to asset.name=% update.',
+            related_collection_id, asset_instance.{value_field}, asset_instance.name;
+
+        RETURN asset_instance;
+        '''
+
+    return [
+        UpdateDeleteCounterTrigger(
+            name=f'upd_dec_{value_field}_trigger',
+            operation=pgtrigger.Update,
+            condition=pgtrigger.
+            Condition(f'''OLD.{value_field} IS DISTINCT FROM NEW.{value_field}''')
+        ),
+        UpdateDeleteCounterTrigger(
+            name=f'del_{value_field}_trigger',
+            operation=pgtrigger.Delete,
+        ),
+        UpdateInsertCounterTrigger(
+            name=f'upd_inc_{value_field}_trigger',
+            operation=pgtrigger.Update,
+            condition=pgtrigger.
+            Condition(f'''OLD.{value_field} IS DISTINCT FROM NEW.{value_field}''')
+        ),
+        UpdateInsertCounterTrigger(
+            name=f'add_{value_field}_trigger',
+            operation=pgtrigger.Insert,
+        ),
+    ]
+
+
+def generates_asset_triggers():
+    '''Generates Asset triggers
+
+    Those triggers act on `insert`, `update` and `delete` Asset event and do the followings:
+      - Update the `updated` and `etag` fields of the assets and their parents
+      - Update the parent collection summaries (via counter tables).
+      - Update the parent item `update_interval` by using the minimal aggregation of all of its
+        assets
+
+    Returns: tuple
+        tuple for all needed triggers
+    '''
 
     class UpdateItemUpdateIntervalTrigger(pgtrigger.Trigger):
         when = pgtrigger.After
@@ -169,21 +203,11 @@ def generates_asset_triggers():
 
     return [
         *auto_variables_triggers('asset'),
-        *generate_child_triggers('item', "Asset"),
-        UpdateCollectionSummariesTrigger(
-            name='update_asset_collection_summaries_trigger',
-            operation=pgtrigger.Update,
-            condition=pgtrigger.Condition(
-                '''OLD.proj_epsg IS DISTINCT FROM NEW.proj_epsg OR
-                OLD.geoadmin_variant IS DISTINCT FROM NEW.geoadmin_variant OR
-                OLD.geoadmin_lang IS DISTINCT FROM NEW.geoadmin_lang OR
-                OLD.eo_gsd IS DISTINCT FROM NEW.eo_gsd'''
-            )
-        ),
-        UpdateCollectionSummariesTrigger(
-            name='add_del_asset_collection_summaries_trigger',
-            operation=pgtrigger.Delete | pgtrigger.Insert,
-        ),
+        *generate_child_triggers('item', 'Asset'),
+        *asset_counter_trigger('gsdcount', 'eo_gsd'),
+        *asset_counter_trigger('geoadminlangcount', 'geoadmin_lang'),
+        *asset_counter_trigger('geoadminvariantcount', 'geoadmin_variant'),
+        *asset_counter_trigger('projepsgcount', 'proj_epsg'),
         UpdateItemUpdateIntervalTrigger(
             name='add_del_asset_item_update_interval_trigger',
             operation=pgtrigger.Insert | pgtrigger.Delete,
@@ -208,42 +232,6 @@ def generate_collection_asset_triggers():
         tuple for all needed triggers
     '''
 
-    class UpdateCollectionSummariesTrigger(pgtrigger.Trigger):
-        when = pgtrigger.After
-        declare = [
-            ('asset_instance', 'stac_api_collectionasset%ROWTYPE'),
-            ('collection_summaries', 'RECORD'),
-        ]
-        func = '''
-        asset_instance = COALESCE(NEW, OLD);
-
-        -- Compute collection summaries
-        SELECT
-            a.collection_id,
-            array_remove(array_agg(DISTINCT(a.proj_epsg)), null) AS proj_epsg
-        INTO collection_summaries
-        FROM (
-            SELECT item.collection_id, asset.proj_epsg
-            FROM stac_api_item AS item
-                LEFT JOIN stac_api_asset AS asset ON (asset.item_id = item.id)
-            WHERE collection_id = asset_instance.collection_id
-            UNION
-            SELECT collection_id, proj_epsg
-            FROM stac_api_collectionasset
-            WHERE collection_id = asset_instance.collection_id
-        ) a
-        GROUP BY a.collection_id;
-
-        -- Update related collection (auto variables + summaries)
-        UPDATE stac_api_collection SET
-            summaries_proj_epsg = collection_summaries.proj_epsg
-        WHERE id = asset_instance.collection_id;
-
-        RAISE INFO 'collection.id=% summaries updated, due to collection asset.name=% update.',
-            asset_instance.collection_id, asset_instance.name;
-        RETURN asset_instance;
-        '''
-
     class UpdateCollectionUpdateIntervalTrigger(pgtrigger.Trigger):
         when = pgtrigger.After
         declare = [
@@ -261,17 +249,68 @@ def generate_collection_asset_triggers():
         RETURN asset_instance;
         '''
 
+    class UpdateDeleteCounterTrigger(pgtrigger.Trigger):
+        when = pgtrigger.After
+        declare = [('asset_instance', 'stac_api_collectionasset%ROWTYPE'),
+                   ('related_collection_id', 'INT')]
+        func = '''
+        asset_instance = OLD;
+
+        related_collection_id = asset_instance.collection_id;
+
+        UPDATE stac_api_projepsgcount
+        SET count = count-1
+        WHERE collection_id = related_collection_id
+            AND value = asset_instance.proj_epsg;
+
+        RAISE INFO
+            'projepsgcount (collection_id, value) (% %) count updated, due to asset.name=% update.',
+            related_collection_id, asset_instance.proj_epsg, asset_instance.name;
+
+        RETURN asset_instance;
+        '''
+
+    class UpdateInsertCounterTrigger(pgtrigger.Trigger):
+        when = pgtrigger.After
+        declare = [('asset_instance', 'stac_api_collectionasset%ROWTYPE'),
+                   ('related_collection_id', 'INT')]
+        func = '''
+        asset_instance = NEW;
+
+        related_collection_id = asset_instance.collection_id;
+
+        INSERT INTO stac_api_projepsgcount (collection_id, value, count)
+        VALUES (related_collection_id, asset_instance.proj_epsg, 1)
+        ON CONFLICT (collection_id, value)
+        DO UPDATE SET count = stac_api_projepsgcount.count+1;
+
+        RAISE INFO
+            'projepsgcount (collection_id, value) (% %) count updated, due to asset.name=% update.',
+            related_collection_id, asset_instance.proj_epsg, asset_instance.name;
+
+        RETURN asset_instance;
+        '''
+
     return [
         *auto_variables_triggers('col_asset'),
         *generate_child_triggers('collection', "CollectionAsset"),
-        UpdateCollectionSummariesTrigger(
-            name='update_col_asset_collection_summaries_trigger',
+        UpdateDeleteCounterTrigger(
+            name='upd_dec_col_asset_proj_epsg_trigger',
             operation=pgtrigger.Update,
-            condition=pgtrigger.Condition('OLD.* IS DISTINCT FROM NEW.*')
+            condition=pgtrigger.Condition('''OLD.proj_epsg IS DISTINCT FROM NEW.proj_epsg''')
         ),
-        UpdateCollectionSummariesTrigger(
-            name='add_del_col_asset_collection_summaries_trigger',
-            operation=pgtrigger.Delete | pgtrigger.Insert,
+        UpdateDeleteCounterTrigger(
+            name='del_col_asset_proj_epsg_trigger',
+            operation=pgtrigger.Delete,
+        ),
+        UpdateInsertCounterTrigger(
+            name='upd_inc_col_asset_proj_epsg_trigger',
+            operation=pgtrigger.Update,
+            condition=pgtrigger.Condition('''OLD.proj_epsg IS DISTINCT FROM NEW.proj_epsg''')
+        ),
+        UpdateInsertCounterTrigger(
+            name='add_col_asset_proj_epsg_trigger',
+            operation=pgtrigger.Insert,
         ),
         UpdateCollectionUpdateIntervalTrigger(
             name='add_del_col_asset_col_update_interval_trigger',
@@ -430,4 +469,55 @@ def generates_asset_upload_triggers():
             when=pgtrigger.Before,
             func=etag_func
         ),
+    ]
+
+
+class SummaryFields(Enum):
+    # pylint: disable=invalid-name
+    GSD = 'summaries_eo_gsd', 'gsdcount'
+    LANGUAGE = 'summaries_geoadmin_lang', 'geoadminlangcount'
+    VARIANT = 'summaries_geoadmin_variant', 'geoadminvariantcount'
+    PROJ_EPSG = 'summaries_proj_epsg', 'projepsgcount'
+
+
+def generate_summary_count_triggers(summary_field, count_table):
+
+    class UpdateCollectionSummaryTrigger(pgtrigger.Trigger):
+        when = pgtrigger.After
+        declare = [
+            ('count_instance', f'stac_api_{count_table}%ROWTYPE'),
+            ('collection_summaries', 'RECORD'),
+        ]
+        func = f'''
+        count_instance = COALESCE(NEW, OLD);
+
+        -- Compute collection summaries
+        SELECT
+            collection_id,
+            array_agg(value) AS values
+        INTO collection_summaries
+        FROM stac_api_{count_table}
+        WHERE count > 0 AND value IS NOT NULL AND collection_id = count_instance.collection_id
+        GROUP BY collection_id;
+
+        -- Update related collection (auto variables + summaries)
+        UPDATE stac_api_collection
+        SET {summary_field} = COALESCE(collection_summaries.values, '{{}}')
+        WHERE id = count_instance.collection_id;
+
+        RAISE INFO 'collection.id=% summaries updated',
+            count_instance.collection_id;
+        RETURN count_instance;
+        '''
+
+    return [
+        UpdateCollectionSummaryTrigger(
+            name=f'update_collection_{count_table}_trigger',
+            operation=pgtrigger.Update,
+            condition=pgtrigger.Condition('OLD.count < 2 OR NEW.count < 2')
+        ),
+        UpdateCollectionSummaryTrigger(
+            name=f'add_del_collection_{count_table}_trigger',
+            operation=pgtrigger.Delete | pgtrigger.Insert,
+        )
     ]
