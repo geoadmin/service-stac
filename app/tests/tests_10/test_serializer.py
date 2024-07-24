@@ -25,6 +25,7 @@ from tests.tests_10.base_test import STAC_VERSION
 from tests.tests_10.base_test import StacBaseTestCase
 from tests.tests_10.base_test import StacBaseTransactionTestCase
 from tests.tests_10.data_factory import Factory
+from tests.tests_10.utils import calculate_extent
 from tests.utils import mock_s3_asset_file
 
 logger = logging.getLogger(__name__)
@@ -51,6 +52,7 @@ class CollectionSerializationTestCase(StacBaseTransactionTestCase):
             collection=self.collection.model, db_create=True
         )
         self.asset = self.data_factory.create_asset_sample(item=self.item.model, db_create=True)
+        calculate_extent()
         self.collection.model.refresh_from_db()
         self.maxDiff = None  # pylint: disable=invalid-name
 

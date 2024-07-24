@@ -370,25 +370,12 @@ def generates_item_triggers():
         func = '''
         item_instance = COALESCE(NEW, OLD);
 
-        -- Compute collection extent
-        SELECT
-            item.collection_id,
-            ST_SetSRID(ST_EXTENT(item.geometry),4326) as extent_geometry,
-            MIN(LEAST(item.properties_datetime, item.properties_start_datetime)) as extent_start_datetime,
-            MAX(GREATEST(item.properties_datetime, item.properties_end_datetime)) as extent_end_datetime
-        INTO collection_extent
-        FROM stac_api_item AS item
-        WHERE item.collection_id = item_instance.collection_id
-        GROUP BY item.collection_id;
-
-        -- Update related collection (auto variables + extent)
+        -- Update related collection extent_out_of_sync
         UPDATE stac_api_collection SET
-            extent_geometry = collection_extent.extent_geometry,
-            extent_start_datetime = collection_extent.extent_start_datetime,
-            extent_end_datetime = collection_extent.extent_end_datetime
+            extent_out_of_sync = TRUE
         WHERE id = item_instance.collection_id;
 
-        RAISE INFO 'collection.id=% extent updated, due to item.name=% updates.', item_instance.collection_id, item_instance.name;
+        RAISE INFO 'collection.id=% extent_out_of_sync updated, due to item.name=% updates.', item_instance.collection_id, item_instance.name;
 
         RETURN item_instance;
         '''

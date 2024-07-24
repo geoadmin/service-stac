@@ -9,6 +9,7 @@ from stac_api.utils import utc_aware
 
 from tests.tests_09.base_test import StacBaseTransactionTestCase
 from tests.tests_09.data_factory import Factory
+from tests.tests_09.utils import calculate_extent
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +30,11 @@ class CollectionSpatialExtentTestCase(StacBaseTransactionTestCase):
             geometry=GEOSGeometry('SRID=4326;POLYGON ((0 0, 0 45, 45 45, 45 0, 0 0))'),
             db_create=True
         ).model
+        self.refresh_collection_from_db()
+
+    def refresh_collection_from_db(self):
+        calculate_extent()
+        self.collection.refresh_from_db()
 
     def test_if_collection_gets_right_extent(self):
         # the collection has to have the bbox of the item
@@ -50,10 +56,11 @@ class CollectionSpatialExtentTestCase(StacBaseTransactionTestCase):
             db_create=True
         ).model
         # collection has to have the size of the bigger extent
+        self.refresh_collection_from_db()
         self.assertEqual(self.collection.extent_geometry, bigger_item.geometry)
 
         bigger_item.delete()
-        self.collection.refresh_from_db()
+        self.refresh_collection_from_db()
         self.assertEqual(self.collection.extent_geometry, self.item.geometry)
 
     def test_changing_bbox_with_smaller_item(self):
@@ -69,7 +76,7 @@ class CollectionSpatialExtentTestCase(StacBaseTransactionTestCase):
         # collection has to have the size of the bigger extent
         self.assertEqual(self.collection.extent_geometry, self.item.geometry)
         smaller_item.delete()
-        self.collection.refresh_from_db()
+        self.refresh_collection_from_db()
         self.assertEqual(self.collection.extent_geometry, self.item.geometry)
 
     def test_changing_bbox_with_diagonal_update(self):
@@ -82,6 +89,7 @@ class CollectionSpatialExtentTestCase(StacBaseTransactionTestCase):
             db_create=True
         ).model
         # collection bbox composed of the two diagonal geometries
+        self.refresh_collection_from_db()
         self.assertEqual(
             GEOSGeometry(self.collection.extent_geometry).extent,
             GEOSGeometry(Polygon.from_bbox((0, 0, 90, 90))).extent
@@ -90,19 +98,19 @@ class CollectionSpatialExtentTestCase(StacBaseTransactionTestCase):
         diagonal_item.geometry = GEOSGeometry('SRID=4326;POLYGON ((0 0, 0 45, 45 45, 45 0, 0 0))')
         diagonal_item.full_clean()
         diagonal_item.save()
-        self.collection.refresh_from_db()
+        self.refresh_collection_from_db()
         self.assertEqual(
             GEOSGeometry(self.collection.extent_geometry).extent,
             GEOSGeometry(Polygon.from_bbox((0, 0, 45, 45))).extent
         )
 
         diagonal_item.delete()
-        self.collection.refresh_from_db()
+        self.refresh_collection_from_db()
         self.assertEqual(self.collection.extent_geometry, self.item.geometry)
 
     def test_collection_lost_all_items(self):
         self.item.delete()  # should be the one and only item of this collection
-        self.collection.refresh_from_db()
+        self.refresh_collection_from_db()
         self.assertIsNone(self.collection.extent_geometry)
 
 
@@ -133,12 +141,18 @@ class CollectionsModelTemporalExtentTestCase(StacBaseTransactionTestCase):
             properties_end_datetime=end,
             db_create=True
         )
+        self.refresh_collection_from_db()
         return item.model
+
+    def refresh_collection_from_db(self):
+        calculate_extent()
+        self.collection.refresh_from_db()
 
     def add_single_datetime_item(self, datetime_val, name):
         item = self.factory.create_item_sample(
             self.collection, name=name, properties_datetime=datetime_val, db_create=True
         )
+        self.refresh_collection_from_db()
         return item.model
 
     def test_update_temporal_extent_range(self):
@@ -206,7 +220,7 @@ class CollectionsModelTemporalExtentTestCase(StacBaseTransactionTestCase):
         y100_y9000.properties_start_datetime = self.y200
         y100_y9000.full_clean()
         y100_y9000.save()
-        self.collection.refresh_from_db()
+        self.refresh_collection_from_db()
 
         self.assertEqual(
             self.collection.extent_start_datetime,
@@ -218,7 +232,7 @@ class CollectionsModelTemporalExtentTestCase(StacBaseTransactionTestCase):
         y100_y9000.properties_end_datetime = self.y8000
         y100_y9000.full_clean()
         y100_y9000.save()
-        self.collection.refresh_from_db()
+        self.refresh_collection_from_db()
 
         self.assertEqual(
             self.collection.extent_end_datetime,
@@ -250,7 +264,7 @@ class CollectionsModelTemporalExtentTestCase(StacBaseTransactionTestCase):
         y200_y8000.properties_start_datetime = self.y100
         y200_y8000.full_clean()
         y200_y8000.save()
-        self.collection.refresh_from_db()
+        self.refresh_collection_from_db()
 
         self.assertEqual(
             self.collection.extent_start_datetime,
@@ -262,7 +276,7 @@ class CollectionsModelTemporalExtentTestCase(StacBaseTransactionTestCase):
         y200_y8000.properties_end_datetime = self.y9000
         y200_y8000.full_clean()
         y200_y8000.save()
-        self.collection.refresh_from_db()
+        self.refresh_collection_from_db()
 
         self.assertEqual(
             self.collection.extent_end_datetime,
@@ -295,7 +309,7 @@ class CollectionsModelTemporalExtentTestCase(StacBaseTransactionTestCase):
         y100_y9500.properties_start_datetime = self.y150
         y100_y9500.full_clean()
         y100_y9500.save()
-        self.collection.refresh_from_db()
+        self.refresh_collection_from_db()
 
         self.assertEqual(
             self.collection.extent_start_datetime,
@@ -307,7 +321,7 @@ class CollectionsModelTemporalExtentTestCase(StacBaseTransactionTestCase):
         y100_y9500.properties_end_datetime = self.y9000
         y100_y9500.full_clean()
         y100_y9500.save()
-        self.collection.refresh_from_db()
+        self.refresh_collection_from_db()
 
         self.assertEqual(
             self.collection.extent_end_datetime,
@@ -319,7 +333,7 @@ class CollectionsModelTemporalExtentTestCase(StacBaseTransactionTestCase):
         y100_y9500.properties_start_datetime = self.y250
         y100_y9500.full_clean()
         y100_y9500.save()
-        self.collection.refresh_from_db()
+        self.refresh_collection_from_db()
 
         self.assertEqual(
             self.collection.extent_start_datetime,
@@ -331,7 +345,7 @@ class CollectionsModelTemporalExtentTestCase(StacBaseTransactionTestCase):
         y100_y9500.properties_end_datetime = self.y8000
         y100_y9500.full_clean()
         y100_y9500.save()
-        self.collection.refresh_from_db()
+        self.refresh_collection_from_db()
 
         self.assertEqual(
             self.collection.extent_end_datetime,
@@ -344,7 +358,7 @@ class CollectionsModelTemporalExtentTestCase(StacBaseTransactionTestCase):
         y100_y9500.properties_end_datetime = self.y9500
         y100_y9500.full_clean()
         y100_y9500.save()
-        self.collection.refresh_from_db()
+        self.refresh_collection_from_db()
 
         self.assertEqual(
             self.collection.extent_start_datetime,
@@ -364,7 +378,7 @@ class CollectionsModelTemporalExtentTestCase(StacBaseTransactionTestCase):
         y100_y9500.properties_end_datetime = self.y8000
         y100_y9500.full_clean()
         y100_y9500.save()
-        self.collection.refresh_from_db()
+        self.refresh_collection_from_db()
 
         self.assertEqual(
             self.collection.extent_start_datetime,
@@ -406,7 +420,7 @@ class CollectionsModelTemporalExtentTestCase(StacBaseTransactionTestCase):
 
         # now delete the one with the earlier start and later end_datetime first:
         Item.objects.get(pk=y100_y9000.pk).delete()
-        self.collection.refresh_from_db()
+        self.refresh_collection_from_db()
 
         self.assertEqual(
             self.collection.extent_start_datetime,
@@ -444,7 +458,7 @@ class CollectionsModelTemporalExtentTestCase(StacBaseTransactionTestCase):
 
         # now delete the only and hence last item of the collection:
         Item.objects.get(pk=y200_y8000.pk).delete()
-        self.collection.refresh_from_db()
+        self.refresh_collection_from_db()
 
         self.assertEqual(
             self.collection.extent_start_datetime,
@@ -478,14 +492,14 @@ class CollectionsModelTemporalExtentTestCase(StacBaseTransactionTestCase):
         y200_y8000.properties_datetime = self.y200
         y200_y8000.full_clean()
         y200_y8000.save()
-        self.collection.refresh_from_db()
+        self.refresh_collection_from_db()
 
         y100_y9000.properties_start_datetime = None
         y100_y9000.properties_end_datetime = None
         y100_y9000.properties_datetime = self.y9000
         y100_y9000.full_clean()
         y100_y9000.save()
-        self.collection.refresh_from_db()
+        self.refresh_collection_from_db()
 
         self.assertEqual(
             self.collection.extent_start_datetime,
@@ -505,7 +519,7 @@ class CollectionsModelTemporalExtentTestCase(StacBaseTransactionTestCase):
         Item.objects.get(pk=y200_y8000.pk).delete()
 
         # refresh collection from db
-        self.collection.refresh_from_db()
+        self.refresh_collection_from_db()
 
         self.assertEqual(
             self.collection.extent_start_datetime,
@@ -585,7 +599,7 @@ class CollectionsModelTemporalExtentTestCase(StacBaseTransactionTestCase):
         y8000.full_clean()
         y8000.save()
 
-        self.collection.refresh_from_db()
+        self.refresh_collection_from_db()
 
         self.assertEqual(
             self.collection.extent_start_datetime,
@@ -628,7 +642,7 @@ class CollectionsModelTemporalExtentTestCase(StacBaseTransactionTestCase):
         y9500.properties_datetime = self.y9000
         y9500.full_clean()
         y9500.save()
-        self.collection.refresh_from_db()
+        self.refresh_collection_from_db()
 
         self.assertEqual(
             self.collection.extent_end_datetime,
@@ -640,7 +654,7 @@ class CollectionsModelTemporalExtentTestCase(StacBaseTransactionTestCase):
         y100.properties_datetime = self.y150
         y100.full_clean()
         y100.save()
-        self.collection.refresh_from_db()
+        self.refresh_collection_from_db()
 
         self.assertEqual(
             self.collection.extent_start_datetime,
@@ -652,7 +666,7 @@ class CollectionsModelTemporalExtentTestCase(StacBaseTransactionTestCase):
         y9500.properties_datetime = self.y8000
         y9500.full_clean()
         y9500.save()
-        self.collection.refresh_from_db()
+        self.refresh_collection_from_db()
 
         self.assertEqual(
             self.collection.extent_end_datetime,
@@ -664,7 +678,7 @@ class CollectionsModelTemporalExtentTestCase(StacBaseTransactionTestCase):
         y100.properties_datetime = self.y250
         y100.full_clean()
         y100.save()
-        self.collection.refresh_from_db()
+        self.refresh_collection_from_db()
 
         self.assertEqual(
             self.collection.extent_start_datetime,
@@ -684,7 +698,7 @@ class CollectionsModelTemporalExtentTestCase(StacBaseTransactionTestCase):
 
         # now delete one item:
         Item.objects.get(pk=y100.pk).delete()
-        self.collection.refresh_from_db()
+        self.refresh_collection_from_db()
 
         self.assertEqual(
             self.collection.extent_start_datetime,
@@ -709,7 +723,7 @@ class CollectionsModelTemporalExtentTestCase(StacBaseTransactionTestCase):
 
         # now delete one item:
         Item.objects.get(pk=y200.pk).delete()
-        self.collection.refresh_from_db()
+        self.refresh_collection_from_db()
 
         self.assertEqual(
             self.collection.extent_start_datetime,
@@ -731,7 +745,7 @@ class CollectionsModelTemporalExtentTestCase(StacBaseTransactionTestCase):
 
         y200 = self.add_single_datetime_item(self.y200, 'y200')
         Item.objects.get(pk=y200.pk).delete()
-        self.collection.refresh_from_db()
+        self.refresh_collection_from_db()
 
         self.assertEqual(
             self.collection.extent_start_datetime,
@@ -758,7 +772,7 @@ class CollectionsModelTemporalExtentTestCase(StacBaseTransactionTestCase):
         y200.properties_end_datetime = self.y8000
         y200.full_clean()
         y200.save()
-        self.collection.refresh_from_db()
+        self.refresh_collection_from_db()
 
         self.assertEqual(
             self.collection.extent_start_datetime,
@@ -802,7 +816,7 @@ class CollectionsModelTemporalExtentTestCase(StacBaseTransactionTestCase):
         y9000.properties_datetime = self.y8000
         y9000.full_clean()
         y9000.save()
-        self.collection.refresh_from_db()
+        self.refresh_collection_from_db()
 
         self.assertEqual(
             self.collection.extent_start_datetime,

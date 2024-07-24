@@ -6,6 +6,7 @@ from django.test import Client
 from tests.tests_10.base_test import STAC_BASE_V
 from tests.tests_10.base_test import StacBaseTransactionTestCase
 from tests.tests_10.data_factory import Factory
+from tests.tests_10.utils import calculate_extent
 from tests.utils import client_login
 
 logger = logging.getLogger(__name__)
@@ -31,6 +32,7 @@ class OneItemSpatialTestCase(StacBaseTransactionTestCase):
             f"/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}"
         )
         response_item_json = response_item.json()
+        calculate_extent()
         response_collection = self.client.get(f"/{STAC_BASE_V}/collections/{collection_name}")
         response_collection_json = response_collection.json()
 
@@ -80,6 +82,7 @@ class TwoItemsSpatialTestCase(StacBaseTransactionTestCase):
             f"/{STAC_BASE_V}/collections/{collection_name}/items/{item_east}"
         )
 
+        calculate_extent()
         response_collection = self.client.get(f"/{STAC_BASE_V}/collections/{collection_name}")
         response_collection_json = response_collection.json()
 
@@ -125,6 +128,7 @@ class TwoItemsSpatialTestCase(StacBaseTransactionTestCase):
         response = self.client.delete(path)
         self.assertStatusCode(200, response)
 
+        calculate_extent()
         response_collection = self.client.get(f"/{STAC_BASE_V}/collections/{collection_name}")
         bbox_collection = response_collection.json()['extent']['spatial']['bbox'][0]
 
@@ -150,6 +154,7 @@ class TwoItemsSpatialTestCase(StacBaseTransactionTestCase):
             path, data=sample.get_json('put'), content_type="application/json"
         )
 
+        calculate_extent()
         response_item = self.client.get(
             f"/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}"
         )
@@ -172,6 +177,7 @@ class TwoItemsSpatialTestCase(StacBaseTransactionTestCase):
         sample = self.factory.create_item_sample(
             self.collection, sample='item-covers-switzerland', db_create=True
         ).model
+        calculate_extent()
         response_collection = self.client.get(f"/{STAC_BASE_V}/collections/{collection_name}")
         bbox_collection_covers_ch = response_collection.json()['extent']['spatial']['bbox'][0]
 
@@ -198,6 +204,7 @@ class TwoItemsSpatialTestCase(StacBaseTransactionTestCase):
         sample = self.factory.create_item_sample(
             self.collection, sample='item-paris', db_create=True
         ).model
+        calculate_extent()
         response_collection = self.client.get(f"/{STAC_BASE_V}/collections/{collection_name}")
         bbox_collection_paris = response_collection.json()['extent']['spatial']['bbox'][0]
 
