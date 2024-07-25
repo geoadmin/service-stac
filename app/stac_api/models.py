@@ -813,7 +813,7 @@ class CountBase(models.Model):
         related_name='+',
         on_delete=models.CASCADE,
     )
-    count = models.IntegerField(null=True, blank=True)
+    count = models.PositiveIntegerField(null=False)
 
 
 class GSDCount(CountBase):

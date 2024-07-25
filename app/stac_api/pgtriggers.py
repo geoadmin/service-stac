@@ -102,6 +102,13 @@ def asset_counter_trigger(count_table, value_field):
             WHERE id = asset_instance.item_id
         );
 
+        -- Remove entry when count will reach 0
+        DELETE FROM stac_api_{count_table}
+        WHERE collection_id = related_collection_id
+            AND value = asset_instance.{value_field}
+            AND count = 1;
+
+        IF NOT FOUND THEN
         UPDATE stac_api_{count_table}
         SET count = count-1
         WHERE collection_id = related_collection_id
@@ -109,6 +116,13 @@ def asset_counter_trigger(count_table, value_field):
 
         RAISE INFO
             '{count_table} (collection_id, value) (% %) count updated, due to asset.name=% update.',
+            related_collection_id, asset_instance.{value_field}, asset_instance.name;
+
+        RETURN asset_instance;
+        END IF;
+
+        RAISE INFO
+            '{count_table} (collection_id, value) (% %) deleted, due to asset.name=% update.',
             related_collection_id, asset_instance.{value_field}, asset_instance.name;
 
         RETURN asset_instance;
@@ -258,13 +272,27 @@ def generate_collection_asset_triggers():
 
         related_collection_id = asset_instance.collection_id;
 
+        -- Remove entry when count will reach 0
+        DELETE FROM stac_api_projepsgcount
+        WHERE collection_id = related_collection_id
+            AND value = asset_instance.proj_epsg
+            AND count = 1;
+
+        IF NOT FOUND THEN
         UPDATE stac_api_projepsgcount
         SET count = count-1
         WHERE collection_id = related_collection_id
             AND value = asset_instance.proj_epsg;
 
         RAISE INFO
-            'projepsgcount (collection_id, value) (% %) count updated, due to asset.name=% update.',
+            'stac_api_projepsgcount (collection_id, value) (% %) count updated, due to asset.name=% update.',
+            related_collection_id, asset_instance.proj_epsg, asset_instance.name;
+
+        RETURN asset_instance;
+        END IF;
+
+        RAISE INFO
+            'stac_api_projepsgcount (collection_id, value) (% %) deleted, due to asset.name=% update.',
             related_collection_id, asset_instance.proj_epsg, asset_instance.name;
 
         RETURN asset_instance;
@@ -399,7 +427,6 @@ def generates_item_triggers():
         UpdateCollectionExtentTrigger(
             name='update_item_collection_extent_trigger',
             operation=pgtrigger.Update,
-            # condition=pgtrigger.Condition('OLD.* IS DISTINCT FROM NEW.*')
             condition=pgtrigger.Condition(
                 '''NOT ST_EQUALS(OLD.geometry, NEW.geometry) OR
                 OLD.properties_start_datetime IS DISTINCT FROM NEW.properties_start_datetime OR
@@ -514,7 +541,9 @@ def generate_summary_count_triggers(summary_field, count_table):
         UpdateCollectionSummaryTrigger(
             name=f'update_collection_{count_table}_trigger',
             operation=pgtrigger.Update,
-            condition=pgtrigger.Condition('OLD.count < 2 OR NEW.count < 2')
+            # If the count is larger than 1 for OLD and NEW, the change has no impact on the list of
+            # values, so we don't need to recalculate the summary.
+            condition=pgtrigger.Condition('NOT (OLD.count > 1 AND NEW.count > 1)')
         ),
         UpdateCollectionSummaryTrigger(
             name=f'add_del_collection_{count_table}_trigger',
