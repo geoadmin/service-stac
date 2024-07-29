@@ -4,6 +4,7 @@ import pgtrigger
 
 
 def auto_variables_triggers(name):
+    '''Triggers used by various tables to update the `etag` and `updated` fields.'''
     auto_variables_func = '''
     -- update auto variables
     NEW.etag = gen_random_uuid();
@@ -30,11 +31,9 @@ def auto_variables_triggers(name):
     ]
 
 
-def generate_child_triggers(parent_name, child_name):
-    '''Function that generates two triggers for parent child relation.
-
-    The triggers update the `updated` and `etag` fields of the parent when a child gets inserted,
-    updated or deleted.
+def child_triggers(parent_name, child_name):
+    '''Triggers used by various tables to update the `updated` and `etag` fields
+    of the parent table when a child gets inserted, updated or deleted.
 
     Returns: tuple
         Tuple of Trigger
@@ -81,17 +80,17 @@ def generate_child_triggers(parent_name, child_name):
 
 
 def asset_counter_trigger(count_table, value_field):
-    '''Creates triggers to adjust the asset summary on a counter table.
+    '''Triggers for the asset table to adjust the 4 counter tables for the asset summaries.
 
     Args:
-         count_table: tha table name to be updated (without prefix stac_api_)
+         count_table: the table name to be updated (without prefix stac_api_)
          value_field: summary field name on the asset
 
     Returns:
         List of triggers
     '''
 
-    class UpdateDeleteCounterTrigger(pgtrigger.Trigger):
+    class DecreaseCounterTrigger(pgtrigger.Trigger):
         when = pgtrigger.After
         declare = [('asset_instance', 'stac_api_asset%ROWTYPE'), ('related_collection_id', 'INT')]
         func = f'''
@@ -128,7 +127,7 @@ def asset_counter_trigger(count_table, value_field):
         RETURN asset_instance;
         '''
 
-    class UpdateInsertCounterTrigger(pgtrigger.Trigger):
+    class IncreaseCounterTrigger(pgtrigger.Trigger):
         when = pgtrigger.After
         declare = [('asset_instance', 'stac_api_asset%ROWTYPE'), ('related_collection_id', 'INT')]
         func = f'''
@@ -152,23 +151,23 @@ def asset_counter_trigger(count_table, value_field):
         '''
 
     return [
-        UpdateDeleteCounterTrigger(
+        DecreaseCounterTrigger(
             name=f'upd_dec_{value_field}_trigger',
             operation=pgtrigger.Update,
             condition=pgtrigger.
             Condition(f'''OLD.{value_field} IS DISTINCT FROM NEW.{value_field}''')
         ),
-        UpdateDeleteCounterTrigger(
+        DecreaseCounterTrigger(
             name=f'del_{value_field}_trigger',
             operation=pgtrigger.Delete,
         ),
-        UpdateInsertCounterTrigger(
+        IncreaseCounterTrigger(
             name=f'upd_inc_{value_field}_trigger',
             operation=pgtrigger.Update,
             condition=pgtrigger.
             Condition(f'''OLD.{value_field} IS DISTINCT FROM NEW.{value_field}''')
         ),
-        UpdateInsertCounterTrigger(
+        IncreaseCounterTrigger(
             name=f'add_{value_field}_trigger',
             operation=pgtrigger.Insert,
         ),
@@ -188,7 +187,7 @@ def generates_asset_triggers():
         tuple for all needed triggers
     '''
 
-    class UpdateItemUpdateIntervalTrigger(pgtrigger.Trigger):
+    class ItemUpdateIntervalTrigger(pgtrigger.Trigger):
         when = pgtrigger.After
         declare = [
             ('asset_instance', 'stac_api_asset%ROWTYPE'),
@@ -217,16 +216,16 @@ def generates_asset_triggers():
 
     return [
         *auto_variables_triggers('asset'),
-        *generate_child_triggers('item', 'Asset'),
+        *child_triggers('item', 'Asset'),
         *asset_counter_trigger('gsdcount', 'eo_gsd'),
         *asset_counter_trigger('geoadminlangcount', 'geoadmin_lang'),
         *asset_counter_trigger('geoadminvariantcount', 'geoadmin_variant'),
         *asset_counter_trigger('projepsgcount', 'proj_epsg'),
-        UpdateItemUpdateIntervalTrigger(
+        ItemUpdateIntervalTrigger(
             name='add_del_asset_item_update_interval_trigger',
             operation=pgtrigger.Insert | pgtrigger.Delete,
         ),
-        UpdateItemUpdateIntervalTrigger(
+        ItemUpdateIntervalTrigger(
             name='update_asset_item_update_interval_trigger',
             operation=pgtrigger.Update,
             condition=pgtrigger.
@@ -235,7 +234,7 @@ def generates_asset_triggers():
     ]
 
 
-def generate_collection_asset_triggers():
+def generates_collection_asset_triggers():
     '''Generates collection asset triggers
     Triggers act on `insert`, `update` and `delete` collection asset event and do the following:
       - Update the `updated` and `etag` fields of the assets and their parents
@@ -246,7 +245,7 @@ def generate_collection_asset_triggers():
         tuple for all needed triggers
     '''
 
-    class UpdateCollectionUpdateIntervalTrigger(pgtrigger.Trigger):
+    class CollectionUpdateIntervalTrigger(pgtrigger.Trigger):
         when = pgtrigger.After
         declare = [
             ('asset_instance', 'stac_api_collectionasset%ROWTYPE'),
@@ -263,7 +262,7 @@ def generate_collection_asset_triggers():
         RETURN asset_instance;
         '''
 
-    class UpdateDeleteCounterTrigger(pgtrigger.Trigger):
+    class DecreaseCounterTrigger(pgtrigger.Trigger):
         when = pgtrigger.After
         declare = [('asset_instance', 'stac_api_collectionasset%ROWTYPE'),
                    ('related_collection_id', 'INT')]
@@ -298,7 +297,7 @@ def generate_collection_asset_triggers():
         RETURN asset_instance;
         '''
 
-    class UpdateInsertCounterTrigger(pgtrigger.Trigger):
+    class IncreaseCounterTrigger(pgtrigger.Trigger):
         when = pgtrigger.After
         declare = [('asset_instance', 'stac_api_collectionasset%ROWTYPE'),
                    ('related_collection_id', 'INT')]
@@ -321,30 +320,30 @@ def generate_collection_asset_triggers():
 
     return [
         *auto_variables_triggers('col_asset'),
-        *generate_child_triggers('collection', "CollectionAsset"),
-        UpdateDeleteCounterTrigger(
+        *child_triggers('collection', "CollectionAsset"),
+        DecreaseCounterTrigger(
             name='upd_dec_col_asset_proj_epsg_trigger',
             operation=pgtrigger.Update,
             condition=pgtrigger.Condition('''OLD.proj_epsg IS DISTINCT FROM NEW.proj_epsg''')
         ),
-        UpdateDeleteCounterTrigger(
+        DecreaseCounterTrigger(
             name='del_col_asset_proj_epsg_trigger',
             operation=pgtrigger.Delete,
         ),
-        UpdateInsertCounterTrigger(
+        IncreaseCounterTrigger(
             name='upd_inc_col_asset_proj_epsg_trigger',
             operation=pgtrigger.Update,
             condition=pgtrigger.Condition('''OLD.proj_epsg IS DISTINCT FROM NEW.proj_epsg''')
         ),
-        UpdateInsertCounterTrigger(
+        IncreaseCounterTrigger(
             name='add_col_asset_proj_epsg_trigger',
             operation=pgtrigger.Insert,
         ),
-        UpdateCollectionUpdateIntervalTrigger(
+        CollectionUpdateIntervalTrigger(
             name='add_del_col_asset_col_update_interval_trigger',
             operation=pgtrigger.Insert | pgtrigger.Delete,
         ),
-        UpdateCollectionUpdateIntervalTrigger(
+        CollectionUpdateIntervalTrigger(
             name='update_col_asset_col_update_interval_trigger',
             operation=pgtrigger.Update,
             condition=pgtrigger.Condition('OLD.* IS DISTINCT FROM NEW.*'),
@@ -362,7 +361,7 @@ def generates_item_triggers():
         tuple for all needed triggers
     '''
 
-    class UpdateCollectionExtentTrigger(pgtrigger.Trigger):
+    class CollectionExtentTrigger(pgtrigger.Trigger):
         when = pgtrigger.After
         declare = [
             ('item_instance', 'stac_api_item%ROWTYPE'),
@@ -394,7 +393,7 @@ def generates_item_triggers():
         RETURN item_instance;
         '''
 
-    class UpdateCollectionUpdateIntervalTrigger(pgtrigger.Trigger):
+    class CollectionUpdateIntervalTrigger(pgtrigger.Trigger):
         when = pgtrigger.After
         declare = [
             ('item_instance', 'stac_api_item%ROWTYPE'),
@@ -423,8 +422,8 @@ def generates_item_triggers():
 
     return [
         *auto_variables_triggers('item'),
-        *generate_child_triggers('collection', 'Item'),
-        UpdateCollectionExtentTrigger(
+        *child_triggers('collection', 'Item'),
+        CollectionExtentTrigger(
             name='update_item_collection_extent_trigger',
             operation=pgtrigger.Update,
             condition=pgtrigger.Condition(
@@ -434,15 +433,15 @@ def generates_item_triggers():
                 OLD.properties_datetime IS DISTINCT FROM NEW.properties_datetime'''
             )
         ),
-        UpdateCollectionExtentTrigger(
+        CollectionExtentTrigger(
             name='add_del_item_collection_extent_trigger',
             operation=pgtrigger.Delete | pgtrigger.Insert
         ),
-        UpdateCollectionUpdateIntervalTrigger(
+        CollectionUpdateIntervalTrigger(
             name='add_del_item_collection_update_interval_trigger',
             operation=pgtrigger.Insert | pgtrigger.Delete,
         ),
-        UpdateCollectionUpdateIntervalTrigger(
+        CollectionUpdateIntervalTrigger(
             name='update_item_collection_update_interval_trigger',
             operation=pgtrigger.Update,
             condition=pgtrigger.
@@ -507,9 +506,9 @@ class SummaryFields(Enum):
     PROJ_EPSG = 'summaries_proj_epsg', 'projepsgcount'
 
 
-def generate_summary_count_triggers(summary_field, count_table):
+def generates_summary_count_triggers(summary_field, count_table):
 
-    class UpdateCollectionSummaryTrigger(pgtrigger.Trigger):
+    class CollectionSummaryTrigger(pgtrigger.Trigger):
         when = pgtrigger.After
         declare = [
             ('count_instance', f'stac_api_{count_table}%ROWTYPE'),
@@ -538,14 +537,14 @@ def generate_summary_count_triggers(summary_field, count_table):
         '''
 
     return [
-        UpdateCollectionSummaryTrigger(
+        CollectionSummaryTrigger(
             name=f'update_collection_{count_table}_trigger',
             operation=pgtrigger.Update,
             # If the count is larger than 1 for OLD and NEW, the change has no impact on the list of
             # values, so we don't need to recalculate the summary.
             condition=pgtrigger.Condition('NOT (OLD.count > 1 AND NEW.count > 1)')
         ),
-        UpdateCollectionSummaryTrigger(
+        CollectionSummaryTrigger(
             name=f'add_del_collection_{count_table}_trigger',
             operation=pgtrigger.Delete | pgtrigger.Insert,
         )

@@ -22,13 +22,13 @@ from django.utils.translation import gettext_lazy as _
 from stac_api.managers import AssetUploadManager
 from stac_api.managers import ItemManager
 from stac_api.pgtriggers import SummaryFields
-from stac_api.pgtriggers import generate_child_triggers
-from stac_api.pgtriggers import generate_collection_asset_triggers
-from stac_api.pgtriggers import generate_summary_count_triggers
+from stac_api.pgtriggers import child_triggers
 from stac_api.pgtriggers import generates_asset_triggers
 from stac_api.pgtriggers import generates_asset_upload_triggers
+from stac_api.pgtriggers import generates_collection_asset_triggers
 from stac_api.pgtriggers import generates_collection_triggers
 from stac_api.pgtriggers import generates_item_triggers
+from stac_api.pgtriggers import generates_summary_count_triggers
 from stac_api.utils import get_asset_path
 from stac_api.utils import get_collection_asset_path
 from stac_api.utils import select_s3_bucket
@@ -221,7 +221,7 @@ class Provider(models.Model):
     class Meta:
         unique_together = (('collection', 'name'),)
         ordering = ['pk']
-        triggers = generate_child_triggers('collection', 'Provider')
+        triggers = child_triggers('collection', 'Provider')
 
     def __str__(self):
         return self.name
@@ -329,7 +329,7 @@ class CollectionLink(Link):
 
     class Meta:
         ordering = ['pk']
-        triggers = generate_child_triggers('collection', 'CollectionLink')
+        triggers = child_triggers('collection', 'CollectionLink')
 
 
 ITEM_KEEP_ORIGINAL_FIELDS = [
@@ -447,7 +447,7 @@ class ItemLink(Link):
     class Meta:
         unique_together = (('rel', 'item'),)
         ordering = ['pk']
-        triggers = generate_child_triggers('item', 'ItemLink')
+        triggers = child_triggers('item', 'ItemLink')
 
 
 def upload_asset_to_path_hook(instance, filename=None):
@@ -680,7 +680,7 @@ class CollectionAsset(AssetBase):
     class Meta:
         unique_together = (('collection', 'name'),)
         ordering = ['id']
-        triggers = generate_collection_asset_triggers()
+        triggers = generates_collection_asset_triggers()
 
     collection = models.ForeignKey(
         Collection,
@@ -822,7 +822,7 @@ class GSDCount(CountBase):
     class Meta:
         unique_together = (('collection', 'value'),)
         ordering = ['id']
-        triggers = generate_summary_count_triggers(
+        triggers = generates_summary_count_triggers(
             SummaryFields.GSD.value[0], SummaryFields.GSD.value[1]
         )
 
@@ -835,7 +835,7 @@ class GeoadminLangCount(CountBase):
     class Meta:
         unique_together = (('collection', 'value'),)
         ordering = ['id']
-        triggers = generate_summary_count_triggers(
+        triggers = generates_summary_count_triggers(
             SummaryFields.LANGUAGE.value[0], SummaryFields.LANGUAGE.value[1]
         )
 
@@ -848,7 +848,7 @@ class GeoadminVariantCount(CountBase):
     class Meta:
         unique_together = (('collection', 'value'),)
         ordering = ['id']
-        triggers = generate_summary_count_triggers(
+        triggers = generates_summary_count_triggers(
             SummaryFields.VARIANT.value[0], SummaryFields.VARIANT.value[1]
         )
 
@@ -861,7 +861,7 @@ class ProjEPSGCount(CountBase):
     class Meta:
         unique_together = (('collection', 'value'),)
         ordering = ['id']
-        triggers = generate_summary_count_triggers(
+        triggers = generates_summary_count_triggers(
             SummaryFields.PROJ_EPSG.value[0], SummaryFields.PROJ_EPSG.value[1]
         )
 
