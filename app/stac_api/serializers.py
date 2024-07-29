@@ -2,12 +2,9 @@ import logging
 from collections import OrderedDict
 from urllib.parse import urlparse
 
-import requests
-
 from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry
-from django.core import exceptions
-from django.core.validators import URLValidator
+from django.core.exceptions import ValidationError as CoreValidationError
 from django.utils.translation import gettext_lazy as _
 
 from rest_framework import serializers
@@ -41,6 +38,7 @@ from stac_api.validators import validate_asset_name_with_media_type
 from stac_api.validators import validate_checksum_multihash_sha256
 from stac_api.validators import validate_content_encoding
 from stac_api.validators import validate_geoadmin_variant
+from stac_api.validators import validate_href_url
 from stac_api.validators import validate_item_properties_datetimes
 from stac_api.validators import validate_md5_parts
 from stac_api.validators import validate_name
@@ -402,76 +400,6 @@ class AssetSerializer(AssetBaseSerializer):
         )
         return representation
 
-    def _validate_general_url_pattern(self, url):
-        try:
-            validator = URLValidator()
-            validator(url)
-        except exceptions.ValidationError as exc:
-            errors = {'href': _('Invalid URL provided')}
-            raise serializers.ValidationError(code='payload', detail=errors) from exc
-
-    def _validate_configured_url_pattern(self, url):
-        """Validate the URL against the whitelist"""
-        whitelist = self.collection.external_asset_whitelist
-
-        for entry in whitelist:
-            if url.startswith(entry):
-                return True
-
-        logger.info(
-            "Attempted external asset upload didn't match the whitelist",
-            extra={
-                'url': url, 'whitelist': whitelist, 'collection': self.collection
-            }
-        )
-
-        # none of the prefixes matches
-        errors = {'href': _("Invalid URL provided. It doesn't match the collection whitelist")}
-        raise serializers.ValidationError(code='payload', detail=errors)
-
-    def _validate_reachability(self, url):
-        unreachable_error = {'href': _('Provided URL is unreachable')}
-        try:
-            response = requests.head(url, timeout=settings.EXTERNAL_URL_REACHABLE_TIMEOUT)
-
-            if response.status_code > 400:
-                logger.info(
-                    "Attempted external asset upload failed the reachability check",
-                    extra={
-                        'url': url,
-                        'collection': self.collection,
-                        'response': response,
-                    }
-                )
-                raise serializers.ValidationError(code='payload', detail=unreachable_error)
-        except requests.Timeout as exc:
-            logger.info(
-                "Attempted external asset upload resulted in a timeout",
-                extra={
-                    'url': url,
-                    'collection': self.collection,
-                    'exception': exc,
-                    'timeout': settings.EXTERNAL_URL_REACHABLE_TIMEOUT
-                }
-            )
-            errors = {'href': _('Checking href URL resulted in timeout')}
-            raise serializers.ValidationError(code='payload', detail=errors) from exc
-        except requests.ConnectionError as exc:
-            logger.info(
-                "Attempted external asset upload resulted in connection error",
-                extra={
-                    'url': url,
-                    'collection': self.collection,
-                    'exception': exc,
-                }
-            )
-            raise serializers.ValidationError(code='payload', detail=unreachable_error) from exc
-
-    def _validate_href_url(self, url):
-        self._validate_general_url_pattern(url)
-        self._validate_configured_url_pattern(url)
-        self._validate_reachability(url)
-
     def _validate_href_field(self, attrs):
         """Only allow the href field if the collection allows for external assets
 
@@ -495,7 +423,11 @@ class AssetSerializer(AssetBaseSerializer):
                 errors = {'href': _("Found read-only property in payload")}
                 raise serializers.ValidationError(code="payload", detail=errors)
 
-            self._validate_href_url(attrs['file'])
+            try:
+                validate_href_url(attrs['file'], collection)
+            except CoreValidationError as e:
+                errors = {'href': e.message}
+                raise serializers.ValidationError(code='payload', detail=errors)
 
     def validate(self, attrs):
         self._validate_href_field(attrs)

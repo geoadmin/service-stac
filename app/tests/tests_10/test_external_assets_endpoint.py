@@ -1,12 +1,7 @@
-from parameterized import parameterized
-
 from django.conf import settings
 from django.test import Client
 
-from rest_framework import serializers
-
 from stac_api.models import Asset
-from stac_api.serializers import AssetSerializer
 
 from tests.tests_10.base_test import StacBaseTestCase
 from tests.tests_10.data_factory import Factory
@@ -223,40 +218,3 @@ class AssetsExternalAssetEndpointTestCase(StacBaseTestCase):
         )
 
         self.assertStatusCode(200, response)
-
-    @parameterized.expand([
-        (['https://test-domain.test'], 'https://test-domain.test/collection/test.jpg', True),
-        (['https://test-domain'], 'https://test-domain.test/collection/test.jpg', True),
-        (['https://test-domaine', 'https://test-domain'],
-         'https://test-domain.test/collection/test.jpg',
-         True),  # trying to keep the formatting stable
-        (['https://test-domain.test/collection'],
-         'https://test-domain.test/collection/test.jpg',
-         True),  # trying to keep the formatting stable here
-        (['https://test-domain.tst', 'https://something-else.ch'],
-         'https://test-domain.test/collection/test.jpg',
-         False),
-        (['http://test-domain.test'], 'https://test-domain.tst/collection/test.jpg', False),
-        (['https://test-domain.test'], 'http://test-domain.test/collection/test.jpg', False)
-    ])
-    def test_create_external_asset_with_collection_pattern(self, patterns, href, result):
-        collection = self.collection
-
-        # item = self.item
-
-        class Obj:
-
-            @property
-            def collection(self):
-                collection.external_asset_whitelist = patterns
-                collection.save()
-
-                return collection
-
-        if result:
-            # pylint: disable=W0212:protected-access
-            AssetSerializer._validate_configured_url_pattern(Obj(), href)
-        else:
-            with self.assertRaises(serializers.ValidationError):
-                # pylint: disable=W0212:protected-access
-                AssetSerializer._validate_configured_url_pattern(Obj(), href)

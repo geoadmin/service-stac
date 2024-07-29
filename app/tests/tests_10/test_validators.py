@@ -1,11 +1,16 @@
+from parameterized import parameterized
+
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 
 from stac_api.validators import MediaType
+from stac_api.validators import _validate_configured_url_pattern
 from stac_api.validators import get_media_type
 from stac_api.validators import normalize_and_validate_media_type
 from stac_api.validators import validate_content_encoding
 from stac_api.validators import validate_item_properties_datetimes_dependencies
+
+from tests.tests_10.data_factory import Factory
 
 
 class TestValidators(TestCase):
@@ -87,3 +92,39 @@ class TestMediaTypeValidators(TestCase):
         for media_type_str in media_type_strings:
             self.assertRaises(ValidationError, normalize_and_validate_media_type, media_type_str)
             self.assertRaises(KeyError, get_media_type, media_type_str)
+
+
+class TestExternalAssetValidators(TestCase):
+
+    def setUp(self):  # pylint: disable=invalid-name
+        self.factory = Factory()
+        self.collection = self.factory.create_collection_sample().model
+
+    @parameterized.expand([
+        (['https://test-domain.test'], 'https://test-domain.test/collection/test.jpg', True),
+        (['https://test-domain'], 'https://test-domain.test/collection/test.jpg', True),
+        (['https://test-domaine', 'https://test-domain'],
+         'https://test-domain.test/collection/test.jpg',
+         True),  # trying to keep the formatting stable
+        (['https://test-domain.test/collection'],
+         'https://test-domain.test/collection/test.jpg',
+         True),  # trying to keep the formatting stable here
+        (['https://test-domain.tst', 'https://something-else.ch'],
+         'https://test-domain.test/collection/test.jpg',
+         False),
+        (['http://test-domain.test'], 'https://test-domain.tst/collection/test.jpg', False),
+        (['https://test-domain.test'], 'http://test-domain.test/collection/test.jpg', False)
+    ])
+    def test_create_external_asset_with_collection_pattern(self, patterns, href, result):
+        collection = self.collection
+
+        collection.external_asset_whitelist = patterns
+        collection.save()
+
+        if result:
+            # pylint: disable=W0212:protected-access
+            _validate_configured_url_pattern(href, collection)
+        else:
+            with self.assertRaises(ValidationError):
+                # pylint: disable=W0212:protected-access
+                _validate_configured_url_pattern(href, collection)

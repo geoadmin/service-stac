@@ -29,6 +29,7 @@ from stac_api.models import LandingPageLink
 from stac_api.models import Provider
 from stac_api.utils import build_asset_href
 from stac_api.utils import get_query_params
+from stac_api.validators import validate_href_url
 from stac_api.validators import validate_text_to_geometry
 
 logger = logging.getLogger(__name__)
@@ -387,8 +388,50 @@ class CollectionAssetAdmin(admin.ModelAdmin):
         return fields
 
 
+class AssetAdminForm(forms.ModelForm):
+
+    def __init__(self, *args, **kwargs):
+        """If it's an external asset, we switch the file field to a char field"""
+        super().__init__(*args, **kwargs)
+        if self.instance is not None and self.instance.id is not None:
+            are_external_assets_allowed = self.instance.item.collection.allow_external_assets
+
+            if are_external_assets_allowed:
+                external_field = self.fields['is_external']
+                external_field.help_text = (
+                    _('Whether this asset is hosted externally. Save the form in '
+                      'order to toggle the file field between input and file widget.')
+                )
+
+                if self.instance.is_external:
+                    # can't just change the widget, otherwise it is impossible to
+                    # change the value!
+                    self.fields['file'] = forms.CharField()
+
+                    # make it a bit wider
+                    self.fields['file'].widget.attrs['size'] = 150
+                    self.fields['file'].widget.attrs['placeholder'
+                                                    ] = 'https://map.geo.admin.ch/external.jpg'
+
+    def clean_file(self):
+        if self.instance:
+            external_changed = 'is_external' in self.changed_data
+            is_external = self.cleaned_data.get('is_external')
+
+            # if we're just changing from internal to external, so we don't
+            # validate the url, because it is potentially still the previous,
+            # internal file
+            if is_external and not external_changed:
+                file = self.cleaned_data.get('file')
+
+                validate_href_url(file, self.instance.item.collection)
+
+        return self.cleaned_data.get('file')
+
+
 @admin.register(Asset)
 class AssetAdmin(admin.ModelAdmin):
+    form = AssetAdminForm
 
     class Media:
         js = ('js/admin/asset_help_search.js', 'js/admin/asset_external_fields.js')
@@ -475,29 +518,6 @@ class AssetAdmin(admin.ModelAdmin):
         if instance.is_external:
             return path
         return build_asset_href(self.request, path)
-
-    def render_change_form(self, request, context, *args, **kwargs):
-        """Make the file field be a text input if asset is external"""
-        obj = kwargs['obj']
-        if obj is not None:
-            are_external_assets_allowed = obj.item.collection.allow_external_assets
-
-            form_instance = context['adminform'].form
-
-            if are_external_assets_allowed:
-                external_field = form_instance.fields['is_external']
-                external_field.help_text = (
-                    _('Whether this asset is hosted externally. Save the form in '
-                      'order to toggle the file field between input and file widget.')
-                )
-
-                if obj.is_external:
-                    form_instance.fields['file'].widget = forms.TextInput(
-                        attrs={
-                            'size': 150, 'placeholder': 'https://map.geo.admin.ch/external.jpg'
-                        }
-                    )
-        return super().render_change_form(request, context, *args, **kwargs)
 
     def get_fieldsets(self, request, obj=None):
         """Build the different field sets for the admin page
