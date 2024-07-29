@@ -70,6 +70,11 @@ class CollectionLinkInline(admin.TabularInline):
     extra = 0
 
 
+class CollectionAssetInline(admin.StackedInline):
+    model = CollectionAsset
+    extra = 0
+
+
 @admin.register(Collection)
 class CollectionAdmin(admin.ModelAdmin):
 
@@ -110,7 +115,7 @@ class CollectionAdmin(admin.ModelAdmin):
         'etag',
         'update_interval'
     ]
-    inlines = [ProviderInline, CollectionLinkInline]
+    inlines = [ProviderInline, CollectionLinkInline, CollectionAssetInline]
     search_fields = ['name']
     list_display = ['name', 'published']
     list_filter = ['published']
