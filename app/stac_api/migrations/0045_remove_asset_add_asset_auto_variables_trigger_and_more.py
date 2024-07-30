@@ -9,7 +9,7 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('stac_api', '0036_collectionasset_and_more'),
+        ('stac_api', '0044_alter_collectionlink_unique_together'),
     ]
 
     operations = [

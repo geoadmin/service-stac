@@ -11,7 +11,7 @@ from django.db import models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('stac_api', '0037_remove_asset_add_asset_auto_variables_trigger_and_more'),
+        ('stac_api', '0045_remove_asset_add_asset_auto_variables_trigger_and_more'),
     ]
 
     operations = [

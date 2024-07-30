@@ -56,7 +56,7 @@ class Migration(migrations.Migration):
         '''
 
     dependencies = [
-        ('stac_api', '0038_geoadminlangcount_geoadminvariantcount_gsdcount_and_more'),
+        ('stac_api', '0046_geoadminlangcount_geoadminvariantcount_gsdcount_and_more'),
     ]
 
     operations = [migrations.RunSQL(sql=migrate_sql, reverse_sql=reverse_sql)]
