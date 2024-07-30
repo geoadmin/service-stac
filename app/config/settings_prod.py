@@ -327,3 +327,10 @@ STAC_BROWSER_BASE_PATH = env('STAC_BROWSER_BASE_PATH', default='browser/index.ht
 
 # Regex patterns of collections that should go to the managed bucket
 MANAGED_BUCKET_COLLECTION_PATTERNS = env.list('MANAGED_BUCKET_COLLECTION_PATTERNS', default=[])
+
+# the duration in seconds that the validator should try and reach the external URL
+EXTERNAL_URL_REACHABLE_TIMEOUT = env.int('EXTERNAL_URL_REACHABLE_TIMEOUT', default=5)
+
+DISALLOWED_EXTERNAL_ASSET_URL_SCHEMES = env.list(
+    'DISALLOWED_EXTERNAL_ASSET_URL_SCHEMES', default=['http']
+)

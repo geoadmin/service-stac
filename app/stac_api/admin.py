@@ -14,6 +14,7 @@ from django.forms import CharField
 from django.forms import Textarea
 from django.http import HttpResponseRedirect
 from django.urls import reverse
+from django.utils.translation import gettext_lazy as _
 
 from stac_api.models import BBOX_CH
 from stac_api.models import Asset
@@ -28,6 +29,7 @@ from stac_api.models import LandingPageLink
 from stac_api.models import Provider
 from stac_api.utils import build_asset_href
 from stac_api.utils import get_query_params
+from stac_api.validators import validate_href_url
 from stac_api.validators import validate_text_to_geometry
 
 logger = logging.getLogger(__name__)
@@ -91,7 +93,9 @@ class CollectionAdmin(admin.ModelAdmin):
         'summaries_eo_gsd',
         'license',
         'etag',
-        'update_interval'
+        'update_interval',
+        'allow_external_assets',
+        'external_asset_whitelist'
     ]
     readonly_fields = [
         'extent_start_datetime',
@@ -110,6 +114,18 @@ class CollectionAdmin(admin.ModelAdmin):
     search_fields = ['name']
     list_display = ['name', 'published']
     list_filter = ['published']
+
+    def render_change_form(self, request, context, *args, **kwargs):
+        form_instance = context['adminform'].form
+        form_instance.fields['external_asset_whitelist'].widget = Textarea(
+            attrs={
+                'rows': 10,
+                'cols': 60,
+                'placeholder': 'https://map.geo.admin.ch,https://swisstopo.ch'
+            }
+        )
+
+        return super().render_change_form(request, context, *args, **kwargs)
 
     def get_search_results(self, request, queryset, search_term):
         queryset, use_distinct = super().get_search_results(request, queryset, search_term)
@@ -372,15 +388,63 @@ class CollectionAssetAdmin(admin.ModelAdmin):
         return fields
 
 
+class AssetAdminForm(forms.ModelForm):
+
+    def __init__(self, *args, **kwargs):
+        """If it's an external asset, we switch the file field to a char field"""
+        super().__init__(*args, **kwargs)
+        if self.instance is not None and self.instance.id is not None:
+            are_external_assets_allowed = self.instance.item.collection.allow_external_assets
+
+            if are_external_assets_allowed:
+                external_field = self.fields['is_external']
+                external_field.help_text = (
+                    _('Whether this asset is hosted externally. Save the form in '
+                      'order to toggle the file field between input and file widget.')
+                )
+
+                if self.instance.is_external:
+                    # can't just change the widget, otherwise it is impossible to
+                    # change the value!
+                    self.fields['file'] = forms.CharField()
+
+                    # make it a bit wider
+                    self.fields['file'].widget.attrs['size'] = 150
+                    self.fields['file'].widget.attrs['placeholder'
+                                                    ] = 'https://map.geo.admin.ch/external.jpg'
+
+    def clean_file(self):
+        if self.instance:
+            external_changed = 'is_external' in self.changed_data
+            is_external = self.cleaned_data.get('is_external')
+
+            # if we're just changing from internal to external, so we don't
+            # validate the url, because it is potentially still the previous,
+            # internal file
+            if is_external and not external_changed:
+                file = self.cleaned_data.get('file')
+
+                validate_href_url(file, self.instance.item.collection)
+
+        return self.cleaned_data.get('file')
+
+
 @admin.register(Asset)
 class AssetAdmin(admin.ModelAdmin):
+    form = AssetAdminForm
 
     class Media:
-        js = ('js/admin/asset_help_search.js',)
+        js = ('js/admin/asset_help_search.js', 'js/admin/asset_external_fields.js')
         css = {'all': ('style/hover.css',)}
+
+    file = forms.FileField(required=False)
 
     autocomplete_fields = ['item']
     search_fields = ['name', 'item__name', 'item__collection__name']
+
+    # We don't want to move the assets on S3
+    # That's why some fields like the name of the asset are set readonly here
+    # for update operations
     readonly_fields = [
         'item_name',
         'collection_name',
@@ -392,22 +456,7 @@ class AssetAdmin(admin.ModelAdmin):
         'update_interval'
     ]
     list_display = ['name', 'item_name', 'collection_name', 'collection_published']
-    fieldsets = (
-        (None, {
-            'fields': ('name', 'item', 'created', 'updated', 'etag')
-        }),
-        (
-            'File', {
-                'fields': ('file', 'media_type', 'href', 'checksum_multihash', 'update_interval')
-            }
-        ),
-        ('Description', {
-            'fields': ('title', 'description', 'roles')
-        }),
-        ('Attributes', {
-            'fields': ('eo_gsd', 'proj_epsg', 'geoadmin_variant', 'geoadmin_lang')
-        }),
-    )
+
     list_filter = [
         AutocompleteFilterFactory('Item name', 'item', use_pk_exact=True),
         AutocompleteFilterFactory('Collection name', 'item__collection', use_pk_exact=True)
@@ -464,32 +513,93 @@ class AssetAdmin(admin.ModelAdmin):
 
         super().save_model(request, obj, form, change)
 
-    # Note: this is a bit hacky and only required to get access
-    # to the request object in 'href' method.
-    def get_form(self, request, obj=None, **kwargs):  # pylint: disable=arguments-differ
-        self.request = request  # pylint: disable=attribute-defined-outside-init
-        return super().get_form(request, obj, **kwargs)
-
     def href(self, instance):
         path = instance.file.name
+        if instance.is_external:
+            return path
         return build_asset_href(self.request, path)
 
-    # We don't want to move the assets on S3
-    # That's why some fields like the name of the asset are set readonly here
-    # for update operations
     def get_fieldsets(self, request, obj=None):
-        fields = super().get_fieldsets(request, obj)
+        """Build the different field sets for the admin page
+
+        The create page takes less fields than the edit page. This is because
+        at creation time we don't know yet if the collection allows for external
+        assets and thus can't determine whether to show the flag or not
+        """
+
+        # Save the request for use in the href field
+        self.request = request  # pylint: disable=attribute-defined-outside-init
+
+        fields = []
         if obj is None:
-            # In case a new Asset is added use the normal field 'item' from model that have
-            # a help text fort the search functionality.
-            fields[0][1]['fields'] = ('name', 'item', 'created', 'updated', 'etag')
-            return fields
-        # Otherwise if this is an update operation only display the read only fields
-        # without help text
-        fields[0][1]['fields'] = (
-            'name', 'item_name', 'collection_name', 'created', 'updated', 'etag'
-        )
+            fields.append((None, {'fields': ('name', 'item', 'created', 'updated', 'etag')}))
+            fields.append(('File', {'fields': ('media_type',)}))
+        else:
+            # add one section after another
+            fields.append((
+                None, {
+                    'fields':
+                        ('name', 'item_name', 'collection_name', 'created', 'updated', 'etag')
+                }
+            ))
+
+            # is_external is only available if the collection allows it
+            if obj.item.collection.allow_external_assets:
+                file_fields = (
+                    'is_external',
+                    'file',
+                    'media_type',
+                    'href',
+                    'checksum_multihash',
+                    'update_interval'
+                )
+            else:
+                file_fields = (
+                    'file', 'media_type', 'href', 'checksum_multihash', 'update_interval'
+                )
+
+            fields.append(('File', {'fields': file_fields}))
+
+            fields.append(('Description', {'fields': ('title', 'description', 'roles')}))
+
+            fields.append((
+                'Attributes', {
+                    'fields': ('eo_gsd', 'proj_epsg', 'geoadmin_variant', 'geoadmin_lang')
+                }
+            ))
+
         return fields
+
+    def get_form(self, request, obj=None, change=False, **kwargs):
+        """Make the file field optional
+
+        It is perfectly possible to not specify any file in the file field when saving,
+        even when the field *isn't* blank=True or null=True. The multipart-upload
+        process does it too.
+        We allow the field to be empty in case somebody is setting the is_external flag"""
+        form = super().get_form(request, obj, change, **kwargs)
+
+        if obj:
+            form.base_fields['file'].required = False
+        return form
+
+    def response_add(self, request, obj, post_url_continue=None):
+        """
+        Determine the HttpResponse for the add_view stage. It mostly defers to
+        its superclass implementation but is customized because the User model
+        has a slightly different workflow.
+        """
+        # We should allow further modification of the user just added i.e. the
+        # 'Save' button should behave like the 'Save and continue editing'
+        # button except for:
+        # * The user has pressed the 'Save and add another' button
+
+        # stole this from django.contrib.auth.admin.UserAdmin
+        if "_addanother" not in request.POST:
+            request.POST = request.POST.copy()
+            request.POST["_continue"] = 1
+
+        return super().response_add(request, obj, post_url_continue)
 
 
 @admin.register(AssetUpload)

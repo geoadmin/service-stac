@@ -2,15 +2,20 @@ import logging
 import re
 from collections import namedtuple
 from datetime import datetime
+from urllib.parse import urlparse
 
 import multihash
+import requests
 from multihash.constants import CODE_HASHES
 from multihash.constants import HASH_CODES
 
+from django.conf import settings
 from django.contrib.gis.gdal.error import GDALException
 from django.contrib.gis.geos import GEOSGeometry
 from django.contrib.gis.geos.error import GEOSException
+from django.core import exceptions
 from django.core.exceptions import ValidationError
+from django.core.validators import URLValidator
 from django.utils.translation import gettext_lazy as _
 
 from stac_api.utils import fromisoformat
@@ -555,3 +560,107 @@ def validate_content_encoding(value):
             params={'encoding': value, 'supported_encodings': ', '.join(supported_encodings)},
             code='invalid'
         )
+
+
+def _validate_href_scheme(url, collection):
+    """Validate if the url scheme is disallowed"""
+    _url = urlparse(url)
+    if _url.scheme in settings.DISALLOWED_EXTERNAL_ASSET_URL_SCHEMES:
+        logger.warning(
+            "Attempted external asset upload with disallowed URL scheme",
+            extra={
+                'url': url,
+                'collection': collection,  # to have the means to know who this might have been
+                'disallowed_schemes': settings.DISALLOWED_EXTERNAL_ASSET_URL_SCHEMES
+            }
+        )
+        raise ValidationError(_(f'{_url.scheme} is not a allowed url scheme'))
+
+
+def _validate_href_general_pattern(url, collection):
+    try:
+        validator = URLValidator()
+        validator(url)
+    except exceptions.ValidationError as exc:
+        logger.warning(
+            "Attempted external asset upload with invalid URL %s",
+            url,
+            extra={
+                # to have the means to know who this might have been
+                'collection': collection,
+            }
+        )
+
+        error = _('Invalid URL provided')
+        raise ValidationError(error) from exc
+
+
+def _validate_href_configured_pattern(url, collection):
+    """Validate the URL against the whitelist"""
+    whitelist = collection.external_asset_whitelist
+
+    for entry in whitelist:
+        if url.startswith(entry):
+            return True
+
+    logger.warning(
+        "Attempted external asset upload didn't match the whitelist",
+        extra={
+            # log collection to have the means to know who this might have been
+            'url': url,
+            'whitelist': whitelist,
+            'collection': collection
+        }
+    )
+
+    # none of the prefixes matches
+    error = _("Invalid URL provided. It doesn't match the collection whitelist")
+    raise ValidationError(error)
+
+
+def _validate_href_reachability(url, collection):
+    unreachable_error = _('Provided URL is unreachable')
+    try:
+        response = requests.head(url, timeout=settings.EXTERNAL_URL_REACHABLE_TIMEOUT)
+
+        if response.status_code > 400:
+            logger.warning(
+                "Attempted external asset upload failed the reachability check",
+                extra={
+                    'url': url,
+                    'collection': collection,  # to have the means to know who this might have been
+                    'response': response,
+                }
+            )
+            raise ValidationError(unreachable_error)
+    except requests.Timeout as exc:
+        logger.warning(
+            "Attempted external asset upload resulted in a timeout",
+            extra={
+                'url': url,
+                'collection': collection,  # to have the means to know who this might have been
+                'exception': exc,
+                'timeout': settings.EXTERNAL_URL_REACHABLE_TIMEOUT
+            }
+        )
+        error = _('Checking href URL resulted in timeout')
+        raise ValidationError(error) from exc
+    except requests.ConnectionError as exc:
+        logger.warning(
+            "Attempted external asset upload resulted in connection error",
+            extra={
+                'url': url,
+                'collection': collection,  # to have the means to know who this might have been
+                'exception': exc,
+            }
+        )
+        raise ValidationError(unreachable_error) from exc
+
+
+def validate_href_url(url, collection):
+    """Validate the href URL """
+
+    _validate_href_scheme(url, collection)
+    _validate_href_general_pattern(url, collection)
+    _validate_href_configured_pattern(url, collection)
+    _validate_href_reachability(url, collection)

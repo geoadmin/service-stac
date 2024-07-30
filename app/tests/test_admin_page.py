@@ -187,6 +187,26 @@ class AdminBaseTestCase(TestCase):
         filelike = BytesIO(filecontent)
         filelike.name = 'testname.txt'
 
+        # we need to create the asset in two steps, since the django admin form
+        # only takes some values in the creation form, then the rest in the
+        # change form
+        data = {
+            "item": item.id,
+            "name": "test_asset.txt",
+            "media_type": "text/plain",
+        }
+
+        response = self.client.post(reverse('admin:stac_api_asset_add'), data)
+        logger.debug('Asset created in %fs', time.time() - start)
+
+        # Status code for successful creation is 302, since in the admin UI
+        # you're redirected to the list view after successful creation
+        self.assertEqual(response.status_code, 302, msg="Admin page failed to add new asset")
+        self.assertTrue(
+            Asset.objects.filter(item=item, name=data["name"]).exists(),
+            msg="Admin page asset added not found in DB"
+        )
+
         data = {
             "item": item.id,
             "name": "test_asset.txt",
@@ -200,17 +220,10 @@ class AdminBaseTestCase(TestCase):
             "file": filelike
         }
 
-        response = self.client.post(reverse('admin:stac_api_asset_add'), data)
-        logger.debug('Asset created in %fs', time.time() - start)
-
-        # Status code for successful creation is 302, since in the admin UI
-        # you're redirected to the list view after successful creation
-        self.assertEqual(response.status_code, 302, msg="Admin page failed to add new asset")
-        self.assertTrue(
-            Asset.objects.filter(item=item, name=data["name"]).exists(),
-            msg="Admin page asset added not found in DB"
-        )
         asset = Asset.objects.get(item=item, name=data["name"])
+        response = self.client.post(reverse('admin:stac_api_asset_change', args=[asset.id]), data)
+
+        asset.refresh_from_db()
 
         # Check the asset values
         for key, value in data.items():
@@ -240,14 +253,7 @@ class AdminBaseTestCase(TestCase):
         data = {
             "item": item.id,
             "name": filelike.name,
-            "description": "This is a description",
-            "eo_gsd": 10,
-            "geoadmin_lang": "en",
-            "geoadmin_variant": "kgrs",
-            "proj_epsg": 2056,
-            "title": "My first Asset for test",
             "media_type": "application/x.filegdb+zip",
-            "file": filelike
         }
         if extra:
             data.update(extra)
@@ -261,7 +267,24 @@ class AdminBaseTestCase(TestCase):
             Asset.objects.filter(item=item, name=data["name"]).exists(),
             msg="Admin page asset added not found in DB"
         )
+
+        data = {
+            "item": item.id,
+            "name": filelike.name,
+            "description": "This is a description",
+            "eo_gsd": 10,
+            "geoadmin_lang": "en",
+            "geoadmin_variant": "kgrs",
+            "proj_epsg": 2056,
+            "title": "My first Asset for test",
+            "media_type": "application/x.filegdb+zip",
+            "file": filelike
+        }
+
         asset = Asset.objects.get(item=item, name=data["name"])
+        response = self.client.post(reverse('admin:stac_api_asset_change', args=[asset.id]), data)
+
+        asset.refresh_from_db()
 
         # Check the asset values
         for key, value in data.items():
@@ -840,23 +863,37 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
     @mock_s3_asset_file
     def test_asset_file_metadata(self):
         content_type = 'image/tiff; application=geotiff'
-        sample = self.factory.create_asset_sample(
-            self.item, name='asset.tiff', media_type=content_type
-        ).attributes
 
-        # Admin page doesn't uses the name for foreign key but the internal db id.
-        sample['item'] = self.item.id
-        response = self.client.post(reverse('admin:stac_api_asset_add'), sample)
+        data = {"item": self.item.id, "name": "checksum.tiff", "media_type": content_type}
+
+        response = self.client.post(reverse('admin:stac_api_asset_add'), data)
         # Status code for successful creation is 302, since in the admin UI
         # you're redirected to the list view after successful creation
         self.assertEqual(response.status_code, 302)
         self.assertTrue(
-            Asset.objects.filter(item=self.item, name=sample["name"]).exists(),
+            Asset.objects.filter(item=self.item, name=data["name"]).exists(),
             msg="Admin page asset added not found in DB"
         )
-        asset = Asset.objects.get(item=self.item, name=sample["name"])
+        asset = Asset.objects.get(item=self.item, name=data["name"])
 
-        path = f"{self.item.collection.name}/{self.item.name}/{sample['name']}"
+        filecontent = b'mybinarydata2'
+        filelike = BytesIO(filecontent)
+        filelike.name = 'testname.tiff'
+
+        data.update({
+            "description": "",
+            "eo_gsd": "",
+            "geoadmin_lang": "",
+            "geoadmin_variant": "",
+            "proj_epsg": "",
+            "title": "",
+            "file": filelike
+        })
+
+        response = self.client.post(reverse('admin:stac_api_asset_change', args=[asset.id]), data)
+        asset.refresh_from_db()
+
+        path = f"{self.item.collection.name}/{self.item.name}/{data['name']}"
         sha256 = parse_multihash(asset.checksum_multihash).digest.hex()
         obj = self.get_s3_object(path)
         self.assertS3ObjectContentType(obj, path, content_type)

@@ -4,6 +4,7 @@ from urllib.parse import urlparse
 
 from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry
+from django.core.exceptions import ValidationError as CoreValidationError
 from django.utils.translation import gettext_lazy as _
 
 from rest_framework import serializers
@@ -37,6 +38,7 @@ from stac_api.validators import validate_asset_name_with_media_type
 from stac_api.validators import validate_checksum_multihash_sha256
 from stac_api.validators import validate_content_encoding
 from stac_api.validators import validate_geoadmin_variant
+from stac_api.validators import validate_href_url
 from stac_api.validators import validate_item_properties_datetimes
 from stac_api.validators import validate_md5_parts
 from stac_api.validators import validate_name
@@ -248,7 +250,12 @@ class HrefField(serializers.Field):
         request = self.context.get("request")
         path = value.name
 
+        if value.instance.is_external:
+            return path
         return build_asset_href(request, path)
+
+    def to_internal_value(self, data):
+        return data
 
 
 class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
@@ -270,7 +277,7 @@ class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
             'proj_epsg',
             'checksum_multihash',
             'created',
-            'updated'
+            'updated',
         ]
         validators = []  # Remove a default "unique together" constraint.
         # (see:
@@ -309,9 +316,13 @@ class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
     proj_epsg = serializers.IntegerField(source='proj_epsg', allow_null=True, required=False)
     # read only fields
     checksum_multihash = serializers.CharField(source='checksum_multihash', read_only=True)
-    href = HrefField(source='file', read_only=True)
+    href = HrefField(source='file', required=False)
     created = serializers.DateTimeField(read_only=True)
     updated = serializers.DateTimeField(read_only=True)
+
+    # helper variable to provide the collection for upsert validation
+    # see views.AssetDetail.perform_upsert
+    collection = None
 
     def create(self, validated_data):
         asset = validate_uniqueness_and_create(Asset, validated_data)
@@ -388,6 +399,39 @@ class AssetSerializer(AssetBaseSerializer):
             request, 'asset-detail', [collection, item, name]
         )
         return representation
+
+    def _validate_href_field(self, attrs):
+        """Only allow the href field if the collection allows for external assets
+
+        Raise an exception, this replicates the previous behaviour when href
+        was always read_only
+        """
+        # the href field is translated to the file field here
+        if 'file' in attrs:
+            if self.collection:
+                collection = self.collection
+            else:
+                raise Exception("Implementation error")
+
+            if not collection.allow_external_assets:
+                logger.info(
+                    'Attempted external asset upload with no permission',
+                    extra={
+                        'collection': self.collection, 'attrs': attrs
+                    }
+                )
+                errors = {'href': _("Found read-only property in payload")}
+                raise serializers.ValidationError(code="payload", detail=errors)
+
+            try:
+                validate_href_url(attrs['file'], collection)
+            except CoreValidationError as e:
+                errors = {'href': e.message}
+                raise serializers.ValidationError(code='payload', detail=errors)
+
+    def validate(self, attrs):
+        self._validate_href_field(attrs)
+        return super().validate(attrs)
 
 
 class AssetsForItemSerializer(AssetBaseSerializer):

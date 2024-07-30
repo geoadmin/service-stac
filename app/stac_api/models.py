@@ -305,6 +305,17 @@ class Collection(models.Model):
         "in which the underlying assets data are updated."
     )
 
+    allow_external_assets = models.BooleanField(
+        default=False,
+        help_text=_('Whether this collection can have assets that are hosted externally')
+    )
+
+    external_asset_whitelist = ArrayField(
+        models.CharField(max_length=255), blank=True, default=list,
+        help_text=_('Provide a comma separated list of '
+                    'protocol://domain values for the external asset url validation')
+    )
+
     def __str__(self):
         return self.name
 
@@ -650,6 +661,12 @@ class Asset(AssetBase):
         max_length=25, null=True, blank=True, validators=[validate_geoadmin_variant]
     )
 
+    # whether this asset is hosted externally
+    is_external = models.BooleanField(
+        default=False,
+        help_text=_("Whether this asset is hosted externally")
+    )
+
     def get_collection(self):
         return self.item.collection
 
@@ -671,6 +688,9 @@ class CollectionAsset(AssetBase):
         on_delete=models.PROTECT,
         help_text=_(SEARCH_TEXT_HELP_ITEM)
     )
+
+    # CollectionAssets are never external
+    is_external = False
 
     def get_collection(self):
         return self.collection

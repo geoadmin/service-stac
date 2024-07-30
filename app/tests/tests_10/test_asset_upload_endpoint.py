@@ -1260,3 +1260,31 @@ class AssetUploadListPartsEndpointTestCase(AssetUploadBaseTest):
         )
         self.assertStatusCode(200, response)
         self.assertS3ObjectExists(key)
+
+
+class ExternalAssetUploadtestCase(AssetUploadBaseTest):
+
+    def test_create_multipart_upload_on_external_asset(self):
+        key = get_asset_path(self.item, self.asset.name)
+
+        self.assertS3ObjectNotExists(key)
+        number_parts = 1
+        size = 5 * MB * number_parts
+        file_like, checksum_multihash = get_file_like_object(size)
+        offset = size // number_parts
+        md5_parts = create_md5_parts(number_parts, offset, file_like)
+
+        self.asset.is_external = True
+        self.asset.save()
+
+        response = self.client.post(
+            self.get_create_multipart_upload_path(),
+            data={
+                'number_parts': number_parts,
+                'file:checksum': checksum_multihash,
+                'md5_parts': md5_parts
+            },
+            content_type="application/json"
+        )
+
+        self.assertStatusCode(400, response)

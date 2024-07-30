@@ -532,7 +532,37 @@ class AssetDetail(
     def get_serializer(self, *args, **kwargs):
         serializer_class = self.get_serializer_class()
         kwargs.setdefault('context', self.get_serializer_context())
-        return serializer_class(*args, **kwargs)
+        item = get_object_or_404(
+            Item, collection__name=self.kwargs['collection_name'], name=self.kwargs['item_name']
+        )
+        serializer = serializer_class(*args, **kwargs)
+
+        # for the validation the serializer needs to know the collection of the
+        # item. In case of upserting, the asset doesn't exist and thus the collection
+        # can't be read from the instance, which is why we pass the collection manually
+        # here. See serialiers.AssetBaseSerializer._validate_href_field
+        serializer.collection = item.collection
+        return serializer
+
+    def _get_file_path(self, serializer, item, asset_name):
+        """Get the path to the file
+
+        If the collection allows for external asset, and the file is specified
+        in the request, we set it directly. If the collection doesn't allow it,
+        error 400.
+        Otherwise we assemble the path from the file name, collection name as
+        well as the s3 bucket domain
+        """
+
+        if 'file' in serializer.validated_data:
+            file = serializer.validated_data['file']
+            # setting the href makes the asset be external implicitly
+            is_external = True
+        else:
+            file = get_asset_path(item, asset_name)
+            is_external = False
+
+        return file, is_external
 
     def perform_update(self, serializer):
         item = get_object_or_404(
@@ -548,12 +578,14 @@ class AssetDetail(
                 'asset': self.kwargs['asset_name']
             }
         )
-        serializer.save(item=item, file=get_asset_path(item, self.kwargs['asset_name']))
+        file, is_external = self._get_file_path(serializer, item, self.kwargs['asset_name'])
+        return serializer.save(item=item, file=file, is_external=is_external)
 
     def perform_upsert(self, serializer, lookup):
         item = get_object_or_404(
             Item, collection__name=self.kwargs['collection_name'], name=self.kwargs['item_name']
         )
+
         validate_renaming(
             serializer,
             original_id=self.kwargs['asset_name'],
@@ -566,9 +598,9 @@ class AssetDetail(
         )
         lookup['item__collection__name'] = item.collection.name
         lookup['item__name'] = item.name
-        return serializer.upsert(
-            lookup, item=item, file=get_asset_path(item, self.kwargs['asset_name'])
-        )
+
+        file, is_external = self._get_file_path(serializer, item, self.kwargs['asset_name'])
+        return serializer.upsert(lookup, item=item, file=file, is_external=is_external)
 
     @etag(get_asset_etag)
     def get(self, request, *args, **kwargs):
@@ -635,6 +667,7 @@ class AssetUploadBase(generics.GenericAPIView):
 
     def create_multipart_upload(self, executor, serializer, validated_data, asset):
         key = get_asset_path(asset.item, asset.name)
+
         upload_id = executor.create_multipart_upload(
             key,
             asset,
@@ -693,8 +726,18 @@ class AssetUploadBase(generics.GenericAPIView):
 
 class AssetUploadsList(AssetUploadBase, mixins.ListModelMixin, views_mixins.CreateModelMixin):
 
+    class ExternalDisallowedException(Exception):
+        pass
+
     def post(self, request, *args, **kwargs):
-        return self.create(request, *args, **kwargs)
+        try:
+            return self.create(request, *args, **kwargs)
+        except self.ExternalDisallowedException as ex:
+            data = {
+                "code": 400,
+                "description": "Not allowed to create multipart uploads on external assets"
+            }
+            return Response(status=400, exception=True, data=data)
 
     def get(self, request, *args, **kwargs):
         validate_asset(self.kwargs)
@@ -707,6 +750,9 @@ class AssetUploadsList(AssetUploadBase, mixins.ListModelMixin, views_mixins.Crea
         data = serializer.validated_data
         asset = self.get_asset_or_404()
         collection = asset.item.collection
+
+        if asset.is_external:
+            raise self.ExternalDisallowedException()
 
         s3_bucket = select_s3_bucket(collection.name)
         executor = MultipartUpload(s3_bucket)
