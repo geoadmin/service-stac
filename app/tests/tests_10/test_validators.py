@@ -4,7 +4,8 @@ from django.core.exceptions import ValidationError
 from django.test import TestCase
 
 from stac_api.validators import MediaType
-from stac_api.validators import _validate_configured_url_pattern
+from stac_api.validators import _validate_href_configured_pattern
+from stac_api.validators import _validate_href_scheme
 from stac_api.validators import get_media_type
 from stac_api.validators import normalize_and_validate_media_type
 from stac_api.validators import validate_content_encoding
@@ -123,8 +124,16 @@ class TestExternalAssetValidators(TestCase):
 
         if result:
             # pylint: disable=W0212:protected-access
-            _validate_configured_url_pattern(href, collection)
+            _validate_href_configured_pattern(href, collection)
         else:
             with self.assertRaises(ValidationError):
                 # pylint: disable=W0212:protected-access
-                _validate_configured_url_pattern(href, collection)
+                _validate_href_configured_pattern(href, collection)
+
+    def test_scheme_validator(self):
+        with self.settings(DISALLOWED_EXTERNAL_ASSET_SCHEME=['http']):
+            collection = self.collection
+
+            url = 'http://map.geo.admin.ch'
+            with self.assertRaises(ValidationError):
+                _validate_href_scheme(url, collection)

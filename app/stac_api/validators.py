@@ -2,6 +2,7 @@ import logging
 import re
 from collections import namedtuple
 from datetime import datetime
+from urllib.parse import urlparse
 
 import multihash
 import requests
@@ -561,7 +562,22 @@ def validate_content_encoding(value):
         )
 
 
-def _validate_general_url_pattern(url):
+def _validate_href_scheme(url, collection):
+    """Validate if the url scheme is disallowed"""
+    _url = urlparse(url)
+    if _url.scheme in settings.DISALLOWED_EXTERNAL_ASSET_URL_SCHEMES:
+        logger.info(
+            "Attempted external asset upload with disallowed URL scheme",
+            extra={
+                'url': url,
+                'collection': collection,
+                'disallowed_schemes': settings.DISALLOWED_EXTERNAL_ASSET_URL_SCHEMES
+            }
+        )
+        raise ValidationError(_(f'{_url.scheme} is not a allowed url scheme'))
+
+
+def _validate_href_general_pattern(url):
     try:
         validator = URLValidator()
         validator(url)
@@ -570,7 +586,7 @@ def _validate_general_url_pattern(url):
         raise ValidationError(error) from exc
 
 
-def _validate_configured_url_pattern(url, collection):
+def _validate_href_configured_pattern(url, collection):
     """Validate the URL against the whitelist"""
     whitelist = collection.external_asset_whitelist
 
@@ -590,7 +606,7 @@ def _validate_configured_url_pattern(url, collection):
     raise ValidationError(error)
 
 
-def _validate_reachability(url, collection):
+def _validate_href_reachability(url, collection):
     unreachable_error = _('Provided URL is unreachable')
     try:
         response = requests.head(url, timeout=settings.EXTERNAL_URL_REACHABLE_TIMEOUT)
@@ -632,6 +648,7 @@ def _validate_reachability(url, collection):
 def validate_href_url(url, collection):
     """Validate the href URL """
 
-    _validate_general_url_pattern(url)
-    _validate_configured_url_pattern(url, collection)
-    _validate_reachability(url, collection)
+    _validate_href_scheme(url, collection)
+    _validate_href_general_pattern(url)
+    _validate_href_configured_pattern(url, collection)
+    _validate_href_reachability(url, collection)
