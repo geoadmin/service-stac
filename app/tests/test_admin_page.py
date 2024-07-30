@@ -59,7 +59,9 @@ class AdminBaseTestCase(TestCase):
             "providers-TOTAL_FORMS": "0",
             "providers-INITIAL_FORMS": "0",
             "links-TOTAL_FORMS": "0",
-            "links-INITIAL_FORMS": "0"
+            "links-INITIAL_FORMS": "0",
+            "assets-TOTAL_FORMS": "0",
+            "assets-INITIAL_FORMS": "0"
         }
         if with_link:
             data.update({
@@ -416,6 +418,8 @@ class AdminCollectionTestCase(AdminBaseTestCase):
             "providers-0-description": "",
             "providers-0-roles": "licensor",
             "providers-0-url": "http://www.example.com",
+            "assets-TOTAL_FORMS": "0",
+            "assets-INITIAL_FORMS": "0"
         }
         response = self.client.post("/api/stac/admin/stac_api/collection/add/", data)
 
