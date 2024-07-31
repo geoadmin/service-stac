@@ -31,6 +31,21 @@ links = {
     }
 }
 
+multiple_links = {
+    'link-1': {
+        'rel': 'license',
+        'href': 'https://www.example1.com/license',
+        'title': 'This is an extra collection link',
+        'link_type': 'description'
+    },
+    'link-2': {
+        'rel': 'license',
+        'href': 'https://www.example2.com/license',
+        'title': 'This is another extra collection link',
+        'link_type': 'description'
+    }
+}
+
 links_invalid = {
     'link-invalid': {
         'title': 'invalid collection link relation',
@@ -82,6 +97,12 @@ collections = {
         'description': 'This is a collection with invalid user link',
         'license': 'proprietary',
         'links': [links_invalid['link-invalid']]
+    },
+    'collection-multiple-links': {
+        'name': 'collection-multiple-link',
+        'description': 'This is a collection with multiple user links',
+        'license': 'proprietary',
+        'links': [multiple_links['link-1'], multiple_links['link-2']]
     },
     'collection-invalid-providers': {
         'name': 'collection-invalid-provider',
