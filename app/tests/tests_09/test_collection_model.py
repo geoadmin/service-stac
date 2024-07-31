@@ -53,6 +53,13 @@ class CollectionsModelTestCase(StacBaseTransactionTestCase):
                 name="collection-invalid-links", sample="collection-invalid-links", db_create=True
             )
 
+    def test_create_collection_multiple_links(self):
+        # try to create a collection with multiple links of the same type.
+        # Should not raise any errors.
+        self.factory.create_collection_sample(
+            name="collection-multiple-links", sample="collection-multiple-links", db_create=True
+        )
+
     def test_create_collection_invalid_providers(self):
         # try to create a collection with invalid collection name
         with self.assertRaises(

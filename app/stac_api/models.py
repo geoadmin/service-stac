@@ -326,7 +326,6 @@ class CollectionLink(Link):
     )
 
     class Meta:
-        unique_together = (('rel', 'collection'),)
         ordering = ['pk']
         triggers = generate_child_triggers('collection', 'CollectionLink')
 
