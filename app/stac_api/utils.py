@@ -1,4 +1,5 @@
 import hashlib
+import inspect
 import json
 import logging
 import math
@@ -19,6 +20,7 @@ from botocore.client import Config
 from django.conf import settings
 from django.contrib.gis.geos import Point
 from django.contrib.gis.geos import Polygon
+from django.core.management.base import BaseCommand
 from django.urls import reverse
 
 logger = logging.getLogger(__name__)
@@ -338,6 +340,19 @@ def remove_query_params(url, keys):
     return parse.urlunsplit((scheme, netloc, path, query, fragment))
 
 
+class CustomBaseCommand(BaseCommand):
+
+    def handle(self, *args, **options):
+        """
+        The actual logic of the command. Subclasses must implement
+        this method.
+        """
+        raise NotImplementedError("subclasses of CustomBaseCommand must provide a handle() method")
+
+    def add_arguments(self, parser):
+        parser.add_argument('--logger', action='store_true', help='use logger configuration')
+
+
 class CommandHandler():
     '''Base class for management command handler
 
@@ -345,27 +360,59 @@ class CommandHandler():
     '''
 
     def __init__(self, command, options):
+        frm = inspect.stack()[1]
+        mod = inspect.getmodule(frm[0])
+        self.logger = logging.getLogger(mod.__name__)
         self.options = options
         self.verbosity = options['verbosity']
+        self.use_logger = options.get('logger')
         self.stdout = command.stdout
         self.stderr = command.stderr
         self.style = command.style
         self.command = command
 
-    def print(self, message, *args, level=2):
+    def print(self, message, *args, level=2, **kwargs):
         if self.verbosity >= level:
-            self.stdout.write(message % (args))
+            if self.use_logger:
+                self.logger.info(message, *args, **kwargs)
+            else:
+                if len(kwargs) > 0:
+                    message = message + " " + ", ".join(
+                        f"{key}={value}" for key, value in kwargs.items()
+                    )
+                self.stdout.write(message % (args))
 
-    def print_warning(self, message, *args, level=1):
+    def print_warning(self, message, *args, level=1, **kwargs):
         if self.verbosity >= level:
-            self.stdout.write(self.style.WARNING(message % (args)))
+            if self.use_logger:
+                self.logger.warning(self.style.WARNING(message % (args)), **kwargs)
+            else:
+                if len(kwargs) > 0:
+                    message = message + " " + ", ".join(
+                        f"{key}={value}" for key, value in kwargs.items()
+                    )
+                self.stdout.write(self.style.WARNING(message % (args)))
 
-    def print_success(self, message, *args, level=1):
+    def print_success(self, message, *args, level=1, **kwargs):
         if self.verbosity >= level:
-            self.stdout.write(self.style.SUCCESS(message % (args)))
+            if self.use_logger:
+                self.logger.info(self.style.SUCCESS(message % (args)), **kwargs)
+            else:
+                if len(kwargs) > 0:
+                    message = message + " " + ", ".join(
+                        f"{key}={value}" for key, value in kwargs.items()
+                    )
+                self.stdout.write(self.style.SUCCESS(message % (args)))
 
-    def print_error(self, message, *args):
-        self.stderr.write(self.style.ERROR(message % (args)))
+    def print_error(self, message, *args, **kwargs):
+        if self.use_logger:
+            self.logger.error(self.style.ERROR(message % (args)), **kwargs)
+        else:
+            if len(kwargs) > 0:
+                message = message + "\n" + ", ".join(
+                    f"{key}={value}" for key, value in kwargs.items()
+                )
+            self.stderr.write(self.style.ERROR(message % (args)))
 
 
 def geometry_from_bbox(bbox):
