@@ -317,8 +317,15 @@ class AdminTestCase(AdminBaseTestCase):
     def test_login(self):
         # Make sure login of the test user works
         self.client.login(username=self.username, password=self.password)
-        response = self.client.get("/api/stac/admin")
-        self.assertEqual(response.status_code, 301, msg="Admin page login failed")
+        response = self.client.get("/api/stac/admin/")
+        self.assertEqual(response.status_code, 200, msg="Admin page login failed")
+
+    def test_login_failure(self):
+        # Make sure login with wrong password fails
+        self.client.login(username=self.username, password="wrongpassword")
+        response = self.client.get("/api/stac/admin/")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual("/api/stac/admin/login/?next=/api/stac/admin/", response.url)
 
 
 #--------------------------------------------------------------------------------------------------
