@@ -13,6 +13,7 @@ class IndexTestCase(StacBaseTestCase):
     def test_landing_page(self):
         response = self.client.get(f"/{STAC_BASE_V}/")
         self.assertEqual(response.status_code, 200)
+        self.assertCors(response)
         self.assertEqual(response['Content-Type'], 'application/json')
         required_keys = ['description', 'id', 'stac_version', 'links', 'type']
         self.assertEqual(
