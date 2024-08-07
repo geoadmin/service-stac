@@ -266,6 +266,8 @@ class Collection(models.Model):
     # only for the initial value.
     updated = models.DateTimeField(auto_now_add=True)
     description = models.TextField()
+    # Set to true if the extent needs to be recalculated.
+    extent_out_of_sync = models.BooleanField(default=False)
     extent_geometry = models.GeometryField(
         default=None, srid=4326, editable=False, blank=True, null=True
     )
