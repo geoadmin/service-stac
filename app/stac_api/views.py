@@ -12,7 +12,10 @@ from django.utils.translation import gettext_lazy as _
 
 from rest_framework import generics
 from rest_framework import mixins
+from rest_framework import permissions
 from rest_framework import serializers
+from rest_framework.decorators import api_view
+from rest_framework.decorators import permission_classes
 from rest_framework.exceptions import APIException
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import AllowAny
@@ -38,6 +41,7 @@ from stac_api.serializers import ConformancePageSerializer
 from stac_api.serializers import ItemSerializer
 from stac_api.serializers import LandingPageSerializer
 from stac_api.serializers_utils import get_relation_links
+from stac_api.utils import call_calculate_extent
 from stac_api.utils import get_asset_path
 from stac_api.utils import harmonize_post_get_for_search
 from stac_api.utils import is_api_version_1
@@ -286,6 +290,13 @@ class CollectionList(generics.GenericAPIView):
         if page is not None:
             return self.get_paginated_response(data)
         return Response(data)
+
+
+@api_view(['POST'])
+@permission_classes((permissions.AllowAny,))
+def recalculate_extent(request):
+    call_calculate_extent()
+    return Response()
 
 
 class CollectionDetail(
