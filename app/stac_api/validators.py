@@ -303,7 +303,7 @@ def validate_text_to_geometry(text_geometry):
     A validator function that tests, if a text can be transformed to a geometry.
     The text is either a bbox or WKT.
 
-    an extent in either WGS84 or LV95, in the form "(xmin, ymin, xmax, ymax)" where x is easting
+    an extent in WGS84, in the form "(xmin, ymin, xmax, ymax)" where x is easting
     a WKT defintion of a polygon in the form POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))
 
     Args:
@@ -359,6 +359,11 @@ def validate_geometry(geometry):
     if not geos_geometry.valid:
         message = "The geometry is not valid: %(error)s"
         params = {'error': geos_geometry.valid_reason}
+        logger.error(message, params)
+        raise ValidationError(_(message), params=params, code='invalid')
+    if geos_geometry.srid and geos_geometry.srid != 4326:
+        message = "Only WGS84 projection is permitted (SRID=4326)"
+        params = {'error': geos_geometry.wkt}
         logger.error(message, params)
         raise ValidationError(_(message), params=params, code='invalid')
     return geometry
