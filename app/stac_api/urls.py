@@ -18,6 +18,7 @@ from stac_api.views import ItemDetail
 from stac_api.views import ItemsList
 from stac_api.views import LandingPageDetail
 from stac_api.views import SearchList
+from stac_api.views import recalculate_extent
 
 # HEALTHCHECK_ENDPOINT = settings.HEALTHCHECK_ENDPOINT
 
@@ -57,7 +58,8 @@ urlpatterns = [
             path("conformance", ConformancePageDetail.as_view(), name='conformance'),
             path("search", SearchList.as_view(), name='search-list'),
             path("collections", CollectionList.as_view(), name='collections-list'),
-            path("collections/", include(collection_urls))
+            path("collections/", include(collection_urls)),
+            path("update-extent", recalculate_extent)
         ],
                  "v0.9"),
                 namespace='v0.9')
@@ -69,7 +71,8 @@ urlpatterns = [
             path("conformance", ConformancePageDetail.as_view(), name='conformance'),
             path("search", SearchList.as_view(), name='search-list'),
             path("collections", CollectionList.as_view(), name='collections-list'),
-            path("collections/", include(collection_urls))
+            path("collections/", include(collection_urls)),
+            path("update-extent", recalculate_extent)
         ],
                  "v1"),
                 namespace='v1')

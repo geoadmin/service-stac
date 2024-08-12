@@ -11,6 +11,7 @@ from datetime import timezone
 from decimal import Decimal
 from decimal import InvalidOperation
 from enum import Enum
+from io import StringIO
 from urllib import parse
 
 import boto3
@@ -20,6 +21,7 @@ from botocore.client import Config
 from django.conf import settings
 from django.contrib.gis.geos import Point
 from django.contrib.gis.geos import Polygon
+from django.core.management import call_command
 from django.core.management.base import BaseCommand
 from django.urls import reverse
 
@@ -27,6 +29,18 @@ logger = logging.getLogger(__name__)
 
 AVAILABLE_S3_BUCKETS = Enum('AVAILABLE_S3_BUCKETS', list(settings.AWS_SETTINGS.keys()))
 API_VERSION = Enum('API_VERSION', ['v09', 'v1'])
+
+
+def call_calculate_extent(*args, **kwargs):
+    out = StringIO()
+    call_command(
+        "calculate_extent",
+        *args,
+        stdout=out,
+        stderr=StringIO(),
+        **kwargs,
+    )
+    return out.getvalue()
 
 
 def isoformat(date_time):
