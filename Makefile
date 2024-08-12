@@ -100,7 +100,7 @@ help:
 	@echo "- dockerpush-(debug|prod)  Build and push the project localy (with tag := $(DOCKER_IMG_LOCAL_TAG))"
 	@echo "- dockerrun                Run the test container with default manage.py command 'runserver'. Note: ENV is populated from '.env.local'"
 	@echo "                           Other cmds can be invoked with 'make dockerrun CMD'."
-	@echo -e "                           \e[1mNote:\e[0m This will connect to your host Postgres DB. If you wanna test with a containerized DB, run 'docker-compose up'"
+	@echo -e "                           \e[1mNote:\e[0m This will connect to your host Postgres DB. If you wanna test with a containerized DB, run 'docker compose up'"
 	@echo -e " \033[1mCLEANING TARGETS\033[0m "
 	@echo "- clean                    Clean genereated files"
 	@echo "- clean-logs               Clean generated logs files"
