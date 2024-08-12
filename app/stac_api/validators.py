@@ -351,6 +351,7 @@ def validate_geometry(geometry):
         ValidateionError: About that the geometry is not valid
     '''
     geos_geometry = GEOSGeometry(geometry)
+    max_extent = GEOSGeometry("POLYGON ((3 44,3 50,14 50,14 44,3 44))")
     if geos_geometry.empty:
         message = "The geometry is empty: %(error)s"
         params = {'error': geos_geometry.wkt}
@@ -363,6 +364,11 @@ def validate_geometry(geometry):
         raise ValidationError(_(message), params=params, code='invalid')
     if geos_geometry.srid and geos_geometry.srid != 4326:
         message = "Only WGS84 projection is permitted (SRID=4326)"
+        params = {'error': geos_geometry.wkt}
+        logger.error(message, params)
+        raise ValidationError(_(message), params=params, code='invalid')
+    if not geos_geometry.within(max_extent):
+        message = "Location of asset outside of permitted region"
         params = {'error': geos_geometry.wkt}
         logger.error(message, params)
         raise ValidationError(_(message), params=params, code='invalid')
