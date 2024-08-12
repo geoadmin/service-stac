@@ -64,7 +64,7 @@ RUN apt-get -qq update > /dev/null \
 COPY Pipfile.lock Pipfile ${INSTALL_DIR}/
 RUN cd ${INSTALL_DIR} && pipenv sync --dev
 
-# this is only used with the docker-compose setup within CI
+# this is only used with the docker compose setup within CI
 # to ensure that the app is only started once the DB container
 # is ready
 COPY ./wait-for-it.sh ${INSTALL_DIR}/app/

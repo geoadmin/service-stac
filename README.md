@@ -61,7 +61,7 @@ Prerequisites on host for development and build:
 - python version 3.12
 - libgdal-dev
 - [pipenv](https://pipenv-fork.readthedocs.io/en/latest/install.html)
-- `docker` and `docker-compose`
+- `docker` and `docker compose`
 
 #### Python3.12
 
@@ -90,7 +90,7 @@ The other services that are used (Postgres with PostGIS extension for metadata a
 Starting postgres and MinIO is done with a simple
 
 ```bash
-docker-compose up
+docker compose up
 ```
 
 in the source root folder (this is automatically done if you `make setup`). Make sure to run `make setup` before to ensure the necessary folders `.volumes/*` are in place. These folders are mounted in the services and allow data persistency over restarts of the containers.
@@ -129,8 +129,8 @@ These steps will ensure you have everything needed to start working locally.
 - You manually stop/start the minio and PostGIS DB with (see also [Setting up the local database](#setting-up-the-local-database))
 
   ```bash
-  docker-compose down
-  docker-compose up
+  docker compose down
+  docker compose up
   ```
 
 - Finally you can do the initial DB setup using django management commands
@@ -179,7 +179,7 @@ corresponding containers in order to allow data persistency.
 Another way to start these containers (if, for example, they stopped) is with a simple
 
   ```bash
-  docker-compose up
+  docker compose up
   ```
 
 ### Using a local PostGres database instead of a container
@@ -248,7 +248,7 @@ make test
 or use the container environment like on the CI.
 
 ```bash
-docker-compose -f docker-compose-ci.yml up --build --abort-on-container-exit
+docker compose -f docker-compose-ci.yml up --build --abort-on-container-exit
 ```
 
 **NOTE:** the `--build` option is important otherwise the container will not be rebuild and you don't have the latest modification
