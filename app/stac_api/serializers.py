@@ -411,7 +411,7 @@ class AssetSerializer(AssetBaseSerializer):
             if self.collection:
                 collection = self.collection
             else:
-                raise Exception("Implementation error")
+                raise LookupError("No collection defined.")
 
             if not collection.allow_external_assets:
                 logger.info(
