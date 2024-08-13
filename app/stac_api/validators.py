@@ -1,5 +1,6 @@
 import logging
 import re
+import sys
 from collections import namedtuple
 from datetime import datetime
 from urllib.parse import urlparse
@@ -303,7 +304,7 @@ def validate_text_to_geometry(text_geometry):
     A validator function that tests, if a text can be transformed to a geometry.
     The text is either a bbox or WKT.
 
-    an extent in WGS84, in the form "(xmin, ymin, xmax, ymax)" where x is easting
+    an extent in either WGS84 or LV95, in the form "(xmin, ymin, xmax, ymax)" where x is easting
     a WKT defintion of a polygon in the form POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))
 
     Args:
@@ -317,7 +318,7 @@ def validate_text_to_geometry(text_geometry):
     # is the input WKT
     try:
         geos_geometry = GEOSGeometry(text_geometry)
-        validate_geometry(geos_geometry)
+        validate_geometry(geos_geometry, [])
         return geos_geometry
     except (ValueError, ValidationError, IndexError, GDALException, GEOSException) as error:
         message = "The text as WKT could not be transformed into a geometry: %(error)s"
@@ -328,7 +329,7 @@ def validate_text_to_geometry(text_geometry):
     try:
         text_geometry = text_geometry.replace('(', '')
         text_geometry = text_geometry.replace(')', '')
-        return validate_geometry(geometry_from_bbox(text_geometry))
+        return validate_geometry(geometry_from_bbox(text_geometry), [2056, 4326])
     except (ValueError, ValidationError, IndexError, GDALException) as error:
         message = "The text as bbox could not be transformed into a geometry: %(error)s"
         params = {'error': error}
@@ -337,7 +338,7 @@ def validate_text_to_geometry(text_geometry):
         raise ValidationError(errors) from None
 
 
-def validate_geometry(geometry):
+def validate_geometry(geometry, allowed_srid=[4326]):
     '''
     A validator function that ensures, that only valid
     geometries are stored.
@@ -350,6 +351,7 @@ def validate_geometry(geometry):
     Raises:
         ValidateionError: About that the geometry is not valid
     '''
+
     geos_geometry = GEOSGeometry(geometry)
     max_extent = GEOSGeometry("POLYGON ((3 44,3 50,14 50,14 44,3 44))")
     if geos_geometry.empty:
@@ -362,8 +364,13 @@ def validate_geometry(geometry):
         params = {'error': geos_geometry.valid_reason}
         logger.error(message, params)
         raise ValidationError(_(message), params=params, code='invalid')
-    if geos_geometry.srid and geos_geometry.srid != 4326:
-        message = "Only WGS84 projection is permitted (SRID=4326)"
+
+    if not allowed_srid:
+        # return geometry if it is a wkt check
+        return geometry
+
+    if geos_geometry.srid and not geos_geometry.srid in allowed_srid:
+        message = "Projection is not permitted (allowed projections are SRID="+allowed_srid+")"
         params = {'error': geos_geometry.wkt}
         logger.error(message, params)
         raise ValidationError(_(message), params=params, code='invalid')

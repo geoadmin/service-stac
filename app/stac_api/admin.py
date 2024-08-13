@@ -157,7 +157,7 @@ class CollectionFilterForItems(AutocompleteFilter):
 # helper form to add an extra text_geometry field to ItemAdmin
 class ItemAdminForm(forms.ModelForm):
     help_text = """Insert either:<br/>
-    - An extent in WGS84: "xmin, ymin, xmax, ymax"
+    - An extent in either WGS84 or LV95: "xmin, ymin, xmax, ymax"
     where x is easting and y is northing<br/>
     - A WKT polygon.
     F.ex. "SRID=4326;POLYGON((5.96 45.82, 5.96 47.81, 10.49 47.81, 10.49 45.82, 5.96 45.82))"
