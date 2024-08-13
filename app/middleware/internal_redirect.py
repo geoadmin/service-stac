@@ -45,7 +45,7 @@ class CommonMiddlewareWithInternalRedirect(CommonMiddleware):
 
         # We don't use get_full_path_with_slash here as we only care about the path
         # without the query parametres.
-        new_path = '{request.path_info}/'
+        new_path = f'{request.path_info}/'
         self.logger.info('Internal redirect %s -> %s', request.path_info, new_path)
         request.path_info = new_path
         return get_wsgi_application().get_response(request)
