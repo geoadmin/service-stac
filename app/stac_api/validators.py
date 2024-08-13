@@ -368,10 +368,9 @@ def validate_geometry(geometry):
         logger.error(message, params)
         raise ValidationError(_(message), params=params, code='invalid')
     if not geos_geometry.within(max_extent):
-        message = "Location of asset outside of permitted region"
-        params = {'error': geos_geometry.wkt}
-        logger.error(message, params)
-        raise ValidationError(_(message), params=params, code='invalid')
+        message = "Location of asset outside of Switzerland"
+        params = {'warning': geos_geometry.wkt}
+        logger.warning(message, params)
     return geometry
 
 
