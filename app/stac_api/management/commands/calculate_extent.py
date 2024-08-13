@@ -57,6 +57,7 @@ class Handler(CommandHandler):
                     UNION
                         -- This covers the case that the last item of a collection is deleted.
                         SELECT %s AS collection_id, NULL, NULL, NULL
+                    ORDER BY extent_geometry, extent_start_datetime, extent_end_datetime
                     LIMIT 1
                     )
                     -- Update related collection extent
