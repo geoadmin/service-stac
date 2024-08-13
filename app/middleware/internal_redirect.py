@@ -12,9 +12,9 @@ class InternalRedirect(HttpResponseRedirect):
 
 class CommonMiddlewareWithInternalRedirect(CommonMiddleware):
     """
-  Same as CommonMiddleware except that when an HTTP redirection should be
-  issued, it follows the redirection itself.
-  """
+    Same as CommonMiddleware except that when an HTTP redirection should be
+    issued, it follows the redirection itself.
+    """
     response_redirect_class = InternalRedirect
     logger = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ class CommonMiddlewareWithInternalRedirect(CommonMiddleware):
 
         # We don't use get_full_path_with_slash here as we only care about the path
         # without the query parametres.
-        new_path = '%s/' % request.path_info
+        new_path = '{request.path_info}/'
         self.logger.info('Internal redirect %s -> %s', request.path_info, new_path)
         request.path_info = new_path
         return get_wsgi_application().get_response(request)
