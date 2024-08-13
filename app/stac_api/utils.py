@@ -171,7 +171,7 @@ def _get_boto_access_kwargs(s3_bucket: AVAILABLE_S3_BUCKETS = AVAILABLE_S3_BUCKE
         needed_env_vars = ['AWS_ROLE_ARN', 'AWS_WEB_IDENTITY_TOKEN_FILE']
         for env_var in needed_env_vars:
             if env_var not in os.environ:
-                raise Exception(
+                raise EnvironmentError(
                     f"For the {s3_bucket} bucket the environment variable "
                     "{env_var} must be configured"
                 )
