@@ -12,7 +12,7 @@ class CFForwardedProtoTestCase(TestCase):
     def test_http_access(self):
         response = self.client.get(f"/{STAC_BASE_V}", HTTP_ACCEPT='application/json', follow=True)
         for link in response.json().get('links', []):
-            self.assertTrue(link['href'].startswith('http'))
+            self.assertTrue(link['href'].startswith('http://'))
 
     def test_https_access(self):
         response = self.client.get(
@@ -22,4 +22,4 @@ class CFForwardedProtoTestCase(TestCase):
             follow=True
         )
         for link in response.json().get('links', []):
-            self.assertTrue(link['href'].startswith('https'))
+            self.assertTrue(link['href'].startswith('https://'))
