@@ -364,36 +364,34 @@ def validate_geometry(geometry):
     return geometry
 
 
-def validate_item_properties_datetimes_dependencies(
-    properties_datetime, properties_start_datetime, properties_end_datetime, properties_expires
-):
-    '''
-    Validate the dependencies between the Item datetimes properties
-    This makes sure that either only the properties.datetime is set or
-    both properties.start_datetime and properties.end_datetime
-    Raises:
-        django.core.exceptions.ValidationError
-    '''
+def validate_datetime_format(date_string):
     try:
-        if not isinstance(properties_datetime, datetime) and properties_datetime is not None:
-            properties_datetime = fromisoformat(properties_datetime)
-        if (
-            not isinstance(properties_start_datetime, datetime) and
-            properties_start_datetime is not None
-        ):
-            properties_start_datetime = fromisoformat(properties_start_datetime)
-        if (
-            not isinstance(properties_end_datetime, datetime) and
-            properties_end_datetime is not None
-        ):
-            properties_end_datetime = fromisoformat(properties_end_datetime)
-        if not isinstance(properties_expires, datetime) and properties_expires is not None:
-            properties_expires = fromisoformat(properties_expires)
+        if date_string is not None and not isinstance(date_string, datetime):
+            return fromisoformat(date_string)
+        return date_string
     except ValueError as error:
         logger.error("Invalid datetime string %s", error)
         raise ValidationError(
             _('Invalid datetime string %(error)s'), params={'error': error}, code='invalid'
         ) from error
+
+
+def validate_item_properties_datetimes(
+    properties_datetime, properties_start_datetime, properties_end_datetime, properties_expires
+):
+    '''
+    Validate the dependencies between the item datetime properties.
+    This makes sure that either only the properties.datetime is set or
+    both properties.start_datetime and properties.end_datetime are set.
+    If properties.expires is set, the value must be greater than
+    the properties.datetime or the properties.end_datetime.
+    Raises:
+        django.core.exceptions.ValidationError
+    '''
+    properties_datetime = validate_datetime_format(properties_datetime)
+    properties_start_datetime = validate_datetime_format(properties_start_datetime)
+    properties_end_datetime = validate_datetime_format(properties_end_datetime)
+    properties_expires = validate_datetime_format(properties_expires)
 
     if properties_datetime is not None:
         if (properties_start_datetime is not None or properties_end_datetime is not None):
@@ -405,7 +403,8 @@ def validate_item_properties_datetimes_dependencies(
             if properties_expires < properties_datetime:
                 message = "Property expires can't refer to a date earlier than property datetime"
                 raise ValidationError(_(message), code='invalid')
-    else:
+
+    if properties_datetime is None:
         if properties_end_datetime is None:
             message = "Property end_datetime can't be null when no property datetime is given"
             logger.error(message)
@@ -414,8 +413,6 @@ def validate_item_properties_datetimes_dependencies(
             message = "Property start_datetime can't be null when no property datetime is given"
             logger.error(message)
             raise ValidationError(_(message), code='invalid')
-
-    if properties_datetime is None:
         if properties_end_datetime < properties_start_datetime:
             message = "Property end_datetime can't refer to a date earlier than property "\
             "start_datetime"
@@ -425,20 +422,6 @@ def validate_item_properties_datetimes_dependencies(
                 message = "Property expires can't refer to a date earlier than property "\
                 "end_datetime"
                 raise ValidationError(_(message), code='invalid')
-
-
-def validate_item_properties_datetimes(
-    properties_datetime, properties_start_datetime, properties_end_datetime, properties_expires
-):
-    '''
-    Validate datetime values in the properties Item attributes
-    '''
-    validate_item_properties_datetimes_dependencies(
-        properties_datetime,
-        properties_start_datetime,
-        properties_end_datetime,
-        properties_expires,
-    )
 
 
 def validate_checksum_multihash_sha256(value):

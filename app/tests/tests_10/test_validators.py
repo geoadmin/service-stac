@@ -9,7 +9,7 @@ from stac_api.validators import _validate_href_scheme
 from stac_api.validators import get_media_type
 from stac_api.validators import normalize_and_validate_media_type
 from stac_api.validators import validate_content_encoding
-from stac_api.validators import validate_item_properties_datetimes_dependencies
+from stac_api.validators import validate_item_properties_datetimes
 
 from tests.tests_10.data_factory import Factory
 
@@ -22,7 +22,7 @@ class TestValidators(TestCase):
             properties_start_datetime = "2001-22-66T08:00:00+00:00"
             properties_end_datetime = "2001-11-11T08:00:00+00:00"
             properties_expires = None
-            validate_item_properties_datetimes_dependencies(
+            validate_item_properties_datetimes(
                 properties_datetime,
                 properties_start_datetime,
                 properties_end_datetime,

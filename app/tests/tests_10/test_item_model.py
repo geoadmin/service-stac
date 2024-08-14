@@ -98,6 +98,7 @@ class ItemsModelTestCase(TestCase):
             item.full_clean()
             item.save()
 
+    def test_item_create_model_invalid_datetime_order(self):
         with self.assertRaises(
             ValidationError, msg="end_datetime must not be earlier than start_datetime"
         ):
