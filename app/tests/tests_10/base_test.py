@@ -443,11 +443,15 @@ class StacTestMixin:
             # Created and updated time are automatically set therefore don't do an exact
             # test as we can't guess the exact time. So we just check these timestamps
             # are from after the start of the test and before "now".
-            self.assertLessEqual(value, current[key],
-                msg=f'{path}: current datetime value is before test start time')
+            self.assertLessEqual(
+                value,
+                current[key],
+                msg=f'{path}: current datetime value is before test start time'
+            )
             now = isoformat(utc_aware(datetime.now()))
-            self.assertGreaterEqual(now, current[key],
-                msg=f'{path}: current datetime value is after test end time')
+            self.assertGreaterEqual(
+                now, current[key], msg=f'{path}: current datetime value is after test end time'
+            )
         elif key == 'href':
             self.assertEqual(
                 urlparse(value).path,
