@@ -365,7 +365,7 @@ def validate_geometry(geometry):
 
 
 def validate_item_properties_datetimes_dependencies(
-    properties_datetime, properties_start_datetime, properties_end_datetime
+    properties_datetime, properties_start_datetime, properties_end_datetime, properties_expires
 ):
     '''
     Validate the dependencies between the Item datetimes properties
@@ -387,6 +387,8 @@ def validate_item_properties_datetimes_dependencies(
             properties_end_datetime is not None
         ):
             properties_end_datetime = fromisoformat(properties_end_datetime)
+        if not isinstance(properties_expires, datetime) and properties_expires is not None:
+            properties_expires = fromisoformat(properties_expires)
     except ValueError as error:
         logger.error("Invalid datetime string %s", error)
         raise ValidationError(
@@ -399,6 +401,10 @@ def validate_item_properties_datetimes_dependencies(
                 '(start_datetime, end_datetime)'
             logger.error(message)
             raise ValidationError(_(message), code='invalid')
+        if properties_expires is not None:
+            if properties_expires < properties_datetime:
+                message = "Property expires can't refer to a date earlier than property datetime"
+                raise ValidationError(_(message), code='invalid')
     else:
         if properties_end_datetime is None:
             message = "Property end_datetime can't be null when no property datetime is given"
@@ -414,10 +420,15 @@ def validate_item_properties_datetimes_dependencies(
             message = "Property end_datetime can't refer to a date earlier than property "\
             "start_datetime"
             raise ValidationError(_(message), code='invalid')
+        if properties_expires is not None:
+            if properties_expires < properties_end_datetime:
+                message = "Property expires can't refer to a date earlier than property "\
+                "end_datetime"
+                raise ValidationError(_(message), code='invalid')
 
 
 def validate_item_properties_datetimes(
-    properties_datetime, properties_start_datetime, properties_end_datetime
+    properties_datetime, properties_start_datetime, properties_end_datetime, properties_expires
 ):
     '''
     Validate datetime values in the properties Item attributes
@@ -426,6 +437,7 @@ def validate_item_properties_datetimes(
         properties_datetime,
         properties_start_datetime,
         properties_end_datetime,
+        properties_expires,
     )
 
 

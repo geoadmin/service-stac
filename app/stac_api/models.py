@@ -397,6 +397,11 @@ class Item(models.Model):
         null=True,
         help_text="Enter date in <i>yyyy-mm-dd</i> format, and time in UTC <i>hh:mm:ss</i> format"
     )
+    properties_expires = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text="Enter date in <i>yyyy-mm-dd</i> format, and time in UTC <i>hh:mm:ss</i> format"
+    )
     # properties_eo_bands = model.TextFields(blank=True)  # ? [string]?
     # properties_eo_cloud_cover = models.FloatField(blank=True)
     # eo_gsd is defined on asset level and will be updated here on ever
@@ -437,7 +442,10 @@ class Item(models.Model):
 
     def clean(self):
         validate_item_properties_datetimes(
-            self.properties_datetime, self.properties_start_datetime, self.properties_end_datetime
+            self.properties_datetime,
+            self.properties_start_datetime,
+            self.properties_end_datetime,
+            self.properties_expires,
         )
 
 

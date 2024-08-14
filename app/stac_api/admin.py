@@ -203,6 +203,7 @@ class ItemAdmin(admin.ModelAdmin):
                     'properties_datetime',
                     'properties_start_datetime',
                     'properties_end_datetime',
+                    'properties_expires',
                     'properties_title'
                 )
             }

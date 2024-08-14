@@ -1072,6 +1072,8 @@ components:
           $ref: "#/components/schemas/datetime"
         end_datetime:
           $ref: "#/components/schemas/datetime"
+        expires:
+          $ref: "#/components/schemas/datetime"
         updated:
           $ref: "#/components/schemas/updated"
         title:

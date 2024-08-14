@@ -216,6 +216,7 @@ class ItemsPropertiesSerializer(serializers.Serializer):
     )
     created = serializers.DateTimeField(read_only=True)
     updated = serializers.DateTimeField(read_only=True)
+    expires = serializers.DateTimeField(source='properties_expires', required=False, default=None)
 
 
 class BboxSerializer(gis_serializers.GeoFeatureModelSerializer):
@@ -778,12 +779,14 @@ class ItemSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
             not self.partial or \
             'properties_datetime' in attrs or \
             'properties_start_datetime' in attrs or \
-            'properties_end_datetime' in attrs
+            'properties_end_datetime' in attrs or \
+            'properties_expires' in attrs
         ):
             validate_item_properties_datetimes(
                 attrs.get('properties_datetime', None),
                 attrs.get('properties_start_datetime', None),
-                attrs.get('properties_end_datetime', None)
+                attrs.get('properties_end_datetime', None),
+                attrs.get('properties_expires', None)
             )
         else:
             logger.info(
