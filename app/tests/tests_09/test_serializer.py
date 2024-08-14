@@ -1,5 +1,4 @@
 # pylint: disable=too-many-lines
-import time
 
 import logging
 from collections import OrderedDict
@@ -48,7 +47,6 @@ class CollectionSerializationTestCase(StacBaseTransactionTestCase):
     def setUp(self):
         self.data_factory = Factory()
         self.collection_created_after = utc_aware(datetime.now())
-        time.sleep(5)
         self.collection = self.data_factory.create_collection_sample(db_create=True)
         self.item = self.data_factory.create_item_sample(
             collection=self.collection.model, db_create=True
@@ -147,7 +145,6 @@ class EmptyCollectionSerializationTestCase(StacBaseTransactionTestCase):
     def setUp(self):
         self.data_factory = Factory()
         self.collection_created_after = utc_aware(datetime.now())
-        time.sleep(5)
         self.collection = self.data_factory.create_collection_sample(db_create=True)
         self.maxDiff = None  # pylint: disable=invalid-name
 
