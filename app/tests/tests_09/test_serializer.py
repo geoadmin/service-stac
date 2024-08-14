@@ -1,4 +1,5 @@
 # pylint: disable=too-many-lines
+import time
 
 import logging
 from collections import OrderedDict
@@ -46,7 +47,8 @@ class CollectionSerializationTestCase(StacBaseTransactionTestCase):
     @mock_s3_asset_file
     def setUp(self):
         self.data_factory = Factory()
-        self.collection_created = utc_aware(datetime.now())
+        self.collection_created_after = utc_aware(datetime.now())
+        time.sleep(5)
         self.collection = self.data_factory.create_collection_sample(db_create=True)
         self.item = self.data_factory.create_item_sample(
             collection=self.collection.model, db_create=True
@@ -74,7 +76,7 @@ class CollectionSerializationTestCase(StacBaseTransactionTestCase):
 
         expected = self.collection.get_json('serialize')
         expected.update({
-            'created': isoformat(self.collection_created),
+            'created': isoformat(self.collection_created_after),
             'crs': ['http://www.opengis.net/def/crs/OGC/1.3/CRS84'],
             'extent': {
                 'spatial': {
@@ -135,7 +137,7 @@ class CollectionSerializationTestCase(StacBaseTransactionTestCase):
                 'geoadmin:variant': ['kgrs'],
                 'proj:epsg': [2056],
             },
-            'updated': isoformat(self.collection_created)
+            'updated': isoformat(self.collection_created_after)
         })
         self.check_stac_collection(expected, python_native)
 
@@ -144,7 +146,8 @@ class EmptyCollectionSerializationTestCase(StacBaseTransactionTestCase):
 
     def setUp(self):
         self.data_factory = Factory()
-        self.collection_created = utc_aware(datetime.now())
+        self.collection_created_after = utc_aware(datetime.now())
+        time.sleep(5)
         self.collection = self.data_factory.create_collection_sample(db_create=True)
         self.maxDiff = None  # pylint: disable=invalid-name
 
@@ -166,7 +169,7 @@ class EmptyCollectionSerializationTestCase(StacBaseTransactionTestCase):
 
         expected = self.collection.get_json('serialize')
         expected.update({
-            'created': isoformat(self.collection_created),
+            'created': isoformat(self.collection_created_after),
             'crs': ['http://www.opengis.net/def/crs/OGC/1.3/CRS84'],
             'extent': {
                 'spatial': {
@@ -222,7 +225,7 @@ class EmptyCollectionSerializationTestCase(StacBaseTransactionTestCase):
             ],
             'stac_version': STAC_VERSION,
             'summaries': {},
-            'updated': isoformat(self.collection_created)
+            'updated': isoformat(self.collection_created_after)
         })
         self.check_stac_collection(expected, python_native)
 
