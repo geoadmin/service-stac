@@ -2,7 +2,7 @@ import json
 import logging
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import as_completed
-from datetime import timedelta
+from datetime import datetime
 from pprint import pformat
 from urllib.parse import urlparse
 
@@ -14,6 +14,8 @@ from django.test import TransactionTestCase
 from stac_api.utils import fromisoformat
 from stac_api.utils import get_link
 from stac_api.utils import get_provider
+from stac_api.utils import isoformat
+from stac_api.utils import utc_aware
 
 from tests.utils import get_http_error_description
 
@@ -438,14 +440,14 @@ class StacTestMixin:
             else:
                 self._check_stac_list(path, sorted(value), sorted(current[key]))
         elif key in ['created', 'updated']:
-            # created and updated time are automatically set therefore don't do an exact
-            # test as we can't guess the exact time.
-            self.assertAlmostEqual(
-                fromisoformat(value),
-                fromisoformat(current[key]),
-                delta=timedelta(seconds=2),
-                msg=f'{path}: current datetime value is not equal to the expected'
-            )
+            # Created and updated time are automatically set therefore don't do an exact
+            # test as we can't guess the exact time. So we just check these timestamps
+            # are from after the start of the test and before "now".
+            self.assertLessEqual(value, current[key],
+                msg=f'{path}: current datetime value is before test start time')
+            now = isoformat(utc_aware(datetime.now()))
+            self.assertGreaterEqual(now, current[key],
+                msg=f'{path}: current datetime value is after test end time')
         elif key == 'href':
             self.assertEqual(
                 urlparse(value).path,
