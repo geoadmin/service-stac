@@ -172,3 +172,16 @@ class ItemsModelTestCase(TestCase):
         )
         item.full_clean()
         item.save()
+
+    def test_item_create_model_invalid_latitude(self):
+        # a geometry with self-intersection should not be allowed
+        with self.assertRaises(ValidationError):
+            item = Item(
+                collection=self.collection,
+                properties_datetime=utc_aware(datetime.utcnow()),
+                name='item-1',
+                geometry=GEOSGeometry('SRID=4326;POINT (0 100)')
+
+            )
+            item.full_clean()
+            item.save()

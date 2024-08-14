@@ -1,6 +1,5 @@
 import logging
 import re
-import sys
 from collections import namedtuple
 from datetime import datetime
 from urllib.parse import urlparse
@@ -379,9 +378,8 @@ def validate_geometry(geometry, apply_transform=False):
         logger.error(message, params)
         raise ValidationError(_(message), params=params, code='invalid')
 
-    if geometry.geom_type == 'Polygon':
+    if geos_geometry.geom_type == 'Polygon':
         for point in geos_geometry[0]:
-            print(point[0], point[1])
             if abs(point[1]) > 90:
                 message = "Latitude exceeds permitted value: %(error)s"
                 params = {'error': point[1]}
