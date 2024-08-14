@@ -318,7 +318,7 @@ def validate_text_to_geometry(text_geometry):
     # is the input WKT
     try:
         geos_geometry = GEOSGeometry(text_geometry)
-        validate_geometry(geos_geometry, [])
+        validate_geometry(geos_geometry, True)
         return geos_geometry
     except (ValueError, ValidationError, IndexError, GDALException, GEOSException) as error:
         message = "The text as WKT could not be transformed into a geometry: %(error)s"
@@ -329,7 +329,7 @@ def validate_text_to_geometry(text_geometry):
     try:
         text_geometry = text_geometry.replace('(', '')
         text_geometry = text_geometry.replace(')', '')
-        return validate_geometry(geometry_from_bbox(text_geometry), [2056, 4326])
+        return validate_geometry(geometry_from_bbox(text_geometry), True)
     except (ValueError, ValidationError, IndexError, GDALException) as error:
         message = "The text as bbox could not be transformed into a geometry: %(error)s"
         params = {'error': error}
@@ -338,7 +338,7 @@ def validate_text_to_geometry(text_geometry):
         raise ValidationError(errors) from None
 
 
-def validate_geometry(geometry, allowed_srid=[4326]):
+def validate_geometry(geometry, apply_transform=False):
     '''
     A validator function that ensures, that only valid
     geometries are stored.
@@ -364,16 +364,34 @@ def validate_geometry(geometry, allowed_srid=[4326]):
         params = {'error': geos_geometry.valid_reason}
         logger.error(message, params)
         raise ValidationError(_(message), params=params, code='invalid')
-
-    if not allowed_srid:
-        # return geometry if it is a wkt check
-        return geometry
-
-    if geos_geometry.srid and not geos_geometry.srid in allowed_srid:
-        message = "Projection is not permitted (allowed projections are SRID="+allowed_srid+")"
-        params = {'error': geos_geometry.wkt}
+    if not geos_geometry.srid:
+        message = "No projection provided: SRID=%(error)s"
+        params = {'error': geos_geometry.srid}
         logger.error(message, params)
         raise ValidationError(_(message), params=params, code='invalid')
+
+    # transform geometry from textfield input if necessary
+    if apply_transform and geos_geometry.srid != 4326:
+        geos_geometry.transform(4326)
+    elif geos_geometry.srid != 4326:
+        message = "Non permitted Projection. Projection must be wgs84 (SRID=4326) instead of SRID=%(error)s"
+        params = {'error': geos_geometry.srid}
+        logger.error(message, params)
+        raise ValidationError(_(message), params=params, code='invalid')
+
+    if geometry.geom_type == 'Polygon':
+        for point in geos_geometry[0]:
+            print(point[0], point[1])
+            if abs(point[1]) > 90:
+                message = "Latitude exceeds permitted value: %(error)s"
+                params = {'error': point[1]}
+                logger.error(message, params)
+                raise ValidationError(_(message), params=params, code='invalid')
+            if abs(point[0]) > 180:
+                message = "Longitude exceeds usual value range: %(warning)s"
+                params = {'warning': point[0]}
+                logger.warning(message, params)
+
     if not geos_geometry.within(max_extent):
         message = "Location of asset outside of Switzerland"
         params = {'warning': geos_geometry.wkt}
