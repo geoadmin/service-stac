@@ -317,7 +317,7 @@ def validate_text_to_geometry(text_geometry):
     # is the input WKT
     try:
         geos_geometry = GEOSGeometry(text_geometry)
-        validate_geometry(geos_geometry, True)
+        validate_geometry(geos_geometry, apply_transform=True)
         return geos_geometry
     except (ValueError, ValidationError, IndexError, GDALException, GEOSException) as error:
         message = "The text as WKT could not be transformed into a geometry: %(error)s"
@@ -328,7 +328,7 @@ def validate_text_to_geometry(text_geometry):
     try:
         text_geometry = text_geometry.replace('(', '')
         text_geometry = text_geometry.replace(')', '')
-        return validate_geometry(geometry_from_bbox(text_geometry), True)
+        return validate_geometry(geometry_from_bbox(text_geometry), apply_transform=True)
     except (ValueError, ValidationError, IndexError, GDALException) as error:
         message = "The text as bbox could not be transformed into a geometry: %(error)s"
         params = {'error': error}
@@ -351,7 +351,7 @@ def validate_geometry(geometry, apply_transform=False):
         ValidateionError: About that the geometry is not valid
     '''
     geos_geometry = GEOSGeometry(geometry)
-    max_extent = GEOSGeometry("POLYGON ((3 44,3 50,14 50,14 44,3 44))")
+    bbox_ch = GEOSGeometry("POLYGON ((3 44,3 50,14 50,14 44,3 44))")
     if geos_geometry.empty:
         message = "The geometry is empty: %(error)s"
         params = {'error': geos_geometry.wkt}
@@ -372,24 +372,25 @@ def validate_geometry(geometry, apply_transform=False):
     if apply_transform and geos_geometry.srid != 4326:
         geos_geometry.transform(4326)
     elif geos_geometry.srid != 4326:
-        message = "Non permitted Projection. Projection must be wgs84 (SRID=4326) instead of SRID=%(error)s"
+        message = 'Non permitted Projection. Projection must be wgs84 (SRID=4326) instead of ' \
+            'SRID=%(error)s'
         params = {'error': geos_geometry.srid}
         logger.error(message, params)
         raise ValidationError(_(message), params=params, code='invalid')
 
-    extent=geos_geometry.extent
+    extent = geos_geometry.extent
     if abs(extent[1]) > 90 or abs(extent[-1]) > 90:
         message = "Latitude exceeds permitted value: %(error)s"
-        params = {'error': (extent[1],extent[-1])}
+        params = {'error': (extent[1], extent[-1])}
         logger.error(message, params)
         raise ValidationError(_(message), params=params, code='invalid')
     if abs(extent[0]) > 180 or abs(extent[-2]) > 180:
         message = "Longitude exceeds usual value range: %(warning)s"
-        params = {'warning': (extent[0],extent[-2])}
+        params = {'warning': (extent[0], extent[-2])}
         logger.warning(message, params)
 
-    if not geos_geometry.within(max_extent):
-        message = "Location of asset outside of Switzerland"
+    if not geos_geometry.within(bbox_ch):
+        message = "Location of asset is (partially) outside of Switzerland"
         params = {'warning': geos_geometry.wkt}
         logger.warning(message, params)
     return geometry

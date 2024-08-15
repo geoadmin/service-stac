@@ -135,7 +135,8 @@ class ItemsModelTestCase(TestCase):
                 properties_datetime=utc_aware(datetime.utcnow()),
                 name='item-1',
                 geometry=GEOSGeometry(
-                'SRID=2056;POLYGON ((2500000 1100000, 2600000 1100000, 2600000 1200000, 2500000 1200000, 2500000 1100000))'
+                    'SRID=2056;POLYGON ((2500000 1100000, 2600000 1100000, 2600000 1200000, ' \
+                        '2500000 1200000, 2500000 1100000))'
                 )
             )
             item.full_clean()
@@ -199,7 +200,6 @@ class ItemsModelTestCase(TestCase):
                 properties_datetime=utc_aware(datetime.utcnow()),
                 name='item-1',
                 geometry=GEOSGeometry('SRID=4326;POINT (5.96 95.82)')
-
             )
             item.full_clean()
             item.save()

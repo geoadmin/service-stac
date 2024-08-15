@@ -118,24 +118,27 @@ class AdminBaseTestCase(TestCase):
 
         return collection, data, link, provider
 
-    def _create_item(self, collection, with_link=False, extra=None):
+    def _create_item(self, collection, with_link=False, extra=None, data=None):
 
         # Post data to create a new item
         # Note: the *-*_FORMS fields are necessary management form fields
         # originating from the AdminInline and must be present
-        data = {
-            "collection": collection.id,
-            "name": "test_item",
-            "geometry":
-                "SRID=4326;POLYGON((5.96 45.82, 5.96 47.81, 10.49 47.81, 10.49 45.82, 5.96 45.82))",
-            "text_geometry":
-                "SRID=4326;POLYGON((5.96 45.82, 5.96 47.81, 10.49 47.81, 10.49 45.82, 5.96 45.82))",
-            "properties_datetime_0": "2020-12-01",
-            "properties_datetime_1": "13:15:39",
-            "properties_title": "test",
-            "links-TOTAL_FORMS": "0",
-            "links-INITIAL_FORMS": "0",
-        }
+        if not data:
+            data = {
+                "collection": collection.id,
+                "name": "test_item",
+                "geometry":
+                    "SRID=4326;POLYGON((5.96 45.82, 5.96 47.81, 10.49 47.81, 10.49 45.82, "\
+                        "5.96 45.82))",
+                "text_geometry":
+                    "SRID=4326;POLYGON((5.96 45.82, 5.96 47.81, 10.49 47.81, 10.49 45.82, "\
+                        "5.96 45.82))",
+                "properties_datetime_0": "2020-12-01",
+                "properties_datetime_1": "13:15:39",
+                "properties_title": "test",
+                "links-TOTAL_FORMS": "0",
+                "links-INITIAL_FORMS": "0",
+            }
         if with_link:
             data.update({
                 "links-TOTAL_FORMS": "1",
@@ -671,6 +674,26 @@ class AdminItemTestCase(AdminBaseTestCase):
             data['properties_title'],
             msg="Admin page item properties_title update did not work"
         )
+
+    def test_add_item_with_non_standard_projection(self):
+        geometry = "SRID=4326;POLYGON ((6.146799690987942 46.04410910398307, "\
+            "7.438647976247294 46.05153158188484, 7.438632420871813 46.951082771871064, "\
+            "6.125143650928986 46.94353699772178, 6.146799690987942 46.04410910398307))"
+        text_geometry = "SRID=2056;POLYGON ((2500000 1100000, 2600000 1100000, 2600000 1200000, "\
+            "2500000 1200000, 2500000 1100000))"
+        post_data = {
+            "collection": self.collection.id,
+            "name": "test_item",
+            "geometry": geometry,
+            "text_geometry": text_geometry,
+            "properties_datetime_0": "2020-12-01",
+            "properties_datetime_1": "13:15:39",
+            "properties_title": "test",
+            "links-TOTAL_FORMS": "0",
+            "links-INITIAL_FORMS": "0",
+        }
+        #if transformed text_geometry does not match the geometry provided the creation will fail
+        self._create_item(self.collection, data=post_data)[:2]  # pylint: disable=expression-not-assigned
 
     def test_add_update_item_remove_title(self):
         item, data = self._create_item(self.collection)[:2]
