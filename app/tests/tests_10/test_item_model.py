@@ -58,6 +58,15 @@ class ItemsModelTestCase(TestCase):
             item.full_clean()
             item.save()
 
+        with self.assertRaises(ValidationError, msg="only expires is invalid"):
+            item = Item(
+                collection=self.collection,
+                name='item-3',
+                properties_expires=utc_aware(datetime.utcnow())
+            )
+            item.full_clean()
+            item.save()
+
         with self.assertRaises(ValidationError, msg="datetime is not allowed with start_datetime"):
             item = Item(
                 collection=self.collection,
@@ -84,6 +93,12 @@ class ItemsModelTestCase(TestCase):
             item.full_clean()
             item.save()
 
+        with self.assertRaises(ValidationError):
+            item = Item(collection=self.collection, name='item-1', properties_expires='asd')
+            item.full_clean()
+            item.save()
+
+    def test_item_create_model_invalid_datetime_order(self):
         with self.assertRaises(
             ValidationError, msg="end_datetime must not be earlier than start_datetime"
         ):
@@ -94,6 +109,32 @@ class ItemsModelTestCase(TestCase):
                 name='item-5',
                 properties_start_datetime=utc_aware(today),
                 properties_end_datetime=utc_aware(yesterday)
+            )
+            item.full_clean()
+            item.save()
+
+        with self.assertRaises(
+            ValidationError, msg="expires must not be earlier than end_datetime"
+        ):
+            today = datetime.utcnow()
+            yesterday = today - timedelta(days=1)
+            item = Item(
+                collection=self.collection,
+                name='item-5',
+                properties_end_datetime=utc_aware(today),
+                properties_expires=utc_aware(yesterday)
+            )
+            item.full_clean()
+            item.save()
+
+        with self.assertRaises(ValidationError, msg="expires must not be earlier than datetime"):
+            today = datetime.utcnow()
+            yesterday = today - timedelta(days=1)
+            item = Item(
+                collection=self.collection,
+                name='item-5',
+                properties_datetime=utc_aware(today),
+                properties_expires=utc_aware(yesterday)
             )
             item.full_clean()
             item.save()

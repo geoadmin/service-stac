@@ -5,7 +5,7 @@ from stac_api.validators import MediaType
 from stac_api.validators import get_media_type
 from stac_api.validators import normalize_and_validate_media_type
 from stac_api.validators import validate_content_encoding
-from stac_api.validators import validate_item_properties_datetimes_dependencies
+from stac_api.validators import validate_item_properties_datetimes
 
 
 class TestValidators(TestCase):
@@ -15,8 +15,12 @@ class TestValidators(TestCase):
             properties_datetime = None
             properties_start_datetime = "2001-22-66T08:00:00+00:00"
             properties_end_datetime = "2001-11-11T08:00:00+00:00"
-            validate_item_properties_datetimes_dependencies(
-                properties_datetime, properties_start_datetime, properties_end_datetime
+            properties_expires = None
+            validate_item_properties_datetimes(
+                properties_datetime,
+                properties_start_datetime,
+                properties_end_datetime,
+                properties_expires
             )
 
     def test_validate_invalid_content_encoding(self):
