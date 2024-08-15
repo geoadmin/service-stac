@@ -168,6 +168,20 @@ class ItemsModelTestCase(TestCase):
             item.full_clean()
             item.save()
 
+    def test_item_create_model_invalid_projection(self):
+        # a geometry with a projection other than wgs84 should not be allowed
+        with self.assertRaises(ValidationError):
+            item = Item(
+                collection=self.collection,
+                properties_datetime=utc_aware(datetime.utcnow()),
+                name='item-1',
+                geometry=GEOSGeometry(
+                'SRID=2056;POLYGON ((2500000 1100000, 2600000 1100000, 2600000 1200000, 2500000 1200000, 2500000 1100000))'
+                )
+            )
+            item.full_clean()
+            item.save()
+
     def test_item_create_model_invalid_latitude(self):
         # a geometry with self-intersection should not be allowed
         with self.assertRaises(ValidationError):
