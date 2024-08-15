@@ -168,6 +168,21 @@ class ItemsModelTestCase(TestCase):
             item.full_clean()
             item.save()
 
+    def test_item_create_model_invalid_latitude(self):
+        # a geometry with self-intersection should not be allowed
+        with self.assertRaises(ValidationError):
+            item = Item(
+                collection=self.collection,
+                properties_datetime=utc_aware(datetime.utcnow()),
+                name='item-1',
+                geometry=GEOSGeometry(
+                    'SRID=4326;POLYGON '
+                    '((5.96 45.82, 5.96 97.81, 10.49 97.81, 10.49 45.82, 5.96 45.82))'
+                )
+            )
+            item.full_clean()
+            item.save()
+
     def test_item_create_model_empty_geometry(self):
         # empty geometry should not be allowed
         with self.assertRaises(ValidationError):
@@ -203,6 +218,19 @@ class ItemsModelTestCase(TestCase):
         item.full_clean()
         item.save()
 
+    def test_item_create_model_point_geometry_invalid_latitude(self):
+        # a geometry with self-intersection should not be allowed
+        with self.assertRaises(ValidationError):
+            item = Item(
+                collection=self.collection,
+                properties_datetime=utc_aware(datetime.utcnow()),
+                name='item-1',
+                geometry=GEOSGeometry('SRID=4326;POINT (5.96 95.82)')
+
+            )
+            item.full_clean()
+            item.save()
+
     def test_item_create_model_valid_linestring_geometry(self):
         # a correct geometry should not pose any problems
         item = Item(
@@ -213,16 +241,3 @@ class ItemsModelTestCase(TestCase):
         )
         item.full_clean()
         item.save()
-
-    def test_item_create_model_invalid_latitude(self):
-        # a geometry with self-intersection should not be allowed
-        with self.assertRaises(ValidationError):
-            item = Item(
-                collection=self.collection,
-                properties_datetime=utc_aware(datetime.utcnow()),
-                name='item-1',
-                geometry=GEOSGeometry('SRID=4326;POINT (0 100)')
-
-            )
-            item.full_clean()
-            item.save()

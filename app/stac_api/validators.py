@@ -350,7 +350,6 @@ def validate_geometry(geometry, apply_transform=False):
     Raises:
         ValidateionError: About that the geometry is not valid
     '''
-
     geos_geometry = GEOSGeometry(geometry)
     max_extent = GEOSGeometry("POLYGON ((3 44,3 50,14 50,14 44,3 44))")
     if geos_geometry.empty:
@@ -378,17 +377,16 @@ def validate_geometry(geometry, apply_transform=False):
         logger.error(message, params)
         raise ValidationError(_(message), params=params, code='invalid')
 
-    if geos_geometry.geom_type == 'Polygon':
-        for point in geos_geometry[0]:
-            if abs(point[1]) > 90:
-                message = "Latitude exceeds permitted value: %(error)s"
-                params = {'error': point[1]}
-                logger.error(message, params)
-                raise ValidationError(_(message), params=params, code='invalid')
-            if abs(point[0]) > 180:
-                message = "Longitude exceeds usual value range: %(warning)s"
-                params = {'warning': point[0]}
-                logger.warning(message, params)
+    extent=geos_geometry.extent
+    if abs(extent[1]) > 90 or abs(extent[-1]) > 90:
+        message = "Latitude exceeds permitted value: %(error)s"
+        params = {'error': (extent[1],extent[-1])}
+        logger.error(message, params)
+        raise ValidationError(_(message), params=params, code='invalid')
+    if abs(extent[0]) > 180 or abs(extent[-2]) > 180:
+        message = "Longitude exceeds usual value range: %(warning)s"
+        params = {'warning': (extent[0],extent[-2])}
+        logger.warning(message, params)
 
     if not geos_geometry.within(max_extent):
         message = "Location of asset outside of Switzerland"
