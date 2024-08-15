@@ -737,6 +737,10 @@ class ItemSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         # links already uses OrderedDict, this way we keep consistency between auto link and user
         # link
         representation['links'][:0] = get_relation_links(request, 'item-detail', [collection, name])
+        representation['stac_extensions'] = [
+            # Extension provides schema for the 'expires' timestamp
+            "https://stac-extensions.github.io/timestamps/v1.1.0/schema.json"
+        ]
         return representation
 
     def create(self, validated_data):
