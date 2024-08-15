@@ -10,13 +10,6 @@ from stac_api.utils import CommandHandler
 from stac_api.utils import CustomBaseCommand
 
 
-def boolean_input(question, default=None):
-    result = input(f"{question}")
-    if not result and default is not None:
-        return default
-    return len(result) > 0 and result[0].lower() == "y"
-
-
 class Handler(CommandHandler):
 
     def delete(self, instance, object_type):
