@@ -4,7 +4,6 @@ from django.conf import settings
 from django.core.management.base import CommandParser
 from django.utils import timezone
 
-from stac_api.models import Asset
 from stac_api.models import Item
 from stac_api.utils import CommandHandler
 from stac_api.utils import CustomBaseCommand
@@ -19,22 +18,21 @@ class Handler(CommandHandler):
             instance.delete()
 
     def run(self):
-        # print(self.options)
         self.print_success('running command to remove expired items')
         min_age_hours = self.options['min_age_hours']
         self.print_warning(f"deleting all items expired longer than {min_age_hours} hours")
         items = Item.objects.filter(
             properties_expires__lte=timezone.now() - timedelta(hours=min_age_hours)
         ).all()
-        for i in items:
-            assets = Asset.objects.filter(item_id=i.id).all()
+        for item in items:
+            assets = item.assets.all()
             assets_length = len(assets)
             self.delete(assets, 'assets')
-            self.delete(i, 'item')
+            self.delete(item, 'item')
             if not self.options['dry_run']:
                 self.print_success(
-                    f"deleted item {i.name} and {assets_length}" + " assets belonging to it.",
-                    extra={"item": i.name}
+                    f"deleted item {item.name} and {assets_length}" + " assets belonging to it.",
+                    extra={"item": item.name}
                 )
 
         if self.options['dry_run']:
