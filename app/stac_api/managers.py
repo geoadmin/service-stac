@@ -218,6 +218,7 @@ class ItemQuerySet(models.QuerySet):
 class ItemManager(models.Manager):
 
     def get_queryset(self):
+        # pylint: disable=not-callable
         return ItemQuerySet(self.model, using=self._db).select_related('collection')
 
     def filter_by_bbox(self, bbox):
@@ -255,6 +256,7 @@ class AssetUploadQuerySet(models.QuerySet):
 class AssetUploadManager(models.Manager):
 
     def get_queryset(self):
+        # pylint: disable=not-callable
         return AssetUploadQuerySet(self.model, using=self._db).select_related('asset')
 
     def filter_by_status(self, status):

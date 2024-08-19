@@ -14,7 +14,7 @@ components:
 
        - `proj:epsg`: query for assets with this specific epsg
 
-       - `eo:gsd`: query for assets with this specific gsd
+       - `gsd`: query for assets with this specific gsd
 
        - `geoadmin:variant`: query for assets with this specific variant
      example:
@@ -84,17 +84,17 @@ components:
           $ref: "#/components/schemas/description"
         href:
           $ref: "#/components/schemas/href"
-        checksum:multihash:
+        file:checksum:
           $ref: "#/components/schemas/checksumMultihashReadOnly"
-        # roles:
-        #   $ref: '#/components/schemas/roles'
+        roles:
+          $ref: '#/components/schemas/roles'
         "geoadmin:variant":
           $ref: "#/components/schemas/geoadminVariant"
         "geoadmin:lang":
           $ref: "#/components/schemas/geoadminLang"
         "proj:epsg":
           $ref: "#/components/schemas/projEpsg"
-        "eo:gsd":
+        "gsd":
           $ref: "#/components/schemas/eoGsd"
         created:
           $ref: "#/components/schemas/created"
@@ -183,7 +183,9 @@ components:
       example: 3dd6e1ead0760d278344394b0e7f017b5b6049e4fed3d2083b564fc268f07334
       pattern: ^[a-f0-9]+$
       title: sha256
-      format: digest
+      format: binary
+      minLength: 64
+      maxLength: 64
       type: string
     checksumMultihash:
       description: >-
@@ -246,6 +248,9 @@ components:
             Indicator about the type of the items in the collection (the default value is 'Feature').
           type: string
           readOnly: true
+        type:
+          example: Collection
+          type: string
         license:
           $ref: "#/components/schemas/license"
         providers:
@@ -296,7 +301,7 @@ components:
           type: object
           readOnly: true
           example:
-            eo:gsd:
+            gsd:
               - 10
               - 20
             geoadmin:variant:
@@ -316,6 +321,8 @@ components:
           $ref: "#/components/schemas/created"
         updated:
           $ref: "#/components/schemas/updated"
+        assets:
+          $ref: "#/components/schemas/itemAssets"
       required:
         - id
         - stac_version
@@ -324,6 +331,7 @@ components:
         - extent
         - created
         - updated
+        - type
       type: object
     collection:
       allOf:
@@ -448,9 +456,9 @@ components:
         pansharpening, or scaling. The GSD of a sensor can vary depending on off-nadir and
         wavelength, so it is at the discretion of the implementer to decide which value most
         accurately represents the GSD. For example, Landsat8 optical and short-wave IR bands are
-        all 30 meters, but the panchromatic band is 15 meters. The eo:gsd should be 30 meters in
+        all 30 meters, but the panchromatic band is 15 meters. The gsd should be 30 meters in
         this case because that is nominal spatial resolution at the sensor. The Planet PlanetScope
-        Ortho Tile Product has an eo:gsd of 3.7 (or 4 if rounding), even though the pixel size of
+        Ortho Tile Product has an gsd of 3.7 (or 4 if rounding), even though the pixel size of
         the images is 3.125. For example, one might choose for WorldView-2 the Multispectral 20°
         off-nadir value of 2.07 and for WorldView-3 the Multispectral 20° off-nadir value of 1.38.
       example: 2.5
@@ -666,10 +674,8 @@ components:
           $ref: "#/components/schemas/itemGeometry"
         properties:
           $ref: "#/components/schemas/itemProperties"
-          readOnly: true
         stac_version:
           $ref: "#/components/schemas/stac_version"
-          readOnly: true
         type:
           $ref: "#/components/schemas/itemType"
       required:
@@ -751,27 +757,27 @@ components:
       readOnly: true
       example:
         smr50-263-2016-2056-kgrs-2.5.tiff:
-          checksum:multihash: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
+          file:checksum: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
           created: "2020-07-14T12:30:00Z"
-          eo:gsd: 2.5
+          gsd: 2.5
           geoadmin:variant: kgrs
           href: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr50-263-2016-2056-kgrs-2.5.tiff
           proj:epsg: 2056
           type: image/tiff; application=geotiff
           updated: "2020-07-14T12:30:00Z"
         smr50-263-2016-2056-komb-2.5.tiff:
-          checksum:multihash: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
+          file:checksum: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
           created: "2020-07-14T12:30:00Z"
-          eo:gsd: 2.5
+          gsd: 2.5
           geoadmin:variant: komb
           href: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr50-263-2016-2056-komb-2.5.tiff
           proj:epsg: "2056"
           type: image/tiff; application=geotiff
           updated: "2020-07-14T12:30:00Z"
         smr50-263-2016-2056-krel-2.5.tiff:
-          checksum:multihash: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
+          file:checksum: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
           created: "2020-07-14T12:30:00Z"
-          eo:gsd: 2.5
+          gsd: 2.5
           geoadmin:variant: krel
           href: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr50-263-2016-2056-krel-2.5.tiff
           proj:epsg: "2056"
@@ -841,13 +847,13 @@ components:
       example: smr200-200-4-2019
       type: string
     itemGeometry:
-      # oneOf:
-        # - $ref: "#/components/schemas/geoJsonPoint"
-        # - $ref: "#/components/schemas/geoJsonLineString"
-      $ref: "#/components/schemas/geoJsonPolygon"
-        # - $ref: "#/components/schemas/geoJsonMultiPoint"
-        # - $ref: "#/components/schemas/geoJsonMultiLineString"
-        # - $ref: "#/components/schemas/geoJsonMultiPolygon"
+      oneOf:
+        - $ref: "#/components/schemas/geoJsonPoint"
+        - $ref: "#/components/schemas/geoJsonLineString"
+        - $ref: "#/components/schemas/geoJsonPolygon"
+        - $ref: "#/components/schemas/geoJsonMultiPoint"
+        - $ref: "#/components/schemas/geoJsonMultiLineString"
+        - $ref: "#/components/schemas/geoJsonMultiPolygon"
     geoJsonPoint:
       title: GeoJSON Point
       type: object
@@ -1066,6 +1072,8 @@ components:
           $ref: "#/components/schemas/datetime"
         end_datetime:
           $ref: "#/components/schemas/datetime"
+        expires:
+          $ref: "#/components/schemas/datetime"
         updated:
           $ref: "#/components/schemas/updated"
         title:
@@ -1079,6 +1087,7 @@ components:
         - created
         - updated
       type: object
+      readOnly: true
     itemType:
       title: type
       description: The GeoJSON type
@@ -1104,11 +1113,20 @@ components:
         title:
           example: Buildings in Bonn
           type: string
+        type:
+          example: Catalog
+          type: string
+        conformsTo:
+          items:
+            type: string
+          type: array
       required:
         - links
         - stac_version
         - id
         - description
+        - type
+        - conformsTo
       type: object
     license:
       description: >-
@@ -1430,8 +1448,6 @@ components:
         $ref: "#/components/schemas/queryProp"
       description: Define which properties to query and the operations to apply
       example:
-        title:
-          eq: "Swissregio"
         title:
           contains: "Swiss"
         created:

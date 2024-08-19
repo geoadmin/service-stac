@@ -96,7 +96,7 @@ class DummyDataHandler(CommandHandler):
             with ThreadPoolExecutor(max_workers=self.options['parallel_collections']) as executor:
                 futures_to_id = {
                     executor.submit(self.create_collection, collection_id, items, assets):
-                    collection_id for collection_id in collections
+                        collection_id for collection_id in collections
                 }
                 for future in as_completed(futures_to_id):
                     collection_id = futures_to_id[future]
@@ -149,7 +149,7 @@ class DummyDataHandler(CommandHandler):
                         errors += 1
 
             if errors:
-                raise Exception(
+                raise Exception(  # pylint: disable=broad-exception-raised
                     f'Failed to delete collection\'s {collection_name} items: {errors} errors'
                 )
         else:
@@ -192,7 +192,7 @@ class DummyDataHandler(CommandHandler):
                         errors += 1
 
             if errors:
-                raise Exception(f'Failed to create collection\'s items: {errors} errors')
+                raise Exception(f'Failed to create collection\'s items: {errors} errors')  # pylint: disable=broad-exception-raised
         else:
             for item_id in items:
                 self.create_item(collection, item_id, assets)

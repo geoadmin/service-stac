@@ -19,16 +19,19 @@ from django.db.models import Q
 from django.db.models.deletion import ProtectedError
 from django.utils.translation import gettext_lazy as _
 
-from solo.models import SingletonModel
-
 from stac_api.managers import AssetUploadManager
 from stac_api.managers import ItemManager
-from stac_api.pgtriggers import generate_child_triggers
+from stac_api.pgtriggers import SummaryFields
+from stac_api.pgtriggers import child_triggers
 from stac_api.pgtriggers import generates_asset_triggers
 from stac_api.pgtriggers import generates_asset_upload_triggers
+from stac_api.pgtriggers import generates_collection_asset_triggers
 from stac_api.pgtriggers import generates_collection_triggers
 from stac_api.pgtriggers import generates_item_triggers
+from stac_api.pgtriggers import generates_summary_count_triggers
 from stac_api.utils import get_asset_path
+from stac_api.utils import get_collection_asset_path
+from stac_api.utils import select_s3_bucket
 from stac_api.validators import MEDIA_TYPES
 from stac_api.validators import validate_asset_name
 from stac_api.validators import validate_asset_name_with_media_type
@@ -127,6 +130,7 @@ def get_conformance_default_links():
         a list of urls
     '''
     default_links = (
+        'https://api.stacspec.org/v1.0.0/core',
         'http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/core',
         'http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/oas30',
         'http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/geojson'
@@ -157,18 +161,27 @@ class Link(models.Model):
         return f'{self.rel}: {self.href}'
 
 
-class LandingPage(SingletonModel):
+class LandingPage(models.Model):
     # using "name" instead of "id", as "id" has a default meaning in django
     name = models.CharField(
-        'id', unique=True, max_length=255, validators=[validate_name], default='ch'
+        'id', unique=False, max_length=255, validators=[validate_name], default='ch'
     )
     title = models.CharField(max_length=255, default='data.geo.admin.ch')
     description = models.TextField(
         default='Data Catalog of the Swiss Federal Spatial Data Infrastructure'
     )
+    version = models.CharField(max_length=255, default='v1')
+
+    conformsTo = ArrayField(  # pylint: disable=invalid-name
+        models.URLField(
+            blank=False,
+            null=False
+        ),
+        default=get_conformance_default_links,
+        help_text=_("Comma-separated list of URLs for the value conformsTo"))
 
     def __str__(self):
-        return "STAC Landing Page"
+        return f'STAC Landing Page {self.version}'
 
     class Meta:
         verbose_name = "STAC Landing Page"
@@ -182,22 +195,6 @@ class LandingPageLink(Link):
     class Meta:
         unique_together = (('rel', 'landing_page'))
         ordering = ['pk']
-
-
-class ConformancePage(SingletonModel):
-    conformsTo = ArrayField(  # pylint: disable=invalid-name
-        models.URLField(
-            blank=False,
-            null=False
-        ),
-        default=get_conformance_default_links,
-        help_text=_("Comma-separated list of URLs for the value conformsTo"))
-
-    def __str__(self):
-        return "Conformance Page"
-
-    class Meta:
-        verbose_name = "STAC Conformance Page"
 
 
 class Provider(models.Model):
@@ -224,7 +221,7 @@ class Provider(models.Model):
     class Meta:
         unique_together = (('collection', 'name'),)
         ordering = ['pk']
-        triggers = generate_child_triggers('collection', 'Provider')
+        triggers = child_triggers('collection', 'Provider')
 
     def __str__(self):
         return self.name
@@ -269,7 +266,9 @@ class Collection(models.Model):
     # only for the initial value.
     updated = models.DateTimeField(auto_now_add=True)
     description = models.TextField()
-    extent_geometry = models.PolygonField(
+    # Set to true if the extent needs to be recalculated.
+    extent_out_of_sync = models.BooleanField(default=False)
+    extent_geometry = models.GeometryField(
         default=None, srid=4326, editable=False, blank=True, null=True
     )
     extent_start_datetime = models.DateTimeField(editable=False, null=True, blank=True)
@@ -310,6 +309,17 @@ class Collection(models.Model):
         "in which the underlying assets data are updated."
     )
 
+    allow_external_assets = models.BooleanField(
+        default=False,
+        help_text=_('Whether this collection can have assets that are hosted externally')
+    )
+
+    external_asset_whitelist = ArrayField(
+        models.CharField(max_length=255), blank=True, default=list,
+        help_text=_('Provide a comma separated list of '
+                    'protocol://domain values for the external asset url validation')
+    )
+
     def __str__(self):
         return self.name
 
@@ -320,9 +330,8 @@ class CollectionLink(Link):
     )
 
     class Meta:
-        unique_together = (('rel', 'collection'),)
         ordering = ['pk']
-        triggers = generate_child_triggers('collection', 'CollectionLink')
+        triggers = child_triggers('collection', 'CollectionLink')
 
 
 ITEM_KEEP_ORIGINAL_FIELDS = [
@@ -364,7 +373,7 @@ class Item(models.Model):
     collection = models.ForeignKey(
         Collection, on_delete=models.PROTECT, help_text=_(SEARCH_TEXT_HELP_COLLECTION)
     )
-    geometry = models.PolygonField(
+    geometry = models.GeometryField(
         null=False, blank=False, default=BBOX_CH, srid=4326, validators=[validate_geometry]
     )
     created = models.DateTimeField(auto_now_add=True)
@@ -384,6 +393,11 @@ class Item(models.Model):
         help_text="Enter date in <i>yyyy-mm-dd</i> format, and time in UTC <i>hh:mm:ss</i> format"
     )
     properties_end_datetime = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text="Enter date in <i>yyyy-mm-dd</i> format, and time in UTC <i>hh:mm:ss</i> format"
+    )
+    properties_expires = models.DateTimeField(
         blank=True,
         null=True,
         help_text="Enter date in <i>yyyy-mm-dd</i> format, and time in UTC <i>hh:mm:ss</i> format"
@@ -428,7 +442,10 @@ class Item(models.Model):
 
     def clean(self):
         validate_item_properties_datetimes(
-            self.properties_datetime, self.properties_start_datetime, self.properties_end_datetime
+            self.properties_datetime,
+            self.properties_start_datetime,
+            self.properties_end_datetime,
+            self.properties_expires,
         )
 
 
@@ -440,7 +457,7 @@ class ItemLink(Link):
     class Meta:
         unique_together = (('rel', 'item'),)
         ordering = ['pk']
-        triggers = generate_child_triggers('item', 'ItemLink')
+        triggers = child_triggers('item', 'ItemLink')
 
 
 def upload_asset_to_path_hook(instance, filename=None):
@@ -455,17 +472,15 @@ def upload_asset_to_path_hook(instance, filename=None):
     Returns:
         Asset file path to use on S3
     '''
-    # Sets the asset media type to the storage, this will be used as ContentType when uploading the
-    # asset on S3
-    instance.file.storage.asset_content_type = instance.media_type
+    item_name = 'no item on collection asset'
+    if hasattr(instance, 'item'):
+        item_name = instance.item.name
     logger.debug(
         'Start computing asset file %s multihash (file size: %.1f MB)',
         filename,
         instance.file.size / 1024**2,
         extra={
-            "collection": instance.item.collection.name,
-            "item": instance.item.name,
-            "asset": instance.name
+            "collection": instance.get_collection().name, "item": item_name, "asset": instance.name
         }
     )
     start = time.time()
@@ -480,68 +495,92 @@ def upload_asset_to_path_hook(instance, filename=None):
     # update_interval
     instance.file.storage.update_interval = instance.update_interval
     logger.debug(
-        'Set uploaded file %s multihash %s to checksum:multihash; computation done in %.3fs',
+        'Set uploaded file %s multihash %s to file:checksum; computation done in %.3fs',
         filename,
         mhash,
         time.time() - start,
         extra={
-            "collection": instance.item.collection.name,
-            "item": instance.item.name,
-            "asset": instance.name
+            "collection": instance.get_collection().name, "item": item_name, "asset": instance.name
         }
     )
     instance.checksum_multihash = mhash
-    return get_asset_path(instance.item, instance.name)
+    return instance.get_asset_path()
 
 
-class Asset(models.Model):
+class DynamicStorageFileField(models.FileField):
+
+    def pre_save(self, model_instance: "AssetBase", add):
+        """Determine the storage to use for this file
+
+        The storage is determined by the collection's name. See
+        settings.MANAGED_BUCKET_COLLECTION_PATTERNS
+        """
+        collection = model_instance.get_collection()
+
+        bucket = select_s3_bucket(collection.name).name
+
+        # We need to explicitly instantiate the storage backend here
+        # Since the backends are configured as strings in the settings, we take these strings
+        # and import them by those string
+        # Example is stac_api.storages.LegacyS3Storage
+        parts = settings.STORAGES[bucket]['BACKEND'].split(".")
+
+        # join the first two parts of the module name together -> stac_api.storages
+        storage_module_name = ".".join(parts[:-1])
+
+        # the name of the storage class is the last part -> LegacyS3Storage
+        storage_cls_name = parts[-1:]
+
+        # import the module
+        storage_module = __import__(storage_module_name, fromlist=[parts[-2:-1]])
+
+        # get the class from the module
+        storage_cls = getattr(storage_module, storage_cls_name[0])
+
+        # .. and instantiate!
+        self.storage = storage_cls()
+
+        # we need to specify the storage for the actual
+        # file as well
+        model_instance.file.storage = self.storage
+
+        self.storage.asset_content_type = model_instance.media_type
+
+        return super().pre_save(model_instance, add)
+
+
+class AssetBase(models.Model):
 
     class Meta:
-        unique_together = (('item', 'name'),)
-        ordering = ['id']
-        triggers = generates_asset_triggers()
+        abstract = True
 
     # using BigIntegerField as primary_key to deal with the expected large number of assets.
     id = models.BigAutoField(primary_key=True)
-    item = models.ForeignKey(
-        Item,
-        related_name='assets',
-        related_query_name='asset',
-        on_delete=models.PROTECT,
-        help_text=_(SEARCH_TEXT_HELP_ITEM)
-    )
+
     # using "name" instead of "id", as "id" has a default meaning in django
     name = models.CharField('id', max_length=255, validators=[validate_asset_name])
-    file = models.FileField(upload_to=upload_asset_to_path_hook, max_length=255)
+
+    # Disable weird pylint errors, where it doesn't take the inherited constructor
+    # into account when linting, somehow
+    # pylint: disable=unexpected-keyword-arg
+    # pylint: disable=no-value-for-parameter
+    file = DynamicStorageFileField(upload_to=upload_asset_to_path_hook, max_length=255)
+    roles = ArrayField(
+        models.CharField(max_length=255), editable=True, blank=True, null=True, default=None,
+        help_text=_("Comma-separated list of roles to describe the purpose of the asset"))
 
     @property
     def filename(self):
         return os.path.basename(self.file.name)
 
+    # From v1 on the json representation of this field changed from "checksum:multihash" to
+    # "file:checksum". The two names may be used interchangeably for a now.
     checksum_multihash = models.CharField(
         editable=False, max_length=255, blank=True, null=True, default=None
     )
     # here we need to set blank=True otherwise the field is as required in the admin interface
     description = models.TextField(blank=True, null=True, default=None)
-    eo_gsd = models.FloatField(null=True, blank=True, validators=[validate_eo_gsd])
 
-    class Language(models.TextChoices):
-        # pylint: disable=invalid-name
-        GERMAN = 'de', _('German')
-        ITALIAN = 'it', _('Italian')
-        FRENCH = 'fr', _('French')
-        ROMANSH = 'rm', _('Romansh')
-        ENGLISH = 'en', _('English')
-        __empty__ = _('')
-
-    # here we need to set blank=True otherwise the field is as required in the admin interface
-    geoadmin_lang = models.CharField(
-        max_length=2, choices=Language.choices, default=None, null=True, blank=True
-    )
-    # here we need to set blank=True otherwise the field is as required in the admin interface
-    geoadmin_variant = models.CharField(
-        max_length=25, null=True, blank=True, validators=[validate_geoadmin_variant]
-    )
     proj_epsg = models.IntegerField(null=True, blank=True)
     # here we need to set blank=True otherwise the field is as required in the admin interface
     title = models.CharField(max_length=255, null=True, blank=True)
@@ -597,6 +636,80 @@ class Asset(models.Model):
         validate_asset_name_with_media_type(self.name, media_type)
 
 
+class Asset(AssetBase):
+
+    class Meta:
+        unique_together = (('item', 'name'),)
+        ordering = ['id']
+        triggers = generates_asset_triggers()
+
+    item = models.ForeignKey(
+        Item,
+        related_name='assets',
+        related_query_name='asset',
+        on_delete=models.PROTECT,
+        help_text=_(SEARCH_TEXT_HELP_ITEM)
+    )
+    # From v1 on the json representation of this field changed from "eo:gsd" to "gsd". The two names
+    # may be used interchangeably for a now.
+    eo_gsd = models.FloatField(null=True, blank=True, validators=[validate_eo_gsd])
+
+    class Language(models.TextChoices):
+        # pylint: disable=invalid-name
+        GERMAN = 'de', _('German')
+        ITALIAN = 'it', _('Italian')
+        FRENCH = 'fr', _('French')
+        ROMANSH = 'rm', _('Romansh')
+        ENGLISH = 'en', _('English')
+        __empty__ = _('')
+
+    # here we need to set blank=True otherwise the field is as required in the admin interface
+    geoadmin_lang = models.CharField(
+        max_length=2, choices=Language.choices, default=None, null=True, blank=True
+    )
+    # here we need to set blank=True otherwise the field is as required in the admin interface
+    geoadmin_variant = models.CharField(
+        max_length=25, null=True, blank=True, validators=[validate_geoadmin_variant]
+    )
+
+    # whether this asset is hosted externally
+    is_external = models.BooleanField(
+        default=False,
+        help_text=_("Whether this asset is hosted externally")
+    )
+
+    def get_collection(self):
+        return self.item.collection
+
+    def get_asset_path(self):
+        return get_asset_path(self.item, self.name)
+
+
+class CollectionAsset(AssetBase):
+
+    class Meta:
+        unique_together = (('collection', 'name'),)
+        ordering = ['id']
+        triggers = generates_collection_asset_triggers()
+
+    collection = models.ForeignKey(
+        Collection,
+        related_name='assets',
+        related_query_name='asset',
+        on_delete=models.PROTECT,
+        help_text=_(SEARCH_TEXT_HELP_ITEM)
+    )
+
+    # CollectionAssets are never external
+    is_external = False
+
+    def get_collection(self):
+        return self.collection
+
+    def get_asset_path(self):
+        return get_collection_asset_path(self.collection, self.name)
+
+
 class AssetUpload(models.Model):
 
     class Meta:
@@ -640,6 +753,8 @@ class AssetUpload(models.Model):
     urls = models.JSONField(default=list, encoder=DjangoJSONEncoder, blank=True)
     created = models.DateTimeField(auto_now_add=True)
     ended = models.DateTimeField(blank=True, null=True, default=None)
+    # From v1 on the json representation of this field changed from "checksum:multihash" to
+    # "file:checksum". The two names may be used interchangeably for a now.
     checksum_multihash = models.CharField(max_length=255, blank=False, null=False)
 
     # NOTE: hidden ETag field, this field is automatically updated by stac_api.pgtriggers
@@ -663,13 +778,13 @@ class AssetUpload(models.Model):
     objects = AssetUploadManager()
 
     def update_asset_from_upload(self):
-        '''Updating the asset's checksum:multihash and update_interval from the upload
+        '''Updating the asset's file:checksum and update_interval from the upload
 
-        When the upload is completed, the new checksum:multihash and update interval from the upload
+        When the upload is completed, the new file:checksum and update interval from the upload
         is set to its asset parent.
         '''
         logger.debug(
-            'Updating asset %s checksum:multihash from %s to %s and update_interval from %d to %d '
+            'Updating asset %s file:checksum from %s to %s and update_interval from %d to %d '
             'due to upload complete',
             self.asset.name,
             self.asset.checksum_multihash,
@@ -687,3 +802,77 @@ class AssetUpload(models.Model):
         self.asset.checksum_multihash = self.checksum_multihash
         self.asset.update_interval = self.update_interval
         self.asset.save()
+
+
+class CountBase(models.Model):
+    '''CountBase tables are used to help calculate the summary on a collection.
+    This is only performant if the distinct number of values is small, e.g. we currently only have
+    5 possible values for geoadmin_language.
+    For each assets value we keep a count of how often that value exists, per collection. On
+    insert/update/delete of an asset we only need to decrease and/or increase the counter value.
+    Since the number of possible values is small, the aggregate array calculation to update the
+    collection also stays performant.
+    '''
+
+    class Meta:
+        abstract = True
+
+    id = models.BigAutoField(primary_key=True)
+    collection = models.ForeignKey(
+        Collection,
+        related_name='+',
+        on_delete=models.CASCADE,
+    )
+    count = models.PositiveIntegerField(null=False)
+
+
+class GSDCount(CountBase):
+    # Update by asset triggers.
+
+    class Meta:
+        unique_together = (('collection', 'value'),)
+        ordering = ['id']
+        triggers = generates_summary_count_triggers(
+            SummaryFields.GSD.value[0], SummaryFields.GSD.value[1]
+        )
+
+    value = models.FloatField(null=True, blank=True)
+
+
+class GeoadminLangCount(CountBase):
+    # Update by asset triggers.
+
+    class Meta:
+        unique_together = (('collection', 'value'),)
+        ordering = ['id']
+        triggers = generates_summary_count_triggers(
+            SummaryFields.LANGUAGE.value[0], SummaryFields.LANGUAGE.value[1]
+        )
+
+    value = models.CharField(max_length=2, default=None, null=True, blank=True)
+
+
+class GeoadminVariantCount(CountBase):
+    # Update by asset triggers.
+
+    class Meta:
+        unique_together = (('collection', 'value'),)
+        ordering = ['id']
+        triggers = generates_summary_count_triggers(
+            SummaryFields.VARIANT.value[0], SummaryFields.VARIANT.value[1]
+        )
+
+    value = models.CharField(max_length=25, null=True, blank=True)
+
+
+class ProjEPSGCount(CountBase):
+    # Update by asset and collection asset triggers.
+
+    class Meta:
+        unique_together = (('collection', 'value'),)
+        ordering = ['id']
+        triggers = generates_summary_count_triggers(
+            SummaryFields.PROJ_EPSG.value[0], SummaryFields.PROJ_EPSG.value[1]
+        )
+
+    value = models.IntegerField(null=True, blank=True)

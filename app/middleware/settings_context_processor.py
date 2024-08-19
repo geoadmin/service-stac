@@ -8,4 +8,4 @@ def inject_settings_values(request):
     with 'SETTINGS_' and otherwise use the same name as in the
     settings file.
     """
-    return {'SETTINGS_APP_VERSION': settings.APP_VERSION, 'SETTINGS_API_BASE': settings.STAC_BASE_V}
+    return {'SETTINGS_APP_VERSION': settings.APP_VERSION}

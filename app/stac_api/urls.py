@@ -1,6 +1,6 @@
-from django.conf import settings
 from django.urls import include
 from django.urls import path
+from django.urls import re_path
 
 from rest_framework.authtoken.views import obtain_auth_token
 
@@ -18,9 +18,9 @@ from stac_api.views import ItemDetail
 from stac_api.views import ItemsList
 from stac_api.views import LandingPageDetail
 from stac_api.views import SearchList
+from stac_api.views import recalculate_extent
 
-STAC_VERSION_SHORT = settings.STAC_VERSION_SHORT
-HEALTHCHECK_ENDPOINT = settings.HEALTHCHECK_ENDPOINT
+# HEALTHCHECK_ENDPOINT = settings.HEALTHCHECK_ENDPOINT
 
 asset_upload_urls = [
     path("<upload_id>", AssetUploadDetail.as_view(), name='asset-upload-detail'),
@@ -48,16 +48,33 @@ collection_urls = [
 ]
 
 urlpatterns = [
-    path(f"{HEALTHCHECK_ENDPOINT}", CollectionList.as_view(), name='health-check'),
+    # Deactivate healthcheck for now while monitoring is being adapted.
+    # path(f"{HEALTHCHECK_ENDPOINT}", CollectionList.as_view(), name='health-check'),
     path("get-token", obtain_auth_token, name='get-token'),
-    path(
-        f"{STAC_VERSION_SHORT}/",
-        include([
+    re_path(
+        "^v0.9/",
+        include(([
             path("", LandingPageDetail.as_view(), name='landing-page'),
             path("conformance", ConformancePageDetail.as_view(), name='conformance'),
             path("search", SearchList.as_view(), name='search-list'),
             path("collections", CollectionList.as_view(), name='collections-list'),
-            path("collections/", include(collection_urls))
-        ])
+            path("collections/", include(collection_urls)),
+            path("update-extent", recalculate_extent)
+        ],
+                 "v0.9"),
+                namespace='v0.9')
+    ),
+    re_path(
+        "^v1/",
+        include(([
+            path("", LandingPageDetail.as_view(), name='landing-page'),
+            path("conformance", ConformancePageDetail.as_view(), name='conformance'),
+            path("search", SearchList.as_view(), name='search-list'),
+            path("collections", CollectionList.as_view(), name='collections-list'),
+            path("collections/", include(collection_urls)),
+            path("update-extent", recalculate_extent)
+        ],
+                 "v1"),
+                namespace='v1')
     )
 ]

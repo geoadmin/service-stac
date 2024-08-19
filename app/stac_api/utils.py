@@ -1,12 +1,17 @@
 import hashlib
+import inspect
 import json
 import logging
 import math
+import os
+import re
 from base64 import b64decode
 from datetime import datetime
 from datetime import timezone
 from decimal import Decimal
 from decimal import InvalidOperation
+from enum import Enum
+from io import StringIO
 from urllib import parse
 
 import boto3
@@ -16,9 +21,26 @@ from botocore.client import Config
 from django.conf import settings
 from django.contrib.gis.geos import Point
 from django.contrib.gis.geos import Polygon
+from django.core.management import call_command
+from django.core.management.base import BaseCommand
 from django.urls import reverse
 
 logger = logging.getLogger(__name__)
+
+AVAILABLE_S3_BUCKETS = Enum('AVAILABLE_S3_BUCKETS', list(settings.AWS_SETTINGS.keys()))
+API_VERSION = Enum('API_VERSION', ['v09', 'v1'])
+
+
+def call_calculate_extent(*args, **kwargs):
+    out = StringIO()
+    call_command(
+        "calculate_extent",
+        *args,
+        stdout=out,
+        stderr=StringIO(),
+        **kwargs,
+    )
+    return out.getvalue()
 
 
 def isoformat(date_time):
@@ -100,35 +122,82 @@ def get_asset_path(item, asset_name):
     return '/'.join([item.collection.name, item.name, asset_name])
 
 
-def get_s3_resource():
-    '''Returns an AWS S3 resource
+def get_collection_asset_path(collection, asset_name):
+    '''Returns the asset path on S3.
 
-    The authentication with the S3 server is configured via the AWS_ACCESS_KEY_ID and
-    AWS_SECRET_ACCESS_KEY environment variables.
+    The path is defined as follow: COLLECTION_NAME/ASSET_NAME
+
+    Args:
+        collection: Collection
+            Collection instance in which the asset is attached
+        asset_name: string
+            Asset's name
+
+    Returns:
+        Assets path on S3
+    '''
+    return '/'.join([collection.name, asset_name])
+
+
+def _get_boto_access_kwargs(s3_bucket: AVAILABLE_S3_BUCKETS = AVAILABLE_S3_BUCKETS.legacy):
+    """Build the arguments for client and resource calls to boto3
+
+    Both boto3.resource and boto3.client need certain arguments to establish
+    a connection. Depending on the bucket configuration used, we pass more or
+    less arguments to those functions.
+    """
+    s3_config = settings.AWS_SETTINGS[s3_bucket.name]
+
+    # basic access configuration
+    client_access_kwargs = {
+        "endpoint_url": s3_config['S3_ENDPOINT_URL'],
+        "region_name": s3_config['S3_REGION_NAME'],
+        "config": Config(signature_version=s3_config['S3_SIGNATURE_VERSION']),
+    }
+
+    # for the key access type, use the configured key/secret
+    # otherwise let it use the environment (i.e. AWS_ROLE_ARN specifically)
+    if s3_config['access_type'] == "key":
+        client_access_kwargs.update({
+            "aws_access_key_id": s3_config['ACCESS_KEY_ID'],
+            "aws_secret_access_key": s3_config['SECRET_ACCESS_KEY']
+        })
+
+    # for the service account type, we need to make sure the environment contains
+    # the variable AWS_ROLE_ARN for it to work
+    # as it seems, we can't pass this explicitly
+    # The variable is set by AWS itself
+    if s3_config["access_type"] == "service_account":
+        needed_env_vars = ['AWS_ROLE_ARN', 'AWS_WEB_IDENTITY_TOKEN_FILE']
+        for env_var in needed_env_vars:
+            if env_var not in os.environ:
+                raise EnvironmentError(
+                    f"For the {s3_bucket} bucket the environment variable "
+                    "{env_var} must be configured"
+                )
+
+    return client_access_kwargs
+
+
+def get_s3_resource(s3_bucket: AVAILABLE_S3_BUCKETS = AVAILABLE_S3_BUCKETS.legacy):
+    '''Returns an AWS S3 resource
 
     Returns:
         AWS S3 resource
     '''
-    return boto3.resource(
-        's3', endpoint_url=settings.AWS_S3_ENDPOINT_URL, config=Config(signature_version='s3v4')
-    )
+
+    return boto3.resource('s3', **(_get_boto_access_kwargs(s3_bucket)))
 
 
-def get_s3_client():
+def get_s3_client(s3_bucket: AVAILABLE_S3_BUCKETS = AVAILABLE_S3_BUCKETS.legacy):
     '''Returns an AWS S3 client
-
-    The authentication with the S3 server is configured via the AWS_ACCESS_KEY_ID and
-    AWS_SECRET_ACCESS_KEY environment variables.
 
     Returns:
         AWS S3 client
     '''
-    return boto3.client(
-        's3',
-        endpoint_url=settings.AWS_S3_ENDPOINT_URL,
-        region_name=settings.AWS_S3_REGION_NAME,
-        config=Config(signature_version='s3v4'),
-    )
+    client = boto3.client('s3', **(_get_boto_access_kwargs(s3_bucket)))
+
+    return client
 
 
 def build_asset_href(request, path):
@@ -148,12 +217,13 @@ def build_asset_href(request, path):
 
     # Assets file are served by an AWS S3 services. This service uses the same domain as
     # the API but could defer, especially for local development, so check first
-    # AWS_S3_CUSTOM_DOMAIN
-    if settings.AWS_S3_CUSTOM_DOMAIN:
+    # AWS_LEGACY['S3_CUSTOM_DOMAIN']
+    if settings.AWS_SETTINGS['legacy']['S3_CUSTOM_DOMAIN']:
         # By definition we should not mixed up HTTP Scheme (HTTP/HTTPS) within our service,
         # although the Assets file are not served by django we configure it with the same scheme
         # as django that's why it is kind of safe to use the django scheme.
-        return f'{request.scheme}://{settings.AWS_S3_CUSTOM_DOMAIN.strip("/")}/{path}'
+        custom_domain = settings.AWS_SETTINGS['legacy']['S3_CUSTOM_DOMAIN'].strip(" / ")
+        return f"{request.scheme}://{custom_domain}/{path}"
 
     return request.build_absolute_uri(f'/{path}')
 
@@ -284,6 +354,19 @@ def remove_query_params(url, keys):
     return parse.urlunsplit((scheme, netloc, path, query, fragment))
 
 
+class CustomBaseCommand(BaseCommand):
+
+    def handle(self, *args, **options):
+        """
+        The actual logic of the command. Subclasses must implement
+        this method.
+        """
+        raise NotImplementedError("subclasses of CustomBaseCommand must provide a handle() method")
+
+    def add_arguments(self, parser):
+        parser.add_argument('--logger', action='store_true', help='use logger configuration')
+
+
 class CommandHandler():
     '''Base class for management command handler
 
@@ -291,27 +374,59 @@ class CommandHandler():
     '''
 
     def __init__(self, command, options):
+        frm = inspect.stack()[1]
+        mod = inspect.getmodule(frm[0])
+        self.logger = logging.getLogger(mod.__name__)
         self.options = options
         self.verbosity = options['verbosity']
+        self.use_logger = options.get('logger')
         self.stdout = command.stdout
         self.stderr = command.stderr
         self.style = command.style
         self.command = command
 
-    def print(self, message, *args, level=2):
+    def print(self, message, *args, level=2, **kwargs):
         if self.verbosity >= level:
-            self.stdout.write(message % (args))
+            if self.use_logger:
+                self.logger.info(message, *args, **kwargs)
+            else:
+                if len(kwargs) > 0:
+                    message = message + " " + ", ".join(
+                        f"{key}={value}" for key, value in kwargs.items()
+                    )
+                self.stdout.write(message % (args))
 
-    def print_warning(self, message, *args, level=1):
+    def print_warning(self, message, *args, level=1, **kwargs):
         if self.verbosity >= level:
-            self.stdout.write(self.style.WARNING(message % (args)))
+            if self.use_logger:
+                self.logger.warning(self.style.WARNING(message % (args)), **kwargs)
+            else:
+                if len(kwargs) > 0:
+                    message = message + " " + ", ".join(
+                        f"{key}={value}" for key, value in kwargs.items()
+                    )
+                self.stdout.write(self.style.WARNING(message % (args)))
 
-    def print_success(self, message, *args, level=1):
+    def print_success(self, message, *args, level=1, **kwargs):
         if self.verbosity >= level:
-            self.stdout.write(self.style.SUCCESS(message % (args)))
+            if self.use_logger:
+                self.logger.info(self.style.SUCCESS(message % (args)), **kwargs)
+            else:
+                if len(kwargs) > 0:
+                    message = message + " " + ", ".join(
+                        f"{key}={value}" for key, value in kwargs.items()
+                    )
+                self.stdout.write(self.style.SUCCESS(message % (args)))
 
-    def print_error(self, message, *args):
-        self.stderr.write(self.style.ERROR(message % (args)))
+    def print_error(self, message, *args, **kwargs):
+        if self.use_logger:
+            self.logger.error(self.style.ERROR(message % (args)), **kwargs)
+        else:
+            if len(kwargs) > 0:
+                message = message + "\n" + ", ".join(
+                    f"{key}={value}" for key, value in kwargs.items()
+                )
+            self.stderr.write(self.style.ERROR(message % (args)))
 
 
 def geometry_from_bbox(bbox):
@@ -350,9 +465,28 @@ def geometry_from_bbox(bbox):
     return bbox_geometry
 
 
+def get_api_version(request) -> API_VERSION:
+    '''get the api version from the request, default to v1'''
+    if request is not None and hasattr(request, 'resolver_match'):
+        if request.resolver_match.namespace in ('v0.9', 'test_v0.9'):
+            return API_VERSION.v09
+    return API_VERSION.v1
+
+
+def get_stac_version(request):
+    return '0.9.0' if get_api_version(request) == API_VERSION.v09 else '1.0.0'
+
+
+def is_api_version_1(request):
+    return get_api_version(request) == API_VERSION.v1
+
+
 def get_url(request, view, args=None):
     '''Get an full url based on a view name'''
-    return request.build_absolute_uri(reverse(view, args=args))
+    ns = request.resolver_match.namespace
+    if ns is not None:
+        view = ns + ':' + view
+    return request.build_absolute_uri(reverse(view, current_app=ns, args=args))
 
 
 def get_browser_url(request, view, collection=None, item=None):
@@ -434,3 +568,19 @@ def get_s3_cache_control_value(update_interval):
         return f'max-age={max_age}, public'
 
     return f'max-age={settings.STORAGE_ASSETS_CACHE_SECONDS}, public'
+
+
+def select_s3_bucket(collection_name) -> AVAILABLE_S3_BUCKETS:
+    """Select the s3 bucket based on the collection name
+
+    Select the correct s3 bucket based on matching patterns with the collection
+    name
+    """
+    patterns = settings.MANAGED_BUCKET_COLLECTION_PATTERNS
+
+    for pattern in patterns:
+        match = re.fullmatch(pattern, collection_name)
+        if match is not None:
+            return AVAILABLE_S3_BUCKETS.managed
+
+    return AVAILABLE_S3_BUCKETS.legacy

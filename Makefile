@@ -18,6 +18,7 @@ endif
 # Django specific
 APP_SRC_DIR := app
 DJANGO_MANAGER := $(CURRENT_DIR)/$(APP_SRC_DIR)/manage.py
+DJANGO_MANAGER_DEBUG := -m debugpy --listen localhost:5678 --wait-for-client $(CURRENT_DIR)/$(APP_SRC_DIR)/manage.py
 
 # Test options
 ifeq ($(CI),"1")
@@ -84,6 +85,7 @@ help:
 	@echo "- django-checks            Run the django checks"
 	@echo "- django-check-migrations  Check that no django migration file is missing"
 	@echo "- test                     Run the tests"
+	@echo "- test-conformance         Run stac-api-validator, needs a valid collection name, e.g. collection=ch.are.agglomerationsverkehr"
 	@echo -e " \033[1mSPEC TARGETS\033[0m "
 	@echo "- lint-specs               Lint the openapi specs  (openapi.yaml and openapitransactional.yaml)"
 	@echo "- ci-build-check-specs     Checks that the specs have been built"
@@ -98,7 +100,7 @@ help:
 	@echo "- dockerpush-(debug|prod)  Build and push the project localy (with tag := $(DOCKER_IMG_LOCAL_TAG))"
 	@echo "- dockerrun                Run the test container with default manage.py command 'runserver'. Note: ENV is populated from '.env.local'"
 	@echo "                           Other cmds can be invoked with 'make dockerrun CMD'."
-	@echo -e "                           \e[1mNote:\e[0m This will connect to your host Postgres DB. If you wanna test with a containerized DB, run 'docker-compose up'"
+	@echo -e "                           \e[1mNote:\e[0m This will connect to your host Postgres DB. If you wanna test with a containerized DB, run 'docker compose up'"
 	@echo -e " \033[1mCLEANING TARGETS\033[0m "
 	@echo "- clean                    Clean genereated files"
 	@echo "- clean-logs               Clean generated logs files"
@@ -139,8 +141,9 @@ setup-s3-and-db:
 	# Create volume directories for postgres and minio
 	# Note that the '/service_stac_local' part is already the bucket name
 	mkdir -p .volumes/minio/service-stac-local
+	mkdir -p .volumes/minio/service-stac-local-managed
 	mkdir -p .volumes/postgresql
-	docker-compose up -d
+	docker compose up -d
 
 .PHONY: setup
 setup: $(SETTINGS_TIMESTAMP) setup-s3-and-db setup-logs
@@ -196,6 +199,20 @@ test:
 	$(PYTHON) $(DJANGO_MANAGER) collectstatic --noinput
 	$(PYTHON) $(DJANGO_MANAGER) test --verbosity=2 --parallel 20 $(CI_TEST_OPT) $(TEST_DIR)
 
+.PHONY: test-debug
+test-debug:
+	# Collect static first to avoid warning in the test
+	$(PYTHON) $(DJANGO_MANAGER) collectstatic --noinput
+	$(PYTHON) $(DJANGO_MANAGER_DEBUG) test --verbosity=2 $(CI_TEST_OPT) $(TEST_DIR)
+
+
+.PHONY: test-conformance
+test-conformance:
+	stac-api-validator \
+    --root-url http://localhost:$(HTTP_PORT)/api/stac/v1/ \
+    --conformance core \
+    --conformance collections \
+    --collection $(collection)
 
 ###################
 # Specs
@@ -228,6 +245,10 @@ ci-build-check-specs:
 .PHONY: serve
 serve: setup-logs
 	$(PYTHON) $(DJANGO_MANAGER) runserver $(HTTP_PORT)
+
+.PHONY: serve-debug
+serve-debug: setup-logs
+	$(PYTHON) $(DJANGO_MANAGER_DEBUG) runserver $(HTTP_PORT)
 
 .PHONY: gunicornserve
 gunicornserve: setup-logs
@@ -306,7 +327,7 @@ clean-logs:
 
 .PHONY: clean
 clean: clean-logs
-	docker-compose down
+	docker compose down
 	@# clean python cache files
 	find . -path ./.volumes -prune -o -name __pycache__ -type d -print0 | xargs -I {} -0 rm -rf "{}"
 	rm -rf $(TIMESTAMPS)

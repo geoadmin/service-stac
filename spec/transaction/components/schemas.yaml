@@ -78,17 +78,17 @@ components:
           $ref: "#/components/schemas/mediaTypeWrite"
         href:
           $ref: "#/components/schemas/href"
-        checksum:multihash:
+        file:checksum:
           $ref: "#/components/schemas/checksumMultihashReadOnly"
-        # roles:
-        #   $ref: '#/components/schemas/roles'
+        roles:
+          $ref: '#/components/schemas/roles'
         "geoadmin:variant":
           $ref: "#/components/schemas/geoadminVariant"
         "geoadmin:lang":
           $ref: "#/components/schemas/geoadminLang"
         "proj:epsg":
           $ref: "#/components/schemas/projEpsg"
-        "eo:gsd":
+        "gsd":
           $ref: "#/components/schemas/eoGsd"
         created:
           $ref: "#/components/schemas/created"
@@ -277,7 +277,7 @@ components:
         - upload_id
         - status
         - created
-        - "checksum:multihash"
+        - "file:checksum"
         - number_parts
       properties:
         upload_id:
@@ -301,7 +301,7 @@ components:
           $ref: "#/components/schemas/dtUploadCompleted"
         aborted:
           $ref: "#/components/schemas/dtUploadAborted"
-        "checksum:multihash":
+        "file:checksum":
           $ref: "../../components/schemas.yaml#/components/schemas/checksumMultihash"
     assetUploadCreate:
       title: AssetUpload
@@ -310,7 +310,7 @@ components:
         - upload_id
         - status
         - created
-        - "checksum:multihash"
+        - "file:checksum"
         - number_parts
         - md5_parts
       properties:
@@ -335,7 +335,7 @@ components:
           readOnly: true
         created:
           $ref: "#/components/schemas/dtUploadCreated"
-        "checksum:multihash":
+        "file:checksum":
           $ref: "../../components/schemas.yaml#/components/schemas/checksumMultihash"
     assetCompleteUpload:
       title: CompleteUpload
@@ -371,7 +371,7 @@ components:
         - number_parts
         - created
         - completed
-        - "checksum:multihash"
+        - "file:checksum"
       properties:
         upload_id:
           $ref: "#/components/schemas/uploadId"
@@ -388,7 +388,7 @@ components:
           $ref: "#/components/schemas/dtUploadCreated"
         completed:
           $ref: "#/components/schemas/dtUploadCompleted"
-        "checksum:multihash":
+        "file:checksum":
           $ref: "../../components/schemas.yaml#/components/schemas/checksumMultihash"
     assetUploadAborted:
       title: UploadCompleted
@@ -399,7 +399,7 @@ components:
         - number_parts
         - created
         - aborted
-        - "checksum:multihash"
+        - "file:checksum"
       properties:
         upload_id:
           $ref: "#/components/schemas/uploadId"
@@ -416,7 +416,7 @@ components:
           $ref: "#/components/schemas/dtUploadCreated"
         aborted:
           $ref: "#/components/schemas/dtUploadAborted"
-        "checksum:multihash":
+        "file:checksum":
           $ref: "../../components/schemas.yaml#/components/schemas/checksumMultihash"
     assetUploadParts:
       title: Parts
@@ -516,7 +516,7 @@ components:
         on the asset requests.
 
         *NOTE:*
-         - *when uploading compressed data: the `checksum:multihash` refers to the checksum of the
+         - *when uploading compressed data: the `file:checksum` refers to the checksum of the
            uncompressed data, while the md5 checksum must be calculated of the compressed data*
       type: string
       pattern: (gzip|br|deflate|compress)
@@ -539,7 +539,7 @@ components:
           description: Presigned URL to use to upload the Asset File part using the PUT method.
           type: string
           format: url
-          example: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-4-2019/smr50-263-2016-2056-kgrs-2.5.tiff?uploadId=d77UbNnEVTaqCAyAz61AVqy7uuTGJ_YOUyPOklcRMr4ZPBthON9p6cpMREx683yQ_oeGVmGE_yTg4cmnEz3mTErEPKn0_m.3LBjo6A88Qxlj4vFrAdU6YBuourb.IqFF&partNumber=1&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4HDUVYWAM6ZB6SWO%2F20210414%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20210414T112742Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=d12763467eaffa0c69d601297a661a05c9f414d4008b4148fa6ba604f203be01
+          example: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-4-2019/smr50-263-2016-2056-kgrs-2.5.tiff
         part:
           description: Part number assigned to this presigned URL.
           type: integer

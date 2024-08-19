@@ -12,7 +12,10 @@ from django.utils.translation import gettext_lazy as _
 
 from rest_framework import generics
 from rest_framework import mixins
+from rest_framework import permissions
 from rest_framework import serializers
+from rest_framework.decorators import api_view
+from rest_framework.decorators import permission_classes
 from rest_framework.exceptions import APIException
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import AllowAny
@@ -25,7 +28,6 @@ from stac_api.exceptions import UploadNotInProgressError
 from stac_api.models import Asset
 from stac_api.models import AssetUpload
 from stac_api.models import Collection
-from stac_api.models import ConformancePage
 from stac_api.models import Item
 from stac_api.models import LandingPage
 from stac_api.pagination import ExtApiPagination
@@ -39,8 +41,11 @@ from stac_api.serializers import ConformancePageSerializer
 from stac_api.serializers import ItemSerializer
 from stac_api.serializers import LandingPageSerializer
 from stac_api.serializers_utils import get_relation_links
+from stac_api.utils import call_calculate_extent
 from stac_api.utils import get_asset_path
 from stac_api.utils import harmonize_post_get_for_search
+from stac_api.utils import is_api_version_1
+from stac_api.utils import select_s3_bucket
 from stac_api.utils import utc_aware
 from stac_api.validators_serializer import ValidateSearchRequest
 from stac_api.validators_view import validate_asset
@@ -152,16 +157,20 @@ class LandingPageDetail(generics.RetrieveAPIView):
     queryset = LandingPage.objects.all()
 
     def get_object(self):
-        return LandingPage.get_solo()
+        if not is_api_version_1(self.request):
+            return LandingPage.objects.get(version='v0.9')
+        return LandingPage.objects.get(version='v1')
 
 
 class ConformancePageDetail(generics.RetrieveAPIView):
     name = 'conformance'  # this name must match the name in urls.py
     serializer_class = ConformancePageSerializer
-    queryset = ConformancePage.objects.all()
+    queryset = LandingPage.objects.all()
 
     def get_object(self):
-        return ConformancePage.get_solo()
+        if not is_api_version_1(self.request):
+            return LandingPage.objects.get(version='v0.9')
+        return LandingPage.objects.get(version='v1')
 
 
 class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
@@ -281,6 +290,13 @@ class CollectionList(generics.GenericAPIView):
         if page is not None:
             return self.get_paginated_response(data)
         return Response(data)
+
+
+@api_view(['POST'])
+@permission_classes((permissions.AllowAny,))
+def recalculate_extent(request):
+    call_calculate_extent()
+    return Response()
 
 
 class CollectionDetail(
@@ -527,7 +543,37 @@ class AssetDetail(
     def get_serializer(self, *args, **kwargs):
         serializer_class = self.get_serializer_class()
         kwargs.setdefault('context', self.get_serializer_context())
-        return serializer_class(*args, **kwargs)
+        item = get_object_or_404(
+            Item, collection__name=self.kwargs['collection_name'], name=self.kwargs['item_name']
+        )
+        serializer = serializer_class(*args, **kwargs)
+
+        # for the validation the serializer needs to know the collection of the
+        # item. In case of upserting, the asset doesn't exist and thus the collection
+        # can't be read from the instance, which is why we pass the collection manually
+        # here. See serialiers.AssetBaseSerializer._validate_href_field
+        serializer.collection = item.collection
+        return serializer
+
+    def _get_file_path(self, serializer, item, asset_name):
+        """Get the path to the file
+
+        If the collection allows for external asset, and the file is specified
+        in the request, we set it directly. If the collection doesn't allow it,
+        error 400.
+        Otherwise we assemble the path from the file name, collection name as
+        well as the s3 bucket domain
+        """
+
+        if 'file' in serializer.validated_data:
+            file = serializer.validated_data['file']
+            # setting the href makes the asset be external implicitly
+            is_external = True
+        else:
+            file = get_asset_path(item, asset_name)
+            is_external = False
+
+        return file, is_external
 
     def perform_update(self, serializer):
         item = get_object_or_404(
@@ -543,12 +589,14 @@ class AssetDetail(
                 'asset': self.kwargs['asset_name']
             }
         )
-        serializer.save(item=item, file=get_asset_path(item, self.kwargs['asset_name']))
+        file, is_external = self._get_file_path(serializer, item, self.kwargs['asset_name'])
+        return serializer.save(item=item, file=file, is_external=is_external)
 
     def perform_upsert(self, serializer, lookup):
         item = get_object_or_404(
             Item, collection__name=self.kwargs['collection_name'], name=self.kwargs['item_name']
         )
+
         validate_renaming(
             serializer,
             original_id=self.kwargs['asset_name'],
@@ -561,9 +609,9 @@ class AssetDetail(
         )
         lookup['item__collection__name'] = item.collection.name
         lookup['item__name'] = item.name
-        return serializer.upsert(
-            lookup, item=item, file=get_asset_path(item, self.kwargs['asset_name'])
-        )
+
+        file, is_external = self._get_file_path(serializer, item, self.kwargs['asset_name'])
+        return serializer.upsert(lookup, item=item, file=file, is_external=is_external)
 
     @etag(get_asset_etag)
     def get(self, request, *args, **kwargs):
@@ -630,6 +678,7 @@ class AssetUploadBase(generics.GenericAPIView):
 
     def create_multipart_upload(self, executor, serializer, validated_data, asset):
         key = get_asset_path(asset.item, asset.name)
+
         upload_id = executor.create_multipart_upload(
             key,
             asset,
@@ -688,8 +737,18 @@ class AssetUploadBase(generics.GenericAPIView):
 
 class AssetUploadsList(AssetUploadBase, mixins.ListModelMixin, views_mixins.CreateModelMixin):
 
+    class ExternalDisallowedException(Exception):
+        pass
+
     def post(self, request, *args, **kwargs):
-        return self.create(request, *args, **kwargs)
+        try:
+            return self.create(request, *args, **kwargs)
+        except self.ExternalDisallowedException as ex:
+            data = {
+                "code": 400,
+                "description": "Not allowed to create multipart uploads on external assets"
+            }
+            return Response(status=400, exception=True, data=data)
 
     def get(self, request, *args, **kwargs):
         validate_asset(self.kwargs)
@@ -699,9 +758,16 @@ class AssetUploadsList(AssetUploadBase, mixins.ListModelMixin, views_mixins.Crea
         return {'Location': '/'.join([self.request.build_absolute_uri(), data['upload_id']])}
 
     def perform_create(self, serializer):
-        executor = MultipartUpload()
         data = serializer.validated_data
         asset = self.get_asset_or_404()
+        collection = asset.item.collection
+
+        if asset.is_external:
+            raise self.ExternalDisallowedException()
+
+        s3_bucket = select_s3_bucket(collection.name)
+        executor = MultipartUpload(s3_bucket)
+
         self.create_multipart_upload(executor, serializer, data, asset)
 
     def get_queryset(self):
@@ -732,8 +798,13 @@ class AssetUploadComplete(AssetUploadBase, views_mixins.UpdateInsertModelMixin):
         return self.update(request, *args, **kwargs)
 
     def perform_update(self, serializer):
-        executor = MultipartUpload()
         asset = serializer.instance.asset
+
+        collection = asset.item.collection
+
+        s3_bucket = select_s3_bucket(collection.name)
+        executor = MultipartUpload(s3_bucket)
+
         self.complete_multipart_upload(
             executor, serializer.validated_data, serializer.instance, asset
         )
@@ -746,8 +817,12 @@ class AssetUploadAbort(AssetUploadBase, views_mixins.UpdateInsertModelMixin):
         return self.update(request, *args, **kwargs)
 
     def perform_update(self, serializer):
-        executor = MultipartUpload()
         asset = serializer.instance.asset
+
+        collection = asset.item.collection
+
+        s3_bucket = select_s3_bucket(collection.name)
+        executor = MultipartUpload(s3_bucket)
         self.abort_multipart_upload(executor, serializer.instance, asset)
 
 
@@ -759,9 +834,14 @@ class AssetUploadPartsList(AssetUploadBase):
         return self.list(request, *args, **kwargs)
 
     def list(self, request, *args, **kwargs):
-        executor = MultipartUpload()
         asset_upload = self.get_object()
         limit, offset = self.get_pagination_config(request)
+
+        collection = asset_upload.asset.item.collection
+        s3_bucket = select_s3_bucket(collection.name)
+
+        executor = MultipartUpload(s3_bucket)
+
         data, has_next = self.list_multipart_upload_parts(
             executor, asset_upload, asset_upload.asset, limit, offset
         )

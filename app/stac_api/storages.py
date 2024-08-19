@@ -7,19 +7,35 @@ from django.conf import settings
 
 from storages.backends.s3boto3 import S3Boto3Storage
 
+from stac_api.utils import AVAILABLE_S3_BUCKETS
 from stac_api.utils import get_s3_cache_control_value
 
 logger = logging.getLogger(__name__)
 
 
-class S3Storage(S3Boto3Storage):
+class BaseS3Storage(S3Boto3Storage):
     # pylint: disable=abstract-method
 
     object_sha256 = None
     update_interval = -1
     asset_content_type = None
 
-    def __init__(self):
+    access_key = None
+    secret_key = None
+    bucket_name = None
+    endpoint_url = None
+
+    def __init__(self, s3_bucket: AVAILABLE_S3_BUCKETS):
+        s3_config = settings.AWS_SETTINGS[s3_bucket.name]
+
+        if s3_config['access_type'] == 'key':
+            self.access_key = s3_config['ACCESS_KEY_ID']
+            self.secret_key = s3_config['SECRET_ACCESS_KEY']
+        # else: let it infer from the environment
+
+        self.bucket_name = s3_config['S3_BUCKET_NAME']
+        self.endpoint_url = s3_config['S3_ENDPOINT_URL']
+
         super().__init__()
         self.object_sha256 = None
         self.update_interval = -1
@@ -47,7 +63,7 @@ class S3Storage(S3Boto3Storage):
         if 'Metadata' not in params:
             params['Metadata'] = {}
         if self.object_sha256 is None:
-            raise ValueError(f'Missing asset object sh256 for {name}')
+            raise ValueError(f'Missing asset object sha256 for {name}')
         params['Metadata']['sha256'] = self.object_sha256
 
         if 'CacheControl' in params:
@@ -60,3 +76,17 @@ class S3Storage(S3Boto3Storage):
         params['Expires'] = format_date_time(stamp + settings.STORAGE_ASSETS_CACHE_SECONDS)
 
         return params
+
+
+class LegacyS3Storage(BaseS3Storage):
+    # pylint: disable=abstract-method
+
+    def __init__(self):
+        super().__init__(AVAILABLE_S3_BUCKETS.legacy)
+
+
+class ManagedS3Storage(BaseS3Storage):
+    # pylint: disable=abstract-method
+
+    def __init__(self):
+        super().__init__(AVAILABLE_S3_BUCKETS.managed)

@@ -61,4 +61,13 @@ if settings.DEBUG:
             TestAssetUpsertHttp500.as_view(),
             name='test-asset-detail-http-500'
         ),
+        # Add v0.9 namespace to test routes.
+        path(
+            'tests/v0.9/test_asset_upsert_http_500/<collection_name>/<item_name>/<asset_name>',
+            include(([
+                path("", TestAssetUpsertHttp500.as_view(), name='test-asset-detail-http-500')
+            ],
+                     'test_v0.9'),
+                    namespace='test_v0.9')
+        )
     ] + urlpatterns

@@ -2,8 +2,8 @@
 
 | Branch | Status |
 |--------|-----------|
-| develop | ![Build Status](https://codebuild.eu-central-1.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoiaE1nOXJ6Zk5YYWZRWGd5MlY3SGZCUUV6c0pIVEM1Z0lmWHdpYWFxZzdKOW1LbTJ1YUZXT0lpaUVzUVZrZ0dTNlhDdDlUYm0rSE9yNmE5TlcrZ3RoclNZPSIsIml2UGFyYW1ldGVyU3BlYyI6Ii8rdldNQUt5MnZDdHpMT0siLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=develop) |
-| master | ![Build Status](https://codebuild.eu-central-1.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoiaE1nOXJ6Zk5YYWZRWGd5MlY3SGZCUUV6c0pIVEM1Z0lmWHdpYWFxZzdKOW1LbTJ1YUZXT0lpaUVzUVZrZ0dTNlhDdDlUYm0rSE9yNmE5TlcrZ3RoclNZPSIsIml2UGFyYW1ldGVyU3BlYyI6Ii8rdldNQUt5MnZDdHpMT0siLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=master) |
+| develop | ![Build Status]([https://codebuild.eu-central-1.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoiaE1nOXJ6Zk5YYWZRWGd5MlY3SGZCUUV6c0pIVEM1Z0lmWHdpYWFxZzdKOW1LbTJ1YUZXT0lpaUVzUVZrZ0dTNlhDdDlUYm0rSE9yNmE5TlcrZ3RoclNZPSIsIml2UGFyYW1ldGVyU3BlYyI6Ii8rdldNQUt5MnZDdHpMT0siLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=develop](https://codebuild.eu-central-1.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoiSGhjclY5dDF1OE5XMEhmYjYwV05jNkJFcGc2SjNwODZVeENmczk4d2Z2MEpVaFVOdit3RHFEeUhacU1lbDhaN0dUQmFkclBnTnZtbTdWTjdVWDJiNXFNPSIsIml2UGFyYW1ldGVyU3BlYyI6IjYwczhwTmk2Qkd4eWFITkUiLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=develop)) |
+| master | ![Build Status](https://codebuild.eu-central-1.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoiSGhjclY5dDF1OE5XMEhmYjYwV05jNkJFcGc2SjNwODZVeENmczk4d2Z2MEpVaFVOdit3RHFEeUhacU1lbDhaN0dUQmFkclBnTnZtbTdWTjdVWDJiNXFNPSIsIml2UGFyYW1ldGVyU3BlYyI6IjYwczhwTmk2Qkd4eWFITkUiLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=master) |
 
 ## Table of Content
 
@@ -12,7 +12,7 @@
 - [SPEC](#spec)
 - [Local development](#local-development)
   - [Dependencies](#dependencies)
-    - [Python3.9](#python39)
+    - [Python3.12](#python312)
     - [pipenv](#pipenv)
   - [Using Postgres on local host](#using-postgres-on-local-host)
   - [Creating the local environment](#creating-the-local-environment)
@@ -21,8 +21,13 @@
   - [Starting dev server](#starting-dev-server)
   - [Running tests](#running-tests)
     - [Unit test logging](#unit-test-logging)
+  - [Test Conformance](#test-conformance)
   - [Linting and formatting your work](#linting-and-formatting-your-work)
   - [Using Django shell](#using-django-shell)
+  - [vs code Integration](#vs-code-integration)
+    - [Debug from vs code](#debug-from-vs-code)
+    - [Attach debugger to the tests](#attach-debugger-to-the-tests)
+    - [Run tests from within vs code](#run-tests-from-within-vs-code)
 - [Migrate DB with Django](#migrate-db-with-django)
   - [How to generate a db migrations script?](#how-to-generate-a-db-migrations-script)
   - [How to put the database to the state of a previous code base?](#how-to-put-the-database-to-the-state-of-a-previous-code-base)
@@ -53,19 +58,19 @@ See [SPEC](./spec/README.md)
 
 Prerequisites on host for development and build:
 
-- python version 3.9
+- python version 3.12
 - libgdal-dev
 - [pipenv](https://pipenv-fork.readthedocs.io/en/latest/install.html)
-- `docker` and `docker-compose`
+- `docker` and `docker compose`
 
-#### Python3.9
+#### Python3.12
 
-If your Ubuntu distribution is missing Python 3.9, you may use the `deadsnakes` PPA and install it:
+If your Ubuntu distribution is missing Python 3.12, you may use the `deadsnakes` PPA and install it:
 
 ```bash
 sudo add-apt-repository ppa:deadsnakes/ppa
 sudo apt-get update
-sudo apt-get install python3.9
+sudo apt-get install python3.12
 ```
 
 #### pipenv
@@ -85,7 +90,7 @@ The other services that are used (Postgres with PostGIS extension for metadata a
 Starting postgres and MinIO is done with a simple
 
 ```bash
-docker-compose up
+docker compose up
 ```
 
 in the source root folder (this is automatically done if you `make setup`). Make sure to run `make setup` before to ensure the necessary folders `.volumes/*` are in place. These folders are mounted in the services and allow data persistency over restarts of the containers.
@@ -124,8 +129,8 @@ These steps will ensure you have everything needed to start working locally.
 - You manually stop/start the minio and PostGIS DB with (see also [Setting up the local database](#setting-up-the-local-database))
 
   ```bash
-  docker-compose down
-  docker-compose up
+  docker compose down
+  docker compose up
   ```
 
 - Finally you can do the initial DB setup using django management commands
@@ -174,7 +179,7 @@ corresponding containers in order to allow data persistency.
 Another way to start these containers (if, for example, they stopped) is with a simple
 
   ```bash
-  docker-compose up
+  docker compose up
   ```
 
 ### Using a local PostGres database instead of a container
@@ -243,7 +248,7 @@ make test
 or use the container environment like on the CI.
 
 ```bash
-docker-compose -f docker-compose-ci.yml up --build --abort-on-container-exit
+docker compose -f docker-compose-ci.yml up --build --abort-on-container-exit
 ```
 
 **NOTE:** the `--build` option is important otherwise the container will not be rebuild and you don't have the latest modification
@@ -255,6 +260,14 @@ By default only `WARNING` logs of the `tests` module is printed in the console d
 All logs are also added to two logs files; `app/tests/logs/unittest-json-logs.json` and `app/tests/logs/unittest-standard-logs.txt`.
 
 Alternatively for a finer logging granularity during unit test, a new logging configuration base on `app/config/logging-cfg-unittest.yml` can be generated and set via `LOGGING_CFG` environment variable or logging can be completely disabled by setting `LOGGING_CFG=0`.
+
+### Test Conformance
+
+Use [stac-api-validator](https://github.com/stac-utils/stac-api-validator) to validate against the [STAC API](https://github.com/radiantearth/stac-api-spec) family of specifications.
+
+```bash
+make test-conformance
+```
 
 ### Linting and formatting your work
 
@@ -295,6 +308,61 @@ For local development (or whenever you have a `*-dev` docker image deployed), th
 ```bash
 ./manage.py shell_plus
 ```
+
+### vs code Integration
+
+There are some possibilities to debug this codebase from within visual studio code.
+
+#### Debug from vs code
+
+In order to debug the service from within vs code, you need to create a launch-configuration. Create
+a folder `.vscode` in the root folder if it doesn't exist and put a file `launch.json` with this content
+in it:
+
+```json
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Python Debugger: Attach",
+      "type": "debugpy",
+      "request": "attach",
+      "justMyCode": false,
+      "connect": {
+        "host": "localhost",
+        "port": 5678
+      }
+    }
+  ]
+}
+
+```
+
+Now you can start the server with `make serve-debug`. The bootup will wait with the execution until 
+the debugger is attached, which can most easily done by hitting f5.
+
+#### Attach debugger to the tests
+
+The same process described above can be used to debug tests. Simply run `make test-debug`, they will
+then wait until the debugger is attached.
+
+#### Run tests from within vs code
+
+The unit tests can also be invoked inside vs code directly. To do this you need to have following
+settings locally to your workspace:
+
+```json
+  "python.testing.pytestArgs": [
+    "app"
+  ],
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestEnabled": true,
+  "python.testing.debugPort": 5678
+```
+
+They can either be in `.vscode/settings.json` or in your workspace settings. Now the tests can be
+run and debugged with the testing tab of vscode (beaker icon).
+
 
 ## Migrate DB with Django
 
@@ -452,13 +520,19 @@ The service is configured by Environment Variable:
 
 | Env         | Default               | Description                            |
 |-------------|-----------------------|----------------------------------------|
-| AWS_ACCESS_KEY_ID | - | |
-| AWS_SECRET_ACCESS_KEY | - | |
-| AWS_STORAGE_BUCKET_NAME | - | |
-| AWS_S3_REGION_NAME | - | |
-| AWS_S3_ENDPOINT_URL | `None` | |
+| LEGACY_AWS_ACCESS_KEY_ID | - | |
+| LEGACY_AWS_SECRET_ACCESS_KEY | - | |
+| LEGACY_AWS_S3_BUCKET_NAME | - | The name of the legacy bucket |
+| LEGACY_AWS_S3_REGION_NAME | `"eu-west-1"` | |
+| LEGACY_AWS_S3_ENDPOINT_URL | `None` | |
+| LEGACY_AWS_S3_CUSTOM_DOMAIN | `None` | |
+| AWS_S3_BUCKET_NAME | - | The name of the managed bucket |
+| AWS_S3_REGION_NAME | `"eu-central-1"` | The region of the managed bucket |
+| AWS_S3_ENDPOINT_URL | `None` |  |
 | AWS_S3_CUSTOM_DOMAIN | `None` | |
 | AWS_PRESIGNED_URL_EXPIRES | 3600 | AWS presigned url for asset upload expire time in seconds |
+| MANAGED_BUCKET_COLLECTION_PATTERNS | - | A list of regex patterns for collections that go to the managed bucket |
+| EXTERNAL_URL_REACHABLE_TIMEOUT | `5` | How long the external asset URL validator should try to connect to given asset in seconds |
 
 #### **Development settings (only for local environment and DEV staging)**
 
@@ -468,6 +542,7 @@ These settings are read from `settings_dev.py`
 |-------------|-----------------------|----------------------------------------|
 | DEBUG | `False` | Set django DEBUG flag |
 | DEBUG_PROPAGATE_API_EXCEPTIONS | `False` | When `True` the API exception are treated as in production, using a JSON response. Otherwise in DEBUG mode the API exception returns an HTML response with backtrace. |
+| EXTERNAL_TEST_ASSET_URL | `"https://prod-[...].jpg"`  | The URL of an externally hosted jpg file that's used in the external asset tests |
 
 ## Utility scripts
 

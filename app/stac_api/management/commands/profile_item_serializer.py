@@ -13,7 +13,7 @@ from stac_api.utils import CommandHandler
 
 logger = logging.getLogger(__name__)
 
-STAC_BASE_V = settings.STAC_BASE_V
+STAC_BASE_V = f'{settings.STAC_BASE}/v1'
 
 
 class Handler(CommandHandler):

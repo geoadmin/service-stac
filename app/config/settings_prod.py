@@ -11,12 +11,12 @@ import os
 import os.path
 from pathlib import Path
 
+import environ
 import yaml
 
 from .version import APP_VERSION  # pylint: disable=unused-import
 
-STAC_VERSION = "0.9.0"
-STAC_VERSION_SHORT = 'v0.9'
+env = environ.Env()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
@@ -24,7 +24,7 @@ os.environ['BASE_DIR'] = str(BASE_DIR)
 print(f"BASE_DIR is {BASE_DIR}")
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY', None)
+SECRET_KEY = env('SECRET_KEY', default=None)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
@@ -42,10 +42,10 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_CLOUDFRONT_FORWARDED_PROTO', 'https')
 # see kubernetes config on how `THIS_POD_IP` is obtained
 
 ALLOWED_HOSTS = []
-THIS_POD_IP = os.getenv('THIS_POD_IP')
+THIS_POD_IP = env('THIS_POD_IP', default=None)
 if THIS_POD_IP:
     ALLOWED_HOSTS.append(THIS_POD_IP)
-ALLOWED_HOSTS += os.getenv('ALLOWED_HOSTS', '').split(',')
+ALLOWED_HOSTS += env('ALLOWED_HOSTS', default='').split(',')
 
 # SERVICE_HOST = os.getenv('SERVICE_HOST', '127.0.0.1:8000')
 
@@ -67,7 +67,6 @@ INSTALLED_APPS = [
     #  Note: If you use TokenAuthentication in production you must ensure
     #  that your API is only available over https.
     'admin_auto_filters',
-    'solo.apps.SoloAppConfig',
     'storages',
     'whitenoise.runserver_nostatic',
     'django_prometheus',
@@ -87,7 +86,7 @@ MIDDLEWARE = [
     'middleware.cors.CORSHeadersMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
+    'middleware.internal_redirect.CommonMiddlewareWithInternalRedirect',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -100,7 +99,6 @@ MIDDLEWARE = [
 ROOT_URLCONF = 'config.urls'
 API_BASE = 'api'
 STAC_BASE = f'{API_BASE}/stac'
-STAC_BASE_V = f'{STAC_BASE}/{STAC_VERSION_SHORT}'
 LOGIN_URL = "/api/stac/admin/login/"
 
 TEMPLATES = [
@@ -128,13 +126,13 @@ WSGI_APPLICATION = 'wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': os.environ.get('DB_NAME', 'service_stac'),
-        'USER': os.environ.get('DB_USER', 'service_stac'),
-        'PASSWORD': os.environ.get('DB_PW', 'service_stac'),
-        'HOST': os.environ.get('DB_HOST', 'service_stac'),
-        'PORT': os.environ.get('DB_PORT', 5432),
+        'NAME': env('DB_NAME', default='service_stac'),
+        'USER': env('DB_USER', default='service_stac'),
+        'PASSWORD': env('DB_PW', default='service_stac'),
+        'HOST': env('DB_HOST', default='service_stac'),
+        'PORT': env.int('DB_PORT', default=5432),
         'TEST': {
-            'NAME': os.environ.get('DB_NAME_TEST', 'test_service_stac'),
+            'NAME': env('DB_NAME_TEST', default='test_service_stac'),
         }
     }
 }
@@ -165,26 +163,24 @@ TIME_ZONE = 'UTC'
 
 USE_I18N = True
 
-USE_L10N = True
-
 USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
-STATIC_HOST = os.environ.get('DJANGO_STATIC_HOST', '')
+STATIC_HOST = env('DJANGO_STATIC_HOST', default='')
 STATIC_URL = f'{STATIC_HOST}/api/stac/static/'
-STATIC_SPEC_URL = f'{STATIC_URL}spec/v0.9/'
+STATIC_SPEC_URL = f'{STATIC_URL}spec/'
 # "manage.py collectstatic" will copy all static files to this directory, and
 # whitenoise will serve the static files that are in this directory (unless DEBUG=true in which case
 # it will serve the files from the same directories "manage.py collectstatic" collects data from)
 STATIC_ROOT = BASE_DIR / 'var' / 'www' / 'stac_api' / 'static_files'
 STATICFILES_DIRS = [BASE_DIR / "spec" / "static", BASE_DIR / "app" / "stac_api" / "templates"]
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-HEALTHCHECK_ENDPOINT = os.environ.get('HEALTHCHECK_ENDPOINT', 'healthcheck')
+# STATICFILES_STORAGE =
+HEALTHCHECK_ENDPOINT = env('HEALTHCHECK_ENDPOINT', default='healthcheck')
 
 try:
-    WHITENOISE_MAX_AGE = int(os.environ.get('HTTP_STATIC_CACHE_SECONDS', '3600'))
+    WHITENOISE_MAX_AGE = env.int('HTTP_STATIC_CACHE_SECONDS', default=3600)
 except ValueError as error:
     raise ValueError(
         'Invalid HTTP_STATIC_CACHE_SECONDS environment value: must be an integer'
@@ -198,40 +194,67 @@ WHITENOISE_MIMETYPES = {
 
 # Media files (i.e. uploaded content=assets in this project)
 UPLOAD_FILE_CHUNK_SIZE = 1024 * 1024  # Size in Bytes
-DEFAULT_FILE_STORAGE = 'stac_api.storages.S3Storage'
+STORAGES = {
+    'default': {
+        "BACKEND": "stac_api.storages.LegacyS3Storage"
+    },  # repeating this here for an easy access in the code. Default
+    # is mandatory too
+    'legacy': {
+        "BACKEND": "stac_api.storages.LegacyS3Storage"
+    },
+    'staticfiles': {
+        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+    },
+    'managed': {
+        "BACKEND": "stac_api.storages.ManagedS3Storage"
+    }
+}
 
 try:
-    AWS_ACCESS_KEY_ID = os.environ['AWS_ACCESS_KEY_ID']
-    AWS_SECRET_ACCESS_KEY = os.environ['AWS_SECRET_ACCESS_KEY']
-    AWS_STORAGE_BUCKET_NAME = os.environ['AWS_STORAGE_BUCKET_NAME']
-    # The AWS region of the bucket
-    AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME', 'eu-central-1')
-    # This is the URL where to reach the S3 service and is either minio
-    # on localhost or https://s3.<region>.amazonaws.com
-    AWS_S3_ENDPOINT_URL = os.environ.get('AWS_S3_ENDPOINT_URL', None)
-    # The CUSTOM_DOMAIN is used to construct the correct URL when displaying
-    # a link to the file in the admin UI. It must only contain the domain, but not
-    # the scheme (http/https).
-    AWS_S3_CUSTOM_DOMAIN = os.environ.get('AWS_S3_CUSTOM_DOMAIN', None)
-    # AWS_DEFAULT_ACL depends on bucket/user config. The user might not have
-    # permissions to change ACL, then this setting must be None
-    AWS_DEFAULT_ACL = None
-    AWS_S3_SIGNATURE_VERSION = "s3v4"
+    AWS_SETTINGS = {
+        'legacy': {
+            # the legacy configuration will be read from the environment variables
+            # specifically configured for that
+            "access_type": "key",
+            "S3_BUCKET_NAME": env("LEGACY_AWS_S3_BUCKET_NAME"),
+            "ACCESS_KEY_ID": env('LEGACY_AWS_ACCESS_KEY_ID'),
+            "SECRET_ACCESS_KEY": env('LEGACY_AWS_SECRET_ACCESS_KEY'),
+            "S3_REGION_NAME": env('LEGACY_AWS_S3_REGION_NAME', default='eu-west-1'),
+            # This is the URL where to reach the S3 service and is either minio
+            # on localhost or https://s3.<region>.amazonaws.com
+            "S3_ENDPOINT_URL": env('LEGACY_AWS_S3_ENDPOINT_URL', default=None),
+            # The CUSTOM_DOMAIN is used to construct the correct URL when displaying
+            # a link to the file in the admin UI. It must only contain the domain, but not
+            # the scheme (http/https).
+            "S3_CUSTOM_DOMAIN": env('LEGACY_AWS_S3_CUSTOM_DOMAIN', default=None),
+            "S3_SIGNATURE_VERSION": "s3v4"
+        },
+        'managed': {
+            # The managed configuration will be passed directly via env
+            # The access to the managed bucket is done via service account
+            "access_type": "service_account",
+            "S3_BUCKET_NAME": env("AWS_S3_BUCKET_NAME"),
+            "S3_REGION_NAME": env('AWS_S3_REGION_NAME', default='eu-central-1'),
+            "S3_ENDPOINT_URL": env('AWS_S3_ENDPOINT_URL', default=None),
+            "S3_CUSTOM_DOMAIN": env('AWS_S3_CUSTOM_DOMAIN', default=None),
+            "S3_SIGNATURE_VERSION": "s3v4"
+        }
+    }
 except KeyError as err:
     raise KeyError(f'AWS configuration {err} missing') from err
 
-AWS_PRESIGNED_URL_EXPIRES = int(os.environ.get('AWS_PRESIGNED_URL_EXPIRES', '3600'))
+AWS_PRESIGNED_URL_EXPIRES = env.int('AWS_PRESIGNED_URL_EXPIRES', default=3600)
 
 # Configure the caching
 # API default cache control max-age
 try:
-    CACHE_MIDDLEWARE_SECONDS = int(os.environ.get('HTTP_CACHE_SECONDS', '600'))
+    CACHE_MIDDLEWARE_SECONDS = env.int('HTTP_CACHE_SECONDS', default=600)
 except ValueError as error:
     raise ValueError('Invalid HTTP_CACHE_SECONDS environment value: must be an integer') from error
 
 # Asset data default cache control max-age
 try:
-    STORAGE_ASSETS_CACHE_SECONDS = int(os.environ.get('HTTP_ASSETS_CACHE_SECONDS', '7200'))
+    STORAGE_ASSETS_CACHE_SECONDS = env.int('HTTP_ASSETS_CACHE_SECONDS', default=7200)
 except ValueError as err:
     raise ValueError('Invalid HTTP_ASSETS_CACHE_SECONDS, must be an integer') from err
 
@@ -246,7 +269,7 @@ def get_logging_config():
     LOGGING_CFG and return it as dictionary
     Note: LOGGING_CFG is relative to the root of the repo
     '''
-    log_config_file = os.getenv('LOGGING_CFG', 'app/config/logging-cfg-local.yml')
+    log_config_file = env('LOGGING_CFG', default='app/config/logging-cfg-local.yml')
     if log_config_file.lower() in ['none', '0', '', 'false', 'no']:
         return {}
     log_config = {}
@@ -272,8 +295,8 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PAGINATION_CLASS': 'stac_api.pagination.CursorPagination',
-    'PAGE_SIZE': os.environ.get('PAGE_SIZE', 100),
-    'PAGE_SIZE_LIMIT': os.environ.get('PAGE_SIZE_LIMIT', 100),
+    'PAGE_SIZE': env.int('PAGE_SIZE', default=100),
+    'PAGE_SIZE_LIMIT': env.int('PAGE_SIZE_LIMIT', default=100),
     'EXCEPTION_HANDLER': 'stac_api.apps.custom_exception_handler',
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly',
@@ -297,7 +320,17 @@ EXTERNAL_SERVICE_TIMEOUT = 3
 PROMETHEUS_EXPORT_MIGRATIONS = False
 
 # STAC Browser configuration for auto generated STAC links
-STAC_BROWSER_HOST = os.getenv(
-    'STAC_BROWSER_HOST', None
+STAC_BROWSER_HOST = env(
+    'STAC_BROWSER_HOST', default=None
 )  # if None, the host is taken from the request url
-STAC_BROWSER_BASE_PATH = os.getenv('STAC_BROWSER_BASE_PATH', 'browser/index.html')
+STAC_BROWSER_BASE_PATH = env('STAC_BROWSER_BASE_PATH', default='browser/index.html')
+
+# Regex patterns of collections that should go to the managed bucket
+MANAGED_BUCKET_COLLECTION_PATTERNS = env.list('MANAGED_BUCKET_COLLECTION_PATTERNS', default=[])
+
+# the duration in seconds that the validator should try and reach the external URL
+EXTERNAL_URL_REACHABLE_TIMEOUT = env.int('EXTERNAL_URL_REACHABLE_TIMEOUT', default=5)
+
+DISALLOWED_EXTERNAL_ASSET_URL_SCHEMES = env.list(
+    'DISALLOWED_EXTERNAL_ASSET_URL_SCHEMES', default=['http']
+)
