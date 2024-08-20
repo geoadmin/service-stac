@@ -192,6 +192,8 @@ WHITENOISE_MIMETYPES = {
     '.yml': 'application/vnd.oai.openapi+yaml;version=3.0'
 }
 
+DELETE_EXPIRED_ITEMS_OLDER_THAN_HOURS = 24
+
 # Media files (i.e. uploaded content=assets in this project)
 UPLOAD_FILE_CHUNK_SIZE = 1024 * 1024  # Size in Bytes
 STORAGES = {

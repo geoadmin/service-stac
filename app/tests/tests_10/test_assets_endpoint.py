@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime
+from datetime import timedelta
 from json import dumps
 from json import loads
 from pprint import pformat
@@ -7,6 +8,7 @@ from pprint import pformat
 from django.contrib.auth import get_user_model
 from django.test import Client
 from django.urls import reverse
+from django.utils import timezone
 
 from stac_api.models import Asset
 from stac_api.utils import get_asset_path
@@ -88,6 +90,19 @@ class AssetsEndpointTestCase(StacBaseTestCase):
         )
         self.assertStatusCode(404, response)
 
+    def test_assets_endpoint_item_expired(self):
+        collection_name = self.collection.name
+        item_expired = self.factory.create_item_sample(
+            self.collection,
+            name='item-expired',
+            db_create=True,
+            properties_expires=timezone.now() - timedelta(hours=1)
+        ).model
+        response = self.client.get(
+            f"/{STAC_BASE_V}/collections/{collection_name}/items/{item_expired.name}/assets"
+        )
+        self.assertStatusCode(404, response)
+
     def test_single_asset_endpoint(self):
         collection_name = self.collection.name
         item_name = self.item.name
@@ -104,6 +119,20 @@ class AssetsEndpointTestCase(StacBaseTestCase):
         # The ETag change between each test call due to the created, updated time that are in the
         # hash computation of the ETag
         self.assertEtagHeader(None, response)
+
+    def test_single_assets_endpoint_item_expired(self):
+        collection_name = self.collection.name
+        item = self.factory.create_item_sample(
+            self.collection,
+            name='item-expired',
+            db_create=True,
+            properties_expires=timezone.now() - timedelta(hours=1)
+        ).model
+        asset = self.factory.create_asset_sample(item=item, db_create=True).model
+        response = self.client.get(
+            f"/{STAC_BASE_V}/collections/{collection_name}/items/{item.name}/assets/{asset.name}"
+        )
+        self.assertStatusCode(404, response)
 
 
 class AssetsUnimplementedEndpointTestCase(StacBaseTestCase):

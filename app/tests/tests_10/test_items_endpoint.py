@@ -5,6 +5,7 @@ from datetime import timedelta
 from django.contrib.auth import get_user_model
 from django.test import Client
 from django.urls import reverse
+from django.utils import timezone
 
 from stac_api.models import Item
 from stac_api.utils import fromisoformat
@@ -44,6 +45,13 @@ class ItemsReadEndpointTestCase(StacBaseTestCase):
         # To make sure that item sorting is working, make sure that the items where not
         # created in ascending order, same for assets
         item_3 = self.factory.create_item_sample(self.collection, name='item-0', db_create=True)
+        # created item that is expired should not show up in the get result
+        self.factory.create_item_sample(
+            self.collection,
+            name='item-expired',
+            db_create=True,
+            properties_expires=timezone.now() - timedelta(hours=1)
+        )
         assets = self.factory.create_asset_samples(
             3, item_3.model, name=['asset-1.tiff', 'asset-0.tiff', 'asset-2.tiff'], db_create=True
         )
@@ -145,6 +153,21 @@ class ItemsReadEndpointTestCase(StacBaseTestCase):
                 # in the integrated asset there is no id (the id is actually the json key)
                 ignore=['id', 'links']
             )
+
+    def test_single_item_endpoint_expired(self):
+        collection_name = self.collection.name
+        # created item that is expired should not be found
+        item = self.factory.create_item_sample(
+            self.collection,
+            name='item-expired',
+            db_create=True,
+            properties_expires=timezone.now() - timedelta(hours=1)
+        )
+
+        response = self.client.get(
+            f"/{STAC_BASE_V}/collections/{collection_name}/items/{item['name']}"
+        )
+        self.assertStatusCode(404, response)
 
     def test_items_endpoint_non_existing_collection(self):
         response = self.client.get(f"/{STAC_BASE_V}/collections/non-existing-collection/items")
