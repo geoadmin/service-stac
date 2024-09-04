@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "32b93ecc78a501f105c65882083f8c63a374dc1d70c95ecc8ae4c501337d405d"
+            "sha256": "26f4b2b9d09c47972e02c969bd13d98ec09f34125905c9231d496e8143b9495a"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -369,12 +369,12 @@
         },
         "logging-utilities": {
             "hashes": [
-                "sha256:0e144647749fdb153a43cdede0b077b9bcfd50fc6a068e07716b1a002173e8ef",
-                "sha256:ed3bb7aa657315b08415a92499f5ce38c024cc1aa18b682f1fd55c72b54491b9"
+                "sha256:0f88c3ddf33a7e81da20839667a9bedadfe22de6f9087c801aa1f582b89b4c93",
+                "sha256:d96b6910d0a1c26216bca893c11d66c0a8a61113af44cd908b2e4f4ae569e067"
             ],
             "index": "pypi",
             "markers": "python_version >= '3.0'",
-            "version": "==4.4.1"
+            "version": "==4.5.0"
         },
         "morphys": {
             "hashes": [
