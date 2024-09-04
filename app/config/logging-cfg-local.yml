@@ -38,6 +38,11 @@ filters:
     (): logging_utilities.filters.TimeAttribute
     isotime: False
     utc_isotime: True
+  add_request:
+    (): logging_utilities.filters.add_thread_context_filter.AddThreadContextFilter
+    contexts:
+    - logger_key: request
+      context_key: request
   django:
     (): logging_utilities.filters.django_request.JsonDjangoRequest
     attr_name: request
@@ -133,6 +138,7 @@ handlers:
       # handler, they will affect every handler
       - type_filter
       - isotime
+      - add_request
       - django
       # This filter only applies to the current handler (It does not modify the record in-place, but
       # instead selects which logs to display)

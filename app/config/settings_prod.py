@@ -81,6 +81,9 @@ INSTALLED_APPS = [
 # last, put everything else in between
 MIDDLEWARE = [
     'django_prometheus.middleware.PrometheusBeforeMiddleware',
+    # Middleware to add request to thread variables, this should be far up in the chain so request
+    # information can be added to as many logs as possible.
+    'logging_utilities.django_middlewares.add_request_context.AddToThreadContextMiddleware',
     'middleware.logging.RequestResponseLoggingMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'middleware.cors.CORSHeadersMiddleware',
