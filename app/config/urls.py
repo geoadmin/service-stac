@@ -39,6 +39,7 @@ if settings.DEBUG:
     import debug_toolbar
 
     from stac_api.views_test import TestAssetUpsertHttp500
+    from stac_api.views_test import TestCollectionAssetUpsertHttp500
     from stac_api.views_test import TestCollectionUpsertHttp500
     from stac_api.views_test import TestHttp500
     from stac_api.views_test import TestItemUpsertHttp500
@@ -60,6 +61,11 @@ if settings.DEBUG:
             'tests/test_asset_upsert_http_500/<collection_name>/<item_name>/<asset_name>',
             TestAssetUpsertHttp500.as_view(),
             name='test-asset-detail-http-500'
+        ),
+        path(
+            'tests/test_collection_asset_upsert_http_500/<collection_name>/<asset_name>',
+            TestCollectionAssetUpsertHttp500.as_view(),
+            name='test-collection-asset-detail-http-500'
         ),
         # Add v0.9 namespace to test routes.
         path(

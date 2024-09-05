@@ -72,6 +72,14 @@ view_relations = {
         'parent': 'landing-page',
         'browser': 'browser-collection',
     },
+    'collection-assets-list': {
+        'parent': 'collection-detail',
+        'browser': None,
+    },
+    'collection-asset-detail': {
+        'parent': 'collection-detail',
+        'browser': None,
+    },
     'items-list': {
         'parent': 'collection-detail',
         'browser': 'browser-collection',
@@ -107,6 +115,8 @@ def get_parent_link(request, view, view_args=()):
     '''
 
     def parent_args(view, args):
+        if view.startswith('collection-asset'):
+            return args[:1]
         if view.startswith('item'):
             return args[:1]
         if view.startswith('asset'):

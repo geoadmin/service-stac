@@ -11,6 +11,8 @@ from stac_api.views import AssetUploadComplete
 from stac_api.views import AssetUploadDetail
 from stac_api.views import AssetUploadPartsList
 from stac_api.views import AssetUploadsList
+from stac_api.views import CollectionAssetDetail
+from stac_api.views import CollectionAssetsList
 from stac_api.views import CollectionDetail
 from stac_api.views import CollectionList
 from stac_api.views import ConformancePageDetail
@@ -41,7 +43,19 @@ item_urls = [
     path("<item_name>/assets/", include(asset_urls))
 ]
 
+collection_asset_urls = [
+    path("<asset_name>", CollectionAssetDetail.as_view(), name='collection-asset-detail'),
+]
+
 collection_urls = [
+    path("<collection_name>", CollectionDetail.as_view(), name='collection-detail'),
+    path("<collection_name>/items", ItemsList.as_view(), name='items-list'),
+    path("<collection_name>/items/", include(item_urls)),
+    path("<collection_name>/assets", CollectionAssetsList.as_view(), name='collection-assets-list'),
+    path("<collection_name>/assets/", include(collection_asset_urls))
+]
+
+collection_urls_v09 = [
     path("<collection_name>", CollectionDetail.as_view(), name='collection-detail'),
     path("<collection_name>/items", ItemsList.as_view(), name='items-list'),
     path("<collection_name>/items/", include(item_urls))
@@ -58,7 +72,7 @@ urlpatterns = [
             path("conformance", ConformancePageDetail.as_view(), name='conformance'),
             path("search", SearchList.as_view(), name='search-list'),
             path("collections", CollectionList.as_view(), name='collections-list'),
-            path("collections/", include(collection_urls)),
+            path("collections/", include(collection_urls_v09)),
             path("update-extent", recalculate_extent)
         ],
                  "v0.9"),

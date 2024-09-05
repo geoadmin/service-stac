@@ -801,23 +801,12 @@ class CollectionAssetSample(SampleData):
     samples_dict = collection_asset_samples
     key_mapping = {
         'name': 'id',
-        'eo_gsd': 'gsd',
-        'geoadmin_variant': 'geoadmin:variant',
-        'geoadmin_lang': 'geoadmin:lang',
         'proj_epsg': 'proj:epsg',
         'media_type': 'type',
         'checksum_multihash': 'file:checksum',
         'file': 'href'
     }
-    optional_fields = [
-        'title',
-        'description',
-        'eo_gsd',
-        'geoadmin_variant',
-        'geoadmin_lang',
-        'proj_epsg',
-        'checksum_multihash'
-    ]
+    optional_fields = ['title', 'description', 'proj_epsg', 'checksum_multihash']
     read_only_fields = ['created', 'updated', 'href', 'file:checksum']
 
     def __init__(self, collection, sample='asset-1', name=None, required_only=False, **kwargs):

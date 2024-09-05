@@ -4,6 +4,7 @@ from rest_framework import generics
 
 from stac_api.models import LandingPage
 from stac_api.views import AssetDetail
+from stac_api.views import CollectionAssetDetail
 from stac_api.views import CollectionDetail
 from stac_api.views import ItemDetail
 
@@ -35,6 +36,13 @@ class TestItemUpsertHttp500(ItemDetail):
 
 
 class TestAssetUpsertHttp500(AssetDetail):
+
+    def perform_upsert(self, serializer, lookup):
+        super().perform_upsert(serializer, lookup)
+        raise AttributeError('test exception')
+
+
+class TestCollectionAssetUpsertHttp500(CollectionAssetDetail):
 
     def perform_upsert(self, serializer, lookup):
         super().perform_upsert(serializer, lookup)

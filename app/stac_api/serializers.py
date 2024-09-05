@@ -15,6 +15,7 @@ from rest_framework_gis import serializers as gis_serializers
 from stac_api.models import Asset
 from stac_api.models import AssetUpload
 from stac_api.models import Collection
+from stac_api.models import CollectionAsset
 from stac_api.models import CollectionLink
 from stac_api.models import Item
 from stac_api.models import ItemLink
@@ -380,6 +381,107 @@ class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         return fields
 
 
+class CollectionAssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
+    '''Collection asset serializer base class
+    '''
+
+    class Meta:
+        model = CollectionAsset
+        fields = [
+            'id',
+            'title',
+            'type',
+            'href',
+            'description',
+            'roles',
+            'proj_epsg',
+            'checksum_multihash',
+            'created',
+            'updated',
+        ]
+        validators = []  # Remove a default "unique together" constraint.
+        # (see:
+        # https://www.django-rest-framework.org/api-guide/validators/#limitations-of-validators)
+
+    # NOTE: when explicitely declaring fields, we need to add the validation as for the field
+    # in model !
+    id = serializers.CharField(source='name', max_length=255, validators=[validate_asset_name])
+    title = serializers.CharField(
+        required=False, max_length=255, allow_null=True, allow_blank=False
+    )
+    description = serializers.CharField(required=False, allow_blank=False, allow_null=True)
+    # Can't be a ChoiceField, as the validate method normalizes the MIME string only after it
+    # is read. Consistency is nevertheless guaranteed by the validate() and validate_type() methods.
+    type = serializers.CharField(
+        source='media_type', required=True, allow_null=False, allow_blank=False
+    )
+    # Here we need to explicitely define these fields with the source, because they are renamed
+    # in the get_fields() method
+    proj_epsg = serializers.IntegerField(source='proj_epsg', allow_null=True, required=False)
+    # read only fields
+    checksum_multihash = serializers.CharField(source='checksum_multihash', read_only=True)
+    href = HrefField(source='file', read_only=True)
+    created = serializers.DateTimeField(read_only=True)
+    updated = serializers.DateTimeField(read_only=True)
+
+    # helper variable to provide the collection for upsert validation
+    # see views.AssetDetail.perform_upsert
+    collection = None
+
+    def create(self, validated_data):
+        asset = validate_uniqueness_and_create(Asset, validated_data)
+        return asset
+
+    def update_or_create(self, look_up, validated_data):
+        """
+        Update or create the asset object selected by kwargs and return the instance.
+        When no asset object matching the kwargs selection, a new asset is created.
+        Args:
+            validated_data: dict
+                Copy of the validated_data to use for update
+            kwargs: dict
+                Object selection arguments (NOTE: the selection arguments must match a unique
+                object in DB otherwise an IntegrityError will be raised)
+        Returns: tuple
+            Asset instance and True if created otherwise false
+        """
+        asset, created = CollectionAsset.objects.update_or_create(
+            **look_up,
+            defaults=validated_data,
+            )
+        return asset, created
+
+    def validate_type(self, value):
+        ''' Validates the the field "type"
+        '''
+        return normalize_and_validate_media_type(value)
+
+    def validate(self, attrs):
+        name = attrs['name'] if not self.partial else attrs.get('name', self.instance.name)
+        media_type = attrs['media_type'] if not self.partial else attrs.get(
+            'media_type', self.instance.media_type
+        )
+        validate_asset_name_with_media_type(name, media_type)
+
+        validate_json_payload(self)
+
+        return attrs
+
+    def get_fields(self):
+        fields = super().get_fields()
+        # This is a hack to allow fields with special characters
+        fields['proj:epsg'] = fields.pop('proj_epsg')
+        fields['file:checksum'] = fields.pop('checksum_multihash')
+
+        # Older versions of the api still use different name
+        request = self.context.get('request')
+        if not is_api_version_1(request):
+            fields['checksum:multihash'] = fields.pop('file:checksum')
+            fields.pop('roles', None)
+
+        return fields
+
+
 class AssetSerializer(AssetBaseSerializer):
     '''Asset serializer for the asset views
 
@@ -435,6 +537,27 @@ class AssetSerializer(AssetBaseSerializer):
         return super().validate(attrs)
 
 
+class CollectionAssetSerializer(CollectionAssetBaseSerializer):
+    '''Collection Asset serializer for the collection asset views
+
+    This serializer adds the links list attribute.
+    '''
+
+    def to_representation(self, instance):
+        collection = instance.collection.name
+        name = instance.name
+        request = self.context.get("request")
+        representation = super().to_representation(instance)
+        # Add auto links
+        # We use OrderedDict, although it is not necessary, because the default serializer/model for
+        # links already uses OrderedDict, this way we keep consistency between auto link and user
+        # link
+        representation['links'] = get_relation_links(
+            request, 'collection-asset-detail', [collection, name]
+        )
+        return representation
+
+
 class AssetsForItemSerializer(AssetBaseSerializer):
     '''Assets serializer for nesting them inside the item
 
@@ -455,6 +578,30 @@ class AssetsForItemSerializer(AssetBaseSerializer):
             'eo_gsd',
             'geoadmin_lang',
             'geoadmin_variant',
+            'proj_epsg',
+            'checksum_multihash',
+            'created',
+            'updated'
+        ]
+
+
+class CollectionAssetsForCollectionSerializer(CollectionAssetBaseSerializer):
+    '''Collection assets serializer for nesting them inside the collection
+
+    Assets should be nested inside their collection but using a dictionary instead of a list and
+    without links.
+    '''
+
+    class Meta:
+        model = CollectionAsset
+        list_serializer_class = AssetsDictSerializer
+        fields = [
+            'id',
+            'title',
+            'type',
+            'href',
+            'description',
+            'roles',
             'proj_epsg',
             'checksum_multihash',
             'created',
@@ -511,7 +658,7 @@ class CollectionSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
     stac_extensions = serializers.SerializerMethodField(read_only=True)
     stac_version = serializers.SerializerMethodField(read_only=True)
     itemType = serializers.ReadOnlyField(default="Feature")  # pylint: disable=invalid-name
-    assets = AssetsForItemSerializer(many=True, read_only=True)
+    assets = CollectionAssetsForCollectionSerializer(many=True, read_only=True)
 
     def get_crs(self, obj):
         return ["http://www.opengis.net/def/crs/OGC/1.3/CRS84"]
