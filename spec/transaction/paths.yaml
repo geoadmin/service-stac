@@ -631,8 +631,8 @@ paths:
 
         A file part must be at least 5 MB except for the last one and at most 5 GB, otherwise the complete operation will fail.
 
-        *Note: in order to provide integrity check during the upload, the base64-encoded 128-bit MD5 digest of each part must be
-        computed and passed in the create endpoint. Then this digest must also be passed as `Content-MD5` header during the upload.*
+        *Note: in order to facilitate an integrity check during the upload, the base64-encoded 128-bit MD5 digest of each part must be
+        computed and passed to the create endpoint. Then this digest must also be passed as `Content-MD5` header during the upload.*
       operationId: createAssetUpload
       requestBody:
         content:
@@ -657,7 +657,7 @@ paths:
         "404":
           $ref: "../components/responses.yaml#/components/responses/NotFound"
         "409":
-          description: Another upload is already in progress, you need first to complete or abort it before creating a new upload.
+          description: Another upload is already in progress, you first need to complete or abort it before creating a new upload.
           content:
             application/json:
               schema:
@@ -682,7 +682,7 @@ paths:
         - $ref: "../components/parameters.yaml#/components/parameters/IfNoneMatch"
       responses:
         "200":
-          description: Asset's multipart upload description.
+          description: The multipart upload object.
           headers:
             ETag:
               $ref: "../components/headers.yaml#/components/headers/ETag"
@@ -851,7 +851,7 @@ paths:
       description: >-
         Complete the multipart upload process. After completion, the Asset metadata are updated
         with the new `file:checksum` from the upload and the parts are automatically deleted.
-        The assets `href` field is also set if it was the first upload.
+        The asset's `href` field is also set if it was the first upload.
       requestBody:
         content:
           application/json:
@@ -1007,7 +1007,7 @@ paths:
 
         A file part must be at least 5 MB except for the last one and at most 5 GB, otherwise the complete operation will fail.
 
-        *Note: in order to provide integrity check during the upload, the base64-encoded 128-bit MD5 digest of each part must be
+        *Note: in order to facilitate an integrity check during the upload, the base64-encoded 128-bit MD5 digest of each part must be
         computed and passed to the create endpoint. Then this digest must also be passed as `Content-MD5` header during the upload.*
       operationId: createCollectionAssetUpload
       requestBody:
@@ -1057,7 +1057,7 @@ paths:
         - $ref: "../components/parameters.yaml#/components/parameters/IfNoneMatch"
       responses:
         "200":
-          description: Specified collection asset multipart upload.
+          description: The multipart upload object.
           headers:
             ETag:
               $ref: "../components/headers.yaml#/components/headers/ETag"
@@ -1094,7 +1094,7 @@ paths:
       description: >-
         Complete the multipart upload process. After completion, the collection asset metadata are updated
         with the new `file:checksum` from the upload and the parts are automatically deleted.
-        The assets `href` field is also set if it was the first upload.
+        The asset's `href` field is also set if it was the first upload.
       requestBody:
         content:
           application/json:
