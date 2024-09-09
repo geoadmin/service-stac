@@ -29,6 +29,7 @@ from stac_api.exceptions import UploadInProgressError
 from stac_api.exceptions import UploadNotInProgressError
 from stac_api.models import Asset
 from stac_api.models import AssetUpload
+from stac_api.models import BaseAssetUpload
 from stac_api.models import Collection
 from stac_api.models import CollectionAsset
 from stac_api.models import CollectionAssetUpload
@@ -797,28 +798,32 @@ class CollectionAssetDetail(
         return self.destroy(request, *args, **kwargs)
 
 
-class AssetUploadBase(generics.GenericAPIView):
-    serializer_class = AssetUploadSerializer
+class SharedAssetUploadBase(generics.GenericAPIView):
+    """SharedAssetUploadBase provides a base view for asset uploads and collection asset uploads.
+    """
     lookup_url_kwarg = "upload_id"
     lookup_field = "upload_id"
 
     def get_queryset(self):
-        return AssetUpload.objects.filter(
-            asset__item__collection__name=self.kwargs['collection_name'],
-            asset__item__name=self.kwargs['item_name'],
-            asset__name=self.kwargs['asset_name']
-        ).prefetch_related('asset')
+        raise NotImplementedError("get_queryset() not implemented")
 
     def get_in_progress_queryset(self):
-        return self.get_queryset().filter(status=AssetUpload.Status.IN_PROGRESS)
+        return self.get_queryset().filter(status=BaseAssetUpload.Status.IN_PROGRESS)
 
     def get_asset_or_404(self):
-        return get_object_or_404(
-            Asset.objects.all(),
-            name=self.kwargs['asset_name'],
-            item__name=self.kwargs['item_name'],
-            item__collection__name=self.kwargs['collection_name']
-        )
+        raise NotImplementedError("get_asset_or_404() not implemented")
+
+    def log_extra(self, asset):
+        if isinstance(asset, CollectionAsset):
+            return {'collection': asset.collection.name, 'asset': asset.name}
+        return {
+            'collection': asset.item.collection.name, 'item': asset.item.name, 'asset': asset.name
+        }
+
+    def get_path(self, asset):
+        if isinstance(asset, CollectionAsset):
+            return get_collection_asset_path(asset.collection, asset.name)
+        return get_asset_path(asset.item, asset.name)
 
     def _save_asset_upload(self, executor, serializer, key, asset, upload_id, urls):
         try:
@@ -826,13 +831,7 @@ class AssetUploadBase(generics.GenericAPIView):
                 serializer.save(asset=asset, upload_id=upload_id, urls=urls)
         except IntegrityError as error:
             logger.error(
-                'Failed to create asset upload multipart: %s',
-                error,
-                extra={
-                    'collection': asset.item.collection.name,
-                    'item': asset.item.name,
-                    'asset': asset.name
-                }
+                'Failed to create asset upload multipart: %s', error, extra=self.log_extra(asset)
             )
             if bool(self.get_in_progress_queryset()):
                 raise UploadInProgressError(
@@ -841,7 +840,7 @@ class AssetUploadBase(generics.GenericAPIView):
             raise
 
     def create_multipart_upload(self, executor, serializer, validated_data, asset):
-        key = get_asset_path(asset.item, asset.name)
+        key = self.get_path(asset)
 
         upload_id = executor.create_multipart_upload(
             key,
@@ -867,7 +866,7 @@ class AssetUploadBase(generics.GenericAPIView):
             raise
 
     def complete_multipart_upload(self, executor, validated_data, asset_upload, asset):
-        key = get_asset_path(asset.item, asset.name)
+        key = self.get_path(asset)
         parts = validated_data.get('parts', None)
         if parts is None:
             raise serializers.ValidationError({
@@ -877,26 +876,47 @@ class AssetUploadBase(generics.GenericAPIView):
             raise serializers.ValidationError({'parts': [_("Too many parts")]}, code='invalid')
         if len(parts) < asset_upload.number_parts:
             raise serializers.ValidationError({'parts': [_("Too few parts")]}, code='invalid')
-        if asset_upload.status != AssetUpload.Status.IN_PROGRESS:
+        if asset_upload.status != BaseAssetUpload.Status.IN_PROGRESS:
             raise UploadNotInProgressError()
         executor.complete_multipart_upload(key, asset, parts, asset_upload.upload_id)
         asset_upload.update_asset_from_upload()
-        asset_upload.status = AssetUpload.Status.COMPLETED
+        asset_upload.status = BaseAssetUpload.Status.COMPLETED
         asset_upload.ended = utc_aware(datetime.utcnow())
         asset_upload.urls = []
         asset_upload.save()
 
     def abort_multipart_upload(self, executor, asset_upload, asset):
-        key = get_asset_path(asset.item, asset.name)
+        key = self.get_path(asset)
         executor.abort_multipart_upload(key, asset, asset_upload.upload_id)
-        asset_upload.status = AssetUpload.Status.ABORTED
+        asset_upload.status = BaseAssetUpload.Status.ABORTED
         asset_upload.ended = utc_aware(datetime.utcnow())
         asset_upload.urls = []
         asset_upload.save()
 
     def list_multipart_upload_parts(self, executor, asset_upload, asset, limit, offset):
-        key = get_asset_path(asset.item, asset.name)
+        key = self.get_path(asset)
         return executor.list_upload_parts(key, asset, asset_upload.upload_id, limit, offset)
+
+
+class AssetUploadBase(SharedAssetUploadBase):
+    """AssetUploadBase is the base for all asset (not collection asset) upload views.
+    """
+    serializer_class = AssetUploadSerializer
+
+    def get_queryset(self):
+        return AssetUpload.objects.filter(
+            asset__item__collection__name=self.kwargs['collection_name'],
+            asset__item__name=self.kwargs['item_name'],
+            asset__name=self.kwargs['asset_name']
+        ).prefetch_related('asset')
+
+    def get_asset_or_404(self):
+        return get_object_or_404(
+            Asset.objects.all(),
+            name=self.kwargs['asset_name'],
+            item__name=self.kwargs['item_name'],
+            item__collection__name=self.kwargs['collection_name']
+        )
 
 
 class AssetUploadsList(AssetUploadBase, mixins.ListModelMixin, views_mixins.CreateModelMixin):
@@ -949,10 +969,6 @@ class AssetUploadDetail(AssetUploadBase, mixins.RetrieveModelMixin, views_mixins
     @etag(get_asset_upload_etag)
     def get(self, request, *args, **kwargs):
         return self.retrieve(request, *args, **kwargs)
-
-    # @etag(get_asset_upload_etag)
-    # def delete(self, request, *args, **kwargs):
-    #     return self.destroy(request, *args, **kwargs)
 
 
 class AssetUploadComplete(AssetUploadBase, views_mixins.UpdateInsertModelMixin):
@@ -1020,10 +1036,10 @@ class AssetUploadPartsList(AssetUploadBase):
         return self.paginator.get_paginated_response(data, has_next)
 
 
-class CollectionAssetUploadBase(generics.GenericAPIView):
+class CollectionAssetUploadBase(SharedAssetUploadBase):
+    """CollectionAssetUploadBase is the base for all collection asset upload views.
+    """
     serializer_class = CollectionAssetUploadSerializer
-    lookup_url_kwarg = "upload_id"
-    lookup_field = "upload_id"
 
     def get_queryset(self):
         return CollectionAssetUpload.objects.filter(
@@ -1031,91 +1047,12 @@ class CollectionAssetUploadBase(generics.GenericAPIView):
             asset__name=self.kwargs['asset_name']
         ).prefetch_related('asset')
 
-    def get_in_progress_queryset(self):
-        return self.get_queryset().filter(status=CollectionAssetUpload.Status.IN_PROGRESS)
-
     def get_asset_or_404(self):
         return get_object_or_404(
             CollectionAsset.objects.all(),
             name=self.kwargs['asset_name'],
             collection__name=self.kwargs['collection_name']
         )
-
-    def _save_asset_upload(self, executor, serializer, key, asset, upload_id, urls):
-        try:
-            with transaction.atomic():
-                serializer.save(asset=asset, upload_id=upload_id, urls=urls)
-        except IntegrityError as error:
-            logger.error(
-                'Failed to create asset upload multipart: %s',
-                error,
-                extra={
-                    'collection': asset.collection.name, 'asset': asset.name
-                }
-            )
-            if bool(self.get_in_progress_queryset()):
-                raise UploadInProgressError(
-                    data={"upload_id": self.get_in_progress_queryset()[0].upload_id}
-                ) from None
-            raise
-
-    def create_multipart_upload(self, executor, serializer, validated_data, asset):
-        key = get_collection_asset_path(asset.collection, asset.name)
-
-        upload_id = executor.create_multipart_upload(
-            key,
-            asset,
-            validated_data['checksum_multihash'],
-            validated_data['update_interval'],
-            validated_data['content_encoding']
-        )
-        urls = []
-        sorted_md5_parts = sorted(validated_data['md5_parts'], key=itemgetter('part_number'))
-
-        try:
-            for part in sorted_md5_parts:
-                urls.append(
-                    executor.create_presigned_url(
-                        key, asset, part['part_number'], upload_id, part['md5']
-                    )
-                )
-
-            self._save_asset_upload(executor, serializer, key, asset, upload_id, urls)
-        except APIException as err:
-            executor.abort_multipart_upload(key, asset, upload_id)
-            raise
-
-    def complete_multipart_upload(self, executor, validated_data, asset_upload, asset):
-        key = get_collection_asset_path(asset.collection, asset.name)
-        parts = validated_data.get('parts', None)
-        if parts is None:
-            raise serializers.ValidationError({
-                'parts': _("Missing required field")
-            }, code='missing')
-        if len(parts) > asset_upload.number_parts:
-            raise serializers.ValidationError({'parts': [_("Too many parts")]}, code='invalid')
-        if len(parts) < asset_upload.number_parts:
-            raise serializers.ValidationError({'parts': [_("Too few parts")]}, code='invalid')
-        if asset_upload.status != CollectionAssetUpload.Status.IN_PROGRESS:
-            raise UploadNotInProgressError()
-        executor.complete_multipart_upload(key, asset, parts, asset_upload.upload_id)
-        asset_upload.update_asset_from_upload()
-        asset_upload.status = CollectionAssetUpload.Status.COMPLETED
-        asset_upload.ended = utc_aware(datetime.utcnow())
-        asset_upload.urls = []
-        asset_upload.save()
-
-    def abort_multipart_upload(self, executor, asset_upload, asset):
-        key = get_collection_asset_path(asset.collection, asset.name)
-        executor.abort_multipart_upload(key, asset, asset_upload.upload_id)
-        asset_upload.status = CollectionAssetUpload.Status.ABORTED
-        asset_upload.ended = utc_aware(datetime.utcnow())
-        asset_upload.urls = []
-        asset_upload.save()
-
-    def list_multipart_upload_parts(self, executor, asset_upload, asset, limit, offset):
-        key = get_collection_asset_path(asset.collection, asset.name)
-        return executor.list_upload_parts(key, asset, asset_upload.upload_id, limit, offset)
 
 
 class CollectionAssetUploadsList(
