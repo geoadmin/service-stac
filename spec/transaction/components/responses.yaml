@@ -8,9 +8,26 @@ components:
         application/json:
           schema:
             $ref: "./schemas.yaml#/components/schemas/assets"
+    CollectionAssets:
+      description: >-
+        The response is a document consisting of all assets of the collection.
+      content:
+        application/json:
+          schema:
+            $ref: "./schemas.yaml#/components/schemas/assets"
     Asset:
       description: >-
         The response is a document consisting of one asset of the feature.
+      headers:
+        ETag:
+          $ref: "../../components/headers.yaml#/components/headers/ETag"
+      content:
+        application/json:
+          schema:
+            $ref: "./schemas.yaml#/components/schemas/assetWrite"
+    CollectionAsset:
+      description: >-
+        The response is a document consisting of one asset of the collection.
       headers:
         ETag:
           $ref: "../../components/headers.yaml#/components/headers/ETag"
