@@ -7,6 +7,7 @@ from django.dispatch import receiver
 from stac_api.models import Asset
 from stac_api.models import AssetUpload
 from stac_api.models import CollectionAsset
+from stac_api.models import CollectionAssetUpload
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +28,24 @@ def check_on_going_upload(sender, instance, **kwargs):
         )
         raise ProtectedError(
             f"Asset {instance.asset.name} has still an upload in progress", [instance]
+        )
+
+
+@receiver(pre_delete, sender=CollectionAssetUpload)
+def check_on_going_collection_asset_upload(sender, instance, **kwargs):
+    if instance.status == CollectionAssetUpload.Status.IN_PROGRESS:
+        logger.error(
+            "Cannot delete collection asset %s due to upload %s which is still in progress",
+            instance.asset.name,
+            instance.upload_id,
+            extra={
+                'upload_id': instance.upload_id,
+                'asset': instance.asset.name,
+                'collection': instance.asset.collection.name
+            }
+        )
+        raise ProtectedError(
+            f"Collection Asset {instance.asset.name} has still an upload in progress", [instance]
         )
 
 

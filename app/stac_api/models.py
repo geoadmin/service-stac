@@ -710,19 +710,10 @@ class CollectionAsset(AssetBase):
         return get_collection_asset_path(self.collection, self.name)
 
 
-class AssetUpload(models.Model):
+class BaseAssetUpload(models.Model):
 
     class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['asset', 'upload_id'], name='unique_together'),
-            # Make sure that there is only one asset upload in progress per asset
-            models.UniqueConstraint(
-                fields=['asset', 'status'],
-                condition=Q(status='in-progress'),
-                name='unique_in_progress'
-            )
-        ]
-        triggers = generates_asset_upload_triggers()
+        abstract = True
 
     class Status(models.TextChoices):
         # pylint: disable=invalid-name
@@ -741,7 +732,6 @@ class AssetUpload(models.Model):
 
     # using BigIntegerField as primary_key to deal with the expected large number of assets.
     id = models.BigAutoField(primary_key=True)
-    asset = models.ForeignKey(Asset, related_name='+', on_delete=models.CASCADE)
     upload_id = models.CharField(max_length=255, blank=False, null=False)
     status = models.CharField(
         choices=Status.choices, max_length=32, default=Status.IN_PROGRESS, blank=False, null=False
@@ -777,6 +767,23 @@ class AssetUpload(models.Model):
     # Custom Manager that preselects the collection
     objects = AssetUploadManager()
 
+
+class AssetUpload(BaseAssetUpload):
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['asset', 'upload_id'], name='unique_together'),
+            # Make sure that there is only one asset upload in progress per asset
+            models.UniqueConstraint(
+                fields=['asset', 'status'],
+                condition=Q(status='in-progress'),
+                name='unique_in_progress'
+            )
+        ]
+        triggers = generates_asset_upload_triggers()
+
+    asset = models.ForeignKey(Asset, related_name='+', on_delete=models.CASCADE)
+
     def update_asset_from_upload(self):
         '''Updating the asset's file:checksum and update_interval from the upload
 
@@ -796,6 +803,51 @@ class AssetUpload(models.Model):
                 'asset': self.asset.name,
                 'item': self.asset.item.name,
                 'collection': self.asset.item.collection.name
+            }
+        )
+
+        self.asset.checksum_multihash = self.checksum_multihash
+        self.asset.update_interval = self.update_interval
+        self.asset.save()
+
+
+class CollectionAssetUpload(BaseAssetUpload):
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['asset', 'upload_id'],
+                name='unique_asset_upload_collection_asset_upload_id'
+            ),
+            # Make sure that there is only one asset upload in progress per asset
+            models.UniqueConstraint(
+                fields=['asset', 'status'],
+                condition=Q(status='in-progress'),
+                name='unique_asset_upload_in_progress'
+            )
+        ]
+        triggers = generates_asset_upload_triggers()
+
+    asset = models.ForeignKey(CollectionAsset, related_name='+', on_delete=models.CASCADE)
+
+    def update_asset_from_upload(self):
+        '''Updating the asset's file:checksum and update_interval from the upload
+
+        When the upload is completed, the new file:checksum and update interval from the upload
+        is set to its asset parent.
+        '''
+        logger.debug(
+            'Updating asset %s file:checksum from %s to %s and update_interval from %d to %d '
+            'due to upload complete',
+            self.asset.name,
+            self.asset.checksum_multihash,
+            self.checksum_multihash,
+            self.asset.update_interval,
+            self.update_interval,
+            extra={
+                'upload_id': self.upload_id,
+                'asset': self.asset.name,
+                'collection': self.asset.collection.name
             }
         )
 

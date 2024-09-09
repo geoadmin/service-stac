@@ -65,6 +65,24 @@ class MultipartUpload:
             response.get('NextUploadIdMarker', None),
         )
 
+    def log_extra(self, asset, upload_id=None, parts=None):
+        if hasattr(asset, 'item'):
+            log_extra = {
+                'collection': asset.item.collection.name,
+                'item': asset.item.name,
+                'asset': asset.name,
+            }
+        else:
+            log_extra = {
+                'collection': asset.collection.name,
+                'asset': asset.name,
+            }
+        if upload_id is not None:
+            log_extra['upload_id'] = upload_id
+        if parts is not None:
+            log_extra['parts'] = parts
+        return log_extra
+
     def create_multipart_upload(
         self, key, asset, checksum_multihash, update_interval, content_encoding
     ):
@@ -99,11 +117,7 @@ class MultipartUpload:
             CacheControl=get_s3_cache_control_value(update_interval),
             ContentType=asset.media_type,
             **extra_params,
-            log_extra={
-                'collection': asset.item.collection.name,
-                'item': asset.item.name,
-                'asset': asset.name
-            }
+            log_extra=self.log_extra(asset)
         )
         logger.info(
             'S3 Multipart upload successfully created: upload_id=%s',
@@ -148,12 +162,7 @@ class MultipartUpload:
             Params=params,
             ExpiresIn=settings.AWS_PRESIGNED_URL_EXPIRES,
             HttpMethod='PUT',
-            log_extra={
-                'collection': asset.item.collection.name,
-                'item': asset.item.name,
-                'asset': asset.name,
-                'upload_id': upload_id
-            }
+            log_extra=self.log_extra(asset, upload_id=upload_id)
         )
 
         logger.info(
@@ -191,13 +200,7 @@ class MultipartUpload:
                 Key=key,
                 MultipartUpload={'Parts': parts},
                 UploadId=upload_id,
-                log_extra={
-                    'parts': parts,
-                    'upload_id': upload_id,
-                    'collection': asset.item.collection.name,
-                    'item': asset.item.name,
-                    'asset': asset.name
-                }
+                log_extra=self.log_extra(asset, upload_id=upload_id, parts=parts)
             )
         except ClientError as error:
             raise serializers.ValidationError(str(error)) from None
@@ -271,12 +274,7 @@ class MultipartUpload:
             UploadId=upload_id,
             MaxParts=limit,
             PartNumberMarker=offset,
-            log_extra={
-                'collection': asset.item.collection.name,
-                'item': asset.item.name,
-                'asset': asset.name,
-                'upload_id': upload_id
-            }
+            log_extra=self.log_extra(asset, upload_id=upload_id)
         )
         return response, response.get('IsTruncated', False)
 

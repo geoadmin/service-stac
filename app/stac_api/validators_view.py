@@ -9,6 +9,7 @@ from rest_framework import serializers
 
 from stac_api.models import Asset
 from stac_api.models import Collection
+from stac_api.models import CollectionAsset
 from stac_api.models import Item
 
 logger = logging.getLogger(__name__)
@@ -79,6 +80,30 @@ def validate_asset(kwargs):
         raise Http404(
             f"The asset {kwargs['asset_name']} is not part of "
             f"the item {kwargs['item_name']} in collection {kwargs['collection_name']}"
+        )
+
+
+def validate_collection_asset(kwargs):
+    '''Validate that the collection asset given in request kwargs exists
+
+    Args:
+        kwargs: dict
+            request kwargs dictionary
+
+    Raises:
+        Http404: when the asset doesn't exists
+    '''
+    if not CollectionAsset.objects.filter(
+        name=kwargs['asset_name'], collection__name=kwargs['collection_name']
+    ).exists():
+        logger.error(
+            "The asset %s is not part of the collection %s",
+            kwargs['asset_name'],
+            kwargs['collection_name']
+        )
+        raise Http404(
+            f"The asset {kwargs['asset_name']} is not part of "
+            f"the collection {kwargs['collection_name']}"
         )
 
 

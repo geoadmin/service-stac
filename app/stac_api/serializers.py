@@ -16,6 +16,7 @@ from stac_api.models import Asset
 from stac_api.models import AssetUpload
 from stac_api.models import Collection
 from stac_api.models import CollectionAsset
+from stac_api.models import CollectionAssetUpload
 from stac_api.models import CollectionLink
 from stac_api.models import Item
 from stac_api.models import ItemLink
@@ -429,7 +430,7 @@ class CollectionAssetBaseSerializer(NonNullModelSerializer, UpsertModelSerialize
     collection = None
 
     def create(self, validated_data):
-        asset = validate_uniqueness_and_create(Asset, validated_data)
+        asset = validate_uniqueness_and_create(CollectionAsset, validated_data)
         return asset
 
     def update_or_create(self, look_up, validated_data):
@@ -1073,3 +1074,91 @@ class AssetUploadPartsSerializer(serializers.Serializer):
     parts = serializers.ListField(
         source='Parts', child=UploadPartSerializer(), default=list, read_only=True
     )
+
+
+class CollectionAssetUploadSerializer(NonNullModelSerializer):
+
+    class Meta:
+        model = CollectionAssetUpload
+        list_serializer_class = AssetUploadListSerializer
+        fields = [
+            'upload_id',
+            'status',
+            'created',
+            'checksum_multihash',
+            'completed',
+            'aborted',
+            'number_parts',
+            'md5_parts',
+            'urls',
+            'ended',
+            'parts',
+            'update_interval',
+            'content_encoding'
+        ]
+
+    checksum_multihash = serializers.CharField(
+        source='checksum_multihash',
+        max_length=255,
+        required=True,
+        allow_blank=False,
+        validators=[validate_checksum_multihash_sha256]
+    )
+    md5_parts = serializers.JSONField(required=True)
+    update_interval = serializers.IntegerField(
+        required=False, allow_null=False, min_value=-1, max_value=3600, default=-1
+    )
+    content_encoding = serializers.CharField(
+        required=False,
+        allow_null=False,
+        allow_blank=False,
+        min_length=1,
+        max_length=32,
+        default='',
+        validators=[validate_content_encoding]
+    )
+
+    # write only fields
+    ended = serializers.DateTimeField(write_only=True, required=False)
+    parts = serializers.ListField(
+        child=UploadPartSerializer(), write_only=True, allow_empty=False, required=False
+    )
+
+    # Read only fields
+    upload_id = serializers.CharField(read_only=True)
+    created = serializers.DateTimeField(read_only=True)
+    urls = serializers.JSONField(read_only=True)
+    completed = serializers.SerializerMethodField()
+    aborted = serializers.SerializerMethodField()
+
+    def validate(self, attrs):
+        # get partial from kwargs (if partial true and no md5 : ok, if false no md5 : error)
+        # Check the md5 parts length
+        if attrs.get('md5_parts') is not None:
+            validate_md5_parts(attrs['md5_parts'], attrs['number_parts'])
+        elif not self.partial:
+            raise serializers.ValidationError(
+                detail={'md5_parts': _('md5_parts parameter is missing')}, code='missing'
+            )
+        return attrs
+
+    def get_completed(self, obj):
+        if obj.status == CollectionAssetUpload.Status.COMPLETED:
+            return isoformat(obj.ended)
+        return None
+
+    def get_aborted(self, obj):
+        if obj.status == CollectionAssetUpload.Status.ABORTED:
+            return isoformat(obj.ended)
+        return None
+
+    def get_fields(self):
+        fields = super().get_fields()
+        # This is a hack to allow fields with special characters
+        fields['file:checksum'] = fields.pop('checksum_multihash')
+
+        # Older versions of the api still use different name
+        request = self.context.get('request')
+        if not is_api_version_1(request):
+            fields['checksum:multihash'] = fields.pop('file:checksum')
+        return fields

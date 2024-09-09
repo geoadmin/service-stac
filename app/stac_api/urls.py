@@ -13,6 +13,11 @@ from stac_api.views import AssetUploadPartsList
 from stac_api.views import AssetUploadsList
 from stac_api.views import CollectionAssetDetail
 from stac_api.views import CollectionAssetsList
+from stac_api.views import CollectionAssetUploadAbort
+from stac_api.views import CollectionAssetUploadComplete
+from stac_api.views import CollectionAssetUploadDetail
+from stac_api.views import CollectionAssetUploadPartsList
+from stac_api.views import CollectionAssetUploadsList
 from stac_api.views import CollectionDetail
 from stac_api.views import CollectionList
 from stac_api.views import ConformancePageDetail
@@ -43,8 +48,35 @@ item_urls = [
     path("<item_name>/assets/", include(asset_urls))
 ]
 
+collection_asset_upload_urls = [
+    path(
+        "<upload_id>", CollectionAssetUploadDetail.as_view(), name='collection-asset-upload-detail'
+    ),
+    path(
+        "<upload_id>/parts",
+        CollectionAssetUploadPartsList.as_view(),
+        name='collection-asset-upload-parts-list'
+    ),
+    path(
+        "<upload_id>/complete",
+        CollectionAssetUploadComplete.as_view(),
+        name='collection-asset-upload-complete'
+    ),
+    path(
+        "<upload_id>/abort",
+        CollectionAssetUploadAbort.as_view(),
+        name='collection-asset-upload-abort'
+    ),
+]
+
 collection_asset_urls = [
     path("<asset_name>", CollectionAssetDetail.as_view(), name='collection-asset-detail'),
+    path(
+        "<asset_name>/uploads",
+        CollectionAssetUploadsList.as_view(),
+        name='collection-asset-uploads-list'
+    ),
+    path("<asset_name>/uploads/", include(collection_asset_upload_urls))
 ]
 
 collection_urls = [
