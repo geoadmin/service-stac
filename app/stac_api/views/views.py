@@ -24,7 +24,6 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework_condition import etag
 
-from stac_api import views_mixins
 from stac_api.exceptions import UploadInProgressError
 from stac_api.exceptions import UploadNotInProgressError
 from stac_api.models import Asset
@@ -61,6 +60,7 @@ from stac_api.validators_view import validate_collection
 from stac_api.validators_view import validate_collection_asset
 from stac_api.validators_view import validate_item
 from stac_api.validators_view import validate_renaming
+from stac_api.views import views_mixins
 
 logger = logging.getLogger(__name__)
 

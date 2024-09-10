@@ -4,28 +4,28 @@ from django.urls import re_path
 
 from rest_framework.authtoken.views import obtain_auth_token
 
-from stac_api.views import AssetDetail
-from stac_api.views import AssetsList
-from stac_api.views import AssetUploadAbort
-from stac_api.views import AssetUploadComplete
-from stac_api.views import AssetUploadDetail
-from stac_api.views import AssetUploadPartsList
-from stac_api.views import AssetUploadsList
-from stac_api.views import CollectionAssetDetail
-from stac_api.views import CollectionAssetsList
-from stac_api.views import CollectionAssetUploadAbort
-from stac_api.views import CollectionAssetUploadComplete
-from stac_api.views import CollectionAssetUploadDetail
-from stac_api.views import CollectionAssetUploadPartsList
-from stac_api.views import CollectionAssetUploadsList
-from stac_api.views import CollectionDetail
-from stac_api.views import CollectionList
-from stac_api.views import ConformancePageDetail
-from stac_api.views import ItemDetail
-from stac_api.views import ItemsList
-from stac_api.views import LandingPageDetail
-from stac_api.views import SearchList
-from stac_api.views import recalculate_extent
+from stac_api.views.views import AssetDetail
+from stac_api.views.views import AssetsList
+from stac_api.views.views import AssetUploadAbort
+from stac_api.views.views import AssetUploadComplete
+from stac_api.views.views import AssetUploadDetail
+from stac_api.views.views import AssetUploadPartsList
+from stac_api.views.views import AssetUploadsList
+from stac_api.views.views import CollectionAssetDetail
+from stac_api.views.views import CollectionAssetsList
+from stac_api.views.views import CollectionAssetUploadAbort
+from stac_api.views.views import CollectionAssetUploadComplete
+from stac_api.views.views import CollectionAssetUploadDetail
+from stac_api.views.views import CollectionAssetUploadPartsList
+from stac_api.views.views import CollectionAssetUploadsList
+from stac_api.views.views import CollectionDetail
+from stac_api.views.views import CollectionList
+from stac_api.views.views import ConformancePageDetail
+from stac_api.views.views import ItemDetail
+from stac_api.views.views import ItemsList
+from stac_api.views.views import LandingPageDetail
+from stac_api.views.views import SearchList
+from stac_api.views.views import recalculate_extent
 
 # HEALTHCHECK_ENDPOINT = settings.HEALTHCHECK_ENDPOINT
 
