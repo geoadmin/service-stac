@@ -4,6 +4,8 @@ from django.urls import re_path
 
 from rest_framework.authtoken.views import obtain_auth_token
 
+from stac_api.views.collection import CollectionDetail
+from stac_api.views.collection import CollectionList
 from stac_api.views.views import AssetDetail
 from stac_api.views.views import AssetsList
 from stac_api.views.views import AssetUploadAbort
@@ -18,8 +20,6 @@ from stac_api.views.views import CollectionAssetUploadComplete
 from stac_api.views.views import CollectionAssetUploadDetail
 from stac_api.views.views import CollectionAssetUploadPartsList
 from stac_api.views.views import CollectionAssetUploadsList
-from stac_api.views.views import CollectionDetail
-from stac_api.views.views import CollectionList
 from stac_api.views.views import ConformancePageDetail
 from stac_api.views.views import ItemDetail
 from stac_api.views.views import ItemsList
