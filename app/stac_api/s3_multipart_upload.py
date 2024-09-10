@@ -12,6 +12,8 @@ from django.conf import settings
 from rest_framework import serializers
 
 from stac_api.exceptions import UploadNotInProgressError
+from stac_api.models import Asset
+from stac_api.models import CollectionAsset
 from stac_api.utils import AVAILABLE_S3_BUCKETS
 from stac_api.utils import get_s3_cache_control_value
 from stac_api.utils import get_s3_client
@@ -65,8 +67,8 @@ class MultipartUpload:
             response.get('NextUploadIdMarker', None),
         )
 
-    def log_extra(self, asset, upload_id=None, parts=None):
-        if hasattr(asset, 'item'):
+    def log_extra(self, asset: Asset | CollectionAsset, upload_id=None, parts=None):
+        if isinstance(asset, Asset):
             log_extra = {
                 'collection': asset.item.collection.name,
                 'item': asset.item.name,

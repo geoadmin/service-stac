@@ -755,8 +755,8 @@ class BaseAssetUpload(models.Model):
         null=False,
         blank=False,
         validators=[MinValueValidator(-1)],
-        help_text="Interval in seconds in which the asset data is updated."
-        "-1 means that the data is not on a regular basis updated."
+        help_text="Interval in seconds in which the asset data is updated. "
+        "-1 means that the data is not on a regular basis updated. "
         "This field can only be set via the API."
     )
 
@@ -819,7 +819,7 @@ class CollectionAssetUpload(BaseAssetUpload):
                 fields=['asset', 'upload_id'],
                 name='unique_asset_upload_collection_asset_upload_id'
             ),
-            # Make sure that there is only one asset upload in progress per asset
+            # Make sure that there is only one upload in progress per collection asset
             models.UniqueConstraint(
                 fields=['asset', 'status'],
                 condition=Q(status='in-progress'),
@@ -837,8 +837,8 @@ class CollectionAssetUpload(BaseAssetUpload):
         is set to its asset parent.
         '''
         logger.debug(
-            'Updating asset %s file:checksum from %s to %s and update_interval from %d to %d '
-            'due to upload complete',
+            'Updating collection asset %s file:checksum from %s to %s and update_interval '
+            'from %d to %d due to upload complete',
             self.asset.name,
             self.asset.checksum_multihash,
             self.checksum_multihash,
