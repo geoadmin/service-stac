@@ -4,9 +4,9 @@ from rest_framework import generics
 
 from stac_api.models import LandingPage
 from stac_api.views.collection import CollectionDetail
+from stac_api.views.item import ItemDetail
 from stac_api.views.views import AssetDetail
 from stac_api.views.views import CollectionAssetDetail
-from stac_api.views.views import ItemDetail
 
 logger = logging.getLogger(__name__)
 
