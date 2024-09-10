@@ -1,6 +1,8 @@
 import logging
 
+from django.db.models import Q
 from django.http import Http404
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from rest_framework import serializers
@@ -28,7 +30,7 @@ def validate_collection(kwargs):
 
 
 def validate_item(kwargs):
-    '''Validate that the item given in request kwargs exists
+    '''Validate that the item given in request kwargs exists and is not expired
 
     Args:
         kwargs: dict
@@ -38,7 +40,9 @@ def validate_item(kwargs):
         Http404: when the item doesn't exists
     '''
     if not Item.objects.filter(
-        name=kwargs['item_name'], collection__name=kwargs['collection_name']
+        Q(properties_expires=None) | Q(properties_expires__gte=timezone.now()),
+        name=kwargs['item_name'],
+        collection__name=kwargs['collection_name']
     ).exists():
         logger.error(
             "The item %s is not part of the collection %s",

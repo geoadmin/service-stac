@@ -8,6 +8,8 @@ from django.db import IntegrityError
 from django.db import transaction
 from django.db.models import Min
 from django.db.models import Prefetch
+from django.db.models import Q
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from rest_framework import generics
@@ -364,6 +366,8 @@ class ItemsList(generics.GenericAPIView):
     def get_queryset(self):
         # filter based on the url
         queryset = Item.objects.filter(
+            # filter expired items
+            Q(properties_expires__gte=timezone.now()) | Q(properties_expires=None),
             collection__name=self.kwargs['collection_name']
         ).prefetch_related(Prefetch('assets', queryset=Asset.objects.order_by('name')), 'links')
         bbox = self.request.query_params.get('bbox', None)
@@ -428,6 +432,8 @@ class ItemDetail(
     def get_queryset(self):
         # filter based on the url
         queryset = Item.objects.filter(
+            # filter expired items
+            Q(properties_expires__gte=timezone.now()) | Q(properties_expires=None),
             collection__name=self.kwargs['collection_name']
         ).prefetch_related(Prefetch('assets', queryset=Asset.objects.order_by('name')), 'links')
 
@@ -536,6 +542,7 @@ class AssetDetail(
     def get_queryset(self):
         # filter based on the url
         return Asset.objects.filter(
+            Q(item__properties_expires=None) | Q(item__properties_expires__gte=timezone.now()),
             item__collection__name=self.kwargs['collection_name'],
             item__name=self.kwargs['item_name']
         )

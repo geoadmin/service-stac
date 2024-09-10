@@ -458,6 +458,8 @@ def geometry_from_bbox(bbox):
     # if large values, SRID is LV95. The default SRID is 4326
     if list_bbox_values[0] > 360:
         bbox_geometry.srid = 2056
+    else:
+        bbox_geometry.srid = 4326
 
     if not bbox_geometry.valid:
         raise ValueError(f'{bbox_geometry.valid_reason} for bbox with {bbox_geometry.wkt}')

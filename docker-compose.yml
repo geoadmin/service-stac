@@ -18,13 +18,14 @@ services:
     image: minio/minio
     env_file: ./minio.env
     user: ${UID}
-    command: server /data
+    command: server /data --console-address ":9001"
     volumes:
       - type: bind
         source: ${PWD}/.volumes/minio
         target: /data
     ports:
       - 9090:${S3_PORT:-9000}
+      - 9001:9001
   s3-client:
     image: minio/mc
     links:

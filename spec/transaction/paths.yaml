@@ -7,7 +7,7 @@ paths:
       summary: Update or create a collection
       description: >-
         Update or create a collection with Id `collectionId` with a complete collection definition.
-        If the collection doesn't exists it is then created.
+        If the collection doesn't exist it is created.
       operationId: updateCollection
       parameters:
         - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
@@ -107,13 +107,165 @@ paths:
           $ref: "../components/responses.yaml#/components/responses/PreconditionFailed"
         "500":
           $ref: "../components/responses.yaml#/components/responses/ServerError"
+  "/collections/{collectionId}/assets":
+    get:
+      description: >-
+        Fetch collection assets of the collection with id `collectionId`.
+
+        These assets do not belong to any item.
+      operationId: getCollectionAssets
+      parameters:
+        - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
+      responses:
+        "200":
+          $ref: "./components/responses.yaml#/components/responses/CollectionAssets"
+        "400":
+          $ref: "../components/responses.yaml#/components/responses/InvalidParameter"
+        "404":
+          $ref: "../components/responses.yaml#/components/responses/NotFound"
+        "500":
+          $ref: "../components/responses.yaml#/components/responses/ServerError"
+      summary: Fetch all collection assets for a collection
+      tags:
+        - Data
+
+  "/collections/{collectionId}/assets/{assetId}":
+    get:
+      description: >-
+        Fetch the collection asset with id `assetId` of the collection with id `collectionId`.
+      operationId: getCollectionAsset
+      parameters:
+        - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
+        - $ref: "./components/parameters.yaml#/components/parameters/assetId"
+        - $ref: "../components/parameters.yaml#/components/parameters/IfMatch"
+        - $ref: "../components/parameters.yaml#/components/parameters/IfNoneMatch"
+      responses:
+        "200":
+          $ref: "./components/responses.yaml#/components/responses/CollectionAsset"
+        "304":
+          $ref: "../components/responses.yaml#/components/responses/NotModified"
+        "404":
+          $ref: "../components/responses.yaml#/components/responses/NotFound"
+        "412":
+          $ref: "../components/responses.yaml#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "../components/responses.yaml#/components/responses/ServerError"
+      summary: Fetch a single collection asset
+      tags:
+        - Data
+    put:
+      summary: Update or create a collection asset
+      description: >-
+        Update or create a collection asset with Id `assetId` with a complete asset definition.
+        If the asset doesn't exist it is then created.
+
+
+        *Note: to upload an asset file see [Collection Asset Upload Management](#tag/Collection-Asset-Upload-Management)*
+      operationId: putCollectionAsset
+      tags:
+        - Data Management
+      parameters:
+        - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
+        - $ref: "./components/parameters.yaml#/components/parameters/assetId"
+        - $ref: "./components/parameters.yaml#/components/parameters/IfMatchWrite"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "./components/schemas.yaml#/components/schemas/assetWrite"
+      responses:
+        "200":
+          description: Asset has been successfully updated.
+          content:
+            application/json:
+              schema:
+                $ref: "./components/schemas.yaml#/components/schemas/assetWrite"
+        "201":
+          description: Asset has been newly created.
+          headers:
+            Location:
+              description: A link to the asset
+              schema:
+                type: string
+                format: url
+          content:
+            application/json:
+              schema:
+                $ref: "./components/schemas.yaml#/components/schemas/assetWrite"
+        "400":
+          $ref: "../components/responses.yaml#/components/responses/BadRequest"
+        "404":
+          $ref: "../components/responses.yaml#/components/responses/NotFound"
+        "412":
+          $ref: "../components/responses.yaml#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "../components/responses.yaml#/components/responses/ServerError"
+    patch:
+      summary: Update an existing collection asset by Id with a partial asset definition
+      description: >-
+        Use this method to update an existing collection asset. Requires a JSON
+        fragment (containing the fields to be updated) to be submitted.
+
+
+        *Note: to upload an asset file see [Collection Asset Upload Management](#tag/Collection-Asset-Upload-Management)*
+      operationId: patchCollectionAsset
+      tags:
+        - Data Management
+      parameters:
+        - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
+        - $ref: "./components/parameters.yaml#/components/parameters/assetId"
+        - $ref: "./components/parameters.yaml#/components/parameters/IfMatchWrite"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "./components/schemas.yaml#/components/schemas/assetWrite"
+      responses:
+        "200":
+          description: Returns the updated Asset.
+          content:
+            application/json:
+              schema:
+                $ref: "./components/schemas.yaml#/components/schemas/assetWrite"
+        "400":
+          $ref: "../components/responses.yaml#/components/responses/BadRequest"
+        "404":
+          $ref: "../components/responses.yaml#/components/responses/NotFound"
+        "412":
+          $ref: "../components/responses.yaml#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "../components/responses.yaml#/components/responses/ServerError"
+    delete:
+      summary: Delete an existing collection asset by Id
+      description: >-
+        Use this method to delete an existing collection asset.
+
+        **NOTE: Asset file on S3 will be also removed !**
+      operationId: deleteCollectionAsset
+      tags:
+        - Data Management
+      parameters:
+        - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
+        - $ref: "./components/parameters.yaml#/components/parameters/assetId"
+        - $ref: "./components/parameters.yaml#/components/parameters/IfMatchWrite"
+      responses:
+        "200":
+          $ref: "./components/responses.yaml#/components/responses/DeletedResource"
+        "400":
+          $ref: "../components/responses.yaml#/components/responses/BadRequest"
+        "404":
+          $ref: "../components/responses.yaml#/components/responses/NotFound"
+        "412":
+          $ref: "../components/responses.yaml#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "../components/responses.yaml#/components/responses/ServerError"
 
   "/collections/{collectionId}/items/{featureId}":
     put:
       summary: Update or create a feature
       description: >-
         Update or create a feature with Id `featureId` with a complete feature
-        definition. If the feature doesn't exists it is then created.
+        definition. If the feature doesn't exist it is then created.
 
 
         *NOTE: Optional fields that are not part of the PUT payload, will be erased
@@ -181,13 +333,13 @@ paths:
           $ref: "../components/responses.yaml#/components/responses/NotFound"
         "412":
           $ref: "../components/responses.yaml#/components/responses/PreconditionFailed"
-        "5XX":
+        "500":
           $ref: "../components/responses.yaml#/components/responses/ServerError"
     patch:
       summary: Update an existing feature by Id with a partial item definition
       description: >-
         Use this method to update an existing feature. Requires a JSON
-        fragment (containing the fields to be updated) be submitted.
+        fragment (containing the fields to be updated) to be submitted.
       operationId: patchFeature
       tags:
         - Data Management
@@ -227,7 +379,7 @@ paths:
           $ref: "../components/responses.yaml#/components/responses/NotFound"
         "412":
           $ref: "../components/responses.yaml#/components/responses/PreconditionFailed"
-        "5XX":
+        "500":
           $ref: "../components/responses.yaml#/components/responses/ServerError"
     delete:
       summary: Delete an existing feature by Id
@@ -250,7 +402,7 @@ paths:
           $ref: "../components/responses.yaml#/components/responses/NotFound"
         "412":
           $ref: "../components/responses.yaml#/components/responses/PreconditionFailed"
-        "5XX":
+        "500":
           $ref: "../components/responses.yaml#/components/responses/ServerError"
   "/collections/{collectionId}/items/{featureId}/assets":
     get:
@@ -305,7 +457,7 @@ paths:
       summary: Update or create an asset
       description: >-
         Update or create an asset with Id `assetId` with a complete asset definition.
-        If the asset doesn't exists it is then created.
+        If the asset doesn't exist it is then created.
 
 
         *Note: to upload an asset file see [Asset Upload Management](#tag/Asset-Upload-Management)*
@@ -347,13 +499,13 @@ paths:
           $ref: "../components/responses.yaml#/components/responses/NotFound"
         "412":
           $ref: "../components/responses.yaml#/components/responses/PreconditionFailed"
-        "5XX":
+        "500":
           $ref: "../components/responses.yaml#/components/responses/ServerError"
     patch:
       summary: Update an existing asset by Id with a partial asset definition
       description: >-
         Use this method to update an existing asset. Requires a JSON
-        fragment (containing the fields to be updated) be submitted.
+        fragment (containing the fields to be updated) to be submitted.
 
 
         *Note: to upload an asset file see [Asset Upload Management](#tag/Asset-Upload-Management)*
@@ -383,7 +535,7 @@ paths:
           $ref: "../components/responses.yaml#/components/responses/NotFound"
         "412":
           $ref: "../components/responses.yaml#/components/responses/PreconditionFailed"
-        "5XX":
+        "500":
           $ref: "../components/responses.yaml#/components/responses/ServerError"
     delete:
       summary: Delete an existing asset by Id
@@ -409,7 +561,7 @@ paths:
           $ref: "../components/responses.yaml#/components/responses/NotFound"
         "412":
           $ref: "../components/responses.yaml#/components/responses/PreconditionFailed"
-        "5XX":
+        "500":
           $ref: "../components/responses.yaml#/components/responses/ServerError"
 
   "/collections/{collectionId}/items/{featureId}/assets/{assetId}/uploads":
@@ -422,8 +574,7 @@ paths:
         - Asset Upload Management
       summary: List all Asset's multipart uploads
       description: >-
-        Return a list of all Asset's multipart uploads that are in progress and have been completed
-        or aborted.
+        Return a list of multipart uploads of assets that are in progress, completed or cancelled.
       operationId: getAssetUploads
       parameters:
         - name: status
@@ -469,7 +620,7 @@ paths:
           $ref: "../components/responses.yaml#/components/responses/BadRequest"
         "404":
           $ref: "../components/responses.yaml#/components/responses/NotFound"
-        "5XX":
+        "500":
           $ref: "../components/responses.yaml#/components/responses/ServerError"
     post:
       tags:
@@ -480,8 +631,8 @@ paths:
 
         A file part must be at least 5 MB except for the last one and at most 5 GB, otherwise the complete operation will fail.
 
-        *Note: in order to provide integrity check during the upload, the base64-encoded 128-bit MD5 digest of each part must be
-        computed and passed in the create endpoint. Then this digest must also be passed as `Content-MD5` header during the upload.*
+        *Note: in order to facilitate an integrity check during the upload, the base64-encoded 128-bit MD5 digest of each part must be
+        computed and passed to the create endpoint. Then this digest must also be passed as `Content-MD5` header during the upload.*
       operationId: createAssetUpload
       requestBody:
         content:
@@ -506,12 +657,12 @@ paths:
         "404":
           $ref: "../components/responses.yaml#/components/responses/NotFound"
         "409":
-          description: Another upload is already in progress, you need first to complete or abort it before creating a new upload.
+          description: Another upload is already in progress, you first need to complete or abort it before creating a new upload.
           content:
             application/json:
               schema:
                 $ref: "./schemas.yaml#/components/schemas/uploadInProgress"
-        "5XX":
+        "500":
           $ref: "../components/responses.yaml#/components/responses/ServerError"
   "/collections/{collectionId}/items/{featureId}/assets/{assetId}/uploads/{uploadId}":
     parameters:
@@ -531,7 +682,7 @@ paths:
         - $ref: "../components/parameters.yaml#/components/parameters/IfNoneMatch"
       responses:
         "200":
-          description: Asset's multipart upload description.
+          description: The multipart upload object.
           headers:
             ETag:
               $ref: "../components/headers.yaml#/components/headers/ETag"
@@ -562,6 +713,7 @@ paths:
     put:
       tags:
         - Asset Upload Management
+        - Collection Asset Upload Management
       summary: Upload asset file part
       description: >-
         Upload an Asset file part using the presigned url(s) returned by
@@ -699,7 +851,7 @@ paths:
       description: >-
         Complete the multipart upload process. After completion, the Asset metadata are updated
         with the new `file:checksum` from the upload and the parts are automatically deleted.
-        The Asset `href` field is also set if it was the first upload.
+        The asset's `href` field is also set if it was the first upload.
       requestBody:
         content:
           application/json:
@@ -725,7 +877,7 @@ paths:
                 description: No upload in progress
         "404":
           $ref: "../components/responses.yaml#/components/responses/NotFound"
-        "5XX":
+        "500":
           $ref: "../components/responses.yaml#/components/responses/ServerError"
   "/collections/{collectionId}/items/{featureId}/assets/{assetId}/uploads/{uploadId}/abort":
     parameters:
@@ -751,7 +903,7 @@ paths:
           $ref: "../components/responses.yaml#/components/responses/BadRequest"
         "404":
           $ref: "../components/responses.yaml#/components/responses/NotFound"
-        "5XX":
+        "500":
           $ref: "../components/responses.yaml#/components/responses/ServerError"
   "/collections/{collectionId}/items/{featureId}/assets/{assetId}/uploads/{uploadId}/parts":
     parameters:
@@ -786,8 +938,250 @@ paths:
           $ref: "../components/responses.yaml#/components/responses/BadRequest"
         "404":
           $ref: "../components/responses.yaml#/components/responses/NotFound"
-        "5XX":
+        "500":
           $ref: "../components/responses.yaml#/components/responses/ServerError"
+
+  "/collections/{collectionId}/assets/{assetId}/uploads":
+    parameters:
+      - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
+      - $ref: "./components/parameters.yaml#/components/parameters/assetId"
+    get:
+      tags:
+        - Collection Asset Upload Management
+      summary: List all collection assets multipart uploads
+      description: >-
+        Return a list of multipart uploads of collection assets that are in progress, completed or cancelled.
+      operationId: getCollectionAssetUploads
+      parameters:
+        - name: status
+          in: query
+          description: Filter the list by status.
+          schema:
+            $ref: "./components/schemas.yaml#/components/schemas/status"
+        - $ref: "../components/parameters.yaml#/components/parameters/limit"
+      responses:
+        200:
+          description: List of collection asset uploads
+          content:
+            application/json:
+              schema:
+                $ref: "./components/schemas.yaml#/components/schemas/assetUploads"
+              example:
+                uploads:
+                  - upload_id: KrFTuglD.N8ireqry_w3.oQqNwrYI7SfSXpVRiusKah0YigDnusebaJNIUZg4R_No0MMW9FLU2UG5anTW0boTUYVxKfBZWCFXqnQTpjnQEo1K7la39MYpjSTvIbZgnG
+                    status: in-progress
+                    number_parts: 1
+                    urls:
+                      - url: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-4-2019/smr50-263-2016-2056-kgrs-2.5.tiff
+                        part: 1
+                        expires: "2019-08-24T14:15:22Z"
+                    created: "2019-08-24T14:15:22Z"
+                    file:checksum: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
+                  - upload_id: KrFTuglD.N8ireqry_w3.oQqNwrYI7SfSXpVRiusKah0YaaegJNIUZg4R_No0MMW9FLU2UG5anTW0boTUYVxKfBZWCFXqnQTpjnQEo1K7la39MYpjSTvIbZgnG
+                    status: completed
+                    number_parts: 1
+                    created: "2019-08-24T14:15:22Z"
+                    completed: "2019-08-24T14:15:22Z"
+                    file:checksum: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
+                  - upload_id: KrFTuglD.N8ireqry_w3.oQqNwrYI7SfSXpVRiusKah0YigDnuM06hfJNIUZg4R_No0MMW9FLU2UG5anTW0boTUYVxKfBZWCFXqnQTpjnQEo1K7la39MYpjSTvIbZgnG
+                    status: aborted
+                    number_parts: 1
+                    created: "2019-08-24T14:15:22Z"
+                    aborted: "2019-08-24T14:15:22Z"
+                    file:checksum: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
+                links:
+                  - rel: next
+                    href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets/smr50-263-2016-2056-kgrs-2.5.tiff/uploads?cursor=0d34
+        "400":
+          $ref: "../components/responses.yaml#/components/responses/BadRequest"
+        "404":
+          $ref: "../components/responses.yaml#/components/responses/NotFound"
+        "500":
+          $ref: "../components/responses.yaml#/components/responses/ServerError"
+    post:
+      tags:
+        - Collection Asset Upload Management
+      summary: Create a new collection asset multipart upload
+      description: |
+        Create collection asset multipart upload.
+
+        A file part must be at least 5 MB except for the last one and at most 5 GB, otherwise the complete operation will fail.
+
+        *Note: in order to facilitate an integrity check during the upload, the base64-encoded 128-bit MD5 digest of each part must be
+        computed and passed to the create endpoint. Then this digest must also be passed as `Content-MD5` header during the upload.*
+      operationId: createCollectionAssetUpload
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "./components/schemas.yaml#/components/schemas/assetUploadCreate"
+      responses:
+        201:
+          description: Created collection asset multipart upload
+          headers:
+            Location:
+              description: A link to the collection asset multipart upload object
+              schema:
+                type: string
+                format: url
+          content:
+            application/json:
+              schema:
+                $ref: "./components/schemas.yaml#/components/schemas/assetUploadCreate"
+        "400":
+          $ref: "../components/responses.yaml#/components/responses/BadRequest"
+        "404":
+          $ref: "../components/responses.yaml#/components/responses/NotFound"
+        "409":
+          description: Another upload is already in progress, you first need to complete or abort it before creating a new upload.
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas.yaml#/components/schemas/uploadInProgress"
+        "500":
+          $ref: "../components/responses.yaml#/components/responses/ServerError"
+  "/collections/{collectionId}/assets/{assetId}/uploads/{uploadId}":
+    parameters:
+      - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
+      - $ref: "./components/parameters.yaml#/components/parameters/assetId"
+      - $ref: "./components/parameters.yaml#/components/parameters/uploadId"
+    get:
+      tags:
+        - Collection Asset Upload Management
+      summary: Get a collection assets multipart upload
+      description: |
+        Return a collection assets multipart upload.
+      operationId: getCollectionAssetUpload
+      parameters:
+        - $ref: "../components/parameters.yaml#/components/parameters/IfMatch"
+        - $ref: "../components/parameters.yaml#/components/parameters/IfNoneMatch"
+      responses:
+        "200":
+          description: The multipart upload object.
+          headers:
+            ETag:
+              $ref: "../components/headers.yaml#/components/headers/ETag"
+          content:
+            application/json:
+              schema:
+                $ref: "./components/schemas.yaml#/components/schemas/assetUpload"
+              examples:
+                inprogress:
+                  $ref: "./components/examples.yaml#/components/examples/inprogress"
+                completed:
+                  $ref: "./components/examples.yaml#/components/examples/completed"
+                aborted:
+                  $ref: "./components/examples.yaml#/components/examples/aborted"
+        "304":
+          $ref: "../components/responses.yaml#/components/responses/NotModified"
+        "404":
+          $ref: "../components/responses.yaml#/components/responses/NotFound"
+        "412":
+          $ref: "../components/responses.yaml#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "../components/responses.yaml#/components/responses/ServerError"
+
+  "/collections/{collectionId}/assets/{assetId}/uploads/{uploadId}/complete":
+    parameters:
+      - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
+      - $ref: "./components/parameters.yaml#/components/parameters/assetId"
+      - $ref: "./components/parameters.yaml#/components/parameters/uploadId"
+    post:
+      tags:
+        - Collection Asset Upload Management
+      summary: Complete multipart upload
+      operationId: completeCollectionAssetMultipartUpload
+      description: >-
+        Complete the multipart upload process. After completion, the collection asset metadata are updated
+        with the new `file:checksum` from the upload and the parts are automatically deleted.
+        The asset's `href` field is also set if it was the first upload.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "./components/schemas.yaml#/components/schemas/assetCompleteUpload"
+      responses:
+        "200":
+          description: Asset multipart upload completed successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "./components/schemas.yaml#/components/schemas/assetUploadCompleted"
+        "400":
+          $ref: "../components/responses.yaml#/components/responses/BadRequest"
+        "409":
+          description: The complete operation was already performed.
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas.yaml#/components/schemas/exception"
+              example:
+                code: 409
+                description: No upload in progress
+        "404":
+          $ref: "../components/responses.yaml#/components/responses/NotFound"
+        "500":
+          $ref: "../components/responses.yaml#/components/responses/ServerError"
+  "/collections/{collectionId}/assets/{assetId}/uploads/{uploadId}/abort":
+    parameters:
+      - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
+      - $ref: "./components/parameters.yaml#/components/parameters/assetId"
+      - $ref: "./components/parameters.yaml#/components/parameters/uploadId"
+    post:
+      tags:
+        - Collection Asset Upload Management
+      summary: Abort multipart upload
+      operationId: abortCollectionAssetMultipartUpload
+      description: >-
+        Abort the multipart upload process. All already uploaded parts are automatically deleted.
+      responses:
+        "200":
+          description: Collection asset multipart upload aborted successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "./components/schemas.yaml#/components/schemas/assetUploadAborted"
+        "400":
+          $ref: "../components/responses.yaml#/components/responses/BadRequest"
+        "404":
+          $ref: "../components/responses.yaml#/components/responses/NotFound"
+        "500":
+          $ref: "../components/responses.yaml#/components/responses/ServerError"
+  "/collections/{collectionId}/assets/{assetId}/uploads/{uploadId}/parts":
+    parameters:
+      - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
+      - $ref: "./components/parameters.yaml#/components/parameters/assetId"
+      - $ref: "./components/parameters.yaml#/components/parameters/uploadId"
+    get:
+      tags:
+        - Collection Asset Upload Management
+      summary: Get upload parts
+      operationId: getCollectionAssetUploadParts
+      description: >-
+        Return the list of already uploaded parts.
+
+
+        ### Pagination
+
+        By default all parts are returned (maximum number of parts being 100). The user can
+        use pagination to reduce the number of returned parts. Pagination is done via the `limit`
+        query parameter (see below).
+      parameters:
+        - $ref: "../components/parameters.yaml#/components/parameters/limit"
+      responses:
+        "200":
+          description: List of parts already uploaded.
+          content:
+            application/json:
+              schema:
+                $ref: "./components/schemas.yaml#/components/schemas/assetUploadParts"
+        "400":
+          $ref: "../components/responses.yaml#/components/responses/BadRequest"
+        "404":
+          $ref: "../components/responses.yaml#/components/responses/NotFound"
+        "500":
+          $ref: "../components/responses.yaml#/components/responses/ServerError"
+
 
   "/get-token":
     servers:

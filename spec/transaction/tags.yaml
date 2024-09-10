@@ -99,7 +99,7 @@ tags:
       (1) Use the [create new upload](#tag/Asset-Upload-Management/operation/createAssetUpload) request to start a new upload.
       It will return a list of urls.
 
-      (2) Use the urls to [upload asset file part](#tag/Asset-Upload-Management/operation/uploadAssetFilePart). Do this for each file part.
+      (2) Use the urls to [upload asset file part](#tag/Asset-Upload-Management/operation/uploadAssetFilePart). Do this for each file part. You may also upload multiple parts in parallel.
 
       (3) Once all parts have been uploaded, execute the [complete the upload](#tag/Asset-Upload-Management/operation/completeMultipartUpload) request.
       The new asset file be available to users after you have successfully completed the upload.
@@ -283,6 +283,17 @@ tags:
       ```
 
       See https://aws.amazon.com/premiumsupport/knowledge-center/data-integrity-s3/ for other examples on how to compute the base64 MD5 of a part.
+  - name: Collection Asset Upload Management
+    description: |
+      Collection Asset files are uploaded via the STAC API using the API requests described in this chapter.
+
+      The flow of the requests is the same as for assets that belong to features, which is described under [Asset Upload Management](#tag/Asset-Upload-Management)
+      - [Basic steps to upload assets](#section/Basic-Steps-to-upload-assets)
+      - [Detailed example of asset upload](#section/Detailed-example-of-asset-upload)
+      - [Authentication](#section/Authentication)
+      - [Compression](#section/Compression)
+      - [Example](#section/Example)
+
   - name: Authentication
     description: |
       All write requests require authentication. There is currently three type of supported authentications:

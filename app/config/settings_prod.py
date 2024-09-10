@@ -81,6 +81,9 @@ INSTALLED_APPS = [
 # last, put everything else in between
 MIDDLEWARE = [
     'django_prometheus.middleware.PrometheusBeforeMiddleware',
+    # Middleware to add request to thread variables, this should be far up in the chain so request
+    # information can be added to as many logs as possible.
+    'logging_utilities.django_middlewares.add_request_context.AddToThreadContextMiddleware',
     'middleware.logging.RequestResponseLoggingMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'middleware.cors.CORSHeadersMiddleware',
@@ -191,6 +194,8 @@ WHITENOISE_MIMETYPES = {
     '.yaml': 'application/vnd.oai.openapi+yaml;version=3.0',
     '.yml': 'application/vnd.oai.openapi+yaml;version=3.0'
 }
+
+DELETE_EXPIRED_ITEMS_OLDER_THAN_HOURS = 24
 
 # Media files (i.e. uploaded content=assets in this project)
 UPLOAD_FILE_CHUNK_SIZE = 1024 * 1024  # Size in Bytes
