@@ -8,6 +8,10 @@ from stac_api.views.collection import CollectionAssetDetail
 from stac_api.views.collection import CollectionAssetsList
 from stac_api.views.collection import CollectionDetail
 from stac_api.views.collection import CollectionList
+from stac_api.views.general import ConformancePageDetail
+from stac_api.views.general import LandingPageDetail
+from stac_api.views.general import SearchList
+from stac_api.views.general import recalculate_extent
 from stac_api.views.item import AssetDetail
 from stac_api.views.item import AssetsList
 from stac_api.views.item import ItemDetail
@@ -22,10 +26,6 @@ from stac_api.views.upload import CollectionAssetUploadComplete
 from stac_api.views.upload import CollectionAssetUploadDetail
 from stac_api.views.upload import CollectionAssetUploadPartsList
 from stac_api.views.upload import CollectionAssetUploadsList
-from stac_api.views.views import ConformancePageDetail
-from stac_api.views.views import LandingPageDetail
-from stac_api.views.views import SearchList
-from stac_api.views.views import recalculate_extent
 
 # HEALTHCHECK_ENDPOINT = settings.HEALTHCHECK_ENDPOINT
 

@@ -32,8 +32,10 @@ from stac_api.utils import select_s3_bucket
 from stac_api.utils import utc_aware
 from stac_api.validators_view import validate_asset
 from stac_api.validators_view import validate_collection_asset
-from stac_api.views import views_mixins
-from stac_api.views.views import get_etag
+from stac_api.views.general import get_etag
+from stac_api.views.mixins import CreateModelMixin
+from stac_api.views.mixins import DestroyModelMixin
+from stac_api.views.mixins import UpdateInsertModelMixin
 
 logger = logging.getLogger(__name__)
 
@@ -188,7 +190,7 @@ class AssetUploadBase(SharedAssetUploadBase):
         )
 
 
-class AssetUploadsList(AssetUploadBase, mixins.ListModelMixin, views_mixins.CreateModelMixin):
+class AssetUploadsList(AssetUploadBase, mixins.ListModelMixin, CreateModelMixin):
 
     class ExternalDisallowedException(Exception):
         pass
@@ -233,14 +235,14 @@ class AssetUploadsList(AssetUploadBase, mixins.ListModelMixin, views_mixins.Crea
         return queryset
 
 
-class AssetUploadDetail(AssetUploadBase, mixins.RetrieveModelMixin, views_mixins.DestroyModelMixin):
+class AssetUploadDetail(AssetUploadBase, mixins.RetrieveModelMixin, DestroyModelMixin):
 
     @etag(get_asset_upload_etag)
     def get(self, request, *args, **kwargs):
         return self.retrieve(request, *args, **kwargs)
 
 
-class AssetUploadComplete(AssetUploadBase, views_mixins.UpdateInsertModelMixin):
+class AssetUploadComplete(AssetUploadBase, UpdateInsertModelMixin):
 
     def post(self, request, *args, **kwargs):
         kwargs['partial'] = True
@@ -259,7 +261,7 @@ class AssetUploadComplete(AssetUploadBase, views_mixins.UpdateInsertModelMixin):
         )
 
 
-class AssetUploadAbort(AssetUploadBase, views_mixins.UpdateInsertModelMixin):
+class AssetUploadAbort(AssetUploadBase, UpdateInsertModelMixin):
 
     def post(self, request, *args, **kwargs):
         kwargs['partial'] = True
@@ -325,7 +327,7 @@ class CollectionAssetUploadBase(SharedAssetUploadBase):
 
 
 class CollectionAssetUploadsList(
-    CollectionAssetUploadBase, mixins.ListModelMixin, views_mixins.CreateModelMixin
+    CollectionAssetUploadBase, mixins.ListModelMixin, CreateModelMixin
 ):
 
     class ExternalDisallowedException(Exception):
@@ -372,7 +374,7 @@ class CollectionAssetUploadsList(
 
 
 class CollectionAssetUploadDetail(
-    CollectionAssetUploadBase, mixins.RetrieveModelMixin, views_mixins.DestroyModelMixin
+    CollectionAssetUploadBase, mixins.RetrieveModelMixin, DestroyModelMixin
 ):
 
     @etag(get_collection_asset_upload_etag)
@@ -380,7 +382,7 @@ class CollectionAssetUploadDetail(
         return self.retrieve(request, *args, **kwargs)
 
 
-class CollectionAssetUploadComplete(CollectionAssetUploadBase, views_mixins.UpdateInsertModelMixin):
+class CollectionAssetUploadComplete(CollectionAssetUploadBase, UpdateInsertModelMixin):
 
     def post(self, request, *args, **kwargs):
         kwargs['partial'] = True
@@ -399,7 +401,7 @@ class CollectionAssetUploadComplete(CollectionAssetUploadBase, views_mixins.Upda
         )
 
 
-class CollectionAssetUploadAbort(CollectionAssetUploadBase, views_mixins.UpdateInsertModelMixin):
+class CollectionAssetUploadAbort(CollectionAssetUploadBase, UpdateInsertModelMixin):
 
     def post(self, request, *args, **kwargs):
         kwargs['partial'] = True

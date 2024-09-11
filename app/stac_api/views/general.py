@@ -26,7 +26,7 @@ from stac_api.utils import harmonize_post_get_for_search
 from stac_api.utils import is_api_version_1
 from stac_api.utils import utc_aware
 from stac_api.validators_serializer import ValidateSearchRequest
-from stac_api.views import views_mixins
+from stac_api.views.mixins import patch_cache_settings_by_update_interval
 
 logger = logging.getLogger(__name__)
 
@@ -146,7 +146,7 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
 
     def get(self, request, *args, **kwargs):
         response, min_update_interval = self.list(request, *args, **kwargs)
-        views_mixins.patch_cache_settings_by_update_interval(response, min_update_interval)
+        patch_cache_settings_by_update_interval(response, min_update_interval)
         return response
 
     def post(self, request, *args, **kwargs):

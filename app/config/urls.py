@@ -38,11 +38,11 @@ urlpatterns = [
 if settings.DEBUG:
     import debug_toolbar
 
-    from stac_api.views.views_test import TestAssetUpsertHttp500
-    from stac_api.views.views_test import TestCollectionAssetUpsertHttp500
-    from stac_api.views.views_test import TestCollectionUpsertHttp500
-    from stac_api.views.views_test import TestHttp500
-    from stac_api.views.views_test import TestItemUpsertHttp500
+    from stac_api.views.test import TestAssetUpsertHttp500
+    from stac_api.views.test import TestCollectionAssetUpsertHttp500
+    from stac_api.views.test import TestCollectionUpsertHttp500
+    from stac_api.views.test import TestHttp500
+    from stac_api.views.test import TestItemUpsertHttp500
 
     urlpatterns = [
         path('__debug__/', include(debug_toolbar.urls)),

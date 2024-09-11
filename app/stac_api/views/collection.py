@@ -16,8 +16,11 @@ from stac_api.serializers.serializers_utils import get_relation_links
 from stac_api.utils import get_collection_asset_path
 from stac_api.validators_view import validate_collection
 from stac_api.validators_view import validate_renaming
-from stac_api.views import views_mixins
-from stac_api.views.views import get_etag
+from stac_api.views.general import get_etag
+from stac_api.views.mixins import DestroyModelMixin
+from stac_api.views.mixins import RetrieveModelDynCacheMixin
+from stac_api.views.mixins import UpdateInsertModelMixin
+from stac_api.views.mixins import patch_cache_settings_by_update_interval
 
 logger = logging.getLogger(__name__)
 
@@ -93,10 +96,7 @@ class CollectionList(generics.GenericAPIView):
 
 
 class CollectionDetail(
-    generics.GenericAPIView,
-    mixins.RetrieveModelMixin,
-    views_mixins.UpdateInsertModelMixin,
-    views_mixins.DestroyModelMixin
+    generics.GenericAPIView, mixins.RetrieveModelMixin, UpdateInsertModelMixin, DestroyModelMixin
 ):
     # this name must match the name in urls.py and is used by the DestroyModelMixin
     name = 'collection-detail'
@@ -173,15 +173,12 @@ class CollectionAssetsList(generics.GenericAPIView):
             'links': get_relation_links(request, self.name, [self.kwargs['collection_name']])
         }
         response = Response(data)
-        views_mixins.patch_cache_settings_by_update_interval(response, update_interval)
+        patch_cache_settings_by_update_interval(response, update_interval)
         return response
 
 
 class CollectionAssetDetail(
-    generics.GenericAPIView,
-    views_mixins.UpdateInsertModelMixin,
-    views_mixins.DestroyModelMixin,
-    views_mixins.RetrieveModelDynCacheMixin
+    generics.GenericAPIView, UpdateInsertModelMixin, DestroyModelMixin, RetrieveModelDynCacheMixin
 ):
     # this name must match the name in urls.py and is used by the DestroyModelMixin
     name = 'collection-asset-detail'

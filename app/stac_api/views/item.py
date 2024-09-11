@@ -22,8 +22,8 @@ from stac_api.utils import utc_aware
 from stac_api.validators_view import validate_collection
 from stac_api.validators_view import validate_item
 from stac_api.validators_view import validate_renaming
-from stac_api.views import views_mixins
-from stac_api.views.views import get_etag
+from stac_api.views import mixins
+from stac_api.views.general import get_etag
 
 logger = logging.getLogger(__name__)
 
@@ -133,7 +133,7 @@ class ItemsList(generics.GenericAPIView):
         if page is not None:
             response = self.get_paginated_response(data)
         response = Response(data)
-        views_mixins.patch_cache_settings_by_update_interval(response, update_interval)
+        mixins.patch_cache_settings_by_update_interval(response, update_interval)
         return response
 
     def get(self, request, *args, **kwargs):
@@ -142,9 +142,9 @@ class ItemsList(generics.GenericAPIView):
 
 class ItemDetail(
     generics.GenericAPIView,
-    views_mixins.RetrieveModelDynCacheMixin,
-    views_mixins.UpdateInsertModelMixin,
-    views_mixins.DestroyModelMixin
+    mixins.RetrieveModelDynCacheMixin,
+    mixins.UpdateInsertModelMixin,
+    mixins.DestroyModelMixin
 ):
     # this name must match the name in urls.py and is used by the DestroyModelMixin
     name = 'item-detail'
@@ -246,15 +246,15 @@ class AssetsList(generics.GenericAPIView):
                 )
         }
         response = Response(data)
-        views_mixins.patch_cache_settings_by_update_interval(response, update_interval)
+        mixins.patch_cache_settings_by_update_interval(response, update_interval)
         return response
 
 
 class AssetDetail(
     generics.GenericAPIView,
-    views_mixins.UpdateInsertModelMixin,
-    views_mixins.DestroyModelMixin,
-    views_mixins.RetrieveModelDynCacheMixin
+    mixins.UpdateInsertModelMixin,
+    mixins.DestroyModelMixin,
+    mixins.RetrieveModelDynCacheMixin
 ):
     # this name must match the name in urls.py and is used by the DestroyModelMixin
     name = 'asset-detail'
