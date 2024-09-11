@@ -33,11 +33,11 @@ from stac_api.models import LandingPage
 from stac_api.pagination import ExtApiPagination
 from stac_api.pagination import GetPostCursorPagination
 from stac_api.s3_multipart_upload import MultipartUpload
+from stac_api.serializers.item import ItemSerializer
 from stac_api.serializers.serializers import AssetUploadPartsSerializer
 from stac_api.serializers.serializers import AssetUploadSerializer
 from stac_api.serializers.serializers import CollectionAssetUploadSerializer
 from stac_api.serializers.serializers import ConformancePageSerializer
-from stac_api.serializers.serializers import ItemSerializer
 from stac_api.serializers.serializers import LandingPageSerializer
 from stac_api.serializers.serializers_utils import get_relation_links
 from stac_api.utils import call_calculate_extent

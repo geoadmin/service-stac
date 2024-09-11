@@ -20,7 +20,7 @@ class Handler(CommandHandler):
 
     def profiling(self):
         # pylint: disable=import-outside-toplevel,possibly-unused-variable
-        from stac_api.serializers.serializers import ItemSerializer
+        from stac_api.serializers.item import ItemSerializer
         collection_id = self.options["collection"]
         qs = Item.objects.filter(collection__name=collection_id
                                 ).prefetch_related('assets', 'links')[:self.options['limit']]
