@@ -20,10 +20,10 @@ import io
 from rest_framework.renderers import JSONRenderer
 from rest_framework.parsers import JSONParser
 from stac_api.models import *
-from stac_api.serializers.serializers import CollectionSerializer
-from stac_api.serializers.serializers import CollectionSerializer
-from stac_api.serializers.serializers import LinkSerializer
-from stac_api.serializers.serializers import ProviderSerializer
+from stac_api.serializers.general import CollectionSerializer
+from stac_api.serializers.general import CollectionSerializer
+from stac_api.serializers.general import LinkSerializer
+from stac_api.serializers.general import ProviderSerializer
 
 # create link instances for testing
 

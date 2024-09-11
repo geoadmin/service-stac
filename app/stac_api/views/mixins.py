@@ -11,7 +11,7 @@ from rest_framework import serializers
 from rest_framework import status
 from rest_framework.response import Response
 
-from stac_api.serializers.serializers_utils import get_parent_link
+from stac_api.serializers.utils import get_parent_link
 from stac_api.utils import get_dynamic_max_age_value
 from stac_api.utils import get_link
 

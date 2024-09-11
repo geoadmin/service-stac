@@ -16,7 +16,7 @@ from stac_api.models import Collection
 from stac_api.models import Item
 from stac_api.serializers.item import AssetSerializer
 from stac_api.serializers.item import ItemSerializer
-from stac_api.serializers.serializers_utils import get_relation_links
+from stac_api.serializers.utils import get_relation_links
 from stac_api.utils import get_asset_path
 from stac_api.utils import utc_aware
 from stac_api.validators_view import validate_collection

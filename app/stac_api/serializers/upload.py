@@ -7,7 +7,7 @@ from rest_framework.utils.serializer_helpers import ReturnDict
 
 from stac_api.models import AssetUpload
 from stac_api.models import CollectionAssetUpload
-from stac_api.serializers.serializers_utils import NonNullModelSerializer
+from stac_api.serializers.utils import NonNullModelSerializer
 from stac_api.utils import is_api_version_1
 from stac_api.utils import isoformat
 from stac_api.validators import validate_checksum_multihash_sha256

@@ -17,10 +17,10 @@ from rest_framework.response import Response
 from stac_api.models import Item
 from stac_api.models import LandingPage
 from stac_api.pagination import GetPostCursorPagination
+from stac_api.serializers.general import ConformancePageSerializer
+from stac_api.serializers.general import LandingPageSerializer
 from stac_api.serializers.item import ItemSerializer
-from stac_api.serializers.serializers import ConformancePageSerializer
-from stac_api.serializers.serializers import LandingPageSerializer
-from stac_api.serializers.serializers_utils import get_relation_links
+from stac_api.serializers.utils import get_relation_links
 from stac_api.utils import call_calculate_extent
 from stac_api.utils import harmonize_post_get_for_search
 from stac_api.utils import is_api_version_1
