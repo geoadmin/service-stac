@@ -14,9 +14,9 @@ from rest_framework_condition import etag
 from stac_api.models import Asset
 from stac_api.models import Collection
 from stac_api.models import Item
-from stac_api.serializers import AssetSerializer
-from stac_api.serializers import ItemSerializer
-from stac_api.serializers_utils import get_relation_links
+from stac_api.serializers.serializers import AssetSerializer
+from stac_api.serializers.serializers import ItemSerializer
+from stac_api.serializers.serializers_utils import get_relation_links
 from stac_api.utils import get_asset_path
 from stac_api.utils import utc_aware
 from stac_api.validators_view import validate_collection

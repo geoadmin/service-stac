@@ -23,11 +23,11 @@ from stac_api.models import ItemLink
 from stac_api.models import LandingPage
 from stac_api.models import LandingPageLink
 from stac_api.models import Provider
-from stac_api.serializers_utils import DictSerializer
-from stac_api.serializers_utils import NonNullModelSerializer
-from stac_api.serializers_utils import UpsertModelSerializerMixin
-from stac_api.serializers_utils import get_relation_links
-from stac_api.serializers_utils import update_or_create_links
+from stac_api.serializers.serializers_utils import DictSerializer
+from stac_api.serializers.serializers_utils import NonNullModelSerializer
+from stac_api.serializers.serializers_utils import UpsertModelSerializerMixin
+from stac_api.serializers.serializers_utils import get_relation_links
+from stac_api.serializers.serializers_utils import update_or_create_links
 from stac_api.utils import build_asset_href
 from stac_api.utils import get_browser_url
 from stac_api.utils import get_stac_version

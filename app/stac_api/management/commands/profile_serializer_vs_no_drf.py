@@ -21,7 +21,7 @@ class Handler(CommandHandler):
         # pylint: disable=import-outside-toplevel,possibly-unused-variable
 
         self.print('Starting profiling')
-        from stac_api.serializers import ItemSerializer
+        from stac_api.serializers.serializers import ItemSerializer
 
         def serialize(qs):
             return {
