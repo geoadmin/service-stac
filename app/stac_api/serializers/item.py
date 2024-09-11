@@ -9,8 +9,8 @@ from rest_framework_gis import serializers as gis_serializers
 from stac_api.models import Asset
 from stac_api.models import Item
 from stac_api.models import ItemLink
-from stac_api.serializers.serializers import AssetsDictSerializer
-from stac_api.serializers.serializers import HrefField
+from stac_api.serializers.serializers_utils import AssetsDictSerializer
+from stac_api.serializers.serializers_utils import HrefField
 from stac_api.serializers.serializers_utils import NonNullModelSerializer
 from stac_api.serializers.serializers_utils import UpsertModelSerializerMixin
 from stac_api.serializers.serializers_utils import get_relation_links

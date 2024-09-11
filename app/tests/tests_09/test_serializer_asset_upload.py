@@ -7,7 +7,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
 from stac_api.models import AssetUpload
-from stac_api.serializers.serializers import AssetUploadSerializer
+from stac_api.serializers.upload import AssetUploadSerializer
 from stac_api.utils import get_sha256_multihash
 
 from tests.tests_09.base_test import STAC_BASE_V

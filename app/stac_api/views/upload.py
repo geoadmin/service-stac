@@ -23,9 +23,9 @@ from stac_api.models import CollectionAsset
 from stac_api.models import CollectionAssetUpload
 from stac_api.pagination import ExtApiPagination
 from stac_api.s3_multipart_upload import MultipartUpload
-from stac_api.serializers.serializers import AssetUploadPartsSerializer
-from stac_api.serializers.serializers import AssetUploadSerializer
-from stac_api.serializers.serializers import CollectionAssetUploadSerializer
+from stac_api.serializers.upload import AssetUploadPartsSerializer
+from stac_api.serializers.upload import AssetUploadSerializer
+from stac_api.serializers.upload import CollectionAssetUploadSerializer
 from stac_api.utils import get_asset_path
 from stac_api.utils import get_collection_asset_path
 from stac_api.utils import select_s3_bucket

@@ -4,6 +4,7 @@ from collections import OrderedDict
 from rest_framework import serializers
 from rest_framework.utils.serializer_helpers import ReturnDict
 
+from stac_api.utils import build_asset_href
 from stac_api.utils import get_browser_url
 from stac_api.utils import get_url
 
@@ -311,3 +312,30 @@ class DictSerializer(serializers.ListSerializer):
     def data(self):
         ret = super(serializers.ListSerializer, self).data
         return ReturnDict(ret, serializer=self)
+
+
+class AssetsDictSerializer(DictSerializer):
+    '''Assets serializer list to dictionary
+
+    This serializer returns an asset dictionary with the asset name as keys.
+    '''
+    # pylint: disable=abstract-method
+    key_identifier = 'id'
+
+
+class HrefField(serializers.Field):
+    '''Special Href field for Assets'''
+
+    # pylint: disable=abstract-method
+
+    def to_representation(self, value):
+        # build an absolute URL from the file path
+        request = self.context.get("request")
+        path = value.name
+
+        if value.instance.is_external:
+            return path
+        return build_asset_href(request, path)
+
+    def to_internal_value(self, data):
+        return data

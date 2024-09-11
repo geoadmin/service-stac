@@ -8,8 +8,8 @@ from stac_api.models import Collection
 from stac_api.models import CollectionAsset
 from stac_api.models import CollectionLink
 from stac_api.models import Provider
-from stac_api.serializers.serializers import AssetsDictSerializer
-from stac_api.serializers.serializers import HrefField
+from stac_api.serializers.serializers_utils import AssetsDictSerializer
+from stac_api.serializers.serializers_utils import HrefField
 from stac_api.serializers.serializers_utils import NonNullModelSerializer
 from stac_api.serializers.serializers_utils import UpsertModelSerializerMixin
 from stac_api.serializers.serializers_utils import get_relation_links
