@@ -10,8 +10,8 @@ from rest_framework_condition import etag
 
 from stac_api.models import Collection
 from stac_api.models import CollectionAsset
-from stac_api.serializers.serializers import CollectionAssetSerializer
-from stac_api.serializers.serializers import CollectionSerializer
+from stac_api.serializers.collection import CollectionAssetSerializer
+from stac_api.serializers.collection import CollectionSerializer
 from stac_api.serializers.serializers_utils import get_relation_links
 from stac_api.utils import get_collection_asset_path
 from stac_api.validators_view import validate_collection
