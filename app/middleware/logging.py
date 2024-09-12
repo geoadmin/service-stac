@@ -28,7 +28,7 @@ class RequestResponseLoggingMiddleware:
         ] and request.content_type == "application/json" and not request.path.startswith(
             '/api/stac/admin'
         ):
-            extra["request.payload"] = request.body[:200].decode()
+            extra["request.payload"] = request.body.decode()[:200]
 
         logger.debug(
             "Request %s %s?%s",
