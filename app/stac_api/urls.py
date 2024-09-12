@@ -4,28 +4,28 @@ from django.urls import re_path
 
 from rest_framework.authtoken.views import obtain_auth_token
 
-from stac_api.views import AssetDetail
-from stac_api.views import AssetsList
-from stac_api.views import AssetUploadAbort
-from stac_api.views import AssetUploadComplete
-from stac_api.views import AssetUploadDetail
-from stac_api.views import AssetUploadPartsList
-from stac_api.views import AssetUploadsList
-from stac_api.views import CollectionAssetDetail
-from stac_api.views import CollectionAssetsList
-from stac_api.views import CollectionAssetUploadAbort
-from stac_api.views import CollectionAssetUploadComplete
-from stac_api.views import CollectionAssetUploadDetail
-from stac_api.views import CollectionAssetUploadPartsList
-from stac_api.views import CollectionAssetUploadsList
-from stac_api.views import CollectionDetail
-from stac_api.views import CollectionList
-from stac_api.views import ConformancePageDetail
-from stac_api.views import ItemDetail
-from stac_api.views import ItemsList
-from stac_api.views import LandingPageDetail
-from stac_api.views import SearchList
-from stac_api.views import recalculate_extent
+from stac_api.views.collection import CollectionAssetDetail
+from stac_api.views.collection import CollectionAssetsList
+from stac_api.views.collection import CollectionDetail
+from stac_api.views.collection import CollectionList
+from stac_api.views.general import ConformancePageDetail
+from stac_api.views.general import LandingPageDetail
+from stac_api.views.general import SearchList
+from stac_api.views.general import recalculate_extent
+from stac_api.views.item import AssetDetail
+from stac_api.views.item import AssetsList
+from stac_api.views.item import ItemDetail
+from stac_api.views.item import ItemsList
+from stac_api.views.upload import AssetUploadAbort
+from stac_api.views.upload import AssetUploadComplete
+from stac_api.views.upload import AssetUploadDetail
+from stac_api.views.upload import AssetUploadPartsList
+from stac_api.views.upload import AssetUploadsList
+from stac_api.views.upload import CollectionAssetUploadAbort
+from stac_api.views.upload import CollectionAssetUploadComplete
+from stac_api.views.upload import CollectionAssetUploadDetail
+from stac_api.views.upload import CollectionAssetUploadPartsList
+from stac_api.views.upload import CollectionAssetUploadsList
 
 # HEALTHCHECK_ENDPOINT = settings.HEALTHCHECK_ENDPOINT
 
