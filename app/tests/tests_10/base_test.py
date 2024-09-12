@@ -302,6 +302,56 @@ class StacTestMixin:
             ]
             self._check_stac_links('asset.links', links, current['links'])
 
+    def check_stac_collection_asset(self, expected, current, collection, ignore=None):
+        '''Check a STAC Collection Asset data
+
+        Check if the `current` collection asset data match the `expected`. This check is a subset
+        check which means that if a value is missing from `current`, then it raises a Test Assert,
+        while if a value is in `current` but not in `expected`, the test passed. The functions
+        knows also the STAC Spec and does some check based on it.
+
+        Args:
+            expected: dict
+                Expected STAC Asset
+            current: dict
+                Current STAC Asset to test
+            ignore: list(string) | None
+                List of keys to ignore in the test
+        '''
+        if ignore is None:
+            ignore = []
+        self._check_stac_dictsubset('asset', expected, current, ignore=ignore)
+
+        # check required fields
+        for key in ['links', 'id', 'type', 'href']:
+            if key in ignore:
+                logger.info('Ignoring key %s in asset', key)
+                continue
+            self.assertIn(key, current, msg=f'Asset {key} is missing')
+        for date_field in ['created', 'updated']:
+            if key in ignore:
+                logger.info('Ignoring key %s in asset', key)
+                continue
+            self.assertIn(date_field, current, msg=f'Asset {date_field} is missing')
+            self.assertTrue(
+                fromisoformat(current[date_field]),
+                msg=f"The asset field {date_field} has an invalid date"
+            )
+        if 'links' not in ignore:
+            name = current['id']
+            links = [
+                {
+                    'rel': 'self',
+                    'href': f'{TEST_LINK_ROOT_HREF}/collections/{collection}/assets/{name}'
+                },
+                TEST_LINK_ROOT,
+                {
+                    'rel': 'parent',
+                    'href': f'{TEST_LINK_ROOT_HREF}/collections/{collection}',
+                },
+            ]
+            self._check_stac_links('asset.links', links, current['links'])
+
     def _check_stac_dictsubset(self, parent_path, expected, current, ignore=None):
         for key, value in expected.items():
             path = f'{parent_path}.{key}'
