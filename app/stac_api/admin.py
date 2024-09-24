@@ -13,6 +13,7 @@ from django.db.models.deletion import ProtectedError
 from django.forms import CharField
 from django.forms import Textarea
 from django.http import HttpResponseRedirect
+from django.template.defaultfilters import filesizeformat
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
@@ -99,6 +100,7 @@ class CollectionAdmin(admin.ModelAdmin):
         'license',
         'etag',
         'update_interval',
+        'total_file_size',
         'allow_external_assets',
         'external_asset_whitelist'
     ]
@@ -113,12 +115,16 @@ class CollectionAdmin(admin.ModelAdmin):
         'summaries_geoadmin_lang',
         'summaries_eo_gsd',
         'etag',
-        'update_interval'
+        'update_interval',
+        'total_file_size'
     ]
     inlines = [ProviderInline, CollectionLinkInline, CollectionAssetInline]
     search_fields = ['name']
     list_display = ['name', 'published']
     list_filter = ['published']
+
+    def total_file_size(self, instance):
+        return filesizeformat(instance.total_data_size)
 
     def render_change_form(self, request, context, *args, **kwargs):
         form_instance = context['adminform'].form
@@ -185,16 +191,26 @@ class ItemAdmin(admin.ModelAdmin):
     inlines = [ItemLinkInline]
     autocomplete_fields = ['collection']
     search_fields = ['name', 'collection__name']
-    readonly_fields = ['collection_name', 'created', 'updated', 'etag', 'update_interval']
+    readonly_fields = [
+        'collection_name', 'created', 'updated', 'etag', 'update_interval', 'total_file_size'
+    ]
     fieldsets = (
-        (None, {
-            'fields': ('name', 'collection', 'created', 'updated', 'etag', 'update_interval')
-        }),
+        (
+            None,
+            {
+                'fields': (
+                    'name',
+                    'collection',
+                    'created',
+                    'updated',
+                    'etag',
+                    'update_interval',
+                    'total_file_size'
+                )
+            }
+        ),
         ('geometry', {
-            'fields': (
-                'geometry',
-                'text_geometry',
-            ),
+            'fields': ('geometry', 'text_geometry'),
         }),
         (
             'Properties',
@@ -212,6 +228,9 @@ class ItemAdmin(admin.ModelAdmin):
 
     list_display = ['name', 'collection', 'collection_published']
     list_filter = [CollectionFilterForItems]
+
+    def total_file_size(self, instance):
+        return filesizeformat(instance.total_data_size)
 
     def get_search_results(self, request, queryset, search_term):
         queryset, use_distinct = super().get_search_results(request, queryset, search_term)
@@ -268,13 +287,25 @@ class ItemAdmin(admin.ModelAdmin):
             # In case a new Item is added use the normal field 'collection' from model that have
             # a help text fort the search functionality.
             fields[0][1]['fields'] = (
-                'name', 'collection', 'created', 'updated', 'etag', 'update_interval'
+                'name',
+                'collection',
+                'created',
+                'updated',
+                'etag',
+                'update_interval',
+                'total_file_size'
             )
             return fields
         # Otherwise if this is an update operation only display the read only field
         # without help text
         fields[0][1]['fields'] = (
-            'name', 'collection_name', 'created', 'updated', 'etag', 'update_interval'
+            'name',
+            'collection_name',
+            'created',
+            'updated',
+            'etag',
+            'update_interval',
+            'total_file_size'
         )
         return fields
 
@@ -310,7 +341,8 @@ class CollectionAssetAdmin(admin.ModelAdmin):
         'created',
         'updated',
         'etag',
-        'update_interval'
+        'update_interval',
+        'displayed_file_size'
     ]
     list_display = ['name', 'collection_name', 'collection_published']
     fieldsets = (
@@ -318,8 +350,16 @@ class CollectionAssetAdmin(admin.ModelAdmin):
             'fields': ('name', 'collection', 'created', 'updated', 'etag')
         }),
         (
-            'File', {
-                'fields': ('file', 'media_type', 'href', 'checksum_multihash', 'update_interval')
+            'File',
+            {
+                'fields': (
+                    'file',
+                    'media_type',
+                    'href',
+                    'checksum_multihash',
+                    'update_interval',
+                    'displayed_file_size'
+                )
             }
         ),
         ('Description', {
@@ -377,6 +417,9 @@ class CollectionAssetAdmin(admin.ModelAdmin):
     def href(self, instance):
         path = instance.file.name
         return build_asset_href(self.request, path)
+
+    def displayed_file_size(self, instance):
+        return filesizeformat(instance.file_size)
 
     # We don't want to move the assets on S3
     # That's why some fields like the name of the asset are set readonly here
@@ -459,7 +502,8 @@ class AssetAdmin(admin.ModelAdmin):
         'created',
         'updated',
         'etag',
-        'update_interval'
+        'update_interval',
+        'displayed_file_size'
     ]
     list_display = ['name', 'item_name', 'collection_name', 'collection_published']
 
@@ -525,6 +569,9 @@ class AssetAdmin(admin.ModelAdmin):
             return path
         return build_asset_href(self.request, path)
 
+    def displayed_file_size(self, instance):
+        return filesizeformat(instance.file_size)
+
     def get_fieldsets(self, request, obj=None):
         """Build the different field sets for the admin page
 
@@ -557,11 +604,17 @@ class AssetAdmin(admin.ModelAdmin):
                     'media_type',
                     'href',
                     'checksum_multihash',
-                    'update_interval'
+                    'update_interval',
+                    'displayed_file_size'
                 )
             else:
                 file_fields = (
-                    'file', 'media_type', 'href', 'checksum_multihash', 'update_interval'
+                    'file',
+                    'media_type',
+                    'href',
+                    'checksum_multihash',
+                    'update_interval',
+                    'displayed_file_size'
                 )
 
             fields.append(('File', {'fields': file_fields}))
