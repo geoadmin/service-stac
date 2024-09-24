@@ -149,7 +149,9 @@ class SharedAssetUploadBase(generics.GenericAPIView):
             raise serializers.ValidationError({'parts': [_("Too few parts")]}, code='invalid')
         if asset_upload.status != BaseAssetUpload.Status.IN_PROGRESS:
             raise UploadNotInProgressError()
-        executor.complete_multipart_upload(key, asset, parts, asset_upload.upload_id)
+        asset_upload.file_size = executor.complete_multipart_upload(
+            key, asset, parts, asset_upload.upload_id
+        )
         asset_upload.update_asset_from_upload()
         asset_upload.status = BaseAssetUpload.Status.COMPLETED
         asset_upload.ended = utc_aware(datetime.utcnow())

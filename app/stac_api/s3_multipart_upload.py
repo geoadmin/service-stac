@@ -194,6 +194,8 @@ class MultipartUpload:
 
         Raises:
             ValidationError: when the parts are not valid
+        Returns:
+            Size of upload in bytes
         '''
         try:
             response = self.call_s3_api(
@@ -226,6 +228,8 @@ class MultipartUpload:
                 },
             )
             raise ValueError(response)
+
+        return self.s3.head_object(Bucket=self.settings['S3_BUCKET_NAME'], Key=key)['ContentLength']
 
     def abort_multipart_upload(self, key, asset, upload_id):
         '''Abort a multipart upload on the backend
