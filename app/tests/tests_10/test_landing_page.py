@@ -1,5 +1,3 @@
-from parameterized import parameterized
-
 from django.test import Client
 
 from tests.tests_10.base_test import STAC_BASE_V
@@ -12,12 +10,8 @@ class IndexTestCase(StacBaseTestCase):
     def setUp(self):
         self.client = Client()
 
-    @parameterized.expand([
-        (f"/{STAC_BASE_V}/",),
-        (f"/{STAC_BASE_V}",),
-    ])
-    def test_landing_page(self, path):
-        response = self.client.get(path)
+    def test_landing_page(self):
+        response = self.client.get(f"/{STAC_BASE_V}/")
         self.assertEqual(response.status_code, 200)
         self.assertCors(response)
         self.assertEqual(response['Content-Type'], 'application/json')
@@ -36,3 +30,9 @@ class IndexTestCase(StacBaseTestCase):
                 set(),
                 msg="missing required attribute in the answer['links'] array"
             )
+
+    def test_landing_page_redirect(self):
+        response = self.client.get(f"/{STAC_BASE_V}")
+        self.assertEqual(response.status_code, 301)
+        self.assertLocationHeader(f"/{STAC_BASE_V}/", response)
+        self.assertCors(response)
