@@ -47,9 +47,7 @@ class AdminBaseTestCase(TestCase):
         if create_item:
             self.item = self._create_item(self.collection)[0]
 
-    def _create_collection(
-        self, with_link=False, with_provider=False, extra=None
-    ):
+    def _create_collection(self, with_link=False, with_provider=False, extra=None):
         # Post data to create a new collection
         # Note: the *-*_FORMS fields are necessary management form fields
         # originating from the AdminInline and must be present
@@ -326,10 +324,10 @@ class AdminTestCase(AdminBaseTestCase):
         self.assertEqual(response.status_code, 200, msg="Admin page login failed")
 
     def test_login_noslash(self):
-      self.client.login(username=self.username, password=self.password)
-      response = self.client.get("/api/stac/admin")
-      self.assertEqual(response.status_code, 301, msg="Admin page redirection failed")
-      self.assertEqual("/api/stac/admin/", response.url)
+        self.client.login(username=self.username, password=self.password)
+        response = self.client.get("/api/stac/admin")
+        self.assertEqual(response.status_code, 301, msg="Admin page redirection failed")
+        self.assertEqual("/api/stac/admin/", response.url)
 
     def test_login_failure(self):
         # Make sure login with wrong password fails
