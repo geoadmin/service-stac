@@ -334,7 +334,7 @@ class AdminTestCase(AdminBaseTestCase):
         self.client.login(username=self.username, password="wrongpassword")
         response = self.client.get("/api/stac/admin/")
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(f"/api/stac/admin/login/?next=/api/stac/admin/", response.url)
+        self.assertEqual("/api/stac/admin/login/?next=/api/stac/admin/", response.url)
 
 
 #--------------------------------------------------------------------------------------------------
