@@ -214,6 +214,33 @@ def generates_asset_triggers():
         RETURN asset_instance;
         '''
 
+    class ItemFileSizeTrigger(pgtrigger.Trigger):
+        when = pgtrigger.After
+        declare = [
+            ('asset_instance', 'stac_api_asset%ROWTYPE'),
+            ('item_data_size', 'RECORD'),
+        ]
+        func = '''
+        asset_instance = COALESCE(NEW, OLD);
+
+        -- Compute item total_data_size (sum aggregation of asset's file_size)
+        SELECT
+           COALESCE(SUM(NULLIF(asset.file_size, 0)), 0) AS sum_file_size
+        INTO item_data_size
+        FROM stac_api_asset AS asset
+        WHERE asset.item_id = asset_instance.item_id;
+
+        -- Update related item file_size variables
+        UPDATE stac_api_item SET
+            total_data_size = item_data_size.sum_file_size
+        WHERE id = asset_instance.item_id;
+
+        RAISE INFO 'item.id=% total_data_size updated, due to asset.name=% updates.',
+            asset_instance.item_id, asset_instance.name;
+
+        RETURN asset_instance;
+        '''
+
     return [
         *auto_variables_triggers('asset'),
         *child_triggers('item', 'Asset'),
@@ -230,6 +257,15 @@ def generates_asset_triggers():
             operation=pgtrigger.Update,
             condition=pgtrigger.
             Condition('OLD.update_interval IS DISTINCT FROM NEW.update_interval'),
+        ),
+        ItemFileSizeTrigger(
+            name='add_del_asset_item_file_size_trigger',
+            operation=pgtrigger.Insert | pgtrigger.Delete,
+        ),
+        ItemFileSizeTrigger(
+            name='update_asset_item_file_size_trigger',
+            operation=pgtrigger.Update,
+            condition=pgtrigger.Condition('OLD.file_size IS DISTINCT FROM NEW.file_size'),
         )
     ]
 
@@ -259,6 +295,40 @@ def generates_collection_asset_triggers():
         WHERE id = asset_instance.collection_id;
         RAISE INFO 'collection.id=% update_interval updated, due to collectionasset.name=% updates.',
             asset_instance.collection_id, asset_instance.name;
+        RETURN asset_instance;
+        '''
+
+    class CollectionFileSizeTrigger(pgtrigger.Trigger):
+        when = pgtrigger.After
+        declare = [
+            ('asset_instance', 'stac_api_collectionasset%ROWTYPE'),
+            ('item_data_size', 'RECORD'),
+            ('collectionasset_file_size', 'RECORD'),
+        ]
+        func = '''
+        asset_instance = COALESCE(NEW, OLD);
+
+        -- Compute collection total_data_size (sum aggregation of item's total_data_size)
+        SELECT
+            COALESCE(SUM(NULLIF(item.total_data_size, 0)), 0) AS sum_file_size
+        INTO item_data_size
+        FROM stac_api_item AS item
+        WHERE item.collection_id = asset_instance.collection_id;
+
+        SELECT
+            COALESCE(SUM(NULLIF(collectionasset.file_size, 0)), 0) AS sum_file_size
+        INTO collectionasset_file_size
+        FROM stac_api_collectionasset AS collectionasset
+        WHERE collectionasset.collection_id = asset_instance.collection_id;
+
+        -- Update related collection file_size variables
+        UPDATE stac_api_collection SET
+            total_data_size = item_data_size.sum_file_size + collectionasset_file_size.sum_file_size
+        WHERE id = asset_instance.collection_id;
+
+        RAISE INFO 'collection.id=% total_data_size updated, due to item.name=% updates.',
+            asset_instance.collection_id, asset_instance.name;
+
         RETURN asset_instance;
         '''
 
@@ -347,6 +417,15 @@ def generates_collection_asset_triggers():
             name='update_col_asset_col_update_interval_trigger',
             operation=pgtrigger.Update,
             condition=pgtrigger.Condition('OLD.* IS DISTINCT FROM NEW.*'),
+        ),
+        CollectionFileSizeTrigger(
+            name='add_del_col_asset_col_file_size_trigger',
+            operation=pgtrigger.Insert | pgtrigger.Delete,
+        ),
+        CollectionFileSizeTrigger(
+            name='update_col_asset_col_file_size_trigger',
+            operation=pgtrigger.Update,
+            condition=pgtrigger.Condition('OLD.* IS DISTINCT FROM NEW.*'),
         )
     ]
 
@@ -407,6 +486,40 @@ def generates_item_triggers():
         RETURN item_instance;
         '''
 
+    class CollectionFileSizeTrigger(pgtrigger.Trigger):
+        when = pgtrigger.After
+        declare = [
+            ('item_instance', 'stac_api_item%ROWTYPE'),
+            ('item_data_size', 'RECORD'),
+            ('collectionasset_file_size', 'RECORD'),
+        ]
+        func = '''
+        item_instance = COALESCE(NEW, OLD);
+
+        -- Compute collection total_data_size (sum aggregation of item's total_data_size)
+        SELECT
+            COALESCE(SUM(NULLIF(item.total_data_size, 0)), 0) AS sum_file_size
+        INTO item_data_size
+        FROM stac_api_item AS item
+        WHERE item.collection_id = item_instance.collection_id;
+
+        SELECT
+            COALESCE(SUM(NULLIF(collectionasset.file_size, 0)), 0) AS sum_file_size
+        INTO collectionasset_file_size
+        FROM stac_api_collectionasset AS collectionasset
+        WHERE collectionasset.collection_id = item_instance.collection_id;
+
+        -- Update related collection file_size variables
+        UPDATE stac_api_collection SET
+            total_data_size = item_data_size.sum_file_size + collectionasset_file_size.sum_file_size
+        WHERE id = item_instance.collection_id;
+
+        RAISE INFO 'collection.id=% total_data_size updated, due to item.name=% updates.',
+            item_instance.collection_id, item_instance.name;
+
+        RETURN item_instance;
+        '''
+
     return [
         *auto_variables_triggers('item'),
         *child_triggers('collection', 'Item'),
@@ -433,6 +546,16 @@ def generates_item_triggers():
             operation=pgtrigger.Update,
             condition=pgtrigger.
             Condition('OLD.update_interval IS DISTINCT FROM NEW.update_interval'),
+        ),
+        CollectionFileSizeTrigger(
+            name='add_del_item_collection_file_size_trigger',
+            operation=pgtrigger.Insert | pgtrigger.Delete,
+        ),
+        CollectionFileSizeTrigger(
+            name='update_item_collection_file_size_trigger',
+            operation=pgtrigger.Update,
+            condition=pgtrigger.
+            Condition('OLD.total_data_size IS DISTINCT FROM NEW.total_data_size'),
         )
     ]
 
