@@ -431,11 +431,12 @@ With the following commands it is possible to get a proper state of the database
 ## Initial Setup up the RDS database and the user
 
 Right now the initial setup on the RDS database for the stagings *dev*, *int* and *prod* can be obtained
-with the helper script `scripts/setup_rds_db.sh`. The credentials come from `gopass`. To
-setup the RDS database on int, run following command:
+with the helper script `scripts/setup_rds_db.sh`. The credentials come from `ssm`. To
+setup the RDS database on int, run following command (the PROFILE variable denotes in what account the
+parameters are stored):
 
 ```bash
-    summon -p `which summon-gopass` -D APP_ENV=int scripts/setup_rds_db.sh
+    summon -p `ssm` -D APP_ENV=int -D PROFILE=swisstopo-bgdi-dev scripts/setup_rds_db.sh
 ```
 
 **Note:** The script won't delete the existing database.
