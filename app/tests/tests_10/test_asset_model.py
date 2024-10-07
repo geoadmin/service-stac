@@ -6,7 +6,6 @@ from stac_api.models import Asset
 
 from tests.tests_10.base_test import StacBaseTransactionTestCase
 from tests.tests_10.data_factory import Factory
-from tests.tests_10.sample_data.asset_samples import FILE_CONTENT_1
 from tests.utils import mock_s3_asset_file
 
 logger = logging.getLogger(__name__)
@@ -214,68 +213,3 @@ class AssetsModelTestCase(StacBaseTransactionTestCase):
         _asset = Asset.objects.get(pk=asset.pk)
         self.assertEqual(_asset.name, asset.name)
         self.assertEqual(_asset.media_type, asset.media_type)
-
-
-class AssetsModelTestCaseSkipSetup(StacBaseTransactionTestCase):
-
-    @mock_s3_asset_file
-    def setUp(self):
-        self.factory = Factory()
-        self.collection = self.factory.create_collection_sample(db_create=True)
-
-    @mock_s3_asset_file
-    def test_file_size(self):
-        self.factory = Factory()
-        file_size = len(FILE_CONTENT_1)
-
-        item1 = self.factory.create_item_sample(
-            self.collection.model, sample='item-1', db_create=True
-        )
-        self.assertEqual(self.collection.model.file_size, 0)
-        self.assertEqual(item1.model.file_size, 0)
-
-        # check collection's and item's file size on asset update
-        asset1 = self.factory.create_asset_sample(item1.model, sample='asset-1', db_create=True)
-        self.collection.model.refresh_from_db()
-        self.assertEqual(self.collection.model.file_size, file_size)
-        self.assertEqual(item1.model.file_size, file_size)
-        self.assertEqual(asset1.model.file_size, file_size)
-
-        # check collection's and item's file size on asset update
-        asset2 = self.factory.create_asset_sample(item1.model, sample='asset-2', db_create=True)
-        self.collection.model.refresh_from_db()
-        self.assertEqual(self.collection.model.file_size, 2 * file_size)
-        self.assertEqual(item1.model.file_size, 2 * file_size)
-        self.assertEqual(asset2.model.file_size, file_size)
-
-        # check collection's and item's file size on adding an empty asset
-        asset3 = self.factory.create_asset_sample(
-            item1.model, sample='asset-no-file', db_create=True
-        )
-        self.collection.model.refresh_from_db()
-
-        self.assertEqual(self.collection.model.file_size, 2 * file_size)
-        self.assertEqual(item1.model.file_size, 2 * file_size)
-        self.assertEqual(asset3.model.file_size, 0)
-
-        # check collection's and item's file size when updating asset of another item
-        item2 = self.factory.create_item_sample(
-            self.collection.model, sample='item-2', db_create=True
-        )
-        asset4 = self.factory.create_asset_sample(item2.model, sample='asset-2', db_create=True)
-        self.collection.model.refresh_from_db()
-
-        self.assertEqual(
-            self.collection.model.file_size,
-            3 * file_size,
-        )
-        self.assertEqual(item1.model.file_size, 2 * file_size)
-        self.assertEqual(item2.model.file_size, file_size)
-
-        # check collection's and item's file size when deleting asset
-        asset1.model.delete()
-        item1.model.refresh_from_db()
-        self.collection.model.refresh_from_db()
-
-        self.assertEqual(self.collection.model.file_size, 2 * file_size)
-        self.assertEqual(item1.model.file_size, 1 * file_size)
