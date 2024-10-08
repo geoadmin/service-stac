@@ -72,29 +72,29 @@ class PgTriggersUpdateIntervalTestCase(StacBaseTransactionTestCase):
         self.factory = Factory()
         file_size = len(FILE_CONTENT_1)
 
-        self.assertEqual(self.collection.file_size, 0)
-        self.assertEqual(self.item.file_size, 0)
+        self.assertEqual(self.collection.total_data_size, 0)
+        self.assertEqual(self.item.total_data_size, 0)
 
         # check collection's and item's file size on asset update
         asset1 = self.factory.create_asset_sample(self.item, sample='asset-1', db_create=True)
         self.collection.refresh_from_db()
-        self.assertEqual(self.collection.file_size, file_size)
-        self.assertEqual(self.item.file_size, file_size)
+        self.assertEqual(self.collection.total_data_size, file_size)
+        self.assertEqual(self.item.total_data_size, file_size)
         self.assertEqual(asset1.model.file_size, file_size)
 
         # check collection's and item's file size on asset update
         asset2 = self.factory.create_asset_sample(self.item, sample='asset-2', db_create=True)
         self.collection.refresh_from_db()
-        self.assertEqual(self.collection.file_size, 2 * file_size)
-        self.assertEqual(self.item.file_size, 2 * file_size)
+        self.assertEqual(self.collection.total_data_size, 2 * file_size)
+        self.assertEqual(self.item.total_data_size, 2 * file_size)
         self.assertEqual(asset2.model.file_size, file_size)
 
         # check collection's and item's file size on adding an empty asset
         asset3 = self.factory.create_asset_sample(self.item, sample='asset-no-file', db_create=True)
         self.collection.refresh_from_db()
 
-        self.assertEqual(self.collection.file_size, 2 * file_size)
-        self.assertEqual(self.item.file_size, 2 * file_size)
+        self.assertEqual(self.collection.total_data_size, 2 * file_size)
+        self.assertEqual(self.item.total_data_size, 2 * file_size)
         self.assertEqual(asset3.model.file_size, 0)
 
         # check collection's and item's file size when updating asset of another item
@@ -102,16 +102,16 @@ class PgTriggersUpdateIntervalTestCase(StacBaseTransactionTestCase):
         self.collection.refresh_from_db()
 
         self.assertEqual(
-            self.collection.file_size,
+            self.collection.total_data_size,
             3 * file_size,
         )
-        self.assertEqual(self.item.file_size, 2 * file_size)
-        self.assertEqual(self.item3.file_size, file_size)
+        self.assertEqual(self.item.total_data_size, 2 * file_size)
+        self.assertEqual(self.item3.total_data_size, file_size)
 
         # check collection's and item's file size when deleting asset
         asset1.model.delete()
         self.item.refresh_from_db()
         self.collection.refresh_from_db()
 
-        self.assertEqual(self.collection.file_size, 2 * file_size)
-        self.assertEqual(self.item.file_size, 1 * file_size)
+        self.assertEqual(self.collection.total_data_size, 2 * file_size)
+        self.assertEqual(self.item.total_data_size, 1 * file_size)

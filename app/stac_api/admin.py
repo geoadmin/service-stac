@@ -101,7 +101,7 @@ class CollectionAdmin(admin.ModelAdmin):
         'license',
         'etag',
         'update_interval',
-        'total_file_size',
+        'displayed_total_data_size',
         'allow_external_assets',
         'external_asset_whitelist'
     ]
@@ -117,15 +117,18 @@ class CollectionAdmin(admin.ModelAdmin):
         'summaries_eo_gsd',
         'etag',
         'update_interval',
-        'total_file_size'
+        'displayed_total_data_size'
     ]
     inlines = [ProviderInline, CollectionLinkInline, CollectionAssetInline]
     search_fields = ['name']
     list_display = ['name', 'published']
     list_filter = ['published']
 
-    def total_file_size(self, instance):
+    #helper function which displays the bytes in human-readable format
+    def displayed_total_data_size(self, instance):
         return filesizeformat(instance.total_data_size)
+
+    displayed_total_data_size.short_description = 'Total data size'
 
     def render_change_form(self, request, context, *args, **kwargs):
         form_instance = context['adminform'].form
@@ -193,7 +196,12 @@ class ItemAdmin(admin.ModelAdmin):
     autocomplete_fields = ['collection']
     search_fields = ['name', 'collection__name']
     readonly_fields = [
-        'collection_name', 'created', 'updated', 'etag', 'update_interval', 'total_file_size'
+        'collection_name',
+        'created',
+        'updated',
+        'etag',
+        'update_interval',
+        'displayed_total_data_size'
     ]
     fieldsets = (
         (
@@ -206,7 +214,7 @@ class ItemAdmin(admin.ModelAdmin):
                     'updated',
                     'etag',
                     'update_interval',
-                    'total_file_size'
+                    'displayed_total_data_size'
                 )
             }
         ),
@@ -230,8 +238,11 @@ class ItemAdmin(admin.ModelAdmin):
     list_display = ['name', 'collection', 'collection_published']
     list_filter = [CollectionFilterForItems]
 
-    def total_file_size(self, instance):
+    #helper function which displays the bytes in human-readable format
+    def displayed_total_data_size(self, instance):
         return filesizeformat(instance.total_data_size)
+
+    displayed_total_data_size.short_description = 'Total data size'
 
     def get_search_results(self, request, queryset, search_term):
         queryset, use_distinct = super().get_search_results(request, queryset, search_term)
@@ -294,7 +305,7 @@ class ItemAdmin(admin.ModelAdmin):
                 'updated',
                 'etag',
                 'update_interval',
-                'total_file_size'
+                'displayed_total_data_size'
             )
             return fields
         # Otherwise if this is an update operation only display the read only field
@@ -306,7 +317,7 @@ class ItemAdmin(admin.ModelAdmin):
             'updated',
             'etag',
             'update_interval',
-            'total_file_size'
+            'displayed_total_data_size'
         )
         return fields
 
@@ -419,8 +430,11 @@ class CollectionAssetAdmin(admin.ModelAdmin):
         path = instance.file.name
         return build_asset_href(self.request, path)
 
+    #helper function which displays the bytes in human-readable format
     def displayed_file_size(self, instance):
         return filesizeformat(instance.file_size)
+
+    displayed_file_size.short_description = 'File size'
 
     # We don't want to move the assets on S3
     # That's why some fields like the name of the asset are set readonly here
@@ -570,8 +584,11 @@ class AssetAdmin(admin.ModelAdmin):
             return path
         return build_asset_href(self.request, path)
 
+    #helper function which displays the bytes in human-readable format
     def displayed_file_size(self, instance):
         return filesizeformat(instance.file_size)
+
+    displayed_file_size.short_description = 'File size'
 
     def get_fieldsets(self, request, obj=None):
         """Build the different field sets for the admin page
