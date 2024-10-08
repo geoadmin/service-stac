@@ -73,6 +73,7 @@ class CollectionLinkInline(admin.TabularInline):
 
 class CollectionAssetInline(admin.StackedInline):
     model = CollectionAsset
+    readonly_fields = ['update_interval', 'file_size']
     extra = 0
 
 
