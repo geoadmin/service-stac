@@ -218,22 +218,21 @@ def generates_asset_triggers():
         when = pgtrigger.After
         declare = [
             ('asset_instance', 'stac_api_asset%ROWTYPE'),
-            ('item_data_size', 'RECORD'),
+            ('updated_total_data_size', 'NUMERIC'),
         ]
         func = '''
         asset_instance = COALESCE(NEW, OLD);
 
-        -- Compute item total_data_size (sum aggregation of asset's file_size)
-        SELECT
-           COALESCE(SUM(NULLIF(asset.file_size, 0)), 0) AS sum_file_size
-        INTO item_data_size
-        FROM stac_api_asset AS asset
-        WHERE asset.item_id = asset_instance.item_id;
-
         -- Update related item file_size variables
         UPDATE stac_api_item SET
-            total_data_size = item_data_size.sum_file_size
-        WHERE id = asset_instance.item_id;
+            total_data_size = total_data_size + COALESCE(NEW.file_size, 0) - COALESCE(OLD.file_size, 0)
+        WHERE id = asset_instance.item_id
+        RETURNING total_data_size INTO updated_total_data_size;
+
+        IF updated_total_data_size < 0
+            THEN RAISE WARNING 'item.id=% total_data_size has negative value %',
+            asset_instance.item_id, updated_total_data_size;
+        END IF;
 
         RAISE INFO 'item.id=% total_data_size updated, due to asset.name=% updates.',
             asset_instance.item_id, asset_instance.name;
@@ -302,29 +301,21 @@ def generates_collection_asset_triggers():
         when = pgtrigger.After
         declare = [
             ('asset_instance', 'stac_api_collectionasset%ROWTYPE'),
-            ('item_data_size', 'RECORD'),
-            ('collectionasset_file_size', 'RECORD'),
+            ('updated_total_data_size', 'NUMERIC'),
         ]
         func = '''
         asset_instance = COALESCE(NEW, OLD);
 
-        -- Compute collection total_data_size (sum aggregation of item's total_data_size)
-        SELECT
-            COALESCE(SUM(NULLIF(item.total_data_size, 0)), 0) AS sum_file_size
-        INTO item_data_size
-        FROM stac_api_item AS item
-        WHERE item.collection_id = asset_instance.collection_id;
-
-        SELECT
-            COALESCE(SUM(NULLIF(collectionasset.file_size, 0)), 0) AS sum_file_size
-        INTO collectionasset_file_size
-        FROM stac_api_collectionasset AS collectionasset
-        WHERE collectionasset.collection_id = asset_instance.collection_id;
-
         -- Update related collection file_size variables
         UPDATE stac_api_collection SET
-            total_data_size = item_data_size.sum_file_size + collectionasset_file_size.sum_file_size
-        WHERE id = asset_instance.collection_id;
+            total_data_size = total_data_size + COALESCE(NEW.file_size, 0) - COALESCE(OLD.file_size, 0)
+        WHERE id = asset_instance.collection_id
+        RETURNING total_data_size INTO updated_total_data_size;
+
+        IF updated_total_data_size < 0
+            THEN RAISE WARNING 'item.id=% total_data_size has negative value %',
+            asset_instance.collection_id, updated_total_data_size;
+        END IF;
 
         RAISE INFO 'collection.id=% total_data_size updated, due to item.name=% updates.',
             asset_instance.collection_id, asset_instance.name;
@@ -490,29 +481,21 @@ def generates_item_triggers():
         when = pgtrigger.After
         declare = [
             ('item_instance', 'stac_api_item%ROWTYPE'),
-            ('item_data_size', 'RECORD'),
-            ('collectionasset_file_size', 'RECORD'),
+            ('updated_total_data_size', 'NUMERIC'),
         ]
         func = '''
         item_instance = COALESCE(NEW, OLD);
 
-        -- Compute collection total_data_size (sum aggregation of item's total_data_size)
-        SELECT
-            COALESCE(SUM(NULLIF(item.total_data_size, 0)), 0) AS sum_file_size
-        INTO item_data_size
-        FROM stac_api_item AS item
-        WHERE item.collection_id = item_instance.collection_id;
-
-        SELECT
-            COALESCE(SUM(NULLIF(collectionasset.file_size, 0)), 0) AS sum_file_size
-        INTO collectionasset_file_size
-        FROM stac_api_collectionasset AS collectionasset
-        WHERE collectionasset.collection_id = item_instance.collection_id;
-
         -- Update related collection file_size variables
         UPDATE stac_api_collection SET
-            total_data_size = item_data_size.sum_file_size + collectionasset_file_size.sum_file_size
-        WHERE id = item_instance.collection_id;
+            total_data_size = total_data_size + COALESCE(NEW.total_data_size, 0) - COALESCE(OLD.total_data_size, 0)
+        WHERE id = item_instance.collection_id
+        RETURNING total_data_size INTO updated_total_data_size;
+
+        IF updated_total_data_size < 0
+            THEN RAISE WARNING 'item.id=% total_data_size has negative value %',
+            item_instance.collection_id, updated_total_data_size;
+        END IF;
 
         RAISE INFO 'collection.id=% total_data_size updated, due to item.name=% updates.',
             item_instance.collection_id, item_instance.name;
