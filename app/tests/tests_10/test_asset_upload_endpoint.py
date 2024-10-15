@@ -502,7 +502,7 @@ class AssetUpload1PartEndpointTestCase(AssetUploadBaseTest):
         obj = self.get_s3_object(key)
         self.assertS3ObjectContentEncoding(obj, key, encoding='gzip')
         self.asset.refresh_from_db()
-        self.assertEqual(size, self.asset.file_size)
+        self.assertEqual(size_compress, self.asset.file_size)
 
 
 class AssetUpload2PartEndpointTestCase(AssetUploadBaseTest):

@@ -404,7 +404,6 @@ class Item(models.Model):
         null=True,
         help_text="Enter date in <i>yyyy-mm-dd</i> format, and time in UTC <i>hh:mm:ss</i> format"
     )
-
     # properties_eo_bands = model.TextFields(blank=True)  # ? [string]?
     # properties_eo_cloud_cover = models.FloatField(blank=True)
     # eo_gsd is defined on asset level and will be updated here on ever
@@ -584,7 +583,6 @@ class AssetBase(models.Model):
     checksum_multihash = models.CharField(
         editable=False, max_length=255, blank=True, null=True, default=None
     )
-
     # here we need to set blank=True otherwise the field is as required in the admin interface
     description = models.TextField(blank=True, null=True, default=None)
 
@@ -768,6 +766,7 @@ class BaseAssetUpload(models.Model):
         "-1 means that the data is not on a regular basis updated. "
         "This field can only be set via the API."
     )
+
     file_size = models.IntegerField(default=0, null=True, blank=True)
 
     content_encoding = models.CharField(
@@ -864,6 +863,7 @@ class CollectionAssetUpload(BaseAssetUpload):
 
         self.asset.checksum_multihash = self.checksum_multihash
         self.asset.update_interval = self.update_interval
+        self.asset.file_size = self.file_size
         self.asset.save()
 
 
