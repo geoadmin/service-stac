@@ -309,6 +309,8 @@ class Collection(models.Model):
         "in which the underlying assets data are updated."
     )
 
+    total_data_size = models.IntegerField(default=0, null=True, blank=True)
+
     allow_external_assets = models.BooleanField(
         default=False,
         help_text=_('Whether this collection can have assets that are hosted externally')
@@ -433,6 +435,8 @@ class Item(models.Model):
         "in which the underlying assets data are updated."
     )
 
+    total_data_size = models.IntegerField(default=0, null=True, blank=True)
+
     # Custom Manager that preselects the collection
     objects = ItemManager()
 
@@ -504,6 +508,7 @@ def upload_asset_to_path_hook(instance, filename=None):
         }
     )
     instance.checksum_multihash = mhash
+    instance.file_size = instance.file.size
     return instance.get_asset_path()
 
 
@@ -617,6 +622,8 @@ class AssetBase(models.Model):
         help_text="Interval in seconds in which the asset data is updated."
         "-1 means that the data is not on a regular basis updated."
     )
+
+    file_size = models.IntegerField(default=0, null=True, blank=True)
 
     def __str__(self):
         return self.name
@@ -760,6 +767,8 @@ class BaseAssetUpload(models.Model):
         "This field can only be set via the API."
     )
 
+    file_size = models.IntegerField(default=0, null=True, blank=True)
+
     content_encoding = models.CharField(
         choices=ContentEncoding.choices, blank=True, null=False, max_length=32, default=''
     )
@@ -808,6 +817,7 @@ class AssetUpload(BaseAssetUpload):
 
         self.asset.checksum_multihash = self.checksum_multihash
         self.asset.update_interval = self.update_interval
+        self.asset.file_size = self.file_size
         self.asset.save()
 
 
@@ -853,6 +863,7 @@ class CollectionAssetUpload(BaseAssetUpload):
 
         self.asset.checksum_multihash = self.checksum_multihash
         self.asset.update_interval = self.update_interval
+        self.asset.file_size = self.file_size
         self.asset.save()
 
 

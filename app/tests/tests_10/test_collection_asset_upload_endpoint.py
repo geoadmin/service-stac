@@ -416,6 +416,8 @@ class CollectionAssetUpload1PartEndpointTestCase(CollectionAssetUploadBaseTest):
         obj = self.get_s3_object(key)
         self.assertS3ObjectCacheControl(obj, key, max_age=7200)
         self.assertS3ObjectContentEncoding(obj, key, None)
+        self.asset.refresh_from_db()
+        self.assertEqual(size, self.asset.file_size)
 
     def test_asset_upload_dyn_cache(self):
         key = self.upload_asset_with_dyn_cache(update_interval=600)
@@ -463,6 +465,8 @@ class CollectionAssetUpload1PartEndpointTestCase(CollectionAssetUploadBaseTest):
         self.assertS3ObjectExists(key)
         obj = self.get_s3_object(key)
         self.assertS3ObjectContentEncoding(obj, key, None)
+        self.asset.refresh_from_db()
+        self.assertEqual(size, self.asset.file_size)
 
     def test_asset_upload_gzip(self):
         key = get_collection_asset_path(self.collection, self.asset.name)
@@ -503,6 +507,8 @@ class CollectionAssetUpload1PartEndpointTestCase(CollectionAssetUploadBaseTest):
         self.assertS3ObjectExists(key)
         obj = self.get_s3_object(key)
         self.assertS3ObjectContentEncoding(obj, key, encoding='gzip')
+        self.asset.refresh_from_db()
+        self.assertEqual(size_compress, self.asset.file_size)
 
 
 class CollectionAssetUpload2PartEndpointTestCase(CollectionAssetUploadBaseTest):
@@ -541,6 +547,8 @@ class CollectionAssetUpload2PartEndpointTestCase(CollectionAssetUploadBaseTest):
         self.assertStatusCode(200, response)
         self.check_completed_response(response.json())
         self.assertS3ObjectExists(key)
+        self.asset.refresh_from_db()
+        self.assertEqual(size, self.asset.file_size)
 
 
 class CollectionAssetUploadInvalidEndpointTestCase(CollectionAssetUploadBaseTest):
@@ -804,6 +812,8 @@ class CollectionAssetUploadInvalidEndpointTestCase(CollectionAssetUploadBaseTest
             ]
         )
         self.assertS3ObjectNotExists(key)
+        self.asset.refresh_from_db()
+        self.assertEqual(0, self.asset.file_size)
 
     def test_asset_upload_1_parts_invalid_etag(self):
         key = get_collection_asset_path(self.collection, self.asset.name)
@@ -847,6 +857,8 @@ class CollectionAssetUploadInvalidEndpointTestCase(CollectionAssetUploadBaseTest
             ]
         )
         self.assertS3ObjectNotExists(key)
+        self.asset.refresh_from_db()
+        self.assertEqual(0, self.asset.file_size)
 
     def test_asset_upload_1_parts_too_many_parts_in_complete(self):
         key = get_collection_asset_path(self.collection, self.asset.name)
@@ -881,6 +893,8 @@ class CollectionAssetUploadInvalidEndpointTestCase(CollectionAssetUploadBaseTest
         self.assertStatusCode(400, response)
         self.assertEqual(response.json()['description'], {'parts': ['Too many parts']})
         self.assertS3ObjectNotExists(key)
+        self.asset.refresh_from_db()
+        self.assertEqual(0, self.asset.file_size)
 
     def test_asset_upload_2_parts_incomplete_upload(self):
         number_parts = 2
@@ -910,6 +924,8 @@ class CollectionAssetUploadInvalidEndpointTestCase(CollectionAssetUploadBaseTest
         )
         self.assertStatusCode(400, response)
         self.assertEqual(response.json()['description'], {'parts': ['Too few parts']})
+        self.asset.refresh_from_db()
+        self.assertEqual(0, self.asset.file_size)
 
     def test_asset_upload_1_parts_invalid_complete(self):
         key = get_collection_asset_path(self.collection, self.asset.name)
@@ -970,6 +986,8 @@ class CollectionAssetUploadInvalidEndpointTestCase(CollectionAssetUploadBaseTest
             }
         )
         self.assertS3ObjectNotExists(key)
+        self.asset.refresh_from_db()
+        self.assertEqual(0, self.asset.file_size)
 
     def test_asset_upload_1_parts_duplicate_complete(self):
         key = get_collection_asset_path(self.collection, self.asset.name)
@@ -1010,6 +1028,8 @@ class CollectionAssetUploadInvalidEndpointTestCase(CollectionAssetUploadBaseTest
         self.assertStatusCode(409, response)
         self.assertEqual(response.json()['code'], 409)
         self.assertEqual(response.json()['description'], 'No upload in progress')
+        self.asset.refresh_from_db()
+        self.assertEqual(size, self.asset.file_size)
 
 
 class CollectionAssetUploadDeleteInProgressEndpointTestCase(CollectionAssetUploadBaseTest):
@@ -1264,3 +1284,5 @@ class CollectionAssetUploadListPartsEndpointTestCase(CollectionAssetUploadBaseTe
         )
         self.assertStatusCode(200, response)
         self.assertS3ObjectExists(key)
+        self.asset.refresh_from_db()
+        self.assertEqual(size, self.asset.file_size)
