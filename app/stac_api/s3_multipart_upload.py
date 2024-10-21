@@ -232,7 +232,7 @@ class MultipartUpload:
         try:
             return self.s3.head_object(Bucket=self.settings['S3_BUCKET_NAME'],
                                        Key=key)['ContentLength']
-        except ClientError as error:
+        except ClientError:
             logger.error('file size could not be read from s3 bucket')
             return 0
 
