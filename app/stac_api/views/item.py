@@ -4,6 +4,7 @@ from datetime import datetime
 from django.conf import settings
 from django.db.models import Prefetch
 from django.db.models import Q
+from django.db.models import Subquery
 from django.utils import timezone
 
 from rest_framework import generics
@@ -91,7 +92,11 @@ class ItemsList(generics.GenericAPIView):
         queryset = Item.objects.filter(
             # filter expired items
             Q(properties_expires__gte=timezone.now()) | Q(properties_expires=None),
-            collection__name=self.kwargs['collection_name']
+            # Using a subquery to get the collection id and then filter on the id greatly improves
+            # the performance over filtering by 'collection__name'.
+            collection__id=Subquery(
+                Collection.objects.filter(name=self.kwargs['collection_name']).values('id')
+            )
         ).prefetch_related(Prefetch('assets', queryset=Asset.objects.order_by('name')), 'links')
         bbox = self.request.query_params.get('bbox', None)
         date_time = self.request.query_params.get('datetime', None)
@@ -157,7 +162,11 @@ class ItemDetail(
         queryset = Item.objects.filter(
             # filter expired items
             Q(properties_expires__gte=timezone.now()) | Q(properties_expires=None),
-            collection__name=self.kwargs['collection_name']
+            # Using a subquery to get the collection id and then filter on the id greatly improves
+            # the performance over filtering by 'collection__name'.
+            collection__id=Subquery(
+                Collection.objects.filter(name=self.kwargs['collection_name']).values('id')
+            )
         ).prefetch_related(Prefetch('assets', queryset=Asset.objects.order_by('name')), 'links')
 
         if settings.DEBUG_ENABLE_DB_EXPLAIN_ANALYZE:
