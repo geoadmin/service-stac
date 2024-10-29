@@ -213,7 +213,6 @@ test-conformance:
     --conformance core \
     --conformance collections \
 	--conformance features \
-	--conformance item-search \
 	--geometry '{"type": "Polygon", "coordinates": [[[0, 0], [90, 0], [90, 90], [0, 90], [0, 0]]]}' \
     --collection $(collection)
 

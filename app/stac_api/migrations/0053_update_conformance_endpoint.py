@@ -7,13 +7,12 @@ def add_landing_page_version(apps, schema_editor):
     LandingPage = apps.get_model("stac_api", "LandingPage")
     lp = LandingPage.objects.get(version='v1')
     lp.conformsTo.insert(2, 'https://api.stacspec.org/v1.0.0/ogcapi-features')
-    lp.conformsTo.insert(2, 'https://api.stacspec.org/v1.0.0/item-search')
     lp.save()
 
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("stac_api", "0050_collectionassetupload_and_more"),
+        ("stac_api", "0052_asset_add_del_asset_item_file_size_trigger_and_more"),
     ]
 
     operations = [migrations.RunPython(add_landing_page_version)]
