@@ -473,7 +473,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "./components/schemas.yaml#/components/schemas/assetWrite"
+              $ref: "./components/schemas.yaml#/components/schemas/assetWriteExternalAsset"
       responses:
         "200":
           description: Asset has been successfully updated.
