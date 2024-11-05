@@ -32,6 +32,8 @@ tags:
       | application/x.gml+zip | Zipped GML | .zip |
       | application/vnd.las | LIDAR | .las |
       | application/vnd.laszip | Zipped LIDAR | .laz, .zip |
+      | application/x.vnd.las+zip | Zipped LAS | .zip |
+      | application/vnd.laszip+copc | loud Optimized Point Cloud (COPC) | .zip |
       | application/x.shapefile+zip | Zipped Shapefile | .zip |
       | application/x.filegdb+zip | Zipped File Geodatabase | .zip |
       | application/x.filegdbp+zip | Zipped File Geodatabase (ArcGIS Pro) | .zip |
