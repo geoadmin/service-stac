@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime
 from datetime import timedelta
+from datetime import timezone
 
 from django.contrib.gis.geos import GEOSGeometry
 from django.core.exceptions import ValidationError
@@ -255,3 +256,32 @@ class ItemsModelTestCase(TestCase):
         )
         item.full_clean()
         item.save()
+
+    def test_item_create_model_sets_forecast_reference_datetime_as_expected_for_rfc3399_format(
+        self
+    ):
+        item = Item(
+            collection=self.collection,
+            properties_datetime=utc_aware(datetime.utcnow()),
+            name='item-1',
+            forecast_reference_datetime="2024-11-06T12:34:56Z",
+        )
+        item.full_clean()
+        item.save()
+        self.assertEqual(
+            item.forecast_reference_datetime,
+            datetime(
+                year=2024, month=11, day=6, hour=12, minute=34, second=56, tzinfo=timezone.utc
+            )
+        )
+
+    def test_item_create_model_raises_exception_if_forecast_reference_datetime_invalid(self):
+        with self.assertRaises(ValidationError):
+            item = Item(
+                collection=self.collection,
+                properties_datetime=utc_aware(datetime.utcnow()),
+                name='item-1',
+                forecast_reference_datetime="06-11-2024T12:34:56Z",
+            )
+            item.full_clean()
+            item.save()

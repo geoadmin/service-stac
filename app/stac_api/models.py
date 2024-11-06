@@ -437,6 +437,16 @@ class Item(models.Model):
 
     total_data_size = models.BigIntegerField(default=0, null=True, blank=True)
 
+    forecast_reference_datetime = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="The reference datetime: i.e. predictions for times after "
+        "this point occur in the future. Predictions prior to this "
+        "time represent 'hindcasts', predicting states that have "
+        "already occurred. This must be in UTC. It is formatted like "
+        "'2022-08-12T00:00:00Z'."
+    )
+
     # Custom Manager that preselects the collection
     objects = ItemManager()
 
