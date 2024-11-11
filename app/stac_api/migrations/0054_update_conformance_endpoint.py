@@ -20,7 +20,7 @@ def reverse_landing_page_version(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("stac_api", "0052_asset_add_del_asset_item_file_size_trigger_and_more"),
+        ("stac_api", "0053_alter_asset_media_type_and_more"),
     ]
 
     operations = [migrations.RunPython(add_landing_page_version, reverse_landing_page_version)]
