@@ -284,4 +284,24 @@ class ItemsModelTestCase(TestCase):
                 forecast_reference_datetime="06-11-2024T12:34:56Z",
             )
             item.full_clean()
-            item.save()
+
+    def test_item_create_model_sets_forecast_horizon_as_expected_for_iso_8619_format(self):
+        item = Item(
+            collection=self.collection,
+            properties_datetime=utc_aware(datetime.utcnow()),
+            name='item-1',
+            forecast_horizon="P4DT12H30M5S",
+        )
+        item.full_clean()
+        item.save()
+        self.assertEqual(item.forecast_horizon, "P4DT12H30M5S")
+
+    def test_item_create_model_raises_exception_if_forecast_horizon_in_regular_format(self):
+        with self.assertRaises(ValidationError):
+            item = Item(
+                collection=self.collection,
+                properties_datetime=utc_aware(datetime.utcnow()),
+                name='item-1',
+                forecast_horizon="4 1:15:20",
+            )
+            item.full_clean()

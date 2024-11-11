@@ -38,6 +38,7 @@ from stac_api.validators import validate_asset_name_with_media_type
 from stac_api.validators import validate_eo_gsd
 from stac_api.validators import validate_geoadmin_variant
 from stac_api.validators import validate_geometry
+from stac_api.validators import validate_iso_8601_duration
 from stac_api.validators import validate_item_properties_datetimes
 from stac_api.validators import validate_link_rel
 from stac_api.validators import validate_media_type
@@ -445,6 +446,17 @@ class Item(models.Model):
         "time represent 'hindcasts', predicting states that have "
         "already occurred. This must be in UTC. It is formatted like "
         "'2022-08-12T00:00:00Z'."
+    )
+
+    # Not using DurationField as format "iso-8601" is not supported and we don't
+    # necessarily need to have it represented properly as a datetime.timedelta.
+    forecast_horizon = models.CharField(
+        null=True,
+        blank=True,
+        help_text="The time between the reference datetime and the forecast "
+        "datetime. Formatted as ISO 8601 duration, e.g. PT6H for a "
+        "6-hour forecast.",
+        validators=[validate_iso_8601_duration]
     )
 
     # Custom Manager that preselects the collection
