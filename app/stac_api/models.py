@@ -471,6 +471,27 @@ class Item(models.Model):
         validators=[validate_iso_8601_duration]
     )
 
+    forecast_param = models.CharField(
+        null=True,
+        blank=True,
+        help_text="Name of the model parameter that corresponds to the data, e.g. "
+        "`T` (temperature), `P` (pressure), `U`/`V`/`W` (windspeed in three "
+        "directions)."
+    )
+
+    class ForecastModeChoices(models.TextChoices):
+        CONTROL_RUN = "ctrl", _("Control run")
+        PERTURBED_RUN = "perturb", _("Perturbed run")
+
+    forecast_mode = models.CharField(
+        null=True,
+        blank=True,
+        choices=ForecastModeChoices,
+        default=None,
+        help_text="Denotes whether the data corresponds to the control run or "
+        "perturbed runs."
+    )
+
     # Custom Manager that preselects the collection
     objects = ItemManager()
 

@@ -326,3 +326,45 @@ class ItemsModelTestCase(TestCase):
                 forecast_duration="2 2:54:45",
             )
             item.full_clean()
+
+    def test_item_create_model_sets_forecast_param_as_expected(self):
+        item = Item(
+            collection=self.collection,
+            properties_datetime=utc_aware(datetime.utcnow()),
+            name='item-1',
+            forecast_param="T",
+        )
+        item.full_clean()
+        item.save()
+        self.assertEqual(item.forecast_param, "T")
+
+    def test_item_create_model_sets_forecast_mode_as_expected_if_mode_known(self):
+        item = Item(
+            collection=self.collection,
+            properties_datetime=utc_aware(datetime.utcnow()),
+            name='item-1',
+            forecast_mode="ctrl",
+        )
+        item.full_clean()
+        item.save()
+        self.assertEqual(item.forecast_mode, "ctrl")
+
+    def test_item_create_model_raises_exception_if_value_of_forecast_mode_unknown(self):
+        with self.assertRaises(ValidationError):
+            item = Item(
+                collection=self.collection,
+                properties_datetime=utc_aware(datetime.utcnow()),
+                name='item-1',
+                forecast_mode="unknown mode",
+            )
+            item.full_clean()
+
+    def test_item_create_model_sets_forecast_mode_to_none_if_undefined(self):
+        item = Item(
+            collection=self.collection,
+            properties_datetime=utc_aware(datetime.utcnow()),
+            name='item-1'
+        )
+        item.full_clean()
+        item.save()
+        self.assertEqual(item.forecast_mode, None)
