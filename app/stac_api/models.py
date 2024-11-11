@@ -459,6 +459,18 @@ class Item(models.Model):
         validators=[validate_iso_8601_duration]
     )
 
+    # Not using DurationField as format "iso-8601" is not supported and we don't
+    # necessarily need to have it represented properly as a datetime.timedelta.
+    forecast_duration = models.CharField(
+        null=True,
+        blank=True,
+        help_text="If the forecast is not only for a specific instance in time "
+        "but instead is for a certain period, you can specify the "
+        "length here. Formatted as ISO 8601 duration, e.g. PT3H for "
+        "a 3-hour accumulation.",
+        validators=[validate_iso_8601_duration]
+    )
+
     # Custom Manager that preselects the collection
     objects = ItemManager()
 
