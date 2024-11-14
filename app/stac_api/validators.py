@@ -412,7 +412,9 @@ def validate_datetime_format(date_string):
 
 
 def validate_iso_8601_duration(duration: str) -> None:
-    '''Raises a ValidationError if the given duration does not match the ISO 8601 format ("P3Y6M4DT12H30M5S")
+    '''Raises a ValidationError if the given duration does not match the ISO 8601 format
+
+    Example ISO 8601 format for a duration: "P3Y6M4DT12H30M5S"
     '''
     # Adapted from django.utils.dateparse.parse_duration to also cover
     #    - years (Y)
