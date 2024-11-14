@@ -16,6 +16,7 @@ from tests.tests_10.data_factory import CollectionFactory
 logger = logging.getLogger(__name__)
 
 
+# pylint: disable=too-many-public-methods
 class ItemsModelTestCase(TestCase):
 
     @classmethod
@@ -285,47 +286,27 @@ class ItemsModelTestCase(TestCase):
             )
             item.full_clean()
 
-    def test_item_create_model_sets_forecast_horizon_as_expected_for_iso_8619_format(self):
+    def test_item_create_model_sets_forecast_horizon_as_expected(self):
         item = Item(
             collection=self.collection,
             properties_datetime=utc_aware(datetime.utcnow()),
             name='item-1',
-            forecast_horizon="P4DT12H30M5S",
+            forecast_horizon=timedelta(days=1, hours=2),
         )
         item.full_clean()
         item.save()
-        self.assertEqual(item.forecast_horizon, "P4DT12H30M5S")
+        self.assertEqual(item.forecast_horizon, timedelta(days=1, hours=2))
 
-    def test_item_create_model_raises_exception_if_forecast_horizon_in_regular_format(self):
-        with self.assertRaises(ValidationError):
-            item = Item(
-                collection=self.collection,
-                properties_datetime=utc_aware(datetime.utcnow()),
-                name='item-1',
-                forecast_horizon="4 1:15:20",
-            )
-            item.full_clean()
-
-    def test_item_create_model_sets_forecast_duration_as_expected_for_iso_8619_format(self):
+    def test_item_create_model_sets_forecast_duration_as_expected(self):
         item = Item(
             collection=self.collection,
             properties_datetime=utc_aware(datetime.utcnow()),
             name='item-1',
-            forecast_duration="P4DT12H30M5S",
+            forecast_duration=timedelta(days=1, hours=2),
         )
         item.full_clean()
         item.save()
-        self.assertEqual(item.forecast_duration, "P4DT12H30M5S")
-
-    def test_item_create_model_raises_exception_if_forecast_duration_in_regular_format(self):
-        with self.assertRaises(ValidationError):
-            item = Item(
-                collection=self.collection,
-                properties_datetime=utc_aware(datetime.utcnow()),
-                name='item-1',
-                forecast_duration="2 2:54:45",
-            )
-            item.full_clean()
+        self.assertEqual(item.forecast_duration, timedelta(days=1, hours=2))
 
     def test_item_create_model_sets_forecast_param_as_expected(self):
         item = Item(

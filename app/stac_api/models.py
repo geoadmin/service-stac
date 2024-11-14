@@ -448,27 +448,18 @@ class Item(models.Model):
         "'2022-08-12T00:00:00Z'."
     )
 
-    # Not using DurationField as format "iso-8601" is not supported and we don't
-    # necessarily need to have it represented properly as a datetime.timedelta.
-    forecast_horizon = models.CharField(
+    forecast_horizon = models.DurationField(
         null=True,
         blank=True,
-        help_text="The time between the reference datetime and the forecast "
-        "datetime. Formatted as ISO 8601 duration, e.g. PT6H for a "
-        "6-hour forecast.",
-        validators=[validate_iso_8601_duration]
+        help_text="The time between the reference datetime and the forecast datetime.",
     )
 
-    # Not using DurationField as format "iso-8601" is not supported and we don't
-    # necessarily need to have it represented properly as a datetime.timedelta.
-    forecast_duration = models.CharField(
+    forecast_duration = models.DurationField(
         null=True,
         blank=True,
         help_text="If the forecast is not only for a specific instance in time "
         "but instead is for a certain period, you can specify the "
-        "length here. Formatted as ISO 8601 duration, e.g. PT3H for "
-        "a 3-hour accumulation.",
-        validators=[validate_iso_8601_duration]
+        "length here.",
     )
 
     forecast_param = models.CharField(
