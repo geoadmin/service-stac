@@ -9,40 +9,12 @@ from stac_api.validators import _validate_href_scheme
 from stac_api.validators import get_media_type
 from stac_api.validators import normalize_and_validate_media_type
 from stac_api.validators import validate_content_encoding
-from stac_api.validators import validate_iso_8601_duration
 from stac_api.validators import validate_item_properties_datetimes
 
 from tests.tests_10.data_factory import Factory
 
 
 class TestValidators(TestCase):
-
-    def test_validate_iso_8601_duration_does_nothing_for_valid_duration_with_all_fields(self):
-        validate_iso_8601_duration("P3Y6M2W4DT12H30M5S")
-
-    def test_validate_iso_8601_duration_does_nothing_for_valid_duration_without_period_fields(self):
-        validate_iso_8601_duration("P6M4DT12H30M5S")
-
-    def test_validate_iso_8601_duration_does_nothing_for_valid_duration_without_any_period(self):
-        validate_iso_8601_duration("PT12H30M5S")
-
-    def test_validate_iso_8601_duration_does_nothing_for_valid_duration_with_only_hours(self):
-        validate_iso_8601_duration("PT6H")
-
-    def test_validate_iso_8601_duration_does_nothing_for_valid_duration_with_negative_sign(self):
-        validate_iso_8601_duration("-" + "P3Y6M2W4DT12H30M5S")
-
-    def test_validate_iso_8601_duration_raises_exception_for_wrong_order_in_period(self):
-        with self.assertRaises(ValidationError):
-            validate_iso_8601_duration("P" + "6M" + "3Y" + "2W4DT12H30M5S")
-
-    def test_validate_iso_8601_duration_raises_exception_for_wrong_order_in_time(self):
-        with self.assertRaises(ValidationError):
-            validate_iso_8601_duration("P3Y6M2W4DT" + "30M" + "12H" + "5S")
-
-    def test_validate_iso_8601_duration_raises_exception_for_missing_t_separator(self):
-        with self.assertRaises(ValidationError):
-            validate_iso_8601_duration("P3Y6M2W4D" + "12H30M5S")
 
     def test_validate_function_invalid_datetime_string(self):
         with self.assertRaises(ValidationError):

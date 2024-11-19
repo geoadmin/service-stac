@@ -38,7 +38,6 @@ from stac_api.validators import validate_asset_name_with_media_type
 from stac_api.validators import validate_eo_gsd
 from stac_api.validators import validate_geoadmin_variant
 from stac_api.validators import validate_geometry
-from stac_api.validators import validate_iso_8601_duration
 from stac_api.validators import validate_item_properties_datetimes
 from stac_api.validators import validate_link_rel
 from stac_api.validators import validate_media_type

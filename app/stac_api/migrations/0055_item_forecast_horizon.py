@@ -21,7 +21,6 @@ class Migration(migrations.Migration):
                 help_text=
                 'The time between the reference datetime and the forecast datetime. Formatted as ISO 8601 duration, e.g. PT6H for a 6-hour forecast.',
                 null=True,
-                validators=[stac_api.validators.validate_iso_8601_duration]
             ),
         ),
     ]

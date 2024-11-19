@@ -411,36 +411,6 @@ def validate_datetime_format(date_string):
         ) from error
 
 
-def validate_iso_8601_duration(duration: str) -> None:
-    '''Raises a ValidationError if the given duration does not match the ISO 8601 format
-
-    Example ISO 8601 format for a duration: "P3Y6M4DT12H30M5S"
-    '''
-    # Adapted from django.utils.dateparse.parse_duration to also cover
-    #    - years (Y)
-    #    - months (M)
-    #    - weeks (W)
-    iso8601_duration_re = _lazy_re_compile(
-        r"^(?P<sign>[-+]?)"
-        r"P"
-        r"(?:(?P<years>\d+([.,]\d+)?)Y)?"
-        r"(?:(?P<months>\d+([.,]\d+)?)M)?"
-        r"(?:(?P<weeks>\d+([.,]\d+)?)W)?"
-        r"(?:(?P<days>\d+([.,]\d+)?)D)?"
-        r"(?:T"
-        r"(?:(?P<hours>\d+([.,]\d+)?)H)?"
-        r"(?:(?P<minutes>\d+([.,]\d+)?)M)?"
-        r"(?:(?P<seconds>\d+([.,]\d+)?)S)?"
-        r")?"
-        r"$"
-    )
-    matches = iso8601_duration_re.match(duration)
-    if not matches:
-        raise ValidationError(
-            _(f'Duration "{duration}" does not match ISO 8601 format.'), code='invalid'
-        )
-
-
 def validate_item_properties_datetimes(
     properties_datetime, properties_start_datetime, properties_end_datetime, properties_expires
 ):
