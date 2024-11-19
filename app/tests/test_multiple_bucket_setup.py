@@ -144,14 +144,19 @@ class MultipartUploadMultipleBucketTest(TestCase):
 
 class TestBucketSelector(TestCase):
 
-    @parameterized.expand([('ch.meteoschweiz.ogd-rainfall', AVAILABLE_S3_BUCKETS.managed),
-                           ('ch.meteoschweiz.ogd-downpour', AVAILABLE_S3_BUCKETS.managed),
-                           ('ch.meteoschweiz.precipitation', AVAILABLE_S3_BUCKETS.legacy),
-                           ('ch.swisstopo.bgdi', AVAILABLE_S3_BUCKETS.managed),
-                           ('ch.bafu.slipouts', AVAILABLE_S3_BUCKETS.legacy)])
+    @parameterized.expand([
+        ('ch.meteoschweiz.ogd-rainfall', AVAILABLE_S3_BUCKETS.managed),
+        ('ch.meteoschweiz.ogd-downpour', AVAILABLE_S3_BUCKETS.managed),
+        ('ch.meteoschweiz.precipitation', AVAILABLE_S3_BUCKETS.legacy),
+        ('ch.swisstopo.bgdi', AVAILABLE_S3_BUCKETS.managed),
+        ('ch.bafu.slipouts', AVAILABLE_S3_BUCKETS.legacy),
+        ('ch.are.hauptstrassennetz', AVAILABLE_S3_BUCKETS.managed),
+        ('ch.are.gemeindetypen', AVAILABLE_S3_BUCKETS.managed),
+        ('ch.are.landschaftstypen', AVAILABLE_S3_BUCKETS.managed),
+    ])
     def test_bucket_selection(self, collection_name, expected_bucket):
         """Test if the pattern selection works"""
-        patterns = [r'ch\.meteoschweiz\.ogd-.*', r'ch\.swisstopo\.bgdi.*']
+        patterns = [r'ch\.meteoschweiz\.ogd-.*', r'ch\.swisstopo\.bgdi.*', r'ch\.are\..*']
         with self.settings(MANAGED_BUCKET_COLLECTION_PATTERNS=patterns):
             bucket_name = select_s3_bucket(collection_name)
 
