@@ -2867,19 +2867,19 @@ components:
           minLength: 1
           maxLength: 255
           nullable: true
-        forecast_reference_datetime:
+        forecast:reference_datetime:
           $ref: "#/components/schemas/datetime"
-        forecast_horizon:
+        forecast:horizon:
           $ref: "#/components/schemas/duration"
-        forecast_duration:
+        forecast:duration:
           $ref: "#/components/schemas/duration"
-        forecast_param:
+        forecast:param:
           description: >-
             Name of the model parameter that corresponds to the data
           example: T
           type: string
           nullable: true
-        forecast_mode:
+        forecast:mode:
           description: >-
             Denotes whether the data corresponds to the control run or perturbed
 
