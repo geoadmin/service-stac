@@ -336,6 +336,20 @@ class AdminTestCase(AdminBaseTestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual("/api/stac/admin/login/?next=/api/stac/admin/", response.url)
 
+    def test_login_header(self):
+        response = self.client.get("/api/stac/admin/", headers={"Geoadmin-Username": self.username})
+        self.assertEqual(response.status_code, 200, msg="Admin page login with header failed")
+
+    def test_login_header_noheader(self):
+        response = self.client.get("/api/stac/admin/")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual("/api/stac/admin/login/?next=/api/stac/admin/", response.url)
+
+    def test_login_header_wronguser(self):
+        response = self.client.get("/api/stac/admin/", headers={"Geoadmin-Username": "wronguser"})
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual("/api/stac/admin/login/?next=/api/stac/admin/", response.url)
+
 
 #--------------------------------------------------------------------------------------------------
 
