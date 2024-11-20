@@ -16,7 +16,6 @@ from django.contrib.gis.geos.error import GEOSException
 from django.core import exceptions
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
-from django.utils.regex_helper import _lazy_re_compile
 from django.utils.translation import gettext_lazy as _
 
 from stac_api.utils import fromisoformat
