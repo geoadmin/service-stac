@@ -88,6 +88,10 @@ class ItemsPropertiesSerializer(serializers.Serializer):
     forecast_reference_datetime = serializers.DateTimeField(required=False, default=None)
     forecast_horizon = IsoDurationField(required=False, default=None)
     forecast_duration = IsoDurationField(required=False, default=None)
+    forecast_param = serializers.CharField(required=False, default=None)
+    forecast_mode = serializers.ChoiceField(
+        choices=Item.ForecastModeChoices, required=False, default=None
+    )
 
     def to_internal_value(self, data) -> timedelta:
         '''Map forecast extension fields with a colon in the name to the corresponding model field.
@@ -100,6 +104,8 @@ class ItemsPropertiesSerializer(serializers.Serializer):
             'forecast:reference_datetime': 'forecast_reference_datetime',
             'forecast:horizon': 'forecast_horizon',
             'forecast:duration': 'forecast_duration',
+            'forecast:param': 'forecast_param',
+            'forecast:mode': 'forecast_mode',
         }
         data_mapped = copy.deepcopy(data)
         for with_colon, with_underscore in fields.items():
@@ -122,6 +128,8 @@ class ItemsPropertiesSerializer(serializers.Serializer):
             'forecast_reference_datetime': 'forecast:reference_datetime',
             'forecast_horizon': 'forecast:horizon',
             'forecast_duration': 'forecast:duration',
+            'forecast_param': 'forecast:param',
+            'forecast_mode': 'forecast:mode',
         }
         for with_colon, with_underscore in fields.items():
             if with_colon in ret:
