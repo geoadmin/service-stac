@@ -72,21 +72,26 @@ def get_collection_asset_etag(request, *args, **kwargs):
 
 
 class CollectionList(generics.GenericAPIView):
-    name = 'collections-list'  # this name must match the name in urls.py
+    name = 'collections-list'
     serializer_class = CollectionSerializer
-    # prefetch_related is a performance optimization to reduce the number
-    # of DB queries.
     # see https://docs.djangoproject.com/en/3.1/ref/models/querysets/#prefetch-related
     queryset = Collection.objects.filter(published=True).prefetch_related('providers', 'links')
     ordering = ['name']
 
+    def filter_queryset(self, queryset):
+        """
+        Apply additional filtering to sort by provider.
+        """
+        provider = self.request.GET.get('provider')
+        if provider:
+            queryset = queryset.filter(provider__name__icontains=provider)
+
+        return queryset
+
     def get(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
         page = self.paginate_queryset(queryset)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-        else:
-            serializer = self.get_serializer(queryset, many=True)
+        serializer = self.get_serializer(page if page is not None else queryset, many=True)
 
         data = {'collections': serializer.data, 'links': get_relation_links(request, self.name)}
 
