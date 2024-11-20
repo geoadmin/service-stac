@@ -450,7 +450,8 @@ class Item(models.Model):
     forecast_horizon = models.DurationField(
         null=True,
         blank=True,
-        help_text="The time between the reference datetime and the forecast datetime.",
+        help_text="The time between the reference datetime and the forecast datetime."
+        "Formatted as ISO 8601 duration, e.g. 'PT6H' for a 6-hour forecast.",
     )
 
     forecast_duration = models.DurationField(
@@ -458,7 +459,9 @@ class Item(models.Model):
         blank=True,
         help_text="If the forecast is not only for a specific instance in time "
         "but instead is for a certain period, you can specify the "
-        "length here.",
+        "length here. Formatted as ISO 8601 duration, e.g. 'PT3H' for a 3-hour "
+        "accumulation. If not given, assumes that the forecast is for an "
+        "instance in time as if this was set to PT0S (0 seconds).",
     )
 
     forecast_param = models.CharField(
