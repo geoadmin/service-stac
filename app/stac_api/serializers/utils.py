@@ -1,6 +1,10 @@
 import logging
 from collections import OrderedDict
 
+from django.utils.dateparse import parse_duration
+from django.utils.duration import duration_iso_string
+from django.utils.translation import gettext_lazy as _
+
 from rest_framework import serializers
 from rest_framework.utils.serializer_helpers import ReturnDict
 
@@ -339,3 +343,21 @@ class HrefField(serializers.Field):
 
     def to_internal_value(self, data):
         return data
+
+
+class IsoDurationField(serializers.Field):
+    '''Handles duration in the ISO 8601 format like "P3DT6H"'''
+
+    def to_internal_value(self, data):
+        '''Convert from ISO 8601 (e.g. "P3DT1H") to Python's timedelta'''
+        internal = parse_duration(data)
+        if internal is None:
+            raise serializers.ValidationError(
+                code="payload",
+                detail={'href': _("Duration doesn't match ISO 8601 format")}
+            )
+        return internal
+
+    def to_representation(self, value):
+        '''Convert from Python's timedelta to ISO 8601 (e.g. "P3DT02H00M00S")'''
+        return duration_iso_string(value)

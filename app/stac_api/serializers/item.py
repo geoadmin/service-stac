@@ -1,10 +1,8 @@
+import copy
 import logging
 from datetime import timedelta
 
 from django.core.exceptions import ValidationError as CoreValidationError
-from django.utils.dateparse import parse_datetime
-from django.utils.dateparse import parse_duration
-from django.utils.duration import duration_iso_string
 from django.utils.translation import gettext_lazy as _
 
 from rest_framework import serializers
@@ -15,6 +13,7 @@ from stac_api.models import Item
 from stac_api.models import ItemLink
 from stac_api.serializers.utils import AssetsDictSerializer
 from stac_api.serializers.utils import HrefField
+from stac_api.serializers.utils import IsoDurationField
 from stac_api.serializers.utils import NonNullModelSerializer
 from stac_api.serializers.utils import UpsertModelSerializerMixin
 from stac_api.serializers.utils import get_relation_links
@@ -87,53 +86,46 @@ class ItemsPropertiesSerializer(serializers.Serializer):
     expires = serializers.DateTimeField(source='properties_expires', required=False, default=None)
 
     forecast_reference_datetime = serializers.DateTimeField(required=False, default=None)
-    forecast_horizon = serializers.CharField(required=False, default=None)
-    forecast_duration = serializers.CharField(required=False, default=None)
+    forecast_horizon = IsoDurationField(required=False, default=None)
+    forecast_duration = IsoDurationField(required=False, default=None)
 
     def to_internal_value(self, data) -> timedelta:
-        '''Convert the given durations from ISO 8601 (e.g. "P3DT1H") to Python's timedelta.
+        '''Map forecast extension fields with a colon in the name to the corresponding model field.
 
-        This also maps fields of the forecast extension with a colon in the name
-        to the corresponding model field, e.g. "forecast:duration" to "forecast_duration".
+        Example: "forecast:duration" --> "forecast_duration".
         '''
 
-        ret = super().to_internal_value(data)
+        # hardcode a map instead of changing all keys starting with "forecast:" to avoid accidents
+        fields = {
+            'forecast:reference_datetime': 'forecast_reference_datetime',
+            'forecast:horizon': 'forecast_horizon',
+            'forecast:duration': 'forecast_duration',
+        }
+        data_mapped = copy.deepcopy(data)
+        for with_colon, with_underscore in fields.items():
+            if with_colon in data_mapped:
+                data_mapped[with_underscore] = data_mapped.pop(with_colon)
 
-        if 'forecast:horizon' in data:
-            ret['forecast_horizon'] = parse_duration(data['forecast:horizon'])
-            if ret['forecast_horizon'] is None:
-                errors = {'href': _("forecast:horizon doesn't match ISO 8601 format for duration")}
-                raise serializers.ValidationError(code="payload", detail=errors)
-
-        if 'forecast:duration' in data:
-            ret['forecast_duration'] = parse_duration(data['forecast:duration'])
-            if ret['forecast_duration'] is None:
-                errors = {'href': _("forecast:duration doesn't match ISO 8601 format for duration")}
-                raise serializers.ValidationError(code="payload", detail=errors)
-
-        if 'forecast:reference_datetime' in data:
-            ret['forecast_reference_datetime'] = parse_datetime(data['forecast:reference_datetime'])
-            if ret['forecast_reference_datetime'] is None:
-                errors = {'href': _("forecast:reference_datetime doesn't match ISO 8601 format")}
-                raise serializers.ValidationError(code="payload", detail=errors)
-
+        ret = super().to_internal_value(data_mapped)
         return ret
 
     def to_representation(self, instance):
-        '''Convert the duration fields from Python's timedelta to ISO 8601 (e.g. "P3DT1H").
+        '''Maps forecast extension fields to their counterpart in the response with a colon
 
-        This also maps fields of the forecast extension to their counterpart in the response
-        but with a colon instead of an underscore, e.g. "forecast_duration" to "forecast:duration".
+        Example: "forecast_duration" --> "forecast:duration".
         '''
 
         ret = super().to_representation(instance)
 
-        if 'forecast_reference_datetime' in ret:
-            ret['forecast:reference_datetime'] = ret['forecast_reference_datetime']
-        if 'forecast_horizon' in instance:
-            ret['forecast:horizon'] = duration_iso_string(instance['forecast_horizon'])
-        if 'forecast_duration' in instance:
-            ret['forecast:duration'] = duration_iso_string(instance['forecast_duration'])
+        # hardcode a map instead of changing all keys starting with "forecast_" to avoid accidents
+        fields = {
+            'forecast_reference_datetime': 'forecast:reference_datetime',
+            'forecast_horizon': 'forecast:horizon',
+            'forecast_duration': 'forecast:duration',
+        }
+        for with_colon, with_underscore in fields.items():
+            if with_colon in ret:
+                ret[with_underscore] = ret.pop(with_colon)
         return ret
 
 
