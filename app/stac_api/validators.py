@@ -58,6 +58,8 @@ MEDIA_TYPES = [
     MediaType('application/x.gml+zip', 'Zipped GML', ['.zip']),
     MediaType('application/vnd.las', 'LIDAR', ['.las']),
     MediaType('application/vnd.laszip', 'Zipped LIDAR', ['.laz', '.zip']),
+    MediaType('application/x.vnd.las+zip', 'Zipped LAS', ['.zip']),
+    MediaType('application/vnd.laszip+copc', 'Cloud Optimized Point Cloud (COPC)', ['.zip']),
     MediaType('application/x.shapefile+zip', 'Zipped Shapefile', ['.zip']),
     MediaType('application/x.filegdb+zip', 'Zipped File Geodatabase', ['.zip']),
     MediaType('application/x.filegdbp+zip', 'Zipped File Geodatabase (ArcGIS Pro)', ['.zip']),

@@ -2,8 +2,6 @@ import logging
 import time
 from io import BytesIO
 
-from parameterized import parameterized
-
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import Client
@@ -49,14 +47,12 @@ class AdminBaseTestCase(TestCase):
         if create_item:
             self.item = self._create_item(self.collection)[0]
 
-    def _create_collection(
-        self, name="test_collection", with_link=False, with_provider=False, extra=None
-    ):
+    def _create_collection(self, with_link=False, with_provider=False, extra=None):
         # Post data to create a new collection
         # Note: the *-*_FORMS fields are necessary management form fields
         # originating from the AdminInline and must be present
         data = {
-            "name": name,
+            "name": "test_collection",
             "license": "free",
             "description": "some very important collection",
             "published": "on",
@@ -321,26 +317,38 @@ class AdminTestCase(AdminBaseTestCase):
         response = self.client.get("/api/stac/admin/login/?next=/api/stac/admin")
         self.assertEqual(response.status_code, 200, "Admin page login not up.")
 
-    @parameterized.expand([
-        ("/api/stac/admin/",),
-        ("/api/stac/admin",),
-    ])
-    def test_login(self, login_path):
+    def test_login(self):
         # Make sure login of the test user works
         self.client.login(username=self.username, password=self.password)
-        response = self.client.get(login_path)
+        response = self.client.get("/api/stac/admin/")
         self.assertEqual(response.status_code, 200, msg="Admin page login failed")
 
-    @parameterized.expand([
-        ("/api/stac/admin/",),
-        ("/api/stac/admin",),
-    ])
-    def test_login_failure(self, login_path):
+    def test_login_noslash(self):
+        self.client.login(username=self.username, password=self.password)
+        response = self.client.get("/api/stac/admin")
+        self.assertEqual(response.status_code, 301, msg="Admin page redirection failed")
+        self.assertEqual("/api/stac/admin/", response.url)
+
+    def test_login_failure(self):
         # Make sure login with wrong password fails
         self.client.login(username=self.username, password="wrongpassword")
-        response = self.client.get(login_path)
+        response = self.client.get("/api/stac/admin/")
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(f"/api/stac/admin/login/?next={login_path}", response.url)
+        self.assertEqual("/api/stac/admin/login/?next=/api/stac/admin/", response.url)
+
+    def test_login_header(self):
+        response = self.client.get("/api/stac/admin/", headers={"Geoadmin-Username": self.username})
+        self.assertEqual(response.status_code, 200, msg="Admin page login with header failed")
+
+    def test_login_header_noheader(self):
+        response = self.client.get("/api/stac/admin/")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual("/api/stac/admin/login/?next=/api/stac/admin/", response.url)
+
+    def test_login_header_wronguser(self):
+        response = self.client.get("/api/stac/admin/", headers={"Geoadmin-Username": "wronguser"})
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual("/api/stac/admin/login/?next=/api/stac/admin/", response.url)
 
 
 #--------------------------------------------------------------------------------------------------
@@ -424,16 +432,12 @@ class AdminCollectionTestCase(AdminBaseTestCase):
             msg="Admin page wrong provider.roles after update"
         )
 
-    @parameterized.expand([
-        ("/api/stac/admin/stac_api/collection/add", "test_collection_noslash"),
-        ("/api/stac/admin/stac_api/collection/add/", "test_collection_slash"),
-    ])
-    def test_add_collection_with_provider_empty_description(self, post_path, collection_name):
+    def test_add_collection_with_provider_empty_description(self):
         # Login the user first
         self.client.login(username=self.username, password=self.password)
 
         data = {
-            "name": collection_name,
+            "name": "test_collection",
             "license": "free",
             "description": "some very important collection",
             "links-TOTAL_FORMS": "0",
@@ -447,7 +451,7 @@ class AdminCollectionTestCase(AdminBaseTestCase):
             "assets-TOTAL_FORMS": "0",
             "assets-INITIAL_FORMS": "0"
         }
-        response = self.client.post(post_path, data)
+        response = self.client.post("/api/stac/admin/stac_api/collection/add/", data)
 
         # Status code for successful creation is 302, since in the admin UI
         # you're redirected to the list view after successful creation
@@ -468,16 +472,11 @@ class AdminCollectionTestCase(AdminBaseTestCase):
             provider.description, None, msg="Admin page wrong provider.description on creation"
         )
 
-    @parameterized.expand([
-        ("/api/stac/admin/stac_api/collection/{id}/change", "test_collection_noslash"),
-        ("/api/stac/admin/stac_api/collection/{id}/change/", "test_collection_slash"),
-    ])
-    def test_add_update_collection_empty_provider_description(self, post_path, collection_name):
+    def test_add_update_collection_empty_provider_description(self):
         # Login the user first
         self.client.login(username=self.username, password=self.password)
 
-        collection, data, link, provider = self._create_collection(name=collection_name,
-                                                                   with_provider=True)
+        collection, data, link, provider = self._create_collection(with_provider=True)
 
         self.assertEqual(
             provider.description,
@@ -490,7 +489,9 @@ class AdminCollectionTestCase(AdminBaseTestCase):
         data["providers-0-id"] = provider.id
         data["providers-0-collection"] = collection.id
         data["providers-0-description"] = ""
-        response = self.client.post(post_path.format(id=collection.id), data)
+        response = self.client.post(
+            f"/api/stac/admin/stac_api/collection/{collection.id}/change/", data
+        )
 
         # Status code for successful creation is 302, since in the admin UI
         # you're redirected to the list view after successful creation
@@ -676,9 +677,9 @@ class AdminItemTestCase(AdminBaseTestCase):
         )
 
     def test_add_item_with_non_standard_projection(self):
-        geometry = "SRID=4326;POLYGON ((6.146799690987942 46.04410910398307, "\
-            "7.438647976247294 46.05153158188484, 7.438632420871813 46.951082771871064, "\
-            "6.125143650928986 46.94353699772178, 6.146799690987942 46.04410910398307))"
+        geometry = "SRID=4326;POLYGON ((6.1467996909879385 46.0441091039831, "\
+            "7.438647976247291 46.0515315818849, 7.43863242087181 46.95108277187109, "\
+                "6.1251436509289805 46.943536997721836, 6.1467996909879385 46.0441091039831))"
         text_geometry = "SRID=2056;POLYGON ((2500000 1100000, 2600000 1100000, 2600000 1200000, "\
             "2500000 1200000, 2500000 1100000))"
         post_data = {

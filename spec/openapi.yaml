@@ -40,6 +40,7 @@ paths:
       operationId: getCollections
       parameters:
         - $ref: "./components/parameters.yaml#/components/parameters/limit"
+        - $ref: "./components/parameters.yaml#/components/parameters/provider"
       responses:
         "200":
           $ref: "./components/responses.yaml#/components/responses/Collections"

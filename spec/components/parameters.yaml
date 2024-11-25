@@ -110,3 +110,10 @@ components:
         the server sends back a `412 Precondition Failed` status, without a body, which tells the client that
         the cached version of the response is not good to use anymore.
       example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
+    provider:
+      name: provider
+      in: query
+      description: Filter collections by the name of the provider. Supports partial and case-insensitive matching.
+      required: false
+      schema:
+        type: string
