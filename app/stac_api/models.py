@@ -628,6 +628,19 @@ class AssetBase(models.Model):
     def __str__(self):
         return self.name
 
+    def get_asset_path(self):
+        # Method must be implemented by Asset and CollectionAsset separately.
+        raise NotImplementedError("get_asset_path() not implemented")
+
+    def save(self, *args, **kwargs):
+        # Default file value to the asset path.
+        #
+        # This is the behaviour when creating an asset via PUT API endpoint.
+        # But we need to set this here so it also applies in the admin UI.
+        if not bool(self.file):
+            self.file = self.get_asset_path()
+        super().save(*args, **kwargs)
+
     def delete(self, *args, **kwargs):  # pylint: disable=signature-differs
         try:
             super().delete(*args, **kwargs)
