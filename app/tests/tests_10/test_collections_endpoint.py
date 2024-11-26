@@ -70,6 +70,26 @@ class CollectionsEndpointTestCase(StacBaseTestCase):
 
         self.check_stac_collection(self.collection_1.json, response_json)
 
+    def test_filtering_by_provider(self):
+        collection_with_provider = self.factory.create_sample(
+            sample='collection-1',
+            name='collection-provider',
+            providers=[{
+                'name': 'test-provider'
+            }],
+            db_create=True
+        )
+
+        response = self.client.get(f"/{STAC_BASE_V}/collections?provider=test-provider")
+        response_json = response.json()
+        self.assertStatusCode(200, response)
+
+        self.assertEqual(
+            len(response_json['collections']),
+            1,
+            msg=f"Only one collection should be returned. Response: {response_json}"
+        )
+
     @mock_s3_asset_file
     def test_single_collection_assets_endpoint(self):
         asset_count = 3
