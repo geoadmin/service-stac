@@ -1296,7 +1296,9 @@ components:
         end_datetime:
           $ref: "#/components/schemas/datetime"
         expires:
-          $ref: "#/components/schemas/datetime"
+          readOnly: true
+          allOf:
+            - $ref: "#/components/schemas/datetime"
         updated:
           $ref: "#/components/schemas/updated"
         title:
@@ -1330,7 +1332,6 @@ components:
         - created
         - updated
       type: object
-      readOnly: true
     itemType:
       title: type
       description: The GeoJSON type
