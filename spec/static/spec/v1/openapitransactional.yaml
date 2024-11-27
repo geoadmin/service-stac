@@ -621,6 +621,11 @@ paths:
               properties:
                 datetime: "2016-05-03T13:22:30.040Z"
                 title: A CS3 item
+                forecast:reference_datetime: "2024-11-19T16:15:00Z"
+                forecast:horizon: P3DT2H
+                forecast:duration: PT4H
+                forecast:param: T
+                forecast:mode: ctrl
               links:
                 - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
                   rel: license
