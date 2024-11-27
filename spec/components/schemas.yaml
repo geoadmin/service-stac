@@ -1102,7 +1102,7 @@ components:
         forecast:mode:
           description: >-
             Denotes whether the data corresponds to the control run or perturbed
-             runs.
+            runs.
           enum:
             - ctrl
             - perturb

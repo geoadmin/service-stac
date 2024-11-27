@@ -1320,9 +1320,7 @@ components:
           nullable: true
         forecast:mode:
           description: >-
-            Denotes whether the data corresponds to the control run or perturbed
-
-             runs.
+            Denotes whether the data corresponds to the control run or perturbed runs.
           enum:
             - ctrl
             - perturb
