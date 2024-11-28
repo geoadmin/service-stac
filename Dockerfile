@@ -83,6 +83,21 @@ ENV PYTHONHOME=""
 ARG VERSION=unknown
 RUN echo "APP_VERSION = '$VERSION'" > ${INSTALL_DIR}/app/config/version.py
 
+# Collect static files.
+# In theory for most development use, we should not need this. But it is
+# sometimes useful to run a development build in Kubernetes, which requires the
+# static files to be included. This also helps to reduce the difference between
+# dev and prod and make troubleshooting easier.
+# See also https://whitenoise.readthedocs.io/en/stable/django.html#using-whitenoise-in-development
+# Some variables like AWS_ are mandatory so set them to avoid exceptions.
+RUN LOGGING_CFG=0 \
+    LEGACY_AWS_ACCESS_KEY_ID= \
+    LEGACY_AWS_SECRET_ACCESS_KEY= \
+    LEGACY_AWS_S3_BUCKET_NAME= \
+    AWS_S3_BUCKET_NAME= \
+    AWS_ROLE_ARN= \
+    ${INSTALL_DIR}/app/manage.py collectstatic --noinput
+
 ARG GIT_HASH=unknown
 ARG GIT_BRANCH=unknown
 ARG GIT_DIRTY=""
@@ -123,7 +138,8 @@ ENV PYTHONHOME=""
 ARG VERSION=unknown
 RUN echo "APP_VERSION = '$VERSION'" > ${INSTALL_DIR}/app/config/version.py
 
-# Collect static files, some variables like AWS_ are mandatory so set them to avoid exceptions.
+# Collect static files.
+# Some variables like AWS_ are mandatory so set them to avoid exceptions.
 RUN LOGGING_CFG=0 \
     LEGACY_AWS_ACCESS_KEY_ID= \
     LEGACY_AWS_SECRET_ACCESS_KEY= \
