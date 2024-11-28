@@ -1077,9 +1077,7 @@ components:
         end_datetime:
           $ref: "#/components/schemas/datetime"
         expires:
-          readOnly: true
-          allOf:
-            - $ref: "#/components/schemas/datetime"
+          $ref: "#/components/schemas/datetime"
         updated:
           $ref: "#/components/schemas/updated"
         title:
