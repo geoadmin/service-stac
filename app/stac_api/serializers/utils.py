@@ -354,7 +354,7 @@ class IsoDurationField(serializers.Field):
         if internal is None:
             raise serializers.ValidationError(
                 code="payload",
-                detail={'href': _("Duration doesn't match ISO 8601 format")}
+                detail={_("Duration doesn't match ISO 8601 format")}
             )
         return internal
 
