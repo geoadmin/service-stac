@@ -2,7 +2,7 @@
 # Container that contains basic configurations used by all other containers
 # It should only contain variables that don't change or change very infrequently
 # so that the cache is not needlessly invalidated
-FROM python:3.12-slim-bullseye as base
+FROM python:3.12-slim-bullseye AS base
 ENV HTTP_PORT=8080
 ENV USER=geoadmin
 ENV GROUP=geoadmin
@@ -19,7 +19,7 @@ RUN apt-get -qq update > /dev/null \
 
 ###########################################################
 # Builder container
-FROM base as builder
+FROM base AS builder
 RUN apt-get -qq update > /dev/null \
     && apt-get -qq -y install \
     # dev dependencies
@@ -39,7 +39,7 @@ COPY --chown=${USER}:${GROUP} app/ ${INSTALL_DIR}/app/
 
 ###########################################################
 # Container to perform tests/management/dev tasks
-FROM base as debug
+FROM base AS debug
 LABEL target=debug
 ENV DEBUG=1
 
@@ -83,6 +83,21 @@ ENV PYTHONHOME=""
 ARG VERSION=unknown
 RUN echo "APP_VERSION = '$VERSION'" > ${INSTALL_DIR}/app/config/version.py
 
+# Collect static files.
+# In theory for most development use, we should not need this. But it is
+# sometimes useful to run a development build in Kubernetes, which requires the
+# static files to be included. This also helps to reduce the difference between
+# dev and prod and make troubleshooting easier.
+# See also https://whitenoise.readthedocs.io/en/stable/django.html#using-whitenoise-in-development
+# Some variables like AWS_ are mandatory so set them to avoid exceptions.
+RUN LOGGING_CFG=0 \
+    LEGACY_AWS_ACCESS_KEY_ID= \
+    LEGACY_AWS_SECRET_ACCESS_KEY= \
+    LEGACY_AWS_S3_BUCKET_NAME= \
+    AWS_S3_BUCKET_NAME= \
+    AWS_ROLE_ARN= \
+    ${INSTALL_DIR}/app/manage.py collectstatic --noinput
+
 ARG GIT_HASH=unknown
 ARG GIT_BRANCH=unknown
 ARG GIT_DIRTY=""
@@ -103,7 +118,7 @@ ENTRYPOINT ["python"]
 
 ###########################################################
 # Container to use in production
-FROM base as production
+FROM base AS production
 LABEL target=production
 ENV DEBUG=0
 
@@ -123,7 +138,8 @@ ENV PYTHONHOME=""
 ARG VERSION=unknown
 RUN echo "APP_VERSION = '$VERSION'" > ${INSTALL_DIR}/app/config/version.py
 
-# Collect static files, some variables like AWS_ are mandatory so set them to avoid exceptions.
+# Collect static files.
+# Some variables like AWS_ are mandatory so set them to avoid exceptions.
 RUN LOGGING_CFG=0 \
     LEGACY_AWS_ACCESS_KEY_ID= \
     LEGACY_AWS_SECRET_ACCESS_KEY= \
