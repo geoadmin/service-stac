@@ -272,6 +272,9 @@ class AdminBaseTestCase(TestCase):
             Asset.objects.filter(item=item, name=data["name"]).exists(),
             msg="Admin page asset added not found in DB"
         )
+        asset = Asset.objects.get(item=item, name=data["name"])
+        # Assert that the filename is set to the value in name
+        self.assertEqual(asset.filename, data['name'])
 
         data = {
             "item": item.id,
