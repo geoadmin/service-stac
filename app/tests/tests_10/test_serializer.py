@@ -1,6 +1,7 @@
 # pylint: disable=too-many-lines
 
 import logging
+import unittest
 from collections import OrderedDict
 from datetime import datetime
 from datetime import timedelta
@@ -16,6 +17,7 @@ from stac_api.models import get_asset_path
 from stac_api.serializers.collection import CollectionSerializer
 from stac_api.serializers.item import AssetSerializer
 from stac_api.serializers.item import ItemSerializer
+from stac_api.serializers.item import ItemsPropertiesSerializer
 from stac_api.utils import get_link
 from stac_api.utils import isoformat
 from stac_api.utils import utc_aware
@@ -576,6 +578,87 @@ class ItemDeserializationTestCase(StacBaseTestCase):
         serializer = ItemSerializer(data=sample.get_json('deserialize'))
         with self.assertRaises(serializers.ValidationError):
             serializer.is_valid(raise_exception=True)
+
+
+class ItemsPropertiesSerializerTestCase(unittest.TestCase):
+
+    def test_deserialization_works_as_expected_for_valid_forecast_data(self):
+        data = {
+            "forecast:reference_datetime": "2024-11-19T16:15:00Z",
+            "forecast:horizon": "P3DT2H",
+            "forecast:duration": "PT4H",
+            "forecast:param": "T",
+            "forecast:mode": "ctrl",
+        }
+
+        serializer = ItemsPropertiesSerializer(data=data)
+        self.assertTrue(serializer.is_valid())
+
+        self.assertTrue(
+            serializer.validated_data["forecast_reference_datetime"],
+            datetime(year=2024, month=11, day=19, hour=16, minute=15)
+        )
+        self.assertTrue(serializer.validated_data["forecast_horizon"], timedelta(days=3, hours=2))
+        self.assertTrue(serializer.validated_data["forecast_duration"], timedelta(hours=4))
+        self.assertTrue(serializer.validated_data["forecast_param"], data["forecast:param"])
+        self.assertTrue(serializer.validated_data["forecast_mode"], data["forecast:mode"])
+
+    def test_deserialization_detects_invalid_forecast_reference_datetime(self):
+        data = {
+            "forecast:reference_datetime": "🕒️",
+        }
+
+        serializer = ItemsPropertiesSerializer(data=data)
+        self.assertFalse(serializer.is_valid())
+
+    def test_deserialization_detects_invalid_forecast_horizon(self):
+        wrong_order = "P1HT2D"
+        data = {
+            "forecast:horizon": wrong_order,
+        }
+
+        serializer = ItemsPropertiesSerializer(data=data)
+        self.assertFalse(serializer.is_valid())
+
+    def test_deserialization_detects_invalid_forecast_duration(self):
+        missing_time_designator = "P2D1H"
+        data = {
+            "forecast:duration": missing_time_designator,
+        }
+
+        serializer = ItemsPropertiesSerializer(data=data)
+
+        self.assertFalse(serializer.is_valid())
+
+    def test_deserialization_detects_invalid_forecast_mode(self):
+        nonexistant_mode = "bla"
+        data = {
+            "forecast:mode": nonexistant_mode,
+        }
+
+        serializer = ItemsPropertiesSerializer(data=data)
+
+        self.assertFalse(serializer.is_valid())
+
+    def test_serialization_works_as_expected_for_valid_forecast_data(self):
+        data = {
+            "forecast:reference_datetime": "2024-11-19T16:15:00Z",
+            "forecast:horizon": "P3DT2H",
+            "forecast:duration": "PT4H",
+            "forecast:param": "T",
+            "forecast:mode": "ctrl",
+        }
+
+        serializer = ItemsPropertiesSerializer(data=data)
+        self.assertTrue(serializer.is_valid())
+
+        actual = serializer.to_representation(serializer.validated_data)
+
+        self.assertEqual(actual["forecast:reference_datetime"], data["forecast:reference_datetime"])
+        self.assertEqual(actual["forecast:horizon"], "P3DT02H00M00S")
+        self.assertEqual(actual["forecast:duration"], "P0DT04H00M00S")
+        self.assertEqual(actual["forecast:param"], data["forecast:param"])
+        self.assertEqual(actual["forecast:mode"], data["forecast:mode"])
 
 
 class AssetSerializationTestCase(StacBaseTestCase):

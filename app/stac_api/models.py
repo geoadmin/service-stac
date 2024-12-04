@@ -437,6 +437,54 @@ class Item(models.Model):
 
     total_data_size = models.BigIntegerField(default=0, null=True, blank=True)
 
+    forecast_reference_datetime = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="The reference datetime: i.e. predictions for times after "
+        "this point occur in the future. Predictions prior to this "
+        "time represent 'hindcasts', predicting states that have "
+        "already occurred. This must be in UTC. It is formatted like "
+        "'2022-08-12T00:00:00Z'."
+    )
+
+    forecast_horizon = models.DurationField(
+        null=True,
+        blank=True,
+        help_text="The time between the reference datetime and the forecast datetime."
+        "Formatted as ISO 8601 duration, e.g. 'PT6H' for a 6-hour forecast.",
+    )
+
+    forecast_duration = models.DurationField(
+        null=True,
+        blank=True,
+        help_text="If the forecast is not only for a specific instance in time "
+        "but instead is for a certain period, you can specify the "
+        "length here. Formatted as ISO 8601 duration, e.g. 'PT3H' for a 3-hour "
+        "accumulation. If not given, assumes that the forecast is for an "
+        "instance in time as if this was set to PT0S (0 seconds).",
+    )
+
+    forecast_param = models.CharField(
+        null=True,
+        blank=True,
+        help_text="Name of the model parameter that corresponds to the data, e.g. "
+        "`T` (temperature), `P` (pressure), `U`/`V`/`W` (windspeed in three "
+        "directions)."
+    )
+
+    class ForecastModeChoices(models.TextChoices):
+        CONTROL_RUN = "ctrl", _("Control run")
+        PERTURBED_RUN = "perturb", _("Perturbed run")
+
+    forecast_mode = models.CharField(
+        null=True,
+        blank=True,
+        choices=ForecastModeChoices,
+        default=None,
+        help_text="Denotes whether the data corresponds to the control run or "
+        "perturbed runs."
+    )
+
     # Custom Manager that preselects the collection
     objects = ItemManager()
 

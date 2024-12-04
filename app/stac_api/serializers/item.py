@@ -1,4 +1,6 @@
+import copy
 import logging
+from datetime import timedelta
 
 from django.core.exceptions import ValidationError as CoreValidationError
 from django.utils.translation import gettext_lazy as _
@@ -11,6 +13,7 @@ from stac_api.models import Item
 from stac_api.models import ItemLink
 from stac_api.serializers.utils import AssetsDictSerializer
 from stac_api.serializers.utils import HrefField
+from stac_api.serializers.utils import IsoDurationField
 from stac_api.serializers.utils import NonNullModelSerializer
 from stac_api.serializers.utils import UpsertModelSerializerMixin
 from stac_api.serializers.utils import get_relation_links
@@ -81,6 +84,57 @@ class ItemsPropertiesSerializer(serializers.Serializer):
     created = serializers.DateTimeField(read_only=True)
     updated = serializers.DateTimeField(read_only=True)
     expires = serializers.DateTimeField(source='properties_expires', required=False, default=None)
+
+    forecast_reference_datetime = serializers.DateTimeField(required=False, default=None)
+    forecast_horizon = IsoDurationField(required=False, default=None)
+    forecast_duration = IsoDurationField(required=False, default=None)
+    forecast_param = serializers.CharField(required=False, default=None)
+    forecast_mode = serializers.ChoiceField(
+        choices=Item.ForecastModeChoices, required=False, default=None
+    )
+
+    def to_internal_value(self, data) -> timedelta:
+        '''Map forecast extension fields with a colon in the name to the corresponding model field.
+
+        Example: "forecast:duration" --> "forecast_duration".
+        '''
+
+        # hardcode a map instead of changing all keys starting with "forecast:" to avoid accidents
+        fields = {
+            'forecast:reference_datetime': 'forecast_reference_datetime',
+            'forecast:horizon': 'forecast_horizon',
+            'forecast:duration': 'forecast_duration',
+            'forecast:param': 'forecast_param',
+            'forecast:mode': 'forecast_mode',
+        }
+        data_mapped = copy.deepcopy(data)
+        for with_colon, with_underscore in fields.items():
+            if with_colon in data_mapped:
+                data_mapped[with_underscore] = data_mapped.pop(with_colon)
+
+        ret = super().to_internal_value(data_mapped)
+        return ret
+
+    def to_representation(self, instance):
+        '''Maps forecast extension fields to their counterpart in the response with a colon
+
+        Example: "forecast_duration" --> "forecast:duration".
+        '''
+
+        ret = super().to_representation(instance)
+
+        # hardcode a map instead of changing all keys starting with "forecast_" to avoid accidents
+        fields = {
+            'forecast_reference_datetime': 'forecast:reference_datetime',
+            'forecast_horizon': 'forecast:horizon',
+            'forecast_duration': 'forecast:duration',
+            'forecast_param': 'forecast:param',
+            'forecast_mode': 'forecast:mode',
+        }
+        for with_colon, with_underscore in fields.items():
+            if with_colon in ret:
+                ret[with_underscore] = ret.pop(with_colon)
+        return ret
 
 
 class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):

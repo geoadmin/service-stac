@@ -411,6 +411,10 @@ components:
       example: 2018-02-12T23:20:50Z
       type: string
       format: date-time
+    duration:
+      description: ISO 8601 compliant duration
+      example: P3DT6H
+      type: string
     datetimeQuery:
       description: >-
         Either a date-time or an interval, open or closed. Date and time expressions
@@ -1083,11 +1087,31 @@ components:
           minLength: 1
           maxLength: 255
           nullable: true
+        forecast:reference_datetime:
+          $ref: "#/components/schemas/datetime"
+        forecast:horizon:
+          $ref: "#/components/schemas/duration"
+        forecast:duration:
+          $ref: "#/components/schemas/duration"
+        forecast:param:
+          description: >-
+            Name of the model parameter that corresponds to the data
+          example: T
+          type: string
+          nullable: true
+        forecast:mode:
+          description: >-
+            Denotes whether the data corresponds to the control run or perturbed
+            runs.
+          enum:
+            - ctrl
+            - perturb
+          type: string
+          nullable: true
       required:
         - created
         - updated
       type: object
-      readOnly: true
     itemType:
       title: type
       description: The GeoJSON type

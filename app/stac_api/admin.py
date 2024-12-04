@@ -233,6 +233,18 @@ class ItemAdmin(admin.ModelAdmin):
                 )
             }
         ),
+        (
+            'Forecast',
+            {
+                'fields': (
+                    'forecast_reference_datetime',
+                    'forecast_horizon',
+                    'forecast_duration',
+                    'forecast_param',
+                    'forecast_mode',
+                )
+            }
+        ),
     )
 
     list_display = ['name', 'collection', 'collection_published']
