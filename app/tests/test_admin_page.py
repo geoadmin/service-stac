@@ -337,7 +337,12 @@ class AdminTestCase(AdminBaseTestCase):
         self.assertEqual("/api/stac/admin/login/?next=/api/stac/admin/", response.url)
 
     def test_login_header(self):
-        response = self.client.get("/api/stac/admin/", headers={"Geoadmin-Username": self.username})
+        response = self.client.get(
+            "/api/stac/admin/",
+            headers={
+                "Geoadmin-Username": self.username, "Geoadmin-Authenticated": "true"
+            }
+        )
         self.assertEqual(response.status_code, 200, msg="Admin page login with header failed")
 
     def test_login_header_noheader(self):
@@ -346,7 +351,68 @@ class AdminTestCase(AdminBaseTestCase):
         self.assertEqual("/api/stac/admin/login/?next=/api/stac/admin/", response.url)
 
     def test_login_header_wronguser(self):
-        response = self.client.get("/api/stac/admin/", headers={"Geoadmin-Username": "wronguser"})
+        response = self.client.get(
+            "/api/stac/admin/",
+            headers={
+                "Geoadmin-Username": "wronguser", "Geoadmin-Authenticated": "true"
+            }
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual("/api/stac/admin/login/?next=/api/stac/admin/", response.url)
+
+    def test_login_header_not_authenticated(self):
+        self.assertNotIn("sessionid", self.client.cookies)
+        response = self.client.get(
+            "/api/stac/admin/",
+            headers={
+                "Geoadmin-Username": self.username, "Geoadmin-Authenticated": "false"
+            }
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual("/api/stac/admin/login/?next=/api/stac/admin/", response.url)
+
+    def test_login_header_session(self):
+        self.assertNotIn("sessionid", self.client.cookies)
+
+        # log in with the header
+        response = self.client.get(
+            "/api/stac/admin/",
+            headers={
+                "Geoadmin-Username": self.username, "Geoadmin-Authenticated": "true"
+            }
+        )
+        self.assertEqual(response.status_code, 200, msg="Admin page login with header failed")
+        self.assertIn("sessionid", self.client.cookies)
+
+        # verify we still have access just with the session cookie (no header)
+        response = self.client.get("/api/stac/admin/")
+        self.assertEqual(
+            response.status_code, 200, msg="Unable to load admin page with session cookie"
+        )
+
+        # verify we still have access just with the session cookie and invalid headers
+        response = self.client.get(
+            "/api/stac/admin/",
+            headers={
+                "Geoadmin-Username": " ", "Geoadmin-Authenticated": "false"
+            }
+        )
+        self.assertEqual(
+            response.status_code,
+            200,
+            msg=(
+                "Unable to load admin page with session cookie" +
+                " and empty Geoadmin-Username header"
+            )
+        )
+
+        # verify we lose access when we set an invalid user with valid headers
+        response = self.client.get(
+            "/api/stac/admin/",
+            headers={
+                "Geoadmin-Username": "wronguser", "Geoadmin-Authenticated": "true"
+            }
+        )
         self.assertEqual(response.status_code, 302)
         self.assertEqual("/api/stac/admin/login/?next=/api/stac/admin/", response.url)
 
