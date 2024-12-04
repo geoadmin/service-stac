@@ -7,7 +7,7 @@ from django.db import models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('stac_api', '0054_update_conformance_endpoint'),
+        ('stac_api', '0056_alter_collection_total_data_size_and_more'),
     ]
 
     operations = [
