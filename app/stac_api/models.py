@@ -153,6 +153,7 @@ class Link(models.Model):
     # added link_ to the fieldname, as "type" is reserved
     link_type = models.CharField(blank=True, null=True, max_length=150)
     title = models.CharField(blank=True, null=True, max_length=255)
+    hreflang = models.CharField(blank=True, null=True, max_length=32)
 
     class Meta:
         abstract = True
