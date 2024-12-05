@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime
+from typing import cast
 
 from django.contrib.auth import get_user_model
 from django.test import Client
@@ -16,6 +17,7 @@ from tests.tests_10.base_test import StacBaseTransactionTestCase
 from tests.tests_10.data_factory import CollectionAssetFactory
 from tests.tests_10.data_factory import CollectionFactory
 from tests.tests_10.data_factory import Factory
+from tests.tests_10.data_factory import SampleData
 from tests.tests_10.utils import reverse_version
 from tests.utils import client_login
 from tests.utils import disableLogger
@@ -596,3 +598,71 @@ class CollectionsUnauthorizeEndpointTestCase(StacBaseTestCase):
         self.assertStatusCode(
             401, response, msg="unauthorized and unimplemented collection delete was permitted."
         )
+
+
+class CollectionLinksEndpointTestCase(StacBaseTestCase):
+
+    def setUp(self):
+        self.client = Client()
+        client_login(self.client)
+
+    @classmethod
+    def setUpTestData(cls) -> None:
+        cls.factory = Factory()
+        cls.collection_data = cls.factory.create_collection_sample(db_create=True)
+        cls.collection = cast(Collection, cls.collection_data.model)
+        return super().setUpTestData()
+
+    def test_create_collection_link_with_simple_link(self):
+        data = self.collection_data.get_json('put')
+
+        path = f'/{STAC_BASE_V}/collections/{self.collection.name}'
+        response = self.client.put(path, data=data, content_type="application/json")
+
+        self.assertEqual(response.status_code, 200)
+
+        link = CollectionLink.objects.last()
+        assert link is not None
+        self.assertEqual(link.rel, data['links'][0]['rel'])
+        self.assertEqual(link.hreflang, None)
+
+    def test_create_collection_link_with_hreflang(self):
+        data = self.collection_data.get_json('put')
+        data['links'] = [{
+            'rel': 'more-info',
+            'href': 'http://www.meteoschweiz.ch/',
+            'title': 'A link to a german page',
+            'type': 'text/html',
+            'hreflang': "de"
+        }]
+
+        path = f'/{STAC_BASE_V}/collections/{self.collection.name}'
+        response = self.client.put(path, data=data, content_type="application/json")
+
+        self.assertEqual(response.status_code, 200)
+
+        link = CollectionLink.objects.last()
+        # Check for None with `assert` because `self.assertNotEqual` is not
+        # understood by the type checker.
+        assert link is not None
+
+        self.assertEqual(link.hreflang, 'de')
+
+    def test_read_collection_with_hreflang(self):
+        collection_data: SampleData = self.factory.create_collection_sample(
+            sample='collection-hreflang-links', db_create=False
+        )
+        collection = cast(Collection, collection_data.model)
+
+        path = f'/{STAC_BASE_V}/collections/{collection.name}'
+        response = self.client.get(path, content_type="application/json")
+
+        self.assertEqual(response.status_code, 200)
+
+        json_data = response.json()
+        self.assertIn('links', json_data)
+        link_data = json_data['links']
+        de_link = link_data[-2]
+        fr_link = link_data[-1]
+        self.assertEqual(de_link['hreflang'], 'de')
+        self.assertEqual(fr_link['hreflang'], 'fr-CH')
