@@ -80,6 +80,21 @@ links_invalid = {
     }
 }
 
+links_hreflanged = {
+    'link-1': {
+        'title': 'Link with hreflang',
+        'rel': 'describedBy',
+        'href': 'http://perdu.com/',
+        'hreflang': 'de'
+    },
+    'link-2': {
+        'title': 'Link with hreflang',
+        'rel': 'copiedFrom',
+        'href': 'http://perdu.com/',
+        'hreflang': 'fr-CH'
+    }
+}
+
 items = {
     'item-1': {
         'name': 'item-1',
@@ -150,6 +165,24 @@ items = {
             'datetime': fromisoformat('2020-10-28T13:05:10Z')
         },
         'links': links_invalid.values()
+    },
+    'item-hreflang-links': {
+        'name': 'item-hreflang-link',
+        'geometry':
+            GEOSGeometry(
+                json.dumps({
+                    "coordinates": [[
+                        [5.644711, 46.775054],
+                        [5.644711, 48.014995],
+                        [6.602408, 48.014995],
+                        [7.602408, 49.014995],
+                        [5.644711, 46.775054],
+                    ]],
+                    "type": "Polygon"
+                })
+            ),
+        'properties_datetime': fromisoformat('2024-12-05T13:37Z'),
+        'links': links_hreflanged.values()
     },
     'item-switzerland': {
         'name': 'item-switzerland',
