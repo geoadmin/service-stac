@@ -666,3 +666,22 @@ class CollectionLinksEndpointTestCase(StacBaseTestCase):
         fr_link = link_data[-1]
         self.assertEqual(de_link['hreflang'], 'de')
         self.assertEqual(fr_link['hreflang'], 'fr-CH')
+
+    def test_create_collection_link_with_invalid_hreflang(self):
+        data = self.collection_data.get_json('put')
+        data['links'] = [{
+            'rel': 'more-info',
+            'href': 'http://www.meteoschweiz.ch/',
+            'title': 'A link to a german page',
+            'type': 'text/html',
+            'hreflang': "deUtsches_sprache"
+        }]
+
+        path = f'/{STAC_BASE_V}/collections/{self.collection.name}'
+        response = self.client.put(path, data=data, content_type="application/json")
+
+        self.assertEqual(response.status_code, 400)
+        content = response.json()
+        description = content['description'][0]
+        self.assertIn('Unknown code', description)
+        self.assertIn('Missing language', description)

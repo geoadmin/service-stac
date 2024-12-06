@@ -4,6 +4,7 @@ import os
 import time
 from uuid import uuid4
 
+from language_tags import tags
 from multihash import encode as multihash_encode
 from multihash import to_hex_string
 
@@ -160,6 +161,15 @@ class Link(models.Model):
 
     def __str__(self):
         return f'{self.rel}: {self.href}'
+
+    def save(self, *args, **kwargs) -> None:
+        """Validate the hreflang"""
+        self.full_clean()
+
+        if self.hreflang is not None and self.hreflang != '' and not tags.check(self.hreflang):
+            raise ValidationError(_(", ".join([v.message for v in tags.tag(self.hreflang).errors])))
+
+        super().save(*args, **kwargs)
 
 
 class LandingPage(models.Model):
