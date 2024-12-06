@@ -38,7 +38,7 @@ class CollectionLinkSerializer(NonNullModelSerializer):
 
     class Meta:
         model = CollectionLink
-        fields = ['href', 'rel', 'title', 'type']
+        fields = ['href', 'rel', 'title', 'type', 'hreflang']
 
     # NOTE: when explicitely declaring fields, we need to add the validation as for the field
     # in model !

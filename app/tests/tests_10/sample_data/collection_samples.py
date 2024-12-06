@@ -54,6 +54,21 @@ links_invalid = {
     }
 }
 
+links_hreflanged = {
+    'link-1': {
+        'title': 'Link with hreflang',
+        'rel': 'describedBy',
+        'href': 'http://perdu.com/',
+        'hreflang': 'de'
+    },
+    'link-2': {
+        'title': 'Link with hreflang',
+        'rel': 'copiedFrom',
+        'href': 'http://perdu.com/',
+        'hreflang': 'fr-CH'
+    }
+}
+
 collections = {
     'collection-1': {
         'name': 'collection-1',
@@ -103,6 +118,12 @@ collections = {
         'description': 'This is a collection with multiple user links',
         'license': 'proprietary',
         'links': [multiple_links['link-1'], multiple_links['link-2']]
+    },
+    'collection-hreflang-links': {
+        'name': 'collection-1',
+        'description': 'This a collection description',
+        'license': 'proprietary',
+        'links': links_hreflanged.values()
     },
     'collection-invalid-providers': {
         'name': 'collection-invalid-provider',
