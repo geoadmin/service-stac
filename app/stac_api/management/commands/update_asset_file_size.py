@@ -15,6 +15,10 @@ from stac_api.views.upload import SharedAssetUploadBase
 
 logger = logging.getLogger(__name__)
 
+# increase the log level so boto3 doesn't spam the output
+logging.getLogger('boto3').setLevel(logging.WARNING)
+logging.getLogger('botocore').setLevel(logging.WARNING)
+
 
 class Handler(CommandHandler):
 
