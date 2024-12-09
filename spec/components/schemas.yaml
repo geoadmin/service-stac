@@ -1237,6 +1237,10 @@ components:
             - GET
             - POST
           type: string
+        hreflang:
+          description: The language of the link target
+          example: de-CH
+          type: string
       required:
         - href
         - rel
