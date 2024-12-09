@@ -1237,6 +1237,11 @@ components:
             - GET
             - POST
           type: string
+        hreflang:
+          # from https://github.com/stac-extensions/language?tab=readme-ov-file#fields-for-links-and-assets
+          description: The language of the link target
+          example: de-CH
+          type: string
       required:
         - href
         - rel
