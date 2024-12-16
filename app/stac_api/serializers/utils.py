@@ -1,9 +1,18 @@
 import logging
 from collections import OrderedDict
+from typing import Dict
+from typing import List
+
+from django.utils.dateparse import parse_duration
+from django.utils.duration import duration_iso_string
+from django.utils.translation import gettext_lazy as _
 
 from rest_framework import serializers
 from rest_framework.utils.serializer_helpers import ReturnDict
 
+from stac_api.models import Collection
+from stac_api.models import Item
+from stac_api.models import Link
 from stac_api.utils import build_asset_href
 from stac_api.utils import get_browser_url
 from stac_api.utils import get_url
@@ -11,7 +20,12 @@ from stac_api.utils import get_url
 logger = logging.getLogger(__name__)
 
 
-def update_or_create_links(model, instance, instance_type, links_data):
+def update_or_create_links(
+    model: type[Link],
+    instance: type[Item] | type[Collection],
+    instance_type: str,
+    links_data: List[Dict]
+):
     '''Update or create links for a model
 
     Update the given links list within a model instance or create them when they don't exists yet.
@@ -23,13 +37,16 @@ def update_or_create_links(model, instance, instance_type, links_data):
     '''
     links_ids = []
     for link_data in links_data:
+        link: Link
+        created: bool
         link, created = model.objects.get_or_create(
             **{instance_type: instance},
             rel=link_data["rel"],
             defaults={
                 'href': link_data.get('href', None),
                 'link_type': link_data.get('link_type', None),
-                'title': link_data.get('title', None)
+                'title': link_data.get('title', None),
+                'hreflang': link_data.get('hreflang', None)
             }
         )
         logger.debug(
@@ -40,7 +57,7 @@ def update_or_create_links(model, instance, instance_type, links_data):
                 instance_type: instance.name, "link": link_data
             }
         )
-        links_ids.append(link.id)
+        links_ids.append(link.pk)
         # the duplicate here is necessary to update the values in
         # case the object already exists
         link.link_type = link_data.get('link_type', link.link_type)
@@ -339,3 +356,21 @@ class HrefField(serializers.Field):
 
     def to_internal_value(self, data):
         return data
+
+
+class IsoDurationField(serializers.Field):
+    '''Handles duration in the ISO 8601 format like "P3DT6H"'''
+
+    def to_internal_value(self, data):
+        '''Convert from ISO 8601 (e.g. "P3DT1H") to Python's timedelta'''
+        internal = parse_duration(data)
+        if internal is None:
+            raise serializers.ValidationError(
+                code="payload",
+                detail={_("Duration doesn't match ISO 8601 format")}
+            )
+        return internal
+
+    def to_representation(self, value):
+        '''Convert from Python's timedelta to ISO 8601 (e.g. "P3DT02H00M00S")'''
+        return duration_iso_string(value)

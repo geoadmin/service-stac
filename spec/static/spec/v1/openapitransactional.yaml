@@ -621,6 +621,11 @@ paths:
               properties:
                 datetime: "2016-05-03T13:22:30.040Z"
                 title: A CS3 item
+                forecast:reference_datetime: "2024-11-19T16:15:00Z"
+                forecast:horizon: P3DT2H
+                forecast:duration: PT4H
+                forecast:param: T
+                forecast:mode: ctrl
               links:
                 - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
                   rel: license
@@ -1864,148 +1869,6 @@ paths:
                 code: 400
                 description: "Unable to log in with provided credentials."
 components:
-  parameters:
-    assetQuery:
-      description: >-
-        Query for properties in assets (e.g. mediatype). Use the JSON form of the assetQueryFilter used in POST.
-      in: query
-      name: assetQuery
-      required: false
-      schema:
-        type: string
-    bbox:
-      explode: false
-      in: query
-      name: bbox
-      required: false
-      schema:
-        $ref: "#/components/schemas/bbox"
-      style: form
-    collectionId:
-      description: Local identifier of a collection
-      in: path
-      name: collectionId
-      required: true
-      schema:
-        type: string
-    collectionsArray:
-      explode: false
-      in: query
-      name: collections
-      required: false
-      schema:
-        $ref: "#/components/schemas/collectionsArray"
-    datetime:
-      explode: false
-      in: query
-      name: datetime
-      required: false
-      schema:
-        $ref: "#/components/schemas/datetimeQuery"
-      example: 2018-02-12T00%3A00%3A00Z%2F2018-03-18T12%3A31%3A12Z
-      style: form
-    featureId:
-      description: Local identifier of a feature
-      in: path
-      name: featureId
-      required: true
-      schema:
-        type: string
-    assetObjectHref:
-      name: assetObjectHref
-      in: path
-      description: Full URL to asset object including protocol, host and path
-      required: true
-      schema:
-        type: string
-    ids:
-      description: >-
-        Array of Item ids to return. All other filter parameters that further restrict the number of search results are ignored
-      explode: false
-      in: query
-      name: ids
-      required: false
-      schema:
-        $ref: "#/components/schemas/ids"
-    limit:
-      explode: false
-      in: query
-      name: limit
-      required: false
-      schema:
-        $ref: "#/components/schemas/limit"
-      style: form
-    query:
-      description: Query for properties in items. Use the JSON form of the queryFilter used in POST.
-      in: query
-      name: query
-      required: false
-      schema:
-        type: string
-    IfNoneMatch:
-      name: If-None-Match
-      in: header
-      schema:
-        type: string
-      description: >-
-        The RFC7232 `If-None-Match` header field makes the GET request method conditional. It is composed of a comma separated list of ETags or value "*".
-
-
-        The server compares the client's ETags (sent with `If-None-Match`) with the ETag for its current version of the resource, and if both values match (that is, the resource has not changed), the server sends back a `304 Not Modified` status, without a body, which tells the client that the cached version of the response is still good to use (fresh).
-      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
-    IfMatch:
-      name: If-Match
-      in: header
-      schema:
-        type: string
-      description: >-
-        The RFC7232 `If-Match` header field makes the GET request method conditional. It is composed of a comma separated list of ETags or value "*".
-
-
-        The server compares the client's ETags (sent with `If-Match`) with the ETag for its current version of the resource, and if both values don't match (that is, the resource has changed), the server sends back a `412 Precondition Failed` status, without a body, which tells the client that the cached version of the response is not good to use anymore.
-      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
-    provider:
-      name: provider
-      in: query
-      description: Filter collections by the name of the provider. Supports partial and case-insensitive matching.
-      required: false
-      schema:
-        type: string
-    assetId:
-      name: assetId
-      in: path
-      description: Local identifier of an asset.
-      required: true
-      schema:
-        type: string
-    uploadId:
-      name: uploadId
-      in: path
-      description: Local identifier of an asset's upload.
-      required: true
-      schema:
-        type: string
-    presignedUrl:
-      name: presignedUrl
-      in: path
-      description: >-
-        Presigned url returned by [Create a new Asset's multipart upload](#operation/createAssetUpload).
-
-        Note: the url returned by the above endpoint is the full url including scheme, host and path
-      required: true
-      schema:
-        type: string
-    IfMatchWrite:
-      name: If-Match
-      in: header
-      schema:
-        type: string
-      description: >-
-        The RFC7232 `If-Match` header field makes the PUT/PATCH/DEL request method conditional. It is composed of a comma separated list of ETags or value "*".
-
-
-        The server compares the client's ETags (sent with `If-Match`) with the ETag for its current version of the resource, and if both values don't match (that is, the resource has changed), the server sends back a `412 Precondition Failed` status, without a body, which tells the client that he would overwrite another changes of the resource.
-      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
   schemas:
     assetQuery:
       additionalProperties:
@@ -2376,6 +2239,10 @@ components:
       example: 2018-02-12T23:20:50Z
       type: string
       format: date-time
+    duration:
+      description: ISO 8601 compliant duration
+      example: P3DT6H
+      type: string
     datetimeQuery:
       description: >-
         Either a date-time or an interval, open or closed. Date and time expressions adhere to RFC 3339. Open intervals are expressed using double-dots.
@@ -3004,11 +2871,30 @@ components:
           minLength: 1
           maxLength: 255
           nullable: true
+        forecast:reference_datetime:
+          $ref: "#/components/schemas/datetime"
+        forecast:horizon:
+          $ref: "#/components/schemas/duration"
+        forecast:duration:
+          $ref: "#/components/schemas/duration"
+        forecast:param:
+          description: >-
+            Name of the model parameter that corresponds to the data
+          example: T
+          type: string
+          nullable: true
+        forecast:mode:
+          description: >-
+            Denotes whether the data corresponds to the control run or perturbed runs.
+          enum:
+            - ctrl
+            - perturb
+          type: string
+          nullable: true
       required:
         - created
         - updated
       type: object
-      readOnly: true
     itemType:
       title: type
       description: The GeoJSON type
@@ -3121,6 +3007,10 @@ components:
           enum:
             - GET
             - POST
+          type: string
+        hreflang:
+          description: The language of the link target
+          example: de-CH
           type: string
       required:
         - href
@@ -4107,14 +3997,6 @@ components:
         the collections "external asset whitelist".
       example: |
         http://bundesamt.admin.ch/ch.bundesamt.data/no_specific_structure.png
-  headers:
-    ETag:
-      schema:
-        type: string
-      description: >-
-        The RFC7232 ETag header field in a response provides the current entity- tag for the selected resource. An entity-tag is an opaque identifier for different versions of a resource over time, regardless whether multiple versions are valid at the same time. An entity-tag consists of an opaque quoted string, possibly prefixed by a weakness indicator.
-      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
-      required: true
   responses:
     Collection:
       headers:
@@ -4381,6 +4263,156 @@ components:
             required:
               - code
               - links
+  parameters:
+    assetQuery:
+      description: >-
+        Query for properties in assets (e.g. mediatype). Use the JSON form of the assetQueryFilter used in POST.
+      in: query
+      name: assetQuery
+      required: false
+      schema:
+        type: string
+    bbox:
+      explode: false
+      in: query
+      name: bbox
+      required: false
+      schema:
+        $ref: "#/components/schemas/bbox"
+      style: form
+    collectionId:
+      description: Local identifier of a collection
+      in: path
+      name: collectionId
+      required: true
+      schema:
+        type: string
+    collectionsArray:
+      explode: false
+      in: query
+      name: collections
+      required: false
+      schema:
+        $ref: "#/components/schemas/collectionsArray"
+    datetime:
+      explode: false
+      in: query
+      name: datetime
+      required: false
+      schema:
+        $ref: "#/components/schemas/datetimeQuery"
+      example: 2018-02-12T00%3A00%3A00Z%2F2018-03-18T12%3A31%3A12Z
+      style: form
+    featureId:
+      description: Local identifier of a feature
+      in: path
+      name: featureId
+      required: true
+      schema:
+        type: string
+    assetObjectHref:
+      name: assetObjectHref
+      in: path
+      description: Full URL to asset object including protocol, host and path
+      required: true
+      schema:
+        type: string
+    ids:
+      description: >-
+        Array of Item ids to return. All other filter parameters that further restrict the number of search results are ignored
+      explode: false
+      in: query
+      name: ids
+      required: false
+      schema:
+        $ref: "#/components/schemas/ids"
+    limit:
+      explode: false
+      in: query
+      name: limit
+      required: false
+      schema:
+        $ref: "#/components/schemas/limit"
+      style: form
+    query:
+      description: Query for properties in items. Use the JSON form of the queryFilter used in POST.
+      in: query
+      name: query
+      required: false
+      schema:
+        type: string
+    IfNoneMatch:
+      name: If-None-Match
+      in: header
+      schema:
+        type: string
+      description: >-
+        The RFC7232 `If-None-Match` header field makes the GET request method conditional. It is composed of a comma separated list of ETags or value "*".
+
+
+        The server compares the client's ETags (sent with `If-None-Match`) with the ETag for its current version of the resource, and if both values match (that is, the resource has not changed), the server sends back a `304 Not Modified` status, without a body, which tells the client that the cached version of the response is still good to use (fresh).
+      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
+    IfMatch:
+      name: If-Match
+      in: header
+      schema:
+        type: string
+      description: >-
+        The RFC7232 `If-Match` header field makes the GET request method conditional. It is composed of a comma separated list of ETags or value "*".
+
+
+        The server compares the client's ETags (sent with `If-Match`) with the ETag for its current version of the resource, and if both values don't match (that is, the resource has changed), the server sends back a `412 Precondition Failed` status, without a body, which tells the client that the cached version of the response is not good to use anymore.
+      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
+    provider:
+      name: provider
+      in: query
+      description: Filter collections by the name of the provider. Supports partial and case-insensitive matching.
+      required: false
+      schema:
+        type: string
+    assetId:
+      name: assetId
+      in: path
+      description: Local identifier of an asset.
+      required: true
+      schema:
+        type: string
+    uploadId:
+      name: uploadId
+      in: path
+      description: Local identifier of an asset's upload.
+      required: true
+      schema:
+        type: string
+    presignedUrl:
+      name: presignedUrl
+      in: path
+      description: >-
+        Presigned url returned by [Create a new Asset's multipart upload](#operation/createAssetUpload).
+
+        Note: the url returned by the above endpoint is the full url including scheme, host and path
+      required: true
+      schema:
+        type: string
+    IfMatchWrite:
+      name: If-Match
+      in: header
+      schema:
+        type: string
+      description: >-
+        The RFC7232 `If-Match` header field makes the PUT/PATCH/DEL request method conditional. It is composed of a comma separated list of ETags or value "*".
+
+
+        The server compares the client's ETags (sent with `If-Match`) with the ETag for its current version of the resource, and if both values don't match (that is, the resource has changed), the server sends back a `412 Precondition Failed` status, without a body, which tells the client that he would overwrite another changes of the resource.
+      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
+  headers:
+    ETag:
+      schema:
+        type: string
+      description: >-
+        The RFC7232 ETag header field in a response provides the current entity- tag for the selected resource. An entity-tag is an opaque identifier for different versions of a resource over time, regardless whether multiple versions are valid at the same time. An entity-tag consists of an opaque quoted string, possibly prefixed by a weakness indicator.
+      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
+      required: true
   examples:
     inprogress:
       summary: In progress upload example

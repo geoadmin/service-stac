@@ -1,13 +1,17 @@
+# pylint: disable=too-many-lines
 import logging
 from datetime import datetime
 from datetime import timedelta
+from typing import cast
 
 from django.contrib.auth import get_user_model
 from django.test import Client
 from django.urls import reverse
 from django.utils import timezone
 
+from stac_api.models import Collection
 from stac_api.models import Item
+from stac_api.models import ItemLink
 from stac_api.utils import fromisoformat
 from stac_api.utils import get_link
 from stac_api.utils import isoformat
@@ -23,6 +27,8 @@ from tests.tests_10.utils import reverse_version
 from tests.utils import client_login
 from tests.utils import disableLogger
 from tests.utils import mock_s3_asset_file
+
+from .data_factory import SampleData
 
 logger = logging.getLogger(__name__)
 
@@ -940,3 +946,93 @@ class ItemsUnauthorizeEndpointTestCase(StacBaseTestCase):
         path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{self.item.name}'
         response = self.client.delete(path)
         self.assertStatusCode(401, response, msg="Unauthorized delete was permitted.")
+
+
+class ItemsLinksEndpointTestCase(StacBaseTestCase):
+
+    def setUp(self):
+        self.client = Client()
+        client_login(self.client)
+
+    @classmethod
+    def setUpTestData(cls) -> None:
+        cls.factory = Factory()
+        cls.collection_data = cls.factory.create_collection_sample(db_create=True)
+        cls.collection = cast(Collection, cls.collection_data.model)
+        cls.item_data: SampleData = cls.factory.create_item_sample(
+            db_create=False, collection=cls.collection
+        )
+        cls.item = cast(Item, cls.item_data.model)
+        return super().setUpTestData()
+
+    def test_create_item_link_with_simple_link(self):
+        data = self.item_data.get_json('put')
+
+        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{self.item.name}'
+        response = self.client.put(path, data=data, content_type="application/json")
+
+        self.assertEqual(response.status_code, 200)
+
+        link = ItemLink.objects.last()
+        assert link is not None
+        self.assertEqual(link.rel, data['links'][0]['rel'])
+        self.assertEqual(link.hreflang, None)
+
+    def test_create_item_link_with_hreflang(self):
+        data = self.item_data.get_json('put')
+        data['links'] = [{
+            'rel': 'more-info',
+            'href': 'http://www.meteoschweiz.ch/',
+            'title': 'A link to a german page',
+            'type': 'text/html',
+            'hreflang': "de"
+        }]
+
+        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{self.item.name}'
+        response = self.client.put(path, data=data, content_type="application/json")
+
+        self.assertEqual(response.status_code, 200)
+
+        link = ItemLink.objects.last()
+        # Check for None with `assert` because `self.assertNotEqual` is not understood
+        # by the type checker.
+        assert link is not None
+        self.assertEqual(link.hreflang, 'de')
+
+    def test_read_item_with_hreflang(self):
+        item_data: SampleData = self.factory.create_item_sample(
+            sample='item-hreflang-links', db_create=False, collection=self.collection
+        )
+        item = cast(Item, item_data.model)
+
+        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{item.name}'
+        response = self.client.get(path, content_type="application/json")
+
+        self.assertEqual(response.status_code, 200)
+
+        json_data = response.json()
+        self.assertIn('links', json_data)
+        link_data = json_data['links']
+        de_link = link_data[-2]
+        fr_link = link_data[-1]
+        self.assertEqual(de_link['hreflang'], 'de')
+        self.assertEqual(fr_link['hreflang'], 'fr-CH')
+
+    def test_update_item_link_with_invalid_hreflang(self):
+        data = self.item_data.get_json('put')
+        data['links'] = [{
+            'rel': 'more-info',
+            'href': 'http://www.meteoschweiz.ch/',
+            'title': 'A link to a german page',
+            'type': 'text/html',
+            'hreflang': "fr/ch"
+        }]
+
+        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{self.item.name}'
+        response = self.client.put(path, data=data, content_type="application/json")
+
+        self.assertEqual(response.status_code, 400)
+        content = response.json()
+        description = content['description'][0]
+        self.assertIn('Unknown code', description)
+        self.assertIn('Missing language', description)

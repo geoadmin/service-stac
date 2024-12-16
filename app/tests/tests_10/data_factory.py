@@ -907,7 +907,7 @@ class FactoryBase:
         )
         return last
 
-    def create_sample(self, sample, name=None, db_create=False, **kwargs):
+    def create_sample(self, sample, name=None, db_create=False, **kwargs) -> SampleData:
         '''Create a data sample
 
         Args:
@@ -1356,8 +1356,13 @@ class Factory:
         self.collection_assets = CollectionAssetFactory()
 
     def create_collection_sample(
-        self, name=None, sample='collection-1', db_create=False, required_only=False, **kwargs
-    ):
+        self,
+        name=None,
+        sample='collection-1',
+        db_create=False,
+        required_only=False,
+        **kwargs
+    ) -> SampleData:
         '''Create a collection data sample
 
         Args:

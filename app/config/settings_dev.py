@@ -79,9 +79,14 @@ MIDDLEWARE += [
 # By default sessions expire after two weeks.
 # Sessions are only useful for user tracking in the admin UI. For security
 # reason we should expire these sessions as soon as possible. Given the use
-# case, it seems reasonable to log out users after 8h of inactivity or whenever
-# they restart their browser.
+# case, it seems reasonable to log users out after 8h of inactivity.
 SESSION_COOKIE_AGE = 60 * 60 * 8
-SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+# Setting sessions to expire when closing the browser means the age expiration
+# is ignored. We could do age-based expiration on the server side but that's
+# more work than it's worth so we just persist the session across browser
+# restarts and expire it only based on age. Furthermore, close-based expiration
+# is sometimes ignored depending on the browser and how it's configured. So
+# let's just turn that off (as it is by default).
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 SESSION_COOKIE_SAMESITE = "Strict"
 SESSION_COOKIE_SECURE = True

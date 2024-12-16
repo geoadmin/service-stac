@@ -66,7 +66,18 @@ class ProviderInline(admin.TabularInline):
     }
 
 
-class CollectionLinkInline(admin.TabularInline):
+class LinkInline(admin.TabularInline):
+
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        # make the hreflang field a bit shorter so that the inline
+        # will not be rendered too wide
+        if db_field.attname == 'hreflang':
+            attrs = {'size': 10}
+            kwargs['widget'] = forms.TextInput(attrs=attrs)
+        return super().formfield_for_dbfield(db_field, request, **kwargs)
+
+
+class CollectionLinkInline(LinkInline):
     model = CollectionLink
     extra = 0
 
@@ -154,7 +165,7 @@ class CollectionAdmin(admin.ModelAdmin):
         return self.readonly_fields
 
 
-class ItemLinkInline(admin.TabularInline):
+class ItemLinkInline(LinkInline):
     model = ItemLink
     extra = 0
 
@@ -230,6 +241,18 @@ class ItemAdmin(admin.ModelAdmin):
                     'properties_end_datetime',
                     'properties_expires',
                     'properties_title'
+                )
+            }
+        ),
+        (
+            'Forecast',
+            {
+                'fields': (
+                    'forecast_reference_datetime',
+                    'forecast_horizon',
+                    'forecast_duration',
+                    'forecast_param',
+                    'forecast_mode',
                 )
             }
         ),
