@@ -57,6 +57,13 @@ components:
                   title: Licence for the free geodata of the Federal Office of Topography swisstopo
                 - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
                   rel: describedby
+    collectionUpsertItems:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "../../components/schemas.yaml#/components/schemas/item"
     assetWrite:
       title: Asset
       description: The `property name` defines the ID of the Asset.
