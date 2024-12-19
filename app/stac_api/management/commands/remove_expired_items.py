@@ -4,6 +4,8 @@ from django.conf import settings
 from django.core.management.base import CommandParser
 from django.utils import timezone
 
+from stac_api.models import AssetUpload
+from stac_api.models import BaseAssetUpload
 from stac_api.models import Item
 from stac_api.utils import CommandHandler
 from stac_api.utils import CustomBaseCommand
@@ -26,6 +28,15 @@ class Handler(CommandHandler):
         ).all()
         for item in items:
             assets = item.assets.all()
+            uploads_in_progress = AssetUpload.objects.filter(
+                asset__in=assets, status=BaseAssetUpload.Status.IN_PROGRESS
+            )
+            if uploads_in_progress.count() > 0:
+                self.print_warning(
+                    "WARNING: There are still pending asset uploads for expired items. "
+                    "These are likely stale, so we'll abort them"
+                )
+                uploads_in_progress.update(status=BaseAssetUpload.Status.ABORTED)
             assets_length = len(assets)
             self.delete(assets, 'assets')
             self.delete(item, 'item')
