@@ -100,6 +100,7 @@ MEDIA_TYPES = [
     MediaType('image/jpeg', 'JPEG', ['.jpeg', '.jpg']),
     MediaType('image/png', 'PNG', ['.png']),
     MediaType('application/vnd.sqlite3', 'sqlite', ['.sqlite']),
+    MediaType('application/grib', 'GRIB/GRIB2', ['.grib', '.grib2'])
 ]
 
 MT_VAR = "[0-9A-Za-z!#$%&'*+.^_`|~-]+"
