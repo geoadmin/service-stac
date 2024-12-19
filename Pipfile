@@ -22,6 +22,7 @@ stac-api-validator = "~=0.6.2"
 pytest = "*"
 pytest-django = "*"
 pytest-dotenv = "*"
+pytest-cov = "*"
 
 [packages]
 gevent = "~=24.2.1"
