@@ -3462,7 +3462,7 @@ components:
     collectionUpsertItems:
       type: object
       properties:
-        items:
+        features:
           type: array
           items:
             $ref: "#/components/schemas/item"
