@@ -28,9 +28,14 @@ def checker(request):
     return JsonResponse(data)
 
 
+def exception_test(request):
+    raise Exception("An Exception Test")
+
+
 urlpatterns = [
     path('', include('django_prometheus.urls')),
     path('checker', checker, name='checker'),
+    path('exception_test', exception_test),
     path(f'{STAC_BASE}/', include('stac_api.urls')),
     path(f'{STAC_BASE}/admin/', admin.site.urls),
 ]
