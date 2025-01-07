@@ -67,6 +67,7 @@ nose2-junit.xml
 
 # ignore local files
 **/settings.py
+.env
 .env.*local
 .volumes
 **/logs
