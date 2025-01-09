@@ -3,10 +3,8 @@ disable_existing_loggers: False # this allow to get logger at module level
 
 root:
   handlers:
-    - console
-    - file-standard
     - file-json
-  level: DEBUG
+  level: WARNING
   propagate: True
 
 loggers:
@@ -82,56 +80,55 @@ formatters:
     remove_empty: True
     ignore_missing: True
     fmt:
+      error:
+        stack_trace: exc_text
       time: utc_isotime
       level: levelname
       logger: name
       module: module
-      function: funcName
-      process: "%(process)x/%(thread)x"
-      exc_info: exc_info
-      request:
-        path: request.path
-        method: request.method
-        queryString: request.META.QUERY_STRING
-        headers:
-          Content-Type: request.headers.Content-Type
-          Content-Length: request.headers.Content-Length
-          Cloudfront-Forwarded-Proto: request.headers.Cloudfront-Forwarded-Proto
-          Content-Encoding: request.headers.Content-Encoding
-          Origin: request.headers.Origin
-          Referer: request.headers.Referer
-          Accept: request.headers.Accept
-          Accept-Encoding: request.headers.Accept-Encoding
-          Accept-Language: request.headers.Accept-Language
-          User-Agent: request.headers.User-Agent
-          If-None-Match: request.headers.If-None-Match
-          Sec-Fetch-Mode: request.headers.Sec-Fetch-Mode
-          Sec-Fetch-Site: request.headers.Sec-Fetch-Site
-          Sec-CH-UA: request.headers.Sec-CH-UA
-          Sec-CH-UA-Mobile: request.headers.Sec-CH-UA-Mobile
-          Sec-CH-UA-Platform: request.headers.Sec-CH-UA-Platform
-          Sec-CH-UA-Model: request.headers.Sec-CH-UA-Model
-        payload: request.payload
-      response:
-        statusCode: response.code
-        headers:
-          Cache-Control: response.headers.Cache-Control
-          Expires: response.headers.Expires
-          Content-Type: response.headers.Content-Type
-          Content-Length: response.headers.Content-Length
-          Content-Encoding: response.headers.Content-Encoding
-          Access-Control-Allow-Headers: response.headers.Access-Control-Allow-Headers
-          Access-Control-Allow-Methods: response.headers.Access-Control-Allow-Methods
-          Access-Control-Allow-Origin: response.headers.Access-Control-Allow-Origin
-          ETag: response.headers.ETag
-        duration: response.duration
-        payload: response.payload
-      message: message
+      http:
+        request:
+          path: request.path
+          method: request.method
+          queryString: request.META.QUERY_STRING
+          headers:
+            Content-Type: request.headers.Content-Type
+            Content-Length: request.headers.Content-Length
+            Cloudfront-Forwarded-Proto: request.headers.Cloudfront-Forwarded-Proto
+            Content-Encoding: request.headers.Content-Encoding
+            Origin: request.headers.Origin
+            Referer: request.headers.Referer
+            Accept: request.headers.Accept
+            Accept-Encoding: request.headers.Accept-Encoding
+            Accept-Language: request.headers.Accept-Language
+            User-Agent: request.headers.User-Agent
+            If-None-Match: request.headers.If-None-Match
+            Sec-Fetch-Mode: request.headers.Sec-Fetch-Mode
+            Sec-Fetch-Site: request.headers.Sec-Fetch-Site
+            Sec-CH-UA: request.headers.Sec-CH-UA
+            Sec-CH-UA-Mobile: request.headers.Sec-CH-UA-Mobile
+            Sec-CH-UA-Platform: request.headers.Sec-CH-UA-Platform
+            Sec-CH-UA-Model: request.headers.Sec-CH-UA-Model
+          payload: request.payload
+        response:
+          statusCode: response.code
+          headers:
+            Cache-Control: response.headers.Cache-Control
+            Expires: response.headers.Expires
+            Content-Type: response.headers.Content-Type
+            Content-Length: response.headers.Content-Length
+            Content-Encoding: response.headers.Content-Encoding
+            Access-Control-Allow-Headers: response.headers.Access-Control-Allow-Headers
+            Access-Control-Allow-Methods: response.headers.Access-Control-Allow-Methods
+            Access-Control-Allow-Origin: response.headers.Access-Control-Allow-Origin
+            ETag: response.headers.ETag
+          duration: response.duration
+          payload: response.payload
 
 handlers:
   console:
     class: logging.StreamHandler
-    formatter: standard
+    formatter: json
     stream: ext://sys.stdout
     filters:
       # These filters modify the record in-place, and as the record is passed serially to each
