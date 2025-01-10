@@ -16,4 +16,4 @@ class ExceptionLoggingMiddleware:
         # NOTE: this process_exception is not called for REST Framework endpoints. For those
         # the exceptions handling and logging is done within stac_api.apps.custom_exception_handler
         extra = {"request": request}
-        logger.critical(repr(exception), extra=extra, exc_info=sys.exc_info())
+        logger.critical(repr(exception), 500, extra=extra, exc_info=sys.exc_info())

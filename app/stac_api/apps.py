@@ -71,7 +71,7 @@ def custom_exception_handler(exc, context):
     # If we don't have a response that's means that we have an unhandled exception that needs to
     # return a 500. We need to log the exception here as it might not be re-raised.
     extra = {"request": context['request']._request}  # pylint: disable=protected-access
-    logger.critical(repr(exc), extra=extra, exc_info=sys.exc_info())
+    logger.critical(repr(exc), 500, extra=extra, exc_info=sys.exc_info())
 
     if settings.DEBUG and not settings.DEBUG_PROPAGATE_API_EXCEPTIONS:
         # Other exceptions are left to Django to handle in DEBUG mode, this allow django
