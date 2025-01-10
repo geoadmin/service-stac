@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "a7290de6774447303a11c8fd10731f3591906df5a84a2800b6b82669495ef29c"
+            "sha256": "debc0414d67144b4e001915179abbb1788cc5ba57cdfe3cab8349ba8fd0b8bcc"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -376,13 +376,10 @@
             "version": "==1.2.0"
         },
         "logging-utilities": {
-            "hashes": [
-                "sha256:0f88c3ddf33a7e81da20839667a9bedadfe22de6f9087c801aa1f582b89b4c93",
-                "sha256:d96b6910d0a1c26216bca893c11d66c0a8a61113af44cd908b2e4f4ae569e067"
-            ],
-            "index": "pypi",
+            "editable": true,
+            "git": "https://github.com/geoadmin/lib-py-logging-utilities",
             "markers": "python_version >= '3.0'",
-            "version": "==4.5.0"
+            "ref": "8553ff50a83a14855a6a9594d8fe1bca73164353"
         },
         "morphys": {
             "hashes": [
