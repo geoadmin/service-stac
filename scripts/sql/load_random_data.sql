@@ -6,6 +6,10 @@ this query will load random data into:
 you can set the number of collections and the number of items for each collection.
 see inline comments
 
+NOTE #########
+As of 2025, this script is outdated. Several new model fields have been added.
+If you want to use this, please update the script beforehand.
+
 */
 
 
