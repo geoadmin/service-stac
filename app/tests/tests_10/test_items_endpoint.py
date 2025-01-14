@@ -1,13 +1,17 @@
 # pylint: disable=too-many-lines
 import logging
+from base64 import b64encode
 from datetime import datetime
 from datetime import timedelta
 from typing import cast
 
 from django.contrib.auth import get_user_model
 from django.test import Client
+from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
+
+from rest_framework.authtoken.models import Token
 
 from stac_api.models.collection import Collection
 from stac_api.models.item import Item
@@ -946,6 +950,62 @@ class ItemsUnauthorizeEndpointTestCase(StacBaseTestCase):
         path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{self.item.name}'
         response = self.client.delete(path)
         self.assertStatusCode(401, response, msg="Unauthorized delete was permitted.")
+
+
+@override_settings(FEATURE_AUTH_RESTRICT_V1=True)
+class ItemsDisabledAuthenticationEndpointTestCase(StacBaseTestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.factory = Factory()
+        cls.collection = cls.factory.create_collection_sample().model
+        cls.item = cls.factory.create_item_sample(cls.collection, sample='item-1').model
+
+    def setUp(self):
+        self.client = Client()
+        self.username = 'SherlockHolmes'
+        self.password = '221B_BakerStreet'
+        self.user = get_user_model().objects.create_user(
+            self.username, 'top@secret.co.uk', self.password
+        )
+        self.sample = self.factory.create_item_sample(self.collection, name=self.item.name)
+
+    def run_test(self, headers=None):
+        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{self.item.name}'
+
+        # Make sure PUT fails if old authentication is disabled
+        response = self.client.put(
+            path,
+            headers=headers,
+            data=self.sample.get_json('put'),
+            content_type="application/json"
+        )
+        self.assertStatusCode(401, response, msg="Unauthorized put was permitted.")
+
+        # Make sure PATCH fails if old authentication is disabled
+        data = {"properties": {"title": "patched title"}}
+        response = self.client.patch(
+            path, headers=headers, data=data, content_type="application/json"
+        )
+        self.assertStatusCode(401, response, msg="Unauthorized patch was permitted.")
+
+        # Make sure DELETE fails if old authentication is disabled
+        response = self.client.delete(path, headers=headers)
+        self.assertStatusCode(401, response, msg="Unauthorized delete was permitted.")
+
+    def test_disabled_session_authentication(self):
+        self.client.login(username=self.username, password=self.password)
+        self.run_test()
+
+    def test_disabled_token_authentication(self):
+        token = Token.objects.create(user=self.user)
+        headers = {'Authorization': f'Token {token.key}'}
+        self.run_test(headers=headers)
+
+    def test_disabled_base_authentication(self):
+        token = b64encode(f'{self.username}:{self.password}'.encode()).decode()
+        headers = {'Authorization': f'Basic {token}'}
+        self.run_test(headers=headers)
 
 
 class ItemsLinksEndpointTestCase(StacBaseTestCase):

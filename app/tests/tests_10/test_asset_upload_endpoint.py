@@ -9,6 +9,9 @@ from urllib import parse
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import Client
+from django.test import override_settings
+
+from rest_framework.authtoken.models import Token
 
 from stac_api.models.item import Asset
 from stac_api.models.item import AssetUpload
@@ -1310,3 +1313,71 @@ class ExternalAssetUploadtestCase(AssetUploadBaseTest):
         )
 
         self.assertStatusCode(400, response)
+
+
+@override_settings(FEATURE_AUTH_RESTRICT_V1=True)
+class AssetUploadDisabledAuthenticationEndpointTestCase(AssetUploadBaseTest):
+
+    def setUp(self):  # pylint: disable=invalid-name
+        self.client = Client()
+        self.factory = Factory()
+        self.collection = self.factory.create_collection_sample().model
+        self.item = self.factory.create_item_sample(collection=self.collection).model
+        self.asset = self.factory.create_asset_sample(item=self.item, sample='asset-no-file').model
+        self.maxDiff = None  # pylint: disable=invalid-name
+        self.username = 'SherlockHolmes'
+        self.password = '221B_BakerStreet'
+        self.user = get_user_model().objects.create_user(
+            self.username, 'top@secret.co.uk', self.password
+        )
+
+    def run_test(self, headers=None):
+        number_parts = 2
+        file_like, checksum_multihash = get_file_like_object(1 * KB)
+        offset = 1 * KB // number_parts
+        md5_parts = create_md5_parts(number_parts, offset, file_like)
+
+        # Make sure POST fails if old authentication is disabled
+        response = self.client.post(
+            self.get_create_multipart_upload_path(),
+            headers=headers,
+            data={
+                'number_parts': number_parts,
+                'file:checksum': checksum_multihash,
+                'md5_parts': md5_parts
+            },
+            content_type="application/json"
+        )
+        self.assertStatusCode(401, response, msg="Unauthorized post was permitted.")
+
+        # Make sure POST abort fails if old authentication is disabled
+        response = self.client.post(
+            self.get_abort_multipart_upload_path('upload_id'),
+            headers=headers,
+            data={},
+            content_type="application/json"
+        )
+        self.assertStatusCode(401, response, msg="Unauthorized post was permitted.")
+
+        # Make sure POST complete fails if old authentication is disabled
+        response = self.client.post(
+            self.get_complete_multipart_upload_path('upload_id'),
+            headers=headers,
+            data={'parts': 'parts'},
+            content_type="application/json"
+        )
+        self.assertStatusCode(401, response, msg="Unauthorized post was permitted.")
+
+    def test_disabled_session_authentication(self):
+        self.client.login(username=self.username, password=self.password)
+        self.run_test()
+
+    def test_disabled_token_authentication(self):
+        token = Token.objects.create(user=self.user)
+        headers = {'Authorization': f'Token {token.key}'}
+        self.run_test(headers=headers)
+
+    def test_disabled_base_authentication(self):
+        token = b64encode(f'{self.username}:{self.password}'.encode()).decode()
+        headers = {'Authorization': f'Basic {token}'}
+        self.run_test(headers=headers)
