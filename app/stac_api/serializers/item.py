@@ -462,3 +462,39 @@ class ItemSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         validate_json_payload(self)
 
         return attrs
+
+
+class ItemListSerializer(serializers.Serializer):
+    '''Handle serialization and deserialization of a list of Items.'''
+
+    # In the payload, we call this "features" and not "items" for consistency
+    # with the payload of the getFeatures endpoint.
+    features = ItemSerializer(many=True)
+
+    def create(self, validated_data):
+        '''Create items in bulk from the given list of items.'''
+        items = []
+        links_data_list = []
+        for item_in in validated_data["features"]:
+            links_data = item_in.pop('links', [])
+            item = Item(**item_in, collection=validated_data["collection"])
+            items.append(item)
+
+        update_fields = [field.name for field in Item._meta.get_fields() if not field.is_relation]
+        unique_fields = ["id"]
+        update_fields = list(set(update_fields) - set(unique_fields))
+
+        items_created = Item.objects.bulk_create(
+            items, update_conflicts=True, update_fields=update_fields, unique_fields=unique_fields
+        )
+
+        for item, links_data in zip(items_created, links_data_list):
+            update_or_create_links(
+                instance_type="item", model=ItemLink, instance=item, links_data=links_data
+            )
+        return items_created
+
+    def to_representation(self, instance):
+        '''Convert to a dict like `{"features": [item1, item2, ...]}`.'''
+        items_serialized = [ItemSerializer(item, context=self.context).data for item in instance]
+        return {"features": items_serialized}

@@ -34,7 +34,7 @@ def validate_json_payload(serializer):
     ]
 
     errors = {}
-    for key in serializer.initial_data.keys():
+    for key in serializer.get_initial().keys():
         if key not in expected_payload:
             logger.error('Found unexpected payload %s', key)
             errors[key] = _("Unexpected property in payload")

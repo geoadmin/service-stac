@@ -7,15 +7,17 @@ from datetime import datetime
 from datetime import timedelta
 from datetime import timezone
 from pprint import pformat
+import zoneinfo
 
 from django.urls import resolve
+from django.contrib.gis.geos import Point
 
 from rest_framework import serializers
 from rest_framework.renderers import JSONRenderer
 from rest_framework.test import APIRequestFactory
 
 from stac_api.serializers.collection import CollectionSerializer
-from stac_api.serializers.item import AssetSerializer
+from stac_api.serializers.item import AssetSerializer, ItemListSerializer
 from stac_api.serializers.item import ItemSerializer
 from stac_api.serializers.item import ItemsPropertiesSerializer
 from stac_api.utils import get_asset_path
@@ -662,6 +664,85 @@ class ItemsPropertiesSerializerTestCase(unittest.TestCase):
         self.assertEqual(actual["forecast:duration"], "P0DT04H00M00S")
         self.assertEqual(actual["forecast:variable"], data["forecast:variable"])
         self.assertEqual(actual["forecast:perturbed"], data["forecast:perturbed"])
+
+
+class ItemListDeserializationTestCase(StacBaseTestCase):
+
+    @classmethod
+    def setUpTestData(cls):  # pylint: disable=invalid-name
+        cls.data_factory = Factory()
+        cls.collection = cls.data_factory.create_collection_sample(db_create=True)
+        cls.payload = {
+            "features": [
+                {
+                    "id": "item-1",
+                    "geometry": {
+                        "type": "Point", "coordinates": [1.1, 1.2]
+                    },
+                    "properties": {
+                        "datetime": "2018-02-12T23:20:50Z",
+                    },
+                },
+                {
+                    "id": "item-2",
+                    "geometry": {
+                        "type": "Point", "coordinates": [2.1, 2.2]
+                    },
+                    "properties": {
+                        "datetime": "2019-01-13T13:30:00Z",
+                    },
+                },
+            ]
+        }
+
+    def setUp(self):  # pylint: disable=invalid-name
+        self.maxDiff = None  # pylint: disable=invalid-name
+
+    def test_itemlistserializer_deserializes_list_of_items_as_expected(self):
+        serializer = ItemListSerializer(data=self.payload)
+
+        self.assertTrue(serializer.is_valid())
+
+        actual = serializer.validated_data
+
+        # ignore None values which are added by default
+        actual["features"] = [{
+            k: v for k, v in item.items() if v is not None
+        } for item in actual["features"]]
+
+        expected = {
+            "features": [
+                {
+                    "name": "item-1",
+                    "geometry": Point(1.1, 1.2, srid=4326),
+                    "properties_datetime":
+                        datetime(2018, 2, 12, 23, 20, 50, tzinfo=zoneinfo.ZoneInfo(key='UTC')),
+                },
+                {
+                    "name": "item-2",
+                    "geometry": Point(2.1, 2.2, srid=4326),
+                    "properties_datetime":
+                        datetime(2019, 1, 13, 13, 30, 0, tzinfo=zoneinfo.ZoneInfo(key='UTC')),
+                },
+            ]
+        }
+        self.assertEqual(expected, actual)
+
+    def test_itemlistserializer_serializes_list_of_items_as_expected(self):
+        request_mocker = request_with_resolver(
+            f'/{STAC_BASE_V}/collections/{self.collection.model.name}/items'
+        )
+        serializer = ItemListSerializer(data=self.payload, context={'request': request_mocker})
+
+        self.assertTrue(serializer.is_valid())
+
+        serializer.save(collection=self.collection.model)
+
+        actual = serializer.data
+
+        expected = self.payload
+        for item_actual, item_expected in zip(actual["features"], expected["features"]):
+            self.check_stac_item(item_expected, item_actual, self.collection.model.name)
 
 
 class AssetSerializationTestCase(StacBaseTestCase):
