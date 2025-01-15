@@ -744,6 +744,37 @@ class ItemListDeserializationTestCase(StacBaseTestCase):
         for item_actual, item_expected in zip(actual["features"], expected["features"]):
             self.check_stac_item(item_expected, item_actual, self.collection.model.name)
 
+    def test_itemlistserializer_updates_item_that_exists_already(self):
+        request_mocker = request_with_resolver(
+            f'/{STAC_BASE_V}/collections/{self.collection.model.name}/items'
+        )
+
+        # Create two items
+        serializer = ItemListSerializer(data=self.payload, context={'request': request_mocker})
+        self.assertTrue(serializer.is_valid())
+        serializer.save(collection=self.collection.model)
+
+        # Try to create the first item again but with different coordinates
+        new_coordinates = [123, 456]
+        update_payload = {
+            "features": [{
+                "id": "item-1",
+                "geometry": {
+                    "type": "Point", "coordinates": new_coordinates
+                },
+                "properties": {
+                    "datetime": "2018-02-12T23:20:50Z",
+                },
+            },]
+        }
+        serializer = ItemListSerializer(data=update_payload, context={'request': request_mocker})
+        self.assertTrue(serializer.is_valid())
+        serializer.save(collection=self.collection.model)
+
+        item1 = serializer.data["features"][0]
+        self.assertEqual("item-1", item1["id"])
+        self.assertEqual(new_coordinates, item1["geometry"]["coordinates"])
+
 
 class AssetSerializationTestCase(StacBaseTestCase):
 
