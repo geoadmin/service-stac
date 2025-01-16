@@ -340,8 +340,8 @@ paths:
                 forecast:reference_datetime: "2024-11-19T16:15:00Z"
                 forecast:horizon: P3DT2H
                 forecast:duration: PT4H
-                forecast:param: T
-                forecast:mode: ctrl
+                forecast:variable: air_temperature
+                forecast:perturbed: true
               links:
                 - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
                   rel: license

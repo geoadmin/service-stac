@@ -88,10 +88,8 @@ class ItemsPropertiesSerializer(serializers.Serializer):
     forecast_reference_datetime = serializers.DateTimeField(required=False, default=None)
     forecast_horizon = IsoDurationField(required=False, default=None)
     forecast_duration = IsoDurationField(required=False, default=None)
-    forecast_param = serializers.CharField(required=False, default=None)
-    forecast_mode = serializers.ChoiceField(
-        choices=Item.ForecastModeChoices, required=False, default=None
-    )
+    forecast_variable = serializers.CharField(required=False, default=None)
+    forecast_perturbed = serializers.BooleanField(required=False, default=None)
 
     def to_internal_value(self, data) -> timedelta:
         '''Map forecast extension fields with a colon in the name to the corresponding model field.
@@ -104,8 +102,8 @@ class ItemsPropertiesSerializer(serializers.Serializer):
             'forecast:reference_datetime': 'forecast_reference_datetime',
             'forecast:horizon': 'forecast_horizon',
             'forecast:duration': 'forecast_duration',
-            'forecast:param': 'forecast_param',
-            'forecast:mode': 'forecast_mode',
+            'forecast:variable': 'forecast_variable',
+            'forecast:perturbed': 'forecast_perturbed',
         }
         data_mapped = copy.deepcopy(data)
         for with_colon, with_underscore in fields.items():
@@ -128,8 +126,8 @@ class ItemsPropertiesSerializer(serializers.Serializer):
             'forecast_reference_datetime': 'forecast:reference_datetime',
             'forecast_horizon': 'forecast:horizon',
             'forecast_duration': 'forecast:duration',
-            'forecast_param': 'forecast:param',
-            'forecast_mode': 'forecast:mode',
+            'forecast_variable': 'forecast:variable',
+            'forecast_perturbed': 'forecast:perturbed',
         }
         for with_colon, with_underscore in fields.items():
             if with_colon in ret:
@@ -380,7 +378,15 @@ class ItemSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         return 'Feature'
 
     def get_stac_extensions(self, obj):
-        return []
+        extensions = [
+            # Extension provides schema for the 'expires' timestamp
+            "https://stac-extensions.github.io/timestamps/v1.1.0/schema.json"
+        ]
+        # IMPROVEMENT: This could be improved if there are other extensions coming by
+        # keeping the information on collection object itself
+        if obj.collection.name.startswith('ch.meteoschweiz.ogd-forecasting-icon'):
+            extensions.append("https://stac-extensions.github.io/forecast/v0.2.0/schema.json")
+        return extensions
 
     def get_stac_version(self, obj):
         return get_stac_version(self.context.get('request'))
@@ -395,10 +401,6 @@ class ItemSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         # links already uses OrderedDict, this way we keep consistency between auto link and user
         # link
         representation['links'][:0] = get_relation_links(request, 'item-detail', [collection, name])
-        representation['stac_extensions'] = [
-            # Extension provides schema for the 'expires' timestamp
-            "https://stac-extensions.github.io/timestamps/v1.1.0/schema.json"
-        ]
         return representation
 
     def create(self, validated_data):

@@ -475,25 +475,22 @@ class Item(models.Model):
         "instance in time as if this was set to PT0S (0 seconds).",
     )
 
-    forecast_param = models.CharField(
+    forecast_variable = models.CharField(
         null=True,
         blank=True,
-        help_text="Name of the model parameter that corresponds to the data, e.g. "
-        "`T` (temperature), `P` (pressure), `U`/`V`/`W` (windspeed in three "
-        "directions)."
+        help_text="Name of the model variable that corresponds to the data. The variables "
+        "should correspond to the CF Standard Names, "
+        "e.g. `air_temperature` for the air temperature."
     )
 
-    class ForecastModeChoices(models.TextChoices):
-        CONTROL_RUN = "ctrl", _("Control run")
-        PERTURBED_RUN = "perturb", _("Perturbed run")
-
-    forecast_mode = models.CharField(
+    forecast_perturbed = models.BooleanField(
         null=True,
         blank=True,
-        choices=ForecastModeChoices,
         default=None,
-        help_text="Denotes whether the data corresponds to the control run or "
-        "perturbed runs."
+        help_text="Denotes whether the data corresponds to the control run (`false`) or "
+        "perturbed runs (`true`). The property needs to be specified in both "
+        "cases as no default value is specified and as such the meaning is "
+        "\"unknown\" in case it's missing."
     )
 
     # Custom Manager that preselects the collection

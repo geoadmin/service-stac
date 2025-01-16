@@ -308,39 +308,29 @@ class ItemsModelTestCase(TestCase):
         item.save()
         self.assertEqual(item.forecast_duration, timedelta(days=1, hours=2))
 
-    def test_item_create_model_sets_forecast_param_as_expected(self):
+    def test_item_create_model_sets_forecast_variable_as_expected(self):
         item = Item(
             collection=self.collection,
             properties_datetime=utc_aware(datetime.utcnow()),
             name='item-1',
-            forecast_param="T",
+            forecast_variable="air_temperature",
         )
         item.full_clean()
         item.save()
-        self.assertEqual(item.forecast_param, "T")
+        self.assertEqual(item.forecast_variable, "air_temperature")
 
-    def test_item_create_model_sets_forecast_mode_as_expected_if_mode_known(self):
+    def test_item_create_model_sets_forecast_perturbed_as_expected_if_mode_known(self):
         item = Item(
             collection=self.collection,
             properties_datetime=utc_aware(datetime.utcnow()),
             name='item-1',
-            forecast_mode="ctrl",
+            forecast_perturbed=True,
         )
         item.full_clean()
         item.save()
-        self.assertEqual(item.forecast_mode, "ctrl")
+        self.assertEqual(item.forecast_perturbed, True)
 
-    def test_item_create_model_raises_exception_if_value_of_forecast_mode_unknown(self):
-        with self.assertRaises(ValidationError):
-            item = Item(
-                collection=self.collection,
-                properties_datetime=utc_aware(datetime.utcnow()),
-                name='item-1',
-                forecast_mode="unknown mode",
-            )
-            item.full_clean()
-
-    def test_item_create_model_sets_forecast_mode_to_none_if_undefined(self):
+    def test_item_create_model_sets_forecast_perturbed_to_none_if_undefined(self):
         item = Item(
             collection=self.collection,
             properties_datetime=utc_aware(datetime.utcnow()),
@@ -348,4 +338,4 @@ class ItemsModelTestCase(TestCase):
         )
         item.full_clean()
         item.save()
-        self.assertEqual(item.forecast_mode, None)
+        self.assertEqual(item.forecast_perturbed, None)
