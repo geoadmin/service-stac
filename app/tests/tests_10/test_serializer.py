@@ -2,22 +2,25 @@
 
 import logging
 import unittest
+import zoneinfo
 from collections import OrderedDict
 from datetime import datetime
 from datetime import timedelta
 from datetime import timezone
 from pprint import pformat
-import zoneinfo
 
-from django.urls import resolve
 from django.contrib.gis.geos import Point
+from django.urls import resolve
 
 from rest_framework import serializers
 from rest_framework.renderers import JSONRenderer
 from rest_framework.test import APIRequestFactory
 
+from stac_api.models import Item
+from stac_api.models import get_asset_path
 from stac_api.serializers.collection import CollectionSerializer
-from stac_api.serializers.item import AssetSerializer, ItemListSerializer
+from stac_api.serializers.item import AssetSerializer
+from stac_api.serializers.item import ItemListSerializer
 from stac_api.serializers.item import ItemSerializer
 from stac_api.serializers.item import ItemsPropertiesSerializer
 from stac_api.utils import get_asset_path
@@ -755,15 +758,15 @@ class ItemListDeserializationTestCase(StacBaseTestCase):
         serializer.save(collection=self.collection.model)
 
         # Try to create the first item again but with different coordinates
-        new_coordinates = [123, 456]
+        new_datetime = "2019-02-12T23:20:50+00:00"
         update_payload = {
             "features": [{
                 "id": "item-1",
                 "geometry": {
-                    "type": "Point", "coordinates": new_coordinates
+                    "type": "Point", "coordinates": [1.1, 1.2]
                 },
                 "properties": {
-                    "datetime": "2018-02-12T23:20:50Z",
+                    "datetime": new_datetime,
                 },
             },]
         }
@@ -771,9 +774,8 @@ class ItemListDeserializationTestCase(StacBaseTestCase):
         self.assertTrue(serializer.is_valid())
         serializer.save(collection=self.collection.model)
 
-        item1 = serializer.data["features"][0]
-        self.assertEqual("item-1", item1["id"])
-        self.assertEqual(new_coordinates, item1["geometry"]["coordinates"])
+        item1 = Item.objects.get(name="item-1")
+        self.assertEqual(new_datetime, item1.properties_datetime.isoformat())
 
 
 class AssetSerializationTestCase(StacBaseTestCase):
