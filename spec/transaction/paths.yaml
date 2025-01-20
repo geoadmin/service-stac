@@ -1231,8 +1231,11 @@ paths:
     post:
       tags:
         - Authentication
-      summary: >-
-        Request token for token authentication.
+      summary: Request token for token authentication.
+      description: >-
+        Obtain an authentication token for use in other requests. This is
+        only for the `Token` authorization method. See
+        [Authentication](#tag/Authentication) for usage and context.
       operationId: getToken
       requestBody:
         required: true
