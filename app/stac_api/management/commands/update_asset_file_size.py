@@ -45,6 +45,13 @@ class Handler(CommandHandler):
                 asset.save()
                 print(".", end="", flush=True)
             except ClientError:
+                # We set file_size to None to indicate that this asset couldn't be
+                # found on the bucket. That way the script won't get stuck with the
+                # same 100 inexistent assets on one hand and we'll be able to
+                # produce a list of missing files on the other hand
+                asset.file_size = None
+                asset.save()
+                print("_", end="", flush=True)
                 logger.error(
                     'file size could not be read from s3 bucket [%s] for asset %s', bucket, key
                 )
@@ -56,7 +63,7 @@ class Handler(CommandHandler):
 
         self.print_success(
             f"Update file size for {len(collection_assets)} collection assets out of "
-            "{total_asset_count}"
+            f"{total_asset_count}"
         )
 
         for collection_asset in collection_assets:
@@ -71,6 +78,13 @@ class Handler(CommandHandler):
                 collection_asset.save()
                 print(".", end="", flush=True)
             except ClientError:
+                # We set file_size to None to indicate that this asset couldn't be
+                # found on the bucket. That way the script won't get stuck with the
+                # same 100 inexistent assets on one hand and we'll be able to
+                # produce a list of missing files on the other hand
+                collection_asset.file_size = None
+                collection_asset.save()
+                print("_", end="", flush=True)
                 logger.error(
                     'file size could not be read from s3 bucket [%s] for collection asset %s'
                 )
