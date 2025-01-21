@@ -10,13 +10,13 @@ from datetime import timezone
 from pprint import pformat
 
 from django.contrib.gis.geos import Point
+from django.db import IntegrityError
 from django.urls import resolve
 
 from rest_framework import serializers
 from rest_framework.renderers import JSONRenderer
 from rest_framework.test import APIRequestFactory
 
-from stac_api.models import Item
 from stac_api.models import get_asset_path
 from stac_api.serializers.collection import CollectionSerializer
 from stac_api.serializers.item import AssetSerializer
@@ -747,7 +747,7 @@ class ItemListDeserializationTestCase(StacBaseTestCase):
         for item_actual, item_expected in zip(actual["features"], expected["features"]):
             self.check_stac_item(item_expected, item_actual, self.collection.model.name)
 
-    def test_itemlistserializer_updates_item_that_exists_already(self):
+    def test_itemlistserializer_throws_exception_if_item_exists_already(self):
         request_mocker = request_with_resolver(
             f'/{STAC_BASE_V}/collections/{self.collection.model.name}/items'
         )
@@ -757,7 +757,7 @@ class ItemListDeserializationTestCase(StacBaseTestCase):
         self.assertTrue(serializer.is_valid())
         serializer.save(collection=self.collection.model)
 
-        # Try to create the first item again but with different coordinates
+        # Try to create the first item again but with a different time
         new_datetime = "2019-02-12T23:20:50+00:00"
         update_payload = {
             "features": [{
@@ -772,10 +772,9 @@ class ItemListDeserializationTestCase(StacBaseTestCase):
         }
         serializer = ItemListSerializer(data=update_payload, context={'request': request_mocker})
         self.assertTrue(serializer.is_valid())
-        serializer.save(collection=self.collection.model)
 
-        item1 = Item.objects.get(name="item-1")
-        self.assertEqual(new_datetime, item1.properties_datetime.isoformat())
+        with self.assertRaises(IntegrityError) as context:
+            serializer.save(collection=self.collection.model)
 
 
 class AssetSerializationTestCase(StacBaseTestCase):
