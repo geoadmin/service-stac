@@ -38,11 +38,11 @@ help:
 
 
 $(OPENAPI): $(PARTS)
-	$(YQ) eval-all '. as $$item ireduce ({}; . *nd $$item )' $(^) | \
+	$(YQ) eval-all '. as $$item ireduce ({}; . *nd $$item )' $(sort $(^)) | \
 	sed -E '/\$ref:/s/"\..*?(#.*?)"/"\1"/' > $(@)
 
 $(OPENAPI_TRANSACTIONAL): $(OPENAPI) $(PARTS_TRANSACTIONAL)
-	$(YQ) eval-all '. as $$item ireduce ({}; . *nd $$item )' $(^) | \
+	$(YQ) eval-all '. as $$item ireduce ({}; . *nd $$item )' $(sort $(^)) | \
 	sed -E '/\$ref:/s/"\..*?(#.*?)"/"\1"/' > $(@)
 
 .PHONY: build-specs
