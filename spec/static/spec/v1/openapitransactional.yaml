@@ -1,1912 +1,163 @@
 openapi: 3.0.3
-info:
-  contact:
-    name: API Specification (based on STAC)
-    url: http://data.geo.admin.ch/api/stac/v1/
-  description: >-
-    This is an OpenAPI definition of the API to query and access federal geodata on data.geo.admin.ch. The API is based on the core SpatioTemporal Asset Catalog API specification [STAC](http://stacspec.org) and adds two extensions for extended searching possibilities.
-  title: The SpatioTemporal Asset Catalog API for data.geo.admin.ch
-  version: 1.0.0
-servers:
-  - description: Data.geo.admin.ch
-    url: http://data.geo.admin.ch/api/stac/v1
-tags:
-  - description: Essential characteristics of this API
-    name: Capabilities
-  - description: Access to data (features)
-    name: Data
-  - description: Extension to OGC API - Features to support STAC metadata model and search API
-    name: STAC
-  - name: Data Management
-    description: |
-      Metadata management requests. Theses requests are used to create, update or delete the STAC
-      metadata.
-
-      *NOTE: these requests require authentication as described in [here](#tag/Authentication).*
-
-      ## Supported Media Type
-
-      List of the current supported media types:
-
-      | Media Type | Description | File Extension(s) |
-      | ---------- | ----------- | ----------------- |
-      | application/vnd.apache.parquet | Apache Parquet column-oriented data file format | .parquet |
-      | application/x.ascii-grid+zip | Zipped ESRI ASCII raster format (.asc) | .zip |
-      | application/x.ascii-xyz+zip | Zipped XYZ (.xyz) | .zip |
-      | application/x.e00+zip | Zipped e00 | .zip |
-      | application/x.geotiff+zip | Zipped GeoTIFF | .zip |
-      | image/tiff; application=geotiff | GeoTIFF | .tiff, .tif |
-      | application/x.tiff+zip | Zipped TIFF | .zip |
-      | application/x.png+zip | Zipped PNG | .zip |
-      | application/x.jpeg+zip | Zipped JPEG | .zip |
-      | application/vnd.google-earth.kml+xml | KML | .kml |
-      | application/vnd.google-earth.kmz | Zipped KML | .kmz |
-      | application/x.dxf+zip | Zipped DXF | .zip |
-      | application/gml+xml | GML | .gml, .xml |
-      | application/x.gml+zip | Zipped GML | .zip |
-      | application/vnd.las | LIDAR | .las |
-      | application/vnd.laszip | Zipped LIDAR | .laz, .zip |
-      | application/x.vnd.las+zip | Zipped LAS | .zip |
-      | application/vnd.laszip+copc | loud Optimized Point Cloud (COPC) | .zip |
-      | application/x.shapefile+zip | Zipped Shapefile | .zip |
-      | application/x.filegdb+zip | Zipped File Geodatabase | .zip |
-      | application/x.filegdbp+zip | Zipped File Geodatabase (ArcGIS Pro) | .zip |
-      | application/x.ms-access+zip | Zipped Personal Geodatabase | .zip |
-      | application/x.ms-excel+zip | Zipped Excel | .zip |
-      | application/x.tab+zip | Zipped Mapinfo-TAB | .zip |
-      | application/x.tab-raster+zip | Zipped Mapinfo-Raster-TAB | .zip |
-      | application/x.csv+zip | Zipped CSV | .zip |
-      | text/csv | CSV | .csv |
-      | application/geopackage+sqlite3 | Geopackage | .gpkg |
-      | application/x.geopackage+zip | Zipped Geopackage | .zip |
-      | application/geo+json | GeoJSON (<span style="color: red">does not support auto HTTP compression !</span>) | .json, .geojson |
-      | application/x.geojson+zip | Zipped GeoJSON | .zip |
-      | application/x.interlis; version=2.3 | Interlis 2 | .xtf, .xml |
-      | application/x.interlis+zip; version=2.3 | Zipped XTF (2.3) | .zip |
-      | application/x.interlis; version=2.4 | Interlis 2 | .xtf | .xml |
-      | application/x.interlis+zip; version=2.4 | Zipped XTF (2.4) | .zip |
-      | application/x.interlis; version=1 | Interlis 1 | .itf |
-      | application/x.interlis+zip; version=1 | Zipped ITF | .zip |
-      | image/tiff; application=geotiff; profile=cloud-optimized | Cloud Optimized GeoTIFF (COG) | .tiff, .tif |`
-      | application/pdf | PDF | .pdf |
-      | application/x.pdf+zip | Zipped PDF | .zip |
-      | application/json | JSON | .json |
-      | application/x.json+zip | Zipped JSON | .zip |
-      | application/x-netcdf | NetCDF | .nc |
-      | application/x.netcdf+zip | Zipped NetCDF | .zip |
-      | application/xml | XML | .xml |
-      | application/x.xml+zip | Zipped XML | .zip |
-      | application/vnd.mapbox-vector-tile | mbtiles | .mbtiles |
-      | text/plain | Text | .txt |
-      | text/x.plain+zip | Zipped text | .zip |
-      | application/x.dwg+zip | Zipped DWG | .zip |
-      | application/zip | Generic Zip File | .zip |
-      | image/tiff | TIFF | .tiff, .tif |
-      | image/jpeg | JPEG | .jpeg, .jpg |
-      | image/png | PNG | .png |
-      | application/vnd.sqlite3 | sqlite | .sqlite |
-      | application/grib | GRIB/GRIB2 | .grib, .grib2 |
-  - name: Asset Upload Management
-    description: |
-      Asset files are uploaded via the STAC API using the API requests described in this chapter.
-
-      - [Authentication](#section/Authentication)
-      - [Compression](#section/Compression)
-      - [Example](#section/Example)
-
-      <span style="color:red">***IMPORTANT NOTES:***</span>
-        - <span style="color:red">*Files bigger than 10 MB should use compression,
-          see [Compression](#section/Compression)*</span>
-
-      ## Basic Steps to upload assets
-
-      To upload an assets file there are generally three steps involved:
-
-      <ol>
-        <li>Create new upload process</li>
-        <li>Upload parts/files</li>
-        <li>Complete upload process</li>
-      </ol>
-
-      Any file that is larger than 5 GB must be split into multiple parts. A file part must be at
-      least 5 MB except for the last one and at most 5 GB, otherwise the complete operation will fail.
-      If the file is less that 5 GB, you will only upload a single part, but must still start and complete the process as with multiple parts.
-
-      (1) Use the [create new upload](#tag/Asset-Upload-Management/operation/createAssetUpload) request to start a new upload.
-      It will return a list of urls.
-
-      (2) Use the urls to [upload asset file part](#tag/Asset-Upload-Management/operation/uploadAssetFilePart). Do this for each file part. You may also upload multiple parts in parallel.
-
-      (3) Once all parts have been uploaded, execute the [complete the upload](#tag/Asset-Upload-Management/operation/completeMultipartUpload) request.
-      The new asset file be available to users after you have successfully completed the upload.
-
-      If any errors happen during the upload process, you can [abort the upload](#tag/Asset-Upload-Management/operation/abortMultipartUpload)
-      and restart the process.
-
-      Multiple parts (2) can be upload concurrently, but you cannot create a new upload (1) while another is still in progress.
-      If you wish to start a new upload you must first complete or abort any existing upload that is in progress.
-      Use [list uploads](#tag/Asset-Upload-Management/operation/getAssetUploads) to see if any uploads
-      are in progress.
-
-      ## Detailed example of asset upload
-
-      This describes the process in more detail with focus on automated recurring uploads and error handling.
-
-      ### Glossary
-
-      - Abort Upload: abort an upload in progress by sending an abort request to the service
-      - Cancel Upload: cancel the upload iteration without sending an abort request to the service
-
-      ### Recurrent upload
-
-      If you have recurrent asset uploads, you need to have a proper error handling otherwise the uploads might get stuck. Asset uploads operation are not stateless but statefull therefore the error handling is important. Here below is a simple practical example on which errors to handle in case of recurrent asset upload.
-
-      Note this example is only recommended if the upload is recurrent (for example every hour). The number of retries below depends on the upload frequency, if the upload frequency is daily then you might want to have at least 3 retries with some exponential backoff time between each retries, in opposite if the upload is done at high frequency you might skip the retries and simply cancel the upload, using the next upload iteration as retry.
-
-      1. Create Asset Upload
-
-          ```text
-          POST https://data.geo.admin.ch/api/stac/v1/collections/{collection}/items/{item}/assets/{asset}/uploads
-          ```
-
-          - `201 OK` => Continue to step 2.
-          - `400 Bad Request`
-              - Response is `{"description": "Upload already in progress", "code": 400}` => Abort the upload
-                  - To do so first get the `upload_id` of the `in-progress` upload via
-
-                      ```text
-                      GET https://data.geo.admin.ch/api/stac/v1/collections/{collection}/items/{item}/assets/{asset}/uploads?status=in-progress
-                      ```
-
-                  - Then using this id abort the upload
-
-                      ```text
-                      POST https://data.geo.admin.ch/api/stac/v1/collections/{collection}/items/{item}/assets/{asset}/uploads/{upload_id}/abort
-                      ```
-
-                  - Then restart the step 1.
-              - Another `400 Bad Request` => Cancel upload
-
-                Your request is not correct, analyze your request and correct it before retrying the step 1.
-
-          - `500 Internal Server Error` => Cancel upload
-
-              This is generally an application crash and should be notify to the service administrator, a retry would usually be useless, simply cancel the upload.
-          - `502 Bad Gateway`, `503 Service Unavailable`, `504 Gateway Timeout` => Retry
-
-              Service is momentarily not available, wait a short amount of time and retry step 1. the amount of time to wait and the number of retries depends on the upload rate, but a minimum wait time of 100ms is recommended.
-      2. Upload the parts via the presigned URL
-
-          ```text
-          PUT {presigned_url}
-          ```
-
-          - `200 OK` => Continue to step 3.
-          - `400 Bad Request` => Abort upload
-
-              Abort upload using the current `upload_id` and contact service administrator.
-
-              ```text
-              POST https://data.geo.admin.ch/api/stac/v1/collections/{collection}/items/{item}/assets/{asset}/uploads/{upload_id}/abort
-              ```
-
-          - `502 Bad Gateway`, `503 Service Unavailable`, `504 Gateway Timeout` => Retry
-
-              Retry step 2. with a short wait time (min 100ms).
-
-      3. Complete the upload
-
-          ```text
-          POST https://data.geo.admin.ch/api/stac/v1/collections/{collection}/items/{item}/assets/{asset}/uploads/{upload_id}/complete
-          ```
-
-          - `200 OK` => Upload successful
-          - `400 Bad Request` => Cancel upload
-
-              Your request is invalid/incorrect, you need to cancel the upload script and verify its correctness.
-          - `500 Internal Server Error` => Cancel upload
-
-              This is generally an application crash and should be notify to the service administrator, a retry would usually be useless, simply cancel the upload.
-          - `502 Bad Gateway`, `503 Service Unavailable`, `504 Gateway Timeout` => Retry
-
-              Service is momentarily not available, wait a short moment (100ms), then retry the request.
-
-      The following figure shows the flow of a multipart upload process.
-      ![diagram](/api/stac/static/assets/service-stac-upload-process.svg)
-
-
-      ## Authentication
-
-      POST/PUT requests require authentication as described in [here](#tag/Authentication).
-
-      ## Compression
-
-      Files between *1 MB* and *10 MB* are automatically compressed during download using *gzip* or
-      *br* based on the `Accept-Encoding` header of the request. But note that this compression is
-      only done for standard Media Type (see [File types that CloudFront compresses](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/ServingCompressedFiles.html#compressed-content-cloudfront-file-types)).
-
-      <span style="color: red">It is highly recommended to upload files bigger than *10 MB* using
-      a compressed media type (see [Supported Media Type](#section/Supported-Media-Type)) !
-      If this not possible (as e.g. for json directly usd in a browser application), the file should
-      be either compressed upfront (see below) or split in smaller files.</span>
-
-      ### Upfront Compression using `content_encoding`
-
-      In the case where you have a file bigger than 10 MB that you can't split into multiple files
-      or pack into a compressed media type, then you can use the upfront compression method together
-      with the `content_encoding` parameter.
-
-      For this you need to first compress the file using gzip or br compression algorithm and then
-      use the `content_encoding` parameter in the [Create Asset's multipart upload](#tag/Asset-Upload-Management/operation/createAssetUpload)
-
-      ***NOTES:***
-       - In this case the file will be always delivered compressed, which means that the client that
-       download the file needs to be compatible with the HTTP Compression algorithm defined in
-       `Content-Encoding` header.
-
-
-      ## Example
-
-      ```python
-      import os
-      import hashlib
-      from base64 import b64encode
-
-      import requests
-      import multihash
-
-      # variables
-      scheme = 'https'
-      hostname = 'data.geo.admin.ch'
-      collection = 'ch.swisstopo.pixelkarte-farbe-pk200.noscale'
-      item = 'smr200-200-4-2016'
-      asset = 'smr200-200-4-2016-2056-kgrs-10.tiff'
-      asset_path = f'collections/{collection}/items/{item}/assets/{asset}'
-      user = os.environ.get('STAC_USER', 'unknown-user')
-      password = os.environ.get('STAC_PASSWORD', 'unknown-password')
-
-      with open('smr200-200-4-2016-2056-kgrs-10.tiff', 'rb') as fd:
-        data = fd.read()
-
-      checksum_multihash = multihash.to_hex_string(multihash.encode(hashlib.sha256(data).digest(), 'sha2-256'))
-      md5 = b64encode(hashlib.md5(data).digest()).decode('utf-8')
-
-      # 1. Create a multipart upload
-      response = requests.post(
-        f"{scheme}://{hostname}/api/stac/v1/{asset_path}/uploads",
-        auth=(user, password),
-        json={
-          "number_parts": 1,
-          "md5_parts": [{
-            "part_number": 1,
-            "md5": md5
-          }],
-          "file:checksum": checksum_multihash
-        }
-      )
-      upload_id = response.json()['upload_id']
-
-      # 2. Upload the part using the presigned url
-      response = requests.put(response.json()['urls'][0]['url'], data=data, headers={'Content-MD5': md5})
-      etag = response.headers['ETag']
-
-      # 3. Complete the upload
-      response = requests.post(
-        f"{scheme}://{hostname}/api/stac/v1/{asset_path}/uploads/{upload_id}/complete",
-        auth=(user, password),
-        json={'parts': [{'etag': etag, 'part_number': 1}]}
-      )
-      ```
-
-      See https://aws.amazon.com/premiumsupport/knowledge-center/data-integrity-s3/ for other examples on how to compute the base64 MD5 of a part.
-  - name: Collection Asset Upload Management
-    description: |
-      Collection Asset files are uploaded via the STAC API using the API requests described in this chapter.
-
-      The flow of the requests is the same as for assets that belong to features, which is described under [Asset Upload Management](#tag/Asset-Upload-Management)
-      - [Basic steps to upload assets](#section/Basic-Steps-to-upload-assets)
-      - [Detailed example of asset upload](#section/Detailed-example-of-asset-upload)
-      - [Authentication](#section/Authentication)
-      - [Compression](#section/Compression)
-      - [Example](#section/Example)
-  - name: Authentication
-    description: |
-      All write requests require authentication. There is currently three type of supported authentications:
-
-      * [Session authentication](#section/Session-authentication)
-      * [Basic authentication](#section/Basic-authentication)
-      * [Token authentication](#section/Token-authentication)
-
-      ## Session authentication
-
-      When using the browsable API the user can simply use the admin interface for logging in.
-      Once logged in, the browsable API can be used to perform write requests.
-
-      ## Basic authentication
-
-      The username and password for authentication can be added to every write request the user wants to perform.
-      Here is an example of posting an asset using curl (_username_="MickeyMouse", _password_="I_love_Minnie_Mouse"):
-
-      ```
-      curl --request POST \
-        --user MickeyMouse:I_love_Minnie_Mouse \
-        --url https://data.geoadmin.ch/api/stac/v1/collections/ch.swisstopo.swisstlmregio/items/swisstlmregio-2020/assets \
-        --header 'Content-Type: application/json' \
-        --data '{
-          "id": "fancy_unique_id",
-          "item": "swisstlmregio-2020",
-          "title": "My title",
-          "type": "application/x.filegdb+zip",
-          "description": "My description",
-          "proj:epsg": 2056,
-          "file:checksum": "12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC"
-      }'
-      ```
-
-      ## Token authentication
-
-      A user specific token for authentication can be added to every write request the user wants to perform.
-      Here is an example of posting an asset using curl:
-
-      ```
-      curl --request POST \
-        --url https://data.geoadmin.ch/api/stac/v1/collections/ch.swisstopo.swisstlmregio/items/swisstlmregio-2020/assets \
-        --header 'Authorization: Token ccecf40693bfc52ba090cd46eb7f19e723fe831f' \
-        --header 'Content-Type: application/json' \
-        --data '{
-          "id": "fancy_unique_id",
-          "item": "swisstlmregio-2020",
-          "title": "My title",
-          "type": "application/x.filegdb+zip",
-          "description": "My description",
-          "proj:epsg": 2056,
-          "file:checksum": "12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC"
-      }'
-      ```
-
-      Tokens can either be generated in the admin interface or existing users can perform a POST request
-      on the get-token endpoint to request a token (also see [Request token for token authentication](#operation/getToken)).
-      Here is an example using curl:
-
-      ```
-      curl --request POST \
-        --url https://data.geoadmin.ch/api/stac/get-token \
-        --header 'Content-Type: application/json' \
-        --data '{"username": "MickeyMouse", "password": "I_love_Minnie_Mouse"}'
-      ```
-paths:
-  /:
-    get:
-      description: >-
-        The landing page provides links to the API definition, the conformance statements and to the feature collections in this dataset.
-      operationId: getLandingPage
-      responses:
-        "200":
-          $ref: "#/components/responses/LandingPage"
-        "500":
-          $ref: "#/components/responses/ServerError"
-      summary: Landing page
-      tags:
-        - Capabilities
-  /collections:
-    get:
-      operationId: getCollections
-      parameters:
-        - $ref: "#/components/parameters/limit"
-        - $ref: "#/components/parameters/provider"
-      responses:
-        "200":
-          $ref: "#/components/responses/Collections"
-        "500":
-          $ref: "#/components/responses/ServerError"
-      summary: Fetch collections
-      description: The feature collections in the dataset
-      tags:
-        - Data
-  /collections/{collectionId}:
-    get:
-      operationId: describeCollection
-      parameters:
-        - $ref: "#/components/parameters/collectionId"
-        - $ref: "#/components/parameters/IfMatch"
-        - $ref: "#/components/parameters/IfNoneMatch"
-      responses:
-        "200":
-          $ref: "#/components/responses/Collection"
-        "304":
-          $ref: "#/components/responses/NotModified"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "412":
-          $ref: "#/components/responses/PreconditionFailed"
-        "500":
-          $ref: "#/components/responses/ServerError"
-      summary: Fetch a single collection
-      description: Describe the feature collection with id `collectionId`
-      tags:
-        - Data
-    put:
-      tags:
-        - Data Management
-      summary: Update or create a collection
-      description: >-
-        Update or create a collection with Id `collectionId` with a complete collection definition. If the collection doesn't exist it is created.
-      operationId: updateCollection
-      parameters:
-        - $ref: "#/components/parameters/collectionId"
-        - $ref: "#/components/parameters/IfMatchWrite"
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/collectionWrite"
-            example:
-              description: The National Map 1:200,000 is a topographic map giving an overview of Switzerland.
-              id: ch.swisstopo.pixelkarte-farbe-pk200.noscale
-              license: proprietary
-              links:
-                - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
-                  rel: license
-                  title: Licence for the free geodata of the Federal Office of Topography swisstopo
-                - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
-                  rel: describedby
-              providers:
-                - name: Federal Office of Topography - swisstopo
-                  roles:
-                    - producer
-                    - licensor
-                  url: https://www.swisstopo.admin.ch
-              title: National Map 1:200'000
-      responses:
-        "200":
-          description: Returns the updated Collection
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/collection"
-        "201":
-          description: Returns the created Collection
-          headers:
-            Location:
-              description: A link to the collection
-              schema:
-                type: string
-                format: url
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/collection"
-        "403":
-          $ref: "#/components/responses/PermissionDenied"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "412":
-          $ref: "#/components/responses/PreconditionFailed"
-        "500":
-          $ref: "#/components/responses/ServerError"
-    patch:
-      tags:
-        - Data Management
-      summary: Partial update of a collection
-      description: >-
-        Update an existing collection with Id `collectionId` with a partial collection definition
-      operationId: partialUpdateCollection
-      parameters:
-        - $ref: "#/components/parameters/collectionId"
-        - $ref: "#/components/parameters/IfMatch"
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/collectionWrite"
-            example:
-              id: ch.swisstopo.pixelkarte-farbe-pk200.noscale
-              license: proprietary
-              links:
-                - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
-                  rel: license
-                  title: Licence for the free geodata of the Federal Office of Topography swisstopo
-                - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
-                  rel: describedby
-              providers:
-                - name: Federal Office of Topography - swisstopo
-                  roles:
-                    - producer
-                    - licensor
-                  url: https://www.swisstopo.admin.ch
-              title: National Map 1:200'000
-      responses:
-        "200":
-          description: Returns the updated Collection
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/collection"
-        "403":
-          $ref: "#/components/responses/PermissionDenied"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "412":
-          $ref: "#/components/responses/PreconditionFailed"
-        "500":
-          $ref: "#/components/responses/ServerError"
-    post:
-      tags:
-        - Data Management
-      summary: Bulk update or create features
-      description: |
-        Create or update ("upsert") multiple features in a collection at once.
-        If a feature already exists, it is updated with the differences to the feature in the request.
-
-        Equivalently, one could create the features and their corresponding assets with individual API calls.
-        Uploading features that belong together in bulks has two advantages:
-
-           1. Less communication overhead than individual calls.
-           2. Less partial uploads to mess with: Either all features are uploaded or none.
-
-        A maximum of 100 features per call is allowed.
-      operationId: bulkUpsertItems
-      parameters:
-        - $ref: "#/components/parameters/collectionId"
-        - $ref: "#/components/parameters/IdempotencyKey"
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/collectionUpsertItems"
-      responses:
-        "200":
-          description: Collection has been successfully updated.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/collectionUpsertItems"
-        "403":
-          $ref: "#/components/responses/PermissionDenied"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/ServerError"
-  /collections/{collectionId}/items:
-    get:
-      description: >-
-        Fetch features of the feature collection with id `collectionId`.
-
-
-        Every feature in a dataset belongs to a collection. A dataset may consist of multiple feature collections. A feature collection is often a collection of features of a similar type, based on a common schema.
-
-
-        Use content negotiation to request HTML or GeoJSON.
-      operationId: getFeatures
-      parameters:
-        - $ref: "#/components/parameters/collectionId"
-        - $ref: "#/components/parameters/limit"
-        - $ref: "#/components/parameters/bbox"
-        - $ref: "#/components/parameters/datetime"
-      responses:
-        "200":
-          $ref: "#/components/responses/Features"
-        "400":
-          $ref: "#/components/responses/InvalidParameter"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/ServerError"
-      summary: Fetch features
-      tags:
-        - Data
-  /collections/{collectionId}/items/{featureId}:
-    get:
-      description: >-
-        Fetch the feature with id `featureId` in the feature collection with id `collectionId`.
-
-
-        Use content negotiation to request HTML or GeoJSON.
-      operationId: getFeature
-      parameters:
-        - $ref: "#/components/parameters/collectionId"
-        - $ref: "#/components/parameters/featureId"
-        - $ref: "#/components/parameters/IfMatch"
-        - $ref: "#/components/parameters/IfNoneMatch"
-      responses:
-        "200":
-          $ref: "#/components/responses/Feature"
-        "304":
-          $ref: "#/components/responses/NotModified"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "412":
-          $ref: "#/components/responses/PreconditionFailed"
-        "500":
-          $ref: "#/components/responses/ServerError"
-      summary: Fetch a single feature
-      tags:
-        - Data
-    put:
-      summary: Update or create a feature
-      description: >-
-        Update or create a feature with Id `featureId` with a complete feature definition. If the feature doesn't exist it is then created.
-
-
-        *NOTE: Optional fields that are not part of the PUT payload, will be erased in the resource. For example if the resource has a properties.title and the PUT payload doesn't, then the resource's properties.title will be removed.*
-      operationId: putFeature
-      tags:
-        - Data Management
-      parameters:
-        - $ref: "#/components/parameters/collectionId"
-        - $ref: "#/components/parameters/featureId"
-        - $ref: "#/components/parameters/IfMatchWrite"
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/updateItem"
-            example:
-              id: cs3-20160503_132131_05
-              geometry:
-                type: Polygon
-                coordinates:
-                  - - - 7.0906823
-                      - 45.9160584
-                    - - 7.1035698
-                      - 45.9160977
-                    - - 7.1035146
-                      - 45.925093
-                    - - 7.0906249
-                      - 45.9250537
-                    - - 7.0906823
-                      - 45.9160584
-              properties:
-                datetime: "2016-05-03T13:22:30.040Z"
-                title: A CS3 item
-                forecast:reference_datetime: "2024-11-19T16:15:00Z"
-                forecast:horizon: P3DT2H
-                forecast:duration: PT4H
-                forecast:variable: air_temperature
-                forecast:perturbed: true
-              links:
-                - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
-                  rel: license
-                  title: Licence for the free geodata of the Federal Office of Topography swisstopo
-                - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
-                  rel: describedby
-      responses:
-        "200":
-          description: Returns the updated Item
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/item"
-        "201":
-          description: Return the created Item.
-          headers:
-            Location:
-              description: A link to the item
-              schema:
-                type: string
-                format: url
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/item"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "403":
-          $ref: "#/components/responses/PermissionDenied"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "412":
-          $ref: "#/components/responses/PreconditionFailed"
-        "500":
-          $ref: "#/components/responses/ServerError"
-    patch:
-      summary: Update an existing feature by Id with a partial item definition
-      description: >-
-        Use this method to update an existing feature. Requires a JSON fragment (containing the fields to be updated) to be submitted.
-      operationId: patchFeature
-      tags:
-        - Data Management
-      parameters:
-        - $ref: "#/components/parameters/collectionId"
-        - $ref: "#/components/parameters/featureId"
-        - $ref: "#/components/parameters/IfMatchWrite"
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/partialItem"
-      responses:
-        "200":
-          description: Returns the updated Item
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/item"
-        "201":
-          description: Returns the created Item
-          headers:
-            Location:
-              description: A link to the item
-              schema:
-                type: string
-                format: url
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/item"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "403":
-          $ref: "#/components/responses/PermissionDenied"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "412":
-          $ref: "#/components/responses/PreconditionFailed"
-        "500":
-          $ref: "#/components/responses/ServerError"
-    delete:
-      summary: Delete an existing feature by Id
-      description: |
-        Use this method to delete an existing feature/item. The feature can only be deleted if all
-        its assets have been deleted first. See also [Delete an existing asset by id](#tag/Data-Management/operation/deleteAsset).
-      operationId: deleteFeature
-      tags:
-        - Data Management
-      parameters:
-        - $ref: "#/components/parameters/collectionId"
-        - $ref: "#/components/parameters/featureId"
-        - $ref: "#/components/parameters/IfMatchWrite"
-      responses:
-        "200":
-          $ref: "#/components/responses/DeletedResource"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "412":
-          $ref: "#/components/responses/PreconditionFailed"
-        "500":
-          $ref: "#/components/responses/ServerError"
-  /{assetObjectHref}:
-    servers:
-      - url: http://data.geo.admin.ch/
-    parameters:
-      - $ref: "#/components/parameters/assetObjectHref"
-    get:
-      tags:
-        - Data
-      summary: Fetch an asset object
-      parameters:
-        - $ref: "#/components/parameters/IfNoneMatch"
-      operationId: getAssetObject
-      description: |
-        Return an asset object
-
-        ### Notes on Caching
-
-        Asset objects are cached by default for 2 hours (7200 seconds). Depending on the
-        update interval of an asset object (e.g. for frequently updated data)
-        the `Cache-Control` header can be different, in special cases it can even be
-        set to `no-cache` (e.g. for realtime data).
-
-        All endpoints support the precondition headers `If-Match` and `If-None-Match`.
-        To reduce unnecessary traffic it's highly recommended to use these headers
-        (mostly `If-None-Match`) when making calls.
-
-        In case your application is using frequently updated data and you want to
-        be sure not to miss an update of the data, the recommended procedure is as
-        follows:
-
-        ```python
-        import requests
-        import time
-
-        refresh_interval = 60
-
-        item_etag = "*"
-        item_url = "https://data.geo.admin.ch/collections/{collectionID}/items/{itemId}"
-
-        asset_id = 'data.json'
-        asset_etag = "*"
-
-        poll_for_new_data = True
-
-        while(poll_for_new_data):
-          item_response = requests.get(item_url, headers={'If-None-Match': f'"{item_etag}"'})
-          if item_response.status_code == 304:
-            # item metadata and hence any associated asset object didn't
-            # change since last call
-
-            time.sleep(refresh_interval)
-
-          elif item_response.status_code == 200:
-            # item metadata has changed since last visit
-
-            item_etag = item_response.headers.get("ETag") # save the new etag
-            asset_href = item_response.json['assets'][asset_id]['href'] # save the asset href
-
-            obj_response = requests.get(asset_href, headers={'If-None-Match': f'"{asset_etag}"'})
-            if obj_response.status_code == 304:
-              # "our" asset object didn't change since last call,
-              # we can ignore that the item metadata changed,
-              # it was a different asset that has changed
-
-              time.sleep(refresh_interval)
-
-            elif obj_response.status_code == 200:
-              # "our" asset object has changed, we load the new data
-
-              asset_etag = obj_response.headers.get("ETag")  # save the new asset etag
-              asset_checksum = obj_response.headers.get("X-Amz-Meta-Sha256")
-              object = obj_response.data
-
-              # calculate the sha256 checksum of the data in a proper way
-              checksum = calc_checksum(object)
-              if checksum != asset_checksum:
-                # Error: corrupted data from download
-                # do proper error handling
-
-              # do sth with the data
-            else:
-              # do proper error handling
-          else:
-            # do proper error handling
-        ```
-      responses:
-        "200":
-          description: The asset object
-          headers:
-            ETag:
-              $ref: "#/components/headers/ETag"
-            Cache-Control:
-              description: |
-                Cache header for the asset object
-              example: "public, max-age=7200"
-              schema:
-                type: string
-              required: true
-            Content-Type:
-              description: |
-                The content type of the asset object as specified in the [asset object
-                metadata](#tag/Data/operation/getFeature)
-              required: true
-              schema:
-                type: string
-            X-Amz-Meta-Sha256:
-              description: |
-                SHA256 checksum of the asset object.
-
-                This checksum can be compared with the asset metadata `checksum:multihash` field
-                (see [asset object metadata](#tag/Data/operation/getFeature)). Note that the
-                `checksum:multihash` field is a multihash while `X-Amz-Meta-Sha256` is a SHA256.
-                See [multihash](https://multiformats.io/multihash/) for more information.
-              required: true
-              example: 3dd6e1ead0760d278344394b0e7f017b5b6049e4fed3d2083b564fc268f07334
-              schema:
-                $ref: "#/components/schemas/sha256"
-        "304":
-          $ref: "#/components/responses/NotModified"
-        "404":
-          $ref: "#/components/responses/NotFoundS3"
-        "412":
-          $ref: "#/components/responses/PreconditionFailedS3"
-  /conformance:
-    get:
-      description: >-
-        A list of all conformance classes specified in a standard that the server conforms to.
-      operationId: getConformanceDeclaration
-      responses:
-        "200":
-          $ref: "#/components/responses/ConformanceDeclaration"
-        "500":
-          $ref: "#/components/responses/ServerError"
-      summary: Information about specifications that this API conforms to
-      tags:
-        - Capabilities
-  /search:
-    get:
-      description: >-
-        Retrieve Items matching filters. Intended as a shorthand API for simple queries.
-      operationId: getSearchSTAC
-      parameters:
-        - $ref: "#/components/parameters/bbox"
-        - $ref: "#/components/parameters/datetime"
-        - $ref: "#/components/parameters/limit"
-        - $ref: "#/components/parameters/ids"
-        - $ref: "#/components/parameters/collectionsArray"
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/itemsSearchGet"
-          description: A feature collection.
-        "500":
-          $ref: "#/components/responses/ServerError"
-      summary: Search STAC items with simple filtering.
-      tags:
-        - STAC
-    post:
-      description: >-
-        Retrieve items matching filters. Intended as the standard, full-featured query API.
-      operationId: postSearchSTAC
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/searchBody"
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/itemsSearchPost"
-          description: A feature collection.
-        "500":
-          $ref: "#/components/responses/ServerError"
-      summary: Search STAC items with full-featured filtering.
-      tags:
-        - STAC
-  /collections/{collectionId}/assets:
-    get:
-      description: >-
-        Fetch collection assets of the collection with id `collectionId`.
-
-        These assets do not belong to any item.
-      operationId: getCollectionAssets
-      parameters:
-        - $ref: "#/components/parameters/collectionId"
-      responses:
-        "200":
-          $ref: "#/components/responses/CollectionAssets"
-        "400":
-          $ref: "#/components/responses/InvalidParameter"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/ServerError"
-      summary: Fetch all collection assets for a collection
-      tags:
-        - Data
-  /collections/{collectionId}/assets/{assetId}:
-    get:
-      description: >-
-        Fetch the collection asset with id `assetId` of the collection with id `collectionId`.
-      operationId: getCollectionAsset
-      parameters:
-        - $ref: "#/components/parameters/collectionId"
-        - $ref: "#/components/parameters/assetId"
-        - $ref: "#/components/parameters/IfMatch"
-        - $ref: "#/components/parameters/IfNoneMatch"
-      responses:
-        "200":
-          $ref: "#/components/responses/CollectionAsset"
-        "304":
-          $ref: "#/components/responses/NotModified"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "412":
-          $ref: "#/components/responses/PreconditionFailed"
-        "500":
-          $ref: "#/components/responses/ServerError"
-      summary: Fetch a single collection asset
-      tags:
-        - Data
-    put:
-      summary: Update or create a collection asset
-      description: >-
-        Update or create a collection asset with Id `assetId` with a complete asset definition. If the asset doesn't exist it is then created.
-
-
-        *Note: to upload an asset file see [Collection Asset Upload Management](#tag/Collection-Asset-Upload-Management)*
-      operationId: putCollectionAsset
-      tags:
-        - Data Management
-      parameters:
-        - $ref: "#/components/parameters/collectionId"
-        - $ref: "#/components/parameters/assetId"
-        - $ref: "#/components/parameters/IfMatchWrite"
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/assetWrite"
-      responses:
-        "200":
-          description: Asset has been successfully updated.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/assetWrite"
-        "201":
-          description: Asset has been newly created.
-          headers:
-            Location:
-              description: A link to the asset
-              schema:
-                type: string
-                format: url
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/assetWrite"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "412":
-          $ref: "#/components/responses/PreconditionFailed"
-        "500":
-          $ref: "#/components/responses/ServerError"
-    patch:
-      summary: Update an existing collection asset by Id with a partial asset definition
-      description: >-
-        Use this method to update an existing collection asset. Requires a JSON fragment (containing the fields to be updated) to be submitted.
-
-
-        *Note: to upload an asset file see [Collection Asset Upload Management](#tag/Collection-Asset-Upload-Management)*
-      operationId: patchCollectionAsset
-      tags:
-        - Data Management
-      parameters:
-        - $ref: "#/components/parameters/collectionId"
-        - $ref: "#/components/parameters/assetId"
-        - $ref: "#/components/parameters/IfMatchWrite"
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/assetWrite"
-      responses:
-        "200":
-          description: Returns the updated Asset.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/assetWrite"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "412":
-          $ref: "#/components/responses/PreconditionFailed"
-        "500":
-          $ref: "#/components/responses/ServerError"
-    delete:
-      summary: Delete an existing collection asset by Id
-      description: >-
-        Use this method to delete an existing collection asset.
-
-        **NOTE: Asset file on S3 will be also removed !**
-      operationId: deleteCollectionAsset
-      tags:
-        - Data Management
-      parameters:
-        - $ref: "#/components/parameters/collectionId"
-        - $ref: "#/components/parameters/assetId"
-        - $ref: "#/components/parameters/IfMatchWrite"
-      responses:
-        "200":
-          $ref: "#/components/responses/DeletedResource"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "412":
-          $ref: "#/components/responses/PreconditionFailed"
-        "500":
-          $ref: "#/components/responses/ServerError"
-  /collections/{collectionId}/items/{featureId}/assets:
-    get:
-      description: >-
-        Fetch assets of the item with id `featureId`.
-
-        Every asset belongs to an item.
-      operationId: getAssets
-      parameters:
-        - $ref: "#/components/parameters/collectionId"
-        - $ref: "#/components/parameters/featureId"
-      responses:
-        "200":
-          $ref: "#/components/responses/Assets"
-        "400":
-          $ref: "#/components/responses/InvalidParameter"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/ServerError"
-      summary: Fetch all assets for a feature
-      tags:
-        - Data
-  /collections/{collectionId}/items/{featureId}/assets/{assetId}:
-    get:
-      description: >-
-        Fetch the asset with id `assetId` of the feature with id `featureId` in the feature collection with id `collectionId`.
-      operationId: getAsset
-      parameters:
-        - $ref: "#/components/parameters/collectionId"
-        - $ref: "#/components/parameters/featureId"
-        - $ref: "#/components/parameters/assetId"
-        - $ref: "#/components/parameters/IfMatch"
-        - $ref: "#/components/parameters/IfNoneMatch"
-      responses:
-        "200":
-          $ref: "#/components/responses/Asset"
-        "304":
-          $ref: "#/components/responses/NotModified"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "412":
-          $ref: "#/components/responses/PreconditionFailed"
-        "500":
-          $ref: "#/components/responses/ServerError"
-      summary: Fetch a single asset
-      tags:
-        - Data
-    put:
-      summary: Update or create an asset
-      description: >-
-        Update or create an asset with Id `assetId` with a complete asset definition. If the asset doesn't exist it is then created.
-
-
-        *Note: to upload an asset file see [Asset Upload Management](#tag/Asset-Upload-Management)*
-      operationId: putAsset
-      tags:
-        - Data Management
-      parameters:
-        - $ref: "#/components/parameters/collectionId"
-        - $ref: "#/components/parameters/featureId"
-        - $ref: "#/components/parameters/assetId"
-        - $ref: "#/components/parameters/IfMatchWrite"
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/assetWriteExternalAsset"
-      responses:
-        "200":
-          description: Asset has been successfully updated.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/assetWrite"
-        "201":
-          description: Asset has been newly created.
-          headers:
-            Location:
-              description: A link to the asset
-              schema:
-                type: string
-                format: url
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/assetWrite"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "412":
-          $ref: "#/components/responses/PreconditionFailed"
-        "500":
-          $ref: "#/components/responses/ServerError"
-    patch:
-      summary: Update an existing asset by Id with a partial asset definition
-      description: >-
-        Use this method to update an existing asset. Requires a JSON fragment (containing the fields to be updated) to be submitted.
-
-
-        *Note: to upload an asset file see [Asset Upload Management](#tag/Asset-Upload-Management)*
-      operationId: patchAsset
-      tags:
-        - Data Management
-      parameters:
-        - $ref: "#/components/parameters/collectionId"
-        - $ref: "#/components/parameters/featureId"
-        - $ref: "#/components/parameters/assetId"
-        - $ref: "#/components/parameters/IfMatchWrite"
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/assetWrite"
-      responses:
-        "200":
-          description: Returns the updated Asset.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/assetWrite"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "412":
-          $ref: "#/components/responses/PreconditionFailed"
-        "500":
-          $ref: "#/components/responses/ServerError"
-    delete:
-      summary: Delete an existing asset by Id
-      description: >-
-        Use this method to delete an existing asset.
-
-
-        **NOTE: Asset file on S3 will be also removed !**
-      operationId: deleteAsset
-      tags:
-        - Data Management
-      parameters:
-        - $ref: "#/components/parameters/collectionId"
-        - $ref: "#/components/parameters/featureId"
-        - $ref: "#/components/parameters/assetId"
-        - $ref: "#/components/parameters/IfMatchWrite"
-      responses:
-        "200":
-          $ref: "#/components/responses/DeletedResource"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "412":
-          $ref: "#/components/responses/PreconditionFailed"
-        "500":
-          $ref: "#/components/responses/ServerError"
-  /collections/{collectionId}/items/{featureId}/assets/{assetId}/uploads:
-    parameters:
-      - $ref: "#/components/parameters/collectionId"
-      - $ref: "#/components/parameters/featureId"
-      - $ref: "#/components/parameters/assetId"
-    get:
-      tags:
-        - Asset Upload Management
-      summary: List all Asset's multipart uploads
-      description: >-
-        Return a list of multipart uploads of assets that are in progress, completed or cancelled.
-      operationId: getAssetUploads
-      parameters:
-        - name: status
-          in: query
-          description: Filter the list by status.
-          schema:
-            $ref: "#/components/schemas/status"
-        - $ref: "#/components/parameters/limit"
-      responses:
-        "200":
-          description: List of Asset's uploads
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/assetUploads"
-              example:
-                uploads:
-                  - upload_id: KrFTuglD.N8ireqry_w3.oQqNwrYI7SfSXpVRiusKah0YigDnusebaJNIUZg4R_No0MMW9FLU2UG5anTW0boTUYVxKfBZWCFXqnQTpjnQEo1K7la39MYpjSTvIbZgnG
-                    status: in-progress
-                    number_parts: 1
-                    urls:
-                      - url: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-4-2019/smr50-263-2016-2056-kgrs-2.5.tiff
-                        part: 1
-                        expires: "2019-08-24T14:15:22Z"
-                    created: "2019-08-24T14:15:22Z"
-                    file:checksum: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
-                  - upload_id: KrFTuglD.N8ireqry_w3.oQqNwrYI7SfSXpVRiusKah0YaaegJNIUZg4R_No0MMW9FLU2UG5anTW0boTUYVxKfBZWCFXqnQTpjnQEo1K7la39MYpjSTvIbZgnG
-                    status: completed
-                    number_parts: 1
-                    created: "2019-08-24T14:15:22Z"
-                    completed: "2019-08-24T14:15:22Z"
-                    file:checksum: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
-                  - upload_id: KrFTuglD.N8ireqry_w3.oQqNwrYI7SfSXpVRiusKah0YigDnuM06hfJNIUZg4R_No0MMW9FLU2UG5anTW0boTUYVxKfBZWCFXqnQTpjnQEo1K7la39MYpjSTvIbZgnG
-                    status: aborted
-                    number_parts: 1
-                    created: "2019-08-24T14:15:22Z"
-                    aborted: "2019-08-24T14:15:22Z"
-                    file:checksum: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
-                links:
-                  - rel: next
-                    href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets/smr50-263-2016-2056-kgrs-2.5.tiff/uploads?cursor=0d34
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/ServerError"
-    post:
-      tags:
-        - Asset Upload Management
-      summary: Create a new Asset's multipart upload
-      description: |
-        Create Asset's multipart upload.
-
-        A file part must be at least 5 MB except for the last one and at most 5 GB, otherwise the complete operation will fail.
-
-        *Note: in order to facilitate an integrity check during the upload, the base64-encoded 128-bit MD5 digest of each part must be
-        computed and passed to the create endpoint. Then this digest must also be passed as `Content-MD5` header during the upload.*
-      operationId: createAssetUpload
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/assetUploadCreate"
-      responses:
-        "201":
-          description: Created Asset's multipart upload
-          headers:
-            Location:
-              description: A link to the Asset's multipart upload object
-              schema:
-                type: string
-                format: url
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/assetUploadCreate"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "409":
-          description: Another upload is already in progress, you first need to complete or abort it before creating a new upload.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/uploadInProgress"
-        "500":
-          $ref: "#/components/responses/ServerError"
-  /collections/{collectionId}/items/{featureId}/assets/{assetId}/uploads/{uploadId}:
-    parameters:
-      - $ref: "#/components/parameters/collectionId"
-      - $ref: "#/components/parameters/featureId"
-      - $ref: "#/components/parameters/assetId"
-      - $ref: "#/components/parameters/uploadId"
-    get:
-      tags:
-        - Asset Upload Management
-      summary: Get an Asset's multipart upload
-      description: |
-        Return an Asset's multipart upload.
-      operationId: getAssetUpload
-      parameters:
-        - $ref: "#/components/parameters/IfMatch"
-        - $ref: "#/components/parameters/IfNoneMatch"
-      responses:
-        "200":
-          description: The multipart upload object.
-          headers:
-            ETag:
-              $ref: "#/components/headers/ETag"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/assetUpload"
-              examples:
-                inprogress:
-                  $ref: "#/components/examples/inprogress"
-                completed:
-                  $ref: "#/components/examples/completed"
-                aborted:
-                  $ref: "#/components/examples/aborted"
-        "304":
-          $ref: "#/components/responses/NotModified"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "412":
-          $ref: "#/components/responses/PreconditionFailed"
-        "500":
-          $ref: "#/components/responses/ServerError"
-  /storage-prefix/{presignedUrl}:
-    servers:
-      - url: https://s3.aws-region.amazonaws.com/
-    parameters:
-      - $ref: "#/components/parameters/presignedUrl"
-    put:
-      tags:
-        - Asset Upload Management
-        - Collection Asset Upload Management
-      summary: Upload asset file part
-      description: >-
-        Upload an Asset file part using the presigned url(s) returned by [Create a new Asset's multipart upload](#operation/createAssetUpload).
-
-        Parts that have been uploaded but not completed can be checked using [Get an Asset's multipart upload](#operation/getAssetUpload)
-
-        A file part must be at least 5 MB except for the last one and at most 5 GB, otherwise the complete operation will fail.
-
-        *Note: this endpoint doesn't require any authentication as it is already part of the presigned url*
-      operationId: uploadAssetFilePart
-      parameters:
-        - name: Content-MD5
-          in: header
-          description: The base64-encoded 128-bit MD5 digest of this part.
-          required: true
-          schema:
-            type: string
-            example: yLLiDqX2OL7mcIMTjob60A==
-      responses:
-        "200":
-          description: Asset file part uploaded part successfully (Response has no content).
-          content: {}
-          headers:
-            ETag:
-              schema:
-                type: string
-              description: >-
-                The RFC7232 ETag header field in a response provides the current entity- tag for the selected resource.
-
-                This ETag is required in the complete multipart upload payload.
-
-                An entity-tag is an opaque identifier for different versions of a resource over time, regardless whether multiple versions are valid at the same time. An entity-tag consists of an opaque quoted string.
-              example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
-              required: true
-        "400":
-          description: Asset file part corrupted.
-          content:
-            application/xml:
-              schema:
-                type: object
-                required:
-                  - Error
-                properties:
-                  Error:
-                    type: object
-                    required:
-                      - Code
-                      - Message
-                    properties:
-                      Code:
-                        type: string
-                        enum:
-                          - "BadDigest"
-                      Message:
-                        type: string
-                    additionalProperties:
-                      type: string
-              example: |
-                <?xml version="1.0" encoding="UTF-8"?>
-                <Error>
-                  <Code>BadDigest</Code>
-                  <Message>The Content-MD5 you specified did not match what we received.</Message>
-                  <ExpectedDigest>0b6vaU45Ys1BdrMhd4wnGA==</ExpectedDigest>
-                  <CalculatedDigest>4lDYLoS0vNfNdko/3cPJJQ==</CalculatedDigest>
-                  <RequestId>RAVFJXJQFXTCZHT3</RequestId>
-                  <HostId>kDMsU45sQ4oZjkTgba2SNBy/0RMshW2lEWmfKnaotvViav5Qlyz4aSQdmS9FRVKp1HgJUBj3h5w=</HostId>
-                </Error>
-        "403":
-          description: Asset file part upload Bad Request, Signature does not match (e.g. missing Content-MD5 header).
-          content:
-            application/xml:
-              schema:
-                type: object
-                required:
-                  - Error
-                properties:
-                  Error:
-                    type: object
-                    required:
-                      - Code
-                      - Message
-                    properties:
-                      Code:
-                        type: string
-                        enum:
-                          - "SignatureDoesNotMatch"
-                      Message:
-                        type: string
-                    additionalProperties:
-                      type: string
-              example: |
-                <?xml version="1.0" encoding="UTF-8"?>
-                <Error>
-                  <Code>SignatureDoesNotMatch</Code>
-                  <Message>The request signature we calculated does not match the signature you provided. Check your key and signing method.</Message>
-                  <AWSAccessKeyId>dummy-key</AWSAccessKeyId>
-                  <StringToSign>
-                    AWS4-HMAC-SHA256
-                    20210922T110759Z
-                    20210922/eu-central-1/s3/aws4_request6f0cf4c9a56acf90d9354cb79629a159c0c848ffacdbe13c7b9ae014671fa5c3
-                  </StringToSign>
-                  <SignatureProvided>1c762db1e677a6535c0e4a91015dcd60c00e58f1e5136f8943636f157dc03d54</SignatureProvided>
-                  <StringToSignBytes>41 57 53 34 2d 48 4d 41 43 2d 53 48 41 32 35...</StringToSignBytes>
-                  <CanonicalRequest>
-                    PUT /service-stac-dev/test-e2e-asset-upload-UUID/test-e2e-asset-upload-UUID/test-e2e-asset-upload-UUID.txt
-                      X-Amz-Algorithm=AWS4-HMAC-SHA256&amp;X-Amz-Credential=...
-                      content-md5:
-                      host:s3.eu-central-1.amazonaws.com
-
-                      content-md5;host
-                      UNSIGNED-PAYLOAD
-                  </CanonicalRequest>
-                  <CanonicalRequestBytes>50 55 54 0a 2f 73...</CanonicalRequestBytes>
-                  <RequestId>F5SB90RJFYE21C0V</RequestId>
-                  <HostId>YnH6DNl93sXH5kL0nEk1TOhH+crwM+wnaRNhh7MNC6CW6XhAeJLKVV/WU+dsdRkJUzet5m7cZwU=</HostId>
-                </Error>
-  /collections/{collectionId}/items/{featureId}/assets/{assetId}/uploads/{uploadId}/complete:
-    parameters:
-      - $ref: "#/components/parameters/collectionId"
-      - $ref: "#/components/parameters/featureId"
-      - $ref: "#/components/parameters/assetId"
-      - $ref: "#/components/parameters/uploadId"
-    post:
-      tags:
-        - Asset Upload Management
-      summary: Complete multipart upload
-      operationId: completeMultipartUpload
-      description: >-
-        Complete the multipart upload process. After completion, the Asset metadata are updated with the new `file:checksum` from the upload and the parts are automatically deleted. The asset's `href` field is also set if it was the first upload.
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/assetCompleteUpload"
-      responses:
-        "200":
-          description: Asset multipart upload completed successfully.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/assetUploadCompleted"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "409":
-          description: The complete operation was already performed.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/exception"
-              example:
-                code: 409
-                description: No upload in progress
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/ServerError"
-  /collections/{collectionId}/items/{featureId}/assets/{assetId}/uploads/{uploadId}/abort:
-    parameters:
-      - $ref: "#/components/parameters/collectionId"
-      - $ref: "#/components/parameters/featureId"
-      - $ref: "#/components/parameters/assetId"
-      - $ref: "#/components/parameters/uploadId"
-    post:
-      tags:
-        - Asset Upload Management
-      summary: Abort multipart upload
-      operationId: abortMultipartUpload
-      description: >-
-        Abort the multipart upload process. All already uploaded parts are automatically deleted.
-      responses:
-        "200":
-          description: Asset multipart upload aborted successfully.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/assetUploadAborted"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/ServerError"
-  /collections/{collectionId}/items/{featureId}/assets/{assetId}/uploads/{uploadId}/parts:
-    parameters:
-      - $ref: "#/components/parameters/collectionId"
-      - $ref: "#/components/parameters/featureId"
-      - $ref: "#/components/parameters/assetId"
-      - $ref: "#/components/parameters/uploadId"
-    get:
-      tags:
-        - Asset Upload Management
-      summary: Get upload parts
-      operationId: getUploadParts
-      description: >-
-        Return the list of already uploaded parts.
-
-
-        ### Pagination
-
-        By default all parts are returned (maximum number of parts being 100). The user can use pagination to reduce the number of returned parts. Pagination is done via the `limit` query parameter (see below).
-      parameters:
-        - $ref: "#/components/parameters/limit"
-      responses:
-        "200":
-          description: List of parts already uploaded.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/assetUploadParts"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/ServerError"
-  /collections/{collectionId}/assets/{assetId}/uploads:
-    parameters:
-      - $ref: "#/components/parameters/collectionId"
-      - $ref: "#/components/parameters/assetId"
-    get:
-      tags:
-        - Collection Asset Upload Management
-      summary: List all collection assets multipart uploads
-      description: >-
-        Return a list of multipart uploads of collection assets that are in progress, completed or cancelled.
-      operationId: getCollectionAssetUploads
-      parameters:
-        - name: status
-          in: query
-          description: Filter the list by status.
-          schema:
-            $ref: "#/components/schemas/status"
-        - $ref: "#/components/parameters/limit"
-      responses:
-        "200":
-          description: List of collection asset uploads
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/assetUploads"
-              example:
-                uploads:
-                  - upload_id: KrFTuglD.N8ireqry_w3.oQqNwrYI7SfSXpVRiusKah0YigDnusebaJNIUZg4R_No0MMW9FLU2UG5anTW0boTUYVxKfBZWCFXqnQTpjnQEo1K7la39MYpjSTvIbZgnG
-                    status: in-progress
-                    number_parts: 1
-                    urls:
-                      - url: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-4-2019/smr50-263-2016-2056-kgrs-2.5.tiff
-                        part: 1
-                        expires: "2019-08-24T14:15:22Z"
-                    created: "2019-08-24T14:15:22Z"
-                    file:checksum: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
-                  - upload_id: KrFTuglD.N8ireqry_w3.oQqNwrYI7SfSXpVRiusKah0YaaegJNIUZg4R_No0MMW9FLU2UG5anTW0boTUYVxKfBZWCFXqnQTpjnQEo1K7la39MYpjSTvIbZgnG
-                    status: completed
-                    number_parts: 1
-                    created: "2019-08-24T14:15:22Z"
-                    completed: "2019-08-24T14:15:22Z"
-                    file:checksum: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
-                  - upload_id: KrFTuglD.N8ireqry_w3.oQqNwrYI7SfSXpVRiusKah0YigDnuM06hfJNIUZg4R_No0MMW9FLU2UG5anTW0boTUYVxKfBZWCFXqnQTpjnQEo1K7la39MYpjSTvIbZgnG
-                    status: aborted
-                    number_parts: 1
-                    created: "2019-08-24T14:15:22Z"
-                    aborted: "2019-08-24T14:15:22Z"
-                    file:checksum: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
-                links:
-                  - rel: next
-                    href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets/smr50-263-2016-2056-kgrs-2.5.tiff/uploads?cursor=0d34
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/ServerError"
-    post:
-      tags:
-        - Collection Asset Upload Management
-      summary: Create a new collection asset multipart upload
-      description: |
-        Create collection asset multipart upload.
-
-        A file part must be at least 5 MB except for the last one and at most 5 GB, otherwise the complete operation will fail.
-
-        *Note: in order to facilitate an integrity check during the upload, the base64-encoded 128-bit MD5 digest of each part must be
-        computed and passed to the create endpoint. Then this digest must also be passed as `Content-MD5` header during the upload.*
-      operationId: createCollectionAssetUpload
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/assetUploadCreate"
-      responses:
-        "201":
-          description: Created collection asset multipart upload
-          headers:
-            Location:
-              description: A link to the collection asset multipart upload object
-              schema:
-                type: string
-                format: url
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/assetUploadCreate"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "409":
-          description: Another upload is already in progress, you first need to complete or abort it before creating a new upload.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/uploadInProgress"
-        "500":
-          $ref: "#/components/responses/ServerError"
-  /collections/{collectionId}/assets/{assetId}/uploads/{uploadId}:
-    parameters:
-      - $ref: "#/components/parameters/collectionId"
-      - $ref: "#/components/parameters/assetId"
-      - $ref: "#/components/parameters/uploadId"
-    get:
-      tags:
-        - Collection Asset Upload Management
-      summary: Get a collection assets multipart upload
-      description: |
-        Return a collection assets multipart upload.
-      operationId: getCollectionAssetUpload
-      parameters:
-        - $ref: "#/components/parameters/IfMatch"
-        - $ref: "#/components/parameters/IfNoneMatch"
-      responses:
-        "200":
-          description: The multipart upload object.
-          headers:
-            ETag:
-              $ref: "#/components/headers/ETag"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/assetUpload"
-              examples:
-                inprogress:
-                  $ref: "#/components/examples/inprogress"
-                completed:
-                  $ref: "#/components/examples/completed"
-                aborted:
-                  $ref: "#/components/examples/aborted"
-        "304":
-          $ref: "#/components/responses/NotModified"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "412":
-          $ref: "#/components/responses/PreconditionFailed"
-        "500":
-          $ref: "#/components/responses/ServerError"
-  /collections/{collectionId}/assets/{assetId}/uploads/{uploadId}/complete:
-    parameters:
-      - $ref: "#/components/parameters/collectionId"
-      - $ref: "#/components/parameters/assetId"
-      - $ref: "#/components/parameters/uploadId"
-    post:
-      tags:
-        - Collection Asset Upload Management
-      summary: Complete multipart upload
-      operationId: completeCollectionAssetMultipartUpload
-      description: >-
-        Complete the multipart upload process. After completion, the collection asset metadata are updated with the new `file:checksum` from the upload and the parts are automatically deleted. The asset's `href` field is also set if it was the first upload.
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/assetCompleteUpload"
-      responses:
-        "200":
-          description: Asset multipart upload completed successfully.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/assetUploadCompleted"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "409":
-          description: The complete operation was already performed.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/exception"
-              example:
-                code: 409
-                description: No upload in progress
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/ServerError"
-  /collections/{collectionId}/assets/{assetId}/uploads/{uploadId}/abort:
-    parameters:
-      - $ref: "#/components/parameters/collectionId"
-      - $ref: "#/components/parameters/assetId"
-      - $ref: "#/components/parameters/uploadId"
-    post:
-      tags:
-        - Collection Asset Upload Management
-      summary: Abort multipart upload
-      operationId: abortCollectionAssetMultipartUpload
-      description: >-
-        Abort the multipart upload process. All already uploaded parts are automatically deleted.
-      responses:
-        "200":
-          description: Collection asset multipart upload aborted successfully.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/assetUploadAborted"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/ServerError"
-  /collections/{collectionId}/assets/{assetId}/uploads/{uploadId}/parts:
-    parameters:
-      - $ref: "#/components/parameters/collectionId"
-      - $ref: "#/components/parameters/assetId"
-      - $ref: "#/components/parameters/uploadId"
-    get:
-      tags:
-        - Collection Asset Upload Management
-      summary: Get upload parts
-      operationId: getCollectionAssetUploadParts
-      description: >-
-        Return the list of already uploaded parts.
-
-
-        ### Pagination
-
-        By default all parts are returned (maximum number of parts being 100). The user can use pagination to reduce the number of returned parts. Pagination is done via the `limit` query parameter (see below).
-      parameters:
-        - $ref: "#/components/parameters/limit"
-      responses:
-        "200":
-          description: List of parts already uploaded.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/assetUploadParts"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/ServerError"
-  /get-token:
-    servers:
-      - url: http://data.geo.admin.ch/api/stac/
-    post:
-      tags:
-        - Authentication
-      summary: >-
-        Request token for token authentication.
-      operationId: getToken
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                username:
-                  type: string
-                  description: name of user for whom token is requested
-                password:
-                  type: string
-                  description: password of user for whom token is requested
-              required:
-                - username
-                - password
-            example:
-              username: "Mickey Mouse"
-              password: "I_love_Minnie_Mouse"
-      responses:
-        "200":
-          description: Returns the token for the specified user
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  token:
-                    type: string
-                    description: generated token for specified user
-              example:
-                token: ccecf40693bfc52ba090cd46eb7f19e723fe831f
-        "400":
-          description: Wrong credentials were provided.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  code:
-                    type: string
-                  description:
-                    type: string
-              example:
-                code: 400
-                description: "Unable to log in with provided credentials."
 components:
+  headers:
+    ETag:
+      schema:
+        type: string
+      description: >-
+        The RFC7232 ETag header field in a response provides the current entity- tag for the selected resource. An entity-tag is an opaque identifier for different versions of a resource over time, regardless whether multiple versions are valid at the same time. An entity-tag consists of an opaque quoted string, possibly prefixed by a weakness indicator.
+      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
+      required: true
+  parameters:
+    assetQuery:
+      description: >-
+        Query for properties in assets (e.g. mediatype). Use the JSON form of the assetQueryFilter used in POST.
+      in: query
+      name: assetQuery
+      required: false
+      schema:
+        type: string
+    bbox:
+      explode: false
+      in: query
+      name: bbox
+      required: false
+      schema:
+        $ref: "#/components/schemas/bbox"
+      style: form
+    collectionId:
+      description: Local identifier of a collection
+      in: path
+      name: collectionId
+      required: true
+      schema:
+        type: string
+    collectionsArray:
+      explode: false
+      in: query
+      name: collections
+      required: false
+      schema:
+        $ref: "#/components/schemas/collectionsArray"
+    datetime:
+      explode: false
+      in: query
+      name: datetime
+      required: false
+      schema:
+        $ref: "#/components/schemas/datetimeQuery"
+      example: 2018-02-12T00%3A00%3A00Z%2F2018-03-18T12%3A31%3A12Z
+      style: form
+    featureId:
+      description: Local identifier of a feature
+      in: path
+      name: featureId
+      required: true
+      schema:
+        type: string
+    assetObjectHref:
+      name: assetObjectHref
+      in: path
+      description: Full URL to asset object including protocol, host and path
+      required: true
+      schema:
+        type: string
+    ids:
+      description: >-
+        Array of Item ids to return. All other filter parameters that further restrict the number of search results are ignored
+      explode: false
+      in: query
+      name: ids
+      required: false
+      schema:
+        $ref: "#/components/schemas/ids"
+    limit:
+      explode: false
+      in: query
+      name: limit
+      required: false
+      schema:
+        $ref: "#/components/schemas/limit"
+      style: form
+    query:
+      description: Query for properties in items. Use the JSON form of the queryFilter used in POST.
+      in: query
+      name: query
+      required: false
+      schema:
+        type: string
+    IfNoneMatch:
+      name: If-None-Match
+      in: header
+      schema:
+        type: string
+      description: >-
+        The RFC7232 `If-None-Match` header field makes the GET request method conditional. It is composed of a comma separated list of ETags or value "*".
+
+
+        The server compares the client's ETags (sent with `If-None-Match`) with the ETag for its current version of the resource, and if both values match (that is, the resource has not changed), the server sends back a `304 Not Modified` status, without a body, which tells the client that the cached version of the response is still good to use (fresh).
+      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
+    IfMatch:
+      name: If-Match
+      in: header
+      schema:
+        type: string
+      description: >-
+        The RFC7232 `If-Match` header field makes the GET request method conditional. It is composed of a comma separated list of ETags or value "*".
+
+
+        The server compares the client's ETags (sent with `If-Match`) with the ETag for its current version of the resource, and if both values don't match (that is, the resource has changed), the server sends back a `412 Precondition Failed` status, without a body, which tells the client that the cached version of the response is not good to use anymore.
+      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
+    provider:
+      name: provider
+      in: query
+      description: Filter collections by the name of the provider. Supports partial and case-insensitive matching.
+      required: false
+      schema:
+        type: string
+    assetId:
+      name: assetId
+      in: path
+      description: Local identifier of an asset.
+      required: true
+      schema:
+        type: string
+    uploadId:
+      name: uploadId
+      in: path
+      description: Local identifier of an asset's upload.
+      required: true
+      schema:
+        type: string
+    presignedUrl:
+      name: presignedUrl
+      in: path
+      description: >-
+        Presigned url returned by [Create a new Asset's multipart upload](#operation/createAssetUpload).
+
+        Note: the url returned by the above endpoint is the full url including scheme, host and path
+      required: true
+      schema:
+        type: string
+    IfMatchWrite:
+      name: If-Match
+      in: header
+      schema:
+        type: string
+      description: >-
+        The RFC7232 `If-Match` header field makes the PUT/PATCH/DEL request method conditional. It is composed of a comma separated list of ETags or value "*".
+
+
+        The server compares the client's ETags (sent with `If-Match`) with the ETag for its current version of the resource, and if both values don't match (that is, the resource has changed), the server sends back a `412 Precondition Failed` status, without a body, which tells the client that he would overwrite another changes of the resource.
+      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      schema:
+        type: string
+      description: >-
+        A unique ID for the operation. This allows making the operation idempotent, so more fault tolerant. See IETF draft [draft-ietf-httpapi-idempotency-key-header](https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/).
+      example: "8e03978e-40d5-43e8-bc93-6894a57f9324"
   responses:
     Collection:
       headers:
@@ -4314,164 +2565,6 @@ components:
         the collections "external asset whitelist".
       example: |
         http://bundesamt.admin.ch/ch.bundesamt.data/no_specific_structure.png
-  parameters:
-    assetQuery:
-      description: >-
-        Query for properties in assets (e.g. mediatype). Use the JSON form of the assetQueryFilter used in POST.
-      in: query
-      name: assetQuery
-      required: false
-      schema:
-        type: string
-    bbox:
-      explode: false
-      in: query
-      name: bbox
-      required: false
-      schema:
-        $ref: "#/components/schemas/bbox"
-      style: form
-    collectionId:
-      description: Local identifier of a collection
-      in: path
-      name: collectionId
-      required: true
-      schema:
-        type: string
-    collectionsArray:
-      explode: false
-      in: query
-      name: collections
-      required: false
-      schema:
-        $ref: "#/components/schemas/collectionsArray"
-    datetime:
-      explode: false
-      in: query
-      name: datetime
-      required: false
-      schema:
-        $ref: "#/components/schemas/datetimeQuery"
-      example: 2018-02-12T00%3A00%3A00Z%2F2018-03-18T12%3A31%3A12Z
-      style: form
-    featureId:
-      description: Local identifier of a feature
-      in: path
-      name: featureId
-      required: true
-      schema:
-        type: string
-    assetObjectHref:
-      name: assetObjectHref
-      in: path
-      description: Full URL to asset object including protocol, host and path
-      required: true
-      schema:
-        type: string
-    ids:
-      description: >-
-        Array of Item ids to return. All other filter parameters that further restrict the number of search results are ignored
-      explode: false
-      in: query
-      name: ids
-      required: false
-      schema:
-        $ref: "#/components/schemas/ids"
-    limit:
-      explode: false
-      in: query
-      name: limit
-      required: false
-      schema:
-        $ref: "#/components/schemas/limit"
-      style: form
-    query:
-      description: Query for properties in items. Use the JSON form of the queryFilter used in POST.
-      in: query
-      name: query
-      required: false
-      schema:
-        type: string
-    IfNoneMatch:
-      name: If-None-Match
-      in: header
-      schema:
-        type: string
-      description: >-
-        The RFC7232 `If-None-Match` header field makes the GET request method conditional. It is composed of a comma separated list of ETags or value "*".
-
-
-        The server compares the client's ETags (sent with `If-None-Match`) with the ETag for its current version of the resource, and if both values match (that is, the resource has not changed), the server sends back a `304 Not Modified` status, without a body, which tells the client that the cached version of the response is still good to use (fresh).
-      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
-    IfMatch:
-      name: If-Match
-      in: header
-      schema:
-        type: string
-      description: >-
-        The RFC7232 `If-Match` header field makes the GET request method conditional. It is composed of a comma separated list of ETags or value "*".
-
-
-        The server compares the client's ETags (sent with `If-Match`) with the ETag for its current version of the resource, and if both values don't match (that is, the resource has changed), the server sends back a `412 Precondition Failed` status, without a body, which tells the client that the cached version of the response is not good to use anymore.
-      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
-    provider:
-      name: provider
-      in: query
-      description: Filter collections by the name of the provider. Supports partial and case-insensitive matching.
-      required: false
-      schema:
-        type: string
-    assetId:
-      name: assetId
-      in: path
-      description: Local identifier of an asset.
-      required: true
-      schema:
-        type: string
-    uploadId:
-      name: uploadId
-      in: path
-      description: Local identifier of an asset's upload.
-      required: true
-      schema:
-        type: string
-    presignedUrl:
-      name: presignedUrl
-      in: path
-      description: >-
-        Presigned url returned by [Create a new Asset's multipart upload](#operation/createAssetUpload).
-
-        Note: the url returned by the above endpoint is the full url including scheme, host and path
-      required: true
-      schema:
-        type: string
-    IfMatchWrite:
-      name: If-Match
-      in: header
-      schema:
-        type: string
-      description: >-
-        The RFC7232 `If-Match` header field makes the PUT/PATCH/DEL request method conditional. It is composed of a comma separated list of ETags or value "*".
-
-
-        The server compares the client's ETags (sent with `If-Match`) with the ETag for its current version of the resource, and if both values don't match (that is, the resource has changed), the server sends back a `412 Precondition Failed` status, without a body, which tells the client that he would overwrite another changes of the resource.
-      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
-    IdempotencyKey:
-      name: Idempotency-Key
-      in: header
-      schema:
-        type: string
-      description: >-
-        A unique ID for the operation. This allows making the operation idempotent, so more fault tolerant. See IETF draft [draft-ietf-httpapi-idempotency-key-header](https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/).
-      example: "8e03978e-40d5-43e8-bc93-6894a57f9324"
-  headers:
-    ETag:
-      schema:
-        type: string
-      description: >-
-        The RFC7232 ETag header field in a response provides the current entity- tag for the selected resource. An entity-tag is an opaque identifier for different versions of a resource over time, regardless whether multiple versions are valid at the same time. An entity-tag consists of an opaque quoted string, possibly prefixed by a weakness indicator.
-      example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
-      required: true
   examples:
     inprogress:
       summary: In progress upload example
@@ -4503,3 +2596,1910 @@ components:
         created: '2019-08-24T14:15:22Z'
         aborted: '2019-08-24T14:15:22Z'
         file:checksum: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
+info:
+  contact:
+    name: API Specification (based on STAC)
+    url: http://data.geo.admin.ch/api/stac/v1/
+  description: >-
+    This is an OpenAPI definition of the API to query and access federal geodata on data.geo.admin.ch. The API is based on the core SpatioTemporal Asset Catalog API specification [STAC](http://stacspec.org) and adds two extensions for extended searching possibilities.
+  title: The SpatioTemporal Asset Catalog API for data.geo.admin.ch
+  version: 1.0.0
+servers:
+  - description: Data.geo.admin.ch
+    url: http://data.geo.admin.ch/api/stac/v1
+tags:
+  - description: Essential characteristics of this API
+    name: Capabilities
+  - description: Access to data (features)
+    name: Data
+  - description: Extension to OGC API - Features to support STAC metadata model and search API
+    name: STAC
+  - name: Data Management
+    description: |
+      Metadata management requests. Theses requests are used to create, update or delete the STAC
+      metadata.
+
+      *NOTE: these requests require authentication as described in [here](#tag/Authentication).*
+
+      ## Supported Media Type
+
+      List of the current supported media types:
+
+      | Media Type | Description | File Extension(s) |
+      | ---------- | ----------- | ----------------- |
+      | application/vnd.apache.parquet | Apache Parquet column-oriented data file format | .parquet |
+      | application/x.ascii-grid+zip | Zipped ESRI ASCII raster format (.asc) | .zip |
+      | application/x.ascii-xyz+zip | Zipped XYZ (.xyz) | .zip |
+      | application/x.e00+zip | Zipped e00 | .zip |
+      | application/x.geotiff+zip | Zipped GeoTIFF | .zip |
+      | image/tiff; application=geotiff | GeoTIFF | .tiff, .tif |
+      | application/x.tiff+zip | Zipped TIFF | .zip |
+      | application/x.png+zip | Zipped PNG | .zip |
+      | application/x.jpeg+zip | Zipped JPEG | .zip |
+      | application/vnd.google-earth.kml+xml | KML | .kml |
+      | application/vnd.google-earth.kmz | Zipped KML | .kmz |
+      | application/x.dxf+zip | Zipped DXF | .zip |
+      | application/gml+xml | GML | .gml, .xml |
+      | application/x.gml+zip | Zipped GML | .zip |
+      | application/vnd.las | LIDAR | .las |
+      | application/vnd.laszip | Zipped LIDAR | .laz, .zip |
+      | application/x.vnd.las+zip | Zipped LAS | .zip |
+      | application/vnd.laszip+copc | loud Optimized Point Cloud (COPC) | .zip |
+      | application/x.shapefile+zip | Zipped Shapefile | .zip |
+      | application/x.filegdb+zip | Zipped File Geodatabase | .zip |
+      | application/x.filegdbp+zip | Zipped File Geodatabase (ArcGIS Pro) | .zip |
+      | application/x.ms-access+zip | Zipped Personal Geodatabase | .zip |
+      | application/x.ms-excel+zip | Zipped Excel | .zip |
+      | application/x.tab+zip | Zipped Mapinfo-TAB | .zip |
+      | application/x.tab-raster+zip | Zipped Mapinfo-Raster-TAB | .zip |
+      | application/x.csv+zip | Zipped CSV | .zip |
+      | text/csv | CSV | .csv |
+      | application/geopackage+sqlite3 | Geopackage | .gpkg |
+      | application/x.geopackage+zip | Zipped Geopackage | .zip |
+      | application/geo+json | GeoJSON (<span style="color: red">does not support auto HTTP compression !</span>) | .json, .geojson |
+      | application/x.geojson+zip | Zipped GeoJSON | .zip |
+      | application/x.interlis; version=2.3 | Interlis 2 | .xtf, .xml |
+      | application/x.interlis+zip; version=2.3 | Zipped XTF (2.3) | .zip |
+      | application/x.interlis; version=2.4 | Interlis 2 | .xtf | .xml |
+      | application/x.interlis+zip; version=2.4 | Zipped XTF (2.4) | .zip |
+      | application/x.interlis; version=1 | Interlis 1 | .itf |
+      | application/x.interlis+zip; version=1 | Zipped ITF | .zip |
+      | image/tiff; application=geotiff; profile=cloud-optimized | Cloud Optimized GeoTIFF (COG) | .tiff, .tif |`
+      | application/pdf | PDF | .pdf |
+      | application/x.pdf+zip | Zipped PDF | .zip |
+      | application/json | JSON | .json |
+      | application/x.json+zip | Zipped JSON | .zip |
+      | application/x-netcdf | NetCDF | .nc |
+      | application/x.netcdf+zip | Zipped NetCDF | .zip |
+      | application/xml | XML | .xml |
+      | application/x.xml+zip | Zipped XML | .zip |
+      | application/vnd.mapbox-vector-tile | mbtiles | .mbtiles |
+      | text/plain | Text | .txt |
+      | text/x.plain+zip | Zipped text | .zip |
+      | application/x.dwg+zip | Zipped DWG | .zip |
+      | application/zip | Generic Zip File | .zip |
+      | image/tiff | TIFF | .tiff, .tif |
+      | image/jpeg | JPEG | .jpeg, .jpg |
+      | image/png | PNG | .png |
+      | application/vnd.sqlite3 | sqlite | .sqlite |
+      | application/grib | GRIB/GRIB2 | .grib, .grib2 |
+  - name: Asset Upload Management
+    description: |
+      Asset files are uploaded via the STAC API using the API requests described in this chapter.
+
+      - [Authentication](#section/Authentication)
+      - [Compression](#section/Compression)
+      - [Example](#section/Example)
+
+      <span style="color:red">***IMPORTANT NOTES:***</span>
+        - <span style="color:red">*Files bigger than 10 MB should use compression,
+          see [Compression](#section/Compression)*</span>
+
+      ## Basic Steps to upload assets
+
+      To upload an assets file there are generally three steps involved:
+
+      <ol>
+        <li>Create new upload process</li>
+        <li>Upload parts/files</li>
+        <li>Complete upload process</li>
+      </ol>
+
+      Any file that is larger than 5 GB must be split into multiple parts. A file part must be at
+      least 5 MB except for the last one and at most 5 GB, otherwise the complete operation will fail.
+      If the file is less that 5 GB, you will only upload a single part, but must still start and complete the process as with multiple parts.
+
+      (1) Use the [create new upload](#tag/Asset-Upload-Management/operation/createAssetUpload) request to start a new upload.
+      It will return a list of urls.
+
+      (2) Use the urls to [upload asset file part](#tag/Asset-Upload-Management/operation/uploadAssetFilePart). Do this for each file part. You may also upload multiple parts in parallel.
+
+      (3) Once all parts have been uploaded, execute the [complete the upload](#tag/Asset-Upload-Management/operation/completeMultipartUpload) request.
+      The new asset file be available to users after you have successfully completed the upload.
+
+      If any errors happen during the upload process, you can [abort the upload](#tag/Asset-Upload-Management/operation/abortMultipartUpload)
+      and restart the process.
+
+      Multiple parts (2) can be upload concurrently, but you cannot create a new upload (1) while another is still in progress.
+      If you wish to start a new upload you must first complete or abort any existing upload that is in progress.
+      Use [list uploads](#tag/Asset-Upload-Management/operation/getAssetUploads) to see if any uploads
+      are in progress.
+
+      ## Detailed example of asset upload
+
+      This describes the process in more detail with focus on automated recurring uploads and error handling.
+
+      ### Glossary
+
+      - Abort Upload: abort an upload in progress by sending an abort request to the service
+      - Cancel Upload: cancel the upload iteration without sending an abort request to the service
+
+      ### Recurrent upload
+
+      If you have recurrent asset uploads, you need to have a proper error handling otherwise the uploads might get stuck. Asset uploads operation are not stateless but statefull therefore the error handling is important. Here below is a simple practical example on which errors to handle in case of recurrent asset upload.
+
+      Note this example is only recommended if the upload is recurrent (for example every hour). The number of retries below depends on the upload frequency, if the upload frequency is daily then you might want to have at least 3 retries with some exponential backoff time between each retries, in opposite if the upload is done at high frequency you might skip the retries and simply cancel the upload, using the next upload iteration as retry.
+
+      1. Create Asset Upload
+
+          ```text
+          POST https://data.geo.admin.ch/api/stac/v1/collections/{collection}/items/{item}/assets/{asset}/uploads
+          ```
+
+          - `201 OK` => Continue to step 2.
+          - `400 Bad Request`
+              - Response is `{"description": "Upload already in progress", "code": 400}` => Abort the upload
+                  - To do so first get the `upload_id` of the `in-progress` upload via
+
+                      ```text
+                      GET https://data.geo.admin.ch/api/stac/v1/collections/{collection}/items/{item}/assets/{asset}/uploads?status=in-progress
+                      ```
+
+                  - Then using this id abort the upload
+
+                      ```text
+                      POST https://data.geo.admin.ch/api/stac/v1/collections/{collection}/items/{item}/assets/{asset}/uploads/{upload_id}/abort
+                      ```
+
+                  - Then restart the step 1.
+              - Another `400 Bad Request` => Cancel upload
+
+                Your request is not correct, analyze your request and correct it before retrying the step 1.
+
+          - `500 Internal Server Error` => Cancel upload
+
+              This is generally an application crash and should be notify to the service administrator, a retry would usually be useless, simply cancel the upload.
+          - `502 Bad Gateway`, `503 Service Unavailable`, `504 Gateway Timeout` => Retry
+
+              Service is momentarily not available, wait a short amount of time and retry step 1. the amount of time to wait and the number of retries depends on the upload rate, but a minimum wait time of 100ms is recommended.
+      2. Upload the parts via the presigned URL
+
+          ```text
+          PUT {presigned_url}
+          ```
+
+          - `200 OK` => Continue to step 3.
+          - `400 Bad Request` => Abort upload
+
+              Abort upload using the current `upload_id` and contact service administrator.
+
+              ```text
+              POST https://data.geo.admin.ch/api/stac/v1/collections/{collection}/items/{item}/assets/{asset}/uploads/{upload_id}/abort
+              ```
+
+          - `502 Bad Gateway`, `503 Service Unavailable`, `504 Gateway Timeout` => Retry
+
+              Retry step 2. with a short wait time (min 100ms).
+
+      3. Complete the upload
+
+          ```text
+          POST https://data.geo.admin.ch/api/stac/v1/collections/{collection}/items/{item}/assets/{asset}/uploads/{upload_id}/complete
+          ```
+
+          - `200 OK` => Upload successful
+          - `400 Bad Request` => Cancel upload
+
+              Your request is invalid/incorrect, you need to cancel the upload script and verify its correctness.
+          - `500 Internal Server Error` => Cancel upload
+
+              This is generally an application crash and should be notify to the service administrator, a retry would usually be useless, simply cancel the upload.
+          - `502 Bad Gateway`, `503 Service Unavailable`, `504 Gateway Timeout` => Retry
+
+              Service is momentarily not available, wait a short moment (100ms), then retry the request.
+
+      The following figure shows the flow of a multipart upload process.
+      ![diagram](/api/stac/static/assets/service-stac-upload-process.svg)
+
+
+      ## Authentication
+
+      POST/PUT requests require authentication as described in [here](#tag/Authentication).
+
+      ## Compression
+
+      Files between *1 MB* and *10 MB* are automatically compressed during download using *gzip* or
+      *br* based on the `Accept-Encoding` header of the request. But note that this compression is
+      only done for standard Media Type (see [File types that CloudFront compresses](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/ServingCompressedFiles.html#compressed-content-cloudfront-file-types)).
+
+      <span style="color: red">It is highly recommended to upload files bigger than *10 MB* using
+      a compressed media type (see [Supported Media Type](#section/Supported-Media-Type)) !
+      If this not possible (as e.g. for json directly usd in a browser application), the file should
+      be either compressed upfront (see below) or split in smaller files.</span>
+
+      ### Upfront Compression using `content_encoding`
+
+      In the case where you have a file bigger than 10 MB that you can't split into multiple files
+      or pack into a compressed media type, then you can use the upfront compression method together
+      with the `content_encoding` parameter.
+
+      For this you need to first compress the file using gzip or br compression algorithm and then
+      use the `content_encoding` parameter in the [Create Asset's multipart upload](#tag/Asset-Upload-Management/operation/createAssetUpload)
+
+      ***NOTES:***
+       - In this case the file will be always delivered compressed, which means that the client that
+       download the file needs to be compatible with the HTTP Compression algorithm defined in
+       `Content-Encoding` header.
+
+
+      ## Example
+
+      ```python
+      import os
+      import hashlib
+      from base64 import b64encode
+
+      import requests
+      import multihash
+
+      # variables
+      scheme = 'https'
+      hostname = 'data.geo.admin.ch'
+      collection = 'ch.swisstopo.pixelkarte-farbe-pk200.noscale'
+      item = 'smr200-200-4-2016'
+      asset = 'smr200-200-4-2016-2056-kgrs-10.tiff'
+      asset_path = f'collections/{collection}/items/{item}/assets/{asset}'
+      user = os.environ.get('STAC_USER', 'unknown-user')
+      password = os.environ.get('STAC_PASSWORD', 'unknown-password')
+
+      with open('smr200-200-4-2016-2056-kgrs-10.tiff', 'rb') as fd:
+        data = fd.read()
+
+      checksum_multihash = multihash.to_hex_string(multihash.encode(hashlib.sha256(data).digest(), 'sha2-256'))
+      md5 = b64encode(hashlib.md5(data).digest()).decode('utf-8')
+
+      # 1. Create a multipart upload
+      response = requests.post(
+        f"{scheme}://{hostname}/api/stac/v1/{asset_path}/uploads",
+        auth=(user, password),
+        json={
+          "number_parts": 1,
+          "md5_parts": [{
+            "part_number": 1,
+            "md5": md5
+          }],
+          "file:checksum": checksum_multihash
+        }
+      )
+      upload_id = response.json()['upload_id']
+
+      # 2. Upload the part using the presigned url
+      response = requests.put(response.json()['urls'][0]['url'], data=data, headers={'Content-MD5': md5})
+      etag = response.headers['ETag']
+
+      # 3. Complete the upload
+      response = requests.post(
+        f"{scheme}://{hostname}/api/stac/v1/{asset_path}/uploads/{upload_id}/complete",
+        auth=(user, password),
+        json={'parts': [{'etag': etag, 'part_number': 1}]}
+      )
+      ```
+
+      See https://aws.amazon.com/premiumsupport/knowledge-center/data-integrity-s3/ for other examples on how to compute the base64 MD5 of a part.
+  - name: Collection Asset Upload Management
+    description: |
+      Collection Asset files are uploaded via the STAC API using the API requests described in this chapter.
+
+      The flow of the requests is the same as for assets that belong to features, which is described under [Asset Upload Management](#tag/Asset-Upload-Management)
+      - [Basic steps to upload assets](#section/Basic-Steps-to-upload-assets)
+      - [Detailed example of asset upload](#section/Detailed-example-of-asset-upload)
+      - [Authentication](#section/Authentication)
+      - [Compression](#section/Compression)
+      - [Example](#section/Example)
+  - name: Authentication
+    description: |
+      All write requests require authentication. There is currently three type of supported authentications:
+
+      * [Session authentication](#section/Session-authentication)
+      * [Basic authentication](#section/Basic-authentication)
+      * [Token authentication](#section/Token-authentication)
+
+      ## Session authentication
+
+      When using the browsable API the user can simply use the admin interface for logging in.
+      Once logged in, the browsable API can be used to perform write requests.
+
+      ## Basic authentication
+
+      The username and password for authentication can be added to every write request the user wants to perform.
+      Here is an example of posting an asset using curl (_username_="MickeyMouse", _password_="I_love_Minnie_Mouse"):
+
+      ```
+      curl --request POST \
+        --user MickeyMouse:I_love_Minnie_Mouse \
+        --url https://data.geoadmin.ch/api/stac/v1/collections/ch.swisstopo.swisstlmregio/items/swisstlmregio-2020/assets \
+        --header 'Content-Type: application/json' \
+        --data '{
+          "id": "fancy_unique_id",
+          "item": "swisstlmregio-2020",
+          "title": "My title",
+          "type": "application/x.filegdb+zip",
+          "description": "My description",
+          "proj:epsg": 2056,
+          "file:checksum": "12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC"
+      }'
+      ```
+
+      ## Token authentication
+
+      A user specific token for authentication can be added to every write request the user wants to perform.
+      Here is an example of posting an asset using curl:
+
+      ```
+      curl --request POST \
+        --url https://data.geoadmin.ch/api/stac/v1/collections/ch.swisstopo.swisstlmregio/items/swisstlmregio-2020/assets \
+        --header 'Authorization: Token ccecf40693bfc52ba090cd46eb7f19e723fe831f' \
+        --header 'Content-Type: application/json' \
+        --data '{
+          "id": "fancy_unique_id",
+          "item": "swisstlmregio-2020",
+          "title": "My title",
+          "type": "application/x.filegdb+zip",
+          "description": "My description",
+          "proj:epsg": 2056,
+          "file:checksum": "12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC"
+      }'
+      ```
+
+      Tokens can either be generated in the admin interface or existing users can perform a POST request
+      on the get-token endpoint to request a token (also see [Request token for token authentication](#operation/getToken)).
+      Here is an example using curl:
+
+      ```
+      curl --request POST \
+        --url https://data.geoadmin.ch/api/stac/get-token \
+        --header 'Content-Type: application/json' \
+        --data '{"username": "MickeyMouse", "password": "I_love_Minnie_Mouse"}'
+      ```
+paths:
+  /:
+    get:
+      description: >-
+        The landing page provides links to the API definition, the conformance statements and to the feature collections in this dataset.
+      operationId: getLandingPage
+      responses:
+        "200":
+          $ref: "#/components/responses/LandingPage"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      summary: Landing page
+      tags:
+        - Capabilities
+  /collections:
+    get:
+      operationId: getCollections
+      parameters:
+        - $ref: "#/components/parameters/limit"
+        - $ref: "#/components/parameters/provider"
+      responses:
+        "200":
+          $ref: "#/components/responses/Collections"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      summary: Fetch collections
+      description: The feature collections in the dataset
+      tags:
+        - Data
+  /collections/{collectionId}:
+    get:
+      operationId: describeCollection
+      parameters:
+        - $ref: "#/components/parameters/collectionId"
+        - $ref: "#/components/parameters/IfMatch"
+        - $ref: "#/components/parameters/IfNoneMatch"
+      responses:
+        "200":
+          $ref: "#/components/responses/Collection"
+        "304":
+          $ref: "#/components/responses/NotModified"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      summary: Fetch a single collection
+      description: Describe the feature collection with id `collectionId`
+      tags:
+        - Data
+    put:
+      tags:
+        - Data Management
+      summary: Update or create a collection
+      description: >-
+        Update or create a collection with Id `collectionId` with a complete collection definition. If the collection doesn't exist it is created.
+      operationId: updateCollection
+      parameters:
+        - $ref: "#/components/parameters/collectionId"
+        - $ref: "#/components/parameters/IfMatchWrite"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/collectionWrite"
+            example:
+              description: The National Map 1:200,000 is a topographic map giving an overview of Switzerland.
+              id: ch.swisstopo.pixelkarte-farbe-pk200.noscale
+              license: proprietary
+              links:
+                - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
+                  rel: license
+                  title: Licence for the free geodata of the Federal Office of Topography swisstopo
+                - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
+                  rel: describedby
+              providers:
+                - name: Federal Office of Topography - swisstopo
+                  roles:
+                    - producer
+                    - licensor
+                  url: https://www.swisstopo.admin.ch
+              title: National Map 1:200'000
+      responses:
+        "200":
+          description: Returns the updated Collection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/collection"
+        "201":
+          description: Returns the created Collection
+          headers:
+            Location:
+              description: A link to the collection
+              schema:
+                type: string
+                format: url
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/collection"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    patch:
+      tags:
+        - Data Management
+      summary: Partial update of a collection
+      description: >-
+        Update an existing collection with Id `collectionId` with a partial collection definition
+      operationId: partialUpdateCollection
+      parameters:
+        - $ref: "#/components/parameters/collectionId"
+        - $ref: "#/components/parameters/IfMatch"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/collectionWrite"
+            example:
+              id: ch.swisstopo.pixelkarte-farbe-pk200.noscale
+              license: proprietary
+              links:
+                - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
+                  rel: license
+                  title: Licence for the free geodata of the Federal Office of Topography swisstopo
+                - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
+                  rel: describedby
+              providers:
+                - name: Federal Office of Topography - swisstopo
+                  roles:
+                    - producer
+                    - licensor
+                  url: https://www.swisstopo.admin.ch
+              title: National Map 1:200'000
+      responses:
+        "200":
+          description: Returns the updated Collection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/collection"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    post:
+      tags:
+        - Data Management
+      summary: Bulk update or create features
+      description: |
+        Create or update ("upsert") multiple features in a collection at once.
+        If a feature already exists, it is updated with the differences to the feature in the request.
+
+        Equivalently, one could create the features and their corresponding assets with individual API calls.
+        Uploading features that belong together in bulks has two advantages:
+
+           1. Less communication overhead than individual calls.
+           2. Less partial uploads to mess with: Either all features are uploaded or none.
+
+        A maximum of 100 features per call is allowed.
+      operationId: bulkUpsertItems
+      parameters:
+        - $ref: "#/components/parameters/collectionId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/collectionUpsertItems"
+      responses:
+        "200":
+          description: Collection has been successfully updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/collectionUpsertItems"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+  /collections/{collectionId}/items:
+    get:
+      description: >-
+        Fetch features of the feature collection with id `collectionId`.
+
+
+        Every feature in a dataset belongs to a collection. A dataset may consist of multiple feature collections. A feature collection is often a collection of features of a similar type, based on a common schema.
+
+
+        Use content negotiation to request HTML or GeoJSON.
+      operationId: getFeatures
+      parameters:
+        - $ref: "#/components/parameters/collectionId"
+        - $ref: "#/components/parameters/limit"
+        - $ref: "#/components/parameters/bbox"
+        - $ref: "#/components/parameters/datetime"
+      responses:
+        "200":
+          $ref: "#/components/responses/Features"
+        "400":
+          $ref: "#/components/responses/InvalidParameter"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      summary: Fetch features
+      tags:
+        - Data
+  /collections/{collectionId}/items/{featureId}:
+    get:
+      description: >-
+        Fetch the feature with id `featureId` in the feature collection with id `collectionId`.
+
+
+        Use content negotiation to request HTML or GeoJSON.
+      operationId: getFeature
+      parameters:
+        - $ref: "#/components/parameters/collectionId"
+        - $ref: "#/components/parameters/featureId"
+        - $ref: "#/components/parameters/IfMatch"
+        - $ref: "#/components/parameters/IfNoneMatch"
+      responses:
+        "200":
+          $ref: "#/components/responses/Feature"
+        "304":
+          $ref: "#/components/responses/NotModified"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      summary: Fetch a single feature
+      tags:
+        - Data
+    put:
+      summary: Update or create a feature
+      description: >-
+        Update or create a feature with Id `featureId` with a complete feature definition. If the feature doesn't exist it is then created.
+
+
+        *NOTE: Optional fields that are not part of the PUT payload, will be erased in the resource. For example if the resource has a properties.title and the PUT payload doesn't, then the resource's properties.title will be removed.*
+      operationId: putFeature
+      tags:
+        - Data Management
+      parameters:
+        - $ref: "#/components/parameters/collectionId"
+        - $ref: "#/components/parameters/featureId"
+        - $ref: "#/components/parameters/IfMatchWrite"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/updateItem"
+            example:
+              id: cs3-20160503_132131_05
+              geometry:
+                type: Polygon
+                coordinates:
+                  - - - 7.0906823
+                      - 45.9160584
+                    - - 7.1035698
+                      - 45.9160977
+                    - - 7.1035146
+                      - 45.925093
+                    - - 7.0906249
+                      - 45.9250537
+                    - - 7.0906823
+                      - 45.9160584
+              properties:
+                datetime: "2016-05-03T13:22:30.040Z"
+                title: A CS3 item
+                forecast:reference_datetime: "2024-11-19T16:15:00Z"
+                forecast:horizon: P3DT2H
+                forecast:duration: PT4H
+                forecast:variable: air_temperature
+                forecast:perturbed: true
+              links:
+                - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
+                  rel: license
+                  title: Licence for the free geodata of the Federal Office of Topography swisstopo
+                - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
+                  rel: describedby
+      responses:
+        "200":
+          description: Returns the updated Item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/item"
+        "201":
+          description: Return the created Item.
+          headers:
+            Location:
+              description: A link to the item
+              schema:
+                type: string
+                format: url
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/item"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    patch:
+      summary: Update an existing feature by Id with a partial item definition
+      description: >-
+        Use this method to update an existing feature. Requires a JSON fragment (containing the fields to be updated) to be submitted.
+      operationId: patchFeature
+      tags:
+        - Data Management
+      parameters:
+        - $ref: "#/components/parameters/collectionId"
+        - $ref: "#/components/parameters/featureId"
+        - $ref: "#/components/parameters/IfMatchWrite"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/partialItem"
+      responses:
+        "200":
+          description: Returns the updated Item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/item"
+        "201":
+          description: Returns the created Item
+          headers:
+            Location:
+              description: A link to the item
+              schema:
+                type: string
+                format: url
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/item"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    delete:
+      summary: Delete an existing feature by Id
+      description: |
+        Use this method to delete an existing feature/item. The feature can only be deleted if all
+        its assets have been deleted first. See also [Delete an existing asset by id](#tag/Data-Management/operation/deleteAsset).
+      operationId: deleteFeature
+      tags:
+        - Data Management
+      parameters:
+        - $ref: "#/components/parameters/collectionId"
+        - $ref: "#/components/parameters/featureId"
+        - $ref: "#/components/parameters/IfMatchWrite"
+      responses:
+        "200":
+          $ref: "#/components/responses/DeletedResource"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "#/components/responses/ServerError"
+  /{assetObjectHref}:
+    servers:
+      - url: http://data.geo.admin.ch/
+    parameters:
+      - $ref: "#/components/parameters/assetObjectHref"
+    get:
+      tags:
+        - Data
+      summary: Fetch an asset object
+      parameters:
+        - $ref: "#/components/parameters/IfNoneMatch"
+      operationId: getAssetObject
+      description: |
+        Return an asset object
+
+        ### Notes on Caching
+
+        Asset objects are cached by default for 2 hours (7200 seconds). Depending on the
+        update interval of an asset object (e.g. for frequently updated data)
+        the `Cache-Control` header can be different, in special cases it can even be
+        set to `no-cache` (e.g. for realtime data).
+
+        All endpoints support the precondition headers `If-Match` and `If-None-Match`.
+        To reduce unnecessary traffic it's highly recommended to use these headers
+        (mostly `If-None-Match`) when making calls.
+
+        In case your application is using frequently updated data and you want to
+        be sure not to miss an update of the data, the recommended procedure is as
+        follows:
+
+        ```python
+        import requests
+        import time
+
+        refresh_interval = 60
+
+        item_etag = "*"
+        item_url = "https://data.geo.admin.ch/collections/{collectionID}/items/{itemId}"
+
+        asset_id = 'data.json'
+        asset_etag = "*"
+
+        poll_for_new_data = True
+
+        while(poll_for_new_data):
+          item_response = requests.get(item_url, headers={'If-None-Match': f'"{item_etag}"'})
+          if item_response.status_code == 304:
+            # item metadata and hence any associated asset object didn't
+            # change since last call
+
+            time.sleep(refresh_interval)
+
+          elif item_response.status_code == 200:
+            # item metadata has changed since last visit
+
+            item_etag = item_response.headers.get("ETag") # save the new etag
+            asset_href = item_response.json['assets'][asset_id]['href'] # save the asset href
+
+            obj_response = requests.get(asset_href, headers={'If-None-Match': f'"{asset_etag}"'})
+            if obj_response.status_code == 304:
+              # "our" asset object didn't change since last call,
+              # we can ignore that the item metadata changed,
+              # it was a different asset that has changed
+
+              time.sleep(refresh_interval)
+
+            elif obj_response.status_code == 200:
+              # "our" asset object has changed, we load the new data
+
+              asset_etag = obj_response.headers.get("ETag")  # save the new asset etag
+              asset_checksum = obj_response.headers.get("X-Amz-Meta-Sha256")
+              object = obj_response.data
+
+              # calculate the sha256 checksum of the data in a proper way
+              checksum = calc_checksum(object)
+              if checksum != asset_checksum:
+                # Error: corrupted data from download
+                # do proper error handling
+
+              # do sth with the data
+            else:
+              # do proper error handling
+          else:
+            # do proper error handling
+        ```
+      responses:
+        "200":
+          description: The asset object
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
+            Cache-Control:
+              description: |
+                Cache header for the asset object
+              example: "public, max-age=7200"
+              schema:
+                type: string
+              required: true
+            Content-Type:
+              description: |
+                The content type of the asset object as specified in the [asset object
+                metadata](#tag/Data/operation/getFeature)
+              required: true
+              schema:
+                type: string
+            X-Amz-Meta-Sha256:
+              description: |
+                SHA256 checksum of the asset object.
+
+                This checksum can be compared with the asset metadata `checksum:multihash` field
+                (see [asset object metadata](#tag/Data/operation/getFeature)). Note that the
+                `checksum:multihash` field is a multihash while `X-Amz-Meta-Sha256` is a SHA256.
+                See [multihash](https://multiformats.io/multihash/) for more information.
+              required: true
+              example: 3dd6e1ead0760d278344394b0e7f017b5b6049e4fed3d2083b564fc268f07334
+              schema:
+                $ref: "#/components/schemas/sha256"
+        "304":
+          $ref: "#/components/responses/NotModified"
+        "404":
+          $ref: "#/components/responses/NotFoundS3"
+        "412":
+          $ref: "#/components/responses/PreconditionFailedS3"
+  /conformance:
+    get:
+      description: >-
+        A list of all conformance classes specified in a standard that the server conforms to.
+      operationId: getConformanceDeclaration
+      responses:
+        "200":
+          $ref: "#/components/responses/ConformanceDeclaration"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      summary: Information about specifications that this API conforms to
+      tags:
+        - Capabilities
+  /search:
+    get:
+      description: >-
+        Retrieve Items matching filters. Intended as a shorthand API for simple queries.
+      operationId: getSearchSTAC
+      parameters:
+        - $ref: "#/components/parameters/bbox"
+        - $ref: "#/components/parameters/datetime"
+        - $ref: "#/components/parameters/limit"
+        - $ref: "#/components/parameters/ids"
+        - $ref: "#/components/parameters/collectionsArray"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/itemsSearchGet"
+          description: A feature collection.
+        "500":
+          $ref: "#/components/responses/ServerError"
+      summary: Search STAC items with simple filtering.
+      tags:
+        - STAC
+    post:
+      description: >-
+        Retrieve items matching filters. Intended as the standard, full-featured query API.
+      operationId: postSearchSTAC
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/searchBody"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/itemsSearchPost"
+          description: A feature collection.
+        "500":
+          $ref: "#/components/responses/ServerError"
+      summary: Search STAC items with full-featured filtering.
+      tags:
+        - STAC
+  /collections/{collectionId}/assets:
+    get:
+      description: >-
+        Fetch collection assets of the collection with id `collectionId`.
+
+        These assets do not belong to any item.
+      operationId: getCollectionAssets
+      parameters:
+        - $ref: "#/components/parameters/collectionId"
+      responses:
+        "200":
+          $ref: "#/components/responses/CollectionAssets"
+        "400":
+          $ref: "#/components/responses/InvalidParameter"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      summary: Fetch all collection assets for a collection
+      tags:
+        - Data
+  /collections/{collectionId}/assets/{assetId}:
+    get:
+      description: >-
+        Fetch the collection asset with id `assetId` of the collection with id `collectionId`.
+      operationId: getCollectionAsset
+      parameters:
+        - $ref: "#/components/parameters/collectionId"
+        - $ref: "#/components/parameters/assetId"
+        - $ref: "#/components/parameters/IfMatch"
+        - $ref: "#/components/parameters/IfNoneMatch"
+      responses:
+        "200":
+          $ref: "#/components/responses/CollectionAsset"
+        "304":
+          $ref: "#/components/responses/NotModified"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      summary: Fetch a single collection asset
+      tags:
+        - Data
+    put:
+      summary: Update or create a collection asset
+      description: >-
+        Update or create a collection asset with Id `assetId` with a complete asset definition. If the asset doesn't exist it is then created.
+
+
+        *Note: to upload an asset file see [Collection Asset Upload Management](#tag/Collection-Asset-Upload-Management)*
+      operationId: putCollectionAsset
+      tags:
+        - Data Management
+      parameters:
+        - $ref: "#/components/parameters/collectionId"
+        - $ref: "#/components/parameters/assetId"
+        - $ref: "#/components/parameters/IfMatchWrite"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/assetWrite"
+      responses:
+        "200":
+          description: Asset has been successfully updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/assetWrite"
+        "201":
+          description: Asset has been newly created.
+          headers:
+            Location:
+              description: A link to the asset
+              schema:
+                type: string
+                format: url
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/assetWrite"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    patch:
+      summary: Update an existing collection asset by Id with a partial asset definition
+      description: >-
+        Use this method to update an existing collection asset. Requires a JSON fragment (containing the fields to be updated) to be submitted.
+
+
+        *Note: to upload an asset file see [Collection Asset Upload Management](#tag/Collection-Asset-Upload-Management)*
+      operationId: patchCollectionAsset
+      tags:
+        - Data Management
+      parameters:
+        - $ref: "#/components/parameters/collectionId"
+        - $ref: "#/components/parameters/assetId"
+        - $ref: "#/components/parameters/IfMatchWrite"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/assetWrite"
+      responses:
+        "200":
+          description: Returns the updated Asset.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/assetWrite"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    delete:
+      summary: Delete an existing collection asset by Id
+      description: >-
+        Use this method to delete an existing collection asset.
+
+        **NOTE: Asset file on S3 will be also removed !**
+      operationId: deleteCollectionAsset
+      tags:
+        - Data Management
+      parameters:
+        - $ref: "#/components/parameters/collectionId"
+        - $ref: "#/components/parameters/assetId"
+        - $ref: "#/components/parameters/IfMatchWrite"
+      responses:
+        "200":
+          $ref: "#/components/responses/DeletedResource"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "#/components/responses/ServerError"
+  /collections/{collectionId}/items/{featureId}/assets:
+    get:
+      description: >-
+        Fetch assets of the item with id `featureId`.
+
+        Every asset belongs to an item.
+      operationId: getAssets
+      parameters:
+        - $ref: "#/components/parameters/collectionId"
+        - $ref: "#/components/parameters/featureId"
+      responses:
+        "200":
+          $ref: "#/components/responses/Assets"
+        "400":
+          $ref: "#/components/responses/InvalidParameter"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      summary: Fetch all assets for a feature
+      tags:
+        - Data
+  /collections/{collectionId}/items/{featureId}/assets/{assetId}:
+    get:
+      description: >-
+        Fetch the asset with id `assetId` of the feature with id `featureId` in the feature collection with id `collectionId`.
+      operationId: getAsset
+      parameters:
+        - $ref: "#/components/parameters/collectionId"
+        - $ref: "#/components/parameters/featureId"
+        - $ref: "#/components/parameters/assetId"
+        - $ref: "#/components/parameters/IfMatch"
+        - $ref: "#/components/parameters/IfNoneMatch"
+      responses:
+        "200":
+          $ref: "#/components/responses/Asset"
+        "304":
+          $ref: "#/components/responses/NotModified"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      summary: Fetch a single asset
+      tags:
+        - Data
+    put:
+      summary: Update or create an asset
+      description: >-
+        Update or create an asset with Id `assetId` with a complete asset definition. If the asset doesn't exist it is then created.
+
+
+        *Note: to upload an asset file see [Asset Upload Management](#tag/Asset-Upload-Management)*
+      operationId: putAsset
+      tags:
+        - Data Management
+      parameters:
+        - $ref: "#/components/parameters/collectionId"
+        - $ref: "#/components/parameters/featureId"
+        - $ref: "#/components/parameters/assetId"
+        - $ref: "#/components/parameters/IfMatchWrite"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/assetWriteExternalAsset"
+      responses:
+        "200":
+          description: Asset has been successfully updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/assetWrite"
+        "201":
+          description: Asset has been newly created.
+          headers:
+            Location:
+              description: A link to the asset
+              schema:
+                type: string
+                format: url
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/assetWrite"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    patch:
+      summary: Update an existing asset by Id with a partial asset definition
+      description: >-
+        Use this method to update an existing asset. Requires a JSON fragment (containing the fields to be updated) to be submitted.
+
+
+        *Note: to upload an asset file see [Asset Upload Management](#tag/Asset-Upload-Management)*
+      operationId: patchAsset
+      tags:
+        - Data Management
+      parameters:
+        - $ref: "#/components/parameters/collectionId"
+        - $ref: "#/components/parameters/featureId"
+        - $ref: "#/components/parameters/assetId"
+        - $ref: "#/components/parameters/IfMatchWrite"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/assetWrite"
+      responses:
+        "200":
+          description: Returns the updated Asset.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/assetWrite"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    delete:
+      summary: Delete an existing asset by Id
+      description: >-
+        Use this method to delete an existing asset.
+
+
+        **NOTE: Asset file on S3 will be also removed !**
+      operationId: deleteAsset
+      tags:
+        - Data Management
+      parameters:
+        - $ref: "#/components/parameters/collectionId"
+        - $ref: "#/components/parameters/featureId"
+        - $ref: "#/components/parameters/assetId"
+        - $ref: "#/components/parameters/IfMatchWrite"
+      responses:
+        "200":
+          $ref: "#/components/responses/DeletedResource"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "#/components/responses/ServerError"
+  /collections/{collectionId}/items/{featureId}/assets/{assetId}/uploads:
+    parameters:
+      - $ref: "#/components/parameters/collectionId"
+      - $ref: "#/components/parameters/featureId"
+      - $ref: "#/components/parameters/assetId"
+    get:
+      tags:
+        - Asset Upload Management
+      summary: List all Asset's multipart uploads
+      description: >-
+        Return a list of multipart uploads of assets that are in progress, completed or cancelled.
+      operationId: getAssetUploads
+      parameters:
+        - name: status
+          in: query
+          description: Filter the list by status.
+          schema:
+            $ref: "#/components/schemas/status"
+        - $ref: "#/components/parameters/limit"
+      responses:
+        "200":
+          description: List of Asset's uploads
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/assetUploads"
+              example:
+                uploads:
+                  - upload_id: KrFTuglD.N8ireqry_w3.oQqNwrYI7SfSXpVRiusKah0YigDnusebaJNIUZg4R_No0MMW9FLU2UG5anTW0boTUYVxKfBZWCFXqnQTpjnQEo1K7la39MYpjSTvIbZgnG
+                    status: in-progress
+                    number_parts: 1
+                    urls:
+                      - url: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-4-2019/smr50-263-2016-2056-kgrs-2.5.tiff
+                        part: 1
+                        expires: "2019-08-24T14:15:22Z"
+                    created: "2019-08-24T14:15:22Z"
+                    file:checksum: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
+                  - upload_id: KrFTuglD.N8ireqry_w3.oQqNwrYI7SfSXpVRiusKah0YaaegJNIUZg4R_No0MMW9FLU2UG5anTW0boTUYVxKfBZWCFXqnQTpjnQEo1K7la39MYpjSTvIbZgnG
+                    status: completed
+                    number_parts: 1
+                    created: "2019-08-24T14:15:22Z"
+                    completed: "2019-08-24T14:15:22Z"
+                    file:checksum: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
+                  - upload_id: KrFTuglD.N8ireqry_w3.oQqNwrYI7SfSXpVRiusKah0YigDnuM06hfJNIUZg4R_No0MMW9FLU2UG5anTW0boTUYVxKfBZWCFXqnQTpjnQEo1K7la39MYpjSTvIbZgnG
+                    status: aborted
+                    number_parts: 1
+                    created: "2019-08-24T14:15:22Z"
+                    aborted: "2019-08-24T14:15:22Z"
+                    file:checksum: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
+                links:
+                  - rel: next
+                    href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets/smr50-263-2016-2056-kgrs-2.5.tiff/uploads?cursor=0d34
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    post:
+      tags:
+        - Asset Upload Management
+      summary: Create a new Asset's multipart upload
+      description: |
+        Create Asset's multipart upload.
+
+        A file part must be at least 5 MB except for the last one and at most 5 GB, otherwise the complete operation will fail.
+
+        *Note: in order to facilitate an integrity check during the upload, the base64-encoded 128-bit MD5 digest of each part must be
+        computed and passed to the create endpoint. Then this digest must also be passed as `Content-MD5` header during the upload.*
+      operationId: createAssetUpload
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/assetUploadCreate"
+      responses:
+        "201":
+          description: Created Asset's multipart upload
+          headers:
+            Location:
+              description: A link to the Asset's multipart upload object
+              schema:
+                type: string
+                format: url
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/assetUploadCreate"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Another upload is already in progress, you first need to complete or abort it before creating a new upload.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/uploadInProgress"
+        "500":
+          $ref: "#/components/responses/ServerError"
+  /collections/{collectionId}/items/{featureId}/assets/{assetId}/uploads/{uploadId}:
+    parameters:
+      - $ref: "#/components/parameters/collectionId"
+      - $ref: "#/components/parameters/featureId"
+      - $ref: "#/components/parameters/assetId"
+      - $ref: "#/components/parameters/uploadId"
+    get:
+      tags:
+        - Asset Upload Management
+      summary: Get an Asset's multipart upload
+      description: |
+        Return an Asset's multipart upload.
+      operationId: getAssetUpload
+      parameters:
+        - $ref: "#/components/parameters/IfMatch"
+        - $ref: "#/components/parameters/IfNoneMatch"
+      responses:
+        "200":
+          description: The multipart upload object.
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/assetUpload"
+              examples:
+                inprogress:
+                  $ref: "#/components/examples/inprogress"
+                completed:
+                  $ref: "#/components/examples/completed"
+                aborted:
+                  $ref: "#/components/examples/aborted"
+        "304":
+          $ref: "#/components/responses/NotModified"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "#/components/responses/ServerError"
+  /storage-prefix/{presignedUrl}:
+    servers:
+      - url: https://s3.aws-region.amazonaws.com/
+    parameters:
+      - $ref: "#/components/parameters/presignedUrl"
+    put:
+      tags:
+        - Asset Upload Management
+        - Collection Asset Upload Management
+      summary: Upload asset file part
+      description: >-
+        Upload an Asset file part using the presigned url(s) returned by [Create a new Asset's multipart upload](#operation/createAssetUpload).
+
+        Parts that have been uploaded but not completed can be checked using [Get an Asset's multipart upload](#operation/getAssetUpload)
+
+        A file part must be at least 5 MB except for the last one and at most 5 GB, otherwise the complete operation will fail.
+
+        *Note: this endpoint doesn't require any authentication as it is already part of the presigned url*
+      operationId: uploadAssetFilePart
+      parameters:
+        - name: Content-MD5
+          in: header
+          description: The base64-encoded 128-bit MD5 digest of this part.
+          required: true
+          schema:
+            type: string
+            example: yLLiDqX2OL7mcIMTjob60A==
+      responses:
+        "200":
+          description: Asset file part uploaded part successfully (Response has no content).
+          content: {}
+          headers:
+            ETag:
+              schema:
+                type: string
+              description: >-
+                The RFC7232 ETag header field in a response provides the current entity- tag for the selected resource.
+
+                This ETag is required in the complete multipart upload payload.
+
+                An entity-tag is an opaque identifier for different versions of a resource over time, regardless whether multiple versions are valid at the same time. An entity-tag consists of an opaque quoted string.
+              example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
+              required: true
+        "400":
+          description: Asset file part corrupted.
+          content:
+            application/xml:
+              schema:
+                type: object
+                required:
+                  - Error
+                properties:
+                  Error:
+                    type: object
+                    required:
+                      - Code
+                      - Message
+                    properties:
+                      Code:
+                        type: string
+                        enum:
+                          - "BadDigest"
+                      Message:
+                        type: string
+                    additionalProperties:
+                      type: string
+              example: |
+                <?xml version="1.0" encoding="UTF-8"?>
+                <Error>
+                  <Code>BadDigest</Code>
+                  <Message>The Content-MD5 you specified did not match what we received.</Message>
+                  <ExpectedDigest>0b6vaU45Ys1BdrMhd4wnGA==</ExpectedDigest>
+                  <CalculatedDigest>4lDYLoS0vNfNdko/3cPJJQ==</CalculatedDigest>
+                  <RequestId>RAVFJXJQFXTCZHT3</RequestId>
+                  <HostId>kDMsU45sQ4oZjkTgba2SNBy/0RMshW2lEWmfKnaotvViav5Qlyz4aSQdmS9FRVKp1HgJUBj3h5w=</HostId>
+                </Error>
+        "403":
+          description: Asset file part upload Bad Request, Signature does not match (e.g. missing Content-MD5 header).
+          content:
+            application/xml:
+              schema:
+                type: object
+                required:
+                  - Error
+                properties:
+                  Error:
+                    type: object
+                    required:
+                      - Code
+                      - Message
+                    properties:
+                      Code:
+                        type: string
+                        enum:
+                          - "SignatureDoesNotMatch"
+                      Message:
+                        type: string
+                    additionalProperties:
+                      type: string
+              example: |
+                <?xml version="1.0" encoding="UTF-8"?>
+                <Error>
+                  <Code>SignatureDoesNotMatch</Code>
+                  <Message>The request signature we calculated does not match the signature you provided. Check your key and signing method.</Message>
+                  <AWSAccessKeyId>dummy-key</AWSAccessKeyId>
+                  <StringToSign>
+                    AWS4-HMAC-SHA256
+                    20210922T110759Z
+                    20210922/eu-central-1/s3/aws4_request6f0cf4c9a56acf90d9354cb79629a159c0c848ffacdbe13c7b9ae014671fa5c3
+                  </StringToSign>
+                  <SignatureProvided>1c762db1e677a6535c0e4a91015dcd60c00e58f1e5136f8943636f157dc03d54</SignatureProvided>
+                  <StringToSignBytes>41 57 53 34 2d 48 4d 41 43 2d 53 48 41 32 35...</StringToSignBytes>
+                  <CanonicalRequest>
+                    PUT /service-stac-dev/test-e2e-asset-upload-UUID/test-e2e-asset-upload-UUID/test-e2e-asset-upload-UUID.txt
+                      X-Amz-Algorithm=AWS4-HMAC-SHA256&amp;X-Amz-Credential=...
+                      content-md5:
+                      host:s3.eu-central-1.amazonaws.com
+
+                      content-md5;host
+                      UNSIGNED-PAYLOAD
+                  </CanonicalRequest>
+                  <CanonicalRequestBytes>50 55 54 0a 2f 73...</CanonicalRequestBytes>
+                  <RequestId>F5SB90RJFYE21C0V</RequestId>
+                  <HostId>YnH6DNl93sXH5kL0nEk1TOhH+crwM+wnaRNhh7MNC6CW6XhAeJLKVV/WU+dsdRkJUzet5m7cZwU=</HostId>
+                </Error>
+  /collections/{collectionId}/items/{featureId}/assets/{assetId}/uploads/{uploadId}/complete:
+    parameters:
+      - $ref: "#/components/parameters/collectionId"
+      - $ref: "#/components/parameters/featureId"
+      - $ref: "#/components/parameters/assetId"
+      - $ref: "#/components/parameters/uploadId"
+    post:
+      tags:
+        - Asset Upload Management
+      summary: Complete multipart upload
+      operationId: completeMultipartUpload
+      description: >-
+        Complete the multipart upload process. After completion, the Asset metadata are updated with the new `file:checksum` from the upload and the parts are automatically deleted. The asset's `href` field is also set if it was the first upload.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/assetCompleteUpload"
+      responses:
+        "200":
+          description: Asset multipart upload completed successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/assetUploadCompleted"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          description: The complete operation was already performed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/exception"
+              example:
+                code: 409
+                description: No upload in progress
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+  /collections/{collectionId}/items/{featureId}/assets/{assetId}/uploads/{uploadId}/abort:
+    parameters:
+      - $ref: "#/components/parameters/collectionId"
+      - $ref: "#/components/parameters/featureId"
+      - $ref: "#/components/parameters/assetId"
+      - $ref: "#/components/parameters/uploadId"
+    post:
+      tags:
+        - Asset Upload Management
+      summary: Abort multipart upload
+      operationId: abortMultipartUpload
+      description: >-
+        Abort the multipart upload process. All already uploaded parts are automatically deleted.
+      responses:
+        "200":
+          description: Asset multipart upload aborted successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/assetUploadAborted"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+  /collections/{collectionId}/items/{featureId}/assets/{assetId}/uploads/{uploadId}/parts:
+    parameters:
+      - $ref: "#/components/parameters/collectionId"
+      - $ref: "#/components/parameters/featureId"
+      - $ref: "#/components/parameters/assetId"
+      - $ref: "#/components/parameters/uploadId"
+    get:
+      tags:
+        - Asset Upload Management
+      summary: Get upload parts
+      operationId: getUploadParts
+      description: >-
+        Return the list of already uploaded parts.
+
+
+        ### Pagination
+
+        By default all parts are returned (maximum number of parts being 100). The user can use pagination to reduce the number of returned parts. Pagination is done via the `limit` query parameter (see below).
+      parameters:
+        - $ref: "#/components/parameters/limit"
+      responses:
+        "200":
+          description: List of parts already uploaded.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/assetUploadParts"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+  /collections/{collectionId}/assets/{assetId}/uploads:
+    parameters:
+      - $ref: "#/components/parameters/collectionId"
+      - $ref: "#/components/parameters/assetId"
+    get:
+      tags:
+        - Collection Asset Upload Management
+      summary: List all collection assets multipart uploads
+      description: >-
+        Return a list of multipart uploads of collection assets that are in progress, completed or cancelled.
+      operationId: getCollectionAssetUploads
+      parameters:
+        - name: status
+          in: query
+          description: Filter the list by status.
+          schema:
+            $ref: "#/components/schemas/status"
+        - $ref: "#/components/parameters/limit"
+      responses:
+        "200":
+          description: List of collection asset uploads
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/assetUploads"
+              example:
+                uploads:
+                  - upload_id: KrFTuglD.N8ireqry_w3.oQqNwrYI7SfSXpVRiusKah0YigDnusebaJNIUZg4R_No0MMW9FLU2UG5anTW0boTUYVxKfBZWCFXqnQTpjnQEo1K7la39MYpjSTvIbZgnG
+                    status: in-progress
+                    number_parts: 1
+                    urls:
+                      - url: https://data.geo.admin.ch/ch.swisstopo.pixelkarte-farbe-pk50.noscale/smr200-200-4-2019/smr50-263-2016-2056-kgrs-2.5.tiff
+                        part: 1
+                        expires: "2019-08-24T14:15:22Z"
+                    created: "2019-08-24T14:15:22Z"
+                    file:checksum: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
+                  - upload_id: KrFTuglD.N8ireqry_w3.oQqNwrYI7SfSXpVRiusKah0YaaegJNIUZg4R_No0MMW9FLU2UG5anTW0boTUYVxKfBZWCFXqnQTpjnQEo1K7la39MYpjSTvIbZgnG
+                    status: completed
+                    number_parts: 1
+                    created: "2019-08-24T14:15:22Z"
+                    completed: "2019-08-24T14:15:22Z"
+                    file:checksum: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
+                  - upload_id: KrFTuglD.N8ireqry_w3.oQqNwrYI7SfSXpVRiusKah0YigDnuM06hfJNIUZg4R_No0MMW9FLU2UG5anTW0boTUYVxKfBZWCFXqnQTpjnQEo1K7la39MYpjSTvIbZgnG
+                    status: aborted
+                    number_parts: 1
+                    created: "2019-08-24T14:15:22Z"
+                    aborted: "2019-08-24T14:15:22Z"
+                    file:checksum: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
+                links:
+                  - rel: next
+                    href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets/smr50-263-2016-2056-kgrs-2.5.tiff/uploads?cursor=0d34
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    post:
+      tags:
+        - Collection Asset Upload Management
+      summary: Create a new collection asset multipart upload
+      description: |
+        Create collection asset multipart upload.
+
+        A file part must be at least 5 MB except for the last one and at most 5 GB, otherwise the complete operation will fail.
+
+        *Note: in order to facilitate an integrity check during the upload, the base64-encoded 128-bit MD5 digest of each part must be
+        computed and passed to the create endpoint. Then this digest must also be passed as `Content-MD5` header during the upload.*
+      operationId: createCollectionAssetUpload
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/assetUploadCreate"
+      responses:
+        "201":
+          description: Created collection asset multipart upload
+          headers:
+            Location:
+              description: A link to the collection asset multipart upload object
+              schema:
+                type: string
+                format: url
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/assetUploadCreate"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Another upload is already in progress, you first need to complete or abort it before creating a new upload.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/uploadInProgress"
+        "500":
+          $ref: "#/components/responses/ServerError"
+  /collections/{collectionId}/assets/{assetId}/uploads/{uploadId}:
+    parameters:
+      - $ref: "#/components/parameters/collectionId"
+      - $ref: "#/components/parameters/assetId"
+      - $ref: "#/components/parameters/uploadId"
+    get:
+      tags:
+        - Collection Asset Upload Management
+      summary: Get a collection assets multipart upload
+      description: |
+        Return a collection assets multipart upload.
+      operationId: getCollectionAssetUpload
+      parameters:
+        - $ref: "#/components/parameters/IfMatch"
+        - $ref: "#/components/parameters/IfNoneMatch"
+      responses:
+        "200":
+          description: The multipart upload object.
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/assetUpload"
+              examples:
+                inprogress:
+                  $ref: "#/components/examples/inprogress"
+                completed:
+                  $ref: "#/components/examples/completed"
+                aborted:
+                  $ref: "#/components/examples/aborted"
+        "304":
+          $ref: "#/components/responses/NotModified"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "#/components/responses/ServerError"
+  /collections/{collectionId}/assets/{assetId}/uploads/{uploadId}/complete:
+    parameters:
+      - $ref: "#/components/parameters/collectionId"
+      - $ref: "#/components/parameters/assetId"
+      - $ref: "#/components/parameters/uploadId"
+    post:
+      tags:
+        - Collection Asset Upload Management
+      summary: Complete multipart upload
+      operationId: completeCollectionAssetMultipartUpload
+      description: >-
+        Complete the multipart upload process. After completion, the collection asset metadata are updated with the new `file:checksum` from the upload and the parts are automatically deleted. The asset's `href` field is also set if it was the first upload.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/assetCompleteUpload"
+      responses:
+        "200":
+          description: Asset multipart upload completed successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/assetUploadCompleted"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          description: The complete operation was already performed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/exception"
+              example:
+                code: 409
+                description: No upload in progress
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+  /collections/{collectionId}/assets/{assetId}/uploads/{uploadId}/abort:
+    parameters:
+      - $ref: "#/components/parameters/collectionId"
+      - $ref: "#/components/parameters/assetId"
+      - $ref: "#/components/parameters/uploadId"
+    post:
+      tags:
+        - Collection Asset Upload Management
+      summary: Abort multipart upload
+      operationId: abortCollectionAssetMultipartUpload
+      description: >-
+        Abort the multipart upload process. All already uploaded parts are automatically deleted.
+      responses:
+        "200":
+          description: Collection asset multipart upload aborted successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/assetUploadAborted"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+  /collections/{collectionId}/assets/{assetId}/uploads/{uploadId}/parts:
+    parameters:
+      - $ref: "#/components/parameters/collectionId"
+      - $ref: "#/components/parameters/assetId"
+      - $ref: "#/components/parameters/uploadId"
+    get:
+      tags:
+        - Collection Asset Upload Management
+      summary: Get upload parts
+      operationId: getCollectionAssetUploadParts
+      description: >-
+        Return the list of already uploaded parts.
+
+
+        ### Pagination
+
+        By default all parts are returned (maximum number of parts being 100). The user can use pagination to reduce the number of returned parts. Pagination is done via the `limit` query parameter (see below).
+      parameters:
+        - $ref: "#/components/parameters/limit"
+      responses:
+        "200":
+          description: List of parts already uploaded.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/assetUploadParts"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+  /get-token:
+    servers:
+      - url: http://data.geo.admin.ch/api/stac/
+    post:
+      tags:
+        - Authentication
+      summary: >-
+        Request token for token authentication.
+      operationId: getToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  description: name of user for whom token is requested
+                password:
+                  type: string
+                  description: password of user for whom token is requested
+              required:
+                - username
+                - password
+            example:
+              username: "Mickey Mouse"
+              password: "I_love_Minnie_Mouse"
+      responses:
+        "200":
+          description: Returns the token for the specified user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: generated token for specified user
+              example:
+                token: ccecf40693bfc52ba090cd46eb7f19e723fe831f
+        "400":
+          description: Wrong credentials were provided.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  description:
+                    type: string
+              example:
+                code: 400
+                description: "Unable to log in with provided credentials."
