@@ -475,13 +475,6 @@ class ItemListSerializer(serializers.Serializer):
         '''Create items in bulk from the given list of items.'''
         collection = validated_data["collection"]
 
-        update_fields = [
-            field.name
-            for field in Item._meta.get_fields()
-            if not field.is_relation and not field.primary_key
-        ]
-
-        existing_items = []
         new_items = []
         links_data_list = []
         for item_in in validated_data["features"]:
@@ -489,21 +482,7 @@ class ItemListSerializer(serializers.Serializer):
             links_data_list.append(links_data)
 
             item = Item(**item_in, collection=collection)
-
-            existing_item_query = Item.objects.filter(collection=collection, name=item_in["name"])
-            if existing_item_query.exists():
-                # Convert QuerySet to Item for bulk_update()
-                existing_item = list(existing_item_query.in_bulk().values())[0]
-
-                for field in update_fields:
-                    if field in item_in:
-                        setattr(existing_item, field, item_in[field])
-                existing_items.append(existing_item)
-            else:
-                new_items.append(item)
-
-        if existing_items:
-            Item.objects.bulk_update(existing_items, update_fields)
+            new_items.append(item)
 
         items_created = Item.objects.bulk_create(new_items)
 
