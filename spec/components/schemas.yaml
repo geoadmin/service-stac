@@ -680,6 +680,8 @@ components:
           $ref: "#/components/schemas/itemProperties"
         stac_version:
           $ref: "#/components/schemas/stac_version"
+        stac_extensions:
+          $ref: "#/components/schemas/stac_extensions"
         type:
           $ref: "#/components/schemas/itemType"
       required:
@@ -1093,20 +1095,22 @@ components:
           $ref: "#/components/schemas/duration"
         forecast:duration:
           $ref: "#/components/schemas/duration"
-        forecast:param:
+        forecast:variable:
           description: >-
-            Name of the model parameter that corresponds to the data
-          example: T
+            Name of the model variable that corresponds to the data. The variables
+            should correspond to the
+            [CF Standard Names](https://cfconventions.org/Data/cf-standard-names/current/build/cf-standard-name-table.html),
+            e.g. `air_temperature` for the air temperature.
+          example: air_temperature
           type: string
           nullable: true
-        forecast:mode:
+        forecast:perturbed:
           description: >-
-            Denotes whether the data corresponds to the control run or perturbed
-            runs.
-          enum:
-            - ctrl
-            - perturb
-          type: string
+            Denotes whether the data corresponds to the control run (`false`) or
+            perturbed runs (`true`). The property needs to be specified in both
+            cases as no default value is specified and as such the meaning is "unknown"
+            in case it's missing.
+          type: boolean
           nullable: true
       required:
         - created
@@ -1591,6 +1595,13 @@ components:
       title: STAC version
       type: string
       readOnly: true
+    stac_extensions:
+      type: array
+      items:
+        type: string
+      description: List of relevant extensions for an object
+      example:
+        - https://stac-extensions.github.io/forecast/v0.2.0/schema.json
     timeStamp:
       description: This property indicates the time and date when the response was generated.
       example: "2017-08-17T08:05:32Z"

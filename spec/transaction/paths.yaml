@@ -107,6 +107,43 @@ paths:
           $ref: "../components/responses.yaml#/components/responses/PreconditionFailed"
         "500":
           $ref: "../components/responses.yaml#/components/responses/ServerError"
+    post:
+      tags:
+        - Data Management
+      summary: Bulk update or create features
+      description: |
+        Create or update ("upsert") multiple features in a collection at once.
+        If a feature already exists, it is updated with the differences to the feature in the request.
+
+        Equivalently, one could create the features and their corresponding assets with individual API calls.
+        Uploading features that belong together in bulks has two advantages:
+
+           1. Less communication overhead than individual calls.
+           2. Less partial uploads to mess with: Either all features are uploaded or none.
+
+        A maximum of 100 features per call is allowed.
+      operationId: bulkUpsertItems
+      parameters:
+        - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
+        - $ref: "./components/parameters.yaml#/components/parameters/IdempotencyKey"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "./components/schemas.yaml#/components/schemas/collectionUpsertItems"
+      responses:
+        "200":
+          description: Collection has been successfully updated.
+          content:
+            application/json:
+              schema:
+                $ref: "./components/schemas.yaml#/components/schemas/collectionUpsertItems"
+        "403":
+          $ref: "../components/responses.yaml#/components/responses/PermissionDenied"
+        "404":
+          $ref: "../components/responses.yaml#/components/responses/NotFound"
+        "500":
+          $ref: "../components/responses.yaml#/components/responses/ServerError"
   "/collections/{collectionId}/assets":
     get:
       description: >-
@@ -303,8 +340,8 @@ paths:
                 forecast:reference_datetime: "2024-11-19T16:15:00Z"
                 forecast:horizon: P3DT2H
                 forecast:duration: PT4H
-                forecast:param: T
-                forecast:mode: ctrl
+                forecast:variable: air_temperature
+                forecast:perturbed: true
               links:
                 - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
                   rel: license

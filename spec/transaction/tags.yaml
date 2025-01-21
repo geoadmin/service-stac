@@ -71,6 +71,7 @@ tags:
       | image/jpeg | JPEG | .jpeg, .jpg |
       | image/png | PNG | .png |
       | application/vnd.sqlite3 | sqlite | .sqlite |
+      | application/grib | GRIB/GRIB2 | .grib, .grib2 |
 
   - name: Asset Upload Management
     description: |

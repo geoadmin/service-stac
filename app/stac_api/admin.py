@@ -251,8 +251,8 @@ class ItemAdmin(admin.ModelAdmin):
                     'forecast_reference_datetime',
                     'forecast_horizon',
                     'forecast_duration',
-                    'forecast_param',
-                    'forecast_mode',
+                    'forecast_variable',
+                    'forecast_perturbed',
                 )
             }
         ),

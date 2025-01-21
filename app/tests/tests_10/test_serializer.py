@@ -5,6 +5,7 @@ import unittest
 from collections import OrderedDict
 from datetime import datetime
 from datetime import timedelta
+from datetime import timezone
 from pprint import pformat
 
 from django.urls import resolve
@@ -587,21 +588,23 @@ class ItemsPropertiesSerializerTestCase(unittest.TestCase):
             "forecast:reference_datetime": "2024-11-19T16:15:00Z",
             "forecast:horizon": "P3DT2H",
             "forecast:duration": "PT4H",
-            "forecast:param": "T",
-            "forecast:mode": "ctrl",
+            "forecast:variable": "air_temperature",
+            "forecast:perturbed": False,
         }
 
         serializer = ItemsPropertiesSerializer(data=data)
         self.assertTrue(serializer.is_valid())
 
-        self.assertTrue(
+        self.assertEqual(
             serializer.validated_data["forecast_reference_datetime"],
-            datetime(year=2024, month=11, day=19, hour=16, minute=15)
+            datetime(year=2024, month=11, day=19, hour=16, minute=15, tzinfo=timezone.utc)
         )
-        self.assertTrue(serializer.validated_data["forecast_horizon"], timedelta(days=3, hours=2))
-        self.assertTrue(serializer.validated_data["forecast_duration"], timedelta(hours=4))
-        self.assertTrue(serializer.validated_data["forecast_param"], data["forecast:param"])
-        self.assertTrue(serializer.validated_data["forecast_mode"], data["forecast:mode"])
+        self.assertEqual(serializer.validated_data["forecast_horizon"], timedelta(days=3, hours=2))
+        self.assertEqual(serializer.validated_data["forecast_duration"], timedelta(hours=4))
+        self.assertEqual(serializer.validated_data["forecast_variable"], data["forecast:variable"])
+        self.assertEqual(
+            serializer.validated_data["forecast_perturbed"], data["forecast:perturbed"]
+        )
 
     def test_deserialization_detects_invalid_forecast_reference_datetime(self):
         data = {
@@ -630,10 +633,10 @@ class ItemsPropertiesSerializerTestCase(unittest.TestCase):
 
         self.assertFalse(serializer.is_valid())
 
-    def test_deserialization_detects_invalid_forecast_mode(self):
-        nonexistant_mode = "bla"
+    def test_deserialization_detects_invalid_forecast_perturbed(self):
+        nonexistant_perturbed = "bla"
         data = {
-            "forecast:mode": nonexistant_mode,
+            "forecast:perturbed": nonexistant_perturbed,
         }
 
         serializer = ItemsPropertiesSerializer(data=data)
@@ -645,8 +648,8 @@ class ItemsPropertiesSerializerTestCase(unittest.TestCase):
             "forecast:reference_datetime": "2024-11-19T16:15:00Z",
             "forecast:horizon": "P3DT2H",
             "forecast:duration": "PT4H",
-            "forecast:param": "T",
-            "forecast:mode": "ctrl",
+            "forecast:variable": "air_temperature",
+            "forecast:perturbed": False,
         }
 
         serializer = ItemsPropertiesSerializer(data=data)
@@ -657,8 +660,8 @@ class ItemsPropertiesSerializerTestCase(unittest.TestCase):
         self.assertEqual(actual["forecast:reference_datetime"], data["forecast:reference_datetime"])
         self.assertEqual(actual["forecast:horizon"], "P3DT02H00M00S")
         self.assertEqual(actual["forecast:duration"], "P0DT04H00M00S")
-        self.assertEqual(actual["forecast:param"], data["forecast:param"])
-        self.assertEqual(actual["forecast:mode"], data["forecast:mode"])
+        self.assertEqual(actual["forecast:variable"], data["forecast:variable"])
+        self.assertEqual(actual["forecast:perturbed"], data["forecast:perturbed"])
 
 
 class AssetSerializationTestCase(StacBaseTestCase):

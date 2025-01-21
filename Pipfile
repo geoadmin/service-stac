@@ -22,6 +22,7 @@ stac-api-validator = "~=0.6.2"
 pytest = "*"
 pytest-django = "*"
 pytest-dotenv = "*"
+pytest-cov = "*"
 
 [packages]
 gevent = "~=24.2.1"
@@ -43,9 +44,9 @@ py-multihash = "~=2.0.1"
 django-prometheus = "~=2.3.1"
 django-admin-autocomplete-filter = "~=0.7.1"
 django-pgtrigger = "~=4.11.1"
-logging-utilities = "~=4.5.0"
 django-environ = "*"
 language-tags = "*"
+logging-utilities = "~=5.0.0"
 
 [requires]
 python_version = "3.12"

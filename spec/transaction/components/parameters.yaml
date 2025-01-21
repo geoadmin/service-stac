@@ -41,3 +41,13 @@ components:
         the server sends back a `412 Precondition Failed` status, without a body, which tells the client that
         he would overwrite another changes of the resource.
       example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      schema:
+        type: string
+      description: >-
+        A unique ID for the operation.
+        This allows making the operation idempotent, so more fault tolerant.
+        See IETF draft [draft-ietf-httpapi-idempotency-key-header](https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/).
+      example: "8e03978e-40d5-43e8-bc93-6894a57f9324"
