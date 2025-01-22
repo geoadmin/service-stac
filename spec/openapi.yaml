@@ -283,6 +283,11 @@ paths:
         - $ref: "./components/parameters.yaml#/components/parameters/limit"
         - $ref: "./components/parameters.yaml#/components/parameters/ids"
         - $ref: "./components/parameters.yaml#/components/parameters/collectionsArray"
+        - $ref: "./components/parameters.yaml#/components/parameters/forecast_reference_datetime"
+        - $ref: "./components/parameters.yaml#/components/parameters/forecast_horizon"
+        - $ref: "./components/parameters.yaml#/components/parameters/forecast_duration"
+        - $ref: "./components/parameters.yaml#/components/parameters/forecast_variable"
+        - $ref: "./components/parameters.yaml#/components/parameters/forecast_perturbed"
       responses:
         "200":
           content:

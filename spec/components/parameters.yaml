@@ -117,3 +117,47 @@ components:
       required: false
       schema:
         type: string
+    forecast_reference_datetime:
+      explode: false
+      in: query
+      name: forecast_reference_datetime
+      required: false
+      schema:
+        $ref: "./schemas.yaml#/components/schemas/datetimeQuery"
+      example: 2018-02-12T00%3A00%3A00Z%2F2018-03-18T12%3A31%3A12Z
+      style: form
+    forecast_horizon:
+      explode: false
+      in: query
+      name: forecast_horizon
+      required: false
+      schema:
+        $ref: "./schemas.yaml#/components/schemas/duration"
+      example: P3DT6H
+      style: form
+    forecast_duration:
+      explode: false
+      in: query
+      name: forecast_duration
+      required: false
+      schema:
+        $ref: "./schemas.yaml#/components/schemas/duration"
+      example: P3DT6H
+      style: form
+    forecast_variable:
+      explode: false
+      in: query
+      name: forecast_variable
+      required: false
+      schema:
+        $ref: "./schemas.yaml#/components/schemas/forecast_variable"
+      example: air_temperature
+      style: form
+    forecast_perturbed:
+      explode: false
+      in: query
+      name: forecast_perturbed
+      required: false
+      schema:
+        $ref: "./schemas.yaml#/components/schemas/forecast_perturbed"
+      style: form
