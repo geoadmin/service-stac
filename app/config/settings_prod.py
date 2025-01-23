@@ -75,6 +75,9 @@ INSTALLED_APPS = [
     'stac_api.apps.StacApiConfig',
 ]
 
+# API Authentication options
+FEATURE_AUTH_ENABLE_APIGW = env('FEATURE_AUTH_ENABLE_APIGW', bool, default=False)
+
 # Middlewares are executed in order, once for the incoming
 # request top-down, once for the outgoing response bottom up
 # Note: The prometheus middlewares should always be first and
@@ -92,11 +95,18 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'middleware.apigw.ApiGatewayMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'middleware.cache_headers.CacheHeadersMiddleware',
     'middleware.exception.ExceptionLoggingMiddleware',
     'django_prometheus.middleware.PrometheusAfterMiddleware',
+]
+
+AUTHENTICATION_BACKENDS = [
+    "middleware.apigw.ApiGatewayUserBackend",
+    # We keep ModelBackend as fallback until we have moved all users to Cognito.
+    "django.contrib.auth.backends.ModelBackend",
 ]
 
 ROOT_URLCONF = 'config.urls'
