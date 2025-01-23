@@ -359,11 +359,11 @@ class ValidateSearchRequest:
             "limit",
             "cursor",
             "query",
-            "forecast_reference_datetime",
-            "forecast_horizon",
-            "forecast_duration",
-            "forecast_variable",
-            "forecast_perturbed"
+            "forecast:reference_datetime",
+            "forecast:horizon",
+            "forecast:duration",
+            "forecast:variable",
+            "forecast:perturbed"
         ]
         wrong_query_parameters = set(query_param.keys()).difference(set(accepted_query_parameters))
         if wrong_query_parameters:

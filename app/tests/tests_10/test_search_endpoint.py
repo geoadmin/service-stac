@@ -2,6 +2,7 @@ import json
 import logging
 from datetime import datetime
 from datetime import timedelta
+from urllib.parse import quote_plus
 
 from django.test import Client
 from django.test import override_settings
@@ -609,15 +610,7 @@ class SearchEndpointTestForecast(StacBaseTestCase):
         self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_reference_datetime_exact(self):
-        val = '2025-01-01T13:05:10Z'
-        response = self.client.get(f"{self.path}?forecast_reference_datetime={val}")
-        self.assertStatusCode(200, response)
-        json_data = response.json()
-        self.assertEqual(len(json_data['features']), 1)
-        for feature in json_data['features']:
-            self.assertIn(feature['id'], ['item-1'])
-
-        payload = {"forecast_reference_datetime": f"{val}"}
+        payload = {"forecast:reference_datetime": "2025-01-01T13:05:10Z"}
         response = self.client.post(self.path, data=payload, content_type="application/json")
         self.assertStatusCode(200, response)
         json_data = response.json()
@@ -625,15 +618,7 @@ class SearchEndpointTestForecast(StacBaseTestCase):
         for feature in json_data['features']:
             self.assertIn(feature['id'], ['item-1'])
 
-        val = '2025-02-01T13:05:10Z'
-        response = self.client.get(f"{self.path}?forecast_reference_datetime={val}")
-        self.assertStatusCode(200, response)
-        json_data = response.json()
-        self.assertEqual(len(json_data['features']), 3)
-        for feature in json_data['features']:
-            self.assertIn(feature['id'], ['item-2', 'item-3', 'item-4'])
-
-        payload = {"forecast_reference_datetime": f"{val}"}
+        payload = {"forecast:reference_datetime": "2025-02-01T13:05:10Z"}
         response = self.client.post(self.path, data=payload, content_type="application/json")
         self.assertStatusCode(200, response)
         json_data = response.json()
@@ -642,15 +627,7 @@ class SearchEndpointTestForecast(StacBaseTestCase):
             self.assertIn(feature['id'], ['item-2', 'item-3', 'item-4'])
 
     def test_reference_datetime_range(self):
-        val = '2025-02-01T00:00:00Z/2025-02-28T00:00:00Z'
-        response = self.client.get(f"{self.path}?forecast_reference_datetime={val}")
-        self.assertStatusCode(200, response)
-        json_data = response.json()
-        self.assertEqual(len(json_data['features']), 3)
-        for feature in json_data['features']:
-            self.assertIn(feature['id'], ['item-2', 'item-3', 'item-4'])
-
-        payload = {"forecast_reference_datetime": f"{val}"}
+        payload = {"forecast:reference_datetime": "2025-02-01T00:00:00Z/2025-02-28T00:00:00Z"}
         response = self.client.post(self.path, data=payload, content_type="application/json")
         self.assertStatusCode(200, response)
         json_data = response.json()
@@ -659,15 +636,7 @@ class SearchEndpointTestForecast(StacBaseTestCase):
             self.assertIn(feature['id'], ['item-2', 'item-3', 'item-4'])
 
     def test_reference_datetime_open_end(self):
-        val = '2025-02-01T13:05:10Z/..'
-        response = self.client.get(f"{self.path}?forecast_reference_datetime={val}")
-        self.assertStatusCode(200, response)
-        json_data = response.json()
-        self.assertEqual(len(json_data['features']), 4)
-        for feature in json_data['features']:
-            self.assertIn(feature['id'], ['item-2', 'item-3', 'item-4', 'item-5'])
-
-        payload = {"forecast_reference_datetime": f"{val}"}
+        payload = {"forecast:reference_datetime": "2025-02-01T13:05:10Z/.."}
         response = self.client.post(self.path, data=payload, content_type="application/json")
         self.assertStatusCode(200, response)
         json_data = response.json()
@@ -676,15 +645,7 @@ class SearchEndpointTestForecast(StacBaseTestCase):
             self.assertIn(feature['id'], ['item-2', 'item-3', 'item-4', 'item-5'])
 
     def test_reference_datetime_open_start(self):
-        val = '../2025-02-01T13:05:10Z'
-        response = self.client.get(f"{self.path}?forecast_reference_datetime={val}")
-        self.assertStatusCode(200, response)
-        json_data = response.json()
-        self.assertEqual(len(json_data['features']), 4)
-        for feature in json_data['features']:
-            self.assertIn(feature['id'], ['item-1', 'item-2', 'item-3', 'item-4'])
-
-        payload = {"forecast_reference_datetime": f"{val}"}
+        payload = {"forecast:reference_datetime": "../2025-02-01T13:05:10Z"}
         response = self.client.post(self.path, data=payload, content_type="application/json")
         self.assertStatusCode(200, response)
         json_data = response.json()
@@ -693,15 +654,7 @@ class SearchEndpointTestForecast(StacBaseTestCase):
             self.assertIn(feature['id'], ['item-1', 'item-2', 'item-3', 'item-4'])
 
     def test_horizon(self):
-        val = 'PT3H'
-        response = self.client.get(f"{self.path}?forecast_horizon={val}")
-        self.assertStatusCode(200, response)
-        json_data = response.json()
-        self.assertEqual(len(json_data['features']), 1)
-        for feature in json_data['features']:
-            self.assertIn(feature['id'], ['item-3'])
-
-        payload = {"forecast_horizon": f"{val}"}
+        payload = {"forecast:horizon": "PT3H"}
         response = self.client.post(self.path, data=payload, content_type="application/json")
         self.assertStatusCode(200, response)
         json_data = response.json()
@@ -710,15 +663,7 @@ class SearchEndpointTestForecast(StacBaseTestCase):
             self.assertIn(feature['id'], ['item-3'])
 
     def test_duration(self):
-        val = 'PT12H'
-        response = self.client.get(f"{self.path}?forecast_duration={val}")
-        self.assertStatusCode(200, response)
-        json_data = response.json()
-        self.assertEqual(len(json_data['features']), 4)
-        for feature in json_data['features']:
-            self.assertIn(feature['id'], ['item-1', 'item-2', 'item-4', 'item-5'])
-
-        payload = {"forecast_duration": f"{val}"}
+        payload = {"forecast:duration": "PT12H"}
         response = self.client.post(self.path, data=payload, content_type="application/json")
         self.assertStatusCode(200, response)
         json_data = response.json()
@@ -727,15 +672,7 @@ class SearchEndpointTestForecast(StacBaseTestCase):
             self.assertIn(feature['id'], ['item-1', 'item-2', 'item-4', 'item-5'])
 
     def test_variable(self):
-        val = 'air_temperature'
-        response = self.client.get(f"{self.path}?forecast_variable={val}")
-        self.assertStatusCode(200, response)
-        json_data = response.json()
-        self.assertEqual(len(json_data['features']), 2)
-        for feature in json_data['features']:
-            self.assertIn(feature['id'], ['item-4', 'item-5'])
-
-        payload = {"forecast_variable": f"{val}"}
+        payload = {"forecast:variable": "air_temperature"}
         response = self.client.post(self.path, data=payload, content_type="application/json")
         self.assertStatusCode(200, response)
         json_data = response.json()
@@ -744,15 +681,7 @@ class SearchEndpointTestForecast(StacBaseTestCase):
             self.assertIn(feature['id'], ['item-4', 'item-5'])
 
     def test_perturbed(self):
-        val = 'True'
-        response = self.client.get(f"{self.path}?forecast_perturbed={val}")
-        self.assertStatusCode(200, response)
-        json_data = response.json()
-        self.assertEqual(len(json_data['features']), 1)
-        for feature in json_data['features']:
-            self.assertIn(feature['id'], ['item-4'])
-
-        payload = {"forecast_perturbed": f"{val}"}
+        payload = {"forecast:perturbed": "True"}
         response = self.client.post(self.path, data=payload, content_type="application/json")
         self.assertStatusCode(200, response)
         json_data = response.json()
@@ -761,17 +690,8 @@ class SearchEndpointTestForecast(StacBaseTestCase):
             self.assertIn(feature['id'], ['item-4'])
 
     def test_multiple(self):
-        response = self.client.get(
-            f"{self.path}?forecast_perturbed=False&forecast_horizon=PT6H&forecast_variable=T"
-        )
-        self.assertStatusCode(200, response)
-        json_data = response.json()
-        self.assertEqual(len(json_data['features']), 2)
-        for feature in json_data['features']:
-            self.assertIn(feature['id'], ['item-1', 'item-2'])
-
         payload = {
-            "forecast_perturbed": "False", "forecast_horizon": "PT6H", "forecast_variable": "T"
+            "forecast:perturbed": "False", "forecast:horizon": "PT6H", "forecast:variable": "T"
         }
         response = self.client.post(self.path, data=payload, content_type="application/json")
         self.assertStatusCode(200, response)
@@ -779,3 +699,15 @@ class SearchEndpointTestForecast(StacBaseTestCase):
         self.assertEqual(len(json_data['features']), 2)
         for feature in json_data['features']:
             self.assertIn(feature['id'], ['item-1', 'item-2'])
+
+    def test_get_request_does_not_filter_forecast(self):
+        response = self.client.get(
+            f"{self.path}?" + quote_plus(
+                "forecast:reference_datetime=2025-01-01T13:05:10Z&" + "forecast:duration=PT12H&" +
+                "forecast:perturbed=False&" + "forecast:horizon=PT6H&" + "forecast:variable=T"
+            )
+        )
+        self.assertStatusCode(200, response)
+        json_data = response.json()
+        # As GET request should not filter for forecast expect all 5 features to be returned.
+        self.assertEqual(len(json_data['features']), 5)
