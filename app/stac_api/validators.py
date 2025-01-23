@@ -650,6 +650,7 @@ def _validate_href_configured_pattern(url, collection):
 
 def _validate_href_reachability(url, collection):
     unreachable_error = _('Provided URL is unreachable')
+    invalidcontent_error = _('Provided URL returns bad content')
     try:
         # We change the way how we check reachability for MCH usecase from
         # using HTTP HEAD request to HTTP GET with range
@@ -673,6 +674,16 @@ def _validate_href_reachability(url, collection):
                 }
             )
             raise ValidationError(unreachable_error)
+        if response.headers.get("Content-Length") != "3":
+            logger.warning(
+                "Attempted external asset upload failed the content length check",
+                extra={
+                    'url': url,
+                    'collection': collection,  # to have the means to know who this might have been
+                    'response': response,
+                }
+            )
+            raise ValidationError(invalidcontent_error)
     except requests.Timeout as exc:
         logger.warning(
             "Attempted external asset upload resulted in a timeout",
