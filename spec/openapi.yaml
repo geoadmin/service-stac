@@ -274,7 +274,8 @@ paths:
     get:
       description: >-
         Retrieve Items matching filters. Intended as a shorthand API for simple
-        queries.
+        queries. To filter by forecast properties please use the
+        [POST /search](#tag/STAC/operation/postSearchSTAC) request.
 
       operationId: getSearchSTAC
       parameters:
@@ -283,11 +284,6 @@ paths:
         - $ref: "./components/parameters.yaml#/components/parameters/limit"
         - $ref: "./components/parameters.yaml#/components/parameters/ids"
         - $ref: "./components/parameters.yaml#/components/parameters/collectionsArray"
-        - $ref: "./components/parameters.yaml#/components/parameters/forecast_reference_datetime"
-        - $ref: "./components/parameters.yaml#/components/parameters/forecast_horizon"
-        - $ref: "./components/parameters.yaml#/components/parameters/forecast_duration"
-        - $ref: "./components/parameters.yaml#/components/parameters/forecast_variable"
-        - $ref: "./components/parameters.yaml#/components/parameters/forecast_perturbed"
       responses:
         "200":
           content:

@@ -115,50 +115,6 @@ components:
       required: false
       schema:
         type: string
-    forecast_reference_datetime:
-      explode: false
-      in: query
-      name: forecast_reference_datetime
-      required: false
-      schema:
-        $ref: "#/components/schemas/datetimeQuery"
-      example: 2018-02-12T00%3A00%3A00Z%2F2018-03-18T12%3A31%3A12Z
-      style: form
-    forecast_horizon:
-      explode: false
-      in: query
-      name: forecast_horizon
-      required: false
-      schema:
-        $ref: "#/components/schemas/duration"
-      example: P3DT6H
-      style: form
-    forecast_duration:
-      explode: false
-      in: query
-      name: forecast_duration
-      required: false
-      schema:
-        $ref: "#/components/schemas/duration"
-      example: P3DT6H
-      style: form
-    forecast_variable:
-      explode: false
-      in: query
-      name: forecast_variable
-      required: false
-      schema:
-        $ref: "#/components/schemas/forecast_variable"
-      example: air_temperature
-      style: form
-    forecast_perturbed:
-      explode: false
-      in: query
-      name: forecast_perturbed
-      required: false
-      schema:
-        $ref: "#/components/schemas/forecast_perturbed"
-      style: form
     assetId:
       name: assetId
       in: path
@@ -3576,7 +3532,7 @@ paths:
   /search:
     get:
       description: >-
-        Retrieve Items matching filters. Intended as a shorthand API for simple queries.
+        Retrieve Items matching filters. Intended as a shorthand API for simple queries. To filter by forecast properties please use the [POST /search](#tag/STAC/operation/postSearchSTAC) request.
       operationId: getSearchSTAC
       parameters:
         - $ref: "#/components/parameters/bbox"
@@ -3584,11 +3540,6 @@ paths:
         - $ref: "#/components/parameters/limit"
         - $ref: "#/components/parameters/ids"
         - $ref: "#/components/parameters/collectionsArray"
-        - $ref: "#/components/parameters/forecast_reference_datetime"
-        - $ref: "#/components/parameters/forecast_horizon"
-        - $ref: "#/components/parameters/forecast_duration"
-        - $ref: "#/components/parameters/forecast_variable"
-        - $ref: "#/components/parameters/forecast_perturbed"
       responses:
         "200":
           content:
