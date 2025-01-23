@@ -69,6 +69,7 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
     # we must use the pk as ordering attribute, otherwise the cursor pagination will not work
     ordering = ['pk']
 
+    # pylint: disable=too-many-branches
     def get_queryset(self):
         queryset = Item.objects.filter(collection__published=True
                                       ).prefetch_related('assets', 'links')
@@ -92,6 +93,18 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
                 queryset = queryset.filter_by_query(dict_query)
             if 'intersects' in query_param:
                 queryset = queryset.filter_by_intersects(json.dumps(query_param['intersects']))
+            if 'forecast_reference_datetime' in query_param:
+                queryset = queryset.filter_by_forecast_reference_datetime(
+                    query_param['forecast_reference_datetime']
+                )
+            if 'forecast_horizon' in query_param:
+                queryset = queryset.filter_by_forecast_horizon(query_param['forecast_horizon'])
+            if 'forecast_duration' in query_param:
+                queryset = queryset.filter_by_forecast_duration(query_param['forecast_duration'])
+            if 'forecast_variable' in query_param:
+                queryset = queryset.filter_by_forecast_variable(query_param['forecast_variable'])
+            if 'forecast_perturbed' in query_param:
+                queryset = queryset.filter_by_forecast_perturbed(query_param['forecast_perturbed'])
 
         if settings.DEBUG_ENABLE_DB_EXPLAIN_ANALYZE:
             logger.debug(

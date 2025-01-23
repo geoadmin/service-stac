@@ -351,7 +351,19 @@ class ValidateSearchRequest:
                 Copy of the harmonized QueryDict
         '''
         accepted_query_parameters = [
-            "bbox", "collections", "datetime", "ids", "intersects", "limit", "cursor", "query"
+            "bbox",
+            "collections",
+            "datetime",
+            "ids",
+            "intersects",
+            "limit",
+            "cursor",
+            "query",
+            "forecast_reference_datetime",
+            "forecast_horizon",
+            "forecast_duration",
+            "forecast_variable",
+            "forecast_perturbed"
         ]
         wrong_query_parameters = set(query_param.keys()).difference(set(accepted_query_parameters))
         if wrong_query_parameters:

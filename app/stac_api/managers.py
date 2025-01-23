@@ -105,6 +105,47 @@ class ItemQuerySet(models.QuerySet):
             )
         )
 
+    def filter_by_forecast_reference_datetime(self, date_time):
+        '''Filter a queryset by forecast reference datetime
+
+        Args:
+            queryset:
+                 A django queryset (https://docs.djangoproject.com/en/3.0/ref/models/querysets/)
+            date_time:
+                A string
+
+        Returns:
+            The queryset filtered by date_time
+        '''
+        start, end = self._parse_datetime_query(date_time)
+        if end is not None:
+            return self._filter_by_forecast_reference_datetime_range(start, end)
+        return self.filter(forecast_reference_datetime=start)
+
+    def _filter_by_forecast_reference_datetime_range(self, start_datetime, end_datetime):
+        '''Filter a queryset by forecast reference datetime range
+
+        Helper function of filter_by_forecast_reference_datetime
+
+        Args:
+            queryset:
+                A django queryset (https://docs.djangoproject.com/en/3.0/ref/models/querysets/)
+            start_datetime:
+                A string with the start datetime
+            end_datetime:
+                A string with the end datetime
+        Returns:
+            The queryset filtered by datetime range
+        '''
+        if start_datetime == '..':
+            # open start range
+            return self.filter(forecast_reference_datetime__lte=end_datetime)
+        if end_datetime == '..':
+            # open end range
+            return self.filter(forecast_reference_datetime__gte=start_datetime)
+            # else fixed range
+        return self.filter(forecast_reference_datetime__range=(start_datetime, end_datetime))
+
     def _parse_datetime_query(self, date_time):
         '''Parse the datetime query as specified in the api-spec.md.
 
@@ -189,6 +230,54 @@ class ItemQuerySet(models.QuerySet):
         the_geom = GEOSGeometry(intersects)
         return self.filter(geometry__intersects=the_geom)
 
+    def filter_by_forecast_horizon(self, duration):
+        '''Filter by forecast horizon
+
+        Args:
+            duration: string
+                ISO 8601 duration string
+
+        Returns:
+            queryset filtered by forecast horizon
+        '''
+        return self.filter(forecast_horizon=duration)
+
+    def filter_by_forecast_duration(self, duration):
+        '''Filter by forecast duration
+
+        Args:
+            duration: string
+                ISO 8601 duration string
+
+        Returns:
+            queryset filtered by forecast duration
+        '''
+        return self.filter(forecast_duration=duration)
+
+    def filter_by_forecast_variable(self, val):
+        '''Filter by forecast variable
+
+        Args:
+            val: string
+                foracast variable value
+
+        Returns:
+            queryset filtered by forecast variable
+        '''
+        return self.filter(forecast_variable=val)
+
+    def filter_by_forecast_perturbed(self, pert):
+        '''Filter by forecast perturbed
+
+        Args:
+            pert: boolean
+                foracast perturbed
+
+        Returns:
+            queryset filtered by forecast perturbed
+        '''
+        return self.filter(forecast_perturbed=pert)
+
     def filter_by_query(self, query):
         '''Filter by the query parameter
 
@@ -235,6 +324,21 @@ class ItemManager(models.Manager):
 
     def filter_by_query(self, query):
         return self.get_queryset().filter_by_query(query)
+
+    def filter_by_forecast_reference_datetime(self, date_time):
+        return self.get_queryset().filter_by_forecast_reference_datetime(date_time)
+
+    def filter_by_forecast_horizon(self, duration):
+        return self.get_queryset().filter_by_forecast_horizon(duration)
+
+    def filter_by_forecast_duration(self, duration):
+        return self.get_queryset().filter_by_forecast_duration(duration)
+
+    def filter_by_forecast_variable(self, val):
+        return self.get_queryset().filter_by_forecast_variable(val)
+
+    def filter_by_forecast_perturbed(self, pert):
+        return self.get_queryset().filter_by_forecast_perturbed(pert)
 
 
 class AssetUploadQuerySet(models.QuerySet):
