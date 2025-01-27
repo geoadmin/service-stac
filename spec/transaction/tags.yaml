@@ -299,11 +299,9 @@ tags:
 
   - name: Authentication
     description: |
-      All write requests require authentication. There are currently four type of supported authentications:
+      All write requests require authentication. There are currently two types of supported authentications:
 
       * [Session authentication](#section/Session-authentication)
-      * [Basic authentication](#section/Basic-authentication)
-      * [Simple Token authentication](#section/Simple-Token-authentication)
       * [JSON Web Token authentication](#section/JSON-Web-Token-authentication)
 
       ## Session authentication
@@ -313,65 +311,6 @@ tags:
       and perform write requests. This authentication method is only intended
       for web browsers users of the admin interface. Non-browser clients and
       API endpoints are not guaranteed to work with session authentication.
-
-      ## Basic authentication
-
-      The username and password for authentication can be added to every write
-      request the user wants to perform using the `Basic` HTTP authentication
-      scheme as described in [RFC 7614](https://datatracker.ietf.org/doc/html/rfc7617).
-
-      Here is an example of posting an asset using curl (_username_="MickeyMouse", _password_="I_love_Minnie_Mouse"):
-
-      ```
-      curl --request POST \
-        --user MickeyMouse:I_love_Minnie_Mouse \
-        --url https://data.geoadmin.ch/api/stac/v1/collections/ch.swisstopo.swisstlmregio/items/swisstlmregio-2020/assets \
-        --header 'Content-Type: application/json' \
-        --data '{
-          "id": "fancy_unique_id",
-          "item": "swisstlmregio-2020",
-          "title": "My title",
-          "type": "application/x.filegdb+zip",
-          "description": "My description",
-          "proj:epsg": 2056,
-          "file:checksum": "12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC"
-      }'
-      ```
-
-      ## Token authentication
-
-      A user-specific token for authentication can be added to every write
-      request the user wants to perform. The token is passed in the
-      `Authorization` header with the custom `Token` HTTP authentication scheme.
-
-      Here is an example of posting an asset using curl:
-
-      ```
-      curl --request POST \
-        --url https://data.geoadmin.ch/api/stac/v1/collections/ch.swisstopo.swisstlmregio/items/swisstlmregio-2020/assets \
-        --header 'Authorization: Token ccecf40693bfc52ba090cd46eb7f19e723fe831f' \
-        --header 'Content-Type: application/json' \
-        --data '{
-          "id": "fancy_unique_id",
-          "item": "swisstlmregio-2020",
-          "title": "My title",
-          "type": "application/x.filegdb+zip",
-          "description": "My description",
-          "proj:epsg": 2056,
-          "file:checksum": "12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC"
-      }'
-      ```
-
-      Tokens can either be generated in the admin interface or existing users can perform a POST request
-      on the get-token endpoint to request a token (also see [Request token for token authentication](#operation/getToken)).
-      Here is an example using curl:
-
-      ```
-      curl --request POST \
-        --url https://data.geoadmin.ch/api/stac/get-token \
-        --header 'Content-Type: application/json' \
-        --data '{"username": "MickeyMouse", "password": "I_love_Minnie_Mouse"}'
-      ```
 
       ## JSON Web Token authentication
 
