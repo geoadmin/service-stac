@@ -8,7 +8,7 @@ from django.contrib.auth import get_user_model
 from django.test import Client
 from django.urls import reverse
 
-from stac_api.models.general import CollectionAsset
+from stac_api.models.collection import CollectionAsset
 from stac_api.utils import get_collection_asset_path
 from stac_api.utils import utc_aware
 

@@ -16,11 +16,11 @@ from rest_framework_condition import etag
 
 from stac_api.exceptions import UploadInProgressError
 from stac_api.exceptions import UploadNotInProgressError
-from stac_api.models.general import Asset
-from stac_api.models.general import AssetUpload
+from stac_api.models.collection import CollectionAsset
+from stac_api.models.collection import CollectionAssetUpload
 from stac_api.models.general import BaseAssetUpload
-from stac_api.models.general import CollectionAsset
-from stac_api.models.general import CollectionAssetUpload
+from stac_api.models.item import Asset
+from stac_api.models.item import AssetUpload
 from stac_api.pagination import ExtApiPagination
 from stac_api.s3_multipart_upload import MultipartUpload
 from stac_api.serializers.upload import AssetUploadPartsSerializer

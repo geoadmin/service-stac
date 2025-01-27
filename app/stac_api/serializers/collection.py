@@ -4,9 +4,9 @@ from django.contrib.gis.geos import GEOSGeometry
 
 from rest_framework import serializers
 
-from stac_api.models.general import Collection
-from stac_api.models.general import CollectionAsset
-from stac_api.models.general import CollectionLink
+from stac_api.models.collection import Collection
+from stac_api.models.collection import CollectionAsset
+from stac_api.models.collection import CollectionLink
 from stac_api.models.general import Provider
 from stac_api.serializers.utils import AssetsDictSerializer
 from stac_api.serializers.utils import HrefField

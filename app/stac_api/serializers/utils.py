@@ -10,9 +10,9 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from rest_framework.utils.serializer_helpers import ReturnDict
 
-from stac_api.models.general import Collection
-from stac_api.models.general import Item
+from stac_api.models.collection import Collection
 from stac_api.models.general import Link
+from stac_api.models.item import Item
 from stac_api.utils import build_asset_href
 from stac_api.utils import get_browser_url
 from stac_api.utils import get_url

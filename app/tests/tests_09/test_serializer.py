@@ -12,10 +12,10 @@ from rest_framework import serializers
 from rest_framework.renderers import JSONRenderer
 from rest_framework.test import APIRequestFactory
 
-from stac_api.models.general import get_asset_path
 from stac_api.serializers.collection import CollectionSerializer
 from stac_api.serializers.item import AssetSerializer
 from stac_api.serializers.item import ItemSerializer
+from stac_api.utils import get_asset_path
 from stac_api.utils import get_link
 from stac_api.utils import isoformat
 from stac_api.utils import utc_aware

@@ -13,9 +13,9 @@ from django.contrib.gis.geos import Polygon
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management.base import BaseCommand
 
-from stac_api.models.general import Asset
-from stac_api.models.general import Collection
-from stac_api.models.general import Item
+from stac_api.models.collection import Collection
+from stac_api.models.item import Asset
+from stac_api.models.item import Item
 from stac_api.utils import CommandHandler
 from stac_api.validators import MEDIA_TYPES
 

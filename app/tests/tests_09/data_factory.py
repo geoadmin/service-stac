@@ -97,12 +97,12 @@ from django.contrib.gis.geos import GEOSGeometry
 from django.core.files.base import File
 from django.core.files.uploadedfile import SimpleUploadedFile
 
-from stac_api.models.general import Asset
-from stac_api.models.general import Collection
-from stac_api.models.general import CollectionLink
-from stac_api.models.general import Item
-from stac_api.models.general import ItemLink
+from stac_api.models.collection import Collection
+from stac_api.models.collection import CollectionLink
 from stac_api.models.general import Provider
+from stac_api.models.item import Asset
+from stac_api.models.item import Item
+from stac_api.models.item import ItemLink
 from stac_api.utils import get_s3_resource
 from stac_api.utils import isoformat
 from stac_api.validators import get_media_type

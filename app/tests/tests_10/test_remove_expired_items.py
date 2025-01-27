@@ -5,8 +5,8 @@ from django.core.management import call_command
 from django.test import TestCase
 from django.utils import timezone
 
-from stac_api.models.general import Asset
-from stac_api.models.general import Item
+from stac_api.models.item import Asset
+from stac_api.models.item import Item
 
 from tests.tests_10.data_factory import Factory
 from tests.utils import mock_s3_asset_file

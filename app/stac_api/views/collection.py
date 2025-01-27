@@ -8,8 +8,8 @@ from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework_condition import etag
 
-from stac_api.models.general import Collection
-from stac_api.models.general import CollectionAsset
+from stac_api.models.collection import Collection
+from stac_api.models.collection import CollectionAsset
 from stac_api.serializers.collection import CollectionAssetSerializer
 from stac_api.serializers.collection import CollectionSerializer
 from stac_api.serializers.utils import get_relation_links

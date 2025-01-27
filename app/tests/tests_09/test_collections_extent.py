@@ -4,7 +4,7 @@ from datetime import datetime
 from django.contrib.gis.geos import GEOSGeometry
 from django.contrib.gis.geos import Polygon
 
-from stac_api.models.general import Item
+from stac_api.models.item import Item
 from stac_api.utils import utc_aware
 
 from tests.tests_09.base_test import StacBaseTransactionTestCase

@@ -12,8 +12,8 @@ from django.conf import settings
 from rest_framework import serializers
 
 from stac_api.exceptions import UploadNotInProgressError
-from stac_api.models.general import Asset
-from stac_api.models.general import CollectionAsset
+from stac_api.models.collection import CollectionAsset
+from stac_api.models.item import Asset
 from stac_api.utils import AVAILABLE_S3_BUCKETS
 from stac_api.utils import get_s3_cache_control_value
 from stac_api.utils import get_s3_client

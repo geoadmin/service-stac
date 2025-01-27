@@ -3,7 +3,7 @@ import time
 from django.core.management.base import CommandParser
 from django.db import connection
 
-from stac_api.models.general import Collection
+from stac_api.models.collection import Collection
 from stac_api.utils import CommandHandler
 from stac_api.utils import CustomBaseCommand
 

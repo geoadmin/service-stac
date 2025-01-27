@@ -7,10 +7,10 @@ from django.utils.translation import gettext_lazy as _
 
 from rest_framework import serializers
 
-from stac_api.models.general import Asset
-from stac_api.models.general import Collection
-from stac_api.models.general import CollectionAsset
-from stac_api.models.general import Item
+from stac_api.models.collection import Collection
+from stac_api.models.collection import CollectionAsset
+from stac_api.models.item import Asset
+from stac_api.models.item import Item
 
 logger = logging.getLogger(__name__)
 
