@@ -109,10 +109,8 @@ class ItemQuerySet(models.QuerySet):
         '''Filter a queryset by forecast reference datetime
 
         Args:
-            queryset:
-                 A django queryset (https://docs.djangoproject.com/en/3.0/ref/models/querysets/)
             date_time:
-                A string
+                A string containing datetime like "2020-10-28T13:05:10Z"
 
         Returns:
             The queryset filtered by date_time
@@ -128,12 +126,10 @@ class ItemQuerySet(models.QuerySet):
         Helper function of filter_by_forecast_reference_datetime
 
         Args:
-            queryset:
-                A django queryset (https://docs.djangoproject.com/en/3.0/ref/models/querysets/)
             start_datetime:
-                A string with the start datetime
+                A string with the start datetime or ".." to denote open start
             end_datetime:
-                A string with the end datetime
+                A string with the end datetime or ".." to denote open end
         Returns:
             The queryset filtered by datetime range
         '''
