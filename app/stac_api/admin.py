@@ -6,6 +6,7 @@ from admin_auto_filters.filters import AutocompleteFilterFactory
 
 from django import forms
 from django.contrib import messages
+from django.contrib.admin import SimpleListFilter
 from django.contrib.gis import admin
 from django.contrib.gis.db import models
 from django.contrib.postgres.fields import ArrayField
@@ -516,6 +517,25 @@ class AssetAdminForm(forms.ModelForm):
         return self.cleaned_data.get('file')
 
 
+class NotUploadedYetFilter(SimpleListFilter):
+    """Provide a filter for assets that helps with sorting out invalid items"""
+
+    title = 'Not uploaded yet'
+    parameter_name = 'file_size'
+
+    def lookups(self, request, model_admin):
+        return [
+            ('0', _('Upload in progress')), ('none', _('Not found on s3'))
+        ]
+
+    def queryset(self, request, queryset):
+        if self.value() == '0':
+            return queryset.filter(file_size=0)
+        if self.value() == 'none':
+            return queryset.filter(file_size=None)
+        return queryset
+
+
 @admin.register(Asset)
 class AssetAdmin(admin.ModelAdmin):
     form = AssetAdminForm
@@ -543,11 +563,14 @@ class AssetAdmin(admin.ModelAdmin):
         'update_interval',
         'displayed_file_size'
     ]
-    list_display = ['name', 'item_name', 'collection_name', 'collection_published']
+    list_display = [
+        'name', 'item_name', 'collection_name', 'collection_published', 'created', 'updated'
+    ]
 
     list_filter = [
         AutocompleteFilterFactory('Item name', 'item', use_pk_exact=True),
-        AutocompleteFilterFactory('Collection name', 'item__collection', use_pk_exact=True)
+        AutocompleteFilterFactory('Collection name', 'item__collection', use_pk_exact=True),
+        NotUploadedYetFilter
     ]
 
     def get_search_results(self, request, queryset, search_term):
