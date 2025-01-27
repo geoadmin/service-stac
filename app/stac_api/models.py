@@ -370,6 +370,14 @@ class Item(models.Model):
             models.Index(fields=['created'], name='item_created_idx'),
             models.Index(fields=['updated'], name='item_updated_idx'),
             models.Index(fields=['properties_title'], name='item_title_idx'),
+            # forecast properties are "queryable" in the search endpoint
+            models.Index(
+                fields=['forecast_reference_datetime'], name='item_fc_reference_datetime_idx'
+            ),
+            models.Index(fields=['forecast_horizon'], name='item_fc_horizon_idx'),
+            models.Index(fields=['forecast_duration'], name='item_fc_duration_idx'),
+            models.Index(fields=['forecast_variable'], name='item_fc_variable_idx'),
+            models.Index(fields=['forecast_perturbed'], name='item_fc_perturbed_idx'),
             # combination of datetime and start_ and end_datetimes are used in
             # managers.py:110 and following
             models.Index(
