@@ -95,7 +95,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'middleware.apigw.ApiGatewayMiddleware',
+    'middleware.api_gateway_middleware.ApiGatewayMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'middleware.cache_headers.CacheHeadersMiddleware',
@@ -104,7 +104,7 @@ MIDDLEWARE = [
 ]
 
 AUTHENTICATION_BACKENDS = [
-    "middleware.apigw.ApiGatewayUserBackend",
+    "middleware.api_gateway_middleware.ApiGatewayUserBackend",
     # We keep ModelBackend as fallback until we have moved all users to Cognito.
     "django.contrib.auth.backends.ModelBackend",
 ]
@@ -305,6 +305,7 @@ TEST_RUNNER = 'tests.runner.TestRunner'
 REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': ['rest_framework.renderers.JSONRenderer'],
     'DEFAULT_AUTHENTICATION_CLASSES': [
+        'middleware.api_gateway_authentication.ApiGatewayAuthentication',
         'rest_framework.authentication.BasicAuthentication',
         'rest_framework.authentication.TokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',
