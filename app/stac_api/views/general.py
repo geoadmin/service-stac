@@ -14,8 +14,8 @@ from rest_framework.decorators import permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from stac_api.models import Item
-from stac_api.models import LandingPage
+from stac_api.models.general import Item
+from stac_api.models.general import LandingPage
 from stac_api.pagination import GetPostCursorPagination
 from stac_api.serializers.general import ConformancePageSerializer
 from stac_api.serializers.general import LandingPageSerializer

@@ -12,9 +12,9 @@ from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework_condition import etag
 
-from stac_api.models import Asset
-from stac_api.models import Collection
-from stac_api.models import Item
+from stac_api.models.general import Asset
+from stac_api.models.general import Collection
+from stac_api.models.general import Item
 from stac_api.serializers.item import AssetSerializer
 from stac_api.serializers.item import ItemSerializer
 from stac_api.serializers.utils import get_relation_links

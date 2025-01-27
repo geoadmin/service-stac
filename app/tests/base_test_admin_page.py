@@ -7,12 +7,12 @@ from django.test import Client
 from django.test import TestCase
 from django.urls import reverse
 
-from stac_api.models import Asset
-from stac_api.models import Collection
-from stac_api.models import CollectionLink
-from stac_api.models import Item
-from stac_api.models import ItemLink
-from stac_api.models import Provider
+from stac_api.models.general import Asset
+from stac_api.models.general import Collection
+from stac_api.models.general import CollectionLink
+from stac_api.models.general import Item
+from stac_api.models.general import ItemLink
+from stac_api.models.general import Provider
 
 from tests.tests_09.data_factory import Factory
 

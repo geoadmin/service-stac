@@ -10,8 +10,8 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import Client
 
-from stac_api.models import CollectionAsset
-from stac_api.models import CollectionAssetUpload
+from stac_api.models.general import CollectionAsset
+from stac_api.models.general import CollectionAssetUpload
 from stac_api.utils import fromisoformat
 from stac_api.utils import get_collection_asset_path
 from stac_api.utils import get_s3_client

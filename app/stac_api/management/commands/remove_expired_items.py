@@ -4,9 +4,9 @@ from django.conf import settings
 from django.core.management.base import CommandParser
 from django.utils import timezone
 
-from stac_api.models import AssetUpload
-from stac_api.models import BaseAssetUpload
-from stac_api.models import Item
+from stac_api.models.general import AssetUpload
+from stac_api.models.general import BaseAssetUpload
+from stac_api.models.general import Item
 from stac_api.utils import CommandHandler
 from stac_api.utils import CustomBaseCommand
 

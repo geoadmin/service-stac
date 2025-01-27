@@ -6,9 +6,9 @@ from django.contrib.auth import get_user_model
 from django.test import Client
 from django.urls import reverse
 
-from stac_api.models import Collection
-from stac_api.models import CollectionLink
-from stac_api.models import Provider
+from stac_api.models.general import Collection
+from stac_api.models.general import CollectionLink
+from stac_api.models.general import Provider
 from stac_api.utils import utc_aware
 
 from tests.tests_10.base_test import STAC_BASE_V

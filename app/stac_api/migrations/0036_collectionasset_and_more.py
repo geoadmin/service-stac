@@ -9,7 +9,7 @@ import django.db.models.deletion
 from django.db import migrations
 from django.db import models
 
-import stac_api.models
+import stac_api.models.general
 import stac_api.validators
 
 
@@ -34,8 +34,8 @@ class Migration(migrations.Migration):
                 ),
                 (
                     'file',
-                    stac_api.models.DynamicStorageFileField(
-                        max_length=255, upload_to=stac_api.models.upload_asset_to_path_hook
+                    stac_api.models.general.DynamicStorageFileField(
+                        max_length=255, upload_to=stac_api.models.general.upload_asset_to_path_hook
                     )
                 ),
                 (
@@ -192,7 +192,7 @@ class Migration(migrations.Migration):
                 (
                     'etag',
                     models.CharField(
-                        default=stac_api.models.compute_etag, editable=False, max_length=56
+                        default=stac_api.models.general.compute_etag, editable=False, max_length=56
                     )
                 ),
                 (

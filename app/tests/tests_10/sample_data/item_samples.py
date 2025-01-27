@@ -2,7 +2,7 @@ import json
 
 from django.contrib.gis.geos import GEOSGeometry
 
-from stac_api.models import BBOX_CH
+from stac_api.models.general import BBOX_CH
 from stac_api.utils import fromisoformat
 
 geometries = {

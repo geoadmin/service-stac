@@ -4,7 +4,7 @@ import logging
 from django.core.management.base import BaseCommand
 from django.core.serializers.json import DjangoJSONEncoder
 
-from stac_api.models import AssetUpload
+from stac_api.models.general import AssetUpload
 from stac_api.s3_multipart_upload import MultipartUpload
 from stac_api.serializers.upload import AssetUploadSerializer
 from stac_api.utils import CommandHandler

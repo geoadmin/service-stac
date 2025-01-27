@@ -6,8 +6,8 @@ from django.db.models import ProtectedError
 from django.test import TestCase
 from django.test import TransactionTestCase
 
-from stac_api.models import Asset
-from stac_api.models import AssetUpload
+from stac_api.models.general import Asset
+from stac_api.models.general import AssetUpload
 from stac_api.utils import get_sha256_multihash
 from stac_api.utils import utc_aware
 

@@ -6,8 +6,8 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.core.management.base import CommandParser
 
-from stac_api.models import Asset
-from stac_api.models import CollectionAsset
+from stac_api.models.general import Asset
+from stac_api.models.general import CollectionAsset
 from stac_api.utils import CommandHandler
 from stac_api.utils import get_s3_client
 from stac_api.utils import select_s3_bucket

@@ -8,9 +8,9 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from rest_framework_gis import serializers as gis_serializers
 
-from stac_api.models import Asset
-from stac_api.models import Item
-from stac_api.models import ItemLink
+from stac_api.models.general import Asset
+from stac_api.models.general import Item
+from stac_api.models.general import ItemLink
 from stac_api.serializers.utils import AssetsDictSerializer
 from stac_api.serializers.utils import HrefField
 from stac_api.serializers.utils import IsoDurationField

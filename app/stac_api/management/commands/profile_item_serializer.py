@@ -8,7 +8,7 @@ from django.core.management.base import BaseCommand
 
 from rest_framework.test import APIRequestFactory
 
-from stac_api.models import Item
+from stac_api.models.general import Item
 from stac_api.utils import CommandHandler
 
 logger = logging.getLogger(__name__)

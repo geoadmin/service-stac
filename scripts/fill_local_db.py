@@ -19,7 +19,7 @@ from datetime import datetime
 import io
 from rest_framework.renderers import JSONRenderer
 from rest_framework.parsers import JSONParser
-from stac_api.models import *
+from stac_api.models.general import *
 from stac_api.serializers.general import CollectionSerializer
 from stac_api.serializers.general import CollectionSerializer
 from stac_api.serializers.general import LinkSerializer
@@ -28,14 +28,12 @@ from stac_api.serializers.general import ProviderSerializer
 # create link instances for testing
 
 link_root = CollectionLink.objects.create(
-            item=self.item,
-            href="https://data.geo.admin.ch/api/stac/v0.9/",
-            rel='root',
-            link_type='root',
-            title='Root link'
-        )
-
-
+    item=self.item,
+    href="https://data.geo.admin.ch/api/stac/v0.9/",
+    rel='root',
+    link_type='root',
+    title='Root link'
+)
 
 # create provider instances for testing
 provider1 = Provider(
@@ -60,33 +58,19 @@ collection1 = Collection(
     updated=datetime.now(),
     description='test',
     extent={
-    "spatial": {
-      "bbox": [
-        [
-		  5.685114,
-		  45.534903,
-		  10.747775,
-		  47.982586
-        ]
-      ]
+        "spatial": {
+            "bbox": [[5.685114, 45.534903, 10.747775, 47.982586]]
+        },
+        "temporal": {
+            "interval": [["2019", None]]
+        }
     },
-    "temporal": {
-      "interval": [
-        [
-          "2019",
-          None
-        ]
-      ]
-    }
-  },
     collection_name='my collection',
     item_type='Feature',
     license='test',
-    summaries = {
-    "eo:gsd": [10,20],
-    "geoadmin:variant": ["kgrel", "komb", "krel"],
-    "proj:epsg": [2056]
-  },
+    summaries={
+        "eo:gsd": [10, 20], "geoadmin:variant": ["kgrel", "komb", "krel"], "proj:epsg": [2056]
+    },
     title='testtitel2'
 )
 
@@ -104,33 +88,19 @@ collection2 = Collection(
     updated=datetime.now(),
     description='test',
     extent={
-    "spatial": {
-      "bbox": [
-        [
-		  5.685114,
-		  45.534903,
-		  10.747775,
-		  47.982586
-        ]
-      ]
+        "spatial": {
+            "bbox": [[5.685114, 45.534903, 10.747775, 47.982586]]
+        },
+        "temporal": {
+            "interval": [["2019", None]]
+        }
     },
-    "temporal": {
-      "interval": [
-        [
-          "2019",
-          None
-        ]
-      ]
-    }
-  },
     collection_name='b_123',
     item_type='Feature',
     license='test',
-    summaries = {
-    "eo:gsd": [10,20],
-    "geoadmin:variant": ["kgrel", "komb", "krel"],
-    "proj:epsg": [2056]
-  },
+    summaries={
+        "eo:gsd": [10, 20], "geoadmin:variant": ["kgrel", "komb", "krel"], "proj:epsg": [2056]
+    },
     title='testtitel2'
 )
 collection2.save()
@@ -145,33 +115,19 @@ collection3 = Collection(
     updated=datetime.now(),
     description='test',
     extent={
-    "spatial": {
-      "bbox": [
-        [
-		  5.685114,
-		  45.534903,
-		  10.747775,
-		  47.982586
-        ]
-      ]
+        "spatial": {
+            "bbox": [[5.685114, 45.534903, 10.747775, 47.982586]]
+        },
+        "temporal": {
+            "interval": [["2019", None]]
+        }
     },
-    "temporal": {
-      "interval": [
-        [
-          "2019",
-          None
-        ]
-      ]
-    }
-  },
     collection_name='c_123',
     item_type='Feature',
     license='test',
-    summaries = {
-    "eo:gsd": [10,20],
-    "geoadmin:variant": ["kgrel", "komb", "krel"],
-    "proj:epsg": [2056]
-  },
+    summaries={
+        "eo:gsd": [10, 20], "geoadmin:variant": ["kgrel", "komb", "krel"], "proj:epsg": [2056]
+    },
     title='testtitel2'
 )
 collection3.save()
@@ -184,7 +140,6 @@ provider1.save()
 provider2.save()
 provider3.save()
 link_root.save()
-
 
 # test the serialization process:
 # translate into Python native
