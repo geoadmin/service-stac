@@ -830,6 +830,57 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
 
 
 @override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
+class ItemsBulkCreateEndpointTestCase(StacBaseTestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.factory = Factory()
+        cls.collection = cls.factory.create_collection_sample(db_create=True)
+        cls.payload = {
+            "features": [
+                {
+                    "id": "item-1",
+                    "geometry": {
+                        "type": "Point", "coordinates": [1.1, 1.2]
+                    },
+                    "properties": {
+                        "datetime": "2018-02-12T23:20:50Z",
+                    },
+                },
+                {
+                    "id": "item-2",
+                    "geometry": {
+                        "type": "Point", "coordinates": [2.1, 2.2]
+                    },
+                    "properties": {
+                        "datetime": "2019-01-13T13:30:00Z",
+                    },
+                },
+            ]
+        }
+
+    def setUp(self):
+        self.client = Client()
+
+    def test_items_endpoint_put_creates_given_items_as_expected(self):
+        collection_name = self.collection["name"]
+
+        response = self.client.post(
+            path=f'/{STAC_BASE_V}/collections/{collection_name}/items',
+            data=self.payload,
+            content_type="application/json"
+        )
+        response_json = response.json()
+
+        self.assertStatusCode(201, response)
+
+        for actual_item in response_json["features"]:
+            expected_item = [
+                item for item in self.payload["features"] if item["id"] == actual_item["id"]
+            ][0]
+            self.check_stac_item(expected_item, actual_item, collection=collection_name)
+
+
 class ItemRaceConditionTest(StacBaseTransactionTestCase):
 
     def setUp(self):

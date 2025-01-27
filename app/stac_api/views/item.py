@@ -8,6 +8,7 @@ from django.db.models import Subquery
 from django.utils import timezone
 
 from rest_framework import generics
+from rest_framework import status
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework_condition import etag
@@ -16,6 +17,7 @@ from stac_api.models.collection import Collection
 from stac_api.models.item import Asset
 from stac_api.models.item import Item
 from stac_api.serializers.item import AssetSerializer
+from stac_api.serializers.item import ItemListSerializer
 from stac_api.serializers.item import ItemSerializer
 from stac_api.serializers.utils import get_relation_links
 from stac_api.utils import get_asset_path
@@ -143,6 +145,15 @@ class ItemsList(generics.GenericAPIView):
 
     def get(self, request, *args, **kwargs):
         return self.list(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        serializer = ItemListSerializer(data=request.data, context={"request": request})
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        collection = Collection.objects.get(name=self.kwargs['collection_name'])
+        serializer.save(collection=collection)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class ItemDetail(
