@@ -380,12 +380,12 @@ tags:
       described in
       [RFC 6750](https://datatracker.ietf.org/doc/html/rfc6750#section-2.1).
 
-      Here is an example using curl:
+      Here is an example using curl, assuming the JWT is `123456`:
 
       ```
       curl --request POST \
         --url https://data.geoadmin.ch/api/stac/v1/collections/ch.swisstopo.swisstlmregio/items/swisstlmregio-2020/assets \
-        --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gU21pdGgiLCJpYXQiOjE1MTYyMzkwMjJ9.Q_w2AVguPRU2KskCXwR7ZHl09TQXEntfEA8Jj2_Jyew' \
+        --header 'Authorization: Bearer 123456' \
         --header 'Content-Type: application/json' \
         --data '{
           "id": "fancy_unique_id",
