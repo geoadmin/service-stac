@@ -2,7 +2,7 @@ import json
 
 from django.contrib.gis.geos import GEOSGeometry
 
-from stac_api.models import BBOX_CH
+from stac_api.models.general import BBOX_CH
 from stac_api.utils import fromisoformat
 
 geometries = {
@@ -218,5 +218,55 @@ items = {
         'name': 'item-covers_switzerland',
         'geometry': geometries['covers-switzerland'],
         'properties_datetime': fromisoformat('2020-10-28T13:05:10Z')
-    }
+    },
+    'item-forecast-1': {
+        'name': 'item-forecast-1',
+        'geometry': geometries['covers-switzerland'],
+        'properties_datetime': fromisoformat('2020-10-28T13:05:10Z'),
+        'forecast_reference_datetime': fromisoformat('2025-01-01T13:05:10Z'),
+        'forecast_horizon': 'PT6H',
+        'forecast_duration': 'PT12H',
+        'forecast_variable': 'T',
+        'forecast_perturbed': 'False',
+    },
+    'item-forecast-2': {
+        'name': 'item-forecast-2',
+        'geometry': geometries['covers-switzerland'],
+        'properties_datetime': fromisoformat('2020-10-28T13:05:10Z'),
+        'forecast_reference_datetime': fromisoformat('2025-02-01T13:05:10Z'),
+        'forecast_horizon': 'PT6H',
+        'forecast_duration': 'PT12H',
+        'forecast_variable': 'T',
+        'forecast_perturbed': 'False',
+    },
+    'item-forecast-3': {
+        'name': 'item-forecast-3',
+        'geometry': geometries['covers-switzerland'],
+        'properties_datetime': fromisoformat('2020-10-28T13:05:10Z'),
+        'forecast_reference_datetime': fromisoformat('2025-02-01T13:05:10Z'),
+        'forecast_horizon': 'PT3H',
+        'forecast_duration': 'PT6H',
+        'forecast_variable': 'T',
+        'forecast_perturbed': 'False',
+    },
+    'item-forecast-4': {
+        'name': 'item-forecast-4',
+        'geometry': geometries['covers-switzerland'],
+        'properties_datetime': fromisoformat('2020-10-28T13:05:10Z'),
+        'forecast_reference_datetime': fromisoformat('2025-02-01T13:05:10Z'),
+        'forecast_horizon': 'PT6H',
+        'forecast_duration': 'PT12H',
+        'forecast_variable': 'air_temperature',
+        'forecast_perturbed': 'True',
+    },
+    'item-forecast-5': {
+        'name': 'item-forecast-5',
+        'geometry': geometries['covers-switzerland'],
+        'properties_datetime': fromisoformat('2020-10-28T13:05:10Z'),
+        'forecast_reference_datetime': fromisoformat('2025-04-01T13:05:10Z'),
+        'forecast_horizon': 'PT6H',
+        'forecast_duration': 'PT12H',
+        'forecast_variable': 'air_temperature',
+        'forecast_perturbed': 'False',
+    },
 }

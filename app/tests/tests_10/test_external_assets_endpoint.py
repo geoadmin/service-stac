@@ -3,7 +3,7 @@ import responses
 from django.conf import settings
 from django.test import Client
 
-from stac_api.models import Asset
+from stac_api.models.item import Asset
 
 from tests.tests_10.base_test import StacBaseTestCase
 from tests.tests_10.data_factory import Factory

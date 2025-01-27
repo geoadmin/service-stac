@@ -7,7 +7,7 @@ import django.db.models.deletion
 from django.db import migrations
 from django.db import models
 
-import stac_api.models
+import stac_api.models.general
 import stac_api.validators
 
 
@@ -74,7 +74,7 @@ class Migration(migrations.Migration):
                 (
                     'summaries',
                     models.JSONField(
-                        default=stac_api.models.get_default_summaries_value,
+                        default=stac_api.models.general.get_default_summaries_value,
                         editable=False,
                         encoder=django.core.serializers.json.DjangoJSONEncoder
                     )
@@ -102,7 +102,7 @@ class Migration(migrations.Migration):
                     'conformsTo',
                     django.contrib.postgres.fields.ArrayField(
                         base_field=models.URLField(),
-                        default=stac_api.models.get_conformance_default_links,
+                        default=stac_api.models.general.get_conformance_default_links,
                         help_text='Comma-separated list of URLs for the value conformsTo',
                         size=None
                     )
@@ -335,7 +335,7 @@ class Migration(migrations.Migration):
                 (
                     'file',
                     models.FileField(
-                        max_length=255, upload_to=stac_api.models.upload_asset_to_path_hook
+                        max_length=255, upload_to=stac_api.models.general.upload_asset_to_path_hook
                     )
                 ),
                 (

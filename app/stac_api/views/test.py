@@ -2,7 +2,7 @@ import logging
 
 from rest_framework import generics
 
-from stac_api.models import LandingPage
+from stac_api.models.general import LandingPage
 from stac_api.views.collection import CollectionAssetDetail
 from stac_api.views.collection import CollectionDetail
 from stac_api.views.item import AssetDetail

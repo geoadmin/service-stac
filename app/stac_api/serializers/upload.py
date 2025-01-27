@@ -5,8 +5,8 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from rest_framework.utils.serializer_helpers import ReturnDict
 
-from stac_api.models import AssetUpload
-from stac_api.models import CollectionAssetUpload
+from stac_api.models.collection import CollectionAssetUpload
+from stac_api.models.item import AssetUpload
 from stac_api.serializers.utils import NonNullModelSerializer
 from stac_api.utils import is_api_version_1
 from stac_api.utils import isoformat

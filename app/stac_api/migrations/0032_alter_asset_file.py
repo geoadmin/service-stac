@@ -2,7 +2,7 @@
 
 from django.db import migrations
 
-import stac_api.models
+import stac_api.models.general
 
 
 class Migration(migrations.Migration):
@@ -15,8 +15,8 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='asset',
             name='file',
-            field=stac_api.models.DynamicStorageFileField(
-                max_length=255, upload_to=stac_api.models.upload_asset_to_path_hook
+            field=stac_api.models.general.DynamicStorageFileField(
+                max_length=255, upload_to=stac_api.models.general.upload_asset_to_path_hook
             ),
         ),
     ]

@@ -4,9 +4,9 @@ import os
 from django.conf import settings
 from django.core.management.base import BaseCommand
 
-from stac_api.models import Asset
-from stac_api.models import AssetUpload
-from stac_api.models import BaseAssetUpload
+from stac_api.models.general import BaseAssetUpload
+from stac_api.models.item import Asset
+from stac_api.models.item import AssetUpload
 from stac_api.s3_multipart_upload import MultipartUpload
 from stac_api.utils import AVAILABLE_S3_BUCKETS
 from stac_api.utils import CommandHandler

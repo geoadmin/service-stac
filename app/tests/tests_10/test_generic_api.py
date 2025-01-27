@@ -5,7 +5,7 @@ from datetime import timedelta
 from django.test import Client
 from django.test import override_settings
 
-from stac_api.models import AssetUpload
+from stac_api.models.item import AssetUpload
 from stac_api.utils import get_asset_path
 from stac_api.utils import get_link
 from stac_api.utils import get_sha256_multihash

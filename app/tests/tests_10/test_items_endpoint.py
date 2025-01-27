@@ -9,9 +9,9 @@ from django.test import Client
 from django.urls import reverse
 from django.utils import timezone
 
-from stac_api.models import Collection
-from stac_api.models import Item
-from stac_api.models import ItemLink
+from stac_api.models.collection import Collection
+from stac_api.models.item import Item
+from stac_api.models.item import ItemLink
 from stac_api.utils import fromisoformat
 from stac_api.utils import get_link
 from stac_api.utils import isoformat

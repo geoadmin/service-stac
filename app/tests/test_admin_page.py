@@ -5,12 +5,12 @@ from django.conf import settings
 from django.test import override_settings
 from django.urls import reverse
 
-from stac_api.models import Asset
-from stac_api.models import Collection
-from stac_api.models import CollectionLink
-from stac_api.models import Item
-from stac_api.models import ItemLink
-from stac_api.models import Provider
+from stac_api.models.collection import Collection
+from stac_api.models.collection import CollectionLink
+from stac_api.models.general import Provider
+from stac_api.models.item import Asset
+from stac_api.models.item import Item
+from stac_api.models.item import ItemLink
 from stac_api.utils import parse_multihash
 
 from tests.base_test_admin_page import AdminBaseTestCase

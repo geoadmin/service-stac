@@ -309,6 +309,20 @@ def harmonize_post_get_for_search(request):
             query_param['ids'] = query_param['ids'].split(',')  # to array
         if 'collections' in query_param:
             query_param['collections'] = query_param['collections'].split(',')  # to array
+
+        # Forecast properties can only be filtered with method POST.
+        # Decision was made as `:` need to be url encoded and (at least for now) we do not need to
+        # support forecast filtering in the GET request.
+        if 'forecast:reference_datetime' in query_param:
+            del query_param['forecast:reference_datetime']
+        if 'forecast:horizon' in query_param:
+            del query_param['forecast:horizon']
+        if 'forecast:duration' in query_param:
+            del query_param['forecast:duration']
+        if 'forecast:variable' in query_param:
+            del query_param['forecast:variable']
+        if 'forecast:perturbed' in query_param:
+            del query_param['forecast:perturbed']
     return query_param
 
 

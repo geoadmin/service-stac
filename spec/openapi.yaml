@@ -274,7 +274,8 @@ paths:
     get:
       description: >-
         Retrieve Items matching filters. Intended as a shorthand API for simple
-        queries.
+        queries. To filter by forecast properties please use the
+        [POST /search](#tag/STAC/operation/postSearchSTAC) request.
 
       operationId: getSearchSTAC
       parameters:

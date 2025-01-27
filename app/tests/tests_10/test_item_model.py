@@ -7,8 +7,8 @@ from django.contrib.gis.geos import GEOSGeometry
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 
-from stac_api.models import Collection
-from stac_api.models import Item
+from stac_api.models.collection import Collection
+from stac_api.models.item import Item
 from stac_api.utils import utc_aware
 
 from tests.tests_10.data_factory import CollectionFactory

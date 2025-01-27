@@ -17,17 +17,17 @@ from django.template.defaultfilters import filesizeformat
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
-from stac_api.models import BBOX_CH
-from stac_api.models import Asset
-from stac_api.models import AssetUpload
-from stac_api.models import Collection
-from stac_api.models import CollectionAsset
-from stac_api.models import CollectionLink
-from stac_api.models import Item
-from stac_api.models import ItemLink
-from stac_api.models import LandingPage
-from stac_api.models import LandingPageLink
-from stac_api.models import Provider
+from stac_api.models.collection import Collection
+from stac_api.models.collection import CollectionAsset
+from stac_api.models.collection import CollectionLink
+from stac_api.models.general import BBOX_CH
+from stac_api.models.general import LandingPage
+from stac_api.models.general import LandingPageLink
+from stac_api.models.general import Provider
+from stac_api.models.item import Asset
+from stac_api.models.item import AssetUpload
+from stac_api.models.item import Item
+from stac_api.models.item import ItemLink
 from stac_api.utils import build_asset_href
 from stac_api.utils import get_query_params
 from stac_api.validators import validate_href_url

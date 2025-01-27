@@ -6,7 +6,7 @@ import django.core.serializers.json
 from django.db import migrations
 from django.db import models
 
-import stac_api.models
+import stac_api.models.general
 
 
 class Migration(migrations.Migration):
@@ -49,7 +49,7 @@ class Migration(migrations.Migration):
             model_name='asset',
             name='etag',
             field=models.CharField(
-                default=stac_api.models.compute_etag, editable=False, max_length=56
+                default=stac_api.models.general.compute_etag, editable=False, max_length=56
             ),
         ),
         migrations.AlterField(
@@ -61,7 +61,7 @@ class Migration(migrations.Migration):
             model_name='collection',
             name='etag',
             field=models.CharField(
-                default=stac_api.models.compute_etag, editable=False, max_length=56
+                default=stac_api.models.general.compute_etag, editable=False, max_length=56
             ),
         ),
         migrations.AlterField(
@@ -89,7 +89,7 @@ class Migration(migrations.Migration):
             model_name='item',
             name='etag',
             field=models.CharField(
-                default=stac_api.models.compute_etag, editable=False, max_length=56
+                default=stac_api.models.general.compute_etag, editable=False, max_length=56
             ),
         ),
         migrations.AlterField(
