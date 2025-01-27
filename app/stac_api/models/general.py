@@ -370,6 +370,13 @@ class AssetBase(models.Model):
         "-1 means that the data is not on a regular basis updated."
     )
 
+    # Depending on the value here we can determine some state of the asset:
+    # * None: The asset was created but the file doesn't actually exist on
+    #         the referenced bucket. This was determined in a one-off check run in
+    #         2025, see PB-1091
+    # * 0:    The asset was created, but the file has not yet been uploaded
+    # * -1:   This is an external asset, thus we write -1 as we can't yet determine
+    #         the file size of external assets
     file_size = models.BigIntegerField(default=0, null=True, blank=True)
 
     def __str__(self):

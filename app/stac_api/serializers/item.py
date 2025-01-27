@@ -218,6 +218,8 @@ class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         Returns: tuple
             Asset instance and True if created otherwise false
         """
+        data = validated_data
+        data['file_size'] = -1 if validated_data['is_external'] else 0
         asset, created = Asset.objects.update_or_create(**look_up, defaults=validated_data)
         return asset, created
 
