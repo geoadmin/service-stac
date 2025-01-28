@@ -938,21 +938,20 @@ class ItemsUnauthorizeEndpointTestCase(StacBaseTestCase):
         response = self.client.put(
             path, data=sample.get_json('put'), content_type="application/json"
         )
-        self.assertStatusCode(401, response, msg="Unauthorized put was permitted.")
+        self.assertStatusCode(401, response, msg="Unexpected status.")
 
         # make sure PATCH fails for anonymous user:
         data = {"properties": {"title": "patched title"}}
         path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{self.item.name}'
         response = self.client.patch(path, data=data, content_type="application/json")
-        self.assertStatusCode(401, response, msg="Unauthorized patch was permitted.")
+        self.assertStatusCode(401, response, msg="Unexpected status.")
 
         # make sure DELETE fails for anonymous user:
         path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{self.item.name}'
         response = self.client.delete(path)
-        self.assertStatusCode(401, response, msg="Unauthorized delete was permitted.")
+        self.assertStatusCode(401, response, msg="Unexpected status.")
 
 
-@override_settings(FEATURE_AUTH_RESTRICT_V1=True)
 class ItemsDisabledAuthenticationEndpointTestCase(StacBaseTestCase):
 
     @classmethod
@@ -965,47 +964,60 @@ class ItemsDisabledAuthenticationEndpointTestCase(StacBaseTestCase):
         self.client = Client()
         self.username = 'SherlockHolmes'
         self.password = '221B_BakerStreet'
-        self.user = get_user_model().objects.create_user(
+        self.user = get_user_model().objects.create_superuser(
             self.username, 'top@secret.co.uk', self.password
         )
-        self.sample = self.factory.create_item_sample(self.collection, name=self.item.name)
 
-    def run_test(self, headers=None):
+    def run_test(self, status, headers=None):
         path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{self.item.name}'
 
         # Make sure PUT fails if old authentication is disabled
-        response = self.client.put(
-            path,
-            headers=headers,
-            data=self.sample.get_json('put'),
-            content_type="application/json"
-        )
-        self.assertStatusCode(401, response, msg="Unauthorized put was permitted.")
+        response = self.client.put(path, headers=headers, data={}, content_type="application/json")
+        self.assertStatusCode(status, response, msg="Unauthorized put was permitted.")
 
         # Make sure PATCH fails if old authentication is disabled
-        data = {"properties": {"title": "patched title"}}
         response = self.client.patch(
-            path, headers=headers, data=data, content_type="application/json"
+            path, headers=headers, data={}, content_type="application/json"
         )
-        self.assertStatusCode(401, response, msg="Unauthorized patch was permitted.")
+        self.assertStatusCode(status, response, msg="Unauthorized patch was permitted.")
 
         # Make sure DELETE fails if old authentication is disabled
         response = self.client.delete(path, headers=headers)
-        self.assertStatusCode(401, response, msg="Unauthorized delete was permitted.")
+        self.assertStatusCode(status, response, msg="Unauthorized delete was permitted.")
 
+    @override_settings(FEATURE_AUTH_RESTRICT_V1=False)
+    def test_enabled_session_authentication(self):
+        self.client.login(username=self.username, password=self.password)
+        self.run_test([200, 400])
+
+    @override_settings(FEATURE_AUTH_RESTRICT_V1=False)
+    def test_enabled_token_authentication(self):
+        token = Token.objects.create(user=self.user)
+        headers = {'Authorization': f'Token {token.key}'}
+        self.run_test([200, 400], headers=headers)
+
+    @override_settings(FEATURE_AUTH_RESTRICT_V1=False)
+    def test_enabled_base_authentication(self):
+        token = b64encode(f'{self.username}:{self.password}'.encode()).decode()
+        headers = {'Authorization': f'Basic {token}'}
+        self.run_test([200, 400], headers=headers)
+
+    @override_settings(FEATURE_AUTH_RESTRICT_V1=True)
     def test_disabled_session_authentication(self):
         self.client.login(username=self.username, password=self.password)
-        self.run_test()
+        self.run_test(401)
 
+    @override_settings(FEATURE_AUTH_RESTRICT_V1=True)
     def test_disabled_token_authentication(self):
         token = Token.objects.create(user=self.user)
         headers = {'Authorization': f'Token {token.key}'}
-        self.run_test(headers=headers)
+        self.run_test(401, headers=headers)
 
+    @override_settings(FEATURE_AUTH_RESTRICT_V1=True)
     def test_disabled_base_authentication(self):
         token = b64encode(f'{self.username}:{self.password}'.encode()).decode()
         headers = {'Authorization': f'Basic {token}'}
-        self.run_test(headers=headers)
+        self.run_test(401, headers=headers)
 
 
 class ItemsLinksEndpointTestCase(StacBaseTestCase):
