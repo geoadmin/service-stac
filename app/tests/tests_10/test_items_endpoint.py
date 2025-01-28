@@ -917,6 +917,36 @@ class ItemsBulkCreateEndpointTestCase(StacBaseTestCase):
         self.assertEqual(response_json["code"], 404)
         self.assertEqual(response_json["description"], "Collection matching query does not exist.")
 
+    def test_items_endpoint_post_returns_400_if_payload_malformed(self):
+        collection_name = self.collection["name"]
+        payload = {"teachers": []}
+        response = self.client.post(
+            path=f'/{STAC_BASE_V}/collections/{collection_name}/items',
+            data=payload,
+            content_type="application/json"
+        )
+        response_json = response.json()
+
+        self.assertStatusCode(400, response)
+        self.assertEqual(response_json["code"], 400)
+        self.assertEqual(
+            response_json["description"],
+            "{'features': [ErrorDetail(string='This field is required.', code='required')]}"
+        )
+
+    def test_items_endpoint_post_returns_200_if_no_items_provided(self):
+        collection_name = self.collection["name"]
+        payload = {"features": []}
+        response = self.client.post(
+            path=f'/{STAC_BASE_V}/collections/{collection_name}/items',
+            data=payload,
+            content_type="application/json",
+        )
+        response_json = response.json()
+
+        self.assertStatusCode(200, response)
+        self.assertEqual(response_json, payload)
+
 
 class ItemRaceConditionTest(StacBaseTransactionTestCase):
 
