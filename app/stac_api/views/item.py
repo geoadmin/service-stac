@@ -2,6 +2,7 @@ import logging
 from datetime import datetime
 
 from django.conf import settings
+from django.db import IntegrityError
 from django.db.models import Prefetch
 from django.db.models import Q
 from django.db.models import Subquery
@@ -147,13 +148,26 @@ class ItemsList(generics.GenericAPIView):
         return self.list(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
-        serializer = ItemListSerializer(data=request.data, context={"request": request})
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            serializer = ItemListSerializer(data=request.data, context={"request": request})
+            if not serializer.is_valid():
+                message = {
+                    "code": status.HTTP_400_BAD_REQUEST, "description": str(serializer.errors)
+                }
+                return Response(data=message, status=status.HTTP_400_BAD_REQUEST)
 
-        collection = Collection.objects.get(name=self.kwargs['collection_name'])
-        serializer.save(collection=collection)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+            collection = Collection.objects.get(name=self.kwargs['collection_name'])
+            serializer.save(collection=collection)
+
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except Collection.DoesNotExist as exception:
+            code = status.HTTP_404_NOT_FOUND
+            message = {"code": code, "description": str(exception)}
+            return Response(data=message, exception=True, status=code)
+        except IntegrityError as exception:
+            code = status.HTTP_400_BAD_REQUEST
+            message = {"code": code, "description": str(exception)}
+            return Response(data=message, exception=True, status=code)
 
 
 class ItemDetail(

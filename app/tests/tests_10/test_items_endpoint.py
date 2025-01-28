@@ -862,7 +862,7 @@ class ItemsBulkCreateEndpointTestCase(StacBaseTestCase):
     def setUp(self):
         self.client = Client()
 
-    def test_items_endpoint_put_creates_given_items_as_expected(self):
+    def test_items_endpoint_post_creates_given_items_as_expected(self):
         collection_name = self.collection["name"]
 
         response = self.client.post(
@@ -879,6 +879,43 @@ class ItemsBulkCreateEndpointTestCase(StacBaseTestCase):
                 item for item in self.payload["features"] if item["id"] == actual_item["id"]
             ][0]
             self.check_stac_item(expected_item, actual_item, collection=collection_name)
+
+    def test_items_endpoint_post_returns_400_if_item_exists_already(self):
+        collection_name = self.collection["name"]
+        self.factory.create_item_sample(self.collection.model, sample='item-1', db_create=True)
+
+        response = self.client.post(
+            path=f'/{STAC_BASE_V}/collections/{collection_name}/items',
+            data=self.payload,
+            content_type="application/json"
+        )
+        response_json = response.json()
+
+        self.assertStatusCode(400, response)
+        self.assertEqual(response_json["code"], 400)
+        self.assertEqual(
+            # The first line reads like this and can change each time:
+            #
+            #   duplicate key value violates unique constraint
+            #   "stac_api_item_collection_id_name_78fbc154_uniq"
+            #
+            # So we only inspect the second line.
+            response_json["description"].split("\n")[1],
+            "DETAIL:  Key (collection_id, name)=(1, item-1) already exists."
+        )
+
+    def test_items_endpoint_post_returns_404_if_collection_does_not_exist(self):
+        collection_name = "non-existant collection"
+        response = self.client.post(
+            path=f'/{STAC_BASE_V}/collections/{collection_name}/items',
+            data=self.payload,
+            content_type="application/json"
+        )
+        response_json = response.json()
+
+        self.assertStatusCode(404, response)
+        self.assertEqual(response_json["code"], 404)
+        self.assertEqual(response_json["description"], "Collection matching query does not exist.")
 
 
 class ItemRaceConditionTest(StacBaseTransactionTestCase):
