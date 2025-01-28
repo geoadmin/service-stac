@@ -61,6 +61,7 @@ class AssetsExternalAssetEndpointTestCase(StacBaseTestCase):
         created_asset = Asset.objects.last()
         self.assertEqual(created_asset.file, asset_data['href'])
         self.assertTrue(created_asset.is_external)
+        self.assertTrue(created_asset.file_size, -1)
 
     @responses.activate
     def test_create_asset_validate_external_url(self):
@@ -104,6 +105,7 @@ class AssetsExternalAssetEndpointTestCase(StacBaseTestCase):
         created_asset = Asset.objects.last()
         self.assertEqual(created_asset.file, asset_data['href'])
         self.assertTrue(created_asset.is_external)
+        self.assertTrue(created_asset.file_size, -1)
 
     @responses.activate
     def test_create_asset_validate_external_url_not_found(self):
@@ -217,6 +219,7 @@ class AssetsExternalAssetEndpointTestCase(StacBaseTestCase):
         updated_asset = Asset.objects.last()
         self.assertEqual(updated_asset.file, asset_data['href'])
         self.assertTrue(updated_asset.is_external)
+        self.assertTrue(updated_asset.file_size, -1)
 
     def test_get_asset_with_external_url(self):
         collection = self.collection
