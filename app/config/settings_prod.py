@@ -77,6 +77,7 @@ INSTALLED_APPS = [
 
 # API Authentication options
 FEATURE_AUTH_ENABLE_APIGW = env('FEATURE_AUTH_ENABLE_APIGW', bool, default=False)
+FEATURE_AUTH_RESTRICT_V1 = env('FEATURE_AUTH_RESTRICT_V1', bool, default=False)
 
 # Middlewares are executed in order, once for the incoming
 # request top-down, once for the outgoing response bottom up
@@ -306,9 +307,9 @@ REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': ['rest_framework.renderers.JSONRenderer'],
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'middleware.api_gateway_authentication.ApiGatewayAuthentication',
-        'rest_framework.authentication.BasicAuthentication',
-        'rest_framework.authentication.TokenAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
+        'middleware.rest_framework_authentication.RestrictedBasicAuthentication',
+        'middleware.rest_framework_authentication.RestrictedTokenAuthentication',
+        'middleware.rest_framework_authentication.RestrictedSessionAuthentication',
     ],
     'DEFAULT_PAGINATION_CLASS': 'stac_api.pagination.CursorPagination',
     'PAGE_SIZE': env.int('PAGE_SIZE', default=100),

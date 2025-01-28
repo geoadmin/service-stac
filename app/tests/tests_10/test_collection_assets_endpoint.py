@@ -1,4 +1,5 @@
 import logging
+from base64 import b64encode
 from datetime import datetime
 from json import dumps
 from json import loads
@@ -6,7 +7,10 @@ from pprint import pformat
 
 from django.contrib.auth import get_user_model
 from django.test import Client
+from django.test import override_settings
 from django.urls import reverse
+
+from rest_framework.authtoken.models import Token
 
 from stac_api.models.collection import CollectionAsset
 from stac_api.utils import get_collection_asset_path
@@ -710,20 +714,88 @@ class CollectionAssetsEndpointUnauthorizedTestCase(StacBaseTestCase):
         # make sure POST fails for anonymous user:
         path = f'/{STAC_BASE_V}/collections/{collection_name}/assets'
         response = self.client.post(path, data=new_asset, content_type="application/json")
-        self.assertStatusCode(401, response, msg="Unauthorized post was permitted.")
+        self.assertStatusCode(401, response, msg="Unexpected status.")
 
         # make sure PUT fails for anonymous user:
 
         path = f'/{STAC_BASE_V}/collections/{collection_name}/assets/{asset_name}'
         response = self.client.put(path, data=updated_asset, content_type="application/json")
-        self.assertStatusCode(401, response, msg="Unauthorized put was permitted.")
+        self.assertStatusCode(401, response, msg="Unexpected status.")
 
         # make sure PATCH fails for anonymous user:
         path = f'/{STAC_BASE_V}/collections/{collection_name}/assets/{asset_name}'
         response = self.client.patch(path, data=updated_asset, content_type="application/json")
-        self.assertStatusCode(401, response, msg="Unauthorized patch was permitted.")
+        self.assertStatusCode(401, response, msg="Unexpected status.")
 
         # make sure DELETE fails for anonymous user:
         path = f'/{STAC_BASE_V}/collections/{collection_name}/assets/{asset_name}'
         response = self.client.delete(path)
-        self.assertStatusCode(401, response, msg="Unauthorized del was permitted.")
+        self.assertStatusCode(401, response, msg="Unexpected status.")
+
+
+class CollectionAssetsDisabledAuthenticationEndpointTestCase(StacBaseTestCase):
+
+    @mock_s3_asset_file
+    def setUp(self):  # pylint: disable=invalid-name
+        self.factory = Factory()
+        self.collection = self.factory.create_collection_sample().model
+        self.asset = self.factory.create_collection_asset_sample(collection=self.collection).model
+        self.client = Client()
+        self.username = 'SherlockHolmes'
+        self.password = '221B_BakerStreet'
+        self.user = get_user_model().objects.create_superuser(
+            self.username, 'top@secret.co.uk', self.password
+        )
+
+    def run_test(self, status, headers=None):
+        collection_name = self.collection.name
+        asset_name = self.asset.name
+
+        # PUT
+        path = f'/{STAC_BASE_V}/collections/{collection_name}/assets/{asset_name}'
+        response = self.client.put(path, headers=headers, data={}, content_type="application/json")
+        self.assertStatusCode(status, response, msg="Unauthorized put was permitted.")
+
+        # PATCH
+        response = self.client.patch(
+            path, headers=headers, data={}, content_type="application/json"
+        )
+        self.assertStatusCode(status, response, msg="Unauthorized patch was permitted.")
+
+        # DELETE
+        response = self.client.delete(path, headers=headers)
+        self.assertStatusCode(status, response, msg="Unauthorized del was permitted.")
+
+    @override_settings(FEATURE_AUTH_RESTRICT_V1=False)
+    def test_enabled_session_authentication(self):
+        self.client.login(username=self.username, password=self.password)
+        self.run_test([200, 400])
+
+    @override_settings(FEATURE_AUTH_RESTRICT_V1=False)
+    def test_enabled_token_authentication(self):
+        token = Token.objects.create(user=self.user)
+        headers = {'Authorization': f'Token {token.key}'}
+        self.run_test([200, 400], headers=headers)
+
+    @override_settings(FEATURE_AUTH_RESTRICT_V1=False)
+    def test_enabled_base_authentication(self):
+        token = b64encode(f'{self.username}:{self.password}'.encode()).decode()
+        headers = {'Authorization': f'Basic {token}'}
+        self.run_test([200, 400], headers=headers)
+
+    @override_settings(FEATURE_AUTH_RESTRICT_V1=True)
+    def test_disabled_session_authentication(self):
+        self.client.login(username=self.username, password=self.password)
+        self.run_test(401)
+
+    @override_settings(FEATURE_AUTH_RESTRICT_V1=True)
+    def test_disabled_token_authentication(self):
+        token = Token.objects.create(user=self.user)
+        headers = {'Authorization': f'Token {token.key}'}
+        self.run_test(401, headers=headers)
+
+    @override_settings(FEATURE_AUTH_RESTRICT_V1=True)
+    def test_disabled_base_authentication(self):
+        token = b64encode(f'{self.username}:{self.password}'.encode()).decode()
+        headers = {'Authorization': f'Basic {token}'}
+        self.run_test(401, headers=headers)
