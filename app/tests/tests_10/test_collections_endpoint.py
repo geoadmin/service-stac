@@ -23,7 +23,6 @@ from tests.tests_10.data_factory import CollectionFactory
 from tests.tests_10.data_factory import Factory
 from tests.tests_10.data_factory import SampleData
 from tests.tests_10.utils import reverse_version
-from tests.utils import client_login
 from tests.utils import disableLogger
 from tests.utils import mock_s3_asset_file
 
@@ -117,11 +116,11 @@ class CollectionsEndpointTestCase(StacBaseTestCase):
         )
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class CollectionsUnImplementedEndpointTestCase(StacBaseTestCase):
 
     def setUp(self):  # pylint: disable=invalid-name
         self.client = Client()
-        client_login(self.client)
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample()
         self.maxDiff = None  # pylint: disable=invalid-name
@@ -129,17 +128,20 @@ class CollectionsUnImplementedEndpointTestCase(StacBaseTestCase):
     def test_collections_post_unimplemented(self):
         response = self.client.post(
             f"/{STAC_BASE_V}/collections",
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data=self.collection.get_json('post'),
             content_type='application/json'
         )
         self.assertStatusCode(405, response)
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class CollectionsCreateEndpointTestCase(StacBaseTestCase):
 
     def setUp(self):  # pylint: disable=invalid-name
         self.client = Client()
-        client_login(self.client)
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample()
         self.maxDiff = None  # pylint: disable=invalid-name
@@ -150,6 +152,9 @@ class CollectionsCreateEndpointTestCase(StacBaseTestCase):
         # the dataset to update does not exist yet
         response = self.client.put(
             f"/{STAC_BASE_V}/collections/{sample['name']}",
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data=sample.get_json('put'),
             content_type='application/json'
         )
@@ -163,6 +168,9 @@ class CollectionsCreateEndpointTestCase(StacBaseTestCase):
 
         response = self.client.put(
             f"/{STAC_BASE_V}/collections/{collection['name']}",
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data=collection.get_json('put'),
             content_type='application/json'
         )
@@ -177,7 +185,12 @@ class CollectionsCreateEndpointTestCase(StacBaseTestCase):
 
         path = f"/{STAC_BASE_V}/collections/{collection['name']}"
         response = self.client.put(
-            path, data=collection.get_json('put'), content_type='application/json'
+            path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+            data=collection.get_json('put'),
+            content_type='application/json'
         )
         response_json = response.json()
         logger.debug(response_json)
@@ -195,6 +208,9 @@ class CollectionsCreateEndpointTestCase(StacBaseTestCase):
 
         response = self.client.put(
             f"/{STAC_BASE_V}/collections/{collection['name']}",
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data=collection.get_json('put'),
             content_type='application/json'
         )
@@ -218,7 +234,12 @@ class CollectionsCreateEndpointTestCase(StacBaseTestCase):
 
         path = f"/{STAC_BASE_V}/collections/{collection_sample['name']}"
         response = self.client.put(
-            path, data=collection_sample.get_json('put'), content_type='application/json'
+            path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+            data=collection_sample.get_json('put'),
+            content_type='application/json'
         )
         self.assertStatusCode(201, response)
         self.assertLocationHeader(f'{path}', response)
@@ -259,6 +280,9 @@ class CollectionsCreateEndpointTestCase(StacBaseTestCase):
         # Publish the collection
         response = self.client.patch(
             f"/{STAC_BASE_V}/collections/{collection.name}",
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data={'published': True},
             content_type='application/json'
         )
@@ -283,6 +307,9 @@ class CollectionsCreateEndpointTestCase(StacBaseTestCase):
         with self.settings(DEBUG_PROPAGATE_API_EXCEPTIONS=True), disableLogger('stac_api.apps'):
             response = self.client.put(
                 reverse('test-collection-detail-http-500', args=[sample['name']]),
+                headers={
+                    "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+                },
                 data=sample.get_json('put'),
                 content_type='application/json'
             )
@@ -294,11 +321,11 @@ class CollectionsCreateEndpointTestCase(StacBaseTestCase):
         self.assertStatusCode(404, response)
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class CollectionsUpdateEndpointTestCase(StacBaseTestCase):
 
     def setUp(self):  # pylint: disable=invalid-name
         self.client = Client()
-        client_login(self.client)
         self.collection_factory = CollectionFactory()
         self.collection = self.collection_factory.create_sample(db_create=True)
         self.maxDiff = None  # pylint: disable=invalid-name
@@ -310,6 +337,9 @@ class CollectionsUpdateEndpointTestCase(StacBaseTestCase):
 
         response = self.client.put(
             f"/{STAC_BASE_V}/collections/{sample['name']}",
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data=sample.get_json('put'),
             content_type='application/json'
         )
@@ -329,6 +359,9 @@ class CollectionsUpdateEndpointTestCase(StacBaseTestCase):
 
         response = self.client.put(
             f"/{STAC_BASE_V}/collections/{sample['name']}",
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data=sample.get_json('put'),
             content_type='application/json'
         )
@@ -346,6 +379,9 @@ class CollectionsUpdateEndpointTestCase(StacBaseTestCase):
 
         response = self.client.put(
             f"/{STAC_BASE_V}/collections/{sample['name']}",
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data=sample.get_json('put', keep_read_only=True),
             content_type='application/json'
         )
@@ -364,6 +400,9 @@ class CollectionsUpdateEndpointTestCase(StacBaseTestCase):
         self.assertNotEqual(self.collection['name'], sample['name'])
         response = self.client.put(
             f"/{STAC_BASE_V}/collections/{self.collection['name']}",
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data=sample.get_json('put'),
             content_type='application/json'
         )
@@ -390,6 +429,9 @@ class CollectionsUpdateEndpointTestCase(StacBaseTestCase):
         self.assertNotEqual('', f'{self.collection["title"]}')
         response = self.client.put(
             f"/{STAC_BASE_V}/collections/{sample['name']}",
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data=sample.get_json('put'),
             content_type='application/json'
         )
@@ -408,6 +450,9 @@ class CollectionsUpdateEndpointTestCase(StacBaseTestCase):
 
         response = self.client.patch(
             f"/{STAC_BASE_V}/collections/{collection_name}",
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data=payload_json,
             content_type='application/json'
         )
@@ -427,6 +472,9 @@ class CollectionsUpdateEndpointTestCase(StacBaseTestCase):
         # for start the payload has no description
         response = self.client.patch(
             f"/{STAC_BASE_V}/collections/{collection_name}",
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data=payload_json,
             content_type='application/json'
         )
@@ -442,6 +490,9 @@ class CollectionsUpdateEndpointTestCase(StacBaseTestCase):
         self.assertNotEqual(self.collection['license'], payload_json['license'])
         response = self.client.patch(
             f"/{STAC_BASE_V}/collections/{collection_name}",
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data=payload_json,
             content_type='application/json'
         )
@@ -464,6 +515,9 @@ class CollectionsUpdateEndpointTestCase(StacBaseTestCase):
             # console therefore disable it.
             response = self.client.put(
                 reverse('test-collection-detail-http-500', args=[sample['name']]),
+                headers={
+                    "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+                },
                 data=sample.get_json('put'),
                 content_type='application/json'
             )
@@ -476,11 +530,11 @@ class CollectionsUpdateEndpointTestCase(StacBaseTestCase):
         self.check_stac_collection(self.collection.json, response.json())
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class CollectionsDeleteEndpointTestCase(StacBaseTestCase):
 
     def setUp(self):  # pylint: disable=invalid-name
         self.client = Client()
-        client_login(self.client)
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample(db_create=True)
         self.item = self.factory.create_item_sample(self.collection.model, db_create=True)
@@ -489,7 +543,12 @@ class CollectionsDeleteEndpointTestCase(StacBaseTestCase):
     def test_authorized_collection_delete(self):
 
         path = reverse_version('collection-detail', args=[self.collection["name"]])
-        response = self.client.delete(path)
+        response = self.client.delete(
+            path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+        )
 
         self.assertStatusCode(400, response)
         self.assertEqual(
@@ -500,7 +559,11 @@ class CollectionsDeleteEndpointTestCase(StacBaseTestCase):
         item_path = reverse_version(
             'item-detail', args=[self.collection["name"], self.item['name']]
         )
-        response = self.client.delete(item_path)
+        response = self.client.delete(
+            item_path, headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            }
+        )
         self.assertStatusCode(200, response)
 
         # try the collection delete again
@@ -669,11 +732,11 @@ class CollectionsDisabledAuthenticationEndpointTestCase(StacBaseTestCase):
         self.run_test(401, headers=headers)
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class CollectionLinksEndpointTestCase(StacBaseTestCase):
 
     def setUp(self):
         self.client = Client()
-        client_login(self.client)
 
     @classmethod
     def setUpTestData(cls) -> None:
@@ -686,7 +749,14 @@ class CollectionLinksEndpointTestCase(StacBaseTestCase):
         data = self.collection_data.get_json('put')
 
         path = f'/{STAC_BASE_V}/collections/{self.collection.name}'
-        response = self.client.put(path, data=data, content_type="application/json")
+        response = self.client.put(
+            path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+            data=data,
+            content_type="application/json"
+        )
 
         self.assertEqual(response.status_code, 200)
 
@@ -706,7 +776,14 @@ class CollectionLinksEndpointTestCase(StacBaseTestCase):
         }]
 
         path = f'/{STAC_BASE_V}/collections/{self.collection.name}'
-        response = self.client.put(path, data=data, content_type="application/json")
+        response = self.client.put(
+            path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+            data=data,
+            content_type="application/json"
+        )
 
         self.assertEqual(response.status_code, 200)
 
@@ -747,7 +824,14 @@ class CollectionLinksEndpointTestCase(StacBaseTestCase):
         }]
 
         path = f'/{STAC_BASE_V}/collections/{self.collection.name}'
-        response = self.client.put(path, data=data, content_type="application/json")
+        response = self.client.put(
+            path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+            data=data,
+            content_type="application/json"
+        )
 
         self.assertEqual(response.status_code, 400)
         content = response.json()

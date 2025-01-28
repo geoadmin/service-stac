@@ -15,7 +15,6 @@ from tests.tests_10.base_test import STAC_BASE_V
 from tests.tests_10.base_test import StacBaseTestCase
 from tests.tests_10.data_factory import Factory
 from tests.utils import S3TestMixin
-from tests.utils import client_login
 from tests.utils import disableLogger
 from tests.utils import get_http_error_description
 from tests.utils import mock_s3_asset_file
@@ -193,6 +192,7 @@ class ApiPaginationTestCase(StacBaseTestCase):
                 )
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class ApiETagPreconditionTestCase(StacBaseTestCase):
 
     @mock_s3_asset_file
@@ -252,7 +252,6 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
                 self.assertStatusCode(412, response4)
 
     def test_put_precondition(self):
-        client_login(self.client)
         for (endpoint, sample) in [
             (
                 f'collections/{self.collection["name"]}',
@@ -285,7 +284,10 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
 
                 response = self.client.put(
                     f"/{STAC_BASE_V}/{endpoint}",
-                    sample.get_json('put'),
+                    headers={
+                        "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+                    },
+                    data=sample.get_json('put'),
                     content_type="application/json",
                     HTTP_IF_MATCH='"abc"'
                 )
@@ -293,15 +295,16 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
 
                 response = self.client.put(
                     f"/{STAC_BASE_V}/{endpoint}",
-                    sample.get_json('put'),
+                    headers={
+                        "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+                    },
+                    data=sample.get_json('put'),
                     content_type="application/json",
                     HTTP_IF_MATCH=self.get_etag(endpoint)
                 )
                 self.assertStatusCode(200, response)
 
     def test_wrong_media_type(self):
-        client_login(self.client)
-
         for (request_methods, endpoint, data) in [
             (
                 ['put', 'patch'],
@@ -325,12 +328,16 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
                 client_requests = [getattr(self.client, method) for method in request_methods]
                 for client_request in client_requests:
                     response = client_request(
-                        f"/{STAC_BASE_V}/{endpoint}", data=data, content_type="plain/text"
+                        f"/{STAC_BASE_V}/{endpoint}",
+                        headers={
+                            "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+                        },
+                        data=data,
+                        content_type="plain/text"
                     )
                     self.assertStatusCode(415, response)
 
     def test_patch_precondition(self):
-        client_login(self.client)
         for (endpoint, data) in [
             (
                 f'collections/{self.collection["name"]}',
@@ -358,7 +365,10 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
 
                 response = self.client.patch(
                     f"/{STAC_BASE_V}/{endpoint}",
-                    data,
+                    headers={
+                        "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+                    },
+                    data=data,
                     content_type="application/json",
                     HTTP_IF_MATCH='"abc"'
                 )
@@ -366,14 +376,16 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
 
                 response = self.client.patch(
                     f"/{STAC_BASE_V}/{endpoint}",
-                    data,
+                    headers={
+                        "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+                    },
+                    data=data,
                     content_type="application/json",
                     HTTP_IF_MATCH=self.get_etag(endpoint)
                 )
                 self.assertStatusCode(200, response)
 
     def test_delete_precondition(self):
-        client_login(self.client)
         for endpoint in [
             f'collections/{self.collection["name"]}/items/{self.item["name"]}'
             f'/assets/{self.asset["name"]}',
@@ -385,6 +397,9 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
 
                 response = self.client.delete(
                     f"/{STAC_BASE_V}/{endpoint}",
+                    headers={
+                        "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+                    },
                     content_type="application/json",
                     HTTP_IF_MATCH='"abc"'
                 )
@@ -394,6 +409,9 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
 
                 response = self.client.delete(
                     f"/{STAC_BASE_V}/{endpoint}",
+                    headers={
+                        "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+                    },
                     content_type="application/json",
                     HTTP_IF_MATCH=etag1
                 )
