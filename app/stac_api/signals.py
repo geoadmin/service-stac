@@ -4,10 +4,10 @@ from django.db.models import ProtectedError
 from django.db.models.signals import pre_delete
 from django.dispatch import receiver
 
-from stac_api.models import Asset
-from stac_api.models import AssetUpload
-from stac_api.models import CollectionAsset
-from stac_api.models import CollectionAssetUpload
+from stac_api.models.collection import CollectionAsset
+from stac_api.models.collection import CollectionAssetUpload
+from stac_api.models.item import Asset
+from stac_api.models.item import AssetUpload
 
 logger = logging.getLogger(__name__)
 

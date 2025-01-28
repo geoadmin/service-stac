@@ -1,7 +1,9 @@
+import responses
+
 from django.conf import settings
 from django.test import Client
 
-from stac_api.models import Asset
+from stac_api.models.item import Asset
 
 from tests.tests_10.base_test import StacBaseTestCase
 from tests.tests_10.data_factory import Factory
@@ -59,6 +61,135 @@ class AssetsExternalAssetEndpointTestCase(StacBaseTestCase):
         created_asset = Asset.objects.last()
         self.assertEqual(created_asset.file, asset_data['href'])
         self.assertTrue(created_asset.is_external)
+
+    @responses.activate
+    def test_create_asset_validate_external_url(self):
+        collection = self.collection
+        item = self.item
+        external_test_asset_url = 'https://example.com/api/123.jpeg'
+        collection.allow_external_assets = True
+        collection.external_asset_whitelist = ['https://example.com']
+        collection.save()
+
+        # Mock response of external asset url
+        responses.add(
+            method=responses.GET,
+            url=external_test_asset_url,
+            body='som',
+            status=200,
+            content_type='application/json',
+            adding_headers={'Content-Length': '3'},
+            match=[responses.matchers.header_matcher({"Range": "bytes=0-2"})]
+        )
+
+        asset_data = {
+            'id': 'clouds.jpg',
+            'description': 'High in the sky',
+            'type': 'image/jpeg',  # specify the file explicitly
+            # 'href': settings.EXTERNAL_TEST_ASSET_URL
+            'href': external_test_asset_url
+        }
+
+        # create the asset
+        response = self.client.put(
+            reverse_version('asset-detail', args=[collection.name, item.name, asset_data['id']]),
+            data=asset_data,
+            content_type="application/json"
+        )
+
+        json_data = response.json()
+        self.assertStatusCode(201, response)
+        self.assertEqual(json_data['href'], asset_data['href'])
+
+        created_asset = Asset.objects.last()
+        self.assertEqual(created_asset.file, asset_data['href'])
+        self.assertTrue(created_asset.is_external)
+
+    @responses.activate
+    def test_create_asset_validate_external_url_not_found(self):
+        collection = self.collection
+        item = self.item
+        external_test_asset_url = 'https://example.com/api/123.jpeg'
+        collection.allow_external_assets = True
+        collection.external_asset_whitelist = ['https://example.com']
+        collection.save()
+
+        # Mock response of external asset url returning 404
+        responses.add(
+            method=responses.GET,
+            url=external_test_asset_url,
+            body='',
+            status=404,
+            content_type='application/json',
+            adding_headers={'Content-Length': '0'},
+            match=[responses.matchers.header_matcher({"Range": "bytes=0-2"})]
+        )
+
+        asset_data = {
+            'id': 'not_found.jpg',
+            'description': 'High in the sky',
+            'type': 'image/jpeg',  # specify the file explicitly
+            'href': external_test_asset_url
+        }
+
+        # create the asset
+        response = self.client.put(
+            reverse_version('asset-detail', args=[collection.name, item.name, asset_data['id']]),
+            data=asset_data,
+            content_type="application/json"
+        )
+
+        self.assertStatusCode(400, response)
+        description = response.json()['description']
+        self.assertIn('href', description, msg=f'Unexpected field error {description}')
+        self.assertIn(
+            'Provided URL is unreachable',
+            description['href'],
+            msg=f'Unexpected field error {description}'
+        )
+
+    @responses.activate
+    def test_create_asset_validate_external_url_bad_content(self):
+        collection = self.collection
+        item = self.item
+        external_test_asset_url = 'https://example.com/api/123.jpeg'
+        collection.allow_external_assets = True
+        collection.external_asset_whitelist = ['https://example.com']
+        collection.save()
+
+        # Mock response of external asset url returning wrong content length
+        responses.add(
+            method=responses.GET,
+            url=external_test_asset_url,
+            body='',
+            status=200,
+            content_type='application/json',
+            adding_headers={'Content-Length': '0'},
+            match=[responses.matchers.header_matcher({"Range": "bytes=0-2"})]
+        )
+
+        asset_data = {
+            'id': 'not_found.jpg',
+            'description': 'High in the sky',
+            'type': 'image/jpeg',  # specify the file explicitly
+            'href': external_test_asset_url
+        }
+
+        # create the asset
+        response = self.client.put(
+            reverse_version('asset-detail', args=[collection.name, item.name, asset_data['id']]),
+            data=asset_data,
+            content_type="application/json"
+        )
+
+        self.assertStatusCode(400, response)
+        description = response.json()['description']
+        self.assertIn('href', description, msg=f'Unexpected field error {description}')
+        self.assertIn(
+            'Provided URL returns bad content',
+            description['href'],
+            msg=f'Unexpected field error {description}'
+        )
 
     def test_update_asset_with_external_url(self):
         collection = self.collection

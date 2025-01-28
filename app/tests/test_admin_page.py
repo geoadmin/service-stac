@@ -2,14 +2,15 @@ import logging
 from io import BytesIO
 
 from django.conf import settings
+from django.test import override_settings
 from django.urls import reverse
 
-from stac_api.models import Asset
-from stac_api.models import Collection
-from stac_api.models import CollectionLink
-from stac_api.models import Item
-from stac_api.models import ItemLink
-from stac_api.models import Provider
+from stac_api.models.collection import Collection
+from stac_api.models.collection import CollectionLink
+from stac_api.models.general import Provider
+from stac_api.models.item import Asset
+from stac_api.models.item import Item
+from stac_api.models.item import ItemLink
 from stac_api.utils import parse_multihash
 
 from tests.base_test_admin_page import AdminBaseTestCase
@@ -47,6 +48,17 @@ class AdminTestCase(AdminBaseTestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual("/api/stac/admin/login/?next=/api/stac/admin/", response.url)
 
+    def test_login_header_disabled(self):
+        response = self.client.get(
+            "/api/stac/admin/",
+            headers={
+                "Geoadmin-Username": self.username, "Geoadmin-Authenticated": "true"
+            }
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual("/api/stac/admin/login/?next=/api/stac/admin/", response.url)
+
+    @override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
     def test_login_header(self):
         response = self.client.get(
             "/api/stac/admin/",
@@ -56,11 +68,13 @@ class AdminTestCase(AdminBaseTestCase):
         )
         self.assertEqual(response.status_code, 200, msg="Admin page login with header failed")
 
+    @override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
     def test_login_header_noheader(self):
         response = self.client.get("/api/stac/admin/")
         self.assertEqual(response.status_code, 302)
         self.assertEqual("/api/stac/admin/login/?next=/api/stac/admin/", response.url)
 
+    @override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
     def test_login_header_wronguser(self):
         response = self.client.get(
             "/api/stac/admin/",
@@ -71,6 +85,7 @@ class AdminTestCase(AdminBaseTestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual("/api/stac/admin/login/?next=/api/stac/admin/", response.url)
 
+    @override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
     def test_login_header_not_authenticated(self):
         self.assertNotIn("sessionid", self.client.cookies)
         response = self.client.get(
@@ -82,6 +97,7 @@ class AdminTestCase(AdminBaseTestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual("/api/stac/admin/login/?next=/api/stac/admin/", response.url)
 
+    @override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
     def test_login_header_session(self):
         self.assertNotIn("sessionid", self.client.cookies)
 

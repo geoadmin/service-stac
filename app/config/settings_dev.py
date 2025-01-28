@@ -66,16 +66,6 @@ AWS_SETTINGS['managed']['access_type'] = "key"
 AWS_SETTINGS['managed']['ACCESS_KEY_ID'] = env("LEGACY_AWS_ACCESS_KEY_ID")
 AWS_SETTINGS['managed']['SECRET_ACCESS_KEY'] = env("LEGACY_AWS_SECRET_ACCESS_KEY")
 
-# API Gateway integration PB-1009
-AUTHENTICATION_BACKENDS = [
-    "django.contrib.auth.backends.RemoteUserBackend",
-    # We keep ModelBackend as fallback until we have moved all users to Cognito.
-    "django.contrib.auth.backends.ModelBackend",
-]
-MIDDLEWARE += [
-    "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "middleware.apigw.ApiGatewayMiddleware",
-]
 # By default sessions expire after two weeks.
 # Sessions are only useful for user tracking in the admin UI. For security
 # reason we should expire these sessions as soon as possible. Given the use

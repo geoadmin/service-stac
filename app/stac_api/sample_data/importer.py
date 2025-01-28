@@ -9,11 +9,11 @@ from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry
 from django.core.files.uploadedfile import SimpleUploadedFile
 
-from stac_api.models import Asset
-from stac_api.models import Collection
-from stac_api.models import CollectionLink
-from stac_api.models import Item
-from stac_api.models import Provider
+from stac_api.models.collection import Collection
+from stac_api.models.collection import CollectionLink
+from stac_api.models.general import Provider
+from stac_api.models.item import Asset
+from stac_api.models.item import Item
 
 # path definition relative to the directory that contains manage.py
 DATADIR = settings.BASE_DIR / 'app/stac_api/management/sample_data/'

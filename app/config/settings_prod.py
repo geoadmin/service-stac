@@ -75,6 +75,9 @@ INSTALLED_APPS = [
     'stac_api.apps.StacApiConfig',
 ]
 
+# API Authentication options
+FEATURE_AUTH_ENABLE_APIGW = env('FEATURE_AUTH_ENABLE_APIGW', bool, default=False)
+
 # Middlewares are executed in order, once for the incoming
 # request top-down, once for the outgoing response bottom up
 # Note: The prometheus middlewares should always be first and
@@ -92,11 +95,18 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'middleware.api_gateway_middleware.ApiGatewayMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'middleware.cache_headers.CacheHeadersMiddleware',
     'middleware.exception.ExceptionLoggingMiddleware',
     'django_prometheus.middleware.PrometheusAfterMiddleware',
+]
+
+AUTHENTICATION_BACKENDS = [
+    "middleware.api_gateway_middleware.ApiGatewayUserBackend",
+    # We keep ModelBackend as fallback until we have moved all users to Cognito.
+    "django.contrib.auth.backends.ModelBackend",
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -295,6 +305,7 @@ TEST_RUNNER = 'tests.runner.TestRunner'
 REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': ['rest_framework.renderers.JSONRenderer'],
     'DEFAULT_AUTHENTICATION_CLASSES': [
+        'middleware.api_gateway_authentication.ApiGatewayAuthentication',
         'rest_framework.authentication.BasicAuthentication',
         'rest_framework.authentication.TokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',

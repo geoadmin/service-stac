@@ -1331,16 +1331,9 @@ components:
         forecast:duration:
           $ref: "#/components/schemas/duration"
         forecast:variable:
-          description: >-
-            Name of the model variable that corresponds to the data. The variables should correspond to the [CF Standard Names](https://cfconventions.org/Data/cf-standard-names/current/build/cf-standard-name-table.html), e.g. `air_temperature` for the air temperature.
-          example: air_temperature
-          type: string
-          nullable: true
+          $ref: "#/components/schemas/forecast_variable"
         forecast:perturbed:
-          description: >-
-            Denotes whether the data corresponds to the control run (`false`) or perturbed runs (`true`). The property needs to be specified in both cases as no default value is specified and as such the meaning is "unknown" in case it's missing.
-          type: boolean
-          nullable: true
+          $ref: "#/components/schemas/forecast_perturbed"
       required:
         - created
         - updated
@@ -1697,6 +1690,37 @@ components:
         query:
           $ref: "#/components/schemas/query"
       type: object
+    forecast_reference_datetimeFilter:
+      properties:
+        forecast:reference_datetime:
+          $ref: "#/components/schemas/datetimeQuery"
+    forecast_horizonFilter:
+      properties:
+        forecast:horizon:
+          $ref: "#/components/schemas/duration"
+    forecast_durationFilter:
+      properties:
+        forecast:duration:
+          $ref: "#/components/schemas/duration"
+    forecast_variableFilter:
+      properties:
+        forecast:variable:
+          $ref: "#/components/schemas/forecast_variable"
+    forecast_variable:
+      description: >-
+        Name of the model variable that corresponds to the data. The variables should correspond to the [CF Standard Names](https://cfconventions.org/Data/cf-standard-names/current/build/cf-standard-name-table.html), e.g. `air_temperature` for the air temperature.
+      example: air_temperature
+      type: string
+      nullable: true
+    forecast_perturbedFilter:
+      properties:
+        forecast:perturbed:
+          $ref: "#/components/schemas/forecast_perturbed"
+    forecast_perturbed:
+      description: >-
+        Denotes whether the data corresponds to the control run (`false`) or perturbed runs (`true`). The property needs to be specified in both cases as no default value is specified and as such the meaning is "unknown" in case it's missing.
+      type: boolean
+      nullable: true
     queryProp:
       anyOf:
         - description: >-
@@ -1783,6 +1807,11 @@ components:
         - $ref: "#/components/schemas/collectionsFilter"
         - $ref: "#/components/schemas/idsFilter"
         - $ref: "#/components/schemas/limitFilter"
+        - $ref: "#/components/schemas/forecast_reference_datetimeFilter"
+        - $ref: "#/components/schemas/forecast_horizonFilter"
+        - $ref: "#/components/schemas/forecast_durationFilter"
+        - $ref: "#/components/schemas/forecast_variableFilter"
+        - $ref: "#/components/schemas/forecast_perturbedFilter"
       description: The search criteria
       type: object
     stac_version:
@@ -2083,7 +2112,7 @@ paths:
   /search:
     get:
       description: >-
-        Retrieve Items matching filters. Intended as a shorthand API for simple queries.
+        Retrieve Items matching filters. Intended as a shorthand API for simple queries. To filter by forecast properties please use the [POST /search](#tag/STAC/operation/postSearchSTAC) request.
       operationId: getSearchSTAC
       parameters:
         - $ref: "#/components/parameters/bbox"

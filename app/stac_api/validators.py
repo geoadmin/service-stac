@@ -650,10 +650,21 @@ def _validate_href_configured_pattern(url, collection):
 
 def _validate_href_reachability(url, collection):
     unreachable_error = _('Provided URL is unreachable')
+    invalidcontent_error = _('Provided URL returns bad content')
     try:
-        response = requests.head(url, timeout=settings.EXTERNAL_URL_REACHABLE_TIMEOUT)
+        # We change the way how we check reachability for MCH usecase from
+        # using HTTP HEAD request to HTTP GET with range
+        # Once we have other use cases that would require using HTTP HEAD request
+        # we would have to generalize this and make it configurable
+        # response = requests.head(url, timeout=settings.EXTERNAL_URL_REACHABLE_TIMEOUT)
 
-        if response.status_code > 400:
+        # We just wanna check reachability and aren't really interested in the content
+        headers = {"Range": "bytes=0-2"}
+        response = requests.get(
+            url, headers=headers, timeout=settings.EXTERNAL_URL_REACHABLE_TIMEOUT
+        )
+
+        if response.status_code >= 400:
             logger.warning(
                 "Attempted external asset upload failed the reachability check",
                 extra={
@@ -663,6 +674,16 @@ def _validate_href_reachability(url, collection):
                 }
             )
             raise ValidationError(unreachable_error)
+        if response.headers.get("Content-Length") != "3":
+            logger.warning(
+                "Attempted external asset upload failed the content length check",
+                extra={
+                    'url': url,
+                    'collection': collection,  # to have the means to know who this might have been
+                    'response': response,
+                }
+            )
+            raise ValidationError(invalidcontent_error)
     except requests.Timeout as exc:
         logger.warning(
             "Attempted external asset upload resulted in a timeout",

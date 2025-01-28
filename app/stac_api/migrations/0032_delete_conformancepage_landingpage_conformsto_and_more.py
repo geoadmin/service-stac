@@ -4,7 +4,7 @@ import django.contrib.postgres.fields
 from django.db import migrations
 from django.db import models
 
-import stac_api.models
+import stac_api.models.general
 import stac_api.validators
 
 
@@ -21,7 +21,7 @@ class Migration(migrations.Migration):
             name='conformsTo',
             field=django.contrib.postgres.fields.ArrayField(
                 base_field=models.URLField(),
-                default=stac_api.models.get_conformance_default_links,
+                default=stac_api.models.general.get_conformance_default_links,
                 help_text='Comma-separated list of URLs for the value conformsTo',
                 size=None
             ),

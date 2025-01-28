@@ -14,8 +14,8 @@ from rest_framework.decorators import permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from stac_api.models import Item
-from stac_api.models import LandingPage
+from stac_api.models.general import LandingPage
+from stac_api.models.item import Item
 from stac_api.pagination import GetPostCursorPagination
 from stac_api.serializers.general import ConformancePageSerializer
 from stac_api.serializers.general import LandingPageSerializer
@@ -69,6 +69,7 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
     # we must use the pk as ordering attribute, otherwise the cursor pagination will not work
     ordering = ['pk']
 
+    # pylint: disable=too-many-branches
     def get_queryset(self):
         queryset = Item.objects.filter(collection__published=True
                                       ).prefetch_related('assets', 'links')
@@ -92,6 +93,18 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
                 queryset = queryset.filter_by_query(dict_query)
             if 'intersects' in query_param:
                 queryset = queryset.filter_by_intersects(json.dumps(query_param['intersects']))
+            if 'forecast:reference_datetime' in query_param:
+                queryset = queryset.filter_by_forecast_reference_datetime(
+                    query_param['forecast:reference_datetime']
+                )
+            if 'forecast:horizon' in query_param:
+                queryset = queryset.filter_by_forecast_horizon(query_param['forecast:horizon'])
+            if 'forecast:duration' in query_param:
+                queryset = queryset.filter_by_forecast_duration(query_param['forecast:duration'])
+            if 'forecast:variable' in query_param:
+                queryset = queryset.filter_by_forecast_variable(query_param['forecast:variable'])
+            if 'forecast:perturbed' in query_param:
+                queryset = queryset.filter_by_forecast_perturbed(query_param['forecast:perturbed'])
 
         if settings.DEBUG_ENABLE_DB_EXPLAIN_ANALYZE:
             logger.debug(

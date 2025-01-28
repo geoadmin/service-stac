@@ -2,7 +2,7 @@ import logging
 
 from django.core.exceptions import ValidationError
 
-from stac_api.models import CollectionAsset
+from stac_api.models.collection import CollectionAsset
 
 from tests.tests_10.base_test import StacBaseTransactionTestCase
 from tests.tests_10.data_factory import Factory

@@ -9,7 +9,7 @@ import django.db.models.deletion
 from django.db import migrations
 from django.db import models
 
-import stac_api.models
+import stac_api.models.general
 
 
 class Migration(migrations.Migration):
@@ -69,7 +69,10 @@ class Migration(migrations.Migration):
                 ('created', models.DateTimeField(auto_now_add=True)),
                 ('ended', models.DateTimeField(blank=True, default=None, null=True)),
                 ('checksum_multihash', models.CharField(max_length=255)),
-                ('etag', models.CharField(default=stac_api.models.compute_etag, max_length=56)),
+                (
+                    'etag',
+                    models.CharField(default=stac_api.models.general.compute_etag, max_length=56)
+                ),
                 (
                     'update_interval',
                     models.IntegerField(

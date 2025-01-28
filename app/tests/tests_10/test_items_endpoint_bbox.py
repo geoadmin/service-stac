@@ -3,7 +3,7 @@ import logging
 from django.contrib.gis.geos.geometry import GEOSGeometry
 from django.test import Client
 
-from stac_api.models import BBOX_CH
+from stac_api.models.general import BBOX_CH
 
 from tests.tests_10.base_test import STAC_BASE_V
 from tests.tests_10.base_test import StacBaseTestCase
