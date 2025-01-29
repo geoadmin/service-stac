@@ -372,7 +372,7 @@ class ItemSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
     type = serializers.SerializerMethodField()
     collection = serializers.SlugRelatedField(slug_field='name', read_only=True)
     bbox = BboxSerializer(source='*', read_only=True)
-    assets = AssetsForItemSerializer(many=True, read_only=True)
+    assets = AssetsForItemSerializer(many=True)
     stac_extensions = serializers.SerializerMethodField()
     stac_version = serializers.SerializerMethodField()
 
@@ -475,16 +475,20 @@ class ItemListSerializer(serializers.Serializer):
         '''Create items in bulk from the given list of items.'''
         collection = validated_data["collection"]
 
-        new_items = []
+        items = []
         links_per_item = {}
+        assets_per_item = {}
         for item_in in validated_data["features"]:
-            links = item_in.pop('links', [])
-            links_per_item[item_in["name"]] = links
+            item_name = item_in["name"]
+            links_per_item[item_name] = item_in.pop('links', [])
+            assets_per_item[item_name] = item_in.pop('assets', [])
+
             item = Item(**item_in, collection=collection)
-            new_items.append(item)
+            items.append(item)
 
-        items_created = Item.objects.bulk_create(new_items)
+        items_created = Item.objects.bulk_create(items)
 
+        assets = []
         for item in items_created:
             update_or_create_links(
                 instance_type="item",
@@ -492,6 +496,12 @@ class ItemListSerializer(serializers.Serializer):
                 instance=item,
                 links_data=links_per_item[item.name]
             )
+            for asset_in in assets_per_item[item.name]:
+                asset = Asset(**asset_in, item=item)
+                assets.append(asset)
+
+        Asset.objects.bulk_create(assets)
+
         return items_created
 
     def to_representation(self, instance):
