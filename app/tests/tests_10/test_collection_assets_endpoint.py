@@ -22,7 +22,6 @@ from tests.tests_10.base_test import StacBaseTransactionTestCase
 from tests.tests_10.data_factory import Factory
 from tests.tests_10.utils import reverse_version
 from tests.utils import S3TestMixin
-from tests.utils import client_login
 from tests.utils import disableLogger
 from tests.utils import mock_s3_asset_file
 
@@ -95,6 +94,7 @@ class CollectionAssetsEndpointTestCase(StacBaseTestCase):
         self.assertEtagHeader(None, response)
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class CollectionAssetsUnimplementedEndpointTestCase(StacBaseTestCase):
 
     @mock_s3_asset_file
@@ -102,7 +102,6 @@ class CollectionAssetsUnimplementedEndpointTestCase(StacBaseTestCase):
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample().model
         self.client = Client()
-        client_login(self.client)
         self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_asset_unimplemented_post(self):
@@ -112,12 +111,16 @@ class CollectionAssetsUnimplementedEndpointTestCase(StacBaseTestCase):
         )
         response = self.client.post(
             f'/{STAC_BASE_V}/collections/{collection_name}/assets',
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data=asset.get_json('post'),
             content_type="application/json"
         )
         self.assertStatusCode(405, response)
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class CollectionAssetsCreateEndpointTestCase(StacBaseTestCase):
 
     @mock_s3_asset_file
@@ -125,7 +128,6 @@ class CollectionAssetsCreateEndpointTestCase(StacBaseTestCase):
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample().model
         self.client = Client()
-        client_login(self.client)
         self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_asset_upsert_create_only_required(self):
@@ -138,7 +140,14 @@ class CollectionAssetsCreateEndpointTestCase(StacBaseTestCase):
         json_to_send = asset.get_json('put')
         # Send a non normalized form of the type to see if it is also accepted
         json_to_send['type'] = 'image/TIFF;application=geotiff; Profile=cloud-optimized'
-        response = self.client.put(path, data=json_to_send, content_type="application/json")
+        response = self.client.put(
+            path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+            data=json_to_send,
+            content_type="application/json"
+        )
         json_data = response.json()
         self.assertStatusCode(201, response)
         self.assertLocationHeader(f"{path}", response)
@@ -178,6 +187,9 @@ class CollectionAssetsCreateEndpointTestCase(StacBaseTestCase):
         # Now use upsert to create the new asset
         response = self.client.put(
             reverse_version('collection-asset-detail', args=[collection.name, asset_name]),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data=asset.get_json('put'),
             content_type="application/json"
         )
@@ -224,7 +236,12 @@ class CollectionAssetsCreateEndpointTestCase(StacBaseTestCase):
 
         # Now use upsert to create the new asset
         response = self.client.put(
-            path, data=asset.get_json('post'), content_type="application/json"
+            path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+            data=asset.get_json('post'),
+            content_type="application/json"
         )
         self.assertStatusCode(404, response)
 
@@ -237,7 +254,12 @@ class CollectionAssetsCreateEndpointTestCase(StacBaseTestCase):
         path = \
             f'/{STAC_BASE_V}/collections/{collection_name}/assets/{asset["name"]}'
         response = self.client.put(
-            path, data=asset.get_json('put'), content_type="application/json"
+            path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+            data=asset.get_json('put'),
+            content_type="application/json"
         )
         self.assertStatusCode(400, response)
         json_data = response.json()
@@ -253,7 +275,12 @@ class CollectionAssetsCreateEndpointTestCase(StacBaseTestCase):
         path = \
             f'/{STAC_BASE_V}/collections/{collection_name}/assets/{asset["name"]}'
         response = self.client.put(
-            path, data=asset.get_json('put'), content_type="application/json"
+            path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+            data=asset.get_json('put'),
+            content_type="application/json"
         )
         self.assertStatusCode(400, response)
         self.assertEqual(
@@ -297,6 +324,7 @@ class CollectionAssetsCreateEndpointTestCase(StacBaseTestCase):
         )
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class CollectionAssetsUpdateEndpointAssetFileTestCase(StacBaseTestCase):
 
     @mock_s3_asset_file
@@ -307,7 +335,6 @@ class CollectionAssetsUpdateEndpointAssetFileTestCase(StacBaseTestCase):
             collection=self.collection.model, db_create=True
         )
         self.client = Client()
-        client_login(self.client)
         self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_asset_endpoint_patch_put_href(self):
@@ -320,7 +347,14 @@ class CollectionAssetsUpdateEndpointAssetFileTestCase(StacBaseTestCase):
         patch_payload = {'href': 'https://testserver/non-existing-asset'}
 
         path = f'/{STAC_BASE_V}/collections/{collection_name}/assets/{asset_name}'
-        response = self.client.patch(path, data=patch_payload, content_type="application/json")
+        response = self.client.patch(
+            path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+            data=patch_payload,
+            content_type="application/json"
+        )
         self.assertStatusCode(400, response)
         description = response.json()['description']
         self.assertIn('href', description, msg=f'Unexpected field error {description}')
@@ -330,7 +364,14 @@ class CollectionAssetsUpdateEndpointAssetFileTestCase(StacBaseTestCase):
             msg="Unexpected error message"
         )
 
-        response = self.client.put(path, data=put_payload, content_type="application/json")
+        response = self.client.put(
+            path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+            data=put_payload,
+            content_type="application/json"
+        )
         self.assertStatusCode(400, response)
         description = response.json()['description']
         self.assertIn('href', description, msg=f'Unexpected field error {description}')
@@ -341,6 +382,7 @@ class CollectionAssetsUpdateEndpointAssetFileTestCase(StacBaseTestCase):
         )
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class CollectionAssetsUpdateEndpointTestCase(StacBaseTestCase):
 
     @mock_s3_asset_file
@@ -351,7 +393,6 @@ class CollectionAssetsUpdateEndpointTestCase(StacBaseTestCase):
             collection=self.collection.model, db_create=True
         )
         self.client = Client()
-        client_login(self.client)
         self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_asset_endpoint_put(self):
@@ -368,7 +409,12 @@ class CollectionAssetsUpdateEndpointTestCase(StacBaseTestCase):
 
         path = f'/{STAC_BASE_V}/collections/{collection_name}/assets/{asset_name}'
         response = self.client.put(
-            path, data=changed_asset.get_json('put'), content_type="application/json"
+            path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+            data=changed_asset.get_json('put'),
+            content_type="application/json"
         )
         json_data = response.json()
         self.assertStatusCode(200, response)
@@ -395,7 +441,12 @@ class CollectionAssetsUpdateEndpointTestCase(StacBaseTestCase):
 
         path = f'/{STAC_BASE_V}/collections/{collection_name}/assets/{asset_name}'
         response = self.client.put(
-            path, data=changed_asset.get_json('put'), content_type="application/json"
+            path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+            data=changed_asset.get_json('put'),
+            content_type="application/json"
         )
         self.assertStatusCode(400, response)
         self.assertEqual({'extra_attribute': ['Unexpected property in payload']},
@@ -418,6 +469,9 @@ class CollectionAssetsUpdateEndpointTestCase(StacBaseTestCase):
         path = f'/{STAC_BASE_V}/collections/{collection_name}/assets/{asset_name}'
         response = self.client.put(
             path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data=changed_asset.get_json('put', keep_read_only=True),
             content_type="application/json"
         )
@@ -443,7 +497,12 @@ class CollectionAssetsUpdateEndpointTestCase(StacBaseTestCase):
 
         path = f'/{STAC_BASE_V}/collections/{collection_name}/assets/{asset_name}'
         response = self.client.put(
-            path, data=changed_asset.get_json('put'), content_type="application/json"
+            path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+            data=changed_asset.get_json('put'),
+            content_type="application/json"
         )
         self.assertStatusCode(400, response)
         self.assertEqual({'id': 'Renaming is not allowed'},
@@ -478,7 +537,12 @@ class CollectionAssetsUpdateEndpointTestCase(StacBaseTestCase):
 
         path = f'/{STAC_BASE_V}/collections/{collection_name}/assets/{asset_name}'
         response = self.client.patch(
-            path, data=changed_asset.get_json('patch'), content_type="application/json"
+            path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+            data=changed_asset.get_json('patch'),
+            content_type="application/json"
         )
         self.assertStatusCode(400, response)
         self.assertEqual({'id': 'Renaming is not allowed'},
@@ -515,7 +579,12 @@ class CollectionAssetsUpdateEndpointTestCase(StacBaseTestCase):
 
         path = f'/{STAC_BASE_V}/collections/{collection_name}/assets/{asset_name}'
         response = self.client.patch(
-            path, data=changed_asset.get_json('patch'), content_type="application/json"
+            path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+            data=changed_asset.get_json('patch'),
+            content_type="application/json"
         )
         self.assertStatusCode(400, response)
         self.assertEqual({'extra_payload': ['Unexpected property in payload']},
@@ -536,6 +605,9 @@ class CollectionAssetsUpdateEndpointTestCase(StacBaseTestCase):
         path = f'/{STAC_BASE_V}/collections/{collection_name}/assets/{asset_name}'
         response = self.client.patch(
             path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data=changed_asset.get_json('patch', keep_read_only=True),
             content_type="application/json"
         )
@@ -556,6 +628,9 @@ class CollectionAssetsUpdateEndpointTestCase(StacBaseTestCase):
                     'test-collection-asset-detail-http-500',
                     args=[self.collection['name'], sample['name']]
                 ),
+                headers={
+                    "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+                },
                 data=sample.get_json('put'),
                 content_type='application/json'
             )
@@ -587,6 +662,9 @@ class CollectionAssetsUpdateEndpointTestCase(StacBaseTestCase):
                     'test-collection-asset-detail-http-500',
                     args=[self.collection['name'], sample['name']]
                 ),
+                headers={
+                    "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+                },
                 data=sample.get_json('put'),
                 content_type='application/json'
             )
@@ -634,6 +712,9 @@ class CollectionAssetRaceConditionTest(StacBaseTransactionTestCase):
                     'collection-asset-detail',
                     args=[self.collection_sample['name'], asset_sample['name']]
                 ),
+                headers={
+                    "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+                },
                 data=asset_sample.get_json('put'),
                 content_type='application/json'
             )
@@ -655,6 +736,7 @@ class CollectionAssetRaceConditionTest(StacBaseTransactionTestCase):
         self.assertEqual(status_201, 1, msg="Not only one upsert did a create !")
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class CollectionAssetsDeleteEndpointTestCase(StacBaseTestCase, S3TestMixin):
 
     @mock_s3_asset_file
@@ -663,7 +745,6 @@ class CollectionAssetsDeleteEndpointTestCase(StacBaseTestCase, S3TestMixin):
         self.collection = self.factory.create_collection_sample().model
         self.asset = self.factory.create_collection_asset_sample(collection=self.collection).model
         self.client = Client()
-        client_login(self.client)
         self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_asset_endpoint_delete_asset(self):
@@ -672,7 +753,12 @@ class CollectionAssetsDeleteEndpointTestCase(StacBaseTestCase, S3TestMixin):
         path = f'/{STAC_BASE_V}/collections/{collection_name}/assets/{asset_name}'
         s3_path = get_collection_asset_path(self.collection, asset_name)
         self.assertS3ObjectExists(s3_path)
-        response = self.client.delete(path)
+        response = self.client.delete(
+            path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+        )
         self.assertStatusCode(200, response)
 
         # Check that is has really been deleted
@@ -689,7 +775,12 @@ class CollectionAssetsDeleteEndpointTestCase(StacBaseTestCase, S3TestMixin):
     def test_asset_endpoint_delete_asset_invalid_name(self):
         collection_name = self.collection.name
         path = f"/{STAC_BASE_V}/collections/{collection_name}/assets/non-existent-asset"
-        response = self.client.delete(path)
+        response = self.client.delete(
+            path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+        )
         self.assertStatusCode(404, response)
 
 

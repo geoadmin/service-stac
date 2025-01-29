@@ -2,23 +2,23 @@ import logging
 
 from django.contrib.gis.geos import Polygon
 from django.test import Client
+from django.test import override_settings
 
 from tests.tests_10.base_test import STAC_BASE_V
 from tests.tests_10.base_test import StacBaseTransactionTestCase
 from tests.tests_10.data_factory import Factory
 from tests.tests_10.utils import calculate_extent
-from tests.utils import client_login
 
 logger = logging.getLogger(__name__)
 
 
 # Here we need to use TransactionTestCase due to the pgtrigger, in a normal
 # test case we cannot test effect of pgtrigger.
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class OneItemSpatialTestCase(StacBaseTransactionTestCase):
 
     def setUp(self):
         self.client = Client()
-        client_login(self.client)
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample().model
         self.items = self.factory.create_item_samples(['item-switzerland-west'],
@@ -46,7 +46,12 @@ class OneItemSpatialTestCase(StacBaseTransactionTestCase):
         item_name = self.items[0].model.name
         # delete the item
         path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{item_name}'
-        response = self.client.delete(path)
+        response = self.client.delete(
+            path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+        )
         self.assertStatusCode(200, response)
 
         response_collection = self.client.get(f"/{STAC_BASE_V}/collections/{collection_name}")
@@ -57,11 +62,11 @@ class OneItemSpatialTestCase(StacBaseTransactionTestCase):
         self.assertEqual(bbox_collection, [0, 0, 0, 0])
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class TwoItemsSpatialTestCase(StacBaseTransactionTestCase):
 
     def setUp(self):
         self.client = Client()
-        client_login(self.client)
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample().model
         self.items = self.factory.create_item_samples(
@@ -125,7 +130,12 @@ class TwoItemsSpatialTestCase(StacBaseTransactionTestCase):
 
         # delete the eastern item
         path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{item_east}'
-        response = self.client.delete(path)
+        response = self.client.delete(
+            path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+        )
         self.assertStatusCode(200, response)
 
         calculate_extent()
@@ -151,7 +161,12 @@ class TwoItemsSpatialTestCase(StacBaseTransactionTestCase):
         )
         path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{item_name}'
         response = self.client.put(
-            path, data=sample.get_json('put'), content_type="application/json"
+            path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+            data=sample.get_json('put'),
+            content_type="application/json"
         )
 
         calculate_extent()

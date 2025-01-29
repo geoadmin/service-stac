@@ -28,7 +28,6 @@ from tests.tests_10.data_factory import CollectionFactory
 from tests.tests_10.data_factory import Factory
 from tests.tests_10.data_factory import ItemFactory
 from tests.tests_10.utils import reverse_version
-from tests.utils import client_login
 from tests.utils import disableLogger
 from tests.utils import mock_s3_asset_file
 
@@ -447,6 +446,7 @@ class ItemsDatetimeQueryPaginationEndpointTestCase(StacBaseTestCase):
         self._navigate_to_previous_items(['item-yesterday-1', 'item-2', 'item-1'], json_response)
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class ItemsUnImplementedEndpointTestCase(StacBaseTestCase):
 
     @classmethod
@@ -456,18 +456,21 @@ class ItemsUnImplementedEndpointTestCase(StacBaseTestCase):
 
     def setUp(self):
         self.client = Client()
-        client_login(self.client)
 
     def test_item_post_unimplemented(self):
         sample = self.factory.create_item_sample(self.collection)
         response = self.client.post(
             f'/{STAC_BASE_V}/collections/{self.collection.name}/items',
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data=sample.get_json('post'),
             content_type="application/json"
         )
         self.assertStatusCode(405, response)
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class ItemsCreateEndpointTestCase(StacBaseTestCase):
 
     @classmethod
@@ -477,13 +480,17 @@ class ItemsCreateEndpointTestCase(StacBaseTestCase):
 
     def setUp(self):
         self.client = Client()
-        client_login(self.client)
 
     def test_item_upsert_create(self):
         sample = self.factory.create_item_sample(self.collection)
         path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{sample.json["id"]}'
         response = self.client.put(
-            path, data=sample.get_json('put'), content_type="application/json"
+            path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+            data=sample.get_json('put'),
+            content_type="application/json"
         )
         json_data = response.json()
         self.assertStatusCode(201, response)
@@ -493,7 +500,12 @@ class ItemsCreateEndpointTestCase(StacBaseTestCase):
         sample = self.factory.create_item_sample(self.collection, required_only=True)
         path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{sample["name"]}'
         response = self.client.put(
-            path, data=sample.get_json('put'), content_type="application/json"
+            path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+            data=sample.get_json('put'),
+            content_type="application/json"
         )
         json_data = response.json()
         self.assertStatusCode(201, response)
@@ -512,6 +524,9 @@ class ItemsCreateEndpointTestCase(StacBaseTestCase):
         sample = self.factory.create_item_sample(self.collection, required_only=True)
         response = self.client.put(
             f'/{STAC_BASE_V}/collections/non-existing-collection/items/{sample.json["id"]}',
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data=sample.get_json('put'),
             content_type="application/json"
         )
@@ -524,6 +539,9 @@ class ItemsCreateEndpointTestCase(StacBaseTestCase):
         with self.settings(DEBUG_PROPAGATE_API_EXCEPTIONS=True), disableLogger('stac_api.apps'):
             response = self.client.put(
                 reverse('test-item-detail-http-500', args=[self.collection.name, sample['name']]),
+                headers={
+                    "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+                },
                 data=sample.get_json('put'),
                 content_type='application/json'
             )
@@ -540,7 +558,14 @@ class ItemsCreateEndpointTestCase(StacBaseTestCase):
         data = self.factory.create_item_sample(self.collection,
                                                sample='item-invalid').get_json('put')
         path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{data["id"]}'
-        response = self.client.put(path, data=data, content_type="application/json")
+        response = self.client.put(
+            path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+            data=data,
+            content_type="application/json"
+        )
         self.assertStatusCode(400, response)
 
         # Make sure that the item is not found in DB
@@ -557,7 +582,14 @@ class ItemsCreateEndpointTestCase(StacBaseTestCase):
             properties_end_datetime=None
         ).get_json('put')
         path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{data["id"]}'
-        response = self.client.put(path, data=data, content_type="application/json")
+        response = self.client.put(
+            path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+            data=data,
+            content_type="application/json"
+        )
         self.assertStatusCode(400, response)
 
         # Make sure that the item is not found in DB
@@ -567,6 +599,7 @@ class ItemsCreateEndpointTestCase(StacBaseTestCase):
         )
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class ItemsUpdateEndpointTestCase(StacBaseTestCase):
 
     @classmethod
@@ -579,7 +612,6 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
 
     def setUp(self):
         self.client = Client()
-        client_login(self.client)
 
     def test_item_endpoint_put(self):
         sample = self.factory.create_item_sample(
@@ -587,7 +619,12 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
         )
         path = f'/{STAC_BASE_V}/collections/{self.collection["name"]}/items/{self.item["name"]}'
         response = self.client.put(
-            path, data=sample.get_json('put'), content_type="application/json"
+            path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+            data=sample.get_json('put'),
+            content_type="application/json"
         )
         json_data = response.json()
         self.assertStatusCode(200, response)
@@ -605,7 +642,12 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
         )
         path = f'/{STAC_BASE_V}/collections/{self.collection["name"]}/items/{self.item["name"]}'
         response = self.client.put(
-            path, data=sample.get_json('put'), content_type="application/json"
+            path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+            data=sample.get_json('put'),
+            content_type="application/json"
         )
         self.assertStatusCode(400, response)
 
@@ -614,7 +656,14 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
             self.collection.model, sample='item-2', name=self.item['name'], created=datetime.now()
         ).get_json('put')
         path = f'/{STAC_BASE_V}/collections/{self.collection["name"]}/items/{self.item["name"]}'
-        response = self.client.put(path, data=data, content_type="application/json")
+        response = self.client.put(
+            path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+            data=data,
+            content_type="application/json"
+        )
         self.assertStatusCode(400, response)
 
     def test_item_endpoint_put_update_to_datetime_range(self):
@@ -629,7 +678,12 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
         )
         path = f'/{STAC_BASE_V}/collections/{self.collection["name"]}/items/{self.item["name"]}'
         response = self.client.put(
-            path, data=sample.get_json('put'), content_type="application/json"
+            path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+            data=sample.get_json('put'),
+            content_type="application/json"
         )
         json_data = response.json()
         self.assertStatusCode(200, response)
@@ -656,7 +710,12 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
             }
         )
         response = self.client.put(
-            path, data=sample.get_json('put'), content_type="application/json"
+            path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+            data=sample.get_json('put'),
+            content_type="application/json"
         )
         json_data = response.json()
         self.assertStatusCode(200, response)
@@ -674,7 +733,12 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
             }
         )
         response = self.client.put(
-            path, data=sample.get_json('put'), content_type="application/json"
+            path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+            data=sample.get_json('put'),
+            content_type="application/json"
         )
         json_data = response.json()
         self.assertStatusCode(200, response)
@@ -689,7 +753,12 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
         )
         path = f'/{STAC_BASE_V}/collections/{self.collection["name"]}/items/{self.item["name"]}'
         response = self.client.put(
-            path, data=sample.get_json('put'), content_type="application/json"
+            path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+            data=sample.get_json('put'),
+            content_type="application/json"
         )
         json_data = response.json()
         self.assertStatusCode(400, response)
@@ -714,7 +783,14 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
     def test_item_endpoint_patch(self):
         data = {"properties": {"title": "patched title"}}
         path = f'/{STAC_BASE_V}/collections/{self.collection["name"]}/items/{self.item["name"]}'
-        response = self.client.patch(path, data=data, content_type="application/json")
+        response = self.client.patch(
+            path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+            data=data,
+            content_type="application/json"
+        )
         json_data = response.json()
         self.assertStatusCode(200, response)
         self.assertEqual(self.item['name'], json_data['id'])
@@ -740,7 +816,14 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
 
         # Remove properties_title
         data = {"properties": {"title": None}}
-        response = self.client.patch(path, data=data, content_type="application/json")
+        response = self.client.patch(
+            path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+            data=data,
+            content_type="application/json"
+        )
         json_data = response.json()
         self.assertStatusCode(200, response)
         self.assertEqual(self.item['name'], json_data['id'])
@@ -756,23 +839,51 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
     def test_item_endpoint_patch_extra_payload(self):
         data = {"crazy:stuff": "not allowed"}
         path = f'/{STAC_BASE_V}/collections/{self.collection["name"]}/items/{self.item["name"]}'
-        response = self.client.patch(path, data=data, content_type="application/json")
+        response = self.client.patch(
+            path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+            data=data,
+            content_type="application/json"
+        )
         self.assertStatusCode(400, response)
 
     def test_item_endpoint_patch_read_only_in_payload(self):
         data = {"created": utc_aware(datetime.utcnow())}
         path = f'/{STAC_BASE_V}/collections/{self.collection["name"]}/items/{self.item["name"]}'
-        response = self.client.patch(path, data=data, content_type="application/json")
+        response = self.client.patch(
+            path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+            data=data,
+            content_type="application/json"
+        )
         self.assertStatusCode(400, response)
 
     def test_item_endpoint_patch_invalid_datetimes(self):
         data = {"properties": {"datetime": "patched title",}}
         path = f'/{STAC_BASE_V}/collections/{self.collection["name"]}/items/{self.item["name"]}'
-        response = self.client.patch(path, data=data, content_type="application/json")
+        response = self.client.patch(
+            path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+            data=data,
+            content_type="application/json"
+        )
         self.assertStatusCode(400, response)
 
         data = {"properties": {"start_datetime": "2020-10-28T13:05:10Z",}}
-        response = self.client.patch(path, data=data, content_type="application/json")
+        response = self.client.patch(
+            path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+            data=data,
+            content_type="application/json"
+        )
         self.assertStatusCode(400, response)
 
     def test_item_endpoint_patch_rename_item(self):
@@ -780,7 +891,14 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
             "id": f'new-{self.item["name"]}',
         }
         path = f'/{STAC_BASE_V}/collections/{self.collection["name"]}/items/{self.item["name"]}'
-        response = self.client.patch(path, data=data, content_type="application/json")
+        response = self.client.patch(
+            path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+            data=data,
+            content_type="application/json"
+        )
         json_data = response.json()
         self.assertStatusCode(400, response)
         self.assertEqual(json_data['description'], {'id': 'Renaming is not allowed'})
@@ -815,6 +933,9 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
                 reverse(
                     'test-item-detail-http-500', args=[self.collection['name'], sample['name']]
                 ),
+                headers={
+                    "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+                },
                 data=sample.get_json('put'),
                 content_type='application/json'
             )
@@ -851,6 +972,9 @@ class ItemRaceConditionTest(StacBaseTransactionTestCase):
                 reverse_version(
                     'item-detail', args=[collection_sample['name'], item_sample['name']]
                 ),
+                headers={
+                    "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+                },
                 data=item_sample.get_json('put'),
                 content_type='application/json'
             )
@@ -870,6 +994,7 @@ class ItemRaceConditionTest(StacBaseTransactionTestCase):
         self.assertEqual(status_201, 1, msg="Not only one upsert did a create !")
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class ItemsDeleteEndpointTestCase(StacBaseTestCase):
 
     @classmethod
@@ -879,7 +1004,6 @@ class ItemsDeleteEndpointTestCase(StacBaseTestCase):
     @mock_s3_asset_file
     def setUp(self):
         self.client = Client()
-        client_login(self.client)
         self.collection = self.factory.create_collection_sample().model
         self.item = self.factory.create_item_sample(self.collection, sample='item-1').model
         self.asset = self.factory.create_asset_sample(self.item, sample='asset-1').model
@@ -887,19 +1011,34 @@ class ItemsDeleteEndpointTestCase(StacBaseTestCase):
     def test_item_endpoint_delete_item(self):
         # Check that deleting, while assets are present, is not allowed
         path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{self.item.name}'
-        response = self.client.delete(path)
+        response = self.client.delete(
+            path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+        )
         self.assertStatusCode(400, response)
         self.assertEqual(response.json()['description'], ['Deleting Item with assets not allowed'])
 
         # delete asset first
         asset_path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{self.item.name}' \
              f'/assets/{self.asset.name}'
-        response = self.client.delete(asset_path)
+        response = self.client.delete(
+            asset_path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+        )
         self.assertStatusCode(200, response)
 
         # try item delete again
         path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{self.item.name}'
-        response = self.client.delete(path)
+        response = self.client.delete(
+            path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+        )
         self.assertStatusCode(200, response)
 
         # Check that is has really been deleted
@@ -913,7 +1052,12 @@ class ItemsDeleteEndpointTestCase(StacBaseTestCase):
 
     def test_item_endpoint_delete_item_invalid_name(self):
         path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/unknown-item'
-        response = self.client.delete(path)
+        response = self.client.delete(
+            path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+        )
         self.assertStatusCode(404, response)
 
 
@@ -1020,11 +1164,11 @@ class ItemsDisabledAuthenticationEndpointTestCase(StacBaseTestCase):
         self.run_test(401, headers=headers)
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class ItemsLinksEndpointTestCase(StacBaseTestCase):
 
     def setUp(self):
         self.client = Client()
-        client_login(self.client)
 
     @classmethod
     def setUpTestData(cls) -> None:
@@ -1041,7 +1185,14 @@ class ItemsLinksEndpointTestCase(StacBaseTestCase):
         data = self.item_data.get_json('put')
 
         path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{self.item.name}'
-        response = self.client.put(path, data=data, content_type="application/json")
+        response = self.client.put(
+            path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+            data=data,
+            content_type="application/json"
+        )
 
         self.assertEqual(response.status_code, 200)
 
@@ -1061,7 +1212,14 @@ class ItemsLinksEndpointTestCase(StacBaseTestCase):
         }]
 
         path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{self.item.name}'
-        response = self.client.put(path, data=data, content_type="application/json")
+        response = self.client.put(
+            path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+            data=data,
+            content_type="application/json"
+        )
 
         self.assertEqual(response.status_code, 200)
 
@@ -1101,7 +1259,14 @@ class ItemsLinksEndpointTestCase(StacBaseTestCase):
         }]
 
         path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{self.item.name}'
-        response = self.client.put(path, data=data, content_type="application/json")
+        response = self.client.put(
+            path,
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+            data=data,
+            content_type="application/json"
+        )
 
         self.assertEqual(response.status_code, 400)
         content = response.json()

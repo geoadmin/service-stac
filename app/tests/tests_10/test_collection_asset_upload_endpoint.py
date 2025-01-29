@@ -26,7 +26,6 @@ from tests.tests_10.base_test import StacBaseTransactionTestCase
 from tests.tests_10.data_factory import Factory
 from tests.tests_10.utils import reverse_version
 from tests.utils import S3TestMixin
-from tests.utils import client_login
 from tests.utils import get_file_like_object
 from tests.utils import mock_s3_asset_file
 
@@ -52,7 +51,6 @@ class CollectionAssetUploadBaseTest(StacBaseTestCase, S3TestMixin):
     @mock_s3_asset_file
     def setUp(self):  # pylint: disable=invalid-name
         self.client = Client()
-        client_login(self.client)
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample().model
         self.asset = self.factory.create_collection_asset_sample(
@@ -182,6 +180,7 @@ class CollectionAssetUploadBaseTest(StacBaseTestCase, S3TestMixin):
         )
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class CollectionAssetUploadCreateEndpointTestCase(CollectionAssetUploadBaseTest):
 
     def test_asset_upload_create_abort_multipart(self):
@@ -193,6 +192,9 @@ class CollectionAssetUploadCreateEndpointTestCase(CollectionAssetUploadBaseTest)
         md5_parts = create_md5_parts(number_parts, offset, file_like)
         response = self.client.post(
             self.get_create_multipart_upload_path(),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data={
                 'number_parts': number_parts,
                 'file:checksum': checksum_multihash,
@@ -208,6 +210,9 @@ class CollectionAssetUploadCreateEndpointTestCase(CollectionAssetUploadBaseTest)
 
         response = self.client.post(
             self.get_abort_multipart_upload_path(json_data['upload_id']),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data={},
             content_type="application/json"
         )
@@ -241,6 +246,9 @@ class CollectionAssetUploadCreateEndpointTestCase(CollectionAssetUploadBaseTest)
         md5_parts = create_md5_parts(number_parts, offset, file_like)
         response = self.client.post(
             self.get_create_multipart_upload_path(),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data={
                 'number_parts': number_parts,
                 'file:checksum': checksum_multihash,
@@ -256,6 +264,9 @@ class CollectionAssetUploadCreateEndpointTestCase(CollectionAssetUploadBaseTest)
 
         response = self.client.post(
             self.get_create_multipart_upload_path(),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data={
                 'number_parts': number_parts,
                 'file:checksum': checksum_multihash,
@@ -293,6 +304,7 @@ class CollectionAssetUploadCreateEndpointTestCase(CollectionAssetUploadBaseTest)
         self.assertEqual(len(response['Uploads']), 1, msg='More or less uploads found on S3')
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class CollectionAssetUploadCreateRaceConditionTest(StacBaseTransactionTestCase, S3TestMixin):
 
     @mock_s3_asset_file
@@ -326,6 +338,9 @@ class CollectionAssetUploadCreateRaceConditionTest(StacBaseTransactionTestCase, 
             client.login(username=self.username, password=self.password)
             return client.post(
                 path,
+                headers={
+                    "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+                },
                 data={
                     'number_parts': number_parts,
                     'file:checksum': checksum_multihash,
@@ -348,6 +363,7 @@ class CollectionAssetUploadCreateRaceConditionTest(StacBaseTransactionTestCase, 
             self.assertEqual(response.json()['description'], "Upload already in progress")
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class CollectionAssetUpload1PartEndpointTestCase(CollectionAssetUploadBaseTest):
 
     def upload_asset_with_dyn_cache(self, update_interval=None):
@@ -359,6 +375,9 @@ class CollectionAssetUpload1PartEndpointTestCase(CollectionAssetUploadBaseTest):
         md5_parts = [{'part_number': 1, 'md5': base64_md5(file_like)}]
         response = self.client.post(
             self.get_create_multipart_upload_path(),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data={
                 'number_parts': number_parts,
                 'md5_parts': md5_parts,
@@ -377,6 +396,9 @@ class CollectionAssetUpload1PartEndpointTestCase(CollectionAssetUploadBaseTest):
         parts = self.s3_upload_parts(json_data['upload_id'], file_like, size, number_parts)
         response = self.client.post(
             self.get_complete_multipart_upload_path(json_data['upload_id']),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data={'parts': parts},
             content_type="application/json"
         )
@@ -393,6 +415,9 @@ class CollectionAssetUpload1PartEndpointTestCase(CollectionAssetUploadBaseTest):
         md5_parts = [{'part_number': 1, 'md5': base64_md5(file_like)}]
         response = self.client.post(
             self.get_create_multipart_upload_path(),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data={
                 'number_parts': number_parts,
                 'md5_parts': md5_parts,
@@ -410,6 +435,9 @@ class CollectionAssetUpload1PartEndpointTestCase(CollectionAssetUploadBaseTest):
         parts = self.s3_upload_parts(json_data['upload_id'], file_like, size, number_parts)
         response = self.client.post(
             self.get_complete_multipart_upload_path(json_data['upload_id']),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data={'parts': parts},
             content_type="application/json"
         )
@@ -443,6 +471,9 @@ class CollectionAssetUpload1PartEndpointTestCase(CollectionAssetUploadBaseTest):
         md5_parts = [{'part_number': 1, 'md5': base64_md5(file_like)}]
         response = self.client.post(
             self.get_create_multipart_upload_path(),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data={
                 'number_parts': number_parts,
                 'md5_parts': md5_parts,
@@ -460,6 +491,9 @@ class CollectionAssetUpload1PartEndpointTestCase(CollectionAssetUploadBaseTest):
         parts = self.s3_upload_parts(json_data['upload_id'], file_like, size, number_parts)
         response = self.client.post(
             self.get_complete_multipart_upload_path(json_data['upload_id']),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data={'parts': parts},
             content_type="application/json"
         )
@@ -482,6 +516,9 @@ class CollectionAssetUpload1PartEndpointTestCase(CollectionAssetUploadBaseTest):
         md5_parts = [{'part_number': 1, 'md5': base64_md5(file_like_compress)}]
         response = self.client.post(
             self.get_create_multipart_upload_path(),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data={
                 'number_parts': number_parts,
                 'md5_parts': md5_parts,
@@ -502,6 +539,9 @@ class CollectionAssetUpload1PartEndpointTestCase(CollectionAssetUploadBaseTest):
         )
         response = self.client.post(
             self.get_complete_multipart_upload_path(json_data['upload_id']),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data={'parts': parts},
             content_type="application/json"
         )
@@ -514,6 +554,7 @@ class CollectionAssetUpload1PartEndpointTestCase(CollectionAssetUploadBaseTest):
         self.assertEqual(size_compress, self.asset.file_size)
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class CollectionAssetUpload2PartEndpointTestCase(CollectionAssetUploadBaseTest):
 
     def test_asset_upload_2_parts_md5_integrity(self):
@@ -528,6 +569,9 @@ class CollectionAssetUpload2PartEndpointTestCase(CollectionAssetUploadBaseTest):
 
         response = self.client.post(
             self.get_create_multipart_upload_path(),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data={
                 'number_parts': number_parts,
                 'md5_parts': md5_parts,
@@ -544,6 +588,9 @@ class CollectionAssetUpload2PartEndpointTestCase(CollectionAssetUploadBaseTest):
 
         response = self.client.post(
             self.get_complete_multipart_upload_path(json_data['upload_id']),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data={'parts': parts},
             content_type="application/json"
         )
@@ -554,6 +601,7 @@ class CollectionAssetUpload2PartEndpointTestCase(CollectionAssetUploadBaseTest):
         self.assertEqual(size, self.asset.file_size)
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class CollectionAssetUploadInvalidEndpointTestCase(CollectionAssetUploadBaseTest):
 
     def test_asset_upload_invalid_content_encoding(self):
@@ -567,6 +615,9 @@ class CollectionAssetUploadInvalidEndpointTestCase(CollectionAssetUploadBaseTest
 
         response = self.client.post(
             self.get_create_multipart_upload_path(),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data={
                 'number_parts': number_parts,
                 'md5_parts': md5_parts,
@@ -590,6 +641,9 @@ class CollectionAssetUploadInvalidEndpointTestCase(CollectionAssetUploadBaseTest
         file_like, checksum_multihash = get_file_like_object(size)
         response = self.client.post(
             self.get_create_multipart_upload_path(),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data={
                 'number_parts': number_parts, 'file:checksum': checksum_multihash
             },
@@ -607,6 +661,9 @@ class CollectionAssetUploadInvalidEndpointTestCase(CollectionAssetUploadBaseTest
 
         response = self.client.post(
             self.get_create_multipart_upload_path(),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data={
                 'number_parts': number_parts, 'file:checksum': checksum_multihash
             },
@@ -617,7 +674,12 @@ class CollectionAssetUploadInvalidEndpointTestCase(CollectionAssetUploadBaseTest
 
     def test_asset_upload_create_empty_payload(self):
         response = self.client.post(
-            self.get_create_multipart_upload_path(), data={}, content_type="application/json"
+            self.get_create_multipart_upload_path(),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+            data={},
+            content_type="application/json"
         )
         self.assertStatusCode(400, response)
         self.assertEqual(
@@ -633,6 +695,9 @@ class CollectionAssetUploadInvalidEndpointTestCase(CollectionAssetUploadBaseTest
 
         response = self.client.post(
             self.get_create_multipart_upload_path(),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data={
                 'number_parts': 0,
                 "file:checksum": 'abcdef',
@@ -658,6 +723,9 @@ class CollectionAssetUploadInvalidEndpointTestCase(CollectionAssetUploadBaseTest
 
         response = self.client.post(
             self.get_create_multipart_upload_path(),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data={
                 'number_parts': 101, "file:checksum": 'abcdef', 'md5_parts': md5_parts
             },
@@ -676,6 +744,9 @@ class CollectionAssetUploadInvalidEndpointTestCase(CollectionAssetUploadBaseTest
 
         response = self.client.post(
             self.get_create_multipart_upload_path(),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data={
                 'number_parts': 2,
                 "md5_parts": [],
@@ -699,6 +770,9 @@ class CollectionAssetUploadInvalidEndpointTestCase(CollectionAssetUploadBaseTest
 
         response = self.client.post(
             self.get_create_multipart_upload_path(),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data={
                 'number_parts': 3,
                 "md5_parts": [{
@@ -728,6 +802,9 @@ class CollectionAssetUploadInvalidEndpointTestCase(CollectionAssetUploadBaseTest
 
         response = self.client.post(
             self.get_create_multipart_upload_path(),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data={
                 'number_parts': 2,
                 "md5_parts": [{
@@ -757,6 +834,9 @@ class CollectionAssetUploadInvalidEndpointTestCase(CollectionAssetUploadBaseTest
 
         response = self.client.post(
             self.get_create_multipart_upload_path(),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data={
                 'number_parts': 2,
                 "md5_parts": [
@@ -788,6 +868,9 @@ class CollectionAssetUploadInvalidEndpointTestCase(CollectionAssetUploadBaseTest
         md5_parts = create_md5_parts(number_parts, offset, file_like)
         response = self.client.post(
             self.get_create_multipart_upload_path(),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data={
                 'number_parts': number_parts,
                 'file:checksum': checksum_multihash,
@@ -803,6 +886,9 @@ class CollectionAssetUploadInvalidEndpointTestCase(CollectionAssetUploadBaseTest
 
         response = self.client.post(
             self.get_complete_multipart_upload_path(json_data['upload_id']),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data={'parts': parts},
             content_type="application/json"
         )
@@ -829,6 +915,9 @@ class CollectionAssetUploadInvalidEndpointTestCase(CollectionAssetUploadBaseTest
 
         response = self.client.post(
             self.get_create_multipart_upload_path(),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data={
                 'number_parts': number_parts,
                 'file:checksum': checksum_multihash,
@@ -844,6 +933,9 @@ class CollectionAssetUploadInvalidEndpointTestCase(CollectionAssetUploadBaseTest
 
         response = self.client.post(
             self.get_complete_multipart_upload_path(json_data['upload_id']),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data={'parts': [{
                 'etag': 'dummy', 'part_number': 1
             }]},
@@ -874,6 +966,9 @@ class CollectionAssetUploadInvalidEndpointTestCase(CollectionAssetUploadBaseTest
 
         response = self.client.post(
             self.get_create_multipart_upload_path(),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data={
                 'number_parts': number_parts,
                 'file:checksum': checksum_multihash,
@@ -890,6 +985,9 @@ class CollectionAssetUploadInvalidEndpointTestCase(CollectionAssetUploadBaseTest
 
         response = self.client.post(
             self.get_complete_multipart_upload_path(json_data['upload_id']),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data={'parts': parts},
             content_type="application/json"
         )
@@ -908,6 +1006,9 @@ class CollectionAssetUploadInvalidEndpointTestCase(CollectionAssetUploadBaseTest
 
         response = self.client.post(
             self.get_create_multipart_upload_path(),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data={
                 'number_parts': number_parts,
                 'file:checksum': checksum_multihash,
@@ -922,6 +1023,9 @@ class CollectionAssetUploadInvalidEndpointTestCase(CollectionAssetUploadBaseTest
         parts = self.s3_upload_parts(json_data['upload_id'], file_like, size // 2, 1)
         response = self.client.post(
             self.get_complete_multipart_upload_path(json_data['upload_id']),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data={'parts': parts},
             content_type="application/json"
         )
@@ -941,6 +1045,9 @@ class CollectionAssetUploadInvalidEndpointTestCase(CollectionAssetUploadBaseTest
 
         response = self.client.post(
             self.get_create_multipart_upload_path(),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data={
                 'number_parts': number_parts,
                 'file:checksum': checksum_multihash,
@@ -956,6 +1063,9 @@ class CollectionAssetUploadInvalidEndpointTestCase(CollectionAssetUploadBaseTest
 
         response = self.client.post(
             self.get_complete_multipart_upload_path(json_data['upload_id']),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data={},
             content_type="application/json"
         )
@@ -964,6 +1074,9 @@ class CollectionAssetUploadInvalidEndpointTestCase(CollectionAssetUploadBaseTest
 
         response = self.client.post(
             self.get_complete_multipart_upload_path(json_data['upload_id']),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data={'parts': []},
             content_type="application/json"
         )
@@ -972,6 +1085,9 @@ class CollectionAssetUploadInvalidEndpointTestCase(CollectionAssetUploadBaseTest
 
         response = self.client.post(
             self.get_complete_multipart_upload_path(json_data['upload_id']),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data={'parts': ["dummy-etag"]},
             content_type="application/json"
         )
@@ -1003,6 +1119,9 @@ class CollectionAssetUploadInvalidEndpointTestCase(CollectionAssetUploadBaseTest
 
         response = self.client.post(
             self.get_create_multipart_upload_path(),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data={
                 'number_parts': number_parts,
                 'file:checksum': checksum_multihash,
@@ -1018,6 +1137,9 @@ class CollectionAssetUploadInvalidEndpointTestCase(CollectionAssetUploadBaseTest
 
         response = self.client.post(
             self.get_complete_multipart_upload_path(json_data['upload_id']),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data={'parts': parts},
             content_type="application/json"
         )
@@ -1025,6 +1147,9 @@ class CollectionAssetUploadInvalidEndpointTestCase(CollectionAssetUploadBaseTest
 
         response = self.client.post(
             self.get_complete_multipart_upload_path(json_data['upload_id']),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data={'parts': parts},
             content_type="application/json"
         )
@@ -1035,6 +1160,7 @@ class CollectionAssetUploadInvalidEndpointTestCase(CollectionAssetUploadBaseTest
         self.assertEqual(size, self.asset.file_size)
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class CollectionAssetUploadDeleteInProgressEndpointTestCase(CollectionAssetUploadBaseTest):
 
     def test_delete_asset_upload_in_progress(self):
@@ -1046,6 +1172,9 @@ class CollectionAssetUploadDeleteInProgressEndpointTestCase(CollectionAssetUploa
 
         response = self.client.post(
             self.get_create_multipart_upload_path(),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data={
                 'number_parts': number_parts,
                 'file:checksum': checksum_multihash,
@@ -1056,7 +1185,12 @@ class CollectionAssetUploadDeleteInProgressEndpointTestCase(CollectionAssetUploa
         self.assertStatusCode(201, response)
         upload_id = response.json()['upload_id']
 
-        response = self.client.delete(self.get_delete_asset_path())
+        response = self.client.delete(
+            self.get_delete_asset_path(),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+        )
         self.assertStatusCode(400, response)
         self.assertEqual(
             response.json()['description'],
@@ -1070,10 +1204,20 @@ class CollectionAssetUploadDeleteInProgressEndpointTestCase(CollectionAssetUploa
             msg='Collection Asset has been deleted'
         )
 
-        response = self.client.post(self.get_abort_multipart_upload_path(upload_id))
+        response = self.client.post(
+            self.get_abort_multipart_upload_path(upload_id),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+        )
         self.assertStatusCode(200, response)
 
-        response = self.client.delete(self.get_delete_asset_path())
+        response = self.client.delete(
+            self.get_delete_asset_path(),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
+        )
         self.assertStatusCode(200, response)
 
         self.assertFalse(
@@ -1084,6 +1228,7 @@ class CollectionAssetUploadDeleteInProgressEndpointTestCase(CollectionAssetUploa
         )
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class GetCollectionAssetUploadsEndpointTestCase(CollectionAssetUploadBaseTest):
 
     def create_dummies_uploads(self):
@@ -1216,6 +1361,7 @@ class GetCollectionAssetUploadsEndpointTestCase(CollectionAssetUploadBaseTest):
             self.assertEqual(upload['status'], CollectionAssetUpload.Status.ABORTED)
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class CollectionAssetUploadListPartsEndpointTestCase(CollectionAssetUploadBaseTest):
 
     def test_asset_upload_list_parts(self):
@@ -1228,6 +1374,9 @@ class CollectionAssetUploadListPartsEndpointTestCase(CollectionAssetUploadBaseTe
         md5_parts = create_md5_parts(number_parts, offset, file_like)
         response = self.client.post(
             self.get_create_multipart_upload_path(),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data={
                 'number_parts': number_parts,
                 'file:checksum': checksum_multihash,
@@ -1282,6 +1431,9 @@ class CollectionAssetUploadListPartsEndpointTestCase(CollectionAssetUploadBaseTe
         # Complete the upload
         response = self.client.post(
             self.get_complete_multipart_upload_path(upload_id),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data={'parts': parts},
             content_type="application/json"
         )

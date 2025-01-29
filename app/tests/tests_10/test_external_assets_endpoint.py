@@ -2,16 +2,17 @@ import responses
 
 from django.conf import settings
 from django.test import Client
+from django.test import override_settings
 
 from stac_api.models.item import Asset
 
 from tests.tests_10.base_test import StacBaseTestCase
 from tests.tests_10.data_factory import Factory
 from tests.tests_10.utils import reverse_version
-from tests.utils import client_login
 from tests.utils import mock_s3_asset_file
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class AssetsExternalAssetEndpointTestCase(StacBaseTestCase):
 
     @mock_s3_asset_file
@@ -20,7 +21,6 @@ class AssetsExternalAssetEndpointTestCase(StacBaseTestCase):
         self.collection = self.factory.create_collection_sample().model
         self.item = self.factory.create_item_sample(collection=self.collection).model
         self.client = Client()
-        client_login(self.client)
         self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_create_asset_with_external_url(self):
@@ -37,6 +37,9 @@ class AssetsExternalAssetEndpointTestCase(StacBaseTestCase):
         # create the asset, which isn't allowed
         response = self.client.put(
             reverse_version('asset-detail', args=[collection.name, item.name, asset_data['id']]),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data=asset_data,
             content_type="application/json"
         )
@@ -50,6 +53,9 @@ class AssetsExternalAssetEndpointTestCase(StacBaseTestCase):
         # create the asset, now it's allowed
         response = self.client.put(
             reverse_version('asset-detail', args=[collection.name, item.name, asset_data['id']]),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data=asset_data,
             content_type="application/json"
         )
@@ -94,6 +100,9 @@ class AssetsExternalAssetEndpointTestCase(StacBaseTestCase):
         # create the asset
         response = self.client.put(
             reverse_version('asset-detail', args=[collection.name, item.name, asset_data['id']]),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data=asset_data,
             content_type="application/json"
         )
@@ -137,6 +146,9 @@ class AssetsExternalAssetEndpointTestCase(StacBaseTestCase):
         # create the asset
         response = self.client.put(
             reverse_version('asset-detail', args=[collection.name, item.name, asset_data['id']]),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data=asset_data,
             content_type="application/json"
         )
@@ -180,6 +192,9 @@ class AssetsExternalAssetEndpointTestCase(StacBaseTestCase):
         # create the asset
         response = self.client.put(
             reverse_version('asset-detail', args=[collection.name, item.name, asset_data['id']]),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data=asset_data,
             content_type="application/json"
         )
@@ -208,6 +223,9 @@ class AssetsExternalAssetEndpointTestCase(StacBaseTestCase):
 
         response = self.client.put(
             reverse_version('asset-detail', args=[collection.name, item.name, asset.attr_name]),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data=asset_data,
             content_type='application/json'
         )
@@ -254,6 +272,9 @@ class AssetsExternalAssetEndpointTestCase(StacBaseTestCase):
         # create the asset
         response = self.client.put(
             reverse_version('asset-detail', args=[collection.name, item.name, asset_data['id']]),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data=asset_data,
             content_type="application/json"
         )
@@ -286,6 +307,9 @@ class AssetsExternalAssetEndpointTestCase(StacBaseTestCase):
         # create the asset with an existing one
         response = self.client.put(
             reverse_version('asset-detail', args=[collection.name, item.name, asset_data['id']]),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data=asset_data,
             content_type="application/json"
         )
@@ -296,6 +320,9 @@ class AssetsExternalAssetEndpointTestCase(StacBaseTestCase):
         # create the asset with an existing one
         response = self.client.put(
             reverse_version('asset-detail', args=[collection.name, item.name, asset_data['id']]),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data=asset_data,
             content_type="application/json"
         )
@@ -327,6 +354,9 @@ class AssetsExternalAssetEndpointTestCase(StacBaseTestCase):
         # create the asset with an existing one
         response = self.client.put(
             reverse_version('asset-detail', args=[collection.name, item.name, asset_data['id']]),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            },
             data=asset_data,
             content_type="application/json"
         )
@@ -348,7 +378,10 @@ class AssetsExternalAssetEndpointTestCase(StacBaseTestCase):
         )
 
         response = self.client.delete(
-            reverse_version('asset-detail', args=[collection.name, item.name, asset.attr_name])
+            reverse_version('asset-detail', args=[collection.name, item.name, asset.attr_name]),
+            headers={
+                "Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"
+            }
         )
 
         self.assertStatusCode(200, response)

