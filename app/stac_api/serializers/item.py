@@ -476,19 +476,21 @@ class ItemListSerializer(serializers.Serializer):
         collection = validated_data["collection"]
 
         new_items = []
-        links_data_list = []
+        links_per_item = {}
         for item_in in validated_data["features"]:
-            links_data = item_in.pop('links', [])
-            links_data_list.append(links_data)
-
+            links = item_in.pop('links', [])
+            links_per_item[item_in["name"]] = links
             item = Item(**item_in, collection=collection)
             new_items.append(item)
 
         items_created = Item.objects.bulk_create(new_items)
 
-        for item, links_data in zip(items_created, links_data_list):
+        for item in items_created:
             update_or_create_links(
-                instance_type="item", model=ItemLink, instance=item, links_data=links_data
+                instance_type="item",
+                model=ItemLink,
+                instance=item,
+                links_data=links_per_item[item.name]
             )
         return items_created
 
