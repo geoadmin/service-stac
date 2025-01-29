@@ -840,6 +840,18 @@ class ItemsBulkCreateEndpointTestCase(StacBaseTestCase):
             "features": [
                 {
                     "id": "item-1",
+                    "assets": [{
+                        "id": "asset-1.txt",
+                        "title": "My title 1",
+                        "description": "My description 1",
+                        "type": "text/plain",
+                        "href": "asset-1",
+                        "roles": ["myrole"],
+                        "geoadmin:variant": "komb",
+                        "geoadmin:lang": "de",
+                        "proj:epsg": 2056,
+                        "gsd": 2.5
+                    }],
                     "geometry": {
                         "type": "Point", "coordinates": [1.1, 1.2]
                     },
@@ -849,6 +861,18 @@ class ItemsBulkCreateEndpointTestCase(StacBaseTestCase):
                 },
                 {
                     "id": "item-2",
+                    "assets": [{
+                        "id": "asset-2.txt",
+                        "title": "My title 2",
+                        "description": "My description 2",
+                        "type": "text/plain",
+                        "href": "asset-2",
+                        "roles": ["myrole"],
+                        "geoadmin:variant": "komb",
+                        "geoadmin:lang": "de",
+                        "proj:epsg": 2056,
+                        "gsd": 2.5
+                    }],
                     "geometry": {
                         "type": "Point", "coordinates": [2.1, 2.2]
                     },
@@ -874,9 +898,50 @@ class ItemsBulkCreateEndpointTestCase(StacBaseTestCase):
 
         self.assertStatusCode(201, response)
 
+        expected = {
+            "features": [
+                {
+                    "id": "item-1",
+                    "assets": {
+                        "asset-1.txt": {
+                            "gsd": 2.5,
+                            "geoadmin:variant": "komb",
+                            "href": "http://testserver/asset-1",
+                            "proj:epsg": 2056,
+                            "type": "text/plain",
+                        },
+                    },
+                    "geometry": {
+                        "type": "Point", "coordinates": [1.1, 1.2]
+                    },
+                    "properties": {
+                        "datetime": "2018-02-12T23:20:50Z",
+                    },
+                },
+                {
+                    "id": "item-2",
+                    "assets": {
+                        "asset-2.txt": {
+                            "gsd": 2.5,
+                            "geoadmin:variant": "komb",
+                            "href": "http://testserver/asset-2",
+                            "proj:epsg": 2056,
+                            "type": "text/plain",
+                        },
+                    },
+                    "geometry": {
+                        "type": "Point", "coordinates": [2.1, 2.2]
+                    },
+                    "properties": {
+                        "datetime": "2019-01-13T13:30:00Z",
+                    },
+                },
+            ]
+        }
+
         for actual_item in response_json["features"]:
             expected_item = [
-                item for item in self.payload["features"] if item["id"] == actual_item["id"]
+                item for item in expected["features"] if item["id"] == actual_item["id"]
             ][0]
             self.check_stac_item(expected_item, actual_item, collection=collection_name)
 
