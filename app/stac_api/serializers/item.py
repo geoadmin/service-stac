@@ -372,7 +372,7 @@ class ItemSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
     type = serializers.SerializerMethodField()
     collection = serializers.SlugRelatedField(slug_field='name', read_only=True)
     bbox = BboxSerializer(source='*', read_only=True)
-    assets = AssetsForItemSerializer(many=True)
+    assets = AssetsForItemSerializer(many=True, required=False)
     stac_extensions = serializers.SerializerMethodField()
     stac_version = serializers.SerializerMethodField()
 
