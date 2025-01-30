@@ -17,7 +17,6 @@ from rest_framework import serializers
 from rest_framework.renderers import JSONRenderer
 from rest_framework.test import APIRequestFactory
 
-from stac_api.models import get_asset_path
 from stac_api.serializers.collection import CollectionSerializer
 from stac_api.serializers.item import AssetSerializer
 from stac_api.serializers.item import ItemListSerializer
@@ -679,6 +678,18 @@ class ItemListDeserializationTestCase(StacBaseTestCase):
             "features": [
                 {
                     "id": "item-1",
+                    "assets": [{
+                        "id": "asset-1.txt",
+                        "title": "My title 1",
+                        "description": "My description 1",
+                        "type": "text/plain",
+                        "href": "asset-1",
+                        "roles": ["myrole"],
+                        "geoadmin:variant": "komb",
+                        "geoadmin:lang": "de",
+                        "proj:epsg": 2056,
+                        "gsd": 2.5
+                    }],
                     "geometry": {
                         "type": "Point", "coordinates": [1.1, 1.2]
                     },
@@ -688,6 +699,18 @@ class ItemListDeserializationTestCase(StacBaseTestCase):
                 },
                 {
                     "id": "item-2",
+                    "assets": [{
+                        "id": "asset-2.txt",
+                        "title": "My title 2",
+                        "description": "My description 2",
+                        "type": "text/plain",
+                        "href": "asset-2",
+                        "roles": ["myrole"],
+                        "geoadmin:variant": "komb",
+                        "geoadmin:lang": "de",
+                        "proj:epsg": 2056,
+                        "gsd": 2.5
+                    }],
                     "geometry": {
                         "type": "Point", "coordinates": [2.1, 2.2]
                     },
@@ -717,19 +740,43 @@ class ItemListDeserializationTestCase(StacBaseTestCase):
             "features": [
                 {
                     "name": "item-1",
+                    "assets": [{
+                        "name": "asset-1.txt",
+                        "title": "My title 1",
+                        "media_type": "text/plain",
+                        "file": "asset-1",
+                        "description": "My description 1",
+                        "roles": ["myrole"],
+                        "eo_gsd": 2.5,
+                        "proj_epsg": 2056,
+                        "geoadmin_variant": "komb",
+                        "geoadmin_lang": "de",
+                    },],
                     "geometry": Point(1.1, 1.2, srid=4326),
                     "properties_datetime":
                         datetime(2018, 2, 12, 23, 20, 50, tzinfo=zoneinfo.ZoneInfo(key='UTC')),
                 },
                 {
                     "name": "item-2",
+                    "assets": [{
+                        "name": "asset-2.txt",
+                        "title": "My title 2",
+                        "media_type": "text/plain",
+                        "file": "asset-2",
+                        "description": "My description 2",
+                        "roles": ["myrole"],
+                        "eo_gsd": 2.5,
+                        "proj_epsg": 2056,
+                        "geoadmin_variant": "komb",
+                        "geoadmin_lang": "de",
+                    },],
                     "geometry": Point(2.1, 2.2, srid=4326),
                     "properties_datetime":
                         datetime(2019, 1, 13, 13, 30, 0, tzinfo=zoneinfo.ZoneInfo(key='UTC')),
                 },
             ]
         }
-        self.assertEqual(expected, actual)
+        self.assertDictEqual(expected, actual)
 
     def test_itemlistserializer_serializes_list_of_items_as_expected(self):
         request_mocker = request_with_resolver(
@@ -743,7 +790,25 @@ class ItemListDeserializationTestCase(StacBaseTestCase):
 
         actual = serializer.data
 
-        expected = self.payload
+        expected = self.payload.copy()
+        expected["features"][0]["assets"] = {
+            "asset-1.txt": {
+                "gsd": 2.5,
+                "geoadmin:variant": "komb",
+                "href": "http://testserver/asset-1",
+                "proj:epsg": 2056,
+                "type": "text/plain",
+            },
+        }
+        expected["features"][1]["assets"] = {
+            "asset-2.txt": {
+                "gsd": 2.5,
+                "geoadmin:variant": "komb",
+                "href": "http://testserver/asset-2",
+                "proj:epsg": 2056,
+                "type": "text/plain",
+            },
+        }
         for item_actual, item_expected in zip(actual["features"], expected["features"]):
             self.check_stac_item(item_expected, item_actual, self.collection.model.name)
 
