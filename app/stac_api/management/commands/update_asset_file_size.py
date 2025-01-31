@@ -34,17 +34,12 @@ class Handler(CommandHandler):
         self.print_success(f'Update file size for {len(assets)} assets out of {total_asset_count}')
 
         for asset in assets:
-            selected_bucket = select_s3_bucket(asset.item.collection.name)
-            s3 = get_s3_client(selected_bucket)
-            bucket = settings.AWS_SETTINGS[selected_bucket.name]['S3_BUCKET_NAME']
-            key = SharedAssetUploadBase.get_path(None, asset)
-
             try:
-                file_size = s3.head_object(Bucket=bucket, Key=key)['ContentLength']
+                file_size = asset.file.size
                 asset.file_size = file_size
                 asset.save()
                 print(".", end="", flush=True)
-            except ClientError:
+            except FileNotFoundError:
                 # We set file_size to None to indicate that this asset couldn't be
                 # found on the bucket. That way the script won't get stuck with the
                 # same 100 inexistent assets on one hand and we'll be able to
@@ -67,17 +62,11 @@ class Handler(CommandHandler):
         )
 
         for collection_asset in collection_assets:
-            selected_bucket = select_s3_bucket(collection_asset.collection.name)
-            s3 = get_s3_client(selected_bucket)
-            bucket = settings.AWS_SETTINGS[selected_bucket.name]['S3_BUCKET_NAME']
-            key = SharedAssetUploadBase.get_path(None, collection_asset)
-
             try:
-                file_size = s3.head_object(Bucket=bucket, Key=key)['ContentLength']
-                collection_asset.file_size = file_size
+                collection_asset.file_size = collection_asset.file.size
                 collection_asset.save()
                 print(".", end="", flush=True)
-            except ClientError:
+            except FileNotFoundError:
                 # We set file_size to None to indicate that this asset couldn't be
                 # found on the bucket. That way the script won't get stuck with the
                 # same 100 inexistent assets on one hand and we'll be able to
