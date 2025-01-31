@@ -1,17 +1,11 @@
 import logging
 
-from botocore.exceptions import ClientError
-
-from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.core.management.base import CommandParser
 
 from stac_api.models.collection import CollectionAsset
 from stac_api.models.item import Asset
 from stac_api.utils import CommandHandler
-from stac_api.utils import get_s3_client
-from stac_api.utils import select_s3_bucket
-from stac_api.views.upload import SharedAssetUploadBase
 
 logger = logging.getLogger(__name__)
 
@@ -34,17 +28,13 @@ class Handler(CommandHandler):
         self.print_success(f'Update file size for {len(assets)} assets out of {total_asset_count}')
 
         for asset in assets:
-            selected_bucket = select_s3_bucket(asset.item.collection.name)
-            s3 = get_s3_client(selected_bucket)
-            bucket = settings.AWS_SETTINGS[selected_bucket.name]['S3_BUCKET_NAME']
-            key = SharedAssetUploadBase.get_path(None, asset)
-
             try:
-                file_size = s3.head_object(Bucket=bucket, Key=key)['ContentLength']
+                file_size = asset.file.size
                 asset.file_size = file_size
                 asset.save()
                 print(".", end="", flush=True)
-            except ClientError:
+            # ValueError is when the asset.file isn't even set
+            except (FileNotFoundError, ValueError):
                 # We set file_size to None to indicate that this asset couldn't be
                 # found on the bucket. That way the script won't get stuck with the
                 # same 100 inexistent assets on one hand and we'll be able to
@@ -52,9 +42,7 @@ class Handler(CommandHandler):
                 asset.file_size = None
                 asset.save()
                 print("_", end="", flush=True)
-                logger.error(
-                    'file size could not be read from s3 bucket [%s] for asset %s', bucket, key
-                )
+                logger.error('file %s could not be found', asset.file)
         print()
 
         collection_asset_qs = CollectionAsset.objects.filter(file_size=0)
@@ -67,17 +55,12 @@ class Handler(CommandHandler):
         )
 
         for collection_asset in collection_assets:
-            selected_bucket = select_s3_bucket(collection_asset.collection.name)
-            s3 = get_s3_client(selected_bucket)
-            bucket = settings.AWS_SETTINGS[selected_bucket.name]['S3_BUCKET_NAME']
-            key = SharedAssetUploadBase.get_path(None, collection_asset)
-
             try:
-                file_size = s3.head_object(Bucket=bucket, Key=key)['ContentLength']
-                collection_asset.file_size = file_size
+                collection_asset.file_size = collection_asset.file.size
                 collection_asset.save()
                 print(".", end="", flush=True)
-            except ClientError:
+            # ValueError is when the asset.file isn't even set
+            except (FileNotFoundError, ValueError):
                 # We set file_size to None to indicate that this asset couldn't be
                 # found on the bucket. That way the script won't get stuck with the
                 # same 100 inexistent assets on one hand and we'll be able to
@@ -85,9 +68,7 @@ class Handler(CommandHandler):
                 collection_asset.file_size = None
                 collection_asset.save()
                 print("_", end="", flush=True)
-                logger.error(
-                    'file size could not be read from s3 bucket [%s] for collection asset %s'
-                )
+                logger.error('file %s could not be found', collection_asset.file)
 
         print()
         self.print_success('Update completed')
