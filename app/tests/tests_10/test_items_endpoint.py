@@ -945,7 +945,7 @@ class ItemsBulkCreateEndpointTestCase(StacBaseTestCase):
             #
             # So we only inspect the second line.
             response_json["description"].split("\n")[1],
-            "DETAIL:  Key (collection_id, name)=(1, item-1) already exists."
+            f"DETAIL:  Key (collection_id, name)=({self.collection.model.id}, item-1) already exists."
         )
 
     def test_items_endpoint_post_returns_404_if_collection_does_not_exist(self):
