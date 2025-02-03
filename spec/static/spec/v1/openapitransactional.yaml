@@ -2012,7 +2012,7 @@ components:
                   title: Licence for the free geodata of the Federal Office of Topography swisstopo
                 - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
                   rel: describedby
-    collectionUpsertItems:
+    collectionCreateItems:
       type: object
       properties:
         features:
@@ -3167,43 +3167,6 @@ paths:
           $ref: "#/components/responses/PreconditionFailed"
         "500":
           $ref: "#/components/responses/ServerError"
-    post:
-      tags:
-        - Data Management
-      summary: Bulk update or create features
-      description: |
-        Create or update ("upsert") multiple features in a collection at once.
-        If a feature already exists, it is updated with the differences to the feature in the request.
-
-        Equivalently, one could create the features and their corresponding assets with individual API calls.
-        Uploading features that belong together in bulks has two advantages:
-
-           1. Less communication overhead than individual calls.
-           2. Less partial uploads to mess with: Either all features are uploaded or none.
-
-        A maximum of 100 features per call is allowed.
-      operationId: bulkUpsertItems
-      parameters:
-        - $ref: "#/components/parameters/collectionId"
-        - $ref: "#/components/parameters/IdempotencyKey"
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/collectionUpsertItems"
-      responses:
-        "200":
-          description: Collection has been successfully updated.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/collectionUpsertItems"
-        "403":
-          $ref: "#/components/responses/PermissionDenied"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/ServerError"
   /collections/{collectionId}/items:
     get:
       description: >-
@@ -3232,6 +3195,44 @@ paths:
       summary: Fetch features
       tags:
         - Data
+    post:
+      tags:
+        - Data Management
+      summary: Bulk create features
+      description: |
+        Create multiple features in a collection at once.
+
+        Equivalently, one could create the features and their corresponding assets with individual API calls.
+        Uploading features that belong together in bulks has two advantages:
+
+           1. Less communication overhead than individual calls.
+           2. Less partial uploads to mess with: Either all features are uploaded or none is.
+
+        A maximum of 100 features per call is allowed.
+      operationId: bulkCreateItems
+      parameters:
+        - $ref: "#/components/parameters/collectionId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/collectionCreateItems"
+      responses:
+        "201":
+          description: Features and assets have been successfully created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/collectionCreateItems"
+        "400":
+          $ref: "#/components/responses/InvalidParameter"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
   /collections/{collectionId}/items/{featureId}:
     get:
       description: >-
