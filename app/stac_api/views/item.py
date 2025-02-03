@@ -157,10 +157,8 @@ class ItemsList(generics.GenericAPIView):
                 return Response(data=message, status=status.HTTP_400_BAD_REQUEST)
 
             collection = Collection.objects.get(name=self.kwargs['collection_name'])
-            items = serializer.save(collection=collection)
-
-            return_status = status.HTTP_201_CREATED if len(items) > 0 else status.HTTP_200_OK
-            return Response(serializer.data, status=return_status)
+            serializer.save(collection=collection)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
         except Collection.DoesNotExist as exception:
             code = status.HTTP_404_NOT_FOUND
             message = {"code": code, "description": str(exception)}

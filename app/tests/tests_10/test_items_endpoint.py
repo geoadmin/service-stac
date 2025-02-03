@@ -978,7 +978,7 @@ class ItemsBulkCreateEndpointTestCase(StacBaseTestCase):
             "{'features': [ErrorDetail(string='This field is required.', code='required')]}"
         )
 
-    def test_items_endpoint_post_returns_200_if_no_items_provided(self):
+    def test_items_endpoint_post_returns_201_if_no_items_provided(self):
         collection_name = self.collection["name"]
         payload = {"features": []}
         response = self.client.post(
@@ -988,7 +988,7 @@ class ItemsBulkCreateEndpointTestCase(StacBaseTestCase):
         )
         response_json = response.json()
 
-        self.assertStatusCode(200, response)
+        self.assertStatusCode(201, response)
         self.assertEqual(response_json, payload)
 
 
