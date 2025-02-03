@@ -1,6 +1,7 @@
 import copy
 import logging
 from datetime import timedelta
+from typing import override
 
 from django.core.exceptions import ValidationError as CoreValidationError
 from django.utils.translation import gettext_lazy as _
@@ -471,6 +472,7 @@ class ItemListSerializer(serializers.Serializer):
     # with the payload of the getFeatures endpoint.
     features = ItemSerializer(many=True)
 
+    @override
     def create(self, validated_data):
         '''Create items in bulk from the given list of items.'''
         collection = validated_data["collection"]
@@ -504,6 +506,11 @@ class ItemListSerializer(serializers.Serializer):
 
         return items_created
 
+    @override
+    def update(self, instance, validated_data):
+        raise NotImplementedError("Update not supported.")
+
+    @override
     def to_representation(self, instance):
         '''Convert to a dict like `{"features": [item1, item2, ...]}`.'''
         items_serialized = [ItemSerializer(item, context=self.context).data for item in instance]
