@@ -22,12 +22,18 @@ class CreatePresignedPost(CommandHandler):
         object_key = asset.get_asset_path()
         print(f"Creating presigned post url for {object_key} on {bucket}")
         try:
-            response = s3.generate_presigned_post(
-                Bucket=bucket, Key=object_key, ExpiresIn=expires_in
+            # response = s3.generate_presigned_post(
+            #     Bucket=bucket, Key=object_key, ExpiresIn=expires_in
+            # )
+            response = s3.generate_presigned_url(
+                'put_object', Params={
+                    'Bucket': bucket, "Key": object_key
+                }, ExpiresIn=expires_in
             )
-            url = response["url"]
-            query_str = urllib.parse.urlencode(response['fields'])
-            print(f"{url}?{query_str}")
+            print(response)
+            # url = response["url"]
+            # query_str = urllib.parse.urlencode(response['fields'])
+            # print(f"{url}?{query_str}")
 
         except ClientError:
             logger.exception(
