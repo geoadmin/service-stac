@@ -23,8 +23,8 @@ from tests.tests_10.data_factory import CollectionFactory
 from tests.tests_10.data_factory import Factory
 from tests.tests_10.data_factory import SampleData
 from tests.tests_10.utils import reverse_version
-from tests.utils import client_login
 from tests.utils import disableLogger
+from tests.utils import get_auth_headers
 from tests.utils import mock_s3_asset_file
 
 logger = logging.getLogger(__name__)
@@ -117,11 +117,11 @@ class CollectionsEndpointTestCase(StacBaseTestCase):
         )
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class CollectionsUnImplementedEndpointTestCase(StacBaseTestCase):
 
     def setUp(self):  # pylint: disable=invalid-name
-        self.client = Client()
-        client_login(self.client)
+        self.client = Client(headers=get_auth_headers())
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample()
         self.maxDiff = None  # pylint: disable=invalid-name
@@ -135,11 +135,11 @@ class CollectionsUnImplementedEndpointTestCase(StacBaseTestCase):
         self.assertStatusCode(405, response)
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class CollectionsCreateEndpointTestCase(StacBaseTestCase):
 
     def setUp(self):  # pylint: disable=invalid-name
-        self.client = Client()
-        client_login(self.client)
+        self.client = Client(headers=get_auth_headers())
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample()
         self.maxDiff = None  # pylint: disable=invalid-name
@@ -294,11 +294,11 @@ class CollectionsCreateEndpointTestCase(StacBaseTestCase):
         self.assertStatusCode(404, response)
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class CollectionsUpdateEndpointTestCase(StacBaseTestCase):
 
     def setUp(self):  # pylint: disable=invalid-name
-        self.client = Client()
-        client_login(self.client)
+        self.client = Client(headers=get_auth_headers())
         self.collection_factory = CollectionFactory()
         self.collection = self.collection_factory.create_sample(db_create=True)
         self.maxDiff = None  # pylint: disable=invalid-name
@@ -476,11 +476,11 @@ class CollectionsUpdateEndpointTestCase(StacBaseTestCase):
         self.check_stac_collection(self.collection.json, response.json())
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class CollectionsDeleteEndpointTestCase(StacBaseTestCase):
 
     def setUp(self):  # pylint: disable=invalid-name
-        self.client = Client()
-        client_login(self.client)
+        self.client = Client(headers=get_auth_headers())
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample(db_create=True)
         self.item = self.factory.create_item_sample(self.collection.model, db_create=True)
@@ -522,12 +522,11 @@ class CollectionsDeleteEndpointTestCase(StacBaseTestCase):
         )
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class CollectionRaceConditionTest(StacBaseTransactionTestCase):
 
     def setUp(self):
-        self.username = 'user'
-        self.password = 'dummy-password'
-        get_user_model().objects.create_superuser(self.username, password=self.password)
+        self.auth_headers = get_auth_headers()
 
     def test_collection_upsert_race_condition(self):
         workers = 5
@@ -535,10 +534,9 @@ class CollectionRaceConditionTest(StacBaseTransactionTestCase):
         sample = CollectionFactory().create_sample(sample='collection-2')
 
         def collection_atomic_upsert_test(worker):
-            # This method run on separate thread therefore it requires to create a new client and
-            # to login it for each call.
-            client = Client()
-            client.login(username=self.username, password=self.password)
+            # This method runs on separate thread therefore it requires to create a new client
+            # for each call.
+            client = Client(headers=self.auth_headers)
             return client.put(
                 reverse_version('collection-detail', args=[sample['name']]),
                 data=sample.get_json('put'),
@@ -669,11 +667,11 @@ class CollectionsDisabledAuthenticationEndpointTestCase(StacBaseTestCase):
         self.run_test(401, headers=headers)
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class CollectionLinksEndpointTestCase(StacBaseTestCase):
 
     def setUp(self):
-        self.client = Client()
-        client_login(self.client)
+        self.client = Client(headers=get_auth_headers())
 
     @classmethod
     def setUpTestData(cls) -> None:

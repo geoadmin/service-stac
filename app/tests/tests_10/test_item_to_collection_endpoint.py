@@ -2,23 +2,24 @@ import logging
 
 from django.contrib.gis.geos import Polygon
 from django.test import Client
+from django.test import override_settings
 
 from tests.tests_10.base_test import STAC_BASE_V
 from tests.tests_10.base_test import StacBaseTransactionTestCase
 from tests.tests_10.data_factory import Factory
 from tests.tests_10.utils import calculate_extent
-from tests.utils import client_login
+from tests.utils import get_auth_headers
 
 logger = logging.getLogger(__name__)
 
 
 # Here we need to use TransactionTestCase due to the pgtrigger, in a normal
 # test case we cannot test effect of pgtrigger.
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class OneItemSpatialTestCase(StacBaseTransactionTestCase):
 
     def setUp(self):
-        self.client = Client()
-        client_login(self.client)
+        self.client = Client(headers=get_auth_headers())
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample().model
         self.items = self.factory.create_item_samples(['item-switzerland-west'],
@@ -57,11 +58,11 @@ class OneItemSpatialTestCase(StacBaseTransactionTestCase):
         self.assertEqual(bbox_collection, [0, 0, 0, 0])
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class TwoItemsSpatialTestCase(StacBaseTransactionTestCase):
 
     def setUp(self):
-        self.client = Client()
-        client_login(self.client)
+        self.client = Client(headers=get_auth_headers())
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample().model
         self.items = self.factory.create_item_samples(

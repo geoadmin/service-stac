@@ -28,6 +28,9 @@ class GeoadminHeadersAuthForPutEndpointTestCase(StacBaseTestCase):
         (None, None, 401),
         (valid_username, "false", 401),
         ("wronguser", "true", 403),
+        (valid_username, "", 401),
+        (None, "false", 401),
+        (None, "true", 401),
     ])
     def test_collection_upsert_create_with_geoadmin_header_auth(
         self, username_header, authenticated_header, expected_response_code

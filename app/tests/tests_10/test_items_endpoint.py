@@ -28,8 +28,8 @@ from tests.tests_10.data_factory import CollectionFactory
 from tests.tests_10.data_factory import Factory
 from tests.tests_10.data_factory import ItemFactory
 from tests.tests_10.utils import reverse_version
-from tests.utils import client_login
 from tests.utils import disableLogger
+from tests.utils import get_auth_headers
 from tests.utils import mock_s3_asset_file
 
 from .data_factory import SampleData
@@ -447,6 +447,7 @@ class ItemsDatetimeQueryPaginationEndpointTestCase(StacBaseTestCase):
         self._navigate_to_previous_items(['item-yesterday-1', 'item-2', 'item-1'], json_response)
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class ItemsUnImplementedEndpointTestCase(StacBaseTestCase):
 
     @classmethod
@@ -455,8 +456,7 @@ class ItemsUnImplementedEndpointTestCase(StacBaseTestCase):
         cls.collection = cls.factory.create_collection_sample().model
 
     def setUp(self):
-        self.client = Client()
-        client_login(self.client)
+        self.client = Client(headers=get_auth_headers())
 
     def test_item_post_unimplemented(self):
         sample = self.factory.create_item_sample(self.collection)
@@ -468,6 +468,7 @@ class ItemsUnImplementedEndpointTestCase(StacBaseTestCase):
         self.assertStatusCode(405, response)
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class ItemsCreateEndpointTestCase(StacBaseTestCase):
 
     @classmethod
@@ -476,8 +477,7 @@ class ItemsCreateEndpointTestCase(StacBaseTestCase):
         cls.collection = cls.factory.create_collection_sample().model
 
     def setUp(self):
-        self.client = Client()
-        client_login(self.client)
+        self.client = Client(headers=get_auth_headers())
 
     def test_item_upsert_create(self):
         sample = self.factory.create_item_sample(self.collection)
@@ -567,6 +567,7 @@ class ItemsCreateEndpointTestCase(StacBaseTestCase):
         )
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class ItemsUpdateEndpointTestCase(StacBaseTestCase):
 
     @classmethod
@@ -578,8 +579,7 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
         )
 
     def setUp(self):
-        self.client = Client()
-        client_login(self.client)
+        self.client = Client(headers=get_auth_headers())
 
     def test_item_endpoint_put(self):
         sample = self.factory.create_item_sample(
@@ -829,12 +829,11 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
         self.check_stac_item(self.item.json, response.json(), self.collection['name'])
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class ItemRaceConditionTest(StacBaseTransactionTestCase):
 
     def setUp(self):
-        self.username = 'user'
-        self.password = 'dummy-password'
-        get_user_model().objects.create_superuser(self.username, password=self.password)
+        self.auth_headers = get_auth_headers()
 
     def test_item_upsert_race_condition(self):
         workers = 5
@@ -843,10 +842,9 @@ class ItemRaceConditionTest(StacBaseTransactionTestCase):
         item_sample = ItemFactory().create_sample(collection_sample.model, sample='item-1')
 
         def item_atomic_upsert_test(worker):
-            # This method run on separate thread therefore it requires to create a new client and
-            # to login it for each call.
-            client = Client()
-            client.login(username=self.username, password=self.password)
+            # This method runs on separate thread therefore it requires to create a new client
+            # for each call.
+            client = Client(headers=self.auth_headers)
             return client.put(
                 reverse_version(
                     'item-detail', args=[collection_sample['name'], item_sample['name']]
@@ -870,6 +868,7 @@ class ItemRaceConditionTest(StacBaseTransactionTestCase):
         self.assertEqual(status_201, 1, msg="Not only one upsert did a create !")
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class ItemsDeleteEndpointTestCase(StacBaseTestCase):
 
     @classmethod
@@ -878,8 +877,7 @@ class ItemsDeleteEndpointTestCase(StacBaseTestCase):
 
     @mock_s3_asset_file
     def setUp(self):
-        self.client = Client()
-        client_login(self.client)
+        self.client = Client(headers=get_auth_headers())
         self.collection = self.factory.create_collection_sample().model
         self.item = self.factory.create_item_sample(self.collection, sample='item-1').model
         self.asset = self.factory.create_asset_sample(self.item, sample='asset-1').model
@@ -1020,11 +1018,11 @@ class ItemsDisabledAuthenticationEndpointTestCase(StacBaseTestCase):
         self.run_test(401, headers=headers)
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class ItemsLinksEndpointTestCase(StacBaseTestCase):
 
     def setUp(self):
-        self.client = Client()
-        client_login(self.client)
+        self.client = Client(headers=get_auth_headers())
 
     @classmethod
     def setUpTestData(cls) -> None:

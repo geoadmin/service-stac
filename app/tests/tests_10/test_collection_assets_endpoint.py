@@ -22,8 +22,8 @@ from tests.tests_10.base_test import StacBaseTransactionTestCase
 from tests.tests_10.data_factory import Factory
 from tests.tests_10.utils import reverse_version
 from tests.utils import S3TestMixin
-from tests.utils import client_login
 from tests.utils import disableLogger
+from tests.utils import get_auth_headers
 from tests.utils import mock_s3_asset_file
 
 logger = logging.getLogger(__name__)
@@ -95,14 +95,14 @@ class CollectionAssetsEndpointTestCase(StacBaseTestCase):
         self.assertEtagHeader(None, response)
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class CollectionAssetsUnimplementedEndpointTestCase(StacBaseTestCase):
 
     @mock_s3_asset_file
     def setUp(self):  # pylint: disable=invalid-name
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample().model
-        self.client = Client()
-        client_login(self.client)
+        self.client = Client(headers=get_auth_headers())
         self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_asset_unimplemented_post(self):
@@ -118,14 +118,14 @@ class CollectionAssetsUnimplementedEndpointTestCase(StacBaseTestCase):
         self.assertStatusCode(405, response)
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class CollectionAssetsCreateEndpointTestCase(StacBaseTestCase):
 
     @mock_s3_asset_file
     def setUp(self):  # pylint: disable=invalid-name
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample().model
-        self.client = Client()
-        client_login(self.client)
+        self.client = Client(headers=get_auth_headers())
         self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_asset_upsert_create_only_required(self):
@@ -297,6 +297,7 @@ class CollectionAssetsCreateEndpointTestCase(StacBaseTestCase):
         )
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class CollectionAssetsUpdateEndpointAssetFileTestCase(StacBaseTestCase):
 
     @mock_s3_asset_file
@@ -306,8 +307,7 @@ class CollectionAssetsUpdateEndpointAssetFileTestCase(StacBaseTestCase):
         self.asset = self.factory.create_collection_asset_sample(
             collection=self.collection.model, db_create=True
         )
-        self.client = Client()
-        client_login(self.client)
+        self.client = Client(headers=get_auth_headers())
         self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_asset_endpoint_patch_put_href(self):
@@ -341,6 +341,7 @@ class CollectionAssetsUpdateEndpointAssetFileTestCase(StacBaseTestCase):
         )
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class CollectionAssetsUpdateEndpointTestCase(StacBaseTestCase):
 
     @mock_s3_asset_file
@@ -350,8 +351,7 @@ class CollectionAssetsUpdateEndpointTestCase(StacBaseTestCase):
         self.asset = self.factory.create_collection_asset_sample(
             collection=self.collection.model, db_create=True
         )
-        self.client = Client()
-        client_login(self.client)
+        self.client = Client(headers=get_auth_headers())
         self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_asset_endpoint_put(self):
@@ -605,12 +605,11 @@ class CollectionAssetsUpdateEndpointTestCase(StacBaseTestCase):
         )
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class CollectionAssetRaceConditionTest(StacBaseTransactionTestCase):
 
     def setUp(self):
-        self.username = 'user'
-        self.password = 'dummy-password'
-        get_user_model().objects.create_superuser(self.username, password=self.password)
+        self.auth_headers = get_auth_headers()
         self.factory = Factory()
         self.collection_sample = self.factory.create_collection_sample(
             sample='collection-2', db_create=True
@@ -625,10 +624,9 @@ class CollectionAssetRaceConditionTest(StacBaseTransactionTestCase):
         )
 
         def asset_atomic_upsert_test(worker):
-            # This method run on separate thread therefore it requires to create a new client and
-            # to login it for each call.
-            client = Client()
-            client.login(username=self.username, password=self.password)
+            # This method runs on separate thread therefore it requires to create a new client
+            # for each call.
+            client = Client(headers=self.auth_headers)
             return client.put(
                 reverse_version(
                     'collection-asset-detail',
@@ -655,6 +653,7 @@ class CollectionAssetRaceConditionTest(StacBaseTransactionTestCase):
         self.assertEqual(status_201, 1, msg="Not only one upsert did a create !")
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class CollectionAssetsDeleteEndpointTestCase(StacBaseTestCase, S3TestMixin):
 
     @mock_s3_asset_file
@@ -662,8 +661,7 @@ class CollectionAssetsDeleteEndpointTestCase(StacBaseTestCase, S3TestMixin):
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample().model
         self.asset = self.factory.create_collection_asset_sample(collection=self.collection).model
-        self.client = Client()
-        client_login(self.client)
+        self.client = Client(headers=get_auth_headers())
         self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_asset_endpoint_delete_asset(self):

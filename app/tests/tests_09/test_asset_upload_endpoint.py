@@ -311,7 +311,7 @@ class AssetUploadCreateRaceConditionTest(StacBaseTransactionTestCase, S3TestMixi
         )
 
         def asset_upload_atomic_create_test(worker):
-            # This method run on separate thread therefore it requires to create a new client and
+            # This method runs on separate thread therefore it requires to create a new client and
             # to login it for each call.
             client = Client()
             client.login(username=self.username, password=self.password)
