@@ -1111,7 +1111,6 @@ components:
                 $ref: "#/components/schemas/assetType"
           - $ref: "#/components/schemas/assetBase"
       type: object
-      readOnly: true
       example:
         smr50-263-2016-2056-kgrs-2.5.tiff:
           file:checksum: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
