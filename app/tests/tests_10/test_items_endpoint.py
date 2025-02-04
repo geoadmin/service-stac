@@ -947,7 +947,10 @@ class ItemsBulkCreateEndpointTestCase(StacBaseTestCase):
             #
             # So we only inspect the second line.
             response_json["description"].split("\n")[1],
-            f"DETAIL:  Key (collection_id, name)=({self.collection.model.id}, item-1) already exists."
+            (
+                f"DETAIL:  Key (collection_id, name)=({self.collection.model.id}, item-1)"
+                f"already exists."
+            )
         )
 
     def test_items_endpoint_post_returns_404_if_collection_does_not_exist(self):
@@ -1033,7 +1036,10 @@ class ItemsBulkCreateEndpointTestCase(StacBaseTestCase):
         self.assertEqual(response_json["code"], 400)
         self.assertEqual(
             response_json["description"],
-            f"{{'features': [ErrorDetail(string='More than {max_n_items} features', code='invalid')]}}"
+            (
+                f"{{'features': [ErrorDetail(string='More than {max_n_items} features',"
+                f"code='invalid')]}}"
+            )
         )
 
     def test_items_endpoint_post_returns_400_if_no_idempotency_key(self):
