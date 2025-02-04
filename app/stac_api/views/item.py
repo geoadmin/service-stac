@@ -149,12 +149,20 @@ class ItemsList(generics.GenericAPIView):
 
     def post(self, request, *args, **kwargs):
         try:
+            idempotency_key_param = "Idempotency-Key"
+            idempotency_key = request.headers.get(idempotency_key_param)
+            if not idempotency_key:
+                code = status.HTTP_400_BAD_REQUEST
+                message = {
+                    "code": code, "description": f"No header parameter '{idempotency_key_param}'"
+                }
+                return Response(data=message, status=code)
+
             serializer = ItemListSerializer(data=request.data, context={"request": request})
             if not serializer.is_valid():
-                message = {
-                    "code": status.HTTP_400_BAD_REQUEST, "description": str(serializer.errors)
-                }
-                return Response(data=message, status=status.HTTP_400_BAD_REQUEST)
+                code = status.HTTP_400_BAD_REQUEST
+                message = {"code": code, "description": str(serializer.errors)}
+                return Response(data=message, status=code)
 
             collection = Collection.objects.get(name=self.kwargs['collection_name'])
             serializer.save(collection=collection)

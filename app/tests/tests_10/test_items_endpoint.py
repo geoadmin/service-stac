@@ -871,7 +871,8 @@ class ItemsBulkCreateEndpointTestCase(StacBaseTestCase):
         response = self.client.post(
             path=f'/{STAC_BASE_V}/collections/{collection_name}/items',
             data=self.payload,
-            content_type="application/json"
+            content_type="application/json",
+            headers={"Idempotency-Key": "abc-123"},
         )
         response_json = response.json()
 
@@ -931,7 +932,8 @@ class ItemsBulkCreateEndpointTestCase(StacBaseTestCase):
         response = self.client.post(
             path=f'/{STAC_BASE_V}/collections/{collection_name}/items',
             data=self.payload,
-            content_type="application/json"
+            content_type="application/json",
+            headers={"Idempotency-Key": "abc-123"},
         )
         response_json = response.json()
 
@@ -953,7 +955,8 @@ class ItemsBulkCreateEndpointTestCase(StacBaseTestCase):
         response = self.client.post(
             path=f'/{STAC_BASE_V}/collections/{collection_name}/items',
             data=self.payload,
-            content_type="application/json"
+            content_type="application/json",
+            headers={"Idempotency-Key": "abc-123"},
         )
         response_json = response.json()
 
@@ -967,7 +970,8 @@ class ItemsBulkCreateEndpointTestCase(StacBaseTestCase):
         response = self.client.post(
             path=f'/{STAC_BASE_V}/collections/{collection_name}/items',
             data=payload,
-            content_type="application/json"
+            content_type="application/json",
+            headers={"Idempotency-Key": "abc-123"},
         )
         response_json = response.json()
 
@@ -985,6 +989,7 @@ class ItemsBulkCreateEndpointTestCase(StacBaseTestCase):
             path=f'/{STAC_BASE_V}/collections/{collection_name}/items',
             data=payload,
             content_type="application/json",
+            headers={"Idempotency-Key": "abc-123"},
         )
         response_json = response.json()
 
@@ -1020,6 +1025,7 @@ class ItemsBulkCreateEndpointTestCase(StacBaseTestCase):
             path=f'/{STAC_BASE_V}/collections/{collection_name}/items',
             data=payload,
             content_type="application/json",
+            headers={"Idempotency-Key": "abc-123"},
         )
         response_json = response.json()
 
@@ -1029,6 +1035,36 @@ class ItemsBulkCreateEndpointTestCase(StacBaseTestCase):
             response_json["description"],
             f"{{'features': [ErrorDetail(string='More than {max_n_items} features', code='invalid')]}}"
         )
+
+    def test_items_endpoint_post_returns_400_if_no_idempotency_key(self):
+        collection_name = self.collection["name"]
+
+        response = self.client.post(
+            path=f'/{STAC_BASE_V}/collections/{collection_name}/items',
+            data=self.payload,
+            content_type="application/json",
+            headers={},
+        )
+        response_json = response.json()
+
+        self.assertStatusCode(400, response)
+        self.assertEqual(response_json["code"], 400)
+        self.assertEqual(response_json["description"], "No header parameter 'Idempotency-Key'")
+
+    def test_items_endpoint_post_returns_400_if_idempotency_key_empty(self):
+        collection_name = self.collection["name"]
+
+        response = self.client.post(
+            path=f'/{STAC_BASE_V}/collections/{collection_name}/items',
+            data=self.payload,
+            content_type="application/json",
+            headers={"Idempotency-Key": ""},
+        )
+        response_json = response.json()
+
+        self.assertStatusCode(400, response)
+        self.assertEqual(response_json["code"], 400)
+        self.assertEqual(response_json["description"], "No header parameter 'Idempotency-Key'")
 
 
 class ItemRaceConditionTest(StacBaseTransactionTestCase):
