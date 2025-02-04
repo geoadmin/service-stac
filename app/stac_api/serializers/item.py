@@ -515,3 +515,11 @@ class ItemListSerializer(serializers.Serializer):
         '''Convert to a dict like `{"features": [item1, item2, ...]}`.'''
         items_serialized = [ItemSerializer(item, context=self.context).data for item in instance]
         return {"features": items_serialized}
+
+    @override
+    def validate(self, attrs):
+        max_n_items = 100
+        if len(attrs["features"]) > max_n_items:
+            raise serializers.ValidationError({"features": f"More than {max_n_items} features"})
+
+        return super().validate(attrs)

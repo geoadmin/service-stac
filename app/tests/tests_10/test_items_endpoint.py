@@ -991,6 +991,45 @@ class ItemsBulkCreateEndpointTestCase(StacBaseTestCase):
         self.assertStatusCode(201, response)
         self.assertEqual(response_json, payload)
 
+    def test_items_endpoint_post_returns_400_if_too_many_items(self):
+        collection_name = self.collection["name"]
+        max_n_items = 100
+        items = [{
+            "id": f"item-{i}",
+            "assets": [{
+                "id": f"asset-{i}.txt",
+                "title": f"My title {i}",
+                "description": f"My description {i}",
+                "type": "text/plain",
+                "href": f"asset-{i}",
+                "roles": ["myrole"],
+                "geoadmin:variant": "komb",
+                "geoadmin:lang": "de",
+                "proj:epsg": 2056,
+                "gsd": 2.5
+            }],
+            "geometry": {
+                "type": "Point", "coordinates": [1.1, 1.2]
+            },
+            "properties": {
+                "datetime": "2018-02-12T23:20:50Z",
+            },
+        } for i in range(max_n_items + 1)]
+        payload = {"features": items}
+        response = self.client.post(
+            path=f'/{STAC_BASE_V}/collections/{collection_name}/items',
+            data=payload,
+            content_type="application/json",
+        )
+        response_json = response.json()
+
+        self.assertStatusCode(400, response)
+        self.assertEqual(response_json["code"], 400)
+        self.assertEqual(
+            response_json["description"],
+            f"{{'features': [ErrorDetail(string='More than {max_n_items} features', code='invalid')]}}"
+        )
+
 
 class ItemRaceConditionTest(StacBaseTransactionTestCase):
 
