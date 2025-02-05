@@ -149,6 +149,9 @@ class ItemsList(generics.GenericAPIView):
 
     def post(self, request, *args, **kwargs):
         try:
+            # Currently we only check that this header parameter is part of the request.
+            # We don't do anything with it. The idea is that, like this, we already
+            # have it in our interface from the get-go and the users don't need to change later.
             idempotency_key_param = "Idempotency-Key"
             idempotency_key = request.headers.get(idempotency_key_param)
             if not idempotency_key:
