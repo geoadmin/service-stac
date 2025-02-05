@@ -948,7 +948,7 @@ class ItemsBulkCreateEndpointTestCase(StacBaseTestCase):
             # So we only inspect the second line.
             response_json["description"].split("\n")[1],
             (
-                f"DETAIL:  Key (collection_id, name)=({self.collection.model.id}, item-1)"
+                f"DETAIL:  Key (collection_id, name)=({self.collection.model.id}, item-1) "
                 f"already exists."
             )
         )
@@ -1037,7 +1037,7 @@ class ItemsBulkCreateEndpointTestCase(StacBaseTestCase):
         self.assertEqual(
             response_json["description"],
             (
-                f"{{'features': [ErrorDetail(string='More than {max_n_items} features',"
+                f"{{'features': [ErrorDetail(string='More than {max_n_items} features', "
                 f"code='invalid')]}}"
             )
         )
