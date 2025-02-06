@@ -1,0 +1,29 @@
+.box {
+    padding: 5px 10px 9px;
+    border: 2px solid;
+    border-radius: 20px;
+    margin: 15px 0px;
+}
+
+.info {
+    background-color: #417690;
+    border-color: #264b5d;
+}
+
+.error {
+    background-color: rgb(167, 16, 16);
+    border-color: rgb(137, 0, 0);
+}
+
+.statusbox {
+    padding: 5px 10px 9px;
+    margin: 15px 0px;
+}
+
+.fileUploadForm {
+    margin: 20px 0 40px;
+}
+
+.fileUploadForm div {
+    margin: 20px 0;
+}
