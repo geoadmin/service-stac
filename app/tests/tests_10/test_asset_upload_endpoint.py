@@ -26,7 +26,7 @@ from tests.tests_10.base_test import StacBaseTransactionTestCase
 from tests.tests_10.data_factory import Factory
 from tests.tests_10.utils import reverse_version
 from tests.utils import S3TestMixin
-from tests.utils import client_login
+from tests.utils import get_auth_headers
 from tests.utils import get_file_like_object
 from tests.utils import mock_s3_asset_file
 
@@ -51,8 +51,7 @@ class AssetUploadBaseTest(StacBaseTestCase, S3TestMixin):
 
     @mock_s3_asset_file
     def setUp(self):  # pylint: disable=invalid-name
-        self.client = Client()
-        client_login(self.client)
+        self.client = Client(headers=get_auth_headers())
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample().model
         self.item = self.factory.create_item_sample(collection=self.collection).model
@@ -182,6 +181,7 @@ class AssetUploadBaseTest(StacBaseTestCase, S3TestMixin):
         )
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class AssetUploadCreateEndpointTestCase(AssetUploadBaseTest):
 
     def test_asset_upload_create_abort_multipart(self):
@@ -288,13 +288,12 @@ class AssetUploadCreateEndpointTestCase(AssetUploadBaseTest):
         self.assertEqual(len(response['Uploads']), 1, msg='More or less uploads found on S3')
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class AssetUploadCreateRaceConditionTest(StacBaseTransactionTestCase, S3TestMixin):
 
     @mock_s3_asset_file
     def setUp(self):
-        self.username = 'user'
-        self.password = 'dummy-password'
-        get_user_model().objects.create_superuser(self.username, password=self.password)
+        self.auth_headers = get_auth_headers()
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample().model
         self.item = self.factory.create_item_sample(collection=self.collection).model
@@ -314,10 +313,10 @@ class AssetUploadCreateRaceConditionTest(StacBaseTransactionTestCase, S3TestMixi
         )
 
         def asset_upload_atomic_create_test(worker):
-            # This method run on separate thread therefore it requires to create a new client and
-            # to login it for each call.
-            client = Client()
-            client.login(username=self.username, password=self.password)
+            # This method runs on separate thread therefore it requires to create a new client
+            # for each call.
+            client = Client(headers=self.auth_headers)
+
             return client.post(
                 path,
                 data={
@@ -342,6 +341,7 @@ class AssetUploadCreateRaceConditionTest(StacBaseTransactionTestCase, S3TestMixi
             self.assertEqual(response.json()['description'], "Upload already in progress")
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class AssetUpload1PartEndpointTestCase(AssetUploadBaseTest):
 
     def upload_asset_with_dyn_cache(self, update_interval=None):
@@ -508,6 +508,7 @@ class AssetUpload1PartEndpointTestCase(AssetUploadBaseTest):
         self.assertEqual(size_compress, self.asset.file_size)
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class AssetUpload2PartEndpointTestCase(AssetUploadBaseTest):
 
     def test_asset_upload_2_parts_md5_integrity(self):
@@ -548,6 +549,7 @@ class AssetUpload2PartEndpointTestCase(AssetUploadBaseTest):
         self.assertEqual(size, self.asset.file_size)
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
 
     def test_asset_upload_invalid_content_encoding(self):
@@ -1029,6 +1031,7 @@ class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
         self.assertEqual(size, self.asset.file_size)
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class AssetUploadDeleteInProgressEndpointTestCase(AssetUploadBaseTest):
 
     def test_delete_asset_upload_in_progress(self):
@@ -1212,6 +1215,7 @@ class GetAssetUploadsEndpointTestCase(AssetUploadBaseTest):
             self.assertEqual(upload['status'], AssetUpload.Status.ABORTED)
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class AssetUploadListPartsEndpointTestCase(AssetUploadBaseTest):
 
     def test_asset_upload_list_parts(self):
@@ -1287,6 +1291,7 @@ class AssetUploadListPartsEndpointTestCase(AssetUploadBaseTest):
         self.assertEqual(size, self.asset.file_size)
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class ExternalAssetUploadtestCase(AssetUploadBaseTest):
 
     def test_create_multipart_upload_on_external_asset(self):
