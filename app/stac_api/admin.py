@@ -364,8 +364,17 @@ class ItemAdmin(admin.ModelAdmin):
         return super().save_model(request, obj, form, change)
 
 
+class CollectionAssetAdminForm(forms.ModelForm):
+
+    def __init__(self, *args, **kwargs):
+        """Add help text for max file size"""
+        super().__init__(*args, **kwargs)
+        self.fields['file'].help_text = "<b>WARNING: Max file size is 10MB.</b>"
+
+
 @admin.register(CollectionAsset)
 class CollectionAssetAdmin(admin.ModelAdmin):
+    form = CollectionAssetAdminForm
 
     class Media:
         js = ('js/admin/asset_help_search.js',)
@@ -502,6 +511,11 @@ class AssetAdminForm(forms.ModelForm):
                     self.fields['file'].widget.attrs['size'] = 150
                     self.fields['file'].widget.attrs['placeholder'
                                                     ] = 'https://map.geo.admin.ch/external.jpg'
+                else:
+                    self.fields['file'].help_text = (
+                        "<b>WARNING: Max file size is 10MB. For larger files use the " +
+                        "'UPLOAD LARGE FILE' option in the top right.</b>"
+                    )
 
     def clean_file(self):
         if self.instance:
