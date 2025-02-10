@@ -770,6 +770,11 @@ class AssetAdmin(admin.ModelAdmin):
     def change_view(self, request, object_id, form_url='', extra_context=None):
         # This overrides the stock Django admin entity detail view
 
+        # get the current asset to check if it has an external file.
+        obj = Asset.objects.filter(id=request.resolver_match.kwargs['object_id']).first()
+        if obj.is_external:
+            return super().change_view(request, object_id, form_url)
+
         extra_context = extra_context or {}
 
         # Generate the transfer URL
