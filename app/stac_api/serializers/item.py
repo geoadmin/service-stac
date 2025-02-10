@@ -485,23 +485,19 @@ class ItemListSerializer(serializers.Serializer):
             links_per_item[item_name] = item_in.pop('links', [])
             assets_per_item[item_name] = item_in.pop('assets', [])
 
-            item = Item(**item_in, collection=collection)
-            items.append(item)
+            items.append(Item(**item_in, collection=collection))
 
         items_created = Item.objects.bulk_create(items)
 
         assets = []
+        links = []
         for item in items_created:
-            update_or_create_links(
-                instance_type="item",
-                model=ItemLink,
-                instance=item,
-                links_data=links_per_item[item.name]
-            )
+            for link_in in links_per_item[item.name]:
+                links.append(ItemLink(**link_in, item=item))
             for asset_in in assets_per_item[item.name]:
-                asset = Asset(**asset_in, item=item)
-                assets.append(asset)
+                assets.append(Asset(**asset_in, item=item))
 
+        ItemLink.objects.bulk_create(links)
         Asset.objects.bulk_create(assets)
 
         return items_created

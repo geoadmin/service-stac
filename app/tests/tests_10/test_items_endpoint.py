@@ -831,6 +831,12 @@ class ItemsBulkCreateEndpointTestCase(StacBaseTestCase):
                         "proj:epsg": 2056,
                         "gsd": 2.5
                     }],
+                    "links": [{
+                        'href': 'https://www.example.com/described-by-1',
+                        'rel': 'describedBy',
+                        'title': 'My title 1',
+                        'hreflang': 'en',
+                    }],
                     "geometry": {
                         "type": "Point", "coordinates": [1.1, 1.2]
                     },
@@ -851,6 +857,12 @@ class ItemsBulkCreateEndpointTestCase(StacBaseTestCase):
                         "geoadmin:lang": "de",
                         "proj:epsg": 2056,
                         "gsd": 2.5
+                    }],
+                    "links": [{
+                        'href': 'https://www.example.com/described-by-2',
+                        'rel': 'describedBy',
+                        'title': 'My title 2',
+                        'hreflang': 'en',
                     }],
                     "geometry": {
                         "type": "Point", "coordinates": [2.1, 2.2]
@@ -891,6 +903,12 @@ class ItemsBulkCreateEndpointTestCase(StacBaseTestCase):
                             "type": "text/plain",
                         },
                     },
+                    "links": [{
+                        'href': 'https://www.example.com/described-by-1',
+                        'rel': 'describedBy',
+                        'title': 'My title 1',
+                        'hreflang': 'en',
+                    }],
                     "geometry": {
                         "type": "Point", "coordinates": [1.1, 1.2]
                     },
@@ -909,6 +927,12 @@ class ItemsBulkCreateEndpointTestCase(StacBaseTestCase):
                             "type": "text/plain",
                         },
                     },
+                    "links": [{
+                        'href': 'https://www.example.com/described-by-2',
+                        'rel': 'describedBy',
+                        'title': 'My title 2',
+                        'hreflang': 'en',
+                    }],
                     "geometry": {
                         "type": "Point", "coordinates": [2.1, 2.2]
                     },
