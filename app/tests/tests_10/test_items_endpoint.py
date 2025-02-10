@@ -875,7 +875,7 @@ class ItemsBulkCreateEndpointTestCase(StacBaseTestCase):
         }
 
     def setUp(self):
-        self.client = Client()
+        self.client = Client(headers=get_auth_headers())
 
     def test_items_endpoint_post_creates_given_items_as_expected(self):
         collection_name = self.collection["name"]
