@@ -352,7 +352,8 @@ DISALLOWED_EXTERNAL_ASSET_URL_SCHEMES = env.list(
     'DISALLOWED_EXTERNAL_ASSET_URL_SCHEMES', default=['http']
 )
 
-# These are the default values from Django as per https://docs.djangoproject.com/en/5.1/ref/settings/
+# These are the default values from Django as per
+# https://docs.djangoproject.com/en/5.1/ref/settings/
 # We add them here so they can be changed through environment variables.
 SESSION_EXPIRE_AT_BROWSER_CLOSE = env('SESSION_EXPIRE_AT_BROWSER_CLOSE', default=False)
 SESSION_COOKIE_AGE = env('SESSION_COOKIE_AGE', default=60 * 60 * 24 * 7 * 2)
