@@ -202,7 +202,6 @@ def get_auth_headers():
     '''Creates a superuser and returns authentication headers that can be used in conjunction with
     this user.
     '''
-    apiuser = get_user_model().objects.create_superuser('apiuser', 'apiuser@example.org', 'apiuser')
     return {"Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"}
 
 
