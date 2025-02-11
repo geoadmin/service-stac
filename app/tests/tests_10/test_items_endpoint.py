@@ -448,27 +448,6 @@ class ItemsDatetimeQueryPaginationEndpointTestCase(StacBaseTestCase):
 
 
 @override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
-class ItemsUnImplementedEndpointTestCase(StacBaseTestCase):
-
-    @classmethod
-    def setUpTestData(cls):
-        cls.factory = Factory()
-        cls.collection = cls.factory.create_collection_sample().model
-
-    def setUp(self):
-        self.client = Client(headers=get_auth_headers())
-
-    def test_item_post_unimplemented(self):
-        sample = self.factory.create_item_sample(self.collection)
-        response = self.client.post(
-            f'/{STAC_BASE_V}/collections/{self.collection.name}/items',
-            data=sample.get_json('post'),
-            content_type="application/json"
-        )
-        self.assertStatusCode(405, response)
-
-
-@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class ItemsCreateEndpointTestCase(StacBaseTestCase):
 
     @classmethod
@@ -827,6 +806,306 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
         )
         self.assertStatusCode(200, response)
         self.check_stac_item(self.item.json, response.json(), self.collection['name'])
+
+
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
+class ItemsBulkCreateEndpointTestCase(StacBaseTestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.factory = Factory()
+        cls.collection = cls.factory.create_collection_sample(db_create=True)
+        cls.payload = {
+            "features": [
+                {
+                    "id": "item-1",
+                    "assets": [{
+                        "id": "asset-1.txt",
+                        "title": "My title 1",
+                        "description": "My description 1",
+                        "type": "text/plain",
+                        "href": "asset-1",
+                        "roles": ["myrole"],
+                        "geoadmin:variant": "komb",
+                        "geoadmin:lang": "de",
+                        "proj:epsg": 2056,
+                        "gsd": 2.5
+                    }],
+                    "links": [{
+                        'href': 'https://www.example.com/described-by-1',
+                        'rel': 'describedBy',
+                        'title': 'My title 1',
+                        'hreflang': 'en',
+                    }],
+                    "geometry": {
+                        "type": "Point", "coordinates": [1.1, 1.2]
+                    },
+                    "properties": {
+                        "datetime": "2018-02-12T23:20:50Z",
+                    },
+                },
+                {
+                    "id": "item-2",
+                    "assets": [{
+                        "id": "asset-2.txt",
+                        "title": "My title 2",
+                        "description": "My description 2",
+                        "type": "text/plain",
+                        "href": "asset-2",
+                        "roles": ["myrole"],
+                        "geoadmin:variant": "komb",
+                        "geoadmin:lang": "de",
+                        "proj:epsg": 2056,
+                        "gsd": 2.5
+                    }],
+                    "links": [{
+                        'href': 'https://www.example.com/described-by-2',
+                        'rel': 'describedBy',
+                        'title': 'My title 2',
+                        'hreflang': 'en',
+                    }],
+                    "geometry": {
+                        "type": "Point", "coordinates": [2.1, 2.2]
+                    },
+                    "properties": {
+                        "datetime": "2019-01-13T13:30:00Z",
+                    },
+                },
+            ]
+        }
+
+    def setUp(self):
+        self.client = Client(headers=get_auth_headers())
+
+    def test_items_endpoint_post_creates_given_items_as_expected(self):
+        collection_name = self.collection["name"]
+
+        response = self.client.post(
+            path=f'/{STAC_BASE_V}/collections/{collection_name}/items',
+            data=self.payload,
+            content_type="application/json",
+            headers={"Idempotency-Key": "abc-123"},
+        )
+        response_json = response.json()
+
+        self.assertStatusCode(201, response)
+
+        expected = {
+            "features": [
+                {
+                    "id": "item-1",
+                    "assets": {
+                        "asset-1.txt": {
+                            "gsd": 2.5,
+                            "geoadmin:variant": "komb",
+                            "href": "http://testserver/asset-1",
+                            "proj:epsg": 2056,
+                            "type": "text/plain",
+                        },
+                    },
+                    "links": [{
+                        'href': 'https://www.example.com/described-by-1',
+                        'rel': 'describedBy',
+                        'title': 'My title 1',
+                        'hreflang': 'en',
+                    }],
+                    "geometry": {
+                        "type": "Point", "coordinates": [1.1, 1.2]
+                    },
+                    "properties": {
+                        "datetime": "2018-02-12T23:20:50Z",
+                    },
+                },
+                {
+                    "id": "item-2",
+                    "assets": {
+                        "asset-2.txt": {
+                            "gsd": 2.5,
+                            "geoadmin:variant": "komb",
+                            "href": "http://testserver/asset-2",
+                            "proj:epsg": 2056,
+                            "type": "text/plain",
+                        },
+                    },
+                    "links": [{
+                        'href': 'https://www.example.com/described-by-2',
+                        'rel': 'describedBy',
+                        'title': 'My title 2',
+                        'hreflang': 'en',
+                    }],
+                    "geometry": {
+                        "type": "Point", "coordinates": [2.1, 2.2]
+                    },
+                    "properties": {
+                        "datetime": "2019-01-13T13:30:00Z",
+                    },
+                },
+            ]
+        }
+
+        for actual_item in response_json["features"]:
+            expected_item = [
+                item for item in expected["features"] if item["id"] == actual_item["id"]
+            ][0]
+            self.check_stac_item(expected_item, actual_item, collection=collection_name)
+
+    def test_items_endpoint_post_returns_400_if_item_exists_already(self):
+        collection_name = self.collection["name"]
+        self.factory.create_item_sample(self.collection.model, sample='item-1', db_create=True)
+
+        # Perform a meaningless GET request in order to have a session from authentication.
+        #
+        # If we don't do this, the authentication middleware catches the HTTP 400
+        # error while trying to set up a session. The session initialization then
+        # fails with a HTML error message (not a JSON) complaining that
+        #
+        #     "The request's session was deleted before the request completed.".
+        #
+        # This is a workaround that we might be able to replace with a more proper solution.
+        self.client.get(path=f'/{STAC_BASE_V}/collections/{collection_name}/items')
+
+        response = self.client.post(
+            path=f'/{STAC_BASE_V}/collections/{collection_name}/items',
+            data=self.payload,
+            content_type="application/json",
+            headers={"Idempotency-Key": "abc-123"},
+        )
+        response_json = response.json()
+
+        self.assertStatusCode(400, response)
+        self.assertEqual(response_json["code"], 400)
+        self.assertEqual(
+            # The first line reads like this and can change each time:
+            #
+            #   duplicate key value violates unique constraint
+            #   "stac_api_item_collection_id_name_78fbc154_uniq"
+            #
+            # So we only inspect the second line.
+            response_json["description"].split("\n")[1],
+            (
+                f"DETAIL:  Key (collection_id, name)=({self.collection.model.id}, item-1) "
+                f"already exists."
+            )
+        )
+
+    def test_items_endpoint_post_returns_404_if_collection_does_not_exist(self):
+        collection_name = "non-existant collection"
+        response = self.client.post(
+            path=f'/{STAC_BASE_V}/collections/{collection_name}/items',
+            data=self.payload,
+            content_type="application/json",
+            headers={"Idempotency-Key": "abc-123"},
+        )
+        response_json = response.json()
+
+        self.assertStatusCode(404, response)
+        self.assertEqual(response_json["code"], 404)
+        self.assertEqual(response_json["description"], "Collection matching query does not exist.")
+
+    def test_items_endpoint_post_returns_400_if_payload_malformed(self):
+        collection_name = self.collection["name"]
+        payload = {"teachers": []}
+        response = self.client.post(
+            path=f'/{STAC_BASE_V}/collections/{collection_name}/items',
+            data=payload,
+            content_type="application/json",
+            headers={"Idempotency-Key": "abc-123"},
+        )
+        response_json = response.json()
+
+        self.assertStatusCode(400, response)
+        self.assertEqual(response_json["code"], 400)
+        self.assertEqual(
+            response_json["description"],
+            "{'features': [ErrorDetail(string='This field is required.', code='required')]}"
+        )
+
+    def test_items_endpoint_post_returns_201_if_no_items_provided(self):
+        collection_name = self.collection["name"]
+        payload = {"features": []}
+        response = self.client.post(
+            path=f'/{STAC_BASE_V}/collections/{collection_name}/items',
+            data=payload,
+            content_type="application/json",
+            headers={"Idempotency-Key": "abc-123"},
+        )
+        response_json = response.json()
+
+        self.assertStatusCode(201, response)
+        self.assertEqual(response_json, payload)
+
+    def test_items_endpoint_post_returns_400_if_too_many_items(self):
+        collection_name = self.collection["name"]
+        max_n_items = 100
+        items = [{
+            "id": f"item-{i}",
+            "assets": [{
+                "id": f"asset-{i}.txt",
+                "title": f"My title {i}",
+                "description": f"My description {i}",
+                "type": "text/plain",
+                "href": f"asset-{i}",
+                "roles": ["myrole"],
+                "geoadmin:variant": "komb",
+                "geoadmin:lang": "de",
+                "proj:epsg": 2056,
+                "gsd": 2.5
+            }],
+            "geometry": {
+                "type": "Point", "coordinates": [1.1, 1.2]
+            },
+            "properties": {
+                "datetime": "2018-02-12T23:20:50Z",
+            },
+        } for i in range(max_n_items + 1)]
+        payload = {"features": items}
+        response = self.client.post(
+            path=f'/{STAC_BASE_V}/collections/{collection_name}/items',
+            data=payload,
+            content_type="application/json",
+            headers={"Idempotency-Key": "abc-123"},
+        )
+        response_json = response.json()
+
+        self.assertStatusCode(400, response)
+        self.assertEqual(response_json["code"], 400)
+        self.assertEqual(
+            response_json["description"],
+            (
+                f"{{'features': [ErrorDetail(string='More than {max_n_items} features', "
+                f"code='invalid')]}}"
+            )
+        )
+
+    def test_items_endpoint_post_returns_400_if_no_idempotency_key(self):
+        collection_name = self.collection["name"]
+
+        response = self.client.post(
+            path=f'/{STAC_BASE_V}/collections/{collection_name}/items',
+            data=self.payload,
+            content_type="application/json",
+            headers={},
+        )
+        response_json = response.json()
+
+        self.assertStatusCode(400, response)
+        self.assertEqual(response_json["code"], 400)
+        self.assertEqual(response_json["description"], "No header parameter 'Idempotency-Key'")
+
+    def test_items_endpoint_post_returns_400_if_idempotency_key_empty(self):
+        collection_name = self.collection["name"]
+
+        response = self.client.post(
+            path=f'/{STAC_BASE_V}/collections/{collection_name}/items',
+            data=self.payload,
+            content_type="application/json",
+            headers={"Idempotency-Key": ""},
+        )
+        response_json = response.json()
+
+        self.assertStatusCode(400, response)
+        self.assertEqual(response_json["code"], 400)
+        self.assertEqual(response_json["description"], "No header parameter 'Idempotency-Key'")
 
 
 @override_settings(FEATURE_AUTH_ENABLE_APIGW=True)

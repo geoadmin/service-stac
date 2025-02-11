@@ -414,27 +414,6 @@ class ItemsDatetimeQueryPaginationEndpointTestCase(StacBaseTestCase):
         self._navigate_to_previous_items(['item-yesterday-1', 'item-2', 'item-1'], json_response)
 
 
-class ItemsUnImplementedEndpointTestCase(StacBaseTestCase):
-
-    @classmethod
-    def setUpTestData(cls):
-        cls.factory = Factory()
-        cls.collection = cls.factory.create_collection_sample().model
-
-    def setUp(self):
-        self.client = Client()
-        client_login(self.client)
-
-    def test_item_post_unimplemented(self):
-        sample = self.factory.create_item_sample(self.collection)
-        response = self.client.post(
-            f'/{STAC_BASE_V}/collections/{self.collection.name}/items',
-            data=sample.get_json('post'),
-            content_type="application/json"
-        )
-        self.assertStatusCode(405, response)
-
-
 class ItemsCreateEndpointTestCase(StacBaseTestCase):
 
     @classmethod

@@ -1,6 +1,7 @@
 import copy
 import logging
 from datetime import timedelta
+from typing import override
 
 from django.core.exceptions import ValidationError as CoreValidationError
 from django.utils.translation import gettext_lazy as _
@@ -372,7 +373,7 @@ class ItemSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
     type = serializers.SerializerMethodField()
     collection = serializers.SlugRelatedField(slug_field='name', read_only=True)
     bbox = BboxSerializer(source='*', read_only=True)
-    assets = AssetsForItemSerializer(many=True, read_only=True)
+    assets = AssetsForItemSerializer(many=True, required=False)
     stac_extensions = serializers.SerializerMethodField()
     stac_version = serializers.SerializerMethodField()
 
@@ -462,3 +463,59 @@ class ItemSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         validate_json_payload(self)
 
         return attrs
+
+
+class ItemListSerializer(serializers.Serializer):
+    '''Handle serialization and deserialization of a list of Items.'''
+
+    # In the payload, we call this "features" and not "items" for consistency
+    # with the payload of the getFeatures endpoint.
+    features = ItemSerializer(many=True)
+
+    @override
+    def create(self, validated_data):
+        '''Create items in bulk from the given list of items.'''
+        collection = validated_data["collection"]
+
+        items = []
+        links_per_item = {}
+        assets_per_item = {}
+        for item_in in validated_data["features"]:
+            item_name = item_in["name"]
+            links_per_item[item_name] = item_in.pop('links', [])
+            assets_per_item[item_name] = item_in.pop('assets', [])
+
+            items.append(Item(**item_in, collection=collection))
+
+        items_created = Item.objects.bulk_create(items)
+
+        assets = []
+        links = []
+        for item in items_created:
+            for link_in in links_per_item[item.name]:
+                links.append(ItemLink(**link_in, item=item))
+            for asset_in in assets_per_item[item.name]:
+                assets.append(Asset(**asset_in, item=item))
+
+        ItemLink.objects.bulk_create(links)
+        Asset.objects.bulk_create(assets)
+
+        return items_created
+
+    @override
+    def update(self, instance, validated_data):
+        raise NotImplementedError("Update not supported.")
+
+    @override
+    def to_representation(self, instance):
+        '''Convert to a dict like `{"features": [item1, item2, ...]}`.'''
+        items_serialized = [ItemSerializer(item, context=self.context).data for item in instance]
+        return {"features": items_serialized}
+
+    @override
+    def validate(self, attrs):
+        max_n_items = 100
+        if len(attrs["features"]) > max_n_items:
+            raise serializers.ValidationError({"features": f"More than {max_n_items} features"})
+
+        return super().validate(attrs)

@@ -2,12 +2,14 @@ import logging
 from datetime import datetime
 
 from django.conf import settings
+from django.db import IntegrityError
 from django.db.models import Prefetch
 from django.db.models import Q
 from django.db.models import Subquery
 from django.utils import timezone
 
 from rest_framework import generics
+from rest_framework import status
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework_condition import etag
@@ -16,6 +18,7 @@ from stac_api.models.collection import Collection
 from stac_api.models.item import Asset
 from stac_api.models.item import Item
 from stac_api.serializers.item import AssetSerializer
+from stac_api.serializers.item import ItemListSerializer
 from stac_api.serializers.item import ItemSerializer
 from stac_api.serializers.utils import get_relation_links
 from stac_api.utils import get_asset_path
@@ -143,6 +146,38 @@ class ItemsList(generics.GenericAPIView):
 
     def get(self, request, *args, **kwargs):
         return self.list(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        try:
+            # Currently we only check that this header parameter is part of the request.
+            # We don't do anything with it. The idea is that, like this, we already
+            # have it in our interface from the get-go and the users don't need to change later.
+            idempotency_key_param = "Idempotency-Key"
+            idempotency_key = request.headers.get(idempotency_key_param)
+            if not idempotency_key:
+                code = status.HTTP_400_BAD_REQUEST
+                message = {
+                    "code": code, "description": f"No header parameter '{idempotency_key_param}'"
+                }
+                return Response(data=message, status=code)
+
+            serializer = ItemListSerializer(data=request.data, context={"request": request})
+            if not serializer.is_valid():
+                code = status.HTTP_400_BAD_REQUEST
+                message = {"code": code, "description": str(serializer.errors)}
+                return Response(data=message, status=code)
+
+            collection = Collection.objects.get(name=self.kwargs['collection_name'])
+            serializer.save(collection=collection)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except Collection.DoesNotExist as exception:
+            code = status.HTTP_404_NOT_FOUND
+            message = {"code": code, "description": str(exception)}
+            return Response(data=message, exception=True, status=code)
+        except IntegrityError as exception:
+            code = status.HTTP_400_BAD_REQUEST
+            message = {"code": code, "description": str(exception)}
+            return Response(data=message, exception=True, status=code)
 
 
 class ItemDetail(
