@@ -7,6 +7,7 @@ from admin_auto_filters.filters import AutocompleteFilterFactory
 from django import forms
 from django.contrib import messages
 from django.contrib.admin import SimpleListFilter
+from django.contrib.admin.utils import unquote
 from django.contrib.gis import admin
 from django.contrib.gis.db import models
 from django.contrib.postgres.fields import ArrayField
@@ -15,6 +16,8 @@ from django.forms import CharField
 from django.forms import Textarea
 from django.http import HttpResponseRedirect
 from django.template.defaultfilters import filesizeformat
+from django.template.response import TemplateResponse
+from django.urls import path
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
@@ -361,8 +364,17 @@ class ItemAdmin(admin.ModelAdmin):
         return super().save_model(request, obj, form, change)
 
 
+class CollectionAssetAdminForm(forms.ModelForm):
+
+    def __init__(self, *args, **kwargs):
+        """Add help text for max file size"""
+        super().__init__(*args, **kwargs)
+        self.fields['file'].help_text = "<b>WARNING: Max file size is 10MB.</b>"
+
+
 @admin.register(CollectionAsset)
 class CollectionAssetAdmin(admin.ModelAdmin):
+    form = CollectionAssetAdminForm
 
     class Media:
         js = ('js/admin/asset_help_search.js',)
@@ -451,8 +463,7 @@ class CollectionAssetAdmin(admin.ModelAdmin):
         return super().get_form(request, obj, **kwargs)
 
     def href(self, instance):
-        path = instance.file.name
-        return build_asset_href(self.request, path)
+        return build_asset_href(self.request, instance.file.name)
 
     #helper function which displays the bytes in human-readable format
     def displayed_file_size(self, instance):
@@ -500,6 +511,11 @@ class AssetAdminForm(forms.ModelForm):
                     self.fields['file'].widget.attrs['size'] = 150
                     self.fields['file'].widget.attrs['placeholder'
                                                     ] = 'https://map.geo.admin.ch/external.jpg'
+                else:
+                    self.fields['file'].help_text = (
+                        "<b>WARNING: Max file size is 10MB. For larger files use the " +
+                        "'UPLOAD LARGE FILE' option in the top right.</b>"
+                    )
 
     def clean_file(self):
         if self.instance:
@@ -625,10 +641,9 @@ class AssetAdmin(admin.ModelAdmin):
         super().save_model(request, obj, form, change)
 
     def href(self, instance):
-        path = instance.file.name
         if instance.is_external:
-            return path
-        return build_asset_href(self.request, path)
+            return instance.file.name
+        return build_asset_href(self.request, instance.file.name)
 
     #helper function which displays the bytes in human-readable format
     def displayed_file_size(self, instance):
@@ -723,6 +738,54 @@ class AssetAdmin(admin.ModelAdmin):
             request.POST["_continue"] = 1
 
         return super().response_add(request, obj, post_url_continue)
+
+    def get_urls(self):
+        urls = super().get_urls()
+        my_urls = [
+            path(
+                "<path:object_id>/change/upload/",
+                self.admin_site.admin_view(self.upload_view),
+                name=f'{self.model._meta.app_label}_{self.model._meta.model_name}_upload',
+            )
+        ]
+        return my_urls + urls
+
+    def upload_view(self, request, object_id, extra_context=None):
+        model = self.model
+        obj = self.get_object(request, unquote(object_id))
+        if obj is None:
+            return self._get_obj_does_not_exist_redirect(request, model._meta, object_id)
+
+        context = dict(
+            # Include common variables for rendering the admin template.
+            self.admin_site.each_context(request),
+            # Anything else you want in the context...
+            csrf_token=request.META['CSRF_COOKIE'],
+            asset_name=obj.name,
+            item_name=obj.item.name,
+            collection_name=obj.get_collection()
+        )
+        return TemplateResponse(request, "uploadtemplate.html", context)
+
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        # This overrides the stock Django admin entity detail view
+
+        # get the current asset to check if it has an external file.
+        obj = Asset.objects.filter(id=request.resolver_match.kwargs['object_id']).first()
+        if obj.is_external:
+            return super().change_view(request, object_id, form_url)
+
+        extra_context = extra_context or {}
+
+        # Generate the transfer URL
+        property_upload_url = reverse(
+            f'admin:{self.model._meta.app_label}_{self.model._meta.model_name}_upload',
+            args=[object_id],
+        )
+
+        # Add the property upload URL to the extra context
+        extra_context['property_upload_url'] = property_upload_url
+        return super().change_view(request, object_id, form_url, extra_context=extra_context)
 
 
 @admin.register(AssetUpload)
