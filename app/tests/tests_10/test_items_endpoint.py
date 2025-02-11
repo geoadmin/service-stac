@@ -1108,6 +1108,7 @@ class ItemsBulkCreateEndpointTestCase(StacBaseTestCase):
         self.assertEqual(response_json["description"], "No header parameter 'Idempotency-Key'")
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class ItemRaceConditionTest(StacBaseTransactionTestCase):
 
     def setUp(self):
