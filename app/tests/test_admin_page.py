@@ -746,3 +746,17 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
         self.assertS3ObjectContentType(obj, path, content_type)
         self.assertS3ObjectSha256(obj, path, sha256)
         self.assertS3ObjectCacheControl(obj, path, max_age=settings.STORAGE_ASSETS_CACHE_SECONDS)
+
+    @mock_s3_asset_file
+    def test_asset_custom_upload(self):
+
+        asset, _ = self._create_asset(self.item)
+        # Need to set a csrf token so there is a token to pass to the template.
+        # The actual token value does not matter.
+        self.client.cookies["csrftoken"] = "some_token_value"
+        response = self.client.get(reverse('admin:stac_api_asset_upload', args=[asset.id]))
+        self.assertEqual(response.status_code, 200, msg="Admin page login failed")
+        self.assertContains(
+            response,
+            f"<h1>Upload file for {self.collection.name}/{self.item.name}/{asset.name}</h1>"
+        )
