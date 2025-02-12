@@ -198,6 +198,13 @@ def client_login(client):
     client.login(username=username, password=password)
 
 
+def get_auth_headers():
+    '''Creates a superuser and returns authentication headers that can be used in conjunction with
+    this user.
+    '''
+    return {"Geoadmin-Username": "apiuser", "Geoadmin-Authenticated": "true"}
+
+
 class disableLogger:  # pylint: disable=invalid-name
     """Disable temporarily a logger with a with statement
 

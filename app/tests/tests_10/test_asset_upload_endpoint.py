@@ -9,6 +9,9 @@ from urllib import parse
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import Client
+from django.test import override_settings
+
+from rest_framework.authtoken.models import Token
 
 from stac_api.models.item import Asset
 from stac_api.models.item import AssetUpload
@@ -23,7 +26,7 @@ from tests.tests_10.base_test import StacBaseTransactionTestCase
 from tests.tests_10.data_factory import Factory
 from tests.tests_10.utils import reverse_version
 from tests.utils import S3TestMixin
-from tests.utils import client_login
+from tests.utils import get_auth_headers
 from tests.utils import get_file_like_object
 from tests.utils import mock_s3_asset_file
 
@@ -48,8 +51,7 @@ class AssetUploadBaseTest(StacBaseTestCase, S3TestMixin):
 
     @mock_s3_asset_file
     def setUp(self):  # pylint: disable=invalid-name
-        self.client = Client()
-        client_login(self.client)
+        self.client = Client(headers=get_auth_headers())
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample().model
         self.item = self.factory.create_item_sample(collection=self.collection).model
@@ -179,6 +181,7 @@ class AssetUploadBaseTest(StacBaseTestCase, S3TestMixin):
         )
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class AssetUploadCreateEndpointTestCase(AssetUploadBaseTest):
 
     def test_asset_upload_create_abort_multipart(self):
@@ -285,13 +288,12 @@ class AssetUploadCreateEndpointTestCase(AssetUploadBaseTest):
         self.assertEqual(len(response['Uploads']), 1, msg='More or less uploads found on S3')
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class AssetUploadCreateRaceConditionTest(StacBaseTransactionTestCase, S3TestMixin):
 
     @mock_s3_asset_file
     def setUp(self):
-        self.username = 'user'
-        self.password = 'dummy-password'
-        get_user_model().objects.create_superuser(self.username, password=self.password)
+        self.auth_headers = get_auth_headers()
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample().model
         self.item = self.factory.create_item_sample(collection=self.collection).model
@@ -311,10 +313,10 @@ class AssetUploadCreateRaceConditionTest(StacBaseTransactionTestCase, S3TestMixi
         )
 
         def asset_upload_atomic_create_test(worker):
-            # This method run on separate thread therefore it requires to create a new client and
-            # to login it for each call.
-            client = Client()
-            client.login(username=self.username, password=self.password)
+            # This method runs on separate thread therefore it requires to create a new client
+            # for each call.
+            client = Client(headers=self.auth_headers)
+
             return client.post(
                 path,
                 data={
@@ -339,6 +341,7 @@ class AssetUploadCreateRaceConditionTest(StacBaseTransactionTestCase, S3TestMixi
             self.assertEqual(response.json()['description'], "Upload already in progress")
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class AssetUpload1PartEndpointTestCase(AssetUploadBaseTest):
 
     def upload_asset_with_dyn_cache(self, update_interval=None):
@@ -505,6 +508,7 @@ class AssetUpload1PartEndpointTestCase(AssetUploadBaseTest):
         self.assertEqual(size_compress, self.asset.file_size)
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class AssetUpload2PartEndpointTestCase(AssetUploadBaseTest):
 
     def test_asset_upload_2_parts_md5_integrity(self):
@@ -545,6 +549,7 @@ class AssetUpload2PartEndpointTestCase(AssetUploadBaseTest):
         self.assertEqual(size, self.asset.file_size)
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
 
     def test_asset_upload_invalid_content_encoding(self):
@@ -1026,6 +1031,7 @@ class AssetUploadInvalidEndpointTestCase(AssetUploadBaseTest):
         self.assertEqual(size, self.asset.file_size)
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class AssetUploadDeleteInProgressEndpointTestCase(AssetUploadBaseTest):
 
     def test_delete_asset_upload_in_progress(self):
@@ -1209,6 +1215,7 @@ class GetAssetUploadsEndpointTestCase(AssetUploadBaseTest):
             self.assertEqual(upload['status'], AssetUpload.Status.ABORTED)
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class AssetUploadListPartsEndpointTestCase(AssetUploadBaseTest):
 
     def test_asset_upload_list_parts(self):
@@ -1284,6 +1291,7 @@ class AssetUploadListPartsEndpointTestCase(AssetUploadBaseTest):
         self.assertEqual(size, self.asset.file_size)
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class ExternalAssetUploadtestCase(AssetUploadBaseTest):
 
     def test_create_multipart_upload_on_external_asset(self):
@@ -1310,3 +1318,82 @@ class ExternalAssetUploadtestCase(AssetUploadBaseTest):
         )
 
         self.assertStatusCode(400, response)
+
+
+class AssetUploadDisabledAuthenticationEndpointTestCase(AssetUploadBaseTest):
+
+    @mock_s3_asset_file
+    def setUp(self):  # pylint: disable=invalid-name
+        self.client = Client()
+        self.factory = Factory()
+        self.collection = self.factory.create_collection_sample().model
+        self.item = self.factory.create_item_sample(collection=self.collection).model
+        self.asset = self.factory.create_asset_sample(item=self.item, sample='asset-no-file').model
+        self.maxDiff = None  # pylint: disable=invalid-name
+        self.username = 'SherlockHolmes'
+        self.password = '221B_BakerStreet'
+        self.user = get_user_model().objects.create_superuser(
+            self.username, 'top@secret.co.uk', self.password
+        )
+
+    def run_test(self, status, headers=None):
+        number_parts = 2
+        file_like, checksum_multihash = get_file_like_object(1 * KB)
+        offset = 1 * KB // number_parts
+        md5_parts = create_md5_parts(number_parts, offset, file_like)
+
+        # POST
+        response = self.client.post(
+            self.get_create_multipart_upload_path(),
+            headers=headers,
+            data={
+                'number_parts': number_parts,
+                'file:checksum': checksum_multihash,
+                'md5_parts': md5_parts
+            },
+            content_type="application/json"
+        )
+        self.assertStatusCode(status, response, msg="Unexpected status.")
+
+        # POST abort
+        response = self.client.post(
+            self.get_abort_multipart_upload_path(response.json().get('upload_id')),
+            headers=headers,
+            data={},
+            content_type="application/json"
+        )
+        self.assertStatusCode(status, response, msg="Unexpected status.")
+
+    @override_settings(FEATURE_AUTH_RESTRICT_V1=False)
+    def test_enabled_session_authentication(self):
+        self.client.login(username=self.username, password=self.password)
+        self.run_test([200, 201])
+
+    @override_settings(FEATURE_AUTH_RESTRICT_V1=False)
+    def test_enabled_token_authentication(self):
+        token = Token.objects.create(user=self.user)
+        headers = {'Authorization': f'Token {token.key}'}
+        self.run_test([200, 201], headers=headers)
+
+    @override_settings(FEATURE_AUTH_RESTRICT_V1=False)
+    def test_enabled_base_authentication(self):
+        token = b64encode(f'{self.username}:{self.password}'.encode()).decode()
+        headers = {'Authorization': f'Basic {token}'}
+        self.run_test([200, 201], headers=headers)
+
+    @override_settings(FEATURE_AUTH_RESTRICT_V1=True)
+    def test_disabled_session_authentication(self):
+        self.client.login(username=self.username, password=self.password)
+        self.run_test(401)
+
+    @override_settings(FEATURE_AUTH_RESTRICT_V1=True)
+    def test_disabled_token_authentication(self):
+        token = Token.objects.create(user=self.user)
+        headers = {'Authorization': f'Token {token.key}'}
+        self.run_test(401, headers=headers)
+
+    @override_settings(FEATURE_AUTH_RESTRICT_V1=True)
+    def test_disabled_base_authentication(self):
+        token = b64encode(f'{self.username}:{self.password}'.encode()).decode()
+        headers = {'Authorization': f'Basic {token}'}
+        self.run_test(401, headers=headers)

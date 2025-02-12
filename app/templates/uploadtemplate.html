@@ -1,0 +1,47 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+
+<!-- Load template variables to js vars -->
+<script type="text/javascript">
+    var collection_name = "{{ collection_name }}";
+    var item_name = "{{ item_name }}";
+    var asset_name = "{{ asset_name }}";
+    var csrf_token = "{{ csrf_token }}";
+</script>
+
+{% load static %}
+<script src="{% static 'js/admin/upload.js' %}" ></script>
+<!-- cryptoJS for md5 -->
+<script src="{% static 'js/external/crypto-js-4.2.0.min.js' %}" ></script>
+<link rel="stylesheet" href="{% static 'style/admin/upload.css' %}">
+
+
+<h1>Upload file for {{ collection_name }}/{{ item_name }}/{{ asset_name }}</h1>
+
+<div class="box info">
+    &#9432; This file upload will use the multipart form upload API in the background.
+    The file will be uploaded to s3 using a presigned url. Max. file size is 5GB
+</div>
+<div id="error_box" class="box error" style="display: none">
+    &#x26A0;
+    <span id="error">This file upload will use the multipart form upload API in the background.
+    The file will be uploaded to s3 using a presigned url. Max. file size is 5GB</span>
+</div>
+
+<h2>File upload</h2>
+<form class="fileUploadForm" name="fileUploadForm" action="javascript:handleFileFormSubmit()">
+    <div>
+        <label for="id_file">choose file</label>
+        <input id="id_file" type="file">
+    </div>
+    <div>
+        <input type="submit" value="Upload">
+    </div>
+</form>
+
+<h2>Current status</h2>
+<div class="statusbox">
+    <span id="current_status">ready to upload</span>
+</div>
+
+{% endblock %}

@@ -1,4 +1,5 @@
 import logging
+from base64 import b64encode
 from datetime import datetime
 from json import dumps
 from json import loads
@@ -6,7 +7,10 @@ from pprint import pformat
 
 from django.contrib.auth import get_user_model
 from django.test import Client
+from django.test import override_settings
 from django.urls import reverse
+
+from rest_framework.authtoken.models import Token
 
 from stac_api.models.collection import CollectionAsset
 from stac_api.utils import get_collection_asset_path
@@ -18,8 +22,8 @@ from tests.tests_10.base_test import StacBaseTransactionTestCase
 from tests.tests_10.data_factory import Factory
 from tests.tests_10.utils import reverse_version
 from tests.utils import S3TestMixin
-from tests.utils import client_login
 from tests.utils import disableLogger
+from tests.utils import get_auth_headers
 from tests.utils import mock_s3_asset_file
 
 logger = logging.getLogger(__name__)
@@ -91,14 +95,14 @@ class CollectionAssetsEndpointTestCase(StacBaseTestCase):
         self.assertEtagHeader(None, response)
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class CollectionAssetsUnimplementedEndpointTestCase(StacBaseTestCase):
 
     @mock_s3_asset_file
     def setUp(self):  # pylint: disable=invalid-name
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample().model
-        self.client = Client()
-        client_login(self.client)
+        self.client = Client(headers=get_auth_headers())
         self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_asset_unimplemented_post(self):
@@ -114,14 +118,14 @@ class CollectionAssetsUnimplementedEndpointTestCase(StacBaseTestCase):
         self.assertStatusCode(405, response)
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class CollectionAssetsCreateEndpointTestCase(StacBaseTestCase):
 
     @mock_s3_asset_file
     def setUp(self):  # pylint: disable=invalid-name
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample().model
-        self.client = Client()
-        client_login(self.client)
+        self.client = Client(headers=get_auth_headers())
         self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_asset_upsert_create_only_required(self):
@@ -293,6 +297,7 @@ class CollectionAssetsCreateEndpointTestCase(StacBaseTestCase):
         )
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class CollectionAssetsUpdateEndpointAssetFileTestCase(StacBaseTestCase):
 
     @mock_s3_asset_file
@@ -302,8 +307,7 @@ class CollectionAssetsUpdateEndpointAssetFileTestCase(StacBaseTestCase):
         self.asset = self.factory.create_collection_asset_sample(
             collection=self.collection.model, db_create=True
         )
-        self.client = Client()
-        client_login(self.client)
+        self.client = Client(headers=get_auth_headers())
         self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_asset_endpoint_patch_put_href(self):
@@ -337,6 +341,7 @@ class CollectionAssetsUpdateEndpointAssetFileTestCase(StacBaseTestCase):
         )
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class CollectionAssetsUpdateEndpointTestCase(StacBaseTestCase):
 
     @mock_s3_asset_file
@@ -346,8 +351,7 @@ class CollectionAssetsUpdateEndpointTestCase(StacBaseTestCase):
         self.asset = self.factory.create_collection_asset_sample(
             collection=self.collection.model, db_create=True
         )
-        self.client = Client()
-        client_login(self.client)
+        self.client = Client(headers=get_auth_headers())
         self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_asset_endpoint_put(self):
@@ -601,12 +605,11 @@ class CollectionAssetsUpdateEndpointTestCase(StacBaseTestCase):
         )
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class CollectionAssetRaceConditionTest(StacBaseTransactionTestCase):
 
     def setUp(self):
-        self.username = 'user'
-        self.password = 'dummy-password'
-        get_user_model().objects.create_superuser(self.username, password=self.password)
+        self.auth_headers = get_auth_headers()
         self.factory = Factory()
         self.collection_sample = self.factory.create_collection_sample(
             sample='collection-2', db_create=True
@@ -621,10 +624,9 @@ class CollectionAssetRaceConditionTest(StacBaseTransactionTestCase):
         )
 
         def asset_atomic_upsert_test(worker):
-            # This method run on separate thread therefore it requires to create a new client and
-            # to login it for each call.
-            client = Client()
-            client.login(username=self.username, password=self.password)
+            # This method runs on separate thread therefore it requires to create a new client
+            # for each call.
+            client = Client(headers=self.auth_headers)
             return client.put(
                 reverse_version(
                     'collection-asset-detail',
@@ -651,6 +653,7 @@ class CollectionAssetRaceConditionTest(StacBaseTransactionTestCase):
         self.assertEqual(status_201, 1, msg="Not only one upsert did a create !")
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class CollectionAssetsDeleteEndpointTestCase(StacBaseTestCase, S3TestMixin):
 
     @mock_s3_asset_file
@@ -658,8 +661,7 @@ class CollectionAssetsDeleteEndpointTestCase(StacBaseTestCase, S3TestMixin):
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample().model
         self.asset = self.factory.create_collection_asset_sample(collection=self.collection).model
-        self.client = Client()
-        client_login(self.client)
+        self.client = Client(headers=get_auth_headers())
         self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_asset_endpoint_delete_asset(self):
@@ -710,20 +712,88 @@ class CollectionAssetsEndpointUnauthorizedTestCase(StacBaseTestCase):
         # make sure POST fails for anonymous user:
         path = f'/{STAC_BASE_V}/collections/{collection_name}/assets'
         response = self.client.post(path, data=new_asset, content_type="application/json")
-        self.assertStatusCode(401, response, msg="Unauthorized post was permitted.")
+        self.assertStatusCode(401, response, msg="Unexpected status.")
 
         # make sure PUT fails for anonymous user:
 
         path = f'/{STAC_BASE_V}/collections/{collection_name}/assets/{asset_name}'
         response = self.client.put(path, data=updated_asset, content_type="application/json")
-        self.assertStatusCode(401, response, msg="Unauthorized put was permitted.")
+        self.assertStatusCode(401, response, msg="Unexpected status.")
 
         # make sure PATCH fails for anonymous user:
         path = f'/{STAC_BASE_V}/collections/{collection_name}/assets/{asset_name}'
         response = self.client.patch(path, data=updated_asset, content_type="application/json")
-        self.assertStatusCode(401, response, msg="Unauthorized patch was permitted.")
+        self.assertStatusCode(401, response, msg="Unexpected status.")
 
         # make sure DELETE fails for anonymous user:
         path = f'/{STAC_BASE_V}/collections/{collection_name}/assets/{asset_name}'
         response = self.client.delete(path)
-        self.assertStatusCode(401, response, msg="Unauthorized del was permitted.")
+        self.assertStatusCode(401, response, msg="Unexpected status.")
+
+
+class CollectionAssetsDisabledAuthenticationEndpointTestCase(StacBaseTestCase):
+
+    @mock_s3_asset_file
+    def setUp(self):  # pylint: disable=invalid-name
+        self.factory = Factory()
+        self.collection = self.factory.create_collection_sample().model
+        self.asset = self.factory.create_collection_asset_sample(collection=self.collection).model
+        self.client = Client()
+        self.username = 'SherlockHolmes'
+        self.password = '221B_BakerStreet'
+        self.user = get_user_model().objects.create_superuser(
+            self.username, 'top@secret.co.uk', self.password
+        )
+
+    def run_test(self, status, headers=None):
+        collection_name = self.collection.name
+        asset_name = self.asset.name
+
+        # PUT
+        path = f'/{STAC_BASE_V}/collections/{collection_name}/assets/{asset_name}'
+        response = self.client.put(path, headers=headers, data={}, content_type="application/json")
+        self.assertStatusCode(status, response, msg="Unauthorized put was permitted.")
+
+        # PATCH
+        response = self.client.patch(
+            path, headers=headers, data={}, content_type="application/json"
+        )
+        self.assertStatusCode(status, response, msg="Unauthorized patch was permitted.")
+
+        # DELETE
+        response = self.client.delete(path, headers=headers)
+        self.assertStatusCode(status, response, msg="Unauthorized del was permitted.")
+
+    @override_settings(FEATURE_AUTH_RESTRICT_V1=False)
+    def test_enabled_session_authentication(self):
+        self.client.login(username=self.username, password=self.password)
+        self.run_test([200, 400])
+
+    @override_settings(FEATURE_AUTH_RESTRICT_V1=False)
+    def test_enabled_token_authentication(self):
+        token = Token.objects.create(user=self.user)
+        headers = {'Authorization': f'Token {token.key}'}
+        self.run_test([200, 400], headers=headers)
+
+    @override_settings(FEATURE_AUTH_RESTRICT_V1=False)
+    def test_enabled_base_authentication(self):
+        token = b64encode(f'{self.username}:{self.password}'.encode()).decode()
+        headers = {'Authorization': f'Basic {token}'}
+        self.run_test([200, 400], headers=headers)
+
+    @override_settings(FEATURE_AUTH_RESTRICT_V1=True)
+    def test_disabled_session_authentication(self):
+        self.client.login(username=self.username, password=self.password)
+        self.run_test(401)
+
+    @override_settings(FEATURE_AUTH_RESTRICT_V1=True)
+    def test_disabled_token_authentication(self):
+        token = Token.objects.create(user=self.user)
+        headers = {'Authorization': f'Token {token.key}'}
+        self.run_test(401, headers=headers)
+
+    @override_settings(FEATURE_AUTH_RESTRICT_V1=True)
+    def test_disabled_base_authentication(self):
+        token = b64encode(f'{self.username}:{self.password}'.encode()).decode()
+        headers = {'Authorization': f'Basic {token}'}
+        self.run_test(401, headers=headers)

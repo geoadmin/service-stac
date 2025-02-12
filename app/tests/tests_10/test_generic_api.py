@@ -15,8 +15,8 @@ from tests.tests_10.base_test import STAC_BASE_V
 from tests.tests_10.base_test import StacBaseTestCase
 from tests.tests_10.data_factory import Factory
 from tests.utils import S3TestMixin
-from tests.utils import client_login
 from tests.utils import disableLogger
+from tests.utils import get_auth_headers
 from tests.utils import get_http_error_description
 from tests.utils import mock_s3_asset_file
 
@@ -193,6 +193,7 @@ class ApiPaginationTestCase(StacBaseTestCase):
                 )
 
 
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class ApiETagPreconditionTestCase(StacBaseTestCase):
 
     @mock_s3_asset_file
@@ -252,7 +253,7 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
                 self.assertStatusCode(412, response4)
 
     def test_put_precondition(self):
-        client_login(self.client)
+        client = Client(headers=get_auth_headers())
         for (endpoint, sample) in [
             (
                 f'collections/{self.collection["name"]}',
@@ -283,7 +284,7 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
         ]:
             with self.subTest(endpoint=endpoint):
 
-                response = self.client.put(
+                response = client.put(
                     f"/{STAC_BASE_V}/{endpoint}",
                     sample.get_json('put'),
                     content_type="application/json",
@@ -291,7 +292,7 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
                 )
                 self.assertStatusCode(412, response)
 
-                response = self.client.put(
+                response = client.put(
                     f"/{STAC_BASE_V}/{endpoint}",
                     sample.get_json('put'),
                     content_type="application/json",
@@ -300,8 +301,7 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
                 self.assertStatusCode(200, response)
 
     def test_wrong_media_type(self):
-        client_login(self.client)
-
+        client = Client(headers=get_auth_headers())
         for (request_methods, endpoint, data) in [
             (
                 ['put', 'patch'],
@@ -322,7 +322,7 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
             }),
         ]:
             with self.subTest(endpoint=endpoint):
-                client_requests = [getattr(self.client, method) for method in request_methods]
+                client_requests = [getattr(client, method) for method in request_methods]
                 for client_request in client_requests:
                     response = client_request(
                         f"/{STAC_BASE_V}/{endpoint}", data=data, content_type="plain/text"
@@ -330,7 +330,7 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
                     self.assertStatusCode(415, response)
 
     def test_patch_precondition(self):
-        client_login(self.client)
+        client = Client(headers=get_auth_headers())
         for (endpoint, data) in [
             (
                 f'collections/{self.collection["name"]}',
@@ -356,7 +356,7 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
         ]:
             with self.subTest(endpoint=endpoint):
 
-                response = self.client.patch(
+                response = client.patch(
                     f"/{STAC_BASE_V}/{endpoint}",
                     data,
                     content_type="application/json",
@@ -364,7 +364,7 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
                 )
                 self.assertStatusCode(412, response)
 
-                response = self.client.patch(
+                response = client.patch(
                     f"/{STAC_BASE_V}/{endpoint}",
                     data,
                     content_type="application/json",
@@ -373,7 +373,7 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
                 self.assertStatusCode(200, response)
 
     def test_delete_precondition(self):
-        client_login(self.client)
+        client = Client(headers=get_auth_headers())
         for endpoint in [
             f'collections/{self.collection["name"]}/items/{self.item["name"]}'
             f'/assets/{self.asset["name"]}',
@@ -383,7 +383,7 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
             with self.subTest(endpoint=endpoint):
                 etag1 = self.get_etag(endpoint)
 
-                response = self.client.delete(
+                response = client.delete(
                     f"/{STAC_BASE_V}/{endpoint}",
                     content_type="application/json",
                     HTTP_IF_MATCH='"abc"'
@@ -392,7 +392,7 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
                     412, response, msg='Request should be refused due to precondition failed'
                 )
 
-                response = self.client.delete(
+                response = client.delete(
                     f"/{STAC_BASE_V}/{endpoint}",
                     content_type="application/json",
                     HTTP_IF_MATCH=etag1

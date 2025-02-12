@@ -16,7 +16,6 @@ from tests.tests_10.base_test import STAC_BASE_V
 from tests.tests_10.base_test import StacBaseTestCase
 from tests.tests_10.data_factory import Factory
 from tests.tests_10.utils import reverse_version
-from tests.utils import client_login
 from tests.utils import mock_s3_asset_file
 
 logger = logging.getLogger(__name__)
@@ -56,7 +55,6 @@ class SearchEndpointPaginationTestCase(StacBaseTestCase):
 
     def setUp(self):  # pylint: disable=invalid-name
         self.client = Client()
-        client_login(self.client)
         self.path = f'/{STAC_BASE_V}/search'
         self.maxDiff = None  # pylint: disable=invalid-name
 
@@ -194,7 +192,6 @@ class SearchEndpointTestCaseOne(StacBaseTestCase):
 
     def setUp(self):  # pylint: disable=invalid-name
         self.client = Client()
-        client_login(self.client)
         self.path = f'/{STAC_BASE_V}/search'
         self.maxDiff = None  # pylint: disable=invalid-name
 
@@ -404,7 +401,6 @@ class SearchEndpointTestCaseTwo(StacBaseTestCase):
 
     def setUp(self):  # pylint: disable=invalid-name
         self.client = Client()
-        client_login(self.client)
         self.path = f'/{STAC_BASE_V}/search'
         self.maxDiff = None  # pylint: disable=invalid-name
 
@@ -609,7 +605,6 @@ class SearchEndpointTestForecast(StacBaseTestCase):
 
     def setUp(self):  # pylint: disable=invalid-name
         self.client = Client()
-        client_login(self.client)
         self.path = f'/{STAC_BASE_V}/search'
         self.maxDiff = None  # pylint: disable=invalid-name
 

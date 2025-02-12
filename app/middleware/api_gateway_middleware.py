@@ -20,13 +20,19 @@ class ApiGatewayMiddleware(PersistentRemoteUserMiddleware):
 class ApiGatewayUserBackend(RemoteUserBackend):
     """ This backend is to be used in conjunction with the ``ApiGatewayMiddleware`.
 
-    It is probably not needed to provide a custom remote user backend as our custom remote user
-    middleware will never call authenticate if the feature is not enabled. But better be safe than
-    sorry.
+    Until proper authorization is implemented, all remote users authenticated via API Gateway
+    headers are treated as superusers.
+
     """
 
     def authenticate(self, request, remote_user):
         if not settings.FEATURE_AUTH_ENABLE_APIGW:
             return None
 
-        return super().authenticate(request, remote_user)
+        user = super().authenticate(request, remote_user)
+        if user:
+            # promote authenticated user to superuser for now until proper authorization is
+            # implemented
+            user.is_superuser = True
+            user.save()
+        return user

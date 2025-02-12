@@ -77,6 +77,7 @@ INSTALLED_APPS = [
 
 # API Authentication options
 FEATURE_AUTH_ENABLE_APIGW = env('FEATURE_AUTH_ENABLE_APIGW', bool, default=False)
+FEATURE_AUTH_RESTRICT_V1 = env('FEATURE_AUTH_RESTRICT_V1', bool, default=False)
 
 # Middlewares are executed in order, once for the incoming
 # request top-down, once for the outgoing response bottom up
@@ -306,9 +307,9 @@ REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': ['rest_framework.renderers.JSONRenderer'],
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'middleware.api_gateway_authentication.ApiGatewayAuthentication',
-        'rest_framework.authentication.BasicAuthentication',
-        'rest_framework.authentication.TokenAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
+        'middleware.rest_framework_authentication.RestrictedBasicAuthentication',
+        'middleware.rest_framework_authentication.RestrictedTokenAuthentication',
+        'middleware.rest_framework_authentication.RestrictedSessionAuthentication',
     ],
     'DEFAULT_PAGINATION_CLASS': 'stac_api.pagination.CursorPagination',
     'PAGE_SIZE': env.int('PAGE_SIZE', default=100),
@@ -350,3 +351,11 @@ EXTERNAL_URL_REACHABLE_TIMEOUT = env.int('EXTERNAL_URL_REACHABLE_TIMEOUT', defau
 DISALLOWED_EXTERNAL_ASSET_URL_SCHEMES = env.list(
     'DISALLOWED_EXTERNAL_ASSET_URL_SCHEMES', default=['http']
 )
+
+# These are the default values from Django as per
+# https://docs.djangoproject.com/en/5.1/ref/settings/
+# We add them here so they can be changed through environment variables.
+SESSION_EXPIRE_AT_BROWSER_CLOSE = env('SESSION_EXPIRE_AT_BROWSER_CLOSE', default=False)
+SESSION_COOKIE_AGE = env('SESSION_COOKIE_AGE', default=60 * 60 * 24 * 7 * 2)
+SESSION_COOKIE_SAMESITE = env('SESSION_COOKIE_SAMESITE', default='Lax')
+SESSION_COOKIE_SECURE = env('SESSION_COOKIE_SECURE', default=False)

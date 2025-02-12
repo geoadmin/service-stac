@@ -34,6 +34,11 @@ def validate_json_payload(serializer):
     ]
 
     errors = {}
+
+    # Nested serializers may not have initial_data set at this point
+    if not hasattr(serializer, "initial_data"):
+        return
+
     for key in serializer.initial_data.keys():
         if key not in expected_payload:
             logger.error('Found unexpected payload %s', key)

@@ -766,7 +766,7 @@ class AssetRaceConditionTest(StacBaseTransactionTestCase):
         )
 
         def asset_atomic_upsert_test(worker):
-            # This method run on separate thread therefore it requires to create a new client and
+            # This method runs on separate thread therefore it requires to create a new client and
             # to login it for each call.
             client = Client()
             client.login(username=self.username, password=self.password)

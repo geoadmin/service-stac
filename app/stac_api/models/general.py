@@ -370,10 +370,30 @@ class AssetBase(models.Model):
         "-1 means that the data is not on a regular basis updated."
     )
 
+    # Depending on the value here we can determine some state of the asset:
+    # * None: The asset was created but the file doesn't actually exist on
+    #         the referenced bucket. This was determined in a one-off check run in
+    #         2025, see PB-1091
+    # * 0:    The asset was created, but the file has not yet been uploaded
+    # * -1:   This is an external asset, thus we write -1 as we can't yet determine
+    #         the file size of external assets
     file_size = models.BigIntegerField(default=0, null=True, blank=True)
 
     def __str__(self):
         return self.name
+
+    def get_asset_path(self):
+        # Method must be implemented by Asset and CollectionAsset separately.
+        raise NotImplementedError("get_asset_path() not implemented")
+
+    def save(self, *args, **kwargs):
+        # Default file value to the asset path.
+        #
+        # This is the behaviour when creating an asset via PUT API endpoint.
+        # But we need to set this here so it also applies in the admin UI.
+        if not bool(self.file):
+            self.file = self.get_asset_path()
+        super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):  # pylint: disable=signature-differs
         try:
