@@ -809,13 +809,12 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
 
 
 @override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
-class ItemsBulkCreateEndpointTestCase(StacBaseTestCase):
+class ItemsBulkCreateEndpointTestCase(StacBaseTransactionTestCase):
 
-    @classmethod
-    def setUpTestData(cls):
-        cls.factory = Factory()
-        cls.collection = cls.factory.create_collection_sample(db_create=True)
-        cls.payload = {
+    def setUp(self):
+        self.factory = Factory()
+        self.collection = self.factory.create_collection_sample(db_create=True)
+        self.payload = {
             "features": [
                 {
                     "id": "item-1",
@@ -873,8 +872,6 @@ class ItemsBulkCreateEndpointTestCase(StacBaseTestCase):
                 },
             ]
         }
-
-    def setUp(self):
         self.client = Client(headers=get_auth_headers())
 
     def test_items_endpoint_post_creates_given_items_as_expected(self):
@@ -952,17 +949,6 @@ class ItemsBulkCreateEndpointTestCase(StacBaseTestCase):
     def test_items_endpoint_post_returns_400_if_item_exists_already(self):
         collection_name = self.collection["name"]
         self.factory.create_item_sample(self.collection.model, sample='item-1', db_create=True)
-
-        # Perform a meaningless GET request in order to have a session from authentication.
-        #
-        # If we don't do this, the authentication middleware catches the HTTP 400
-        # error while trying to set up a session. The session initialization then
-        # fails with a HTML error message (not a JSON) complaining that
-        #
-        #     "The request's session was deleted before the request completed.".
-        #
-        # This is a workaround that we might be able to replace with a more proper solution.
-        self.client.get(path=f'/{STAC_BASE_V}/collections/{collection_name}/items')
 
         response = self.client.post(
             path=f'/{STAC_BASE_V}/collections/{collection_name}/items',
