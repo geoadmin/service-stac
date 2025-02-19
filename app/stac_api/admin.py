@@ -368,9 +368,7 @@ class ItemAdmin(admin.ModelAdmin):
 class CollectionAssetAdminForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
-        """Add help text for max file size"""
         super().__init__(*args, **kwargs)
-        self.fields['file'].help_text = "<b>WARNING: Max file size is 10MB.</b>"
 
 
 @admin.register(CollectionAsset)
@@ -402,7 +400,6 @@ class CollectionAssetAdmin(admin.ModelAdmin):
             'File',
             {
                 'fields': (
-                    'file',
                     'media_type',
                     'href',
                     'checksum_multihash',
@@ -493,30 +490,6 @@ class AssetAdminForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         """If it's an external asset, we switch the file field to a char field"""
         super().__init__(*args, **kwargs)
-        if self.instance is not None and self.instance.id is not None:
-            are_external_assets_allowed = self.instance.item.collection.allow_external_assets
-
-            if are_external_assets_allowed:
-                external_field = self.fields['is_external']
-                external_field.help_text = (
-                    _('Whether this asset is hosted externally. Save the form in '
-                      'order to toggle the file field between input and file widget.')
-                )
-
-                if self.instance.is_external:
-                    # can't just change the widget, otherwise it is impossible to
-                    # change the value!
-                    self.fields['file'] = forms.CharField()
-
-                    # make it a bit wider
-                    self.fields['file'].widget.attrs['size'] = 150
-                    self.fields['file'].widget.attrs['placeholder'
-                                                    ] = 'https://map.geo.admin.ch/external.jpg'
-                else:
-                    self.fields['file'].help_text = (
-                        "<b>WARNING: Max file size is 10MB. For larger files use the " +
-                        "'UPLOAD LARGE FILE' option in the top right.</b>"
-                    )
 
     def clean_file(self):
         if self.instance:
@@ -666,7 +639,6 @@ class AssetAdmin(admin.ModelAdmin):
         fields = []
         if obj is None:
             fields.append((None, {'fields': ('name', 'item', 'created', 'updated', 'etag')}))
-            fields.append(('File', {'fields': ('media_type',)}))
         else:
             # add one section after another
             fields.append((
@@ -680,7 +652,6 @@ class AssetAdmin(admin.ModelAdmin):
             if obj.item.collection.allow_external_assets:
                 file_fields = (
                     'is_external',
-                    'file',
                     'media_type',
                     'href',
                     'checksum_multihash',
@@ -689,7 +660,6 @@ class AssetAdmin(admin.ModelAdmin):
                 )
             else:
                 file_fields = (
-                    'file',
                     'media_type',
                     'href',
                     'checksum_multihash',
@@ -718,8 +688,6 @@ class AssetAdmin(admin.ModelAdmin):
         We allow the field to be empty in case somebody is setting the is_external flag"""
         form = super().get_form(request, obj, change, **kwargs)
 
-        if obj:
-            form.base_fields['file'].required = False
         return form
 
     def response_add(self, request, obj, post_url_continue=None):
