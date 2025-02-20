@@ -639,6 +639,7 @@ class AssetAdmin(admin.ModelAdmin):
         fields = []
         if obj is None:
             fields.append((None, {'fields': ('name', 'item', 'created', 'updated', 'etag')}))
+            fields.append(('File', {'fields': ('media_type',)}))
         else:
             # add one section after another
             fields.append((
