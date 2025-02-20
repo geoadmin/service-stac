@@ -687,7 +687,6 @@ class AssetAdmin(admin.ModelAdmin):
         process does it too.
         We allow the field to be empty in case somebody is setting the is_external flag"""
         form = super().get_form(request, obj, change, **kwargs)
-
         return form
 
     def response_add(self, request, obj, post_url_continue=None):
