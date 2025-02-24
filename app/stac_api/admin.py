@@ -490,6 +490,22 @@ class AssetAdminForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         """If it's an external asset, we switch the file field to a char field"""
         super().__init__(*args, **kwargs)
+        if self.instance is not None and self.instance.id is not None:
+            are_external_assets_allowed = self.instance.item.collection.allow_external_assets
+
+            if are_external_assets_allowed:
+
+                external_field = self.fields['is_external']
+                external_field.help_text = (
+
+
+                    _('Whether this asset is hosted externally. Save the form in '
+
+
+                      'order to toggle the file field between input and file widget.')
+
+
+                )
 
     def clean_file(self):
         if self.instance:
