@@ -57,7 +57,7 @@ components:
                 description: >-
                   The array contain at least a link to the parent resource (`rel: parent`).
                 example:
-                  - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+                  - href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
                     rel: parent
             required:
               - code
