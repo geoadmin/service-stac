@@ -20,8 +20,9 @@ class TestAssetUploadHandler:
     This follows the logic of the JavaScript frontend uploader.
     """
 
-    def __init__(self):
+    def __init__(self, api_base_url):
         self.upload_id = None
+        self.api_base_url = api_base_url
         s3_bucket = AVAILABLE_S3_BUCKETS.legacy
         self.uploader = MultipartUpload(s3_bucket)
 
@@ -37,11 +38,11 @@ class TestAssetUploadHandler:
         key = get_asset_path(asset.item, asset.name)
         logger.info(f"Uploading {asset} as {key}")
 
-        if isinstance(file_content, BytesIO):
+        try:
             file_content.seek(0)
             file_bytes = file_content.getvalue()
             file_name = getattr(file_content, "name", "default_filename.bin")
-        else:
+        except AttributeError:
             logger.error("file_content should be a BytesIO object")
             return
 
@@ -58,12 +59,8 @@ class TestAssetUploadHandler:
             content_encoding=None
         )
 
-        presigned_url_data = self.uploader.create_presigned_url(
-            key=key,
-            asset=asset,
-            part=1,  # Only one part
-            upload_id=self.upload_id,
-            part_md5=md5_base64
+        presigned_url_data = self.create_presigned(
+            asset.item.collection.name, asset.item.name, asset.name, md5_base64, checksum_multihash
         )
 
         presigned_url = presigned_url_data['url']
@@ -74,21 +71,14 @@ class TestAssetUploadHandler:
             "Content-Length": str(len(file_bytes))
         }
 
-        max_retries = 3
-        for attempt in range(max_retries):
-            try:
-                response = requests.put(
-                    presigned_url, data=file_bytes, headers=headers, timeout=(30, 30)
-                )
-                if response.status_code == 200:
-                    break
-            except requests.exceptions.RequestException as e:
-                logger.error(f"Attempt {attempt + 1} failed: {e}")
-                time.sleep(2**attempt)  # Exponential backoff
+        logger.info("PUT request at url %s", presigned_url)
+
+        response = requests.put(presigned_url, data=file_bytes, headers=headers)
+
+        if response:
+            logger.info(f"File uploaded successfully with ETag: {response.headers.get('ETag')}")
         else:
-            logger.error("Max retries reached. Upload failed.")
-            self.abort(key, asset)
-            return
+            logger.error("Upload failed after retries.")
 
         etag = response.headers.get('ETag')
 
@@ -125,3 +115,49 @@ class TestAssetUploadHandler:
             logger.info(f"Upload {self.upload_id} aborted successfully.")
         except AssetUpload.DoesNotExist:
             logger.error(f"upload_id {self.upload_id} doesn't exist")
+
+    def create_presigned(self, collection_name, item_name, asset_name, md5, multihash):
+        """
+        Create a presigned URL for uploading an asset.
+
+        Args:
+            collection_name (str): Name of the collection.
+            item_name (str): Name of the item.
+            asset_name (str): Name of the asset.
+            md5 (str): Base64-encoded MD5 checksum.
+            multihash (str): Multihash of the file.
+
+        Returns:
+            dict: JSON response containing the presigned URL or None if failed.
+        """
+        url = f"{self.api_base_url}/api/stac/v1/collections/{collection_name}/items/{item_name}/assets/{asset_name}/uploads"
+
+        headers = {
+            "X-CSRFToken": "some token",
+            "Content-Type": "application/json; charset=utf-8",
+        }
+
+        payload = {
+            "number_parts": 1,
+            "md5_parts": [{
+                "part_number": 1, "md5": md5
+            }],
+            "file:checksum": multihash,
+        }
+
+        try:
+            logger.info(f"Creating presigned URL for {asset_name} at {url}")
+            response = requests.post(url, json=payload, headers=headers)
+
+            if response.status_code == 200:
+                logger.info("Presigned URL created successfully.")
+                return response.json()  # Return presigned URL JSON data
+
+            logger.error(
+                f"Failed to create presigned URL: {response.status_code} - {response.text}"
+            )
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"CreatePresigned failed: {e}")
+
+        return None  # Return None if the request fails
