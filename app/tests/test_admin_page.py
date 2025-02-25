@@ -741,7 +741,7 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
         response = self.client.post(reverse('admin:stac_api_asset_change', args=[asset.id]), data)
         asset.refresh_from_db()
 
-        handler = TestAssetUploadHandler()
+        handler = TestAssetUploadHandler("http://localhost:8000")
         handler.start(asset, filelike)
 
         path = f"{self.item.collection.name}/{self.item.name}/{data['name']}"
