@@ -678,18 +678,19 @@ class ItemListDeserializationTestCase(StacBaseTestCase):
             "features": [
                 {
                     "id": "item-1",
-                    "assets": [{
-                        "id": "asset-1.txt",
-                        "title": "My title 1",
-                        "description": "My description 1",
-                        "type": "text/plain",
-                        "href": "asset-1",
-                        "roles": ["myrole"],
-                        "geoadmin:variant": "komb",
-                        "geoadmin:lang": "de",
-                        "proj:epsg": 2056,
-                        "gsd": 2.5
-                    }],
+                    "assets": {
+                        "asset-1.txt": {
+                            "title": "My title 1",
+                            "description": "My description 1",
+                            "type": "text/plain",
+                            "href": "asset-1",
+                            "roles": ["myrole"],
+                            "geoadmin:variant": "komb",
+                            "geoadmin:lang": "de",
+                            "proj:epsg": 2056,
+                            "gsd": 2.5
+                        }
+                    },
                     "geometry": {
                         "type": "Point", "coordinates": [1.1, 1.2]
                     },
@@ -699,18 +700,19 @@ class ItemListDeserializationTestCase(StacBaseTestCase):
                 },
                 {
                     "id": "item-2",
-                    "assets": [{
-                        "id": "asset-2.txt",
-                        "title": "My title 2",
-                        "description": "My description 2",
-                        "type": "text/plain",
-                        "href": "asset-2",
-                        "roles": ["myrole"],
-                        "geoadmin:variant": "komb",
-                        "geoadmin:lang": "de",
-                        "proj:epsg": 2056,
-                        "gsd": 2.5
-                    }],
+                    "assets": {
+                        "asset-2.txt": {
+                            "title": "My title 2",
+                            "description": "My description 2",
+                            "type": "text/plain",
+                            "href": "asset-2",
+                            "roles": ["myrole"],
+                            "geoadmin:variant": "komb",
+                            "geoadmin:lang": "de",
+                            "proj:epsg": 2056,
+                            "gsd": 2.5
+                        }
+                    },
                     "geometry": {
                         "type": "Point", "coordinates": [2.1, 2.2]
                     },
@@ -736,6 +738,12 @@ class ItemListDeserializationTestCase(StacBaseTestCase):
             k: v for k, v in item.items() if v is not None
         } for item in actual["features"]]
 
+        # Note: we have to keep the list here for the assets
+        # since the serializer for the nested assets in his heart
+        # is a list serializer and we fool him a little with converting
+        # asset dicts to lists just before he gets to do something (see
+        # DictSerializer in serializers/utils.py) and we're just testing
+        # the serializer here and not the full chain.
         expected = {
             "features": [
                 {

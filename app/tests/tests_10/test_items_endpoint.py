@@ -818,18 +818,19 @@ class ItemsBulkCreateEndpointTestCase(StacBaseTransactionTestCase):
             "features": [
                 {
                     "id": "item-1",
-                    "assets": [{
-                        "id": "asset-1.txt",
-                        "title": "My title 1",
-                        "description": "My description 1",
-                        "type": "text/plain",
-                        "href": "asset-1",
-                        "roles": ["myrole"],
-                        "geoadmin:variant": "komb",
-                        "geoadmin:lang": "de",
-                        "proj:epsg": 2056,
-                        "gsd": 2.5
-                    }],
+                    "assets": {
+                        "asset-1.txt": {
+                            "title": "My title 1",
+                            "description": "My description 1",
+                            "type": "text/plain",
+                            "href": "asset-1",
+                            "roles": ["myrole"],
+                            "geoadmin:variant": "komb",
+                            "geoadmin:lang": "de",
+                            "proj:epsg": 2056,
+                            "gsd": 2.5
+                        }
+                    },
                     "links": [{
                         'href': 'https://www.example.com/described-by-1',
                         'rel': 'describedBy',
@@ -845,18 +846,19 @@ class ItemsBulkCreateEndpointTestCase(StacBaseTransactionTestCase):
                 },
                 {
                     "id": "item-2",
-                    "assets": [{
-                        "id": "asset-2.txt",
-                        "title": "My title 2",
-                        "description": "My description 2",
-                        "type": "text/plain",
-                        "href": "asset-2",
-                        "roles": ["myrole"],
-                        "geoadmin:variant": "komb",
-                        "geoadmin:lang": "de",
-                        "proj:epsg": 2056,
-                        "gsd": 2.5
-                    }],
+                    "assets": {
+                        "asset-2.txt": {
+                            "title": "My title 2",
+                            "description": "My description 2",
+                            "type": "text/plain",
+                            "href": "asset-2",
+                            "roles": ["myrole"],
+                            "geoadmin:variant": "komb",
+                            "geoadmin:lang": "de",
+                            "proj:epsg": 2056,
+                            "gsd": 2.5
+                        }
+                    },
                     "links": [{
                         'href': 'https://www.example.com/described-by-2',
                         'rel': 'describedBy',
@@ -1025,18 +1027,19 @@ class ItemsBulkCreateEndpointTestCase(StacBaseTransactionTestCase):
         max_n_items = 100
         items = [{
             "id": f"item-{i}",
-            "assets": [{
-                "id": f"asset-{i}.txt",
-                "title": f"My title {i}",
-                "description": f"My description {i}",
-                "type": "text/plain",
-                "href": f"asset-{i}",
-                "roles": ["myrole"],
-                "geoadmin:variant": "komb",
-                "geoadmin:lang": "de",
-                "proj:epsg": 2056,
-                "gsd": 2.5
-            }],
+            "assets": {
+                f"asset-{i}.txt": {
+                    "title": f"My title {i}",
+                    "description": f"My description {i}",
+                    "type": "text/plain",
+                    "href": f"asset-{i}",
+                    "roles": ["myrole"],
+                    "geoadmin:variant": "komb",
+                    "geoadmin:lang": "de",
+                    "proj:epsg": 2056,
+                    "gsd": 2.5
+                }
+            },
             "geometry": {
                 "type": "Point", "coordinates": [1.1, 1.2]
             },
