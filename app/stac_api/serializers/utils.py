@@ -325,6 +325,30 @@ class DictSerializer(serializers.ListSerializer):
         objects = super().to_representation(data)
         return {obj.pop(self.key_identifier): obj for obj in objects}
 
+    def to_internal_value(self, data):
+        '''Convert the dict back to a list
+
+        The ListSerializer expects a list and not a dict, hence we have to
+        convert
+
+            {
+                'object1': {'description': 'This is object 1'},
+                'object2': {'description': 'This is object 2'}
+            }
+
+        back into a list
+
+            [{
+                    'id': 'object1',
+                    'description': 'This is object 1'
+                }, {
+                    'id': 'object2',
+                    'description': 'This is object 2'
+            }]
+        '''
+        data_as_list = [value | {self.key_identifier: key} for key, value in data.items()]
+        return super().to_internal_value(data_as_list)
+
     @property
     def data(self):
         ret = super(serializers.ListSerializer, self).data
