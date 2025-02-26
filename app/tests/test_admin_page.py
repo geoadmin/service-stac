@@ -1,3 +1,4 @@
+import json
 import logging
 from io import BytesIO
 
@@ -8,10 +9,10 @@ from django.urls import reverse
 from stac_api.models.collection import Collection
 from stac_api.models.collection import CollectionLink
 from stac_api.models.general import Provider
-from stac_api.models.item import Asset
+from stac_api.models.item import Asset, AssetUpload
 from stac_api.models.item import Item
 from stac_api.models.item import ItemLink
-from stac_api.utils import parse_multihash
+from stac_api.utils import get_sha256_multihash, parse_multihash
 
 from tests.base_test_admin_page import AdminBaseTestCase
 from tests.utils import S3TestMixin
@@ -727,6 +728,8 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
         filelike = BytesIO(filecontent)
         filelike.name = 'testname.tiff'
 
+        md5_checksum = get_sha256_multihash(filecontent)
+
         data.update({
             "description": "",
             "eo_gsd": "",
@@ -739,6 +742,38 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
 
         response = self.client.post(reverse('admin:stac_api_asset_change', args=[asset.id]), data)
         asset.refresh_from_db()
+
+        upload_url = reverse(
+            "admin:stac_api_asset_upload",
+            kwargs={
+                "collection_name": asset.item.collection.name,
+                "item_name": self.item.name,
+                "asset_name": asset.name,
+            },
+        )
+
+        payload = {
+            "number_parts": 1,
+            "md5_parts": [{
+                "part_number": 1, "md5": md5_checksum
+            }],
+            "file:checksum": md5_checksum,
+        }
+
+        response = self.client.post(
+            upload_url,
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+
+        # Assert success response
+        self.assertEqual(response.status_code, 201)
+
+        # Check if AssetUpload entry was created
+        self.assertTrue(
+            AssetUpload.objects.filter(asset=self.asset,
+                                       upload_id=response.data["upload_id"]).exists()
+        )
 
         path = f"{self.item.collection.name}/{self.item.name}/{data['name']}"
         sha256 = parse_multihash(asset.checksum_multihash).digest.hex()
