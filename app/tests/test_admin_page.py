@@ -5,7 +5,6 @@ from django.conf import settings
 from django.test import override_settings
 from django.urls import reverse
 
-from stac_api.management.commands.test_asset_upload import TestAssetUploadHandler
 from stac_api.models.collection import Collection
 from stac_api.models.collection import CollectionLink
 from stac_api.models.general import Provider
@@ -726,10 +725,9 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
 
         filecontent = b'mybinarydata2'
         filelike = BytesIO(filecontent)
-        filelike.name = 'checksum.tiff'
+        filelike.name = 'testname.tiff'
 
         data.update({
-            "item": self.item.id,
             "description": "",
             "eo_gsd": "",
             "geoadmin_lang": "",
@@ -742,19 +740,9 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
         response = self.client.post(reverse('admin:stac_api_asset_change', args=[asset.id]), data)
         asset.refresh_from_db()
 
-        credentials = {'username': self.username, 'password': self.password}
-
-        handler = TestAssetUploadHandler("http://localhost:8000", credentials)
-        handler.start(self.item, asset, filelike)
-
         path = f"{self.item.collection.name}/{self.item.name}/{data['name']}"
-
-        logger.info(
-            f"Asset at present: {asset} at path : {path} with checksum : {asset.checksum_multihash}"
-        )
         sha256 = parse_multihash(asset.checksum_multihash).digest.hex()
         obj = self.get_s3_object(path)
-        logger.info(f"Object: {obj}")
         self.assertS3ObjectContentType(obj, path, content_type)
         self.assertS3ObjectSha256(obj, path, sha256)
         self.assertS3ObjectCacheControl(obj, path, max_age=settings.STORAGE_ASSETS_CACHE_SECONDS)
