@@ -726,9 +726,10 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
 
         filecontent = b'mybinarydata2'
         filelike = BytesIO(filecontent)
-        filelike.name = 'testname.tiff'
+        filelike.name = 'checksum.tiff'
 
         data.update({
+            "item": self.item.id,
             "description": "",
             "eo_gsd": "",
             "geoadmin_lang": "",
@@ -741,8 +742,10 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
         response = self.client.post(reverse('admin:stac_api_asset_change', args=[asset.id]), data)
         asset.refresh_from_db()
 
-        handler = TestAssetUploadHandler("http://localhost:8000")
-        handler.start(asset, filelike)
+        credentials = {'username': self.username, 'password': self.password}
+
+        handler = TestAssetUploadHandler("http://localhost:8000", credentials)
+        handler.start(self.item, asset, filelike)
 
         path = f"{self.item.collection.name}/{self.item.name}/{data['name']}"
 
