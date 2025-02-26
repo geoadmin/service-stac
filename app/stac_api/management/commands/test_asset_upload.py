@@ -6,6 +6,7 @@ import hashlib
 import time
 import requests
 
+from requests.auth import HTTPBasicAuth
 from stac_api.s3_multipart_upload import MultipartUpload
 from stac_api.models.item import Asset, AssetUpload
 from stac_api.models.general import BaseAssetUpload
@@ -20,18 +21,19 @@ class TestAssetUploadHandler:
     This follows the logic of the JavaScript frontend uploader.
     """
 
-    def __init__(self, api_base_url):
+    def __init__(self, api_base_url, credentials):
         self.upload_id = None
         self.api_base_url = api_base_url
         s3_bucket = AVAILABLE_S3_BUCKETS.legacy
         self.uploader = MultipartUpload(s3_bucket)
+        self.credentials = credentials
 
     def _compute_md5_base64(self, file_content):
         """Compute MD5 checksum and encode it in base64 (required for S3)."""
         md5_digest = hashlib.md5(file_content).digest()
         return base64.b64encode(md5_digest).decode('utf-8')
 
-    def start(self, asset, file_content):
+    def start(self, item, asset, file_content):
         """Upload a file to S3 in a single part using a presigned URL and finalize the upload."""
         logger.info(f"Starting single-part upload for {asset}")
 
@@ -60,7 +62,7 @@ class TestAssetUploadHandler:
         )
 
         presigned_url_data = self.create_presigned(
-            asset.item.collection.name, asset.item.name, asset.name, md5_base64, checksum_multihash
+            item.collection.name, item.name, asset.name, md5_base64, checksum_multihash
         )
 
         presigned_url = presigned_url_data['url']
@@ -132,6 +134,11 @@ class TestAssetUploadHandler:
         """
         url = f"{self.api_base_url}/api/stac/v1/collections/{collection_name}/items/{item_name}/assets/{asset_name}/uploads"
 
+        collections_url = f"{self.api_base_url}/api/stac/v1/collections"
+
+        sanity_check = requests.get(collections_url, auth=("postgres", "postgres"))
+        logger.info(f"Collections available: {sanity_check.json()}")
+
         headers = {
             "X-CSRFToken": "some token",
             "Content-Type": "application/json; charset=utf-8",
@@ -147,7 +154,15 @@ class TestAssetUploadHandler:
 
         try:
             logger.info(f"Creating presigned URL for {asset_name} at {url}")
-            response = requests.post(url, json=payload, headers=headers)
+
+            # Send request with Basic Authentication
+            response = requests.post(
+                url,
+                json=payload,
+                headers=headers,
+                auth=("postgres", "postgres"),
+                timeout=10,
+            )
 
             if response.status_code == 200:
                 logger.info("Presigned URL created successfully.")
