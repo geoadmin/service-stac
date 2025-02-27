@@ -1,3 +1,5 @@
+import hashlib
+import base64
 import logging
 from datetime import datetime
 from operator import itemgetter
@@ -26,7 +28,7 @@ from stac_api.s3_multipart_upload import MultipartUpload
 from stac_api.serializers.upload import AssetUploadPartsSerializer
 from stac_api.serializers.upload import AssetUploadSerializer
 from stac_api.serializers.upload import CollectionAssetUploadSerializer
-from stac_api.utils import get_asset_path
+from stac_api.utils import AVAILABLE_S3_BUCKETS, create_multihash_string, get_asset_path, get_sha256_multihash
 from stac_api.utils import get_collection_asset_path
 from stac_api.utils import select_s3_bucket
 from stac_api.utils import utc_aware
@@ -169,6 +171,86 @@ class SharedAssetUploadBase(generics.GenericAPIView):
     def list_multipart_upload_parts(self, executor, asset_upload, asset, limit, offset):
         key = self.get_path(asset)
         return executor.list_upload_parts(key, asset, asset_upload.upload_id, limit, offset)
+
+
+class AdminAssetUploadHelper(SharedAssetUploadBase):
+    """
+    This class allows the admin site to use SharedAssetUploadBase's multipart upload methods.
+    It acts as a bridge between Django Admin and Django REST framework.
+    """
+
+    def __init__(self, request=None):
+        self.request = request
+
+    def admin_create_multipart_upload(self, asset, upload_request_data):
+        """
+        Admin version of create_multipart_upload.
+        Simulates the behavior of a DRF serializer while ensuring that all required fields are included.
+        """
+
+        s3_bucket = AVAILABLE_S3_BUCKETS.legacy
+        executor = MultipartUpload(s3_bucket)
+
+        key = self.get_path(asset)
+
+        sha256_checksum = upload_request_data.get(
+            "file:checksum", get_sha256_multihash(b"mybinarydata2")
+        )
+
+        logger.info("Checksum variable type is %s", type(sha256_checksum))
+        logger.info("Checksum string is %s", sha256_checksum)
+
+        # Ensure all required fields are present in `upload_request_data`
+        validated_data = {
+            "checksum_multihash": str(sha256_checksum),
+            "file:checksum": str(sha256_checksum),
+            "update_interval": upload_request_data.get("update_interval", 360),
+            "content_encoding": upload_request_data.get("content_encoding", ""),
+            "md5_parts":
+                upload_request_data.get(
+                    "md5_parts",
+                    [{
+                        "part_number": 1,
+                        "md5":
+                            str(get_sha256_multihash(b"mybinarydata2"))  #TODO change to md5
+                    }],  # Default
+                ),
+            "number_parts": upload_request_data.get("number_parts", 1),
+        }
+
+        # Validate with the serializer
+        serializer = AssetUploadSerializer(data=validated_data)
+        serializer.is_valid(raise_exception=True)
+
+        # Call `SharedAssetUploadBase`'s method to create an upload
+        self.create_multipart_upload(executor, serializer, validated_data, asset)
+
+        # Retrieve the created upload object
+        asset_upload = AssetUpload.objects.filter(
+            asset=asset, status=BaseAssetUpload.Status.IN_PROGRESS
+        ).first()
+
+        if not asset_upload:
+            raise ValueError("Multipart upload failed; no active upload found.")
+
+        return {"upload_id": asset_upload.upload_id, "key": key}
+
+    def admin_complete_multipart_upload(self, asset, upload_id, etag):
+        """
+        Admin version of complete_multipart_upload.
+        """
+
+        s3_bucket = AVAILABLE_S3_BUCKETS.legacy
+        executor = MultipartUpload(s3_bucket)
+
+        asset_upload = AssetUpload.objects.get(upload_id=upload_id)
+
+        validated_data = {"parts": [{"PartNumber": 1, "ETag": etag}]}
+
+        # Call the original function from SharedAssetUploadBase
+        self.complete_multipart_upload(executor, validated_data, asset_upload, asset)
+
+        return {"message": "Upload completed"}
 
 
 class AssetUploadBase(SharedAssetUploadBase):
