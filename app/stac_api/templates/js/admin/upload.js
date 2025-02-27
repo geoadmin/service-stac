@@ -126,7 +126,8 @@ async function createPresigned(md5, multi, file) {
                         'md5': md5,
                     }
                 ],
-                'file:checksum': multi,
+                'file:checksum': multi,  // v1
+                'checksum:multihash': multi,  // v0.9
             }),
         });
         if (!response.ok) {
