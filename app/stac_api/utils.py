@@ -1,3 +1,4 @@
+import base64
 import hashlib
 import inspect
 import json
@@ -284,6 +285,14 @@ def parse_multihash(multihash_string):
         ValueError: if the incoming data is not a valid multihash
     '''
     return multihash.decode(multihash.from_hex_string(multihash_string))
+
+
+def compute_md5_base64(self, file_content):
+    """Compute MD5 checksum and encode it in base64 (required for S3)."""
+
+    md5_digest = hashlib.md5(file_content).digest()
+
+    return base64.b64encode(md5_digest).decode('utf-8')
 
 
 def harmonize_post_get_for_search(request):
