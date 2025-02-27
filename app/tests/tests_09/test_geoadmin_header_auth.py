@@ -62,6 +62,7 @@ class GeoadminHeadersAuthForPutEndpointTestCase(StacBaseTestCase):
             headers=headers,
         )
         self.assertStatusCode(expected_response_code, response)
+        self.assertNotIn("sessionid", self.client.cookies, "Header auth created a session")
 
         if 200 <= expected_response_code < 300:
             self.check_stac_collection(sample.json, response.json())

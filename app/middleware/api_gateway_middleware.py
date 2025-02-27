@@ -13,12 +13,18 @@ class ApiGatewayMiddleware(PersistentRemoteUserMiddleware):
         if not settings.FEATURE_AUTH_ENABLE_APIGW:
             return None
 
+        if request.path.startswith(f'/{settings.STAC_BASE}/v'):
+            # API authentication is only done using ApiGatewayAuthentication to avoid creating a new
+            # session with each request
+            return None
+
         api_gateway.validate_username_header(request)
         return super().process_request(request)
 
 
 class ApiGatewayUserBackend(RemoteUserBackend):
-    """ This backend is to be used in conjunction with the ``ApiGatewayMiddleware`.
+    """ This backend is to be used in conjunction with the ``ApiGatewayMiddleware` and the
+    ``ApiGatewayAuthentication``.
 
     Until proper authorization is implemented, all remote users authenticated via API Gateway
     headers are treated as superusers.
