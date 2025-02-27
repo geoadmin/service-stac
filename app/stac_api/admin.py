@@ -1,3 +1,4 @@
+from io import BytesIO
 import json
 import logging
 
@@ -17,6 +18,7 @@ from django.forms import Textarea
 from django.http import HttpResponseRedirect
 from django.template.defaultfilters import filesizeformat
 from django.template.response import TemplateResponse
+from django.http import JsonResponse
 from django.urls import path
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
@@ -32,10 +34,13 @@ from stac_api.models.item import Asset
 from stac_api.models.item import AssetUpload
 from stac_api.models.item import Item
 from stac_api.models.item import ItemLink
-from stac_api.utils import build_asset_href
+from stac_api.s3_multipart_upload import MultipartUpload
+from stac_api.serializers.upload import AssetUploadSerializer
+from stac_api.utils import AVAILABLE_S3_BUCKETS, build_asset_href, compute_md5_base64, get_asset_path, get_sha256_multihash
 from stac_api.utils import get_query_params
 from stac_api.validators import validate_href_url
 from stac_api.validators import validate_text_to_geometry
+from stac_api.views.upload import AdminAssetUploadHelper, SharedAssetUploadBase
 
 logger = logging.getLogger(__name__)
 
@@ -731,7 +736,12 @@ class AssetAdmin(admin.ModelAdmin):
                 "<path:object_id>/change/upload/",
                 self.admin_site.admin_view(self.upload_view),
                 name=f'{self.model._meta.app_label}_{self.model._meta.model_name}_upload',
-            )
+            ),
+            path(
+                "<path:object_id>/direct-upload/",
+                self.admin_site.admin_view(self.direct_upload_view),
+                name=f'{self.model._meta.app_label}_{self.model._meta.model_name}_direct_upload',
+            ),
         ]
         return my_urls + urls
 
@@ -752,24 +762,64 @@ class AssetAdmin(admin.ModelAdmin):
         )
         return TemplateResponse(request, "uploadtemplate.html", context)
 
-    def change_view(self, request, object_id, form_url='', extra_context=None):
-        # This overrides the stock Django admin entity detail view
+    def direct_upload_view(self, request, object_id, form_url='', extra_context=None):
+        """Admin view to start a multipart upload directly from the admin page using SharedAssetUploadBase methods."""
 
-        # get the current asset to check if it has an external file.
+        obj = Asset.objects.filter(id=request.resolver_match.kwargs['object_id']).first()
+        if obj is None or obj.is_external:
+            return super().change_view(request, object_id, form_url)
+
+        # Initialize the helper class for asset upload
+        helper = AdminAssetUploadHelper(request)
+
+        file_content = BytesIO(b"mybinarydata2")
+
+        upload_request_data = {
+            "number_parts": 1,
+            "md5_parts": [{
+                "part_number": 1, "md5": compute_md5_base64(file_content)
+            }],
+            "file:checksum": get_sha256_multihash(b"mybinarydata2"),
+            "content_encoding": "gzip",
+            "update_interval": 360,
+        }
+
+        upload_data = helper.admin_create_multipart_upload(obj, upload_request_data)
+
+        # If upload creation fails, return an error
+        if not upload_data or "upload_id" not in upload_data or "key" not in upload_data:
+            return JsonResponse({"error": "Failed to initiate multipart upload"}, status=400)
+
+        # Complete the multipart upload
+        helper.admin_complete_multipart_upload(obj, upload_data["upload_id"], upload_data["key"])
+
+        return JsonResponse({
+            "message": "Upload started and completed",
+            "upload_id": upload_data["upload_id"],
+            "key": upload_data["key"]
+        })
+
+    def change_view(self, request, object_id, form_url='', extra_context=None):
         obj = Asset.objects.filter(id=request.resolver_match.kwargs['object_id']).first()
         if obj.is_external:
             return super().change_view(request, object_id, form_url)
 
         extra_context = extra_context or {}
 
-        # Generate the transfer URL
+        # Generate the transfer URLs
         property_upload_url = reverse(
             f'admin:{self.model._meta.app_label}_{self.model._meta.model_name}_upload',
             args=[object_id],
         )
+        direct_upload_url = reverse(
+            f'admin:{self.model._meta.app_label}_{self.model._meta.model_name}_direct_upload',
+            args=[object_id],
+        )
 
-        # Add the property upload URL to the extra context
+        # Add the upload URLs to the extra context
         extra_context['property_upload_url'] = property_upload_url
+        extra_context['direct_upload_url'] = direct_upload_url  # New direct upload URL
+
         return super().change_view(request, object_id, form_url, extra_context=extra_context)
 
 
