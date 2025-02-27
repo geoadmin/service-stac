@@ -222,23 +222,23 @@ components:
             description: Catalog of Swiss Geodata Downloads
             id: ch
             links:
-              - href: http://data.geo.admin.ch/api/stac/v0.9/
+              - href: http://data.geo.admin.ch/api/stac/v1/
                 rel: self
                 type: application/json
                 title: this document
-              - href: http://data.geo.admin.ch/api/stac/v0.9/static/api.html
+              - href: http://data.geo.admin.ch/api/stac/v1/static/api.html
                 rel: service-doc
                 type: text/html
                 title: the API documentation
-              - href: http://data.geo.admin.ch/api/stac/v0.9/conformance
+              - href: http://data.geo.admin.ch/api/stac/v1/conformance
                 rel: conformance
                 type: application/json
                 title: OGC API conformance classes implemented by this server
-              - href: http://data.geo.admin.ch/api/stac/v0.9/collections
+              - href: http://data.geo.admin.ch/api/stac/v1/collections
                 rel: data
                 type: application/json
                 title: Information about the feature collections
-              - href: http://data.geo.admin.ch/api/stac/v0.9/search
+              - href: http://data.geo.admin.ch/api/stac/v1/search
                 rel: search
                 type: application/json
                 title: Search across feature collections
@@ -625,13 +625,13 @@ components:
               items:
                 $ref: "#/components/schemas/link"
               example:
-                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+                - href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
                   rel: self
-                - href: https://data.geo.admin.ch/api/stac/v0.9/
+                - href: https://data.geo.admin.ch/api/stac/v1/
                   rel: root
-                - href: https://data.geo.admin.ch/api/stac/v0.9
+                - href: https://data.geo.admin.ch/api/stac/v1
                   rel: parent
-                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items
+                - href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items
                   rel: items
                 - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
                   rel: license
@@ -648,13 +648,13 @@ components:
           items:
             $ref: "#/components/schemas/link"
           example:
-            - href: https://data.geo.admin.ch/api/stac/v0.9/collections
+            - href: https://data.geo.admin.ch/api/stac/v1/collections
               rel: self
-            - href: https://data.geo.admin.ch/api/stac/v0.9/
+            - href: https://data.geo.admin.ch/api/stac/v1/
               rel: root
-            - href: https://data.geo.admin.ch/api/stac/v0.9/collections?cursor=10ab
+            - href: https://data.geo.admin.ch/api/stac/v1/collections?cursor=10ab
               rel: next
-            - href: https://data.geo.admin.ch/api/stac/v0.9/collections?cursor=10cd
+            - href: https://data.geo.admin.ch/api/stac/v1/collections?cursor=10cd
               rel: previous
       required:
         - links
@@ -954,13 +954,13 @@ components:
                 $ref: "#/components/schemas/link"
               type: array
               example:
-                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr50-263-2016
+                - href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr50-263-2016
                   rel: self
-                - href: https://data.geo.admin.ch/api/stac/v0.9/
+                - href: https://data.geo.admin.ch/api/stac/v1/
                   rel: root
-                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+                - href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
                   rel: parent
-                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+                - href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
                   rel: collection
         - $ref: "#/components/schemas/itemBase"
     items:
@@ -976,15 +976,15 @@ components:
             $ref: "#/components/schemas/link"
           type: array
           example:
-            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items
+            - href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items
               rel: self
-            - href: https://data.geo.admin.ch/api/stac/v0.9/
+            - href: https://data.geo.admin.ch/api/stac/v1/
               rel: root
-            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+            - href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
               rel: parent
-            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items?cursor=10ab
+            - href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items?cursor=10ab
               rel: next
-            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items?cursor=10acd
+            - href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items?cursor=10acd
               rel: previous
         type:
           enum:
@@ -1069,9 +1069,9 @@ components:
       description: >-
         An array of links. Can be used for pagination, e.g. by providing a link with the `next` relation type.
       example:
-        - href: https://data.geo.admin.ch/api/stac/v0.9/search
+        - href: https://data.geo.admin.ch/api/stac/v1/search
           rel: self
-        - href: https://data.geo.admin.ch/api/stac/v0.9/search?cursor=10ab
+        - href: https://data.geo.admin.ch/api/stac/v1/search?cursor=10ab
           rel: next
       items:
         $ref: "#/components/schemas/link"
@@ -1080,9 +1080,9 @@ components:
       description: >-
         An array of links. Can be used for pagination, e.g. by providing a link with the `next` relation type.
       example:
-        - href: https://data.geo.admin.ch/api/stac/v0.9/search
+        - href: https://data.geo.admin.ch/api/stac/v1/search
           rel: self
-        - href: https://data.geo.admin.ch/api/stac/v0.9/search?cursor=10ab
+        - href: https://data.geo.admin.ch/api/stac/v1/search?cursor=10ab
           rel: next
           method: POST
           body: {}
