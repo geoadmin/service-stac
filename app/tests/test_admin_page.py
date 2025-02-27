@@ -728,8 +728,6 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
         filelike = BytesIO(filecontent)
         filelike.name = 'testname.tiff'
 
-        md5_checksum = get_sha256_multihash(filecontent)
-
         data.update({
             "description": "",
             "eo_gsd": "",
@@ -742,29 +740,18 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
 
         response = self.client.post(reverse('admin:stac_api_asset_change', args=[asset.id]), data)
         asset.refresh_from_db()
-
-        upload_url = reverse(
-            "admin:stac_api_asset_upload",
-            kwargs={
-                "collection_name": asset.item.collection.name,
-                "item_name": self.item.name,
-                "asset_name": asset.name,
-            },
-        )
-
-        payload = {
-            "number_parts": 1,
-            "md5_parts": [{
-                "part_number": 1, "md5": md5_checksum
-            }],
-            "file:checksum": md5_checksum,
+        data = {
+            'collection_name': self.item.collection.name,
+            'item_name': self.item.name,
+            'asset_name': asset.name
         }
 
+        self.client.cookies["csrftoken"] = "some_token_value"
         response = self.client.post(
-            upload_url,
-            data=json.dumps(payload),
-            content_type="application/json",
+            reverse('admin:stac_api_asset_direct_upload', args=[asset.id]), data
         )
+
+        logger.info(f"Response file_metadata: {response.content}")
 
         # Assert success response
         self.assertEqual(response.status_code, 201)
