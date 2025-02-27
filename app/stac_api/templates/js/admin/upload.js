@@ -44,9 +44,9 @@ async function cleanUploadsInProgress() {
     try {
         const response = await fetch(url);
         if (!response.ok) {
-            throw new Error(`Response status: ${response.status} ${response.statusText}`);
+            const responseText = await response.text();
+            throw new Error(`Response status: ${response.status} ${response.statusText} ${responseText}`);
         }
-
         const json = await response.json();
         if (json.uploads.length == 0) {
             setStatus('ready to upload');
@@ -73,9 +73,9 @@ async function abortMultipartUpload(upload_id) {
             },
         });
         if (!response.ok) {
-            throw new Error(`Response status: ${response.status} ${response.statusText}`);
+            const responseText = await response.text();
+            throw new Error(`Response status: ${response.status} ${response.statusText} ${responseText}`);
         }
-
         setStatus('ready to upload');
     } catch (error) {
         console.log(error);
@@ -130,9 +130,9 @@ async function createPresigned(md5, multi, file) {
             }),
         });
         if (!response.ok) {
-            throw new Error(`Response status: ${response.status} ${response.statusText}`);
+            const responseText = await response.text();
+            throw new Error(`Response status: ${response.status} ${response.statusText} ${responseText}`);
         }
-
         const json = await response.json();
         uploadFile(json, file)
     } catch (error) {
@@ -156,9 +156,9 @@ async function uploadFile(data, file) {
             body: file,
         });
         if (!response.ok) {
-            throw new Error(`Response status: ${response.status} ${response.statusText}`);
+            const responseText = await response.text();
+            throw new Error(`Response status: ${response.status} ${response.statusText} ${responseText}`);
         }
-
         let etag = response.headers.get('ETag');
         completeMultipartUpload(data, etag)
     } catch (error) {
@@ -190,7 +190,8 @@ async function completeMultipartUpload(data, etag) {
             }),
         });
         if (!response.ok) {
-            throw new Error(`Response status: ${response.status} ${response.statusText}`);
+            const responseText = await response.text();
+            throw new Error(`Response status: ${response.status} ${response.statusText} ${responseText}`);
         }
 
         // Remove end of url path '/api/stac/admin/stac_api/asset/3/change/upload/'
