@@ -765,38 +765,34 @@ class AssetAdmin(admin.ModelAdmin):
     def direct_upload_view(self, request, object_id, form_url='', extra_context=None):
         """Admin view to start a multipart upload directly from the admin page using SharedAssetUploadBase methods."""
 
-        obj = Asset.objects.filter(id=request.resolver_match.kwargs['object_id']).first()
-        if obj is None or obj.is_external:
+        asset = Asset.objects.filter(id=request.resolver_match.kwargs['object_id']).first()
+        if asset is None or asset.is_external:
             return super().change_view(request, object_id, form_url)
 
         # Initialize the helper class for asset upload
         helper = AdminAssetUploadHelper(request)
 
-        file_content = BytesIO(b"mybinarydata2")
+        file_content = b"mybinarydata2"
 
         upload_request_data = {
             "number_parts": 1,
-            "md5_parts": [{
-                "part_number": 1, "md5": compute_md5_base64(file_content)
-            }],
-            "file:checksum": get_sha256_multihash(b"mybinarydata2"),
-            "content_encoding": "gzip",
+            "file_content": file_content,
+            "file:checksum": get_sha256_multihash(file_content),
+            "content_type": "application/json",
             "update_interval": 360,
         }
 
-        upload_data = helper.admin_create_multipart_upload(obj, upload_request_data)
+        response = helper.admin_create_multipart_upload(asset, upload_request_data)
 
         # If upload creation fails, return an error
-        if not upload_data or "upload_id" not in upload_data or "key" not in upload_data:
-            return JsonResponse({"error": "Failed to initiate multipart upload"}, status=400)
 
         # Complete the multipart upload
-        helper.admin_complete_multipart_upload(obj, upload_data["upload_id"], upload_data["key"])
+        success = helper.admin_complete_multipart_upload(upload_request_data, response)
 
         return JsonResponse({
             "message": "Upload started and completed",
-            "upload_id": upload_data["upload_id"],
-            "key": upload_data["key"]
+            "upload_id": response["upload_id"],
+            "status": success
         })
 
     def change_view(self, request, object_id, form_url='', extra_context=None):
