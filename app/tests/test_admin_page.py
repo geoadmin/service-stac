@@ -754,12 +754,11 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
         logger.info(f"Response file_metadata: {response.content}")
 
         # Assert success response
-        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.status_code, 200)
 
         # Check if AssetUpload entry was created
         self.assertTrue(
-            AssetUpload.objects.filter(asset=self.asset,
-                                       upload_id=response.data["upload_id"]).exists()
+            AssetUpload.objects.filter(asset=asset, upload_id=response["upload_id"]).exists()
         )
 
         path = f"{self.item.collection.name}/{self.item.name}/{data['name']}"
@@ -768,6 +767,7 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
         self.assertS3ObjectContentType(obj, path, content_type)
         self.assertS3ObjectSha256(obj, path, sha256)
         self.assertS3ObjectCacheControl(obj, path, max_age=settings.STORAGE_ASSETS_CACHE_SECONDS)
+        logger.info("Test asset file metadata passed")
 
     @mock_s3_asset_file
     def test_asset_custom_upload(self):

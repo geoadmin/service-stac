@@ -7,6 +7,7 @@ from operator import itemgetter
 from django.db import IntegrityError
 from django.db import transaction
 from django.utils.translation import gettext_lazy as _
+from django.test import Client
 
 from rest_framework import generics
 from rest_framework import mixins
@@ -28,7 +29,7 @@ from stac_api.s3_multipart_upload import MultipartUpload
 from stac_api.serializers.upload import AssetUploadPartsSerializer
 from stac_api.serializers.upload import AssetUploadSerializer
 from stac_api.serializers.upload import CollectionAssetUploadSerializer
-from stac_api.utils import AVAILABLE_S3_BUCKETS, create_multihash_string, get_asset_path, get_sha256_multihash
+from stac_api.utils import compute_md5_base64, get_asset_path
 from stac_api.utils import get_collection_asset_path
 from stac_api.utils import select_s3_bucket
 from stac_api.utils import utc_aware
@@ -38,6 +39,9 @@ from stac_api.views.general import get_etag
 from stac_api.views.mixins import CreateModelMixin
 from stac_api.views.mixins import DestroyModelMixin
 from stac_api.views.mixins import UpdateInsertModelMixin
+from tests.tests_09.test_asset_upload_endpoint import AssetUploadBaseTest
+from tests.tests_09.utils import reverse_version
+from tests.utils import client_login, get_file_like_object
 
 logger = logging.getLogger(__name__)
 
@@ -112,7 +116,7 @@ class SharedAssetUploadBase(generics.GenericAPIView):
                 ) from None
             raise
 
-    def create_multipart_upload(self, executor, serializer, validated_data, asset):
+    def create_multipart_upload(self, executor, serializer, validated_data, asset, key=None):
         key = self.get_path(asset)
 
         upload_id = executor.create_multipart_upload(
@@ -124,7 +128,6 @@ class SharedAssetUploadBase(generics.GenericAPIView):
         )
         urls = []
         sorted_md5_parts = sorted(validated_data['md5_parts'], key=itemgetter('part_number'))
-
         try:
             for part in sorted_md5_parts:
                 urls.append(
@@ -132,7 +135,33 @@ class SharedAssetUploadBase(generics.GenericAPIView):
                         key, asset, part['part_number'], upload_id, part['md5']
                     )
                 )
+            self._save_asset_upload(executor, serializer, key, asset, upload_id, urls)
+        except APIException as err:
+            executor.abort_multipart_upload(key, asset, upload_id)
+            raise
 
+    def create_multipart_upload_2(self, executor, serializer, validated_data, asset, key):
+
+        upload_id = executor.create_multipart_upload(
+            key,
+            asset,
+            validated_data['checksum_multihash'],
+            validated_data['update_interval'],
+            validated_data['content_encoding']
+        )
+        urls = []
+        sorted_md5_parts = sorted(validated_data['md5_parts'], key=itemgetter('part_number'))
+        logger.info(
+            f"key for presigned: {key}, asset: {asset}, sorted_md5_parts : {sorted_md5_parts} upload_id: {upload_id}"
+        )
+        try:
+            for part in sorted_md5_parts:
+                urls.append(
+                    executor.create_presigned_url(
+                        key, asset, part['part_number'], upload_id, part['md5']
+                    )
+                )
+            logger.info(f"Presigned URLs: {urls}")
             self._save_asset_upload(executor, serializer, key, asset, upload_id, urls)
         except APIException as err:
             executor.abort_multipart_upload(key, asset, upload_id)
@@ -173,14 +202,36 @@ class SharedAssetUploadBase(generics.GenericAPIView):
         return executor.list_upload_parts(key, asset, asset_upload.upload_id, limit, offset)
 
 
-class AdminAssetUploadHelper(SharedAssetUploadBase):
+class AdminAssetUploadHelper(AssetUploadBaseTest):
     """
-    This class allows the admin site to use SharedAssetUploadBase's multipart upload methods.
+    This class allows the admin site to use AssetUploadBaseTest's multipart upload methods.
     It acts as a bridge between Django Admin and Django REST framework.
     """
 
     def __init__(self, request=None):
         self.request = request
+        self.key = None
+        self.asset = None
+        self.item = None
+        self.client = Client()
+        client_login(self.client)
+
+    def utf8len(self, s):
+        return len(s.encode('utf-8'))
+
+    def get_create_multipart_upload_path(self):
+        return reverse_version(
+            'asset-uploads-list',
+            args=[self.asset.item.collection.name, self.asset.item.name, self.asset.name]
+        )
+
+    def get_complete_multipart_upload_path(self, upload_id):
+        return reverse_version(
+            'asset-upload-complete',
+            args=[
+                self.asset.item.collection.name, self.asset.item.name, self.asset.name, upload_id
+            ]
+        )
 
     def admin_create_multipart_upload(self, asset, upload_request_data):
         """
@@ -188,67 +239,54 @@ class AdminAssetUploadHelper(SharedAssetUploadBase):
         Simulates the behavior of a DRF serializer while ensuring that all required fields are included.
         """
 
-        s3_bucket = AVAILABLE_S3_BUCKETS.legacy
-        executor = MultipartUpload(s3_bucket)
+        self.key = get_asset_path(asset.item, asset.name)
+        self.asset = asset
+        self.item = asset.item
 
-        key = self.get_path(asset)
+        logger.info("Key in admin create multipart upload is %s", self.key)
 
-        sha256_checksum = upload_request_data.get(
-            "file:checksum", get_sha256_multihash(b"mybinarydata2")
+        md5_parts = [{
+            'part_number': 1,
+            'md5': compute_md5_base64(upload_request_data.get("file_content", b"mybinarydata2"))
+        }]
+        response = self.client.post(
+            self.get_create_multipart_upload_path(),
+            data={
+                'number_parts': upload_request_data.get("number_parts", 1),
+                'md5_parts': md5_parts,
+                'checksum:multihash': upload_request_data.get("file:checksum", "")
+            },
+            content_type=upload_request_data.get("content_type", "")
         )
+        logger.info(f"Response content : {response.content}")
+        json_data = response.json()
 
-        logger.info("Checksum variable type is %s", type(sha256_checksum))
-        logger.info("Checksum string is %s", sha256_checksum)
+        return json_data
 
-        # Ensure all required fields are present in `upload_request_data`
-        validated_data = {
-            "checksum_multihash": str(sha256_checksum),
-            "file:checksum": str(sha256_checksum),
-            "update_interval": upload_request_data.get("update_interval", 360),
-            "content_encoding": upload_request_data.get("content_encoding", ""),
-            "md5_parts":
-                upload_request_data.get(
-                    "md5_parts",
-                    [{
-                        "part_number": 1,
-                        "md5":
-                            str(get_sha256_multihash(b"mybinarydata2"))  #TODO change to md5
-                    }],  # Default
-                ),
-            "number_parts": upload_request_data.get("number_parts", 1),
-        }
-
-        # Validate with the serializer
-        serializer = AssetUploadSerializer(data=validated_data)
-        serializer.is_valid(raise_exception=True)
-
-        # Call `SharedAssetUploadBase`'s method to create an upload
-        self.create_multipart_upload(executor, serializer, validated_data, asset)
-
-        # Retrieve the created upload object
-        asset_upload = AssetUpload.objects.filter(
-            asset=asset, status=BaseAssetUpload.Status.IN_PROGRESS
-        ).first()
-
-        if not asset_upload:
-            raise ValueError("Multipart upload failed; no active upload found.")
-
-        return {"upload_id": asset_upload.upload_id, "key": key}
-
-    def admin_complete_multipart_upload(self, asset, upload_id, etag):
+    def admin_complete_multipart_upload(self, upload_request_data, json_data):
         """
         Admin version of complete_multipart_upload.
         """
 
-        s3_bucket = AVAILABLE_S3_BUCKETS.legacy
-        executor = MultipartUpload(s3_bucket)
+        number_parts = 1
+        size = len(upload_request_data.get("file_content", b"binary_data"))
 
-        asset_upload = AssetUpload.objects.get(upload_id=upload_id)
-
-        validated_data = {"parts": [{"PartNumber": 1, "ETag": etag}]}
-
-        # Call the original function from SharedAssetUploadBase
-        self.complete_multipart_upload(executor, validated_data, asset_upload, asset)
+        parts = self.s3_upload_parts(
+            json_data['upload_id'],
+            upload_request_data.get("file_content", b"binary_data"),
+            size,
+            number_parts
+        )
+        response = self.client.post(
+            self.get_complete_multipart_upload_path(json_data['upload_id']),
+            data={'parts': parts},
+            content_type=upload_request_data.get("content_type", "")
+        )
+        logger.info(f"Response content complete upload: {response.content}")
+        self.assertStatusCode(200, response)
+        self.assertS3ObjectExists(self.key)
+        obj = self.get_s3_object(self.key)
+        logger.info(f"S3 Object: {obj}")
 
         return {"message": "Upload completed"}
 

@@ -287,7 +287,7 @@ def parse_multihash(multihash_string):
     return multihash.decode(multihash.from_hex_string(multihash_string))
 
 
-def compute_md5_base64(self, file_content):
+def compute_md5_base64(file_content):
     """Compute MD5 checksum and encode it in base64 (required for S3)."""
 
     md5_digest = hashlib.md5(file_content).digest()
