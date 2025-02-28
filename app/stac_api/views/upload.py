@@ -243,8 +243,6 @@ class AdminAssetUploadHelper(AssetUploadBaseTest):
         self.asset = asset
         self.item = asset.item
 
-        logger.info("Key in admin create multipart upload is %s", self.key)
-
         md5_parts = [{
             'part_number': 1,
             'md5': compute_md5_base64(upload_request_data.get("file_content", b"mybinarydata2"))
@@ -258,7 +256,6 @@ class AdminAssetUploadHelper(AssetUploadBaseTest):
             },
             content_type=upload_request_data.get("content_type", "")
         )
-        logger.info(f"Response content : {response.content}")
         json_data = response.json()
 
         return json_data
@@ -282,11 +279,9 @@ class AdminAssetUploadHelper(AssetUploadBaseTest):
             data={'parts': parts},
             content_type=upload_request_data.get("content_type", "")
         )
-        logger.info(f"Response content complete upload: {response.content}")
         self.assertStatusCode(200, response)
         self.assertS3ObjectExists(self.key)
         obj = self.get_s3_object(self.key)
-        logger.info(f"S3 Object: {obj}")
 
         return {"message": "Upload completed"}
 
