@@ -763,16 +763,15 @@ class AssetAdmin(admin.ModelAdmin):
         return TemplateResponse(request, "uploadtemplate.html", context)
 
     def direct_upload_view(self, request, object_id, form_url='', extra_context=None):
-        """Admin view to start a multipart upload directly from the admin page using SharedAssetUploadBase methods."""
+        """Admin view to start a multipart upload directly from the admin page using AssetUploadBaseTest methods."""
 
         asset = Asset.objects.filter(id=request.resolver_match.kwargs['object_id']).first()
         if asset is None or asset.is_external:
             return super().change_view(request, object_id, form_url)
 
-        # Initialize the helper class for asset upload
         helper = AdminAssetUploadHelper(request)
 
-        file_content = b"mybinarydata2"
+        file_content = request.body
 
         upload_request_data = {
             "number_parts": 1,
@@ -784,9 +783,6 @@ class AssetAdmin(admin.ModelAdmin):
 
         response = helper.admin_create_multipart_upload(asset, upload_request_data)
 
-        # If upload creation fails, return an error
-
-        # Complete the multipart upload
         success = helper.admin_complete_multipart_upload(upload_request_data, response)
 
         return JsonResponse({
