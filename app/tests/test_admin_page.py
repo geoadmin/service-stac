@@ -710,7 +710,7 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
 
     @mock_s3_asset_file
     def test_asset_file_metadata(self):
-        content_type = 'image/tiff; application=geotiff'
+        content_type = 'image/tiff; application=geotiff'  #TODO add content_type argument to upload
 
         data = {"item": self.item.id, "name": "checksum.tiff", "media_type": content_type}
 
@@ -724,8 +724,8 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
         )
         asset = Asset.objects.get(item=self.item, name=data["name"])
 
-        filecontent = b'mybinarydata2'
-        filelike = BytesIO(filecontent)
+        file_content = b'mybinarydata2'
+        filelike = BytesIO(file_content)
         filelike.name = 'testname.tiff'
 
         data.update({
@@ -741,6 +741,7 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
         response = self.client.post(reverse('admin:stac_api_asset_change', args=[asset.id]), data)
         asset.refresh_from_db()
         data = {
+            'name': 'checksum.tiff',
             'collection_name': self.item.collection.name,
             'item_name': self.item.name,
             'asset_name': asset.name
@@ -748,26 +749,28 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
 
         self.client.cookies["csrftoken"] = "some_token_value"
         response = self.client.post(
-            reverse('admin:stac_api_asset_direct_upload', args=[asset.id]), data
+            reverse("admin:stac_api_asset_direct_upload", args=[asset.id]),
+            data={"file_content": file_content},
+            content_type="application/octet-stream",
         )
 
-        logger.info(f"Response file_metadata: {response.content}")
+        response_json = json.loads(response.content.decode("utf-8"))
 
-        # Assert success response
         self.assertEqual(response.status_code, 200)
 
-        # Check if AssetUpload entry was created
         self.assertTrue(
-            AssetUpload.objects.filter(asset=asset, upload_id=response["upload_id"]).exists()
+            AssetUpload.objects.filter(asset=asset, upload_id=response_json["upload_id"]).exists()
         )
 
+        asset.refresh_from_db()
+
         path = f"{self.item.collection.name}/{self.item.name}/{data['name']}"
-        sha256 = parse_multihash(asset.checksum_multihash).digest.hex()
         obj = self.get_s3_object(path)
+
+        sha256 = parse_multihash(asset.checksum_multihash).digest.hex()
         self.assertS3ObjectContentType(obj, path, content_type)
         self.assertS3ObjectSha256(obj, path, sha256)
         self.assertS3ObjectCacheControl(obj, path, max_age=settings.STORAGE_ASSETS_CACHE_SECONDS)
-        logger.info("Test asset file metadata passed")
 
     @mock_s3_asset_file
     def test_asset_custom_upload(self):
