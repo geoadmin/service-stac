@@ -131,7 +131,6 @@ class CollectionAdmin(admin.ModelAdmin):
         'summaries_geoadmin_lang',
         'summaries_eo_gsd',
         'etag',
-        'update_interval',
         'displayed_total_data_size'
     ]
     inlines = [ProviderInline, CollectionLinkInline, CollectionAssetInline]
