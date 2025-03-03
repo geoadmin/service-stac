@@ -1,18 +1,14 @@
-import json
 import logging
-from io import BytesIO
 
-from django.conf import settings
 from django.test import override_settings
 from django.urls import reverse
 
 from stac_api.models.collection import Collection
 from stac_api.models.collection import CollectionLink
 from stac_api.models.general import Provider
-from stac_api.models.item import Asset, AssetUpload
+from stac_api.models.item import Asset
 from stac_api.models.item import Item
 from stac_api.models.item import ItemLink
-from stac_api.utils import get_sha256_multihash, parse_multihash
 
 from tests.base_test_admin_page import AdminBaseTestCase
 from tests.utils import S3TestMixin
