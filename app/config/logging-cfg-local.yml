@@ -51,6 +51,7 @@ filters:
       - request.method
       - request.headers
       - request.META
+      - request.user.username
     exclude_keys:
       - request.headers.Authorization
       - request.headers.Proxy-Authorization
