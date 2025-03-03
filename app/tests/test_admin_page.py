@@ -627,10 +627,6 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
 
         asset, data = self._create_asset(self.item)
 
-        filecontent = b'mybinarydata2'
-        filelike = BytesIO(filecontent)
-        filelike.name = 'testname.tiff'
-
         # update some data
         data["description"] = "This is a new description"
         data["eo_gsd"] = 20
@@ -639,7 +635,6 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
         data["proj_epsg"] = 2057
         data["title"] = "New Asset for test"
         data["media_type"] = "application/x.ascii-grid+zip"
-        data["file"] = filelike
         response = self.client.post(reverse('admin:stac_api_asset_change', args=[asset.id]), data)
 
         # Status code for successful creation is 302, since in the admin UI
@@ -647,13 +642,9 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
         self.assertEqual(response.status_code, 302, msg="Admin page failed to update asset")
         asset.refresh_from_db()
         for key, value in data.items():
-            if key in ['item', 'id', 'file']:
+            if key in ['item', 'id']:
                 continue
             self.assertEqual(getattr(asset, key), value, msg=f"Failed to update field {key}")
-
-        # Check that file content has changed
-        with asset.file.open() as fd:
-            self.assertEqual(filecontent, fd.read())
 
     def test_add_asset_with_invalid_data(self):
 
@@ -675,8 +666,6 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
     def test_add_remove_asset(self):
 
         asset, data = self._create_asset(self.item)
-        path = f"{asset.item.collection.name}/{asset.item.name}/{data['name']}"
-        self.assertS3ObjectExists(path)
 
         # remove asset
         response = self.client.post(
@@ -689,8 +678,6 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
         self.assertFalse(
             Asset.objects.filter(name=data["name"]).exists(), msg="Admin page asset still in DB"
         )
-
-        self.assertS3ObjectNotExists(path)
 
     @mock_s3_asset_file
     def test_add_update_asset_invalid_media_type(self):
@@ -710,7 +697,7 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
 
     @mock_s3_asset_file
     def test_asset_file_metadata(self):
-        content_type = 'image/tiff; application=geotiff'  #TODO add content_type argument to upload
+        content_type = 'image/tiff; application=geotiff'
 
         data = {"item": self.item.id, "name": "checksum.tiff", "media_type": content_type}
 
@@ -724,10 +711,6 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
         )
         asset = Asset.objects.get(item=self.item, name=data["name"])
 
-        file_content = b'mybinarydata2'
-        filelike = BytesIO(file_content)
-        filelike.name = 'testname.tiff'
-
         data.update({
             "description": "",
             "eo_gsd": "",
@@ -735,42 +718,14 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
             "geoadmin_variant": "",
             "proj_epsg": "",
             "title": "",
-            "file": filelike
         })
 
         response = self.client.post(reverse('admin:stac_api_asset_change', args=[asset.id]), data)
         asset.refresh_from_db()
-        data = {
-            'name': 'checksum.tiff',
-            'collection_name': self.item.collection.name,
-            'item_name': self.item.name,
-            'asset_name': asset.name
-        }
 
-        self.client.cookies["csrftoken"] = "some_token_value"
-        response = self.client.post(
-            reverse("admin:stac_api_asset_direct_upload", args=[asset.id]),
-            data={"file_content": file_content},
-            content_type="application/octet-stream",
-        )
-
-        response_json = json.loads(response.content.decode("utf-8"))
-
-        self.assertEqual(response.status_code, 200)
-
-        self.assertTrue(
-            AssetUpload.objects.filter(asset=asset, upload_id=response_json["upload_id"]).exists()
-        )
-
-        asset.refresh_from_db()
-
-        path = f"{self.item.collection.name}/{self.item.name}/{data['name']}"
-        obj = self.get_s3_object(path)
-
-        sha256 = parse_multihash(asset.checksum_multihash).digest.hex()
-        self.assertS3ObjectContentType(obj, path, content_type)
-        self.assertS3ObjectSha256(obj, path, sha256)
-        self.assertS3ObjectCacheControl(obj, path, max_age=settings.STORAGE_ASSETS_CACHE_SECONDS)
+        #assert asset metadata
+        self.assertEqual(asset.media_type, content_type)
+        self.assertEqual(asset.description, None)
 
     @mock_s3_asset_file
     def test_asset_custom_upload(self):

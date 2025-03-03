@@ -197,7 +197,7 @@ class MultipartUpload:
         Returns:
             Size of upload in bytes
         '''
-        logger.info(f"Arguments are key {key}, asset {asset}, parts {parts}, upload_id {upload_id}")
+
         try:
             response = self.call_s3_api(
                 self.s3.complete_multipart_upload,
