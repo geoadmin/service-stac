@@ -1,6 +1,5 @@
 import logging
 import time
-from io import BytesIO
 
 from django.contrib.auth import get_user_model
 from django.test import Client
