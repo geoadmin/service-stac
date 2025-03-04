@@ -105,6 +105,15 @@ class Collection(models.Model):
                     'protocol://domain values for the external asset url validation')
     )
 
+    cache_control_header = models.CharField(
+        max_length=255, blank=True, null=True,
+        help_text=_(
+            'Cache-Control header value to use for this collection. When set it override the '
+            'default cache control header value for all API call related to the collection as well '
+            'as for the data download call.'
+        )
+    )
+
     def __str__(self):
         return self.name
 
