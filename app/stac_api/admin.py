@@ -36,6 +36,7 @@ from stac_api.utils import build_asset_href
 from stac_api.utils import get_query_params
 from stac_api.validators import validate_href_url
 from stac_api.validators import validate_text_to_geometry
+from stac_api.widgets.read_only_url_widget import ReadOnlyURLWidget
 
 logger = logging.getLogger(__name__)
 
@@ -490,6 +491,13 @@ class AssetAdminForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         """If it's an external asset, we switch the file field to a char field"""
         super().__init__(*args, **kwargs)
+
+        self.fields['file'] = forms.CharField(
+            label='File',
+            required=False,
+            widget=ReadOnlyURLWidget(attrs={'size': 150}),
+        )
+
         if self.instance is not None and self.instance.id is not None:
             are_external_assets_allowed = self.instance.item.collection.allow_external_assets
 
@@ -498,14 +506,24 @@ class AssetAdminForm(forms.ModelForm):
                 external_field = self.fields['is_external']
                 external_field.help_text = (
 
-
                     _('Whether this asset is hosted externally. Save the form in '
 
 
                       'order to toggle the file field between input and file widget.')
 
-
                 )
+
+                if self.instance.is_external:
+                    # can't just change the widget, otherwise it is impossible to
+                    # change the value!
+                    self.fields['file'] = forms.CharField(
+                        label='File',
+                        required=False,
+                        widget=forms.TextInput(attrs={'size': 150}),
+                    )
+
+                    self.fields['file'].widget.attrs['placeholder'
+                                                    ] = 'https://map.geo.admin.ch/external.jpg'
 
     def clean_file(self):
         if self.instance:
@@ -669,6 +687,7 @@ class AssetAdmin(admin.ModelAdmin):
             if obj.item.collection.allow_external_assets:
                 file_fields = (
                     'is_external',
+                    'file',
                     'media_type',
                     'href',
                     'checksum_multihash',
@@ -677,6 +696,7 @@ class AssetAdmin(admin.ModelAdmin):
                 )
             else:
                 file_fields = (
+                    'file',
                     'media_type',
                     'href',
                     'checksum_multihash',
