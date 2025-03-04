@@ -3,7 +3,6 @@ import logging
 from datetime import datetime
 
 from django.conf import settings
-from django.db.models import Min
 from django.utils.translation import gettext_lazy as _
 
 from rest_framework import generics
@@ -26,7 +25,7 @@ from stac_api.utils import harmonize_post_get_for_search
 from stac_api.utils import is_api_version_1
 from stac_api.utils import utc_aware
 from stac_api.validators_serializer import ValidateSearchRequest
-from stac_api.views.mixins import patch_cache_settings_by_update_interval
+from stac_api.views.mixins import patch_collections_aggregate_cache_control_header
 
 logger = logging.getLogger(__name__)
 
@@ -115,14 +114,6 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
 
         return queryset
 
-    def get_min_update_interval(self, queryset):
-        update_interval = queryset.filter(update_interval__gt=-1
-                                         ).aggregate(Min('update_interval')
-                                                    ).get('update_interval__min', None)
-        if update_interval is None:
-            update_interval = -1
-        return update_interval
-
     def list(self, request, *args, **kwargs):
 
         validate_search_request = ValidateSearchRequest()
@@ -136,14 +127,6 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
         else:
             serializer = self.get_serializer(queryset, many=True)
 
-        min_update_interval = None
-        if request.method in ['GET', 'HEAD', 'OPTIONS']:
-            if page is None:
-                queryset_paginated = queryset
-            else:
-                queryset_paginated = Item.objects.filter(pk__in=map(lambda item: item.pk, page))
-            min_update_interval = self.get_min_update_interval(queryset_paginated)
-
         data = {
             'type': 'FeatureCollection',
             'timeStamp': utc_aware(datetime.utcnow()),
@@ -155,15 +138,15 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
             response = self.paginator.get_paginated_response(data, request)
         response = Response(data)
 
-        return response, min_update_interval
+        return response
 
     def get(self, request, *args, **kwargs):
-        response, min_update_interval = self.list(request, *args, **kwargs)
-        patch_cache_settings_by_update_interval(response, min_update_interval)
+        response = self.list(request, *args, **kwargs)
+        patch_collections_aggregate_cache_control_header(response)
         return response
 
     def post(self, request, *args, **kwargs):
-        response, _ = self.list(request, *args, **kwargs)
+        response = self.list(request, *args, **kwargs)
         return response
 
 
