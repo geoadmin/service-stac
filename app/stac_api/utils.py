@@ -2,7 +2,6 @@ import hashlib
 import inspect
 import json
 import logging
-import math
 import os
 import re
 from base64 import b64decode
@@ -547,42 +546,10 @@ def is_valid_b64(value):
     return True
 
 
-def get_dynamic_max_age_value(update_interval):
-    '''Get the max_age value for dynamic cache based on `update_interval` DB field
-
-    -       update_interval < 0  then use default cache settings
-    -  0 <= update_interval < 10 then no cache
-    - 10 <= update_interval then log10(update_interval)*log9(update_interval)
-    Args:
-        update_interval: int
-            Value of the DB field `update_interval`
-
-    Returns:
-        int - Cache control max_age, or -1 to use default cache settings
-    '''
-    threshold_no_cache = 10
-    max_threshold = 60 * 60  # 1h
-    if 0 <= update_interval < threshold_no_cache:
-        return 0  # means never cache
-
-    if threshold_no_cache <= update_interval < max_threshold:
-        return int(math.log(update_interval, 10) * math.log(update_interval, 9))
-
-    if max_threshold <= update_interval:
-        raise ValueError('update_interval should not be more than 1h')
-
-    return -1  # means use default cache settings
-
-
-def get_s3_cache_control_value(update_interval):
-    max_age = get_dynamic_max_age_value(update_interval)
-
-    if max_age == 0:
-        return 'max-age=0, no-cache, no-store, must-revalidate, private'
-
-    if max_age > 0:
-        return f'max-age={max_age}, public'
-
+def get_s3_cache_control_value(cache_control_header):
+    if cache_control_header:
+        return cache_control_header
+    # Else use default cache settings
     return f'max-age={settings.STORAGE_ASSETS_CACHE_SECONDS}, public'
 
 
