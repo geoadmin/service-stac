@@ -88,7 +88,7 @@ class CollectionLinkInline(LinkInline):
 
 class CollectionAssetInline(admin.StackedInline):
     model = CollectionAsset
-    readonly_fields = ['update_interval', 'file_size']
+    readonly_fields = ['file_size']
     extra = 0
 
 
@@ -115,7 +115,6 @@ class CollectionAdmin(admin.ModelAdmin):
         'summaries_eo_gsd',
         'license',
         'etag',
-        'update_interval',
         'displayed_total_data_size',
         'allow_external_assets',
         'external_asset_whitelist',
@@ -132,7 +131,6 @@ class CollectionAdmin(admin.ModelAdmin):
         'summaries_geoadmin_lang',
         'summaries_eo_gsd',
         'etag',
-        'update_interval',
         'displayed_total_data_size'
     ]
     inlines = [ProviderInline, CollectionLinkInline, CollectionAssetInline]
@@ -216,8 +214,7 @@ class ItemAdmin(admin.ModelAdmin):
         'created',
         'updated',
         'etag',
-        'update_interval',
-        'displayed_total_data_size'
+        'displayed_total_data_size',
     ]
     fieldsets = (
         (
@@ -229,8 +226,7 @@ class ItemAdmin(admin.ModelAdmin):
                     'created',
                     'updated',
                     'etag',
-                    'update_interval',
-                    'displayed_total_data_size'
+                    'displayed_total_data_size',
                 )
             }
         ),
@@ -332,8 +328,7 @@ class ItemAdmin(admin.ModelAdmin):
                 'created',
                 'updated',
                 'etag',
-                'update_interval',
-                'displayed_total_data_size'
+                'displayed_total_data_size',
             )
             return fields
         # Otherwise if this is an update operation only display the read only field
@@ -344,8 +339,7 @@ class ItemAdmin(admin.ModelAdmin):
             'created',
             'updated',
             'etag',
-            'update_interval',
-            'displayed_total_data_size'
+            'displayed_total_data_size',
         )
         return fields
 
