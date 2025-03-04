@@ -242,9 +242,9 @@ def upload_asset_to_path_hook(instance, filename=None):
     # set the hash to the storage to use it for upload signing, this temporary attribute is
     # then used by storages.S3Storage to set the MetaData.sha256
     instance.file.storage.object_sha256 = ctx.hexdigest()
-    # Same here for the update_interval that is used by the storages.S3Storage to set the asset's
-    # update_interval
-    instance.file.storage.update_interval = instance.update_interval
+    # Same here for the cache_control_header that is used by the storages.S3Storage to set the
+    # asset's cache control header during upload
+    instance.file.storage.cache_control_header = instance.get_collection().cache_control_header
     logger.debug(
         'Set uploaded file %s multihash %s to file:checksum; computation done in %.3fs',
         filename,
@@ -365,7 +365,8 @@ class AssetBase(models.Model):
         null=False,
         blank=False,
         validators=[MinValueValidator(-1)],
-        help_text="Interval in seconds in which the asset data is updated."
+        help_text="<b>DEPRECATED FIELD, has no effect anymore. </b></br>"
+        "Interval in seconds in which the asset data is updated. "
         "-1 means that the data is not on a regular basis updated."
     )
 
@@ -454,7 +455,8 @@ class BaseAssetUpload(models.Model):
         null=False,
         blank=False,
         validators=[MinValueValidator(-1)],
-        help_text="Interval in seconds in which the asset data is updated. "
+        help_text="<b>DEPRECATED FIELD, has no effect anymore. </b></br>"
+        "Interval in seconds in which the asset data is updated. "
         "-1 means that the data is not on a regular basis updated. "
         "This field can only be set via the API."
     )

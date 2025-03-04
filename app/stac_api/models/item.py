@@ -1,7 +1,6 @@
 import logging
 
 from django.contrib.gis.db import models
-from django.core.validators import MinValueValidator
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
@@ -93,7 +92,6 @@ class Item(models.Model):
                 ],
                 name='item_dttme_start_end_dttm_idx'
             ),
-            models.Index(fields=['update_interval'], name='item_update_interval_idx'),
         ]
         triggers = generates_item_triggers()
 
@@ -150,15 +148,6 @@ class Item(models.Model):
     # NOTE: hidden ETag field, this field is automatically updated by stac_api.pgtriggers
     etag = models.CharField(
         blank=False, null=False, editable=False, max_length=56, default=compute_etag
-    )
-
-    update_interval = models.IntegerField(
-        default=-1,
-        null=False,
-        blank=False,
-        validators=[MinValueValidator(-1)],
-        help_text="Minimal update interval in seconds "
-        "in which the underlying assets data are updated."
     )
 
     total_data_size = models.BigIntegerField(default=0, null=True, blank=True)

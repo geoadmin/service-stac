@@ -1,5 +1,6 @@
 import logging
 
+from django.conf import settings
 from django.db import transaction
 from django.db.models.deletion import ProtectedError
 from django.http import Http404
@@ -12,8 +13,8 @@ from rest_framework import serializers
 from rest_framework import status
 from rest_framework.response import Response
 
+from stac_api.models.collection import Collection
 from stac_api.serializers.utils import get_parent_link
-from stac_api.utils import get_dynamic_max_age_value
 from stac_api.utils import get_link
 
 logger = logging.getLogger(__name__)
@@ -182,26 +183,54 @@ class DestroyModelMixin:
             ) from None
 
 
-def patch_cache_settings_by_update_interval(response, update_interval):
-    max_age = get_dynamic_max_age_value(update_interval)
-    if max_age == 0:
-        add_never_cache_headers(response)
-    elif max_age > 0:
-        patch_response_headers(response, cache_timeout=max_age)
-        patch_cache_control(response, public=True)
-
-
-class RetrieveModelDynCacheMixin:
-    """
-    Retrieve a model instance and set the cache-control header dynamically based on
-    `update_interval` model field.
-    """
+class RetrieveModelWithCacheMixin:
+    '''Retrieve model instance and set cache settings based on collection cache_control_header field
+    '''
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = self.get_serializer(instance)
         response = Response(serializer.data)
 
-        patch_cache_settings_by_update_interval(response, instance.update_interval)
-
+        patch_collection_cache_control_header(response, self.kwargs['collection_name'])
         return response
+
+
+def parse_cache_control_header(cache_control_header):
+    '''Parse the Cache-Control header into a dict of settings.
+
+    Args:
+        cache_control_header (str): The Cache-Control header value as in HTTP spec.
+
+    Returns:
+        dict: A dict of cache settings to be used in django.utils.cache.patch_cache_control.
+    '''
+    parts = [i.strip() for i in cache_control_header.split(',')]
+    args = {i.split('=')[0].strip(): i.split('=')[-1].strip() for i in parts if i}
+    return {k: True if v == k else v for k, v in args.items()}
+
+
+def patch_collection_cache_control_header(response, collection_name):
+    '''Patch the Cache-Control header of the response based on the related collection
+    cache_control_header field.
+    '''
+    cache_control_header = Collection.objects.values('cache_control_header').get(
+        name=collection_name
+    )['cache_control_header']
+    if cache_control_header:
+        patch_cache_control(response, **parse_cache_control_header(cache_control_header))
+    # Else do nothing, the default cache settings will be set later on
+
+
+def patch_collections_aggregate_cache_control_header(response):
+    '''Patch the Cache-Control header of the response based on the
+    COLLECTIONS_AGGREGATE_CACHE_SECONDS setting
+
+    This function is meant to be used by endpoint that aggregate collections, like the list
+    collections endpoint or search endpoint.
+    '''
+    if settings.COLLECTIONS_AGGREGATE_CACHE_SECONDS == 0:
+        add_never_cache_headers(response)
+    else:
+        patch_response_headers(response, cache_timeout=settings.COLLECTIONS_AGGREGATE_CACHE_SECONDS)
+        patch_cache_control(response, public=True)

@@ -38,7 +38,7 @@ class MultipartUploadMultipleBucketTest(TestCase):
                 asset_path,
                 self.asset,
                 checksum_multihash,
-                update_interval=1,
+                cache_control_header='',
                 content_encoding='text/html'
             )
 

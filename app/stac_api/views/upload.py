@@ -112,12 +112,11 @@ class SharedAssetUploadBase(generics.GenericAPIView):
 
     def create_multipart_upload(self, executor, serializer, validated_data, asset):
         key = self.get_path(asset)
-
         upload_id = executor.create_multipart_upload(
             key,
             asset,
             validated_data['checksum_multihash'],
-            validated_data['update_interval'],
+            asset.get_collection().cache_control_header,
             validated_data['content_encoding']
         )
         urls = []
