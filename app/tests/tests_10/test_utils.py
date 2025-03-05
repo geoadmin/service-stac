@@ -1,9 +1,9 @@
 from unittest import TestCase
 
-from stac_api.views.mixins import parse_cache_control_header
+from stac_api.utils import parse_cache_control_header
 
 
-class TestViewsMixins(TestCase):
+class TestUtils(TestCase):
 
     def test_parse_cache_control_header(self):
         self.assertEqual(parse_cache_control_header('max-age=360'), {'max-age': '360'})
