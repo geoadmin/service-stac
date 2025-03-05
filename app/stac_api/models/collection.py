@@ -19,6 +19,7 @@ from stac_api.pgtriggers import generates_collection_asset_triggers
 from stac_api.pgtriggers import generates_collection_triggers
 from stac_api.pgtriggers import generates_summary_count_triggers
 from stac_api.utils import get_collection_asset_path
+from stac_api.validators import validate_cache_control_header
 from stac_api.validators import validate_name
 
 logger = logging.getLogger(__name__)
@@ -107,6 +108,7 @@ class Collection(models.Model):
 
     cache_control_header = models.CharField(
         max_length=255, blank=True, null=True,
+        validators=[validate_cache_control_header],
         help_text=_(
             'Cache-Control header value to use for this collection. When set it override the '
             'default cache control header value for all API call related to the collection as well '

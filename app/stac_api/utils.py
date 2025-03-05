@@ -600,3 +600,15 @@ def select_s3_bucket(collection_name) -> AVAILABLE_S3_BUCKETS:
             return AVAILABLE_S3_BUCKETS.managed
 
     return AVAILABLE_S3_BUCKETS.legacy
+
+
+def parse_cache_control_header(cache_control_header):
+    '''Parse the Cache-Control header into a dict of settings.
+    Args:
+        cache_control_header (str): The Cache-Control header value as in HTTP spec.
+    Returns:
+        dict: A dict of cache settings to be used in django.utils.cache.patch_cache_control.
+    '''
+    parts = [i.strip() for i in cache_control_header.split(',')]
+    args = {i.split('=')[0].strip(): i.split('=')[-1].strip() for i in parts if i}
+    return {k: True if v == k else v for k, v in args.items()}
