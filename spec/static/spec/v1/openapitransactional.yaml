@@ -9,6 +9,13 @@ components:
       example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
       required: true
   parameters:
+    assetId:
+      name: assetId
+      in: path
+      description: Local identifier of an asset.
+      required: true
+      schema:
+        type: string
     assetQuery:
       description: >-
         Query for properties in assets (e.g. mediatype). Use the JSON form of the assetQueryFilter used in POST.
@@ -115,13 +122,6 @@ components:
       required: false
       schema:
         type: string
-    assetId:
-      name: assetId
-      in: path
-      description: Local identifier of an asset.
-      required: true
-      schema:
-        type: string
     uploadId:
       name: uploadId
       in: path
@@ -209,6 +209,23 @@ components:
         * An optional indicator about the type of the items in the collection (the default value, if the indicator is not provided, is 'feature').
 
         The `limit` parameter may be used to control the subset of the selected collections that should be returned in the response, the page size. Each page include links to support paging (link relation `next` and/or `previous`).
+    CollectionAssets:
+      description: >-
+        The response is a document consisting of all assets of the collection.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/collectionAssets"
+    CollectionAsset:
+      description: >-
+        The response is a document consisting of one asset of the collection.
+      headers:
+        ETag:
+          $ref: "#/components/headers/ETag"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/collectionAsset"
     ConformanceDeclaration:
       content:
         application/json:
@@ -370,13 +387,6 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/assets"
-    CollectionAssets:
-      description: >-
-        The response is a document consisting of all assets of the collection.
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/assets"
     Asset:
       description: >-
         The response is a document consisting of one asset of the feature.
@@ -386,17 +396,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/assetWrite"
-    CollectionAsset:
-      description: >-
-        The response is a document consisting of one asset of the collection.
-      headers:
-        ETag:
-          $ref: "#/components/headers/ETag"
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/assetWrite"
+            $ref: "#/components/schemas/asset"
     DeletedResource:
       description: Status of the delete resource
       content:
@@ -425,6 +425,16 @@ components:
               - code
               - links
   schemas:
+    assetId:
+      type: string
+      pattern: ^[a-z0-9.-_]+$
+      title: ID
+      description: >-
+        The asset id uniquely identifies the asset for an item
+
+
+        **Note**: `id` must be unique for the item and must be identical to the filename.
+      example: smr50-263-2016-2056-kgrs-2.5.tiff
     assetQuery:
       additionalProperties:
         $ref: "#/components/schemas/assetQueryProp"
@@ -1098,6 +1108,70 @@ components:
         - features
         - type
       type: object
+    collectionAsset:
+      allOf:
+        - type: object
+          required:
+            - id
+            - type
+          properties:
+            id:
+              $ref: "#/components/schemas/assetId"
+            type:
+              $ref: "#/components/schemas/assetType"
+        - $ref: "#/components/schemas/assetBase"
+        - type: object
+          required:
+            - links
+          properties:
+            links:
+              items:
+                $ref: "#/components/schemas/link"
+              type: array
+              example:
+                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/assets/smr50-263-2016-2056-kgrs-2.5.tiff
+                  rel: self
+                - href: https://data.geo.admin.ch/api/stac/v0.9/
+                  rel: root
+                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/assets
+                  rel: parent
+                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+                  rel: collection
+    collectionAssets:
+      title: Assets
+      description: List of Assets attached to this collection.
+      type: object
+      required:
+        - assets
+        - links
+      properties:
+        assets:
+          items:
+            allOf:
+              - type: object
+                required:
+                  - type
+                  - id
+                properties:
+                  id:
+                    $ref: "#/components/schemas/assetId"
+                  type:
+                    $ref: "#/components/schemas/assetType"
+              - $ref: "#/components/schemas/assetBase"
+          type: array
+        links:
+          items:
+            $ref: "#/components/schemas/link"
+          type: array
+          example:
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/assets
+              rel: self
+            - href: https://data.geo.admin.ch/api/stac/v0.9/
+              rel: root
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+              rel: parent
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+              rel: collection
     itemAssets:
       title: Assets
       description: List of Assets attached to this feature.
@@ -1956,23 +2030,42 @@ components:
       type: string
       format: date-time
       readOnly: true
-    assetId:
-      type: string
-      pattern: ^[a-z0-9.-_]+$
-      title: ID
-      description: >-
-        The asset id uniquely identifies the asset for an item
-
-
-        **Note**: `id` must be unique for the item and must be identical to the filename.
-      example: smr50-263-2016-2056-kgrs-2.5.tiff
+    asset:
+      allOf:
+        - type: object
+          required:
+            - id
+            - type
+          properties:
+            id:
+              $ref: "#/components/schemas/assetId"
+            type:
+              $ref: "#/components/schemas/assetType"
+        - $ref: "#/components/schemas/assetBase"
+        - type: object
+          required:
+            - links
+          properties:
+            links:
+              items:
+                $ref: "#/components/schemas/link"
+              type: array
+              example:
+                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets/smr50-263-2016-2056-kgrs-2.5.tiff
+                  rel: self
+                - href: https://data.geo.admin.ch/api/stac/v0.9/
+                  rel: root
+                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets
+                  rel: parent
+                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+                  rel: collection
     assets:
       title: Assets
       type: object
       properties:
         assets:
           items:
-            $ref: "#/components/schemas/assetWrite"
+            $ref: "#/components/schemas/asset"
           type: array
         links:
           items:
@@ -2042,7 +2135,7 @@ components:
         file:checksum:
           $ref: "#/components/schemas/checksumMultihashReadOnly"
         roles:
-          $ref: '#/components/schemas/roles'
+          $ref: "#/components/schemas/roles"
         geoadmin:variant:
           $ref: "#/components/schemas/geoadminVariant"
         geoadmin:lang:
@@ -2095,7 +2188,7 @@ components:
         file:checksum:
           $ref: "#/components/schemas/checksumMultihashReadOnly"
         roles:
-          $ref: '#/components/schemas/roles'
+          $ref: "#/components/schemas/roles"
         geoadmin:variant:
           $ref: "#/components/schemas/geoadminVariant"
         geoadmin:lang:
@@ -3404,6 +3497,155 @@ paths:
           $ref: "#/components/responses/PreconditionFailed"
         "500":
           $ref: "#/components/responses/ServerError"
+  /collections/{collectionId}/assets:
+    get:
+      description: >-
+        Fetch collection assets of the collection with id `collectionId`.
+
+        These assets do not belong to any item.
+      operationId: getCollectionAssets
+      parameters:
+        - $ref: "#/components/parameters/collectionId"
+      responses:
+        "200":
+          $ref: "#/components/responses/CollectionAssets"
+        "400":
+          $ref: "#/components/responses/InvalidParameter"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      summary: Fetch all collection assets for a collection
+      tags:
+        - Data
+  /collections/{collectionId}/assets/{assetId}:
+    get:
+      summary: Fetch a single collection asset
+      tags:
+        - Data
+      description: >-
+        Fetch the collection asset with id `assetId` of the collection with id `collectionId`.
+      operationId: getCollectionAsset
+      parameters:
+        - $ref: "#/components/parameters/collectionId"
+        - $ref: "#/components/parameters/assetId"
+        - $ref: "#/components/parameters/IfMatch"
+        - $ref: "#/components/parameters/IfNoneMatch"
+      responses:
+        "200":
+          $ref: "#/components/responses/CollectionAsset"
+        "304":
+          $ref: "#/components/responses/NotModified"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    put:
+      summary: Update or create a collection asset
+      description: >-
+        Update or create a collection asset with Id `assetId` with a complete asset definition. If the asset doesn't exist it is then created.
+
+
+        *Note: to upload an asset file see [Collection Asset Upload Management](#tag/Collection-Asset-Upload-Management)*
+      operationId: putCollectionAsset
+      tags:
+        - Data Management
+      parameters:
+        - $ref: "#/components/parameters/collectionId"
+        - $ref: "#/components/parameters/assetId"
+        - $ref: "#/components/parameters/IfMatchWrite"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/assetWrite"
+      responses:
+        "200":
+          description: Asset has been successfully updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/assetWrite"
+        "201":
+          description: Asset has been newly created.
+          headers:
+            Location:
+              description: A link to the asset
+              schema:
+                type: string
+                format: url
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/assetWrite"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    patch:
+      summary: Update an existing collection asset by Id with a partial asset definition
+      description: >-
+        Use this method to update an existing collection asset. Requires a JSON fragment (containing the fields to be updated) to be submitted.
+
+
+        *Note: to upload an asset file see [Collection Asset Upload Management](#tag/Collection-Asset-Upload-Management)*
+      operationId: patchCollectionAsset
+      tags:
+        - Data Management
+      parameters:
+        - $ref: "#/components/parameters/collectionId"
+        - $ref: "#/components/parameters/assetId"
+        - $ref: "#/components/parameters/IfMatchWrite"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/assetWrite"
+      responses:
+        "200":
+          description: Returns the updated Asset.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/assetWrite"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    delete:
+      summary: Delete an existing collection asset by Id
+      description: >-
+        Use this method to delete an existing collection asset.
+
+        **NOTE: Asset file on S3 will be also removed !**
+      operationId: deleteCollectionAsset
+      tags:
+        - Data Management
+      parameters:
+        - $ref: "#/components/parameters/collectionId"
+        - $ref: "#/components/parameters/assetId"
+        - $ref: "#/components/parameters/IfMatchWrite"
+      responses:
+        "200":
+          $ref: "#/components/responses/DeletedResource"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "#/components/responses/ServerError"
   /{assetObjectHref}:
     servers:
       - url: http://data.geo.admin.ch/
@@ -3584,155 +3826,6 @@ paths:
       summary: Search STAC items with full-featured filtering.
       tags:
         - STAC
-  /collections/{collectionId}/assets:
-    get:
-      description: >-
-        Fetch collection assets of the collection with id `collectionId`.
-
-        These assets do not belong to any item.
-      operationId: getCollectionAssets
-      parameters:
-        - $ref: "#/components/parameters/collectionId"
-      responses:
-        "200":
-          $ref: "#/components/responses/CollectionAssets"
-        "400":
-          $ref: "#/components/responses/InvalidParameter"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/ServerError"
-      summary: Fetch all collection assets for a collection
-      tags:
-        - Data
-  /collections/{collectionId}/assets/{assetId}:
-    get:
-      description: >-
-        Fetch the collection asset with id `assetId` of the collection with id `collectionId`.
-      operationId: getCollectionAsset
-      parameters:
-        - $ref: "#/components/parameters/collectionId"
-        - $ref: "#/components/parameters/assetId"
-        - $ref: "#/components/parameters/IfMatch"
-        - $ref: "#/components/parameters/IfNoneMatch"
-      responses:
-        "200":
-          $ref: "#/components/responses/CollectionAsset"
-        "304":
-          $ref: "#/components/responses/NotModified"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "412":
-          $ref: "#/components/responses/PreconditionFailed"
-        "500":
-          $ref: "#/components/responses/ServerError"
-      summary: Fetch a single collection asset
-      tags:
-        - Data
-    put:
-      summary: Update or create a collection asset
-      description: >-
-        Update or create a collection asset with Id `assetId` with a complete asset definition. If the asset doesn't exist it is then created.
-
-
-        *Note: to upload an asset file see [Collection Asset Upload Management](#tag/Collection-Asset-Upload-Management)*
-      operationId: putCollectionAsset
-      tags:
-        - Data Management
-      parameters:
-        - $ref: "#/components/parameters/collectionId"
-        - $ref: "#/components/parameters/assetId"
-        - $ref: "#/components/parameters/IfMatchWrite"
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/assetWrite"
-      responses:
-        "200":
-          description: Asset has been successfully updated.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/assetWrite"
-        "201":
-          description: Asset has been newly created.
-          headers:
-            Location:
-              description: A link to the asset
-              schema:
-                type: string
-                format: url
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/assetWrite"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "412":
-          $ref: "#/components/responses/PreconditionFailed"
-        "500":
-          $ref: "#/components/responses/ServerError"
-    patch:
-      summary: Update an existing collection asset by Id with a partial asset definition
-      description: >-
-        Use this method to update an existing collection asset. Requires a JSON fragment (containing the fields to be updated) to be submitted.
-
-
-        *Note: to upload an asset file see [Collection Asset Upload Management](#tag/Collection-Asset-Upload-Management)*
-      operationId: patchCollectionAsset
-      tags:
-        - Data Management
-      parameters:
-        - $ref: "#/components/parameters/collectionId"
-        - $ref: "#/components/parameters/assetId"
-        - $ref: "#/components/parameters/IfMatchWrite"
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/assetWrite"
-      responses:
-        "200":
-          description: Returns the updated Asset.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/assetWrite"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "412":
-          $ref: "#/components/responses/PreconditionFailed"
-        "500":
-          $ref: "#/components/responses/ServerError"
-    delete:
-      summary: Delete an existing collection asset by Id
-      description: >-
-        Use this method to delete an existing collection asset.
-
-        **NOTE: Asset file on S3 will be also removed !**
-      operationId: deleteCollectionAsset
-      tags:
-        - Data Management
-      parameters:
-        - $ref: "#/components/parameters/collectionId"
-        - $ref: "#/components/parameters/assetId"
-        - $ref: "#/components/parameters/IfMatchWrite"
-      responses:
-        "200":
-          $ref: "#/components/responses/DeletedResource"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "412":
-          $ref: "#/components/responses/PreconditionFailed"
-        "500":
-          $ref: "#/components/responses/ServerError"
   /collections/{collectionId}/items/{featureId}/assets:
     get:
       description: >-

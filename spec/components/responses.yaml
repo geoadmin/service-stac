@@ -69,6 +69,23 @@ components:
         selected collections that should be returned in the response, the page size.
         Each page include links to support paging (link relation `next` and/or
         `previous`).
+    CollectionAssets:
+      description: >-
+        The response is a document consisting of all assets of the collection.
+      content:
+        application/json:
+          schema:
+            $ref: "./schemas.yaml#/components/schemas/collectionAssets"
+    CollectionAsset:
+      description: >-
+        The response is a document consisting of one asset of the collection.
+      headers:
+        ETag:
+          $ref: "./headers.yaml#/components/headers/ETag"
+      content:
+        application/json:
+          schema:
+            $ref: "./schemas.yaml#/components/schemas/collectionAsset"
     ConformanceDeclaration:
       content:
         application/json:
