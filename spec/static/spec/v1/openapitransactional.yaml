@@ -396,7 +396,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/assetWrite"
+            $ref: "#/components/schemas/asset"
     DeletedResource:
       description: Status of the delete resource
       content:
@@ -2030,13 +2030,42 @@ components:
       type: string
       format: date-time
       readOnly: true
+    asset:
+      allOf:
+        - type: object
+          required:
+            - id
+            - type
+          properties:
+            id:
+              $ref: "#/components/schemas/assetId"
+            type:
+              $ref: "#/components/schemas/assetType"
+        - $ref: "#/components/schemas/assetBase"
+        - type: object
+          required:
+            - links
+          properties:
+            links:
+              items:
+                $ref: "#/components/schemas/link"
+              type: array
+              example:
+                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets/smr50-263-2016-2056-kgrs-2.5.tiff
+                  rel: self
+                - href: https://data.geo.admin.ch/api/stac/v0.9/
+                  rel: root
+                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets
+                  rel: parent
+                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+                  rel: collection
     assets:
       title: Assets
       type: object
       properties:
         assets:
           items:
-            $ref: "#/components/schemas/assetWrite"
+            $ref: "#/components/schemas/asset"
           type: array
         links:
           items:
