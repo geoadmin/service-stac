@@ -103,7 +103,7 @@ function handleFileFormSubmit() {
         hashValue(binary)
             .then(multihash => createPresigned(md5, multihash, binary))
     };
-    reader.readAsText(file);
+    reader.readAsArrayBuffer(file);
 }
 
 // Create a new asset upload to get a presigned url.
