@@ -1,6 +1,17 @@
 openapi: 3.0.3
 components:
   schemas:
+    assetId:
+      type: string
+      pattern: ^[a-z0-9.-_]+$
+      title: ID
+      description: >-
+        The asset id uniquely identifies the asset for an item
+
+
+        **Note**: `id` must be unique for the item and must be identical to the
+        filename.
+      example: smr50-263-2016-2056-kgrs-2.5.tiff
     assetQuery:
      additionalProperties:
        $ref: "#/components/schemas/assetQueryProp"
@@ -747,6 +758,70 @@ components:
         - features
         - type
       type: object
+    collectionAsset:
+      allOf:
+        - type: object
+          required:
+            - id
+            - type
+          properties:
+            id:
+              $ref: "#/components/schemas/assetId"
+            type:
+              $ref: "#/components/schemas/assetType"
+        - $ref: "#/components/schemas/assetBase"
+        - type: object
+          required:
+            - links
+          properties:
+            links:
+              items:
+                $ref: "#/components/schemas/link"
+              type: array
+              example:
+                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/assets/smr50-263-2016-2056-kgrs-2.5.tiff
+                  rel: self
+                - href: https://data.geo.admin.ch/api/stac/v0.9/
+                  rel: root
+                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/assets
+                  rel: parent
+                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+                  rel: collection
+    collectionAssets:
+      title: Assets
+      description: List of Assets attached to this collection.
+      type: object
+      required:
+        - assets
+        - links
+      properties:
+        assets:
+          items:
+            allOf:
+              - type: object
+                required:
+                  - type
+                  - id
+                properties:
+                  id:
+                    $ref: "#/components/schemas/assetId"
+                  type:
+                    $ref: "#/components/schemas/assetType"
+              - $ref: "#/components/schemas/assetBase"
+          type: array
+        links:
+          items:
+            $ref: "#/components/schemas/link"
+          type: array
+          example:
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/assets
+              rel: self
+            - href: https://data.geo.admin.ch/api/stac/v0.9/
+              rel: root
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+              rel: parent
+            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+              rel: collection
     itemAssets:
       title: Assets
       description: List of Assets attached to this feature.

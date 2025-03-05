@@ -1,6 +1,13 @@
 openapi: 3.0.3
 components:
   parameters:
+    assetId:
+      name: assetId
+      in: path
+      description: Local identifier of an asset.
+      required: true
+      schema:
+        type: string
     assetQuery:
       description: >-
         Query for properties in assets (e.g. mediatype). Use the JSON form of the assetQueryFilter

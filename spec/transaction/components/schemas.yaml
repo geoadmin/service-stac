@@ -1,17 +1,6 @@
 openapi: 3.0.3
 components:
   schemas:
-    assetId:
-      type: string
-      pattern: ^[a-z0-9.-_]+$
-      title: ID
-      description: >-
-        The asset id uniquely identifies the asset for an item
-
-
-        **Note**: `id` must be unique for the item and must be identical to the
-        filename.
-      example: smr50-263-2016-2056-kgrs-2.5.tiff
     assets:
       title: Assets
       type: object
@@ -76,31 +65,31 @@ components:
         - links
       properties:
         id:
-          $ref: "./schemas.yaml#/components/schemas/assetId"
+          $ref: "../../components/schemas.yaml#/components/schemas/assetId"
         title:
-          $ref: "#/components/schemas/title"
+          $ref: "../../components/schemas.yaml#/components/schemas/title"
         description:
-          $ref: "#/components/schemas/description"
+          $ref: "../../components/schemas.yaml#/components/schemas/description"
         type:
           $ref: "#/components/schemas/mediaTypeWrite"
         href:
-          $ref: "#/components/schemas/href"
+          $ref: "../../components/schemas.yaml#/components/schemas/href"
         file:checksum:
-          $ref: "#/components/schemas/checksumMultihashReadOnly"
+          $ref: "../../components/schemas.yaml#/components/schemas/checksumMultihashReadOnly"
         roles:
-          $ref: '#/components/schemas/roles'
+          $ref: "../../components/schemas.yaml#/components/schemas/roles"
         "geoadmin:variant":
-          $ref: "#/components/schemas/geoadminVariant"
+          $ref: "../../components/schemas.yaml#/components/schemas/geoadminVariant"
         "geoadmin:lang":
-          $ref: "#/components/schemas/geoadminLang"
+          $ref: "../../components/schemas.yaml#/components/schemas/geoadminLang"
         "proj:epsg":
-          $ref: "#/components/schemas/projEpsg"
+          $ref: "../../components/schemas.yaml#/components/schemas/projEpsg"
         "gsd":
-          $ref: "#/components/schemas/eoGsd"
+          $ref: "../../components/schemas.yaml#/components/schemas/eoGsd"
         created:
-          $ref: "#/components/schemas/created"
+          $ref: "../../components/schemas.yaml#/components/schemas/created"
         updated:
-          $ref: "#/components/schemas/updated"
+          $ref: "../../components/schemas.yaml#/components/schemas/updated"
         links:
           items:
             $ref: "../../components/schemas.yaml#/components/schemas/link"
@@ -129,31 +118,31 @@ components:
         - links
       properties:
         id:
-          $ref: "./schemas.yaml#/components/schemas/assetId"
+          $ref: "../../components/schemas.yaml#/components/schemas/assetId"
         title:
-          $ref: "#/components/schemas/title"
+          $ref: "../../components/schemas.yaml#/components/schemas/title"
         description:
-          $ref: "#/components/schemas/description"
+          $ref: "../../components/schemas.yaml#/components/schemas/description"
         type:
           $ref: "#/components/schemas/mediaTypeWrite"
         href:
           $ref: "#/components/schemas/hrefExternal"
         file:checksum:
-          $ref: "#/components/schemas/checksumMultihashReadOnly"
+          $ref: "../../components/schemas.yaml#/components/schemas/checksumMultihashReadOnly"
         roles:
-          $ref: '#/components/schemas/roles'
+          $ref: "../../components/schemas.yaml#/components/schemas/roles"
         "geoadmin:variant":
-          $ref: "#/components/schemas/geoadminVariant"
+          $ref: "../../components/schemas.yaml#/components/schemas/geoadminVariant"
         "geoadmin:lang":
-          $ref: "#/components/schemas/geoadminLang"
+          $ref: "../../components/schemas.yaml#/components/schemas/geoadminLang"
         "proj:epsg":
-          $ref: "#/components/schemas/projEpsg"
+          $ref: "../../components/schemas.yaml#/components/schemas/projEpsg"
         "gsd":
-          $ref: "#/components/schemas/eoGsd"
+          $ref: "../../components/schemas.yaml#/components/schemas/eoGsd"
         created:
-          $ref: "#/components/schemas/created"
+          $ref: "../../components/schemas.yaml#/components/schemas/created"
         updated:
-          $ref: "#/components/schemas/updated"
+          $ref: "../../components/schemas.yaml#/components/schemas/updated"
         links:
           items:
             $ref: "../../components/schemas.yaml#/components/schemas/link"
