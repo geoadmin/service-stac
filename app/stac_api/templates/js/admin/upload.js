@@ -21,7 +21,7 @@ function setError(text) {
 
 function hashValue(val) {
     return crypto.subtle
-        .digest('SHA-256', new TextEncoder('utf-8').encode(val))
+        .digest('SHA-256', val)
         .then(h => {
             const prefix = '1220'; // for sha2-256 according to https://multiformats.io/multihash/
             let hexes = [],
