@@ -16,6 +16,7 @@ from rest_framework.response import Response
 from stac_api.models.collection import Collection
 from stac_api.serializers.utils import get_parent_link
 from stac_api.utils import get_link
+from stac_api.utils import parse_cache_control_header
 
 logger = logging.getLogger(__name__)
 
@@ -194,20 +195,6 @@ class RetrieveModelWithCacheMixin:
 
         patch_collection_cache_control_header(response, self.kwargs['collection_name'])
         return response
-
-
-def parse_cache_control_header(cache_control_header):
-    '''Parse the Cache-Control header into a dict of settings.
-
-    Args:
-        cache_control_header (str): The Cache-Control header value as in HTTP spec.
-
-    Returns:
-        dict: A dict of cache settings to be used in django.utils.cache.patch_cache_control.
-    '''
-    parts = [i.strip() for i in cache_control_header.split(',')]
-    args = {i.split('=')[0].strip(): i.split('=')[-1].strip() for i in parts if i}
-    return {k: True if v == k else v for k, v in args.items()}
 
 
 def patch_collection_cache_control_header(response, collection_name):
