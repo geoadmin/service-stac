@@ -21,7 +21,7 @@ function setError(text) {
 
 function hashValue(val) {
     return crypto.subtle
-        .digest('SHA-256', new TextEncoder('utf-8').encode(val))
+        .digest('SHA-256', val)
         .then(h => {
             const prefix = '1220'; // for sha2-256 according to https://multiformats.io/multihash/
             let hexes = [],
@@ -98,12 +98,12 @@ function handleFileFormSubmit() {
         const binary = event.target.result;
 
         // Create md5 hash, base64 encoded
-        const md5 = CryptoJS.MD5(binary).toString(CryptoJS.enc.Base64);
+        const md5 = CryptoJS.MD5(CryptoJS.lib.WordArray.create(binary)).toString(CryptoJS.enc.Base64);
         // Create multihash and call to create presigned url
         hashValue(binary)
             .then(multihash => createPresigned(md5, multihash, binary))
     };
-    reader.readAsText(file);
+    reader.readAsArrayBuffer(file);
 }
 
 // Create a new asset upload to get a presigned url.
