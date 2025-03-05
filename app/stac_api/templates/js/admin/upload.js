@@ -98,7 +98,7 @@ function handleFileFormSubmit() {
         const binary = event.target.result;
 
         // Create md5 hash, base64 encoded
-        const md5 = CryptoJS.MD5(binary).toString(CryptoJS.enc.Base64);
+        const md5 = CryptoJS.MD5(CryptoJS.lib.WordArray.create(binary)).toString(CryptoJS.enc.Base64);
         // Create multihash and call to create presigned url
         hashValue(binary)
             .then(multihash => createPresigned(md5, multihash, binary))
