@@ -36,7 +36,7 @@ from stac_api.utils import build_asset_href
 from stac_api.utils import get_query_params
 from stac_api.validators import validate_href_url
 from stac_api.validators import validate_text_to_geometry
-from stac_api.widgets.read_only_url_widget import ReadOnlyURLWidget
+from stac_api.widgets.read_only_url_widget import LabelWidget
 
 logger = logging.getLogger(__name__)
 
@@ -495,7 +495,7 @@ class AssetAdminForm(forms.ModelForm):
         self.fields['file'] = forms.CharField(
             label='File',
             required=False,
-            widget=ReadOnlyURLWidget(attrs={'size': 150}),
+            widget=LabelWidget(attrs={'size': 150}),
         )
 
         if self.instance is not None and self.instance.id is not None:
