@@ -36,7 +36,7 @@ from stac_api.utils import build_asset_href
 from stac_api.utils import get_query_params
 from stac_api.validators import validate_href_url
 from stac_api.validators import validate_text_to_geometry
-from stac_api.widgets.read_only_url_widget import LabelWidget
+from stac_api.widgets.label_widget import LabelWidget
 
 logger = logging.getLogger(__name__)
 
