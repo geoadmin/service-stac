@@ -197,7 +197,6 @@ class MultipartUpload:
         Returns:
             Size of upload in bytes
         '''
-
         try:
             response = self.call_s3_api(
                 self.s3.complete_multipart_upload,
