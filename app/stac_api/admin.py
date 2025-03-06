@@ -118,7 +118,8 @@ class CollectionAdmin(admin.ModelAdmin):
         'update_interval',
         'displayed_total_data_size',
         'allow_external_assets',
-        'external_asset_whitelist'
+        'external_asset_whitelist',
+        'cache_control_header',
     ]
     readonly_fields = [
         'extent_start_datetime',

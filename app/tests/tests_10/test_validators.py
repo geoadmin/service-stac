@@ -8,6 +8,7 @@ from stac_api.validators import _validate_href_configured_pattern
 from stac_api.validators import _validate_href_scheme
 from stac_api.validators import get_media_type
 from stac_api.validators import normalize_and_validate_media_type
+from stac_api.validators import validate_cache_control_header
 from stac_api.validators import validate_content_encoding
 from stac_api.validators import validate_item_properties_datetimes
 
@@ -55,6 +56,33 @@ class TestValidators(TestCase):
                     validate_content_encoding(value)
                 except ValidationError as err:
                     self.fail(f'Validation for valid content_encoding "{value}" failed: {err}')
+
+    def test_valid_cache_control_header_validator_field(self):
+        try:
+            validate_cache_control_header('')
+            validate_cache_control_header('max-age=3600')
+            validate_cache_control_header('max-age=3600,public')
+            validate_cache_control_header(' max-age=3600 , public ')
+            validate_cache_control_header('max-age=3600,public,')
+            validate_cache_control_header('max-age=3600,public,private,no-cache,s-maxage=3600')
+            validate_cache_control_header(
+                'max-age=3600,public , private , no-cache , s-maxage=3600'
+            )
+        except ValidationError as err:
+            self.fail(f'Validation for valid Cache-Control header failed: {err}')
+
+    def test_invalid_cache_control_header_validator_field(self):
+        with self.assertRaises(ValidationError):
+            validate_cache_control_header(None)
+            validate_cache_control_header('maxage=3600')
+            validate_cache_control_header('max-age=hello')
+            validate_cache_control_header(' max-age=  ,')
+            validate_cache_control_header('public=')
+            validate_cache_control_header(',,')
+            validate_cache_control_header('public=1')
+            validate_cache_control_header('hello=world')
+            validate_cache_control_header('max-age=3600,public,hello=world')
+            validate_cache_control_header('max-age=3600,public,hello')
 
 
 class TestMediaTypeValidators(TestCase):
