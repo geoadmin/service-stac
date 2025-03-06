@@ -1,9 +1,4 @@
 /*************************************
-* Initialization
-**************************************/
-window.addEventListener('load', cleanUploadsInProgress)
-
-/*************************************
 * Helper functions
 **************************************/
 function setStatus(text) {
@@ -87,6 +82,7 @@ async function abortMultipartUpload(upload_id) {
 // Reads file, creates md5 and multihash.
 // Calls `createPresigned`.
 function handleFileFormSubmit() {
+    cleanUploadsInProgress();
     const fileInput = document.getElementById('id_file');
     if (fileInput.files.length == 0) {
         setError('no file selected')
