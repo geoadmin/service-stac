@@ -1,11 +1,9 @@
-from django import forms
+from django.forms.widgets import Widget
 from django.utils.safestring import mark_safe
 
 
-class LabelWidget(forms.TextInput):
+class LabelWidget(Widget):
     """Custom widget to display a label without input"""
 
     def render(self, name, value, attrs=None, renderer=None):
-        if value:
-            return mark_safe(f'{value}')
-        return super().render(name, value, attrs, renderer)
+        return mark_safe(f'<div class="readonly" >{value}</div>')
