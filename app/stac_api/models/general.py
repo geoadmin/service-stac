@@ -316,7 +316,6 @@ class AssetBase(models.Model):
     # into account when linting, somehow
     # pylint: disable=unexpected-keyword-arg
     # pylint: disable=no-value-for-parameter
-
     file = DynamicStorageFileField(upload_to=upload_asset_to_path_hook, max_length=255)
     roles = ArrayField(
         models.CharField(max_length=255), editable=True, blank=True, null=True, default=None,

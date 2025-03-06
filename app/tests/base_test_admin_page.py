@@ -1,5 +1,6 @@
 import logging
 import time
+from io import BytesIO
 
 from django.contrib.auth import get_user_model
 from django.test import Client
@@ -181,6 +182,9 @@ class AdminBaseTestCase(TestCase):
 
     def _create_asset_minimal(self, item):
         start = time.time()
+        filecontent = b'my binary data'
+        filelike = BytesIO(filecontent)
+        filelike.name = 'testname.txt'
 
         # we need to create the asset in two steps, since the django admin form
         # only takes some values in the creation form, then the rest in the
@@ -212,6 +216,7 @@ class AdminBaseTestCase(TestCase):
             "proj_epsg": "",
             "title": "",
             "media_type": "text/plain",
+            "file": filelike
         }
 
         asset = Asset.objects.get(item=item, name=data["name"])
@@ -221,7 +226,7 @@ class AdminBaseTestCase(TestCase):
 
         # Check the asset values
         for key, value in data.items():
-            if key in ['item', 'name']:
+            if key in ['item', 'name', 'file', 'checksum_multihash']:
                 continue
             self.assertEqual(
                 getattr(asset, key),
@@ -232,15 +237,21 @@ class AdminBaseTestCase(TestCase):
         # Assert that the filename is set to the value in name
         self.assertEqual(asset.filename, data['name'])
 
+        # Check file content is correct
+        with asset.file.open() as fd:
+            self.assertEqual(filecontent, fd.read())
+
         return asset, data
 
     def _create_asset(self, item, extra=None):
         start = time.time()
-        asset_name = 'testname.zip'
+        filecontent = b'mybinarydata'
+        filelike = BytesIO(filecontent)
+        filelike.name = 'testname.zip'
 
         data = {
             "item": item.id,
-            "name": asset_name,
+            "name": filelike.name,
             "media_type": "application/x.filegdb+zip",
         }
         if extra:
@@ -262,7 +273,7 @@ class AdminBaseTestCase(TestCase):
 
         data = {
             "item": item.id,
-            "name": asset_name,
+            "name": filelike.name,
             "description": "This is a description",
             "eo_gsd": 10,
             "geoadmin_lang": "en",
@@ -270,6 +281,7 @@ class AdminBaseTestCase(TestCase):
             "proj_epsg": 2056,
             "title": "My first Asset for test",
             "media_type": "application/x.filegdb+zip",
+            "file": filelike
         }
 
         asset = Asset.objects.get(item=item, name=data["name"])
@@ -279,11 +291,15 @@ class AdminBaseTestCase(TestCase):
 
         # Check the asset values
         for key, value in data.items():
-            if key in ['item', 'id']:
+            if key in ['item', 'id', 'file']:
                 continue
             self.assertEqual(getattr(asset, key), value, msg=f"Asset field {key} value missmatch")
 
         # Assert that the filename is set to the value in name
         self.assertEqual(asset.filename, data['name'])
+
+        # Check file content is correct
+        with asset.file.open() as fd:
+            self.assertEqual(filecontent, fd.read())
 
         return asset, data
