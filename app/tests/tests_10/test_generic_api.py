@@ -419,13 +419,54 @@ class ApiCacheHeaderTestCase(StacBaseTestCase, S3TestMixin):
             db_create=True,
         )
 
+    def test_get_cache_header_collections_and_search_default(self):
+        # Get collections and search endpoint should not have cache enabled
+        for endpoint in ['search', 'search?ids=item-1', 'collections']:
+            with self.subTest(endpoint=endpoint):
+                now = datetime.now()
+                response = self.client.get(f"/{STAC_BASE_V}/{endpoint}")
+                self.assertStatusCode(200, response)
+
+                self.assertTrue(
+                    response.has_header('Cache-Control'), msg="Cache-Control header missing"
+                )
+                self.assertEqual(
+                    response['Cache-Control'],
+                    'max-age=0, no-cache, no-store, must-revalidate, private',
+                    msg='Wrong cache-control values'
+                )
+
+                self.assertTrue(response.has_header('Expires'), msg="Expires header missing")
+                expires = datetime.strptime(response['Expires'], '%a, %d %b %Y %H:%M:%S GMT')
+                self.assertAlmostEqual((expires - now).total_seconds(), 0, delta=1)
+
+    @override_settings(COLLECTIONS_AGGREGATE_CACHE_SECONDS=10)
+    def test_get_cache_header_collections_and_search(self):
+        # Get collections and search endpoint should not have cache enabled
+        for endpoint in ['search', 'search?ids=item-1', 'collections']:
+            with self.subTest(endpoint=endpoint):
+                now = datetime.now()
+                response = self.client.get(f"/{STAC_BASE_V}/{endpoint}")
+                self.assertStatusCode(200, response)
+
+                self.assertTrue(
+                    response.has_header('Cache-Control'), msg="Cache-Control header missing"
+                )
+                self.assertEqual(
+                    response['Cache-Control'],
+                    'max-age=10, public',
+                    msg='Wrong cache-control values'
+                )
+
+                self.assertTrue(response.has_header('Expires'), msg="Expires header missing")
+                expires = datetime.strptime(response['Expires'], '%a, %d %b %Y %H:%M:%S GMT')
+                self.assertAlmostEqual((expires - now).total_seconds(), 10, delta=1)
+
     @override_settings(CACHE_MIDDLEWARE_SECONDS=3600)
     def test_get_cache_header(self):
         for endpoint in [
             '',  # landing page
             'conformance',
-            'search',
-            'search?ids=item-1',
             f'collections/{self.collection["name"]}',
             f'collections/{self.collection["name"]}/items/{self.item["name"]}',
             f'collections/{self.collection["name"]}/items/{self.item["name"]}'
@@ -463,8 +504,6 @@ class ApiCacheHeaderTestCase(StacBaseTestCase, S3TestMixin):
         for endpoint in [
             '',  # landing page
             'conformance',
-            'search',
-            'search?ids=item-1',
             f'collections/{self.collection["name"]}',
             f'collections/{self.collection["name"]}/items/{self.item["name"]}',
             f'collections/{self.collection["name"]}/items/{self.item["name"]}'
@@ -497,15 +536,16 @@ class ApiDynamicCacheHeaderTestCase(StacBaseTestCase, S3TestMixin):
     @mock_s3_asset_file
     def setUp(self):
         self.factory = Factory()
-        self.collection = self.factory.create_collection_sample(name='collection-1').model
+        self.collection = self.factory.create_collection_sample(
+            name='collection-1', cache_control_header="max-age=8, public"
+        ).model
         self.item = self.factory.create_item_sample(collection=self.collection, name='item-1').model
         self.asset = self.factory.create_asset_sample(
-            item=self.item, db_create=True, create_asset_file=True, update_interval=600
+            item=self.item, db_create=True, create_asset_file=True
         ).model
 
     def test_get_dynamic_cache_header(self):
         for endpoint in [
-            'search',
             f'collections/{self.collection.name}/items',
             f'collections/{self.collection.name}/items/{self.item.name}',
             f'collections/{self.collection.name}/items/{self.item.name}/assets',
@@ -528,10 +568,13 @@ class ApiNoCacheHeaderTestCase(StacBaseTestCase, S3TestMixin):
     @mock_s3_asset_file
     def setUp(self):
         self.factory = Factory()
-        self.collection = self.factory.create_collection_sample(name='collection-1').model
+        self.collection = self.factory.create_collection_sample(
+            name='collection-1',
+            cache_control_header="max-age=0, no-cache, no-store, must-revalidate, private"
+        ).model
         self.item = self.factory.create_item_sample(collection=self.collection, name='item-1').model
         self.asset = self.factory.create_asset_sample(
-            item=self.item, db_create=True, create_asset_file=True, update_interval=5
+            item=self.item, db_create=True, create_asset_file=True
         ).model
 
     def test_get_no_cache_header(self):
