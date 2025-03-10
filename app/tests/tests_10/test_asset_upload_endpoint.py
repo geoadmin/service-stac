@@ -65,42 +65,72 @@ class AssetUploadBaseTest(StacBaseTestCase, S3TestMixin):
             asset__name=self.asset.name,
         )
 
-    def get_delete_asset_path(self):
+    def get_delete_asset_path(self, collection=None, item=None, asset=None):
         return reverse_version(
-            'asset-detail', args=[self.collection.name, self.item.name, self.asset.name]
+            'asset-detail',
+            args=[
+                collection.name if collection else self.collection.name,
+                item.name if item else self.item.name,
+                asset.name if asset else self.asset.name,
+            ]
         )
 
-    def get_get_multipart_uploads_path(self):
+    def get_get_multipart_uploads_path(self, collection=None, item=None, asset=None):
         return reverse_version(
-            'asset-uploads-list', args=[self.collection.name, self.item.name, self.asset.name]
+            'asset-uploads-list',
+            args=[
+                collection.name if collection else self.collection.name,
+                item.name if item else self.item.name,
+                asset.name if asset else self.asset.name,
+            ]
         )
 
-    def get_create_multipart_upload_path(self):
+    def get_create_multipart_upload_path(self, collection=None, item=None, asset=None):
         return reverse_version(
-            'asset-uploads-list', args=[self.collection.name, self.item.name, self.asset.name]
+            'asset-uploads-list',
+            args=[
+                collection.name if collection else self.collection.name,
+                item.name if item else self.item.name,
+                asset.name if asset else self.asset.name,
+            ]
         )
 
-    def get_abort_multipart_upload_path(self, upload_id):
+    def get_abort_multipart_upload_path(self, upload_id, collection=None, item=None, asset=None):
         return reverse_version(
             'asset-upload-abort',
-            args=[self.collection.name, self.item.name, self.asset.name, upload_id]
+            args=[
+                collection.name if collection else self.collection.name,
+                item.name if item else self.item.name,
+                asset.name if asset else self.asset.name,
+                upload_id
+            ]
         )
 
-    def get_complete_multipart_upload_path(self, upload_id):
+    def get_complete_multipart_upload_path(self, upload_id, collection=None, item=None, asset=None):
         return reverse_version(
             'asset-upload-complete',
-            args=[self.collection.name, self.item.name, self.asset.name, upload_id]
+            args=[
+                collection.name if collection else self.collection.name,
+                item.name if item else self.item.name,
+                asset.name if asset else self.asset.name,
+                upload_id
+            ]
         )
 
-    def get_list_parts_path(self, upload_id):
+    def get_list_parts_path(self, upload_id, collection=None, item=None, asset=None):
         return reverse_version(
             'asset-upload-parts-list',
-            args=[self.collection.name, self.item.name, self.asset.name, upload_id]
+            args=[
+                collection.name if collection else self.collection.name,
+                item.name if item else self.item.name,
+                asset.name if asset else self.asset.name,
+                upload_id
+            ]
         )
 
-    def s3_upload_parts(self, upload_id, file_like, size, number_parts):
+    def s3_upload_parts(self, upload_id, file_like, size, number_parts, item=None, asset=None):
         s3 = get_s3_client()
-        key = get_asset_path(self.item, self.asset.name)
+        key = get_asset_path(item if item else self.item, asset.name if asset else self.asset.name)
         parts = []
         # split the file into parts
         start = 0
@@ -344,20 +374,29 @@ class AssetUploadCreateRaceConditionTest(StacBaseTransactionTestCase, S3TestMixi
 @override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class AssetUpload1PartEndpointTestCase(AssetUploadBaseTest):
 
-    def upload_asset_with_dyn_cache(self, update_interval=None):
-        key = get_asset_path(self.item, self.asset.name)
+    def upload_asset_with_dyn_cache(self, cache_control_header=None):
+        collection_dyn_cache = self.factory.create_collection_sample(
+            name='collection-dyn-cache', cache_control_header=cache_control_header
+        ).model
+        item_dyn_cache = self.factory.create_item_sample(collection_dyn_cache).model
+        asset_dyn_cache = self.factory.create_asset_sample(
+            item=item_dyn_cache, sample='asset-no-file'
+        ).model
+        key = get_asset_path(item_dyn_cache, asset_dyn_cache.name)
         self.assertS3ObjectNotExists(key)
         number_parts = 1
         size = 1 * KB
         file_like, checksum_multihash = get_file_like_object(size)
         md5_parts = [{'part_number': 1, 'md5': base64_md5(file_like)}]
         response = self.client.post(
-            self.get_create_multipart_upload_path(),
+            self.get_create_multipart_upload_path(
+                collection_dyn_cache, item_dyn_cache, asset_dyn_cache
+            ),
             data={
                 'number_parts': number_parts,
                 'md5_parts': md5_parts,
                 'file:checksum': checksum_multihash,
-                'update_interval': update_interval
+                'update_interval': -1
             },
             content_type="application/json"
         )
@@ -368,9 +407,13 @@ class AssetUpload1PartEndpointTestCase(AssetUploadBaseTest):
         self.assertIn('md5_parts', json_data)
         self.assertEqual(json_data['md5_parts'], md5_parts)
 
-        parts = self.s3_upload_parts(json_data['upload_id'], file_like, size, number_parts)
+        parts = self.s3_upload_parts(
+            json_data['upload_id'], file_like, size, number_parts, item_dyn_cache, asset_dyn_cache
+        )
         response = self.client.post(
-            self.get_complete_multipart_upload_path(json_data['upload_id']),
+            self.get_complete_multipart_upload_path(
+                json_data['upload_id'], collection_dyn_cache, item_dyn_cache, asset_dyn_cache
+            ),
             data={'parts': parts},
             content_type="application/json"
         )
@@ -417,13 +460,15 @@ class AssetUpload1PartEndpointTestCase(AssetUploadBaseTest):
         self.assertEqual(size, self.asset.file_size)
 
     def test_asset_upload_dyn_cache(self):
-        key = self.upload_asset_with_dyn_cache(update_interval=600)
+        key = self.upload_asset_with_dyn_cache(cache_control_header="max-age=8, public")
         self.assertS3ObjectExists(key)
         obj = self.get_s3_object(key)
         self.assertS3ObjectCacheControl(obj, key, max_age=8)
 
     def test_asset_upload_no_cache(self):
-        key = self.upload_asset_with_dyn_cache(update_interval=5)
+        key = self.upload_asset_with_dyn_cache(
+            cache_control_header="max-age=0, no-cache, no-store, must-revalidate, private"
+        )
         self.assertS3ObjectExists(key)
         obj = self.get_s3_object(key)
         self.assertS3ObjectCacheControl(obj, key, no_cache=True)
