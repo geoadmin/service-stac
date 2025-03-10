@@ -86,7 +86,7 @@ class MultipartUpload:
         return log_extra
 
     def create_multipart_upload(
-        self, key, asset, checksum_multihash, update_interval, content_encoding
+        self, key, asset, checksum_multihash, cache_control_header, content_encoding
     ):
         '''Create a multi part upload on the backend
 
@@ -97,8 +97,9 @@ class MultipartUpload:
                 Asset metadata model associated with the S3 backend key
             checksum_multihash: string
                 Checksum multihash (must be sha256) of the future file to be uploaded
-            update_interval: int
-                Update interval in seconds used to compute the cache control setting
+            cache_control_header: string
+                Cache control header to set on the uploaded data on S3. Note if empty, then use
+                default cache control value.
             content_encoding: str
                 Content Encoding header to set to the asset. If empty no content-encoding
                 is set
@@ -116,7 +117,7 @@ class MultipartUpload:
             Bucket=self.settings['S3_BUCKET_NAME'],
             Key=key,
             Metadata={'sha256': sha256},
-            CacheControl=get_s3_cache_control_value(update_interval),
+            CacheControl=get_s3_cache_control_value(cache_control_header),
             ContentType=asset.media_type,
             **extra_params,
             log_extra=self.log_extra(asset)
