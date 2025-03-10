@@ -427,6 +427,18 @@ def validate_item_properties_datetimes(
     properties_datetime = validate_datetime_format(properties_datetime)
     properties_start_datetime = validate_datetime_format(properties_start_datetime)
     properties_end_datetime = validate_datetime_format(properties_end_datetime)
+
+    # We don't check if
+    #
+    #     expires ≥ datetime
+    #
+    # or
+    #
+    #     expires ≥ end_datetime
+    #
+    # because `expires` is only used in the forecast STAC extension.
+    # For forecast data, `datetime` can be anywhere in the future, so
+    # it can be after the expiration date of the forecast data itself.
     properties_expires = validate_datetime_format(properties_expires)
 
     if properties_datetime is not None:
@@ -435,10 +447,6 @@ def validate_item_properties_datetimes(
                 '(start_datetime, end_datetime)'
             logger.error(message)
             raise ValidationError(_(message), code='invalid')
-        if properties_expires is not None:
-            if properties_expires < properties_datetime:
-                message = "Property expires can't refer to a date earlier than property datetime"
-                raise ValidationError(_(message), code='invalid')
 
     if properties_datetime is None:
         if properties_end_datetime is None:
@@ -453,11 +461,6 @@ def validate_item_properties_datetimes(
             message = "Property end_datetime can't refer to a date earlier than property "\
             "start_datetime"
             raise ValidationError(_(message), code='invalid')
-        if properties_expires is not None:
-            if properties_expires < properties_end_datetime:
-                message = "Property expires can't refer to a date earlier than property "\
-                "end_datetime"
-                raise ValidationError(_(message), code='invalid')
 
 
 def validate_checksum_multihash_sha256(value):
