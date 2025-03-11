@@ -36,6 +36,7 @@ from stac_api.utils import build_asset_href
 from stac_api.utils import get_query_params
 from stac_api.validators import validate_href_url
 from stac_api.validators import validate_text_to_geometry
+from stac_api.widgets.label_widget import LabelWidget
 
 logger = logging.getLogger(__name__)
 
@@ -368,9 +369,7 @@ class ItemAdmin(admin.ModelAdmin):
 class CollectionAssetAdminForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
-        """Add help text for max file size"""
         super().__init__(*args, **kwargs)
-        self.fields['file'].help_text = "<b>WARNING: Max file size is 10MB.</b>"
 
 
 @admin.register(CollectionAsset)
@@ -402,7 +401,6 @@ class CollectionAssetAdmin(admin.ModelAdmin):
             'File',
             {
                 'fields': (
-                    'file',
                     'media_type',
                     'href',
                     'checksum_multihash',
@@ -493,30 +491,39 @@ class AssetAdminForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         """If it's an external asset, we switch the file field to a char field"""
         super().__init__(*args, **kwargs)
+
+        self.fields['file'] = forms.CharField(
+            label='File',
+            required=False,
+            widget=LabelWidget(attrs={'size': 150}),
+        )
+
         if self.instance is not None and self.instance.id is not None:
             are_external_assets_allowed = self.instance.item.collection.allow_external_assets
 
             if are_external_assets_allowed:
+
                 external_field = self.fields['is_external']
                 external_field.help_text = (
+
                     _('Whether this asset is hosted externally. Save the form in '
+
+
                       'order to toggle the file field between input and file widget.')
+
                 )
 
                 if self.instance.is_external:
                     # can't just change the widget, otherwise it is impossible to
                     # change the value!
-                    self.fields['file'] = forms.CharField()
+                    self.fields['file'] = forms.CharField(
+                        label='File',
+                        required=False,
+                        widget=forms.TextInput(attrs={'size': 150}),
+                    )
 
-                    # make it a bit wider
-                    self.fields['file'].widget.attrs['size'] = 150
                     self.fields['file'].widget.attrs['placeholder'
                                                     ] = 'https://map.geo.admin.ch/external.jpg'
-                else:
-                    self.fields['file'].help_text = (
-                        "<b>WARNING: Max file size is 10MB. For larger files use the " +
-                        "'UPLOAD LARGE FILE' option in the top right.</b>"
-                    )
 
     def clean_file(self):
         if self.instance:
@@ -717,9 +724,6 @@ class AssetAdmin(admin.ModelAdmin):
         process does it too.
         We allow the field to be empty in case somebody is setting the is_external flag"""
         form = super().get_form(request, obj, change, **kwargs)
-
-        if obj:
-            form.base_fields['file'].required = False
         return form
 
     def response_add(self, request, obj, post_url_continue=None):
@@ -769,9 +773,6 @@ class AssetAdmin(admin.ModelAdmin):
         return TemplateResponse(request, "uploadtemplate.html", context)
 
     def change_view(self, request, object_id, form_url='', extra_context=None):
-        # This overrides the stock Django admin entity detail view
-
-        # get the current asset to check if it has an external file.
         obj = Asset.objects.filter(id=request.resolver_match.kwargs['object_id']).first()
         if obj.is_external:
             return super().change_view(request, object_id, form_url)
@@ -786,6 +787,7 @@ class AssetAdmin(admin.ModelAdmin):
 
         # Add the property upload URL to the extra context
         extra_context['property_upload_url'] = property_upload_url
+
         return super().change_view(request, object_id, form_url, extra_context=extra_context)
 
 
