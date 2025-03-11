@@ -390,7 +390,7 @@ class CollectionAssetAdmin(admin.ModelAdmin):
         'updated',
         'etag',
         'update_interval',
-        'displayed_file_size'
+        'displayed_file_size',
     ]
     list_display = ['name', 'collection_name', 'collection_published']
     fieldsets = (
@@ -417,6 +417,14 @@ class CollectionAssetAdmin(admin.ModelAdmin):
         }),
     )
     list_filter = [AutocompleteFilterFactory('Collection name', 'collection', use_pk_exact=True)]
+
+    def get_readonly_fields(self, request, obj=None):
+        # If the object is not None it means that is an update action
+        if obj:
+            # Don't allow to modify Asset name and media type, because they are tightly coupled
+            # with the asset data file. Changing them require to re-upload the data.
+            return self.readonly_fields + ['name', 'media_type']
+        return self.readonly_fields
 
     def get_search_results(self, request, queryset, search_term):
         queryset, use_distinct = super().get_search_results(request, queryset, search_term)
@@ -505,12 +513,8 @@ class AssetAdminForm(forms.ModelForm):
 
                 external_field = self.fields['is_external']
                 external_field.help_text = (
-
                     _('Whether this asset is hosted externally. Save the form in '
-
-
                       'order to toggle the file field between input and file widget.')
-
                 )
 
                 if self.instance.is_external:
@@ -585,7 +589,7 @@ class AssetAdmin(admin.ModelAdmin):
         'updated',
         'etag',
         'update_interval',
-        'displayed_file_size'
+        'displayed_file_size',
     ]
     list_display = [
         'name', 'item_name', 'collection_name', 'collection_published', 'created', 'updated'
@@ -596,6 +600,14 @@ class AssetAdmin(admin.ModelAdmin):
         AutocompleteFilterFactory('Collection name', 'item__collection', use_pk_exact=True),
         NotUploadedYetFilter
     ]
+
+    def get_readonly_fields(self, request, obj=None):
+        # If the object is not None it means that is an update action
+        if obj:
+            # Don't allow to modify Asset name and media type, because they are tightly coupled
+            # with the asset data file. Changing them require to re-upload the data.
+            return self.readonly_fields + ['name', 'media_type']
+        return self.readonly_fields
 
     def get_search_results(self, request, queryset, search_term):
         queryset, use_distinct = super().get_search_results(request, queryset, search_term)

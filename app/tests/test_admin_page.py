@@ -630,7 +630,6 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
         data["geoadmin_variant"] = "kombs"
         data["proj_epsg"] = 2057
         data["title"] = "New Asset for test"
-        data["media_type"] = "application/x.ascii-grid+zip"
         response = self.client.post(reverse('admin:stac_api_asset_change', args=[asset.id]), data)
 
         # Status code for successful creation is 302, since in the admin UI
