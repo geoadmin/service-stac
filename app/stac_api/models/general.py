@@ -347,9 +347,7 @@ class AssetBase(models.Model):
         null=False,
         help_text=
         "This media type will be used as <em>Content-Type</em> header for the asset's object upon "
-        "upload.</br></br>"
-        "<b>WARNING: when updating the Media Type, the asset's object Content-Type header is not "
-        "automatically updated, it needs to be uploaded again.</b>"
+        "upload."
     )
 
     created = models.DateTimeField(auto_now_add=True)

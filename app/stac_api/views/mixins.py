@@ -2,6 +2,7 @@ import logging
 
 from django.db import transaction
 from django.db.models.deletion import ProtectedError
+from django.http import Http404
 from django.utils.cache import add_never_cache_headers
 from django.utils.cache import patch_cache_control
 from django.utils.cache import patch_response_headers
@@ -94,8 +95,14 @@ class UpdateInsertModelMixin:
     @transaction.atomic
     def upsert(self, request, *args, **kwargs):
         data = self.get_write_request_data(request, *args, **kwargs)
-
-        serializer = self.get_serializer(data=data)
+        try:
+            # In the upsert we need to get the object and pass it to the serializer. This allow the
+            # serializer validator to differentiate between create and update. In create case the
+            # instance will be None.
+            instance = self.get_object()
+        except Http404:
+            instance = None
+        serializer = self.get_serializer(instance, data=data)
         serializer.is_valid(raise_exception=True)
 
         lookup = {}

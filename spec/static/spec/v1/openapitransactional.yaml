@@ -2224,8 +2224,9 @@ components:
 
         This type is automatically set as `Content-Type` header to the Asset's object when uploading.
 
-        **WARNING:** When updating the Asset's metadata media type, the Asset's object `Content-Type`
-        header is not automatically updated. The object needs to be uploaded again to have the correct header.
+        **WARNING:** You cannot update the media type of an existing Asset, to do so you need to
+        re-create the Asset. This is because we cannot update the `Content-Type` header of an Asset
+        that has been already uploaded.
       example: image/tiff; application=geotiff
     writeItem:
       allOf:
