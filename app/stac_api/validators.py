@@ -427,18 +427,6 @@ def validate_item_properties_datetimes(
     properties_datetime = validate_datetime_format(properties_datetime)
     properties_start_datetime = validate_datetime_format(properties_start_datetime)
     properties_end_datetime = validate_datetime_format(properties_end_datetime)
-
-    # We don't check if
-    #
-    #     expires ≥ datetime
-    #
-    # or
-    #
-    #     expires ≥ end_datetime
-    #
-    # because `expires` is only used in the forecast STAC extension.
-    # For forecast data, `datetime` can be anywhere in the future, so
-    # it can be after the expiration date of the forecast data itself.
     properties_expires = validate_datetime_format(properties_expires)
 
     if properties_datetime is not None:
