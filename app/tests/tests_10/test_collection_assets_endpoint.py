@@ -433,13 +433,9 @@ class CollectionAssetsUpdateEndpointTestCase(StacBaseTestCase):
         # rename should not be allowed
         collection_name = self.collection['name']
         asset_name = self.asset['name']
-        new_asset_name = "new-asset-name.txt"
-        changed_asset = self.factory.create_collection_asset_sample(
-            collection=self.collection.model,
-            name=new_asset_name,
-            sample='asset-1-updated',
-            checksum_multihash=self.asset['checksum_multihash']
-        )
+        new_asset_name = "new-asset-name.tif"
+        changed_asset = self.asset.copy()
+        changed_asset['name'] = new_asset_name
 
         path = f'/{STAC_BASE_V}/collections/{collection_name}/assets/{asset_name}'
         response = self.client.put(
@@ -471,14 +467,11 @@ class CollectionAssetsUpdateEndpointTestCase(StacBaseTestCase):
         # rename should not be allowed
         collection_name = self.collection['name']
         asset_name = self.asset['name']
-        new_asset_name = "new-asset-name.txt"
-        changed_asset = self.factory.create_collection_asset_sample(
-            collection=self.collection.model, name=new_asset_name, sample='asset-1-updated'
-        )
+        new_asset_name = "new-asset-name.tif"
 
         path = f'/{STAC_BASE_V}/collections/{collection_name}/assets/{asset_name}'
         response = self.client.patch(
-            path, data=changed_asset.get_json('patch'), content_type="application/json"
+            path, data={"id": new_asset_name}, content_type="application/json"
         )
         self.assertStatusCode(400, response)
         self.assertEqual({'id': 'Renaming is not allowed'},
@@ -501,6 +494,90 @@ class CollectionAssetsUpdateEndpointTestCase(StacBaseTestCase):
 
         # 404 - not found
         self.assertStatusCode(404, response)
+
+    def test_asset_endpoint_put_change_content_type(self):
+        # Changing content-type is not allowed because we would need to re-upload the asset file
+        # in order to update it on the file on S3
+        collection_name = self.collection['name']
+        asset_name = self.asset['name']
+        new_asset_type = "image/tiff; application=geotiff"
+        changed_asset = self.asset.copy()
+        changed_asset['media_type'] = new_asset_type
+
+        self.assertNotEqual(
+            self.asset['media_type'], new_asset_type, msg="Asset media type is already identical"
+        )
+
+        path = f'/{STAC_BASE_V}/collections/{collection_name}/assets/{asset_name}'
+
+        response = self.client.get(path)
+        self.assertStatusCode(200, response, msg="Asset don't exists yet")
+        response = self.client.put(
+            path, data=changed_asset.get_json('put'), content_type="application/json"
+        )
+        self.assertStatusCode(400, response, msg="Changing asset type should not be allowed")
+        self.assertEqual(
+            {
+                'type': [
+                    'Type field cannot be edited. You need to delete and recreate the '
+                    'asset with the correct type'
+                ]
+            },
+            response.json()['description'],
+            msg='Unexpected error message',
+        )
+
+        # Check the data by reading it back
+        response = self.client.get(
+            f'/{STAC_BASE_V}/collections/{collection_name}/assets/{asset_name}'
+        )
+        json_data = response.json()
+        self.assertStatusCode(200, response, msg="Cannot read the asset back to verify")
+
+        self.assertEqual(
+            self.asset['media_type'], json_data['type'], msg="Asset type should not have changed"
+        )
+
+    def test_asset_endpoint_patch_change_content_type(self):
+        # Changing content-type is not allowed because we would need to re-upload the asset file
+        # in order to update it on the file on S3
+        collection_name = self.collection['name']
+        asset_name = self.asset['name']
+        new_asset_type = "image/tiff; application=geotiff"
+
+        self.assertNotEqual(
+            self.asset['media_type'], new_asset_type, msg="Asset media type is already identical"
+        )
+
+        path = f'/{STAC_BASE_V}/collections/{collection_name}/assets/{asset_name}'
+
+        response = self.client.get(path)
+        self.assertStatusCode(200, response, msg="Asset don't exists yet")
+        response = self.client.patch(
+            path, data={"type": new_asset_type}, content_type="application/json"
+        )
+        self.assertStatusCode(400, response, msg="Changing asset type should not be allowed")
+        self.assertEqual(
+            {
+                'type': [
+                    'Type field cannot be edited. You need to delete and recreate the '
+                    'asset with the correct type'
+                ]
+            },
+            response.json()['description'],
+            msg='Unexpected error message',
+        )
+
+        # Check the data by reading it back
+        response = self.client.get(
+            f'/{STAC_BASE_V}/collections/{collection_name}/assets/{asset_name}'
+        )
+        json_data = response.json()
+        self.assertStatusCode(200, response, msg="Cannot read the asset back to verify")
+
+        self.assertEqual(
+            self.asset['media_type'], json_data['type'], msg="Asset type should not have changed"
+        )
 
     def test_asset_endpoint_patch_extra_payload(self):
         collection_name = self.collection['name']

@@ -225,8 +225,13 @@ class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         return asset, created
 
     def validate_type(self, value):
-        ''' Validates the the field "type"
+        ''' Validates the field "type"
         '''
+        if self.instance and self.instance.media_type != value:
+            raise serializers.ValidationError(
+                _("Type field cannot be edited. ") +
+                _("You need to delete and recreate the asset with the correct type")
+            )
         return normalize_and_validate_media_type(value)
 
     def validate(self, attrs):

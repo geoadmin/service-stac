@@ -1178,7 +1178,7 @@ class AssetFactory(FactoryBase):
             **kwargs:
                 Key/value pairs used to overwrite arbitrary attribute in the sample.
 
-        Returns:
+        Returns: AssetSample
             The data sample
         '''
         if name:
@@ -1497,7 +1497,7 @@ class Factory:
             **kwargs:
                 Key/value pairs used to overwrite arbitrary attribute in the sample.
 
-        Returns:
+        Returns: AssetSample
             The data sample.
         '''
         return self.assets.create_sample(
