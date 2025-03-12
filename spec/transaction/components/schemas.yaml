@@ -229,6 +229,69 @@ components:
             id:
               $ref: "#/components/schemas/itemIdUpdate"
         - $ref: "#/components/schemas/writeItem"
+    partialItemProperties:
+      title: Properties
+      description: >-
+        Provides the core metadata fields plus extensions
+
+
+        The item's data timing information can be specified either with
+
+        * One datetime value in the field `datetime`
+
+        * A datetime range with a `start_datetime` and an `end_datetime`
+
+
+        One of the two is required
+      properties:
+        created:
+          $ref: "../../components/schemas.yaml#/components/schemas/created"
+        datetime:
+          allOf:
+            - $ref: "../../components/schemas.yaml#/components/schemas/datetime"
+            - nullable: true
+        start_datetime:
+          allOf:
+            - $ref: "../../components/schemas.yaml#/components/schemas/datetime"
+            - nullable: true
+        end_datetime:
+          allOf:
+            - $ref: "../../components/schemas.yaml#/components/schemas/datetime"
+            - nullable: true
+        expires:
+          allOf:
+            - $ref: "../../components/schemas.yaml#/components/schemas/datetime"
+            - nullable: true
+        updated:
+          $ref: "../../components/schemas.yaml#/components/schemas/updated"
+        title:
+          allOf:
+            - $ref: "../../components/schemas.yaml#/components/schemas/featureTitle"
+            - nullable: true
+        forecast:reference_datetime:
+          allOf:
+            - $ref: "../../components/schemas.yaml#/components/schemas/datetime"
+            - nullable: true
+        forecast:horizon:
+          allOf:
+            - $ref: "../../components/schemas.yaml#/components/schemas/duration"
+            - nullable: true
+        forecast:duration:
+          allOf:
+            - $ref: "../../components/schemas.yaml#/components/schemas/duration"
+            - nullable: true
+        forecast:variable:
+          allOf:
+            - $ref: "../../components/schemas.yaml#/components/schemas/forecast_variable"
+            - nullable: true
+        forecast:perturbed:
+          allOf:
+            - $ref: "../../components/schemas.yaml#/components/schemas/forecast_perturbed"
+            - nullable: true
+      required:
+        - created
+        - updated
+      type: object
     partialItem:
       type: object
       properties:
@@ -237,7 +300,7 @@ components:
         geometry:
           $ref: "../../components/schemas.yaml#/components/schemas/itemGeometry"
         properties:
-          $ref: "../../components/schemas.yaml#/components/schemas/itemProperties"
+          $ref: "./schemas.yaml#/components/schemas/partialItemProperties"
         links:
           type: array
           items:

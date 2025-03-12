@@ -1157,12 +1157,7 @@ components:
         updated:
           $ref: "#/components/schemas/updated"
         title:
-          description: Human readable title of the Feature
-          example: Feature title
-          type: string
-          minLength: 1
-          maxLength: 255
-          nullable: true
+          $ref: "#/components/schemas/featureTitle"
         forecast:reference_datetime:
           $ref: "#/components/schemas/datetime"
         forecast:horizon:
@@ -1714,7 +1709,12 @@ components:
       type: string
       description: Displayed title
       example: Thumbnail
-      nullable: true
+      minLength: 1
+      maxLength: 255
+    featureTitle:
+      description: Human readable title of the Feature
+      example: Feature title
+      type: string
       minLength: 1
       maxLength: 255
     assetType:
