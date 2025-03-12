@@ -186,7 +186,7 @@ def get_relation_links(request, view, view_args=()):
                 ('href', get_url(request, 'items-list', view_args)),
             ])
         )
-    elif view.startswith('item') or view.startswith('asset'):
+    elif view.startswith('item') or view.startswith('asset') or view.startswith('collection-asset'):
         links.append(
             OrderedDict([
                 ('rel', 'collection'),

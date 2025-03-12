@@ -349,6 +349,10 @@ class StacTestMixin:
                     'rel': 'parent',
                     'href': f'{TEST_LINK_ROOT_HREF}/collections/{collection}',
                 },
+                {
+                    'rel': 'collection',
+                    'href': f'{TEST_LINK_ROOT_HREF}/collections/{collection}',
+                },
             ]
             self._check_stac_links('asset.links', links, current['links'])
 
