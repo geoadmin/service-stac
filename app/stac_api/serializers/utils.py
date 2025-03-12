@@ -16,6 +16,7 @@ from stac_api.models.item import Item
 from stac_api.utils import build_asset_href
 from stac_api.utils import get_browser_url
 from stac_api.utils import get_url
+from stac_api.utils import is_api_version_1
 
 logger = logging.getLogger(__name__)
 
@@ -186,6 +187,13 @@ def get_relation_links(request, view, view_args=()):
                 ('href', get_url(request, 'items-list', view_args)),
             ])
         )
+        if is_api_version_1(request):
+            links.append(
+                OrderedDict([
+                    ('rel', 'assets'),
+                    ('href', get_url(request, 'collection-assets-list', view_args)),
+                ])
+            )
     elif view.startswith('item') or view.startswith('asset') or view.startswith('collection-asset'):
         links.append(
             OrderedDict([
