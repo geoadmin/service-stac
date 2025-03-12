@@ -406,7 +406,7 @@ class CollectionAssetAdmin(admin.ModelAdmin):
             'File',
             {
                 'fields': (
-                    'file'
+                    'file',
                     'media_type',
                     'href',
                     'checksum_multihash',
