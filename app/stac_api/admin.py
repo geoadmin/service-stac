@@ -607,7 +607,7 @@ class AssetAdmin(admin.ModelAdmin):
         if obj:
             # Don't allow to modify Asset name and media type, because they are tightly coupled
             # with the asset data file. Changing them require to re-upload the data.
-            # As file upload through admin has been disabled, the field is read-only unless the field is external.
+            # As file upload through admin has been disabled, the field is read-only unless the asset is external.
             if not obj.is_external:
                 return self.readonly_fields + ['file', 'name', 'media_type']
 
