@@ -1,5 +1,6 @@
 # pylint: disable=too-many-lines
 import logging
+import time
 from base64 import b64encode
 from datetime import datetime
 from datetime import timedelta
@@ -60,11 +61,12 @@ class ItemsReadEndpointTestCase(StacBaseTestCase):
             self.collection,
             name='item-expired',
             db_create=True,
-            properties_expires=timezone.now() - timedelta(hours=1)
+            properties_expires=timezone.now() + timedelta(milliseconds=10)
         )
         assets = self.factory.create_asset_samples(
             3, item_3.model, name=['asset-1.tiff', 'asset-0.tiff', 'asset-2.tiff'], db_create=True
         )
+        time.sleep(0.02)
         response = self.client.get(f"/{STAC_BASE_V}/collections/{self.collection.name}/items")
         self.assertStatusCode(200, response)
         json_data = response.json()
@@ -171,8 +173,9 @@ class ItemsReadEndpointTestCase(StacBaseTestCase):
             self.collection,
             name='item-expired',
             db_create=True,
-            properties_expires=timezone.now() - timedelta(hours=1)
+            properties_expires=timezone.now() + timedelta(milliseconds=10)
         )
+        time.sleep(0.02)
 
         response = self.client.get(
             f"/{STAC_BASE_V}/collections/{collection_name}/items/{item['name']}"

@@ -121,27 +121,27 @@ class ItemsModelTestCase(TestCase):
             item.save()
 
     def test_item_create_model_expires_can_be_before_datetime(self):
-        today = datetime.utcnow()
-        yesterday = today - timedelta(days=1)
+        today = datetime.utcnow() + timedelta(milliseconds=100)
+        tomorrow = today + timedelta(days=1)
         item = Item(
             collection=self.collection,
             name='item-expires-before-datetime',
-            properties_datetime=utc_aware(today),
-            properties_expires=utc_aware(yesterday)
+            properties_datetime=utc_aware(tomorrow),
+            properties_expires=utc_aware(today)
         )
         item.full_clean()
         item.save()
 
     def test_item_create_model_expires_can_be_before_end_datetime(self):
         today = datetime.utcnow()
-        yesterday = today - timedelta(days=1)
+        middle = today + timedelta(days=0.5)
         tomorrow = today + timedelta(days=1)
         item = Item(
             collection=self.collection,
             name='item-expires-before-end-datetime',
             properties_start_datetime=utc_aware(today),
             properties_end_datetime=utc_aware(tomorrow),
-            properties_expires=utc_aware(yesterday)
+            properties_expires=utc_aware(middle)
         )
         item.full_clean()
         item.save()

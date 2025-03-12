@@ -1,3 +1,4 @@
+import time
 from datetime import timedelta
 from io import StringIO
 
@@ -36,17 +37,18 @@ class RemoveExpiredItems(TestCase):
             self.collection,
             name='item-0',
             db_create=True,
-            properties_expires=timezone.now() - timedelta(hours=50)
+            properties_expires=timezone.now() + timedelta(milliseconds=50)
         )
         assets = self.factory.create_asset_samples(
             2, item_0.model, name=['asset-0.tiff', 'asset-1.tiff'], db_create=True
         )
-
-        out = self._call_command("--dry-run", "--no-color")
+        min_age_hours = 1 / 60 / 60 / 1000  # = 1ms
+        time.sleep(min_age_hours * 100)
+        out = self._call_command("--dry-run", "--no-color", f"--min-age-hours={min_age_hours}")
         self.assertEqual(
             out,
-            """running command to remove expired items
-deleting all items expired longer than 24 hours
+            f"""running command to remove expired items
+deleting all items expired longer than {min_age_hours} hours
 skipping deletion of assets <QuerySet [<Asset: asset-0.tiff>, <Asset: asset-1.tiff>]>
 skipping deletion of item collection-1/item-0
 [dry run] would have removed 1 expired items
@@ -72,16 +74,17 @@ skipping deletion of item collection-1/item-0
             self.collection,
             name='item-1',
             db_create=True,
-            properties_expires=timezone.now() - timedelta(hours=10)
+            properties_expires=timezone.now() + timedelta(milliseconds=50)
         )
         assets = self.factory.create_asset_samples(
             2, item_1.model, name=['asset-2.tiff', 'asset-3.tiff'], db_create=True
         )
-        out = self._call_command("--no-color")
+        min_age_hours = 1.0
+        out = self._call_command("--no-color", f"--min-age-hours={min_age_hours}")
         self.assertEqual(
             out,
-            """running command to remove expired items
-deleting all items expired longer than 24 hours
+            f"""running command to remove expired items
+deleting all items expired longer than {min_age_hours} hours
 successfully removed 0 expired items
 """
         )
@@ -99,12 +102,14 @@ successfully removed 0 expired items
             msg="not expired asset has been deleted"
         )
 
-        out = self._call_command("--min-age-hours=9", "--no-color")
+        min_age_hours = 1 / 60 / 60 / 1000  # = 1ms
+        time.sleep(min_age_hours * 100)
+        out = self._call_command(f"--min-age-hours={min_age_hours}", "--no-color")
         self.assertEqual(
             out,
-            """running command to remove expired items
-deleting all items expired longer than 9 hours
-deleted item item-1 and 2 assets belonging to it. extra={'item': 'item-1'}
+            f"""running command to remove expired items
+deleting all items expired longer than {min_age_hours} hours
+deleted item item-1 and 2 assets belonging to it. extra={{'item': 'item-1'}}
 successfully removed 1 expired items
 """
         )
