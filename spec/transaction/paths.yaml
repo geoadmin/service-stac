@@ -340,6 +340,9 @@ paths:
       description: >-
         Use this method to update an existing feature. Requires a JSON
         fragment (containing the fields to be updated) to be submitted.
+
+
+        *Note: You can remove optional properties using the value `null`*
       operationId: patchFeature
       tags:
         - Data Management

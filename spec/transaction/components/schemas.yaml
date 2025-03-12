@@ -229,6 +229,57 @@ components:
             id:
               $ref: "#/components/schemas/itemIdUpdate"
         - $ref: "#/components/schemas/writeItem"
+    partialItemProperties:
+      title: Properties
+      description: >-
+        Provides the core metadata fields plus extensions
+
+
+        The item's data timing information can be specified either with
+
+        * One datetime value in the field `datetime`
+
+        * A datetime range with a `start_datetime` and an `end_datetime`
+
+
+        One of the two is required
+      properties:
+        created:
+          $ref: "../../components/schemas.yaml#/components/schemas/created"
+        datetime:
+          allOf:
+            - $ref: "../../components/schemas.yaml#/components/schemas/datetime"
+            - nullable: true
+        start_datetime:
+          allOf:
+            - $ref: "../../components/schemas.yaml#/components/schemas/datetime"
+            - nullable: true
+        end_datetime:
+          allOf:
+            - $ref: "../../components/schemas.yaml#/components/schemas/datetime"
+            - nullable: true
+        expires:
+          $ref: "../../components/schemas.yaml#/components/schemas/datetime"
+        updated:
+          $ref: "../../components/schemas.yaml#/components/schemas/updated"
+        title:
+          allOf:
+            - $ref: "../../components/schemas.yaml#/components/schemas/featureTitle"
+            - nullable: true
+        forecast:reference_datetime:
+          $ref: "../../components/schemas.yaml#/components/schemas/datetime"
+        forecast:horizon:
+          $ref: "../../components/schemas.yaml#/components/schemas/duration"
+        forecast:duration:
+          $ref: "../../components/schemas.yaml#/components/schemas/duration"
+        forecast:variable:
+          $ref: "../../components/schemas.yaml#/components/schemas/forecast_variable"
+        forecast:perturbed:
+          $ref: "../../components/schemas.yaml#/components/schemas/forecast_perturbed"
+      required:
+        - created
+        - updated
+      type: object
     partialItem:
       type: object
       properties:
@@ -237,7 +288,7 @@ components:
         geometry:
           $ref: "../../components/schemas.yaml#/components/schemas/itemGeometry"
         properties:
-          $ref: "../../components/schemas.yaml#/components/schemas/itemProperties"
+          $ref: "../../components/schemas.yaml#/components/schemas/partialItemProperties"
         links:
           type: array
           items:

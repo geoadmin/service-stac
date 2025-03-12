@@ -1495,12 +1495,7 @@ components:
         updated:
           $ref: "#/components/schemas/updated"
         title:
-          description: Human readable title of the Feature
-          example: Feature title
-          type: string
-          minLength: 1
-          maxLength: 255
-          nullable: true
+          $ref: "#/components/schemas/featureTitle"
         forecast:reference_datetime:
           $ref: "#/components/schemas/datetime"
         forecast:horizon:
@@ -2016,7 +2011,12 @@ components:
       type: string
       description: Displayed title
       example: Thumbnail
-      nullable: true
+      minLength: 1
+      maxLength: 255
+    featureTitle:
+      description: Human readable title of the Feature
+      example: Feature title
+      type: string
       minLength: 1
       maxLength: 255
     assetType:
@@ -2257,6 +2257,57 @@ components:
             id:
               $ref: "#/components/schemas/itemIdUpdate"
         - $ref: "#/components/schemas/writeItem"
+    partialItemProperties:
+      title: Properties
+      description: >-
+        Provides the core metadata fields plus extensions
+
+
+        The item's data timing information can be specified either with
+
+        * One datetime value in the field `datetime`
+
+        * A datetime range with a `start_datetime` and an `end_datetime`
+
+
+        One of the two is required
+      properties:
+        created:
+          $ref: "#/components/schemas/created"
+        datetime:
+          allOf:
+            - $ref: "#/components/schemas/datetime"
+            - nullable: true
+        start_datetime:
+          allOf:
+            - $ref: "#/components/schemas/datetime"
+            - nullable: true
+        end_datetime:
+          allOf:
+            - $ref: "#/components/schemas/datetime"
+            - nullable: true
+        expires:
+          $ref: "#/components/schemas/datetime"
+        updated:
+          $ref: "#/components/schemas/updated"
+        title:
+          allOf:
+            - $ref: "#/components/schemas/featureTitle"
+            - nullable: true
+        forecast:reference_datetime:
+          $ref: "#/components/schemas/datetime"
+        forecast:horizon:
+          $ref: "#/components/schemas/duration"
+        forecast:duration:
+          $ref: "#/components/schemas/duration"
+        forecast:variable:
+          $ref: "#/components/schemas/forecast_variable"
+        forecast:perturbed:
+          $ref: "#/components/schemas/forecast_perturbed"
+      required:
+        - created
+        - updated
+      type: object
     partialItem:
       type: object
       properties:
@@ -2265,7 +2316,7 @@ components:
         geometry:
           $ref: "#/components/schemas/itemGeometry"
         properties:
-          $ref: "#/components/schemas/itemProperties"
+          $ref: "#/components/schemas/partialItemProperties"
         links:
           type: array
           items:
@@ -3434,6 +3485,9 @@ paths:
       summary: Update an existing feature by Id with a partial item definition
       description: >-
         Use this method to update an existing feature. Requires a JSON fragment (containing the fields to be updated) to be submitted.
+
+
+        *Note: You can remove optional properties using the value `null`*
       operationId: patchFeature
       tags:
         - Data Management

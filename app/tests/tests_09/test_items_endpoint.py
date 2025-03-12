@@ -699,6 +699,69 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
         self.assertEqual(self.item['name'], json_data['id'])
         self.assertNotIn("title", json_data['properties'].keys())
 
+    def test_item_endpoint_patch_change_properties_datetime_to_start_end_datetime(self):
+        path = f'/{STAC_BASE_V}/collections/{self.collection["name"]}/items/{self.item["name"]}'
+        # Check the data by reading, if there is a title on forehand
+        response = self.client.get(path)
+        json_data = response.json()
+        self.assertStatusCode(200, response)
+        self.assertEqual(self.item['name'], json_data['id'])
+        self.assertIn("datetime", json_data['properties'].keys())
+
+        # Change datetime to start/end_datetime
+        data = {
+            "properties": {
+                "datetime": None,
+                "start_datetime": "2018-02-12T23:20:50Z",
+                "end_datetime": "2018-02-13T23:20:50Z"
+            }
+        }
+        response = self.client.patch(path, data=data, content_type="application/json")
+        json_data = response.json()
+        self.assertStatusCode(200, response)
+        self.assertEqual(self.item['name'], json_data['id'])
+        self.assertNotIn("datetime", json_data['properties'].keys())
+        self.assertIn("start_datetime", json_data['properties'].keys())
+        self.assertIn("end_datetime", json_data['properties'].keys())
+        self.assertEqual(json_data['properties']['start_datetime'], "2018-02-12T23:20:50Z")
+        self.assertEqual(json_data['properties']['end_datetime'], "2018-02-13T23:20:50Z")
+
+        # Check the data by reading it back
+        response = self.client.get(path)
+        json_data = response.json()
+        self.assertStatusCode(200, response)
+        self.assertEqual(self.item['name'], json_data['id'])
+        self.assertNotIn("datetime", json_data['properties'].keys())
+        self.assertIn("start_datetime", json_data['properties'].keys())
+        self.assertIn("end_datetime", json_data['properties'].keys())
+        self.assertEqual(json_data['properties']['start_datetime'], "2018-02-12T23:20:50Z")
+        self.assertEqual(json_data['properties']['end_datetime'], "2018-02-13T23:20:50Z")
+
+        # Change it back to datetime
+        data = {
+            "properties": {
+                "datetime": "2018-02-12T23:20:50Z", "start_datetime": None, "end_datetime": None
+            }
+        }
+        response = self.client.patch(path, data=data, content_type="application/json")
+        json_data = response.json()
+        self.assertStatusCode(200, response)
+        self.assertEqual(self.item['name'], json_data['id'])
+        self.assertNotIn("start_datetime", json_data['properties'].keys())
+        self.assertNotIn("end_datetime", json_data['properties'].keys())
+        self.assertIn("datetime", json_data['properties'].keys())
+        self.assertEqual(json_data['properties']['datetime'], "2018-02-12T23:20:50Z")
+
+        # Check the data by reading it back
+        response = self.client.get(path)
+        json_data = response.json()
+        self.assertStatusCode(200, response)
+        self.assertEqual(self.item['name'], json_data['id'])
+        self.assertNotIn("start_datetime", json_data['properties'].keys())
+        self.assertNotIn("end_datetime", json_data['properties'].keys())
+        self.assertIn("datetime", json_data['properties'].keys())
+        self.assertEqual(json_data['properties']['datetime'], "2018-02-12T23:20:50Z")
+
     def test_item_endpoint_patch_extra_payload(self):
         data = {"crazy:stuff": "not allowed"}
         path = f'/{STAC_BASE_V}/collections/{self.collection["name"]}/items/{self.item["name"]}'
