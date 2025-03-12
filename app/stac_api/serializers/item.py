@@ -86,13 +86,17 @@ class ItemsPropertiesSerializer(serializers.Serializer):
     )
     created = serializers.DateTimeField(read_only=True)
     updated = serializers.DateTimeField(read_only=True)
-    expires = serializers.DateTimeField(source='properties_expires', required=False, default=None)
+    expires = serializers.DateTimeField(
+        source='properties_expires', allow_null=True, required=False, default=None
+    )
 
-    forecast_reference_datetime = serializers.DateTimeField(required=False, default=None)
-    forecast_horizon = IsoDurationField(required=False, default=None)
-    forecast_duration = IsoDurationField(required=False, default=None)
-    forecast_variable = serializers.CharField(required=False, default=None)
-    forecast_perturbed = serializers.BooleanField(required=False, default=None)
+    forecast_reference_datetime = serializers.DateTimeField(
+        required=False, allow_null=True, default=None
+    )
+    forecast_horizon = IsoDurationField(required=False, allow_null=True, default=None)
+    forecast_duration = IsoDurationField(required=False, allow_null=True, default=None)
+    forecast_variable = serializers.CharField(required=False, allow_null=True, default=None)
+    forecast_perturbed = serializers.BooleanField(required=False, allow_null=True, default=None)
 
     def to_internal_value(self, data) -> timedelta:
         '''Map forecast extension fields with a colon in the name to the corresponding model field.
@@ -457,10 +461,22 @@ class ItemSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
             'properties_expires' in attrs
         ):
             validate_item_properties_datetimes(
-                attrs.get('properties_datetime', None),
-                attrs.get('properties_start_datetime', None),
-                attrs.get('properties_end_datetime', None),
-                attrs.get('properties_expires', None)
+                attrs.get(
+                    'properties_datetime',
+                    self.instance.properties_datetime if self.instance else None
+                ),
+                attrs.get(
+                    'properties_start_datetime',
+                    self.instance.properties_start_datetime if self.instance else None
+                ),
+                attrs.get(
+                    'properties_end_datetime',
+                    self.instance.properties_end_datetime if self.instance else None
+                ),
+                attrs.get(
+                    'properties_expires',
+                    self.instance.properties_expires if self.instance else None
+                )
             )
         else:
             logger.info(

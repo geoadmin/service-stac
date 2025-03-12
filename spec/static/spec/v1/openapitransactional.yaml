@@ -2287,7 +2287,9 @@ components:
             - $ref: "#/components/schemas/datetime"
             - nullable: true
         expires:
-          $ref: "#/components/schemas/datetime"
+          allOf:
+            - $ref: "#/components/schemas/datetime"
+            - nullable: true
         updated:
           $ref: "#/components/schemas/updated"
         title:
@@ -2295,15 +2297,25 @@ components:
             - $ref: "#/components/schemas/featureTitle"
             - nullable: true
         forecast:reference_datetime:
-          $ref: "#/components/schemas/datetime"
+          allOf:
+            - $ref: "#/components/schemas/datetime"
+            - nullable: true
         forecast:horizon:
-          $ref: "#/components/schemas/duration"
+          allOf:
+            - $ref: "#/components/schemas/duration"
+            - nullable: true
         forecast:duration:
-          $ref: "#/components/schemas/duration"
+          allOf:
+            - $ref: "#/components/schemas/duration"
+            - nullable: true
         forecast:variable:
-          $ref: "#/components/schemas/forecast_variable"
+          allOf:
+            - $ref: "#/components/schemas/forecast_variable"
+            - nullable: true
         forecast:perturbed:
-          $ref: "#/components/schemas/forecast_perturbed"
+          allOf:
+            - $ref: "#/components/schemas/forecast_perturbed"
+            - nullable: true
       required:
         - created
         - updated

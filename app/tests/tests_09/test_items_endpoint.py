@@ -1,3 +1,4 @@
+# pylint: disable=too-many-lines
 import logging
 from datetime import datetime
 from datetime import timedelta
@@ -674,6 +675,65 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
         self.assertEqual(self.item['name'], json_data['id'])
         self.check_stac_item(data, json_data, self.collection["name"])
         self.assertIn("title", json_data['properties'].keys())
+
+    def test_item_endpoint_patch_remove_all_optional_properties(self):
+        # First add all properties
+        data = {
+            "properties": {
+                "title": "patched title",
+                "expires": "2060-02-12T23:20:50Z",
+                "forecast:reference_datetime": "2018-02-12T23:20:50Z",
+                "forecast:horizon": "P3DT06H00M00S",
+                "forecast:duration": "P3DT06H00M00S",
+                "forecast:variable": "air_temperature",
+                "forecast:perturbed": True
+            },
+        }
+        path = f'/{STAC_BASE_V}/collections/{self.collection["name"]}/items/{self.item["name"]}'
+        response = self.client.patch(path, data=data, content_type="application/json")
+        json_data = response.json()
+        self.assertStatusCode(200, response)
+        self.assertEqual(self.item['name'], json_data['id'])
+        self.assertIn("title", json_data['properties'].keys())
+        self.check_stac_item(data, json_data, self.collection["name"])
+
+        # Patch all of those with null
+        data = {
+            "properties": {
+                "title": None,
+                "expires": None,
+                "forecast:reference_datetime": None,
+                "forecast:horizon": None,
+                "forecast:duration": None,
+                "forecast:variable": None,
+                "forecast:perturbed": None
+            },
+        }
+        path = f'/{STAC_BASE_V}/collections/{self.collection["name"]}/items/{self.item["name"]}'
+        response = self.client.patch(path, data=data, content_type="application/json")
+        json_data = response.json()
+        self.assertStatusCode(200, response)
+        self.assertEqual(self.item['name'], json_data['id'])
+        self.assertNotIn("title", json_data['properties'].keys())
+        self.assertNotIn("expires", json_data['properties'].keys())
+        self.assertNotIn("forecast:reference_datetime", json_data['properties'].keys())
+        self.assertNotIn("forecast:horizon", json_data['properties'].keys())
+        self.assertNotIn("forecast:duration", json_data['properties'].keys())
+        self.assertNotIn("forecast:variable", json_data['properties'].keys())
+        self.assertNotIn("forecast:perturbed", json_data['properties'].keys())
+
+        # Check the data by reading it back
+        response = self.client.get(path)
+        json_data = response.json()
+        self.assertStatusCode(200, response)
+        self.assertEqual(self.item['name'], json_data['id'])
+        self.assertNotIn("title", json_data['properties'].keys())
+        self.assertNotIn("expires", json_data['properties'].keys())
+        self.assertNotIn("forecast:reference_datetime", json_data['properties'].keys())
+        self.assertNotIn("forecast:horizon", json_data['properties'].keys())
+        self.assertNotIn("forecast:duration", json_data['properties'].keys())
+        self.assertNotIn("forecast:variable", json_data['properties'].keys())
+        self.assertNotIn("forecast:perturbed", json_data['properties'].keys())
 
     def test_item_endpoint_patch_remove_properties_title(self):
         path = f'/{STAC_BASE_V}/collections/{self.collection["name"]}/items/{self.item["name"]}'
