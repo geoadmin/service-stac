@@ -2,6 +2,7 @@ import logging
 import re
 from collections import namedtuple
 from datetime import datetime
+from datetime import timezone
 from urllib.parse import urlparse
 
 import multihash
@@ -413,21 +414,18 @@ def validate_datetime_format(date_string):
 
 
 def validate_item_properties_datetimes(
-    properties_datetime, properties_start_datetime, properties_end_datetime, properties_expires
+    properties_datetime, properties_start_datetime, properties_end_datetime
 ):
     '''
     Validate the dependencies between the item datetime properties.
     This makes sure that either only the properties.datetime is set or
     both properties.start_datetime and properties.end_datetime are set.
-    If properties.expires is set, the value must be greater than
-    the properties.datetime or the properties.end_datetime.
     Raises:
         django.core.exceptions.ValidationError
     '''
     properties_datetime = validate_datetime_format(properties_datetime)
     properties_start_datetime = validate_datetime_format(properties_start_datetime)
     properties_end_datetime = validate_datetime_format(properties_end_datetime)
-    properties_expires = validate_datetime_format(properties_expires)
 
     if properties_datetime is not None:
         if (properties_start_datetime is not None or properties_end_datetime is not None):
@@ -449,6 +447,21 @@ def validate_item_properties_datetimes(
             message = "Property end_datetime can't refer to a date earlier than property "\
             "start_datetime"
             raise ValidationError(_(message), code='invalid')
+
+
+def validate_expires(properties_expires):
+    '''
+    Raises an exception if the given timestamp is in the past.
+    '''
+    if not properties_expires:
+        return
+
+    properties_expires = validate_datetime_format(properties_expires)
+
+    if properties_expires < datetime.now(timezone.utc):
+        message = "Property expires can't be in the past."
+        logger.error(message)
+        raise ValidationError(_(message), code='invalid')
 
 
 def validate_checksum_multihash_sha256(value):

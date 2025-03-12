@@ -113,6 +113,13 @@ class ItemsModelTestCase(TestCase):
             item.full_clean()
             item.save()
 
+    def test_item_create_model_raises_exception_if_expires_in_the_past(self):
+        with self.assertRaises(ValidationError):
+            yesterday = datetime.now(timezone.utc) - timedelta(days=1)
+            item = Item(collection=self.collection, name='item-5', properties_expires=yesterday)
+            item.full_clean()
+            item.save()
+
     def test_item_create_model_expires_can_be_before_datetime(self):
         today = datetime.utcnow()
         yesterday = today - timedelta(days=1)
