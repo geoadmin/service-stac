@@ -36,7 +36,6 @@ from stac_api.utils import build_asset_href
 from stac_api.utils import get_query_params
 from stac_api.validators import validate_href_url
 from stac_api.validators import validate_text_to_geometry
-from stac_api.widgets.label_widget import LabelWidget
 
 logger = logging.getLogger(__name__)
 
@@ -89,7 +88,11 @@ class CollectionLinkInline(LinkInline):
 
 class CollectionAssetInline(admin.StackedInline):
     model = CollectionAsset
-    readonly_fields = ['update_interval', 'file_size']
+    readonly_fields = [
+        'file',
+        'update_interval',
+        'file_size',
+    ]
     extra = 0
 
 
@@ -370,11 +373,6 @@ class CollectionAssetAdminForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['file'] = forms.CharField(
-            label='File',
-            required=False,
-            widget=LabelWidget(attrs={'size': 150}),
-        )
 
 
 @admin.register(CollectionAsset)
@@ -388,6 +386,7 @@ class CollectionAssetAdmin(admin.ModelAdmin):
     autocomplete_fields = ['collection']
     search_fields = ['name', 'collection__name']
     readonly_fields = [
+        'file',
         'collection_name',
         'href',
         'checksum_multihash',
@@ -422,6 +421,7 @@ class CollectionAssetAdmin(admin.ModelAdmin):
             'fields': ['proj_epsg']
         }),
     )
+
     list_filter = [AutocompleteFilterFactory('Collection name', 'collection', use_pk_exact=True)]
 
     def get_readonly_fields(self, request, obj=None):
@@ -505,12 +505,6 @@ class AssetAdminForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         """If it's an external asset, we switch the file field to a char field"""
         super().__init__(*args, **kwargs)
-
-        self.fields['file'] = forms.CharField(
-            label='File',
-            required=False,
-            widget=LabelWidget(attrs={'size': 150}),
-        )
 
         if self.instance is not None and self.instance.id is not None:
             are_external_assets_allowed = self.instance.item.collection.allow_external_assets
@@ -597,6 +591,7 @@ class AssetAdmin(admin.ModelAdmin):
         'update_interval',
         'displayed_file_size',
     ]
+
     list_display = [
         'name', 'item_name', 'collection_name', 'collection_published', 'created', 'updated'
     ]
@@ -612,6 +607,10 @@ class AssetAdmin(admin.ModelAdmin):
         if obj:
             # Don't allow to modify Asset name and media type, because they are tightly coupled
             # with the asset data file. Changing them require to re-upload the data.
+            # As file upload through admin has been disabled, the field is read-only unless the field is external.
+            if not obj.is_external:
+                return self.readonly_fields + ['file', 'name', 'media_type']
+
             return self.readonly_fields + ['name', 'media_type']
         return self.readonly_fields
 
