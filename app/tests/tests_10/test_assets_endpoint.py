@@ -416,6 +416,30 @@ class AssetsCreateEndpointTestCase(StacBaseTestCase):
             msg='Unexpected error message',
         )
 
+    def test_asset_atomic_upsert_create_500(self):
+        sample = self.factory.create_asset_sample(self.item.model, create_asset_file=True)
+
+        # the dataset to update does not exist yet
+        with self.settings(DEBUG_PROPAGATE_API_EXCEPTIONS=True), disableLogger('stac_api.apps'):
+            response = self.client.put(
+                reverse(
+                    'test-asset-detail-http-500',
+                    args=[self.collection['name'], self.item['name'], sample['name']]
+                ),
+                data=sample.get_json('put'),
+                content_type='application/json'
+            )
+        self.assertStatusCode(500, response)
+        self.assertEqual(response.json()['description'], "AttributeError('test exception')")
+
+        # Make sure that the ressource has not been created
+        response = self.client.get(
+            reverse_version(
+                'asset-detail', args=[self.collection['name'], self.item['name'], sample['name']]
+            )
+        )
+        self.assertStatusCode(404, response)
+
 
 @override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class AssetsWriteEndpointAssetFileTestCase(StacBaseTestCase):
@@ -712,30 +736,6 @@ class AssetsUpdateEndpointTestCase(StacBaseTestCase):
         self.assertEqual({'created': ['Found read-only property in payload']},
                          response.json()['description'],
                          msg='Unexpected error message')
-
-    def test_asset_atomic_upsert_create_500(self):
-        sample = self.factory.create_asset_sample(self.item.model, create_asset_file=True)
-
-        # the dataset to update does not exist yet
-        with self.settings(DEBUG_PROPAGATE_API_EXCEPTIONS=True), disableLogger('stac_api.apps'):
-            response = self.client.put(
-                reverse(
-                    'test-asset-detail-http-500',
-                    args=[self.collection['name'], self.item['name'], sample['name']]
-                ),
-                data=sample.get_json('put'),
-                content_type='application/json'
-            )
-        self.assertStatusCode(500, response)
-        self.assertEqual(response.json()['description'], "AttributeError('test exception')")
-
-        # Make sure that the ressource has not been created
-        response = self.client.get(
-            reverse_version(
-                'asset-detail', args=[self.collection['name'], self.item['name'], sample['name']]
-            )
-        )
-        self.assertStatusCode(404, response)
 
     def test_asset_atomic_upsert_update_500(self):
         sample = self.factory.create_asset_sample(
