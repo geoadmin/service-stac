@@ -370,6 +370,11 @@ class CollectionAssetAdminForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields['file'] = forms.CharField(
+            label='File',
+            required=False,
+            widget=LabelWidget(attrs={'size': 150}),
+        )
 
 
 @admin.register(CollectionAsset)
@@ -401,6 +406,7 @@ class CollectionAssetAdmin(admin.ModelAdmin):
             'File',
             {
                 'fields': (
+                    'file'
                     'media_type',
                     'href',
                     'checksum_multihash',
