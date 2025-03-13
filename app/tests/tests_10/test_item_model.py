@@ -100,10 +100,8 @@ class ItemsModelTestCase(TestCase):
             item.full_clean()
             item.save()
 
-    def test_item_create_model_invalid_datetime_order(self):
-        with self.assertRaises(
-            ValidationError, msg="end_datetime must not be earlier than start_datetime"
-        ):
+    def test_item_create_model_raises_exception_if_end_datetime_before_start_datetime(self):
+        with self.assertRaises(ValidationError):
             today = datetime.utcnow()
             yesterday = today - timedelta(days=1)
             item = Item(
@@ -115,31 +113,38 @@ class ItemsModelTestCase(TestCase):
             item.full_clean()
             item.save()
 
-        with self.assertRaises(
-            ValidationError, msg="expires must not be earlier than end_datetime"
-        ):
-            today = datetime.utcnow()
-            yesterday = today - timedelta(days=1)
-            item = Item(
-                collection=self.collection,
-                name='item-5',
-                properties_end_datetime=utc_aware(today),
-                properties_expires=utc_aware(yesterday)
-            )
+    def test_item_create_model_raises_exception_if_expires_in_the_past(self):
+        with self.assertRaises(ValidationError):
+            yesterday = datetime.now(timezone.utc) - timedelta(days=1)
+            item = Item(collection=self.collection, name='item-5', properties_expires=yesterday)
             item.full_clean()
             item.save()
 
-        with self.assertRaises(ValidationError, msg="expires must not be earlier than datetime"):
-            today = datetime.utcnow()
-            yesterday = today - timedelta(days=1)
-            item = Item(
-                collection=self.collection,
-                name='item-5',
-                properties_datetime=utc_aware(today),
-                properties_expires=utc_aware(yesterday)
-            )
-            item.full_clean()
-            item.save()
+    def test_item_create_model_expires_can_be_before_datetime(self):
+        today = datetime.utcnow() + timedelta(milliseconds=100)
+        tomorrow = today + timedelta(days=1)
+        item = Item(
+            collection=self.collection,
+            name='item-expires-before-datetime',
+            properties_datetime=utc_aware(tomorrow),
+            properties_expires=utc_aware(today)
+        )
+        item.full_clean()
+        item.save()
+
+    def test_item_create_model_expires_can_be_before_end_datetime(self):
+        today = datetime.utcnow()
+        middle = today + timedelta(days=0.5)
+        tomorrow = today + timedelta(days=1)
+        item = Item(
+            collection=self.collection,
+            name='item-expires-before-end-datetime',
+            properties_start_datetime=utc_aware(today),
+            properties_end_datetime=utc_aware(tomorrow),
+            properties_expires=utc_aware(middle)
+        )
+        item.full_clean()
+        item.save()
 
     def test_item_create_model_valid_geometry(self):
         # a correct geometry should not pose any problems

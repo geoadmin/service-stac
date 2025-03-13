@@ -24,6 +24,7 @@ from stac_api.utils import is_api_version_1
 from stac_api.validators import normalize_and_validate_media_type
 from stac_api.validators import validate_asset_name
 from stac_api.validators import validate_asset_name_with_media_type
+from stac_api.validators import validate_expires
 from stac_api.validators import validate_geoadmin_variant
 from stac_api.validators import validate_href_url
 from stac_api.validators import validate_item_properties_datetimes
@@ -473,6 +474,8 @@ class ItemSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
                     'properties_end_datetime',
                     self.instance.properties_end_datetime if self.instance else None
                 ),
+            )
+            validate_expires(
                 attrs.get(
                     'properties_expires',
                     self.instance.properties_expires if self.instance else None

@@ -19,6 +19,7 @@ from stac_api.pgtriggers import generates_asset_upload_triggers
 from stac_api.pgtriggers import generates_item_triggers
 from stac_api.utils import get_asset_path
 from stac_api.validators import validate_eo_gsd
+from stac_api.validators import validate_expires
 from stac_api.validators import validate_geoadmin_variant
 from stac_api.validators import validate_geometry
 from stac_api.validators import validate_item_properties_datetimes
@@ -219,8 +220,8 @@ class Item(models.Model):
             self.properties_datetime,
             self.properties_start_datetime,
             self.properties_end_datetime,
-            self.properties_expires,
         )
+        validate_expires(self.properties_expires)
 
 
 class ItemLink(Link):

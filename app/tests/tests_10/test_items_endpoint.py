@@ -4,6 +4,7 @@ from base64 import b64encode
 from datetime import datetime
 from datetime import timedelta
 from typing import cast
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.test import Client
@@ -60,12 +61,13 @@ class ItemsReadEndpointTestCase(StacBaseTestCase):
             self.collection,
             name='item-expired',
             db_create=True,
-            properties_expires=timezone.now() - timedelta(hours=1)
+            properties_expires=timezone.now() + timedelta(hours=1)
         )
         assets = self.factory.create_asset_samples(
             3, item_3.model, name=['asset-1.tiff', 'asset-0.tiff', 'asset-2.tiff'], db_create=True
         )
-        response = self.client.get(f"/{STAC_BASE_V}/collections/{self.collection.name}/items")
+        with patch.object(timezone, "now", return_value=timezone.now() + timedelta(hours=2)):
+            response = self.client.get(f"/{STAC_BASE_V}/collections/{self.collection.name}/items")
         self.assertStatusCode(200, response)
         json_data = response.json()
 
@@ -171,12 +173,13 @@ class ItemsReadEndpointTestCase(StacBaseTestCase):
             self.collection,
             name='item-expired',
             db_create=True,
-            properties_expires=timezone.now() - timedelta(hours=1)
+            properties_expires=timezone.now() + timedelta(hours=1)
         )
 
-        response = self.client.get(
-            f"/{STAC_BASE_V}/collections/{collection_name}/items/{item['name']}"
-        )
+        with patch.object(timezone, "now", return_value=timezone.now() + timedelta(hours=2)):
+            response = self.client.get(
+                f"/{STAC_BASE_V}/collections/{collection_name}/items/{item['name']}"
+            )
         self.assertStatusCode(404, response)
 
     def test_items_endpoint_non_existing_collection(self):

@@ -1,3 +1,7 @@
+from datetime import datetime
+from datetime import timedelta
+from datetime import timezone
+
 from parameterized import parameterized
 
 from django.core.exceptions import ValidationError
@@ -10,6 +14,7 @@ from stac_api.validators import get_media_type
 from stac_api.validators import normalize_and_validate_media_type
 from stac_api.validators import validate_cache_control_header
 from stac_api.validators import validate_content_encoding
+from stac_api.validators import validate_expires
 from stac_api.validators import validate_item_properties_datetimes
 
 from tests.tests_10.data_factory import Factory
@@ -22,13 +27,22 @@ class TestValidators(TestCase):
             properties_datetime = None
             properties_start_datetime = "2001-22-66T08:00:00+00:00"
             properties_end_datetime = "2001-11-11T08:00:00+00:00"
-            properties_expires = None
             validate_item_properties_datetimes(
                 properties_datetime,
                 properties_start_datetime,
                 properties_end_datetime,
-                properties_expires
             )
+
+    def test_validate_expires_throws_exception_for_date_in_past(self):
+        with self.assertRaises(ValidationError):
+            validate_expires(properties_expires="2001-11-11T08:00:00+00:00")
+
+    def test_validate_expires_does_nothing_for_none(self):
+        validate_expires(properties_expires=None)
+
+    def test_validate_expires_does_nothing_for_timestamp_in_the_future(self):
+        tomorrow = datetime.now(timezone.utc) + timedelta(days=1)
+        validate_expires(tomorrow)
 
     def test_validate_invalid_content_encoding(self):
         for value in [
