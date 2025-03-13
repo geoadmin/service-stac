@@ -58,7 +58,6 @@ nose2-junit.xml
 *.orig
 
 # IDE config files
-.vscode
 *.sublime-*
 *.code*
 

@@ -1,13 +1,6 @@
 openapi: 3.0.3
 components:
   parameters:
-    assetId:
-      name: assetId
-      in: path
-      description: Local identifier of an asset.
-      required: true
-      schema:
-        type: string
     uploadId:
       name: uploadId
       in: path

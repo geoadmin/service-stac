@@ -107,52 +107,7 @@ paths:
           $ref: "../components/responses.yaml#/components/responses/PreconditionFailed"
         "500":
           $ref: "../components/responses.yaml#/components/responses/ServerError"
-  "/collections/{collectionId}/assets":
-    get:
-      description: >-
-        Fetch collection assets of the collection with id `collectionId`.
-
-        These assets do not belong to any item.
-      operationId: getCollectionAssets
-      parameters:
-        - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
-      responses:
-        "200":
-          $ref: "./components/responses.yaml#/components/responses/CollectionAssets"
-        "400":
-          $ref: "../components/responses.yaml#/components/responses/InvalidParameter"
-        "404":
-          $ref: "../components/responses.yaml#/components/responses/NotFound"
-        "500":
-          $ref: "../components/responses.yaml#/components/responses/ServerError"
-      summary: Fetch all collection assets for a collection
-      tags:
-        - Data
-
   "/collections/{collectionId}/assets/{assetId}":
-    get:
-      description: >-
-        Fetch the collection asset with id `assetId` of the collection with id `collectionId`.
-      operationId: getCollectionAsset
-      parameters:
-        - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
-        - $ref: "./components/parameters.yaml#/components/parameters/assetId"
-        - $ref: "../components/parameters.yaml#/components/parameters/IfMatch"
-        - $ref: "../components/parameters.yaml#/components/parameters/IfNoneMatch"
-      responses:
-        "200":
-          $ref: "./components/responses.yaml#/components/responses/CollectionAsset"
-        "304":
-          $ref: "../components/responses.yaml#/components/responses/NotModified"
-        "404":
-          $ref: "../components/responses.yaml#/components/responses/NotFound"
-        "412":
-          $ref: "../components/responses.yaml#/components/responses/PreconditionFailed"
-        "500":
-          $ref: "../components/responses.yaml#/components/responses/ServerError"
-      summary: Fetch a single collection asset
-      tags:
-        - Data
     put:
       summary: Update or create a collection asset
       description: >-
@@ -166,7 +121,7 @@ paths:
         - Data Management
       parameters:
         - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
-        - $ref: "./components/parameters.yaml#/components/parameters/assetId"
+        - $ref: "../components/parameters.yaml#/components/parameters/assetId"
         - $ref: "./components/parameters.yaml#/components/parameters/IfMatchWrite"
       requestBody:
         content:
@@ -213,7 +168,7 @@ paths:
         - Data Management
       parameters:
         - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
-        - $ref: "./components/parameters.yaml#/components/parameters/assetId"
+        - $ref: "../components/parameters.yaml#/components/parameters/assetId"
         - $ref: "./components/parameters.yaml#/components/parameters/IfMatchWrite"
       requestBody:
         content:
@@ -246,7 +201,7 @@ paths:
         - Data Management
       parameters:
         - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
-        - $ref: "./components/parameters.yaml#/components/parameters/assetId"
+        - $ref: "../components/parameters.yaml#/components/parameters/assetId"
         - $ref: "./components/parameters.yaml#/components/parameters/IfMatchWrite"
       responses:
         "200":
@@ -385,6 +340,9 @@ paths:
       description: >-
         Use this method to update an existing feature. Requires a JSON
         fragment (containing the fields to be updated) to be submitted.
+
+
+        *Note: You can remove optional properties using the value `null`*
       operationId: patchFeature
       tags:
         - Data Management
@@ -481,7 +439,7 @@ paths:
       parameters:
         - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
         - $ref: "../components/parameters.yaml#/components/parameters/featureId"
-        - $ref: "./components/parameters.yaml#/components/parameters/assetId"
+        - $ref: "../components/parameters.yaml#/components/parameters/assetId"
         - $ref: "../components/parameters.yaml#/components/parameters/IfMatch"
         - $ref: "../components/parameters.yaml#/components/parameters/IfNoneMatch"
       responses:
@@ -512,7 +470,7 @@ paths:
       parameters:
         - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
         - $ref: "../components/parameters.yaml#/components/parameters/featureId"
-        - $ref: "./components/parameters.yaml#/components/parameters/assetId"
+        - $ref: "../components/parameters.yaml#/components/parameters/assetId"
         - $ref: "./components/parameters.yaml#/components/parameters/IfMatchWrite"
       requestBody:
         content:
@@ -560,7 +518,7 @@ paths:
       parameters:
         - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
         - $ref: "../components/parameters.yaml#/components/parameters/featureId"
-        - $ref: "./components/parameters.yaml#/components/parameters/assetId"
+        - $ref: "../components/parameters.yaml#/components/parameters/assetId"
         - $ref: "./components/parameters.yaml#/components/parameters/IfMatchWrite"
       requestBody:
         content:
@@ -595,7 +553,7 @@ paths:
       parameters:
         - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
         - $ref: "../components/parameters.yaml#/components/parameters/featureId"
-        - $ref: "./components/parameters.yaml#/components/parameters/assetId"
+        - $ref: "../components/parameters.yaml#/components/parameters/assetId"
         - $ref: "./components/parameters.yaml#/components/parameters/IfMatchWrite"
       responses:
         "200":
@@ -613,7 +571,7 @@ paths:
     parameters:
       - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
       - $ref: "../components/parameters.yaml#/components/parameters/featureId"
-      - $ref: "./components/parameters.yaml#/components/parameters/assetId"
+      - $ref: "../components/parameters.yaml#/components/parameters/assetId"
     get:
       tags:
         - Asset Upload Management
@@ -660,7 +618,7 @@ paths:
                     file:checksum: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
                 links:
                   - rel: next
-                    href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets/smr50-263-2016-2056-kgrs-2.5.tiff/uploads?cursor=0d34
+                    href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets/smr50-263-2016-2056-kgrs-2.5.tiff/uploads?cursor=0d34
         "400":
           $ref: "../components/responses.yaml#/components/responses/BadRequest"
         "404":
@@ -706,14 +664,14 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "./schemas.yaml#/components/schemas/uploadInProgress"
+                $ref: "./components/schemas.yaml#/components/schemas/uploadInProgress"
         "500":
           $ref: "../components/responses.yaml#/components/responses/ServerError"
   "/collections/{collectionId}/items/{featureId}/assets/{assetId}/uploads/{uploadId}":
     parameters:
       - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
       - $ref: "../components/parameters.yaml#/components/parameters/featureId"
-      - $ref: "./components/parameters.yaml#/components/parameters/assetId"
+      - $ref: "../components/parameters.yaml#/components/parameters/assetId"
       - $ref: "./components/parameters.yaml#/components/parameters/uploadId"
     get:
       tags:
@@ -886,7 +844,7 @@ paths:
     parameters:
       - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
       - $ref: "../components/parameters.yaml#/components/parameters/featureId"
-      - $ref: "./components/parameters.yaml#/components/parameters/assetId"
+      - $ref: "../components/parameters.yaml#/components/parameters/assetId"
       - $ref: "./components/parameters.yaml#/components/parameters/uploadId"
     post:
       tags:
@@ -916,7 +874,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "./schemas.yaml#/components/schemas/exception"
+                $ref: "../components/schemas.yaml#/components/schemas/exception"
               example:
                 code: 409
                 description: No upload in progress
@@ -928,7 +886,7 @@ paths:
     parameters:
       - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
       - $ref: "../components/parameters.yaml#/components/parameters/featureId"
-      - $ref: "./components/parameters.yaml#/components/parameters/assetId"
+      - $ref: "../components/parameters.yaml#/components/parameters/assetId"
       - $ref: "./components/parameters.yaml#/components/parameters/uploadId"
     post:
       tags:
@@ -954,7 +912,7 @@ paths:
     parameters:
       - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
       - $ref: "../components/parameters.yaml#/components/parameters/featureId"
-      - $ref: "./components/parameters.yaml#/components/parameters/assetId"
+      - $ref: "../components/parameters.yaml#/components/parameters/assetId"
       - $ref: "./components/parameters.yaml#/components/parameters/uploadId"
     get:
       tags:
@@ -989,7 +947,7 @@ paths:
   "/collections/{collectionId}/assets/{assetId}/uploads":
     parameters:
       - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
-      - $ref: "./components/parameters.yaml#/components/parameters/assetId"
+      - $ref: "../components/parameters.yaml#/components/parameters/assetId"
     get:
       tags:
         - Collection Asset Upload Management
@@ -1036,7 +994,7 @@ paths:
                     file:checksum: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
                 links:
                   - rel: next
-                    href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets/smr50-263-2016-2056-kgrs-2.5.tiff/uploads?cursor=0d34
+                    href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets/smr50-263-2016-2056-kgrs-2.5.tiff/uploads?cursor=0d34
         "400":
           $ref: "../components/responses.yaml#/components/responses/BadRequest"
         "404":
@@ -1082,13 +1040,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "./schemas.yaml#/components/schemas/uploadInProgress"
+                $ref: "./components/schemas.yaml#/components/schemas/uploadInProgress"
         "500":
           $ref: "../components/responses.yaml#/components/responses/ServerError"
   "/collections/{collectionId}/assets/{assetId}/uploads/{uploadId}":
     parameters:
       - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
-      - $ref: "./components/parameters.yaml#/components/parameters/assetId"
+      - $ref: "../components/parameters.yaml#/components/parameters/assetId"
       - $ref: "./components/parameters.yaml#/components/parameters/uploadId"
     get:
       tags:
@@ -1129,7 +1087,7 @@ paths:
   "/collections/{collectionId}/assets/{assetId}/uploads/{uploadId}/complete":
     parameters:
       - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
-      - $ref: "./components/parameters.yaml#/components/parameters/assetId"
+      - $ref: "../components/parameters.yaml#/components/parameters/assetId"
       - $ref: "./components/parameters.yaml#/components/parameters/uploadId"
     post:
       tags:
@@ -1159,7 +1117,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "./schemas.yaml#/components/schemas/exception"
+                $ref: "../components/schemas.yaml#/components/schemas/exception"
               example:
                 code: 409
                 description: No upload in progress
@@ -1170,7 +1128,7 @@ paths:
   "/collections/{collectionId}/assets/{assetId}/uploads/{uploadId}/abort":
     parameters:
       - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
-      - $ref: "./components/parameters.yaml#/components/parameters/assetId"
+      - $ref: "../components/parameters.yaml#/components/parameters/assetId"
       - $ref: "./components/parameters.yaml#/components/parameters/uploadId"
     post:
       tags:
@@ -1195,7 +1153,7 @@ paths:
   "/collections/{collectionId}/assets/{assetId}/uploads/{uploadId}/parts":
     parameters:
       - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
-      - $ref: "./components/parameters.yaml#/components/parameters/assetId"
+      - $ref: "../components/parameters.yaml#/components/parameters/assetId"
       - $ref: "./components/parameters.yaml#/components/parameters/uploadId"
     get:
       tags:

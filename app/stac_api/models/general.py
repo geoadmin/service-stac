@@ -316,6 +316,7 @@ class AssetBase(models.Model):
     # into account when linting, somehow
     # pylint: disable=unexpected-keyword-arg
     # pylint: disable=no-value-for-parameter
+
     file = DynamicStorageFileField(upload_to=upload_asset_to_path_hook, max_length=255)
     roles = ArrayField(
         models.CharField(max_length=255), editable=True, blank=True, null=True, default=None,
@@ -346,9 +347,7 @@ class AssetBase(models.Model):
         null=False,
         help_text=
         "This media type will be used as <em>Content-Type</em> header for the asset's object upon "
-        "upload.</br></br>"
-        "<b>WARNING: when updating the Media Type, the asset's object Content-Type header is not "
-        "automatically updated, it needs to be uploaded again.</b>"
+        "upload."
     )
 
     created = models.DateTimeField(auto_now_add=True)

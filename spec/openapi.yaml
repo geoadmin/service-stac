@@ -130,7 +130,51 @@ paths:
       summary: Fetch a single feature
       tags:
         - Data
+  "/collections/{collectionId}/assets":
+    get:
+      description: >-
+        Fetch collection assets of the collection with id `collectionId`.
 
+        These assets do not belong to any item.
+      operationId: getCollectionAssets
+      parameters:
+        - $ref: "./components/parameters.yaml#/components/parameters/collectionId"
+      responses:
+        "200":
+          $ref: "./components/responses.yaml#/components/responses/CollectionAssets"
+        "400":
+          $ref: "./components/responses.yaml#/components/responses/InvalidParameter"
+        "404":
+          $ref: "./components/responses.yaml#/components/responses/NotFound"
+        "500":
+          $ref: "./components/responses.yaml#/components/responses/ServerError"
+      summary: Fetch all collection assets for a collection
+      tags:
+        - Data
+  /collections/{collectionId}/assets/{assetId}:
+    get:
+      summary: Fetch a single collection asset
+      tags:
+        - Data
+      description: >-
+        Fetch the collection asset with id `assetId` of the collection with id `collectionId`.
+      operationId: getCollectionAsset
+      parameters:
+        - $ref: "./components/parameters.yaml#/components/parameters/collectionId"
+        - $ref: "./components/parameters.yaml#/components/parameters/assetId"
+        - $ref: "./components/parameters.yaml#/components/parameters/IfMatch"
+        - $ref: "./components/parameters.yaml#/components/parameters/IfNoneMatch"
+      responses:
+        "200":
+          $ref: "./components/responses.yaml#/components/responses/CollectionAsset"
+        "304":
+          $ref: "./components/responses.yaml#/components/responses/NotModified"
+        "404":
+          $ref: "./components/responses.yaml#/components/responses/NotFound"
+        "412":
+          $ref: "./components/responses.yaml#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "./components/responses.yaml#/components/responses/ServerError"
   /{assetObjectHref}:
     servers:
       - url: http://data.geo.admin.ch/

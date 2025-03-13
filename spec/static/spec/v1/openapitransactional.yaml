@@ -9,6 +9,13 @@ components:
       example: "d01af8b8ebbf899e30095be8754b377ddb0f0ed0f7fddbc33ac23b0d1969736b"
       required: true
   parameters:
+    assetId:
+      name: assetId
+      in: path
+      description: Local identifier of an asset.
+      required: true
+      schema:
+        type: string
     assetQuery:
       description: >-
         Query for properties in assets (e.g. mediatype). Use the JSON form of the assetQueryFilter used in POST.
@@ -115,13 +122,6 @@ components:
       required: false
       schema:
         type: string
-    assetId:
-      name: assetId
-      in: path
-      description: Local identifier of an asset.
-      required: true
-      schema:
-        type: string
     uploadId:
       name: uploadId
       in: path
@@ -209,6 +209,23 @@ components:
         * An optional indicator about the type of the items in the collection (the default value, if the indicator is not provided, is 'feature').
 
         The `limit` parameter may be used to control the subset of the selected collections that should be returned in the response, the page size. Each page include links to support paging (link relation `next` and/or `previous`).
+    CollectionAssets:
+      description: >-
+        The response is a document consisting of all assets of the collection.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/collectionAssets"
+    CollectionAsset:
+      description: >-
+        The response is a document consisting of one asset of the collection.
+      headers:
+        ETag:
+          $ref: "#/components/headers/ETag"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/collectionAsset"
     ConformanceDeclaration:
       content:
         application/json:
@@ -265,23 +282,23 @@ components:
             description: Catalog of Swiss Geodata Downloads
             id: ch
             links:
-              - href: http://data.geo.admin.ch/api/stac/v0.9/
+              - href: http://data.geo.admin.ch/api/stac/v1/
                 rel: self
                 type: application/json
                 title: this document
-              - href: http://data.geo.admin.ch/api/stac/v0.9/static/api.html
+              - href: http://data.geo.admin.ch/api/stac/v1/static/api.html
                 rel: service-doc
                 type: text/html
                 title: the API documentation
-              - href: http://data.geo.admin.ch/api/stac/v0.9/conformance
+              - href: http://data.geo.admin.ch/api/stac/v1/conformance
                 rel: conformance
                 type: application/json
                 title: OGC API conformance classes implemented by this server
-              - href: http://data.geo.admin.ch/api/stac/v0.9/collections
+              - href: http://data.geo.admin.ch/api/stac/v1/collections
                 rel: data
                 type: application/json
                 title: Information about the feature collections
-              - href: http://data.geo.admin.ch/api/stac/v0.9/search
+              - href: http://data.geo.admin.ch/api/stac/v1/search
                 rel: search
                 type: application/json
                 title: Search across feature collections
@@ -370,13 +387,6 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/assets"
-    CollectionAssets:
-      description: >-
-        The response is a document consisting of all assets of the collection.
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/assets"
     Asset:
       description: >-
         The response is a document consisting of one asset of the feature.
@@ -386,17 +396,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/assetWrite"
-    CollectionAsset:
-      description: >-
-        The response is a document consisting of one asset of the collection.
-      headers:
-        ETag:
-          $ref: "#/components/headers/ETag"
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/assetWrite"
+            $ref: "#/components/schemas/asset"
     DeletedResource:
       description: Status of the delete resource
       content:
@@ -419,12 +419,22 @@ components:
                 description: >-
                   The array contain at least a link to the parent resource (`rel: parent`).
                 example:
-                  - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+                  - href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
                     rel: parent
             required:
               - code
               - links
   schemas:
+    assetId:
+      type: string
+      pattern: ^[a-z0-9.-_]+$
+      title: ID
+      description: >-
+        The asset id uniquely identifies the asset for an item
+
+
+        **Note**: `id` must be unique for the item and must be identical to the filename.
+      example: smr50-263-2016-2056-kgrs-2.5.tiff
     assetQuery:
       additionalProperties:
         $ref: "#/components/schemas/assetQueryProp"
@@ -729,13 +739,13 @@ components:
               items:
                 $ref: "#/components/schemas/link"
               example:
-                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+                - href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
                   rel: self
-                - href: https://data.geo.admin.ch/api/stac/v0.9/
+                - href: https://data.geo.admin.ch/api/stac/v1/
                   rel: root
-                - href: https://data.geo.admin.ch/api/stac/v0.9
+                - href: https://data.geo.admin.ch/api/stac/v1
                   rel: parent
-                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items
+                - href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items
                   rel: items
                 - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
                   rel: license
@@ -752,13 +762,13 @@ components:
           items:
             $ref: "#/components/schemas/link"
           example:
-            - href: https://data.geo.admin.ch/api/stac/v0.9/collections
+            - href: https://data.geo.admin.ch/api/stac/v1/collections
               rel: self
-            - href: https://data.geo.admin.ch/api/stac/v0.9/
+            - href: https://data.geo.admin.ch/api/stac/v1/
               rel: root
-            - href: https://data.geo.admin.ch/api/stac/v0.9/collections?cursor=10ab
+            - href: https://data.geo.admin.ch/api/stac/v1/collections?cursor=10ab
               rel: next
-            - href: https://data.geo.admin.ch/api/stac/v0.9/collections?cursor=10cd
+            - href: https://data.geo.admin.ch/api/stac/v1/collections?cursor=10cd
               rel: previous
       required:
         - links
@@ -1058,13 +1068,13 @@ components:
                 $ref: "#/components/schemas/link"
               type: array
               example:
-                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr50-263-2016
+                - href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr50-263-2016
                   rel: self
-                - href: https://data.geo.admin.ch/api/stac/v0.9/
+                - href: https://data.geo.admin.ch/api/stac/v1/
                   rel: root
-                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+                - href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
                   rel: parent
-                - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+                - href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
                   rel: collection
         - $ref: "#/components/schemas/itemBase"
     items:
@@ -1080,15 +1090,15 @@ components:
             $ref: "#/components/schemas/link"
           type: array
           example:
-            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items
+            - href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items
               rel: self
-            - href: https://data.geo.admin.ch/api/stac/v0.9/
+            - href: https://data.geo.admin.ch/api/stac/v1/
               rel: root
-            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+            - href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
               rel: parent
-            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items?cursor=10ab
+            - href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items?cursor=10ab
               rel: next
-            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items?cursor=10acd
+            - href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items?cursor=10acd
               rel: previous
         type:
           enum:
@@ -1098,6 +1108,70 @@ components:
         - features
         - type
       type: object
+    collectionAsset:
+      allOf:
+        - type: object
+          required:
+            - id
+            - type
+          properties:
+            id:
+              $ref: "#/components/schemas/assetId"
+            type:
+              $ref: "#/components/schemas/assetType"
+        - $ref: "#/components/schemas/assetBase"
+        - type: object
+          required:
+            - links
+          properties:
+            links:
+              items:
+                $ref: "#/components/schemas/link"
+              type: array
+              example:
+                - href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/assets/smr50-263-2016-2056-kgrs-2.5.tiff
+                  rel: self
+                - href: https://data.geo.admin.ch/api/stac/v1/
+                  rel: root
+                - href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/assets
+                  rel: parent
+                - href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+                  rel: collection
+    collectionAssets:
+      title: Assets
+      description: List of Assets attached to this collection.
+      type: object
+      required:
+        - assets
+        - links
+      properties:
+        assets:
+          items:
+            allOf:
+              - type: object
+                required:
+                  - type
+                  - id
+                properties:
+                  id:
+                    $ref: "#/components/schemas/assetId"
+                  type:
+                    $ref: "#/components/schemas/assetType"
+              - $ref: "#/components/schemas/assetBase"
+          type: array
+        links:
+          items:
+            $ref: "#/components/schemas/link"
+          type: array
+          example:
+            - href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/assets
+              rel: self
+            - href: https://data.geo.admin.ch/api/stac/v1/
+              rel: root
+            - href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+              rel: parent
+            - href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+              rel: collection
     itemAssets:
       title: Assets
       description: List of Assets attached to this feature.
@@ -1173,9 +1247,9 @@ components:
       description: >-
         An array of links. Can be used for pagination, e.g. by providing a link with the `next` relation type.
       example:
-        - href: https://data.geo.admin.ch/api/stac/v0.9/search
+        - href: https://data.geo.admin.ch/api/stac/v1/search
           rel: self
-        - href: https://data.geo.admin.ch/api/stac/v0.9/search?cursor=10ab
+        - href: https://data.geo.admin.ch/api/stac/v1/search?cursor=10ab
           rel: next
       items:
         $ref: "#/components/schemas/link"
@@ -1184,9 +1258,9 @@ components:
       description: >-
         An array of links. Can be used for pagination, e.g. by providing a link with the `next` relation type.
       example:
-        - href: https://data.geo.admin.ch/api/stac/v0.9/search
+        - href: https://data.geo.admin.ch/api/stac/v1/search
           rel: self
-        - href: https://data.geo.admin.ch/api/stac/v0.9/search?cursor=10ab
+        - href: https://data.geo.admin.ch/api/stac/v1/search?cursor=10ab
           rel: next
           method: POST
           body: {}
@@ -1421,12 +1495,7 @@ components:
         updated:
           $ref: "#/components/schemas/updated"
         title:
-          description: Human readable title of the Feature
-          example: Feature title
-          type: string
-          minLength: 1
-          maxLength: 255
-          nullable: true
+          $ref: "#/components/schemas/featureTitle"
         forecast:reference_datetime:
           $ref: "#/components/schemas/datetime"
         forecast:horizon:
@@ -1942,7 +2011,12 @@ components:
       type: string
       description: Displayed title
       example: Thumbnail
-      nullable: true
+      minLength: 1
+      maxLength: 255
+    featureTitle:
+      description: Human readable title of the Feature
+      example: Feature title
+      type: string
       minLength: 1
       maxLength: 255
     assetType:
@@ -1956,38 +2030,57 @@ components:
       type: string
       format: date-time
       readOnly: true
-    assetId:
-      type: string
-      pattern: ^[a-z0-9.-_]+$
-      title: ID
-      description: >-
-        The asset id uniquely identifies the asset for an item
-
-
-        **Note**: `id` must be unique for the item and must be identical to the filename.
-      example: smr50-263-2016-2056-kgrs-2.5.tiff
+    asset:
+      allOf:
+        - type: object
+          required:
+            - id
+            - type
+          properties:
+            id:
+              $ref: "#/components/schemas/assetId"
+            type:
+              $ref: "#/components/schemas/assetType"
+        - $ref: "#/components/schemas/assetBase"
+        - type: object
+          required:
+            - links
+          properties:
+            links:
+              items:
+                $ref: "#/components/schemas/link"
+              type: array
+              example:
+                - href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets/smr50-263-2016-2056-kgrs-2.5.tiff
+                  rel: self
+                - href: https://data.geo.admin.ch/api/stac/v1/
+                  rel: root
+                - href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets
+                  rel: parent
+                - href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+                  rel: collection
     assets:
       title: Assets
       type: object
       properties:
         assets:
           items:
-            $ref: "#/components/schemas/assetWrite"
+            $ref: "#/components/schemas/asset"
           type: array
         links:
           items:
             $ref: "#/components/schemas/link"
           type: array
           example:
-            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets
+            - href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets
               rel: self
-            - href: https://data.geo.admin.ch/api/stac/v0.9/
+            - href: https://data.geo.admin.ch/api/stac/v1/
               rel: root
-            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019
+            - href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019
               rel: parent
-            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019
+            - href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019
               rel: item
-            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+            - href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
               rel: collection
     collectionWrite:
       title: collection
@@ -2042,7 +2135,7 @@ components:
         file:checksum:
           $ref: "#/components/schemas/checksumMultihashReadOnly"
         roles:
-          $ref: '#/components/schemas/roles'
+          $ref: "#/components/schemas/roles"
         geoadmin:variant:
           $ref: "#/components/schemas/geoadminVariant"
         geoadmin:lang:
@@ -2061,15 +2154,15 @@ components:
           type: array
           readOnly: true
           example:
-            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets/smr50-263-2016-2056-kgrs-2.5.tiff
+            - href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets/smr50-263-2016-2056-kgrs-2.5.tiff
               rel: self
-            - href: https://data.geo.admin.ch/api/stac/v0.9/
+            - href: https://data.geo.admin.ch/api/stac/v1/
               rel: root
-            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019
+            - href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019
               rel: parent
-            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019
+            - href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019
               rel: item
-            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+            - href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
               rel: collection
     assetWriteExternalAsset:
       title: Asset
@@ -2095,7 +2188,7 @@ components:
         file:checksum:
           $ref: "#/components/schemas/checksumMultihashReadOnly"
         roles:
-          $ref: '#/components/schemas/roles'
+          $ref: "#/components/schemas/roles"
         geoadmin:variant:
           $ref: "#/components/schemas/geoadminVariant"
         geoadmin:lang:
@@ -2114,15 +2207,15 @@ components:
           type: array
           readOnly: true
           example:
-            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets/smr50-263-2016-2056-kgrs-2.5.tiff
+            - href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets/smr50-263-2016-2056-kgrs-2.5.tiff
               rel: self
-            - href: https://data.geo.admin.ch/api/stac/v0.9/
+            - href: https://data.geo.admin.ch/api/stac/v1/
               rel: root
-            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019
+            - href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019
               rel: parent
-            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019
+            - href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019
               rel: item
-            - href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
+            - href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale
               rel: collection
     mediaTypeWrite:
       type: string
@@ -2131,8 +2224,9 @@ components:
 
         This type is automatically set as `Content-Type` header to the Asset's object when uploading.
 
-        **WARNING:** When updating the Asset's metadata media type, the Asset's object `Content-Type`
-        header is not automatically updated. The object needs to be uploaded again to have the correct header.
+        **WARNING:** You cannot update the media type of an existing Asset, to do so you need to
+        re-create the Asset. This is because we cannot update the `Content-Type` header of an Asset
+        that has been already uploaded.
       example: image/tiff; application=geotiff
     writeItem:
       allOf:
@@ -2163,6 +2257,69 @@ components:
             id:
               $ref: "#/components/schemas/itemIdUpdate"
         - $ref: "#/components/schemas/writeItem"
+    partialItemProperties:
+      title: Properties
+      description: >-
+        Provides the core metadata fields plus extensions
+
+
+        The item's data timing information can be specified either with
+
+        * One datetime value in the field `datetime`
+
+        * A datetime range with a `start_datetime` and an `end_datetime`
+
+
+        One of the two is required
+      properties:
+        created:
+          $ref: "#/components/schemas/created"
+        datetime:
+          allOf:
+            - $ref: "#/components/schemas/datetime"
+            - nullable: true
+        start_datetime:
+          allOf:
+            - $ref: "#/components/schemas/datetime"
+            - nullable: true
+        end_datetime:
+          allOf:
+            - $ref: "#/components/schemas/datetime"
+            - nullable: true
+        expires:
+          allOf:
+            - $ref: "#/components/schemas/datetime"
+            - nullable: true
+        updated:
+          $ref: "#/components/schemas/updated"
+        title:
+          allOf:
+            - $ref: "#/components/schemas/featureTitle"
+            - nullable: true
+        forecast:reference_datetime:
+          allOf:
+            - $ref: "#/components/schemas/datetime"
+            - nullable: true
+        forecast:horizon:
+          allOf:
+            - $ref: "#/components/schemas/duration"
+            - nullable: true
+        forecast:duration:
+          allOf:
+            - $ref: "#/components/schemas/duration"
+            - nullable: true
+        forecast:variable:
+          allOf:
+            - $ref: "#/components/schemas/forecast_variable"
+            - nullable: true
+        forecast:perturbed:
+          allOf:
+            - $ref: "#/components/schemas/forecast_perturbed"
+            - nullable: true
+      required:
+        - created
+        - updated
+      type: object
     partialItem:
       type: object
       properties:
@@ -2171,7 +2328,7 @@ components:
         geometry:
           $ref: "#/components/schemas/itemGeometry"
         properties:
-          $ref: "#/components/schemas/itemProperties"
+          $ref: "#/components/schemas/partialItemProperties"
         links:
           type: array
           items:
@@ -2280,7 +2437,7 @@ components:
             $ref: "#/components/schemas/link"
           example:
             - rel: next
-              href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets/smr50-263-2016-2056-kgrs-2.5.tiff/uploads?cursor=0d34
+              href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets/smr50-263-2016-2056-kgrs-2.5.tiff/uploads?cursor=0d34
     assetUpload:
       title: AssetUpload
       type: object
@@ -2464,7 +2621,7 @@ components:
             $ref: "#/components/schemas/link"
           example:
             - rel: next
-              href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets/smr50-263-2016-2056-kgrs-2.5.tiff/uploads/upload-id/parts?limit=50&offset=50
+              href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets/smr50-263-2016-2056-kgrs-2.5.tiff/uploads/upload-id/parts?limit=50&offset=50
     status:
       title: Status
       description: Status of the Asset's multipart upload.
@@ -3340,6 +3497,9 @@ paths:
       summary: Update an existing feature by Id with a partial item definition
       description: >-
         Use this method to update an existing feature. Requires a JSON fragment (containing the fields to be updated) to be submitted.
+
+
+        *Note: You can remove optional properties using the value `null`*
       operationId: patchFeature
       tags:
         - Data Management
@@ -3392,6 +3552,155 @@ paths:
       parameters:
         - $ref: "#/components/parameters/collectionId"
         - $ref: "#/components/parameters/featureId"
+        - $ref: "#/components/parameters/IfMatchWrite"
+      responses:
+        "200":
+          $ref: "#/components/responses/DeletedResource"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "#/components/responses/ServerError"
+  /collections/{collectionId}/assets:
+    get:
+      description: >-
+        Fetch collection assets of the collection with id `collectionId`.
+
+        These assets do not belong to any item.
+      operationId: getCollectionAssets
+      parameters:
+        - $ref: "#/components/parameters/collectionId"
+      responses:
+        "200":
+          $ref: "#/components/responses/CollectionAssets"
+        "400":
+          $ref: "#/components/responses/InvalidParameter"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      summary: Fetch all collection assets for a collection
+      tags:
+        - Data
+  /collections/{collectionId}/assets/{assetId}:
+    get:
+      summary: Fetch a single collection asset
+      tags:
+        - Data
+      description: >-
+        Fetch the collection asset with id `assetId` of the collection with id `collectionId`.
+      operationId: getCollectionAsset
+      parameters:
+        - $ref: "#/components/parameters/collectionId"
+        - $ref: "#/components/parameters/assetId"
+        - $ref: "#/components/parameters/IfMatch"
+        - $ref: "#/components/parameters/IfNoneMatch"
+      responses:
+        "200":
+          $ref: "#/components/responses/CollectionAsset"
+        "304":
+          $ref: "#/components/responses/NotModified"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    put:
+      summary: Update or create a collection asset
+      description: >-
+        Update or create a collection asset with Id `assetId` with a complete asset definition. If the asset doesn't exist it is then created.
+
+
+        *Note: to upload an asset file see [Collection Asset Upload Management](#tag/Collection-Asset-Upload-Management)*
+      operationId: putCollectionAsset
+      tags:
+        - Data Management
+      parameters:
+        - $ref: "#/components/parameters/collectionId"
+        - $ref: "#/components/parameters/assetId"
+        - $ref: "#/components/parameters/IfMatchWrite"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/assetWrite"
+      responses:
+        "200":
+          description: Asset has been successfully updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/assetWrite"
+        "201":
+          description: Asset has been newly created.
+          headers:
+            Location:
+              description: A link to the asset
+              schema:
+                type: string
+                format: url
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/assetWrite"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    patch:
+      summary: Update an existing collection asset by Id with a partial asset definition
+      description: >-
+        Use this method to update an existing collection asset. Requires a JSON fragment (containing the fields to be updated) to be submitted.
+
+
+        *Note: to upload an asset file see [Collection Asset Upload Management](#tag/Collection-Asset-Upload-Management)*
+      operationId: patchCollectionAsset
+      tags:
+        - Data Management
+      parameters:
+        - $ref: "#/components/parameters/collectionId"
+        - $ref: "#/components/parameters/assetId"
+        - $ref: "#/components/parameters/IfMatchWrite"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/assetWrite"
+      responses:
+        "200":
+          description: Returns the updated Asset.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/assetWrite"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    delete:
+      summary: Delete an existing collection asset by Id
+      description: >-
+        Use this method to delete an existing collection asset.
+
+        **NOTE: Asset file on S3 will be also removed !**
+      operationId: deleteCollectionAsset
+      tags:
+        - Data Management
+      parameters:
+        - $ref: "#/components/parameters/collectionId"
+        - $ref: "#/components/parameters/assetId"
         - $ref: "#/components/parameters/IfMatchWrite"
       responses:
         "200":
@@ -3584,155 +3893,6 @@ paths:
       summary: Search STAC items with full-featured filtering.
       tags:
         - STAC
-  /collections/{collectionId}/assets:
-    get:
-      description: >-
-        Fetch collection assets of the collection with id `collectionId`.
-
-        These assets do not belong to any item.
-      operationId: getCollectionAssets
-      parameters:
-        - $ref: "#/components/parameters/collectionId"
-      responses:
-        "200":
-          $ref: "#/components/responses/CollectionAssets"
-        "400":
-          $ref: "#/components/responses/InvalidParameter"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/ServerError"
-      summary: Fetch all collection assets for a collection
-      tags:
-        - Data
-  /collections/{collectionId}/assets/{assetId}:
-    get:
-      description: >-
-        Fetch the collection asset with id `assetId` of the collection with id `collectionId`.
-      operationId: getCollectionAsset
-      parameters:
-        - $ref: "#/components/parameters/collectionId"
-        - $ref: "#/components/parameters/assetId"
-        - $ref: "#/components/parameters/IfMatch"
-        - $ref: "#/components/parameters/IfNoneMatch"
-      responses:
-        "200":
-          $ref: "#/components/responses/CollectionAsset"
-        "304":
-          $ref: "#/components/responses/NotModified"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "412":
-          $ref: "#/components/responses/PreconditionFailed"
-        "500":
-          $ref: "#/components/responses/ServerError"
-      summary: Fetch a single collection asset
-      tags:
-        - Data
-    put:
-      summary: Update or create a collection asset
-      description: >-
-        Update or create a collection asset with Id `assetId` with a complete asset definition. If the asset doesn't exist it is then created.
-
-
-        *Note: to upload an asset file see [Collection Asset Upload Management](#tag/Collection-Asset-Upload-Management)*
-      operationId: putCollectionAsset
-      tags:
-        - Data Management
-      parameters:
-        - $ref: "#/components/parameters/collectionId"
-        - $ref: "#/components/parameters/assetId"
-        - $ref: "#/components/parameters/IfMatchWrite"
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/assetWrite"
-      responses:
-        "200":
-          description: Asset has been successfully updated.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/assetWrite"
-        "201":
-          description: Asset has been newly created.
-          headers:
-            Location:
-              description: A link to the asset
-              schema:
-                type: string
-                format: url
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/assetWrite"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "412":
-          $ref: "#/components/responses/PreconditionFailed"
-        "500":
-          $ref: "#/components/responses/ServerError"
-    patch:
-      summary: Update an existing collection asset by Id with a partial asset definition
-      description: >-
-        Use this method to update an existing collection asset. Requires a JSON fragment (containing the fields to be updated) to be submitted.
-
-
-        *Note: to upload an asset file see [Collection Asset Upload Management](#tag/Collection-Asset-Upload-Management)*
-      operationId: patchCollectionAsset
-      tags:
-        - Data Management
-      parameters:
-        - $ref: "#/components/parameters/collectionId"
-        - $ref: "#/components/parameters/assetId"
-        - $ref: "#/components/parameters/IfMatchWrite"
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/assetWrite"
-      responses:
-        "200":
-          description: Returns the updated Asset.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/assetWrite"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "412":
-          $ref: "#/components/responses/PreconditionFailed"
-        "500":
-          $ref: "#/components/responses/ServerError"
-    delete:
-      summary: Delete an existing collection asset by Id
-      description: >-
-        Use this method to delete an existing collection asset.
-
-        **NOTE: Asset file on S3 will be also removed !**
-      operationId: deleteCollectionAsset
-      tags:
-        - Data Management
-      parameters:
-        - $ref: "#/components/parameters/collectionId"
-        - $ref: "#/components/parameters/assetId"
-        - $ref: "#/components/parameters/IfMatchWrite"
-      responses:
-        "200":
-          $ref: "#/components/responses/DeletedResource"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "412":
-          $ref: "#/components/responses/PreconditionFailed"
-        "500":
-          $ref: "#/components/responses/ServerError"
   /collections/{collectionId}/items/{featureId}/assets:
     get:
       description: >-
@@ -3939,7 +4099,7 @@ paths:
                     file:checksum: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
                 links:
                   - rel: next
-                    href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets/smr50-263-2016-2056-kgrs-2.5.tiff/uploads?cursor=0d34
+                    href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets/smr50-263-2016-2056-kgrs-2.5.tiff/uploads?cursor=0d34
         "400":
           $ref: "#/components/responses/BadRequest"
         "404":
@@ -4303,7 +4463,7 @@ paths:
                     file:checksum: 12200ADEC47F803A8CF1055ED36750B3BA573C79A3AF7DA6D6F5A2AED03EA16AF3BC
                 links:
                   - rel: next
-                    href: https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets/smr50-263-2016-2056-kgrs-2.5.tiff/uploads?cursor=0d34
+                    href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/items/smr200-200-4-2019/assets/smr50-263-2016-2056-kgrs-2.5.tiff/uploads?cursor=0d34
         "400":
           $ref: "#/components/responses/BadRequest"
         "404":

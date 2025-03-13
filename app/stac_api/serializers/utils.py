@@ -16,6 +16,7 @@ from stac_api.models.item import Item
 from stac_api.utils import build_asset_href
 from stac_api.utils import get_browser_url
 from stac_api.utils import get_url
+from stac_api.utils import is_api_version_1
 
 logger = logging.getLogger(__name__)
 
@@ -186,7 +187,14 @@ def get_relation_links(request, view, view_args=()):
                 ('href', get_url(request, 'items-list', view_args)),
             ])
         )
-    elif view.startswith('item') or view.startswith('asset'):
+        if is_api_version_1(request):
+            links.append(
+                OrderedDict([
+                    ('rel', 'assets'),
+                    ('href', get_url(request, 'collection-assets-list', view_args)),
+                ])
+            )
+    elif view.startswith('item') or view.startswith('asset') or view.startswith('collection-asset'):
         links.append(
             OrderedDict([
                 ('rel', 'collection'),
@@ -324,6 +332,30 @@ class DictSerializer(serializers.ListSerializer):
     def to_representation(self, data):
         objects = super().to_representation(data)
         return {obj.pop(self.key_identifier): obj for obj in objects}
+
+    def to_internal_value(self, data):
+        '''Convert the dict back to a list
+
+        The ListSerializer expects a list and not a dict, hence we have to
+        convert
+
+            {
+                'object1': {'description': 'This is object 1'},
+                'object2': {'description': 'This is object 2'}
+            }
+
+        back into a list
+
+            [{
+                    'id': 'object1',
+                    'description': 'This is object 1'
+                }, {
+                    'id': 'object2',
+                    'description': 'This is object 2'
+            }]
+        '''
+        data_as_list = [value | {self.key_identifier: key} for key, value in data.items()]
+        return super().to_internal_value(data_as_list)
 
     @property
     def data(self):

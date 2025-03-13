@@ -1,7 +1,5 @@
 import logging
-from io import BytesIO
 
-from django.conf import settings
 from django.test import override_settings
 from django.urls import reverse
 
@@ -11,7 +9,6 @@ from stac_api.models.general import Provider
 from stac_api.models.item import Asset
 from stac_api.models.item import Item
 from stac_api.models.item import ItemLink
-from stac_api.utils import parse_multihash
 
 from tests.base_test_admin_page import AdminBaseTestCase
 from tests.utils import S3TestMixin
@@ -626,10 +623,6 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
 
         asset, data = self._create_asset(self.item)
 
-        filecontent = b'mybinarydata2'
-        filelike = BytesIO(filecontent)
-        filelike.name = 'testname.tiff'
-
         # update some data
         data["description"] = "This is a new description"
         data["eo_gsd"] = 20
@@ -637,8 +630,6 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
         data["geoadmin_variant"] = "kombs"
         data["proj_epsg"] = 2057
         data["title"] = "New Asset for test"
-        data["media_type"] = "application/x.ascii-grid+zip"
-        data["file"] = filelike
         response = self.client.post(reverse('admin:stac_api_asset_change', args=[asset.id]), data)
 
         # Status code for successful creation is 302, since in the admin UI
@@ -646,13 +637,9 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
         self.assertEqual(response.status_code, 302, msg="Admin page failed to update asset")
         asset.refresh_from_db()
         for key, value in data.items():
-            if key in ['item', 'id', 'file']:
+            if key in ['item', 'id']:
                 continue
             self.assertEqual(getattr(asset, key), value, msg=f"Failed to update field {key}")
-
-        # Check that file content has changed
-        with asset.file.open() as fd:
-            self.assertEqual(filecontent, fd.read())
 
     def test_add_asset_with_invalid_data(self):
 
@@ -674,8 +661,6 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
     def test_add_remove_asset(self):
 
         asset, data = self._create_asset(self.item)
-        path = f"{asset.item.collection.name}/{asset.item.name}/{data['name']}"
-        self.assertS3ObjectExists(path)
 
         # remove asset
         response = self.client.post(
@@ -688,8 +673,6 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
         self.assertFalse(
             Asset.objects.filter(name=data["name"]).exists(), msg="Admin page asset still in DB"
         )
-
-        self.assertS3ObjectNotExists(path)
 
     @mock_s3_asset_file
     def test_add_update_asset_invalid_media_type(self):
@@ -723,10 +706,6 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
         )
         asset = Asset.objects.get(item=self.item, name=data["name"])
 
-        filecontent = b'mybinarydata2'
-        filelike = BytesIO(filecontent)
-        filelike.name = 'testname.tiff'
-
         data.update({
             "description": "",
             "eo_gsd": "",
@@ -734,18 +713,14 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
             "geoadmin_variant": "",
             "proj_epsg": "",
             "title": "",
-            "file": filelike
         })
 
         response = self.client.post(reverse('admin:stac_api_asset_change', args=[asset.id]), data)
         asset.refresh_from_db()
 
-        path = f"{self.item.collection.name}/{self.item.name}/{data['name']}"
-        sha256 = parse_multihash(asset.checksum_multihash).digest.hex()
-        obj = self.get_s3_object(path)
-        self.assertS3ObjectContentType(obj, path, content_type)
-        self.assertS3ObjectSha256(obj, path, sha256)
-        self.assertS3ObjectCacheControl(obj, path, max_age=settings.STORAGE_ASSETS_CACHE_SECONDS)
+        #assert asset metadata
+        self.assertEqual(asset.media_type, content_type)
+        self.assertEqual(asset.description, None)
 
     @mock_s3_asset_file
     def test_asset_custom_upload(self):

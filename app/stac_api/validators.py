@@ -21,6 +21,7 @@ from django.utils.translation import gettext_lazy as _
 from stac_api.utils import fromisoformat
 from stac_api.utils import geometry_from_bbox
 from stac_api.utils import is_valid_b64
+from stac_api.utils import parse_cache_control_header
 
 logger = logging.getLogger(__name__)
 
@@ -715,3 +716,60 @@ def validate_href_url(url, collection):
     _validate_href_general_pattern(url, collection)
     _validate_href_configured_pattern(url, collection)
     _validate_href_reachability(url, collection)
+
+
+def validate_cache_control_header(value):
+    '''Validate the cache control header field
+
+    Args:
+        value: str
+            value to validate
+
+     Raises:
+        ValidationError in case of invalid cache control header value
+    '''
+    if not isinstance(value, str):
+        raise ValidationError(_('Invalid cache control header value: must be a string'),
+                              code='invalid')
+    if not value:
+        return
+
+    directives = parse_cache_control_header(value)
+    integer_directives = ['max-age', 's-maxage', 'stale-while-revalidate', 'stale-if-error']
+    boolean_directives = [
+        'no-cache',
+        'no-store',
+        'no-transform',
+        'public',
+        'private',
+        'must-revalidate',
+        'proxy-revalidate',
+        'must-understand',
+        'immutable',
+    ]
+    unknown_directives = set(directives.keys()) - set(integer_directives + boolean_directives)
+    if unknown_directives:
+        raise ValidationError(
+            _('Invalid cache control header value: unknown directive(s): %(directive)s'),
+            code='invalid', params={'directive': ", ".join(unknown_directives)}
+        )
+
+    # validate integer directive values
+    for directive in set(directives.keys()) & set(integer_directives):
+        try:
+            int(directives[directive])
+        except ValueError as error:
+            raise ValidationError(
+                _('Invalid cache control header value: directive ' +
+                  '"%(directive)s" must be an integer'),
+                code='invalid', params={'directive': directive}
+            ) from error
+
+    # validate boolean directive values
+    for directive in set(directives.keys()) & set(boolean_directives):
+        if not isinstance(directives[directive], bool):
+            raise ValidationError(
+                _('Invalid cache control header value: directive ' +
+                  '"%(directive)s" must not have a value'),
+                code='invalid', params={'directive': directive}
+            )

@@ -69,6 +69,23 @@ components:
         selected collections that should be returned in the response, the page size.
         Each page include links to support paging (link relation `next` and/or
         `previous`).
+    CollectionAssets:
+      description: >-
+        The response is a document consisting of all assets of the collection.
+      content:
+        application/json:
+          schema:
+            $ref: "./schemas.yaml#/components/schemas/collectionAssets"
+    CollectionAsset:
+      description: >-
+        The response is a document consisting of one asset of the collection.
+      headers:
+        ETag:
+          $ref: "./headers.yaml#/components/headers/ETag"
+      content:
+        application/json:
+          schema:
+            $ref: "./schemas.yaml#/components/schemas/collectionAsset"
     ConformanceDeclaration:
       content:
         application/json:
@@ -151,23 +168,23 @@ components:
             description: Catalog of Swiss Geodata Downloads
             id: ch
             links:
-              - href: http://data.geo.admin.ch/api/stac/v0.9/
+              - href: http://data.geo.admin.ch/api/stac/v1/
                 rel: self
                 type: application/json
                 title: this document
-              - href: http://data.geo.admin.ch/api/stac/v0.9/static/api.html
+              - href: http://data.geo.admin.ch/api/stac/v1/static/api.html
                 rel: service-doc
                 type: text/html
                 title: the API documentation
-              - href: http://data.geo.admin.ch/api/stac/v0.9/conformance
+              - href: http://data.geo.admin.ch/api/stac/v1/conformance
                 rel: conformance
                 type: application/json
                 title: OGC API conformance classes implemented by this server
-              - href: http://data.geo.admin.ch/api/stac/v0.9/collections
+              - href: http://data.geo.admin.ch/api/stac/v1/collections
                 rel: data
                 type: application/json
                 title: Information about the feature collections
-              - href: http://data.geo.admin.ch/api/stac/v0.9/search
+              - href: http://data.geo.admin.ch/api/stac/v1/search
                 rel: search
                 type: application/json
                 title: Search across feature collections
