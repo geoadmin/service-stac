@@ -137,6 +137,7 @@ class CollectionAsset(AssetBase):
         ordering = ['id']
         triggers = generates_collection_asset_triggers()
 
+
     collection = models.ForeignKey(
         Collection,
         related_name='assets',
