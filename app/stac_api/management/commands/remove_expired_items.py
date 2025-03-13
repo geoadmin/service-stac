@@ -68,7 +68,7 @@ class Command(CustomBaseCommand):
         default_min_age = settings.DELETE_EXPIRED_ITEMS_OLDER_THAN_HOURS
         parser.add_argument(
             '--min-age-hours',
-            type=float,
+            type=int,
             default=default_min_age,
             help=f"Minimum hours the item must have been expired for (default {default_min_age})"
         )
