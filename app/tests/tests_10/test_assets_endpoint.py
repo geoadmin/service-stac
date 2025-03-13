@@ -138,7 +138,8 @@ class AssetsEndpointTestCase(StacBaseTestCase):
         asset = self.factory.create_asset_sample(item=item, db_create=True).model
         with patch.object(timezone, "now", return_value=timezone.now() + timedelta(hours=2)):
             response = self.client.get(
-                f"/{STAC_BASE_V}/collections/{collection_name}/items/{item.name}/assets/{asset.name}"
+                f"/{STAC_BASE_V}/collections/{collection_name}/items/{item.name}/"
+                f"assets/{asset.name}"
             )
         self.assertStatusCode(404, response)
 
