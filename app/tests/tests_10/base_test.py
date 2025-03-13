@@ -187,6 +187,10 @@ class StacTestMixin:
                 'rel': 'items',
                 'href': f'{TEST_LINK_ROOT_HREF}/collections/{name}/items',
             },
+            {
+                'rel': 'assets',
+                'href': f'{TEST_LINK_ROOT_HREF}/collections/{name}/assets',
+            },
         ]
         self._check_stac_links('item.links', links, current['links'])
 
@@ -347,6 +351,10 @@ class StacTestMixin:
                 TEST_LINK_ROOT,
                 {
                     'rel': 'parent',
+                    'href': f'{TEST_LINK_ROOT_HREF}/collections/{collection}',
+                },
+                {
+                    'rel': 'collection',
                     'href': f'{TEST_LINK_ROOT_HREF}/collections/{collection}',
                 },
             ]
