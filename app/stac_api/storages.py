@@ -17,7 +17,7 @@ class BaseS3Storage(S3Boto3Storage):
     # pylint: disable=abstract-method
 
     object_sha256 = None
-    update_interval = -1
+    cache_control_header = None
     asset_content_type = None
 
     access_key = None
@@ -38,7 +38,7 @@ class BaseS3Storage(S3Boto3Storage):
 
         super().__init__()
         self.object_sha256 = None
-        self.update_interval = -1
+        self.cache_control_header = None
         self.asset_content_type = None
 
     def get_object_parameters(self, name):
@@ -70,7 +70,7 @@ class BaseS3Storage(S3Boto3Storage):
             logger.warning(
                 'Global cache-control header for S3 storage will be overwritten for %s', name
             )
-        params["CacheControl"] = get_s3_cache_control_value(self.update_interval)
+        params["CacheControl"] = get_s3_cache_control_value(self.cache_control_header)
 
         stamp = mktime(datetime.now().timetuple())
         params['Expires'] = format_date_time(stamp + settings.STORAGE_ASSETS_CACHE_SECONDS)

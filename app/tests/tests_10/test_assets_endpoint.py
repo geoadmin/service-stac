@@ -6,6 +6,7 @@ from datetime import timedelta
 from json import dumps
 from json import loads
 from pprint import pformat
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.test import Client
@@ -101,11 +102,12 @@ class AssetsEndpointTestCase(StacBaseTestCase):
             self.collection,
             name='item-expired',
             db_create=True,
-            properties_expires=timezone.now() - timedelta(hours=1)
+            properties_expires=timezone.now() + timedelta(hours=1)
         ).model
-        response = self.client.get(
-            f"/{STAC_BASE_V}/collections/{collection_name}/items/{item_expired.name}/assets"
-        )
+        with patch.object(timezone, "now", return_value=timezone.now() + timedelta(hours=2)):
+            response = self.client.get(
+                f"/{STAC_BASE_V}/collections/{collection_name}/items/{item_expired.name}/assets"
+            )
         self.assertStatusCode(404, response)
 
     def test_single_asset_endpoint(self):
@@ -131,12 +133,14 @@ class AssetsEndpointTestCase(StacBaseTestCase):
             self.collection,
             name='item-expired',
             db_create=True,
-            properties_expires=timezone.now() - timedelta(hours=1)
+            properties_expires=timezone.now() + timedelta(hours=1)
         ).model
         asset = self.factory.create_asset_sample(item=item, db_create=True).model
-        response = self.client.get(
-            f"/{STAC_BASE_V}/collections/{collection_name}/items/{item.name}/assets/{asset.name}"
-        )
+        with patch.object(timezone, "now", return_value=timezone.now() + timedelta(hours=2)):
+            response = self.client.get(
+                f"/{STAC_BASE_V}/collections/{collection_name}/items/{item.name}/"
+                f"assets/{asset.name}"
+            )
         self.assertStatusCode(404, response)
 
 

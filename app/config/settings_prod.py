@@ -274,6 +274,13 @@ try:
 except ValueError as err:
     raise ValueError('Invalid HTTP_ASSETS_CACHE_SECONDS, must be an integer') from err
 
+# Search and collection list endpoint cache settings
+# The cache is used for the search and collection list endpoints, which is disabled by default.
+# Each collection might have different cache settings due to the cache_control_header field at
+# the collection level, therefore to keep endpoint simple, that returns multiple collections
+# content, we disable the cache by default.
+COLLECTIONS_AGGREGATE_CACHE_SECONDS = env.int('COLLECTIONS_AGGREGATE_CACHE_SECONDS', default=0)
+
 # Logging
 # https://docs.djangoproject.com/en/3.1/topics/logging/
 

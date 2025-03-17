@@ -2655,6 +2655,9 @@ components:
             example: yLLiDqX2OL7mcIMTjob60A==
     update_interval:
       description: |
+        ***DEPRECATED***
+        ***This field is deprecated and has no effect anymore, it is kept as a hint.***
+
         Duration in seconds until the next update of the data is expected
 
         Regularly updated asset objects need different cache settings than the values

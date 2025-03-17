@@ -3,7 +3,6 @@ import logging
 from django.conf import settings
 
 from rest_framework import generics
-from rest_framework import mixins
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework_condition import etag
@@ -18,9 +17,10 @@ from stac_api.validators_view import validate_collection
 from stac_api.validators_view import validate_renaming
 from stac_api.views.general import get_etag
 from stac_api.views.mixins import DestroyModelMixin
-from stac_api.views.mixins import RetrieveModelDynCacheMixin
+from stac_api.views.mixins import RetrieveModelWithCacheMixin
 from stac_api.views.mixins import UpdateInsertModelMixin
-from stac_api.views.mixins import patch_cache_settings_by_update_interval
+from stac_api.views.mixins import patch_collection_cache_control_header
+from stac_api.views.mixins import patch_collections_aggregate_cache_control_header
 
 logger = logging.getLogger(__name__)
 
@@ -96,12 +96,15 @@ class CollectionList(generics.GenericAPIView):
         data = {'collections': serializer.data, 'links': get_relation_links(request, self.name)}
 
         if page is not None:
-            return self.get_paginated_response(data)
-        return Response(data)
+            response = self.get_paginated_response(data)
+        else:
+            response = Response(data)
+        patch_collections_aggregate_cache_control_header(response)
+        return response
 
 
 class CollectionDetail(
-    generics.GenericAPIView, mixins.RetrieveModelMixin, UpdateInsertModelMixin, DestroyModelMixin
+    generics.GenericAPIView, RetrieveModelWithCacheMixin, UpdateInsertModelMixin, DestroyModelMixin
 ):
     # this name must match the name in urls.py and is used by the DestroyModelMixin
     name = 'collection-detail'
@@ -168,9 +171,6 @@ class CollectionAssetsList(generics.GenericAPIView):
         validate_collection(self.kwargs)
 
         queryset = self.filter_queryset(self.get_queryset())
-        update_interval = Collection.objects.values('update_interval').get(
-            name=self.kwargs['collection_name']
-        )['update_interval']
         serializer = self.get_serializer(queryset, many=True)
 
         data = {
@@ -178,12 +178,12 @@ class CollectionAssetsList(generics.GenericAPIView):
             'links': get_relation_links(request, self.name, [self.kwargs['collection_name']])
         }
         response = Response(data)
-        patch_cache_settings_by_update_interval(response, update_interval)
+        patch_collection_cache_control_header(response, self.kwargs['collection_name'])
         return response
 
 
 class CollectionAssetDetail(
-    generics.GenericAPIView, UpdateInsertModelMixin, DestroyModelMixin, RetrieveModelDynCacheMixin
+    generics.GenericAPIView, RetrieveModelWithCacheMixin, UpdateInsertModelMixin, DestroyModelMixin
 ):
     # this name must match the name in urls.py and is used by the DestroyModelMixin
     name = 'collection-asset-detail'

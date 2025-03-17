@@ -1,5 +1,6 @@
 from datetime import timedelta
 from io import StringIO
+from unittest.mock import patch
 
 from django.core.management import call_command
 from django.test import TestCase
@@ -36,13 +37,15 @@ class RemoveExpiredItems(TestCase):
             self.collection,
             name='item-0',
             db_create=True,
-            properties_expires=timezone.now() - timedelta(hours=50)
+            properties_expires=timezone.now() + timedelta(hours=1)
         )
         assets = self.factory.create_asset_samples(
             2, item_0.model, name=['asset-0.tiff', 'asset-1.tiff'], db_create=True
         )
 
-        out = self._call_command("--dry-run", "--no-color")
+        with patch.object(timezone, "now", return_value=timezone.now() + timedelta(hours=26)):
+            out = self._call_command("--dry-run", "--no-color")
+
         self.assertEqual(
             out,
             """running command to remove expired items
@@ -72,11 +75,12 @@ skipping deletion of item collection-1/item-0
             self.collection,
             name='item-1',
             db_create=True,
-            properties_expires=timezone.now() - timedelta(hours=10)
+            properties_expires=timezone.now() + timedelta(hours=1)
         )
         assets = self.factory.create_asset_samples(
             2, item_1.model, name=['asset-2.tiff', 'asset-3.tiff'], db_create=True
         )
+
         out = self._call_command("--no-color")
         self.assertEqual(
             out,
@@ -99,7 +103,8 @@ successfully removed 0 expired items
             msg="not expired asset has been deleted"
         )
 
-        out = self._call_command("--min-age-hours=9", "--no-color")
+        with patch.object(timezone, "now", return_value=timezone.now() + timedelta(hours=10)):
+            out = self._call_command("--min-age-hours=9", "--no-color")
         self.assertEqual(
             out,
             """running command to remove expired items
