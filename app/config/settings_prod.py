@@ -76,7 +76,7 @@ INSTALLED_APPS = [
 ]
 
 # API Authentication options
-FEATURE_AUTH_ENABLE_APIGW = env('FEATURE_AUTH_ENABLE_APIGW', bool, default=False)
+FEATURE_AUTH_ENABLE_APIGW = env('FEATURE_AUTH_ENABLE_APIGW', bool, default=True)
 FEATURE_AUTH_RESTRICT_V1 = env('FEATURE_AUTH_RESTRICT_V1', bool, default=False)
 
 # Middlewares are executed in order, once for the incoming
@@ -287,7 +287,8 @@ COLLECTIONS_AGGREGATE_CACHE_SECONDS = env.int('COLLECTIONS_AGGREGATE_CACHE_SECON
 
 # Read configuration from file
 def get_logging_config():
-    '''Read logging configuration
+    '''Read logging configur_id=self.kwargs['asset_name'],
+            extra_log={ation
     Read and parse the yaml logging configuration file passed in the environment variable
     LOGGING_CFG and return it as dictionary
     Note: LOGGING_CFG is relative to the root of the repo

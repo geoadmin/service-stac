@@ -87,7 +87,7 @@ class CollectionAssetBaseSerializer(NonNullModelSerializer, UpsertModelSerialize
     proj_epsg = serializers.IntegerField(source='proj_epsg', allow_null=True, required=False)
     # read only fields
     checksum_multihash = serializers.CharField(source='checksum_multihash', read_only=True)
-    href = HrefField(source='file', read_only=True)
+    href = HrefField(source='file', read_only=False)
     created = serializers.DateTimeField(read_only=True)
     updated = serializers.DateTimeField(read_only=True)
 

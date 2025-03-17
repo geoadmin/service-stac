@@ -249,7 +249,7 @@ class CollectionAssetDetail(
         lookup['collection__name'] = collection.name
 
         file, is_external = self._get_file_path(serializer, collection, self.kwargs['asset_name'])
-        return serializer.save(collection=collection, file=file, is_external=is_external)
+        return serializer.upsert(lookup, collection=collection, file=file, is_external=is_external)
 
     @etag(get_collection_asset_etag)
     def get(self, request, *args, **kwargs):
