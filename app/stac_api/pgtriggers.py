@@ -180,39 +180,10 @@ def generates_asset_triggers():
     Those triggers act on `insert`, `update` and `delete` Asset event and do the followings:
       - Update the `updated` and `etag` fields of the assets and their parents
       - Update the parent collection summaries (via counter tables).
-      - Update the parent item `update_interval` by using the minimal aggregation of all of its
-        assets
 
     Returns: tuple
         tuple for all needed triggers
     '''
-
-    class ItemUpdateIntervalTrigger(pgtrigger.Trigger):
-        when = pgtrigger.After
-        declare = [
-            ('asset_instance', 'stac_api_asset%ROWTYPE'),
-            ('item_update_interval', 'RECORD'),
-        ]
-        func = '''
-        asset_instance = COALESCE(NEW, OLD);
-
-        -- Compute item update_interval (minimum aggregation of asset's update_interval)
-        SELECT
-            COALESCE(MIN(NULLIF(asset.update_interval, -1)), -1) AS min_update_interval
-        INTO item_update_interval
-        FROM stac_api_asset AS asset
-        WHERE asset.item_id = asset_instance.item_id;
-
-        -- Update related item update_interval variables
-        UPDATE stac_api_item SET
-            update_interval = item_update_interval.min_update_interval
-        WHERE id = asset_instance.item_id;
-
-        RAISE INFO 'item.id=% update_interval updated, due to asset.name=% updates.',
-            asset_instance.item_id, asset_instance.name;
-
-        RETURN asset_instance;
-        '''
 
     class ItemFileSizeTrigger(pgtrigger.Trigger):
         when = pgtrigger.After
@@ -247,16 +218,6 @@ def generates_asset_triggers():
         *asset_counter_trigger('geoadminlangcount', 'geoadmin_lang'),
         *asset_counter_trigger('geoadminvariantcount', 'geoadmin_variant'),
         *asset_counter_trigger('projepsgcount', 'proj_epsg'),
-        ItemUpdateIntervalTrigger(
-            name='add_del_asset_item_update_interval_trigger',
-            operation=pgtrigger.Insert | pgtrigger.Delete,
-        ),
-        ItemUpdateIntervalTrigger(
-            name='update_asset_item_update_interval_trigger',
-            operation=pgtrigger.Update,
-            condition=pgtrigger.
-            Condition('OLD.update_interval IS DISTINCT FROM NEW.update_interval'),
-        ),
         ItemFileSizeTrigger(
             name='add_del_asset_item_file_size_trigger',
             operation=pgtrigger.Insert | pgtrigger.Delete,
@@ -274,28 +235,9 @@ def generates_collection_asset_triggers():
     Triggers act on `insert`, `update` and `delete` collection asset event and do the following:
       - Update the `updated` and `etag` fields of the assets and their parents
       - Update the parent collection summaries.
-      - Update the parent collection `update_interval` by using the minimal aggregation of all
-        of its assets
     Returns: tuple
         tuple for all needed triggers
     '''
-
-    class CollectionUpdateIntervalTrigger(pgtrigger.Trigger):
-        when = pgtrigger.After
-        declare = [
-            ('asset_instance', 'stac_api_collectionasset%ROWTYPE'),
-        ]
-        func = '''
-        asset_instance = COALESCE(NEW, OLD);
-        -- Update related collection update_interval variables
-        -- if new value is lower than existing one.
-        UPDATE stac_api_collection SET
-            update_interval = COALESCE(LEAST(NULLIF(asset_instance.update_interval, -1), update_interval), -1)
-        WHERE id = asset_instance.collection_id;
-        RAISE INFO 'collection.id=% update_interval updated, due to collectionasset.name=% updates.',
-            asset_instance.collection_id, asset_instance.name;
-        RETURN asset_instance;
-        '''
 
     class CollectionFileSizeTrigger(pgtrigger.Trigger):
         when = pgtrigger.After
@@ -400,15 +342,6 @@ def generates_collection_asset_triggers():
             name='add_col_asset_proj_epsg_trigger',
             operation=pgtrigger.Insert,
         ),
-        CollectionUpdateIntervalTrigger(
-            name='add_del_col_asset_col_update_interval_trigger',
-            operation=pgtrigger.Insert | pgtrigger.Delete,
-        ),
-        CollectionUpdateIntervalTrigger(
-            name='update_col_asset_col_update_interval_trigger',
-            operation=pgtrigger.Update,
-            condition=pgtrigger.Condition('OLD.* IS DISTINCT FROM NEW.*'),
-        ),
         CollectionFileSizeTrigger(
             name='add_del_col_asset_col_file_size_trigger',
             operation=pgtrigger.Insert | pgtrigger.Delete,
@@ -446,33 +379,6 @@ def generates_item_triggers():
         WHERE id = item_instance.collection_id;
 
         RAISE INFO 'collection.id=% extent_out_of_sync updated, due to item.name=% updates.', item_instance.collection_id, item_instance.name;
-
-        RETURN item_instance;
-        '''
-
-    class CollectionUpdateIntervalTrigger(pgtrigger.Trigger):
-        when = pgtrigger.After
-        declare = [
-            ('item_instance', 'stac_api_item%ROWTYPE'),
-            ('collection_update_interval', 'RECORD'),
-        ]
-        func = '''
-        item_instance = COALESCE(NEW, OLD);
-
-        -- Compute collection update_interval (minimum aggregation of item's update_interval)
-        SELECT
-            COALESCE(MIN(NULLIF(item.update_interval, -1)), -1) AS min_update_interval
-        INTO collection_update_interval
-        FROM stac_api_item AS item
-        WHERE item.collection_id = item_instance.collection_id;
-
-        -- Update related collection update_interval variables
-        UPDATE stac_api_collection SET
-            update_interval = collection_update_interval.min_update_interval
-        WHERE id = item_instance.collection_id;
-
-        RAISE INFO 'collection.id=% update_interval updated, due to item.name=% updates.',
-            item_instance.collection_id, item_instance.name;
 
         RETURN item_instance;
         '''
@@ -519,16 +425,6 @@ def generates_item_triggers():
         CollectionExtentTrigger(
             name='add_del_item_collection_extent_trigger',
             operation=pgtrigger.Delete | pgtrigger.Insert
-        ),
-        CollectionUpdateIntervalTrigger(
-            name='add_del_item_collection_update_interval_trigger',
-            operation=pgtrigger.Insert | pgtrigger.Delete,
-        ),
-        CollectionUpdateIntervalTrigger(
-            name='update_item_collection_update_interval_trigger',
-            operation=pgtrigger.Update,
-            condition=pgtrigger.
-            Condition('OLD.update_interval IS DISTINCT FROM NEW.update_interval'),
         ),
         CollectionFileSizeTrigger(
             name='add_del_item_collection_file_size_trigger',

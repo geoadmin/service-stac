@@ -536,31 +536,19 @@ class SearchEndpointCacheSettingTestCase(StacBaseTestCase):
     def test_get_search_dft_cache_setting(self):
         response = self.client.get(reverse_version('search-list'))
         self.assertStatusCode(200, response)
-        self.assertCacheControl(response, max_age=3600)
-
-    def test_get_search_low_cache_setting(self):
-        self.factory.create_asset_sample(self.items[0].model, db_create=True, update_interval=60)
-        response = self.client.get(reverse_version('search-list'))
-        self.assertStatusCode(200, response)
-        self.assertCacheControl(response, max_age=3)
+        self.assertCacheControl(response, no_cache=True)
 
     def test_get_search_no_cache_setting(self):
-        self.factory.create_asset_sample(self.items[0].model, db_create=True, update_interval=5)
+        self.factory.create_asset_sample(self.items[0].model, db_create=True)
         response = self.client.get(reverse_version('search-list'))
         self.assertStatusCode(200, response)
         self.assertCacheControl(response, no_cache=True)
 
-    def test_get_search_low_cache_setting_out_of_page(self):
-        self.factory.create_asset_sample(self.items[-1].model, db_create=True, update_interval=60)
-        response = self.client.get(reverse_version('search-list'), QUERY_STRING="limit=1")
-        self.assertStatusCode(200, response)
-        self.assertCacheControl(response, max_age=3600)
-
     def test_get_search_no_cache_setting_out_of_page(self):
-        self.factory.create_asset_sample(self.items[-1].model, db_create=True, update_interval=5)
+        self.factory.create_asset_sample(self.items[-1].model, db_create=True)
         response = self.client.get(reverse_version('search-list'), QUERY_STRING="limit=1")
         self.assertStatusCode(200, response)
-        self.assertCacheControl(response, max_age=3600)
+        self.assertCacheControl(response, no_cache=True)
 
     def test_post_search_no_cache_setting(self):
         response = self.client.post(reverse_version('search-list'))
@@ -569,7 +557,7 @@ class SearchEndpointCacheSettingTestCase(StacBaseTestCase):
             response.has_header('Cache-Control'),
             msg="Unexpected Cache-Control header in POST response"
         )
-        self.factory.create_asset_sample(self.items[0].model, db_create=True, update_interval=60)
+        self.factory.create_asset_sample(self.items[0].model, db_create=True)
         response = self.client.post(reverse_version('search-list'))
         self.assertStatusCode(200, response)
         self.assertFalse(

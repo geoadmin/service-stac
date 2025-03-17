@@ -49,7 +49,7 @@ class DummyAssetUploadHandler(CommandHandler):
             key=key,
             asset=asset,
             checksum_multihash=checksum_multihash,
-            update_interval=360,
+            cache_control_header="public, max-age=360",
             content_encoding=None
         )
         AssetUpload.objects.get_or_create(

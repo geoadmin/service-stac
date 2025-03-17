@@ -122,9 +122,6 @@ class ItemsList(generics.GenericAPIView):
     def list(self, request, *args, **kwargs):
         validate_collection(self.kwargs)
         queryset = self.filter_queryset(self.get_queryset())
-        update_interval = Collection.objects.values('update_interval').get(
-            name=self.kwargs['collection_name']
-        )['update_interval']
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
@@ -141,7 +138,10 @@ class ItemsList(generics.GenericAPIView):
         if page is not None:
             response = self.get_paginated_response(data)
         response = Response(data)
-        mixins.patch_cache_settings_by_update_interval(response, update_interval)
+
+        # Patch catch control header
+        mixins.patch_collection_cache_control_header(response, self.kwargs['collection_name'])
+
         return response
 
     def get(self, request, *args, **kwargs):
@@ -182,7 +182,7 @@ class ItemsList(generics.GenericAPIView):
 
 class ItemDetail(
     generics.GenericAPIView,
-    mixins.RetrieveModelDynCacheMixin,
+    mixins.RetrieveModelWithCacheMixin,
     mixins.UpdateInsertModelMixin,
     mixins.DestroyModelMixin
 ):
@@ -276,10 +276,6 @@ class AssetsList(generics.GenericAPIView):
         validate_item(self.kwargs)
 
         queryset = self.filter_queryset(self.get_queryset())
-        update_interval = Item.objects.values('update_interval').get(
-            collection__name=self.kwargs['collection_name'],
-            name=self.kwargs['item_name'],
-        )['update_interval']
         serializer = self.get_serializer(queryset, many=True)
 
         data = {
@@ -290,15 +286,17 @@ class AssetsList(generics.GenericAPIView):
                 )
         }
         response = Response(data)
-        mixins.patch_cache_settings_by_update_interval(response, update_interval)
+
+        # Patch cache control header
+        mixins.patch_collection_cache_control_header(response, self.kwargs['collection_name'])
         return response
 
 
 class AssetDetail(
     generics.GenericAPIView,
+    mixins.RetrieveModelWithCacheMixin,
     mixins.UpdateInsertModelMixin,
     mixins.DestroyModelMixin,
-    mixins.RetrieveModelDynCacheMixin
 ):
     # this name must match the name in urls.py and is used by the DestroyModelMixin
     name = 'asset-detail'
