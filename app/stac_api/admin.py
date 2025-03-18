@@ -367,6 +367,23 @@ class CollectionAssetAdminForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        if self.instance and self.instance.id is not None:
+            if 'is_external' in self.fields:
+                external_field = self.fields['is_external']
+                external_field.help_text = (
+                    _('Whether this asset is hosted externally. Save the form in '
+                      'order to toggle the file field between input and file widget.')
+                )
+
+            if self.instance.is_external:
+                self.fields['file'] = forms.CharField(
+                    label='File',
+                    required=False,
+                    widget=forms.TextInput(attrs={'size': 150}),
+                )
+                self.fields['file'].widget.attrs['placeholder'
+                                                ] = 'https://map.geo.admin.ch/external.jpg'
+
 
 @admin.register(CollectionAsset)
 class CollectionAssetAdmin(admin.ModelAdmin):
@@ -382,6 +399,7 @@ class CollectionAssetAdmin(admin.ModelAdmin):
         'file',
         'collection_name',
         'href',
+        'is_external',
         'checksum_multihash',
         'created',
         'updated',
@@ -481,16 +499,45 @@ class CollectionAssetAdmin(admin.ModelAdmin):
     # That's why some fields like the name of the asset are set readonly here
     # for update operations
     def get_fieldsets(self, request, obj=None):
-        fields = super().get_fieldsets(request, obj)
+        """Build the different field sets for the admin page."""
+
+        base_fields = super().get_fieldsets(request, obj)
+
         if obj is None:
-            # In case a new Asset is added use the normal field 'collection' from model that have
-            # a help text fort the search functionality.
-            fields[0][1]['fields'] = ('name', 'collection', 'created', 'updated', 'etag')
-            return fields
-        # Otherwise if this is an update operation only display the read only fields
-        # without help text
-        fields[0][1]['fields'] = ('name', 'collection_name', 'created', 'updated', 'etag')
-        return fields
+            return ((None, {'fields': ('name', 'collection', 'created', 'updated', 'etag')}),)
+
+        # Define file fields conditionally based on `allow_external_assets`
+        if obj.collection.allow_external_assets:
+            file_fields = (
+                'is_external',
+                'file',
+                'media_type',
+                'href',
+                'checksum_multihash',
+                'update_interval',
+                'displayed_file_size'
+            )
+        else:
+            file_fields = (
+                'file',
+                'media_type',
+                'href',
+                'checksum_multihash',
+                'update_interval',
+                'displayed_file_size'
+            )
+
+        return [
+            (None, {
+                'fields': ('name', 'collection_name', 'created', 'updated', 'etag')
+            }),
+            ('File', {
+                'fields': file_fields
+            }),
+            ('Description', {
+                'fields': ('title', 'description', 'roles')
+            }),
+        ]
 
 
 class AssetAdminForm(forms.ModelForm):
