@@ -316,29 +316,15 @@ class CollectionAssetsUpdateEndpointAssetFileTestCase(StacBaseTestCase):
         asset_sample = self.asset.copy()
 
         put_payload = asset_sample.get_json('put')
-        put_payload['href'] = 'https://testserver/non-existing-asset'
-        patch_payload = {'href': 'https://testserver/non-existing-asset'}
+        put_payload['href'] = 'https://testserver/external-asset'
+        patch_payload = {'href': 'https://testserver/external-asset-2'}
 
         path = f'/{STAC_BASE_V}/collections/{collection_name}/assets/{asset_name}'
         response = self.client.patch(path, data=patch_payload, content_type="application/json")
-        self.assertStatusCode(400, response)
-        description = response.json()['description']
-        self.assertIn('href', description, msg=f'Unexpected field error {description}')
-        self.assertEqual(
-            "Found read-only property in payload",
-            description['href'][0],
-            msg="Unexpected error message"
-        )
+        self.assertStatusCode(200, response)
 
         response = self.client.put(path, data=put_payload, content_type="application/json")
-        self.assertStatusCode(400, response)
-        description = response.json()['description']
-        self.assertIn('href', description, msg=f'Unexpected field error {description}')
-        self.assertEqual(
-            "Found read-only property in payload",
-            description['href'][0],
-            msg="Unexpected error message"
-        )
+        self.assertStatusCode(200, response)
 
 
 @override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
