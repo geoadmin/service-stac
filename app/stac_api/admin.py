@@ -376,15 +376,6 @@ class CollectionAssetAdminForm(forms.ModelForm):
                       'order to toggle the file field between input and file widget.')
                 )
 
-            if self.instance.is_external:
-                self.fields['file'] = forms.CharField(
-                    label='File',
-                    required=False,
-                    widget=forms.TextInput(attrs={'size': 150}),
-                )
-                self.fields['file'].widget.attrs['placeholder'
-                                                ] = 'https://map.geo.admin.ch/external.jpg'
-
 
 @admin.register(CollectionAsset)
 class CollectionAssetAdmin(admin.ModelAdmin):
