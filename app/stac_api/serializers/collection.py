@@ -59,6 +59,7 @@ class CollectionAssetBaseSerializer(NonNullModelSerializer, UpsertModelSerialize
             'title',
             'type',
             'href',
+            'is_external',
             'description',
             'roles',
             'proj_epsg',
@@ -88,6 +89,7 @@ class CollectionAssetBaseSerializer(NonNullModelSerializer, UpsertModelSerialize
     # read only fields
     checksum_multihash = serializers.CharField(source='checksum_multihash', read_only=True)
     href = HrefField(source='file', required=False, read_only=False)
+    is_external = serializers.BooleanField(default=False, read_only=True)
     created = serializers.DateTimeField(read_only=True)
     updated = serializers.DateTimeField(read_only=True)
 
@@ -190,6 +192,7 @@ class CollectionAssetsForCollectionSerializer(CollectionAssetBaseSerializer):
             'title',
             'type',
             'href',
+            'is_external',
             'description',
             'roles',
             'proj_epsg',

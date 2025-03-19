@@ -310,16 +310,22 @@ class CollectionAssetsUpdateEndpointAssetFileTestCase(StacBaseTestCase):
         self.client = Client(headers=get_auth_headers())
         self.maxDiff = None  # pylint: disable=invalid-name
 
-    def test_asset_endpoint_patch_put_href(self):
+    def test_asset_endpoint_patch_put_href_to_external_href(self):
         collection_name = self.collection['name']
         asset_name = self.asset['name']
         asset_sample = self.asset.copy()
+
+        path = f'/{STAC_BASE_V}/collections/{collection_name}/assets/{asset_name}'
+
+        #verify the asset is internal before patching it
+        response = self.client.get(path)
+        self.assertStatusCode(200, response)
+        self.assertFalse(response.json()['is_external'])
 
         put_payload = asset_sample.get_json('put')
         put_payload['href'] = 'https://testserver/external-asset'
         patch_payload = {'href': 'https://testserver/external-asset-2'}
 
-        path = f'/{STAC_BASE_V}/collections/{collection_name}/assets/{asset_name}'
         response = self.client.patch(path, data=patch_payload, content_type="application/json")
         self.assertStatusCode(200, response)
 
