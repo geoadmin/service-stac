@@ -287,8 +287,7 @@ COLLECTIONS_AGGREGATE_CACHE_SECONDS = env.int('COLLECTIONS_AGGREGATE_CACHE_SECON
 
 # Read configuration from file
 def get_logging_config():
-    '''Read logging configur_id=self.kwargs['asset_name'],
-            extra_log={ation
+    '''Read logging configuration
     Read and parse the yaml logging configuration file passed in the environment variable
     LOGGING_CFG and return it as dictionary
     Note: LOGGING_CFG is relative to the root of the repo

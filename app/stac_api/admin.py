@@ -500,45 +500,21 @@ class CollectionAssetAdmin(admin.ModelAdmin):
     # That's why some fields like the name of the asset are set readonly here
     # for update operations
     def get_fieldsets(self, request, obj=None):
-        """Build the different field sets for the admin page."""
-
-        base_fields = super().get_fieldsets(request, obj)
-
+        fields = super().get_fieldsets(request, obj)
         if obj is None:
-            return ((None, {'fields': ('name', 'collection', 'created', 'updated', 'etag')}),)
-
-        # Define file fields conditionally based on `allow_external_assets`
+            # In case a new Asset is added use the normal field 'collection' from model that have
+            # a help text fort the search functionality.
+            fields[0][1]['fields'] = ('name', 'collection', 'created', 'updated', 'etag')
+            return fields
+        # Otherwise if this is an update operation only display the read only fields
+        # without help text
         if obj.collection.allow_external_assets:
-            file_fields = (
-                'is_external',
-                'file',
-                'media_type',
-                'href',
-                'checksum_multihash',
-                'update_interval',
-                'displayed_file_size'
+            fields[0][1]['fields'] = (
+                'name', 'collection_name', 'created', 'updated', 'etag', 'is_external'
             )
         else:
-            file_fields = (
-                'file',
-                'media_type',
-                'href',
-                'checksum_multihash',
-                'update_interval',
-                'displayed_file_size'
-            )
-
-        return [
-            (None, {
-                'fields': ('name', 'collection_name', 'created', 'updated', 'etag')
-            }),
-            ('File', {
-                'fields': file_fields
-            }),
-            ('Description', {
-                'fields': ('title', 'description', 'roles')
-            }),
-        ]
+            fields[0][1]['fields'] = ('name', 'collection_name', 'created', 'updated', 'etag')
+        return fields
 
 
 class AssetAdminForm(forms.ModelForm):
