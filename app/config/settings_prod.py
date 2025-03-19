@@ -76,7 +76,7 @@ INSTALLED_APPS = [
 ]
 
 # API Authentication options
-FEATURE_AUTH_ENABLE_APIGW = env('FEATURE_AUTH_ENABLE_APIGW', bool, default=True)
+FEATURE_AUTH_ENABLE_APIGW = env('FEATURE_AUTH_ENABLE_APIGW', bool, default=False)
 FEATURE_AUTH_RESTRICT_V1 = env('FEATURE_AUTH_RESTRICT_V1', bool, default=False)
 
 # Middlewares are executed in order, once for the incoming
