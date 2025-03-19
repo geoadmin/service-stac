@@ -332,6 +332,25 @@ class CollectionAssetsUpdateEndpointAssetFileTestCase(StacBaseTestCase):
         response = self.client.put(path, data=put_payload, content_type="application/json")
         self.assertStatusCode(200, response)
 
+    def test_asset_endpoint_patch_put_external_href(self):
+        collection_name = self.collection['name']
+        asset_name = 'new-external-asset.tiff'
+        asset_sample = self.asset.copy()
+        asset_sample['id'] = asset_name
+        asset_sample['name'] = asset_name
+
+        path = f'/{STAC_BASE_V}/collections/{collection_name}/assets/{asset_name}'
+        put_payload = asset_sample.get_json('put')
+        put_payload['href'] = 'https://testserver/external-asset'
+
+        response = self.client.put(path, data=put_payload, content_type="application/json")
+        self.assertStatusCode(201, response)
+
+        patch_payload = {'href': 'https://testserver/external-asset-2'}
+        response = self.client.patch(path, data=patch_payload, content_type="application/json")
+        self.assertStatusCode(200, response)
+        self.assertIn(patch_payload['href'], response.json()['href'])
+
 
 @override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class CollectionAssetsUpdateEndpointTestCase(StacBaseTestCase):
