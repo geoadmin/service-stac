@@ -9,6 +9,7 @@ from datetime import timedelta
 from datetime import timezone
 from pprint import pformat
 
+from django.conf import settings
 from django.contrib.gis.geos import Point
 from django.db import IntegrityError
 from django.urls import resolve
@@ -683,7 +684,7 @@ class ItemListDeserializationTestCase(StacBaseTestCase):
                             "title": "My title 1",
                             "description": "My description 1",
                             "type": "text/plain",
-                            "href": "asset-1",
+                            "href": settings.EXTERNAL_TEST_ASSET_URL,
                             "roles": ["myrole"],
                             "geoadmin:variant": "komb",
                             "geoadmin:lang": "de",
@@ -705,7 +706,7 @@ class ItemListDeserializationTestCase(StacBaseTestCase):
                             "title": "My title 2",
                             "description": "My description 2",
                             "type": "text/plain",
-                            "href": "asset-2",
+                            "href": settings.EXTERNAL_TEST_ASSET_URL,
                             "roles": ["myrole"],
                             "geoadmin:variant": "komb",
                             "geoadmin:lang": "de",
@@ -752,7 +753,7 @@ class ItemListDeserializationTestCase(StacBaseTestCase):
                         "name": "asset-1.txt",
                         "title": "My title 1",
                         "media_type": "text/plain",
-                        "file": "asset-1",
+                        "file": settings.EXTERNAL_TEST_ASSET_URL,
                         "description": "My description 1",
                         "roles": ["myrole"],
                         "eo_gsd": 2.5,
@@ -770,7 +771,7 @@ class ItemListDeserializationTestCase(StacBaseTestCase):
                         "name": "asset-2.txt",
                         "title": "My title 2",
                         "media_type": "text/plain",
-                        "file": "asset-2",
+                        "file": settings.EXTERNAL_TEST_ASSET_URL,
                         "description": "My description 2",
                         "roles": ["myrole"],
                         "eo_gsd": 2.5,
@@ -803,7 +804,7 @@ class ItemListDeserializationTestCase(StacBaseTestCase):
             "asset-1.txt": {
                 "gsd": 2.5,
                 "geoadmin:variant": "komb",
-                "href": "http://testserver/asset-1",
+                "href": settings.EXTERNAL_TEST_ASSET_URL,
                 "proj:epsg": 2056,
                 "type": "text/plain",
             },
@@ -812,7 +813,7 @@ class ItemListDeserializationTestCase(StacBaseTestCase):
             "asset-2.txt": {
                 "gsd": 2.5,
                 "geoadmin:variant": "komb",
-                "href": "http://testserver/asset-2",
+                "href": settings.EXTERNAL_TEST_ASSET_URL,
                 "proj:epsg": 2056,
                 "type": "text/plain",
             },

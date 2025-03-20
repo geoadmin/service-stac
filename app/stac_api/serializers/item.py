@@ -521,7 +521,8 @@ class ItemListSerializer(serializers.Serializer):
             for link_in in links_per_item[item.name]:
                 links.append(ItemLink(**link_in, item=item))
             for asset_in in assets_per_item[item.name]:
-                assets.append(Asset(**asset_in, item=item))
+                # Asset files are always hosted externally for bulk upload
+                assets.append(Asset(**asset_in, is_external=True, item=item))
 
         ItemLink.objects.bulk_create(links)
         Asset.objects.bulk_create(assets)
