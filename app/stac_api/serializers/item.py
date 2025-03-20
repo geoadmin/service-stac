@@ -12,11 +12,12 @@ from rest_framework_gis import serializers as gis_serializers
 from stac_api.models.item import Asset
 from stac_api.models.item import Item
 from stac_api.models.item import ItemLink
-from stac_api.serializers.utils import AssetsDictSerializer, ValidateHrefMixin
+from stac_api.serializers.utils import AssetsDictSerializer
 from stac_api.serializers.utils import HrefField
 from stac_api.serializers.utils import IsoDurationField
 from stac_api.serializers.utils import NonNullModelSerializer
 from stac_api.serializers.utils import UpsertModelSerializerMixin
+from stac_api.serializers.utils import ValidateHrefMixin
 from stac_api.serializers.utils import get_relation_links
 from stac_api.serializers.utils import update_or_create_links
 from stac_api.utils import get_stac_version

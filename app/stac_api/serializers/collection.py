@@ -9,10 +9,11 @@ from stac_api.models.collection import Collection
 from stac_api.models.collection import CollectionAsset
 from stac_api.models.collection import CollectionLink
 from stac_api.models.general import Provider
-from stac_api.serializers.utils import AssetsDictSerializer, ValidateHrefMixin
+from stac_api.serializers.utils import AssetsDictSerializer
 from stac_api.serializers.utils import HrefField
 from stac_api.serializers.utils import NonNullModelSerializer
 from stac_api.serializers.utils import UpsertModelSerializerMixin
+from stac_api.serializers.utils import ValidateHrefMixin
 from stac_api.serializers.utils import get_relation_links
 from stac_api.serializers.utils import update_or_create_links
 from stac_api.utils import get_stac_version
