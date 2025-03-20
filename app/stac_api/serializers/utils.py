@@ -3,10 +3,10 @@ from collections import OrderedDict
 from typing import Dict
 from typing import List
 
+from django.core.exceptions import ValidationError as CoreValidationError
 from django.utils.dateparse import parse_duration
 from django.utils.duration import duration_iso_string
 from django.utils.translation import gettext_lazy as _
-from django.core.exceptions import ValidationError as CoreValidationError
 
 from rest_framework import serializers
 from rest_framework.utils.serializer_helpers import ReturnDict

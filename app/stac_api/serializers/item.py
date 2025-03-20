@@ -3,7 +3,6 @@ import logging
 from datetime import timedelta
 from typing import override
 
-from django.core.exceptions import ValidationError as CoreValidationError
 from django.utils.translation import gettext_lazy as _
 
 from rest_framework import serializers
@@ -12,11 +11,12 @@ from rest_framework_gis import serializers as gis_serializers
 from stac_api.models.item import Asset
 from stac_api.models.item import Item
 from stac_api.models.item import ItemLink
-from stac_api.serializers.utils import AssetsDictSerializer, ValidateHrefMixin
+from stac_api.serializers.utils import AssetsDictSerializer
 from stac_api.serializers.utils import HrefField
 from stac_api.serializers.utils import IsoDurationField
 from stac_api.serializers.utils import NonNullModelSerializer
 from stac_api.serializers.utils import UpsertModelSerializerMixin
+from stac_api.serializers.utils import ValidateHrefMixin
 from stac_api.serializers.utils import get_relation_links
 from stac_api.serializers.utils import update_or_create_links
 from stac_api.utils import get_stac_version
@@ -26,7 +26,6 @@ from stac_api.validators import validate_asset_name
 from stac_api.validators import validate_asset_name_with_media_type
 from stac_api.validators import validate_expires
 from stac_api.validators import validate_geoadmin_variant
-from stac_api.validators import validate_href_url
 from stac_api.validators import validate_item_properties_datetimes
 from stac_api.validators import validate_name
 from stac_api.validators_serializer import validate_json_payload
