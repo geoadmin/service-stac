@@ -9,7 +9,7 @@ from stac_api.models.collection import Collection
 from stac_api.models.collection import CollectionAsset
 from stac_api.models.collection import CollectionLink
 from stac_api.models.general import Provider
-from stac_api.serializers.utils import AssetsDictSerializer
+from stac_api.serializers.utils import AssetsDictSerializer, ValidateHrefMixin
 from stac_api.serializers.utils import HrefField
 from stac_api.serializers.utils import NonNullModelSerializer
 from stac_api.serializers.utils import UpsertModelSerializerMixin
@@ -59,7 +59,6 @@ class CollectionAssetBaseSerializer(NonNullModelSerializer, UpsertModelSerialize
             'title',
             'type',
             'href',
-            'is_external',
             'description',
             'roles',
             'proj_epsg',
@@ -89,7 +88,6 @@ class CollectionAssetBaseSerializer(NonNullModelSerializer, UpsertModelSerialize
     # read only fields
     checksum_multihash = serializers.CharField(source='checksum_multihash', read_only=True)
     href = HrefField(source='file', required=False, read_only=False)
-    is_external = serializers.BooleanField(default=False, read_only=True)
     created = serializers.DateTimeField(read_only=True)
     updated = serializers.DateTimeField(read_only=True)
 
@@ -156,7 +154,7 @@ class CollectionAssetBaseSerializer(NonNullModelSerializer, UpsertModelSerialize
         return fields
 
 
-class CollectionAssetSerializer(CollectionAssetBaseSerializer):
+class CollectionAssetSerializer(ValidateHrefMixin, CollectionAssetBaseSerializer):
     '''Collection Asset serializer for the collection asset views
 
     This serializer adds the links list attribute.
@@ -176,6 +174,10 @@ class CollectionAssetSerializer(CollectionAssetBaseSerializer):
         )
         return representation
 
+    def validate(self, attrs):
+        self.validate_href_field(attrs)
+        return super().validate(attrs)
+
 
 class CollectionAssetsForCollectionSerializer(CollectionAssetBaseSerializer):
     '''Collection assets serializer for nesting them inside the collection
@@ -192,7 +194,6 @@ class CollectionAssetsForCollectionSerializer(CollectionAssetBaseSerializer):
             'title',
             'type',
             'href',
-            'is_external',
             'description',
             'roles',
             'proj_epsg',

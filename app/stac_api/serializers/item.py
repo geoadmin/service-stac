@@ -12,7 +12,7 @@ from rest_framework_gis import serializers as gis_serializers
 from stac_api.models.item import Asset
 from stac_api.models.item import Item
 from stac_api.models.item import ItemLink
-from stac_api.serializers.utils import AssetsDictSerializer
+from stac_api.serializers.utils import AssetsDictSerializer, ValidateHrefMixin
 from stac_api.serializers.utils import HrefField
 from stac_api.serializers.utils import IsoDurationField
 from stac_api.serializers.utils import NonNullModelSerializer
@@ -271,7 +271,7 @@ class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         return fields
 
 
-class AssetSerializer(AssetBaseSerializer):
+class AssetSerializer(ValidateHrefMixin, AssetBaseSerializer):
     '''Asset serializer for the asset views
 
     This serializer adds the links list attribute.
@@ -292,37 +292,8 @@ class AssetSerializer(AssetBaseSerializer):
         )
         return representation
 
-    def _validate_href_field(self, attrs):
-        """Only allow the href field if the collection allows for external assets
-
-        Raise an exception, this replicates the previous behaviour when href
-        was always read_only
-        """
-        # the href field is translated to the file field here
-        if 'file' in attrs:
-            if self.collection:
-                collection = self.collection
-            else:
-                raise LookupError("No collection defined.")
-
-            if not collection.allow_external_assets:
-                logger.info(
-                    'Attempted external asset upload with no permission',
-                    extra={
-                        'collection': self.collection, 'attrs': attrs
-                    }
-                )
-                errors = {'href': _("Found read-only property in payload")}
-                raise serializers.ValidationError(code="payload", detail=errors)
-
-            try:
-                validate_href_url(attrs['file'], collection)
-            except CoreValidationError as e:
-                errors = {'href': e.message}
-                raise serializers.ValidationError(code='payload', detail=errors)
-
     def validate(self, attrs):
-        self._validate_href_field(attrs)
+        self.validate_href_field(attrs)
         return super().validate(attrs)
 
 
