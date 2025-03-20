@@ -675,6 +675,9 @@ class ItemListDeserializationTestCase(StacBaseTestCase):
     def setUpTestData(cls):  # pylint: disable=invalid-name
         cls.data_factory = Factory()
         cls.collection = cls.data_factory.create_collection_sample(db_create=True)
+        cls.collection.model.allow_external_assets = True
+        cls.collection.model.external_asset_whitelist = [settings.EXTERNAL_TEST_ASSET_URL]
+        cls.collection.model.save()
         cls.payload = {
             "features": [
                 {
@@ -728,7 +731,9 @@ class ItemListDeserializationTestCase(StacBaseTestCase):
         self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_itemlistserializer_deserializes_list_of_items_as_expected(self):
-        serializer = ItemListSerializer(data=self.payload)
+        serializer = ItemListSerializer(
+            data=self.payload, context={"collection": self.collection.model}
+        )
 
         self.assertTrue(serializer.is_valid())
 
@@ -791,7 +796,12 @@ class ItemListDeserializationTestCase(StacBaseTestCase):
         request_mocker = request_with_resolver(
             f'/{STAC_BASE_V}/collections/{self.collection.model.name}/items'
         )
-        serializer = ItemListSerializer(data=self.payload, context={'request': request_mocker})
+        serializer = ItemListSerializer(
+            data=self.payload,
+            context={
+                'request': request_mocker, 'collection': self.collection.model
+            }
+        )
 
         self.assertTrue(serializer.is_valid())
 
@@ -827,7 +837,12 @@ class ItemListDeserializationTestCase(StacBaseTestCase):
         )
 
         # Create two items
-        serializer = ItemListSerializer(data=self.payload, context={'request': request_mocker})
+        serializer = ItemListSerializer(
+            data=self.payload,
+            context={
+                'request': request_mocker, 'collection': self.collection.model
+            }
+        )
         self.assertTrue(serializer.is_valid())
         serializer.save(collection=self.collection.model)
 

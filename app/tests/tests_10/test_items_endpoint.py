@@ -877,6 +877,10 @@ class ItemsBulkCreateEndpointTestCase(StacBaseTransactionTestCase):
     def setUp(self):
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample(db_create=True)
+        self.collection.model.allow_external_assets = True
+        self.collection.model.external_asset_whitelist = [settings.EXTERNAL_TEST_ASSET_URL]
+        self.collection.model.save()
+
         self.payload = {
             "features": [
                 {
