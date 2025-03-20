@@ -6,6 +6,7 @@ from datetime import timedelta
 from typing import cast
 from unittest.mock import patch
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import Client
 from django.test import override_settings
@@ -876,6 +877,10 @@ class ItemsBulkCreateEndpointTestCase(StacBaseTransactionTestCase):
     def setUp(self):
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample(db_create=True)
+        self.collection.model.allow_external_assets = True
+        self.collection.model.external_asset_whitelist = [settings.EXTERNAL_TEST_ASSET_URL]
+        self.collection.model.save()
+
         self.payload = {
             "features": [
                 {
@@ -885,7 +890,7 @@ class ItemsBulkCreateEndpointTestCase(StacBaseTransactionTestCase):
                             "title": "My title 1",
                             "description": "My description 1",
                             "type": "text/plain",
-                            "href": "asset-1",
+                            "href": settings.EXTERNAL_TEST_ASSET_URL,
                             "roles": ["myrole"],
                             "geoadmin:variant": "komb",
                             "geoadmin:lang": "de",
@@ -913,7 +918,7 @@ class ItemsBulkCreateEndpointTestCase(StacBaseTransactionTestCase):
                             "title": "My title 2",
                             "description": "My description 2",
                             "type": "text/plain",
-                            "href": "asset-2",
+                            "href": settings.EXTERNAL_TEST_ASSET_URL,
                             "roles": ["myrole"],
                             "geoadmin:variant": "komb",
                             "geoadmin:lang": "de",
@@ -959,7 +964,7 @@ class ItemsBulkCreateEndpointTestCase(StacBaseTransactionTestCase):
                         "asset-1.txt": {
                             "gsd": 2.5,
                             "geoadmin:variant": "komb",
-                            "href": "http://testserver/asset-1",
+                            "href": settings.EXTERNAL_TEST_ASSET_URL,
                             "proj:epsg": 2056,
                             "type": "text/plain",
                         },
@@ -983,7 +988,7 @@ class ItemsBulkCreateEndpointTestCase(StacBaseTransactionTestCase):
                         "asset-2.txt": {
                             "gsd": 2.5,
                             "geoadmin:variant": "komb",
-                            "href": "http://testserver/asset-2",
+                            "href": settings.EXTERNAL_TEST_ASSET_URL,
                             "proj:epsg": 2056,
                             "type": "text/plain",
                         },
@@ -1094,7 +1099,7 @@ class ItemsBulkCreateEndpointTestCase(StacBaseTransactionTestCase):
                     "title": f"My title {i}",
                     "description": f"My description {i}",
                     "type": "text/plain",
-                    "href": f"asset-{i}",
+                    "href": settings.EXTERNAL_TEST_ASSET_URL,
                     "roles": ["myrole"],
                     "geoadmin:variant": "komb",
                     "geoadmin:lang": "de",
