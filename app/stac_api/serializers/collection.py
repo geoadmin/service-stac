@@ -9,7 +9,7 @@ from stac_api.models.collection import Collection
 from stac_api.models.collection import CollectionAsset
 from stac_api.models.collection import CollectionLink
 from stac_api.models.general import Provider
-from stac_api.serializers.utils import AssetsDictSerializer
+from stac_api.serializers.utils import AssetsDictSerializer, ValidateHrefMixin
 from stac_api.serializers.utils import HrefField
 from stac_api.serializers.utils import NonNullModelSerializer
 from stac_api.serializers.utils import UpsertModelSerializerMixin
