@@ -12,7 +12,7 @@ from rest_framework_gis import serializers as gis_serializers
 from stac_api.models.item import Asset
 from stac_api.models.item import Item
 from stac_api.models.item import ItemLink
-from stac_api.serializers.utils import AssetsDictSerializer
+from stac_api.serializers.utils import AssetsDictSerializer, ValidateHrefMixin
 from stac_api.serializers.utils import HrefField
 from stac_api.serializers.utils import IsoDurationField
 from stac_api.serializers.utils import NonNullModelSerializer
@@ -308,7 +308,7 @@ class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         return fields
 
 
-class AssetSerializer(AssetBaseSerializer):
+class AssetSerializer(ValidateHrefMixin, AssetBaseSerializer):
     '''Asset serializer for the asset views
 
     This serializer adds the links list attribute.
@@ -330,7 +330,7 @@ class AssetSerializer(AssetBaseSerializer):
         return representation
 
     def validate(self, attrs):
-        self._validate_href_field(attrs)
+        self.validate_href_field(attrs)
         return super().validate(attrs)
 
 

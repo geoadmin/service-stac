@@ -6,6 +6,7 @@ from typing import List
 from django.utils.dateparse import parse_duration
 from django.utils.duration import duration_iso_string
 from django.utils.translation import gettext_lazy as _
+from django.core.exceptions import ValidationError as CoreValidationError
 
 from rest_framework import serializers
 from rest_framework.utils.serializer_helpers import ReturnDict
@@ -17,6 +18,7 @@ from stac_api.utils import build_asset_href
 from stac_api.utils import get_browser_url
 from stac_api.utils import get_url
 from stac_api.utils import is_api_version_1
+from stac_api.validators import validate_href_url
 
 logger = logging.getLogger(__name__)
 
@@ -361,6 +363,44 @@ class DictSerializer(serializers.ListSerializer):
     def data(self):
         ret = super(serializers.ListSerializer, self).data
         return ReturnDict(ret, serializer=self)
+
+
+class ValidateHrefMixin:
+    """Mixin to validate the `href` field for external assets"""
+
+    def validate_href_field(self, attrs):
+        """
+        Validate the `href` field (stored as `file` in the model).
+
+        - Ensures `href` can only be set if the collection allows external assets.
+        - Validates the URL format.
+
+        Args:
+            attrs (dict): The validated data from the serializer.
+
+        Raises:
+            serializers.ValidationError: If `href` is not allowed or is invalid.
+        """
+        if 'file' in attrs:
+            collection = getattr(self, 'collection', None)
+            if not collection:
+                raise LookupError("No collection defined.")
+
+            if not collection.allow_external_assets:
+                logger.info(
+                    'Attempted external asset upload with no permission',
+                    extra={
+                        'collection': collection.name, 'attrs': attrs
+                    }
+                )
+                raise serializers.ValidationError({
+                    'href': _("Found read-only property in payload")
+                }, code="payload")
+
+            try:
+                validate_href_url(attrs['file'], collection)
+            except CoreValidationError as e:
+                raise serializers.ValidationError({'href': e.message}, code='payload')
 
 
 class AssetsDictSerializer(DictSerializer):
