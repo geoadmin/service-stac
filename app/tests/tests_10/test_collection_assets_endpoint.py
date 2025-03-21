@@ -17,7 +17,8 @@ from stac_api.models.collection import CollectionAsset
 from stac_api.utils import get_collection_asset_path
 from stac_api.utils import utc_aware
 
-from tests.tests_10.base_test import STAC_BASE_V, TEST_SERVER
+from tests.tests_10.base_test import STAC_BASE_V
+from tests.tests_10.base_test import TEST_SERVER
 from tests.tests_10.base_test import StacBaseTestCase
 from tests.tests_10.base_test import StacBaseTransactionTestCase
 from tests.tests_10.data_factory import Factory
