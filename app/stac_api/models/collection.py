@@ -136,8 +136,11 @@ class CollectionAsset(AssetBase):
         help_text=_(SEARCH_TEXT_HELP_ITEM)
     )
 
-    # CollectionAssets are never external
-    is_external = False
+    # whether this asset is hosted externally
+    is_external = models.BooleanField(
+        default=False,
+        help_text=_("Whether this asset is hosted externally")
+    )
 
     def get_collection(self):
         return self.collection

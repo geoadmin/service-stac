@@ -23,7 +23,8 @@ logger = logging.getLogger(__name__)
 
 VERSION_SHORT = 'v1'
 STAC_BASE_V = f'api/stac/{VERSION_SHORT}'
-TEST_LINK_ROOT_HREF = f'http://testserver/api/stac/{VERSION_SHORT}'
+TEST_SERVER = 'http://testserver'
+TEST_LINK_ROOT_HREF = f'{TEST_SERVER}/api/stac/{VERSION_SHORT}'
 TEST_LINK_ROOT = {'rel': 'root', 'href': f'{TEST_LINK_ROOT_HREF}/'}
 STAC_VERSION = '1.0.0'
 
