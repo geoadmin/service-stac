@@ -41,5 +41,6 @@ AWS_SETTINGS = {
 
 try:
     EXTERNAL_TEST_ASSET_URL = env('EXTERNAL_TEST_ASSET_URL')
+    EXTERNAL_TEST_ASSET_URL_2 = env('EXTERNAL_TEST_ASSET_URL_2')
 except KeyError as err:
     raise KeyError('External asset URL must be set for unit testing') from err
