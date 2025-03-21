@@ -5,8 +5,6 @@ from stac_api.utils import get_sha256_multihash
 FILE_CONTENT_1 = b'Asset 1 file content'
 FILE_CONTENT_2 = b'Asset 2 file content'
 FILE_CONTENT_3 = b'Asset 3 file content'
-# only the filename at the end of the url
-INTERNAL_ASSET_NAME = settings.EXTERNAL_TEST_ASSET_URL.split('/')[-1]
 
 # The keys here are the attribute keys of the model. They are translated to
 # json keys when the api is called. (e.g. "name" will be translated to "id" when
@@ -130,6 +128,17 @@ assets = {
         # use a path instead of a bytes object to avoid creating a file
         'file': 'collection-1/item-1/asset-1.tiff'
     },
+    'internal-asset': {
+        'name': 'asset.jpg',
+        'title': 'Asset 1 Title',
+        'description': 'This is a full description of asset 1',
+        'eo_gsd': 3.4,
+        'geoadmin_lang': 'fr',
+        'geoadmin_variant': 'kgrs',
+        'proj_epsg': 2056,
+        'media_type': 'image/jpeg',
+        'file': FILE_CONTENT_1
+    },
     'external-asset': {
         'name': 'test.jpg',
         'title': 'An external asset',
@@ -218,11 +227,12 @@ collection_assets = {
         'file': 'collection-1/item-1/asset-1.tiff'
     },
     'internal-asset': {
-        'name': INTERNAL_ASSET_NAME,
+        'name': 'asset.jpg',
         'title': 'Asset 1 Title',
         'description': 'This is a full description of asset 1',
         'proj_epsg': 2056,
-        'media_type': 'image/jpeg'
+        'media_type': 'image/jpeg',
+        'file': FILE_CONTENT_1
     },
     'external-asset': {
         'name': 'test.jpg',

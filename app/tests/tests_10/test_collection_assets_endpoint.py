@@ -311,8 +311,11 @@ class CollectionAssetsUpdateEndpointAssetFileTestCase(StacBaseTestCase):
 
         self.collection_external = self.factory.create_collection_sample(db_create=True).model
         self.collection_external.allow_external_assets = True
-        self.collection_external.external_asset_whitelist = [settings.EXTERNAL_TEST_ASSET_URL]
+        self.collection_external.external_asset_whitelist = [
+            settings.EXTERNAL_TEST_ASSET_URL, settings.EXTERNAL_TEST_ASSET_URL_2
+        ]
         self.collection_external.save()
+
         self.internal_asset = self.factory.create_collection_asset_sample(
             collection=self.collection_external, sample='internal-asset', db_create=True
         )
@@ -326,7 +329,7 @@ class CollectionAssetsUpdateEndpointAssetFileTestCase(StacBaseTestCase):
     def test_asset_endpoint_put_patch_href_to_external_href(self):
         collection_name = self.collection_external.name
         asset_name = self.internal_asset['name']
-        asset_sample = self.asset.copy()
+        asset_sample = self.internal_asset.copy()
 
         path = f'/{STAC_BASE_V}/collections/{collection_name}/assets/{asset_name}'
 
@@ -337,12 +340,9 @@ class CollectionAssetsUpdateEndpointAssetFileTestCase(StacBaseTestCase):
 
         put_payload = asset_sample.get_json('put')
         put_payload['href'] = settings.EXTERNAL_TEST_ASSET_URL
-        patch_payload = {'href': settings.EXTERNAL_TEST_ASSET_URL}
+        patch_payload = {'href': settings.EXTERNAL_TEST_ASSET_URL_2}
 
         response = self.client.put(path, data=put_payload, content_type="application/json")
-        logger.debug(
-            "Internal asset name: %s compared to url name : %s", asset_name, put_payload['name']
-        )
         self.assertStatusCode(200, response)
         self.assertIn(put_payload['href'], response.json()['href'])
 
@@ -363,7 +363,7 @@ class CollectionAssetsUpdateEndpointAssetFileTestCase(StacBaseTestCase):
         self.assertTrue(response.json()['href'].startswith('http'))
 
         put_payload = asset_sample.get_json('put')
-        put_payload['href'] = settings.EXTERNAL_TEST_ASSET_URL
+        put_payload['href'] = settings.EXTERNAL_TEST_ASSET_URL_2
         patch_payload = {'href': settings.EXTERNAL_TEST_ASSET_URL}
 
         response = self.client.put(path, data=put_payload, content_type="application/json")
