@@ -327,7 +327,7 @@ class CollectionAssetsUpdateEndpointAssetFileTestCase(StacBaseTestCase):
         self.client = Client(headers=get_auth_headers())
         self.maxDiff = None  # pylint: disable=invalid-name
 
-    def test_asset_endpoint_put_patch_href_to_external_href(self):
+    def test_asset_endpoint_put_patch_internal_href_to_external_href(self):
         collection_name = self.collection_external.name
         asset_name = self.internal_asset['name']
         asset_sample = self.internal_asset.copy()
@@ -359,7 +359,7 @@ class CollectionAssetsUpdateEndpointAssetFileTestCase(StacBaseTestCase):
             msg="Cannot update asset's href through PATCH"
         )
 
-    def test_asset_endpoint_put_patch_internal_href_to_external_href(self):
+    def test_asset_endpoint_patch_put_external_href(self):
         collection_name = self.collection_external.name
         asset_name = self.external_asset['name']
         asset_sample = self.external_asset.copy()
