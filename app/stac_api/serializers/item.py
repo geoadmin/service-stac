@@ -27,6 +27,7 @@ from stac_api.validators import validate_asset_name_with_media_type
 from stac_api.validators import validate_expires
 from stac_api.validators import validate_geoadmin_variant
 from stac_api.validators import validate_href_url
+from stac_api.validators import validate_href_reachability
 from stac_api.validators import validate_item_properties_datetimes
 from stac_api.validators import validate_name
 from stac_api.validators_serializer import validate_json_payload
@@ -266,6 +267,8 @@ class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
 
             try:
                 validate_href_url(attrs['file'], collection)
+                if self.context.get("validate_href_reachability", True):
+                    validate_href_reachability(attrs['file'], collection)
             except CoreValidationError as e:
                 errors = {'href': e.message}
                 raise serializers.ValidationError(code='payload', detail=errors)

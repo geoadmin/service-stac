@@ -163,8 +163,11 @@ class ItemsList(generics.GenericAPIView):
 
             collection = Collection.objects.get(name=self.kwargs['collection_name'])
             serializer = ItemListSerializer(
-                data=request.data, context={
-                    "request": request, "collection": collection
+                data=request.data,
+                context={
+                    "request": request,
+                    "collection": collection,
+                    "validate_href_reachability": False
                 }
             )
             if not serializer.is_valid():
