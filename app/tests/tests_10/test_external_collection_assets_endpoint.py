@@ -1,4 +1,5 @@
 import logging
+
 import responses
 
 from django.conf import settings
@@ -8,7 +9,8 @@ from django.test import override_settings
 from stac_api.models.collection import CollectionAsset
 from stac_api.models.item import Asset
 
-from tests.tests_10.base_test import TEST_SERVER, StacBaseTestCase
+from tests.tests_10.base_test import TEST_SERVER
+from tests.tests_10.base_test import StacBaseTestCase
 from tests.tests_10.data_factory import Factory
 from tests.tests_10.utils import reverse_version
 from tests.utils import get_auth_headers
