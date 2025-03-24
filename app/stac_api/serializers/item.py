@@ -27,8 +27,13 @@ from stac_api.validators import validate_asset_name
 from stac_api.validators import validate_asset_name_with_media_type
 from stac_api.validators import validate_expires
 from stac_api.validators import validate_geoadmin_variant
+<<<<<<< HEAD
 from stac_api.validators import validate_href_reachability
 from stac_api.validators import validate_href_url
+=======
+from stac_api.validators import validate_href_url
+from stac_api.validators import validate_href_reachability
+>>>>>>> 0bdc9cf (PB-1519 Skip href reachability check for bulk upload)
 from stac_api.validators import validate_item_properties_datetimes
 from stac_api.validators import validate_name
 from stac_api.validators_serializer import validate_json_payload
