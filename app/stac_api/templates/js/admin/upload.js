@@ -6,8 +6,8 @@ function setStatus(text) {
 }
 
 function getAssetUploadUrlPrefix(collection, item, asset) {
-    if (item === '') {
-        //no item means we're dealing with a collection asset
+    is_collection_asset = (item === '');
+    if (is_collection_asset) {
         return `/api/stac/v0.9/collections/${collection}/assets/${asset}/uploads`
     }
     return `/api/stac/v0.9/collections/${collection}/items/${item}/assets/${asset}/uploads`

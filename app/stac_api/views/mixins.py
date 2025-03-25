@@ -4,9 +4,13 @@ from django.conf import settings
 from django.db import transaction
 from django.db.models.deletion import ProtectedError
 from django.http import Http404
+from django.template.response import TemplateResponse
+from django.urls import path
+from django.urls import reverse
 from django.utils.cache import add_never_cache_headers
 from django.utils.cache import patch_cache_control
 from django.utils.cache import patch_response_headers
+from django.utils.http import unquote
 from django.utils.translation import gettext_lazy as _
 
 from rest_framework import serializers
@@ -221,3 +225,56 @@ def patch_collections_aggregate_cache_control_header(response):
     else:
         patch_response_headers(response, cache_timeout=settings.COLLECTIONS_AGGREGATE_CACHE_SECONDS)
         patch_cache_control(response, public=True)
+
+
+class AssetUploadAdminMixin:
+    upload_template_name = "uploadtemplate.html"
+    upload_url_suffix = "_upload"
+
+    def get_urls(self):
+        urls = super().get_urls()
+        my_urls = [
+            path(
+                "<path:object_id>/change/upload/",
+                self.admin_site.admin_view(self.upload_view),
+                name=f'{self.model._meta.app_label}_{self.model._meta.model_name}\
+                    {self.upload_url_suffix}',
+            )
+        ]
+        return my_urls + urls
+
+    def upload_view(self, request, object_id, extra_context=None):
+        model = self.model
+        obj = self.get_object(request, unquote(object_id))
+        if obj is None:
+            return self._get_obj_does_not_exist_redirect(request, model._meta, object_id)
+
+        context = dict(
+            # Include common variables for rendering the admin template.
+            self.admin_site.each_context(request),
+            # Anything else you want in the context...
+            csrf_token=request.META.get('CSRF_COOKIE'),
+            asset_name=obj.name,
+            collection_name=obj.get_collection(),
+        )
+
+        if hasattr(obj, 'item'):
+            context['item_name'] = obj.item.name
+
+        return TemplateResponse(request, self.upload_template_name, context)
+
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        obj = self.model.objects.\
+            filter(id=request.resolver_match.kwargs['object_id']).first()
+
+        if getattr(obj, "is_external", False):  #check if the object is external
+            return super().change_view(request, object_id, form_url)
+
+        extra_context = extra_context or {}
+        property_upload_url = reverse(
+            f'admin:{self.model._meta.app_label}_{self.model._meta.model_name}\
+                {self.upload_url_suffix}',
+            args=[object_id],
+        )
+        extra_context['property_upload_url'] = property_upload_url
+        return super().change_view(request, object_id, form_url, extra_context=extra_context)
