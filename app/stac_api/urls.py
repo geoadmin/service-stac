@@ -87,12 +87,6 @@ collection_urls = [
     path("<collection_name>/assets/", include(collection_asset_urls))
 ]
 
-collection_urls_v09 = [
-    path("<collection_name>", CollectionDetail.as_view(), name='collection-detail'),
-    path("<collection_name>/items", ItemsList.as_view(), name='items-list'),
-    path("<collection_name>/items/", include(item_urls))
-]
-
 urlpatterns = [
     # Deactivate healthcheck for now while monitoring is being adapted.
     # path(f"{HEALTHCHECK_ENDPOINT}", CollectionList.as_view(), name='health-check'),
@@ -104,7 +98,7 @@ urlpatterns = [
             path("conformance", ConformancePageDetail.as_view(), name='conformance'),
             path("search", SearchList.as_view(), name='search-list'),
             path("collections", CollectionList.as_view(), name='collections-list'),
-            path("collections/", include(collection_urls_v09)),
+            path("collections/", include(collection_urls)),
             path("update-extent", recalculate_extent)
         ],
                  "v0.9"),
