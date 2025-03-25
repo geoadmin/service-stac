@@ -46,7 +46,10 @@ class CollectionAssetsExternalAssetEndpointTestCase(StacBaseTestCase):
             content_type="application/json"
         )
 
+        logger.debug("response external %s", response.json())
         self.assertStatusCode(400, response)
+        self.assertIn('href', response.json()['description'])
+        self.assertIn('Found read-only property in payload', response.json()['description']['href'])
 
         collection.allow_external_assets = True
         collection.external_asset_whitelist = [settings.EXTERNAL_TEST_ASSET_URL]
@@ -80,6 +83,8 @@ class CollectionAssetsExternalAssetEndpointTestCase(StacBaseTestCase):
         collection.save()
 
         # Mock response of external asset url
+        # This is to ensure the URL appears as though it is reachable
+        # Otherwise the asset cannot be created
         responses.add(
             method=responses.GET,
             url=external_test_asset_url,
@@ -93,8 +98,7 @@ class CollectionAssetsExternalAssetEndpointTestCase(StacBaseTestCase):
         collection_asset_data = {
             'id': 'clouds.jpg',
             'description': 'High in the sky',
-            'type': 'image/jpeg',  # specify the file explicitly
-            # 'href': settings.EXTERNAL_TEST_ASSET_URL
+            'type': 'image/jpeg',
             'href': external_test_asset_url
         }
 
@@ -160,6 +164,9 @@ class CollectionAssetsExternalAssetEndpointTestCase(StacBaseTestCase):
             msg=f'Unexpected field error {description}'
         )
 
+        last_collection_asset = CollectionAsset.objects.last()
+        self.assertIsNone(last_collection_asset)  #should be none as no new asset was created
+
     @responses.activate
     def test_create_collection_asset_validate_external_url_bad_content(self):
         collection = self.collection
@@ -203,6 +210,9 @@ class CollectionAssetsExternalAssetEndpointTestCase(StacBaseTestCase):
             description['href'],
             msg=f'Unexpected field error {description}'
         )
+
+        last_collection_asset = CollectionAsset.objects.last()
+        self.assertIsNone(last_collection_asset)
 
     def test_update_collection_asset_with_external_url(self):
         collection = self.collection
@@ -280,6 +290,9 @@ class CollectionAssetsExternalAssetEndpointTestCase(StacBaseTestCase):
             "Invalid URL provided", description['href'][0], msg="Unexpected error message"
         )
 
+        last_collection_asset = CollectionAsset.objects.last()
+        self.assertIsNone(last_collection_asset)
+
     def test_create_collection_asset_with_inexistent_external_url(self):
         collection = self.collection
 
@@ -317,6 +330,8 @@ class CollectionAssetsExternalAssetEndpointTestCase(StacBaseTestCase):
             content_type="application/json"
         )
 
+        self.assertStatusCode(400, response)
+
         description = response.json()['description']
 
         self.assertIn('href', description, msg=f'Unexpected field error {description}')
@@ -324,6 +339,9 @@ class CollectionAssetsExternalAssetEndpointTestCase(StacBaseTestCase):
         self.assertEqual(
             "Provided URL is unreachable", description['href'][0], msg="Unexpected error message"
         )
+
+        last_collection_asset = CollectionAsset.objects.last()
+        self.assertNotEqual(last_collection_asset.file, collection_asset_data['href'])
 
     def test_create_collection_asset_with_inexistent_domain(self):
         collection = self.collection
@@ -349,6 +367,8 @@ class CollectionAssetsExternalAssetEndpointTestCase(StacBaseTestCase):
             content_type="application/json"
         )
 
+        self.assertStatusCode(400, response)
+
         description = response.json()['description']
 
         self.assertIn('href', description, msg=f'Unexpected field error {description}')
@@ -357,12 +377,18 @@ class CollectionAssetsExternalAssetEndpointTestCase(StacBaseTestCase):
             "Provided URL is unreachable", description['href'][0], msg="Unexpected error message"
         )
 
+        last_collection_asset = CollectionAsset.objects.last()
+        self.assertIsNone(last_collection_asset)
+
     def test_delete_collection_asset_with_external_url(self):
         collection = self.collection
 
         collection_asset = self.factory.create_collection_asset_sample(
             collection=collection, sample='external-asset', db_create=True
         )
+
+        new_collection_asset = CollectionAsset.objects.last()
+        self.assertEqual(new_collection_asset.file, settings.EXTERNAL_TEST_ASSET_URL)
 
         response = self.client.delete(
             reverse_version(
@@ -371,3 +397,6 @@ class CollectionAssetsExternalAssetEndpointTestCase(StacBaseTestCase):
         )
 
         self.assertStatusCode(200, response)
+
+        last_collection_asset = CollectionAsset.objects.last()
+        self.assertIsNone(last_collection_asset)
