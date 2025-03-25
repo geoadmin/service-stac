@@ -161,13 +161,20 @@ class ItemsList(generics.GenericAPIView):
                 }
                 return Response(data=message, status=code)
 
-            serializer = ItemListSerializer(data=request.data, context={"request": request})
+            collection = Collection.objects.get(name=self.kwargs['collection_name'])
+            serializer = ItemListSerializer(
+                data=request.data,
+                context={
+                    "request": request,
+                    "collection": collection,
+                    "validate_href_reachability": False
+                }
+            )
             if not serializer.is_valid():
                 code = status.HTTP_400_BAD_REQUEST
                 message = {"code": code, "description": str(serializer.errors)}
                 return Response(data=message, status=code)
 
-            collection = Collection.objects.get(name=self.kwargs['collection_name'])
             serializer.save(collection=collection)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         except Collection.DoesNotExist as exception:

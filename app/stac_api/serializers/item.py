@@ -26,6 +26,7 @@ from stac_api.validators import validate_asset_name
 from stac_api.validators import validate_asset_name_with_media_type
 from stac_api.validators import validate_expires
 from stac_api.validators import validate_geoadmin_variant
+from stac_api.validators import validate_href_reachability
 from stac_api.validators import validate_href_url
 from stac_api.validators import validate_item_properties_datetimes
 from stac_api.validators import validate_name
@@ -241,6 +242,38 @@ class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
             )
         return normalize_and_validate_media_type(value)
 
+    def _validate_href_field(self, attrs):
+        """Only allow the href field if the collection allows for external assets
+
+        Raise an exception, this replicates the previous behaviour when href
+        was always read_only
+        """
+        # the href field is translated to the file field here
+        if 'file' in attrs:
+            if self.collection:
+                collection = self.collection
+            else:
+                raise LookupError("No collection defined.")
+
+            if not collection.allow_external_assets:
+                logger.info(
+                    'Attempted external asset upload with no permission',
+                    extra={
+                        'collection': self.collection, 'attrs': attrs
+                    }
+                )
+                errors = {'href': _("Found read-only property in payload")}
+                raise serializers.ValidationError(code="payload", detail=errors)
+
+            try:
+                validate_href_url(attrs['file'], collection)
+                # disabled in bulk upload for performance reasons
+                if self.context.get("validate_href_reachability", True):
+                    validate_href_reachability(attrs['file'], collection)
+            except CoreValidationError as e:
+                errors = {'href': e.message}
+                raise serializers.ValidationError(code='payload', detail=errors)
+
     def validate(self, attrs):
         name = attrs['name'] if not self.partial else attrs.get('name', self.instance.name)
         media_type = attrs['media_type'] if not self.partial else attrs.get(
@@ -249,6 +282,10 @@ class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         validate_asset_name_with_media_type(name, media_type)
 
         validate_json_payload(self)
+
+        if "collection" in self.context:
+            self.collection = self.context["collection"]
+        self._validate_href_field(attrs)
 
         return attrs
 
@@ -291,35 +328,6 @@ class AssetSerializer(AssetBaseSerializer):
             request, 'asset-detail', [collection, item, name]
         )
         return representation
-
-    def _validate_href_field(self, attrs):
-        """Only allow the href field if the collection allows for external assets
-
-        Raise an exception, this replicates the previous behaviour when href
-        was always read_only
-        """
-        # the href field is translated to the file field here
-        if 'file' in attrs:
-            if self.collection:
-                collection = self.collection
-            else:
-                raise LookupError("No collection defined.")
-
-            if not collection.allow_external_assets:
-                logger.info(
-                    'Attempted external asset upload with no permission',
-                    extra={
-                        'collection': self.collection, 'attrs': attrs
-                    }
-                )
-                errors = {'href': _("Found read-only property in payload")}
-                raise serializers.ValidationError(code="payload", detail=errors)
-
-            try:
-                validate_href_url(attrs['file'], collection)
-            except CoreValidationError as e:
-                errors = {'href': e.message}
-                raise serializers.ValidationError(code='payload', detail=errors)
 
     def validate(self, attrs):
         self._validate_href_field(attrs)
@@ -521,7 +529,8 @@ class ItemListSerializer(serializers.Serializer):
             for link_in in links_per_item[item.name]:
                 links.append(ItemLink(**link_in, item=item))
             for asset_in in assets_per_item[item.name]:
-                assets.append(Asset(**asset_in, item=item))
+                # Asset files are always hosted externally for bulk upload
+                assets.append(Asset(**asset_in, is_external=True, item=item))
 
         ItemLink.objects.bulk_create(links)
         Asset.objects.bulk_create(assets)

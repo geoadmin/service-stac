@@ -34,6 +34,7 @@ from stac_api.models.item import Item
 from stac_api.models.item import ItemLink
 from stac_api.utils import build_asset_href
 from stac_api.utils import get_query_params
+from stac_api.validators import validate_href_reachability
 from stac_api.validators import validate_href_url
 from stac_api.validators import validate_text_to_geometry
 
@@ -534,6 +535,7 @@ class AssetAdminForm(forms.ModelForm):
                 file = self.cleaned_data.get('file')
 
                 validate_href_url(file, self.instance.item.collection)
+                validate_href_reachability(file, self.instance.item.collection)
 
         return self.cleaned_data.get('file')
 
