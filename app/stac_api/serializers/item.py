@@ -267,6 +267,7 @@ class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
 
             try:
                 validate_href_url(attrs['file'], collection)
+                # disabled in bulk upload for performance reasons
                 if self.context.get("validate_href_reachability", True):
                     validate_href_reachability(attrs['file'], collection)
             except CoreValidationError as e:
