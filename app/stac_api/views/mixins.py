@@ -229,7 +229,7 @@ def patch_collections_aggregate_cache_control_header(response):
 
 class AssetUploadAdminMixin:
     upload_template_name = "uploadtemplate.html"
-    upload_url_suffix = "_upload"
+    url_suffix = "_upload"
 
     def get_urls(self):
         urls = super().get_urls()
@@ -237,8 +237,7 @@ class AssetUploadAdminMixin:
             path(
                 "<path:object_id>/change/upload/",
                 self.admin_site.admin_view(self.upload_view),
-                name=f'{self.model._meta.app_label}_{self.model._meta.model_name}\
-                    {self.upload_url_suffix}',
+                name=f'{self.model._meta.app_label}_{self.model._meta.model_name}{self.url_suffix}',
             )
         ]
         return my_urls + urls
@@ -272,8 +271,7 @@ class AssetUploadAdminMixin:
 
         extra_context = extra_context or {}
         property_upload_url = reverse(
-            f'admin:{self.model._meta.app_label}_{self.model._meta.model_name}\
-                {self.upload_url_suffix}',
+            f'admin:{self.model._meta.app_label}_{self.model._meta.model_name}{self.url_suffix}',
             args=[object_id],
         )
         extra_context['property_upload_url'] = property_upload_url
