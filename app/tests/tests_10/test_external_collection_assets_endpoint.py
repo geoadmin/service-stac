@@ -7,7 +7,6 @@ from django.test import Client
 from django.test import override_settings
 
 from stac_api.models.collection import CollectionAsset
-from stac_api.models.item import Asset
 
 from tests.tests_10.base_test import TEST_SERVER
 from tests.tests_10.base_test import StacBaseTestCase
