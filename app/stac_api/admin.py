@@ -36,7 +36,6 @@ from stac_api.utils import build_asset_href
 from stac_api.utils import get_query_params
 from stac_api.validators import validate_href_reachability
 from stac_api.validators import validate_href_url
-from stac_api.validators import validate_href_reachability
 from stac_api.validators import validate_text_to_geometry
 
 logger = logging.getLogger(__name__)

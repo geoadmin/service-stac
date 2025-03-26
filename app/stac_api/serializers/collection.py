@@ -13,9 +13,9 @@ from stac_api.serializers.utils import AssetsDictSerializer
 from stac_api.serializers.utils import HrefField
 from stac_api.serializers.utils import NonNullModelSerializer
 from stac_api.serializers.utils import UpsertModelSerializerMixin
-from stac_api.serializers.utils import ValidateHrefMixin
 from stac_api.serializers.utils import get_relation_links
 from stac_api.serializers.utils import update_or_create_links
+from stac_api.serializers.utils import validate_href_field
 from stac_api.utils import get_stac_version
 from stac_api.utils import is_api_version_1
 from stac_api.utils import isoformat
@@ -155,7 +155,7 @@ class CollectionAssetBaseSerializer(NonNullModelSerializer, UpsertModelSerialize
         return fields
 
 
-class CollectionAssetSerializer(ValidateHrefMixin, CollectionAssetBaseSerializer):
+class CollectionAssetSerializer(CollectionAssetBaseSerializer):
     '''Collection Asset serializer for the collection asset views
 
     This serializer adds the links list attribute.
@@ -176,7 +176,9 @@ class CollectionAssetSerializer(ValidateHrefMixin, CollectionAssetBaseSerializer
         return representation
 
     def validate(self, attrs):
-        self.validate_href_field(attrs)
+        if not self.collection:
+            raise LookupError("No collection defined.")
+        validate_href_field(attrs=attrs, collection=self.collection, check_reachability=True)
         return super().validate(attrs)
 
 

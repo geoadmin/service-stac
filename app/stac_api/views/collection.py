@@ -204,7 +204,7 @@ class CollectionAssetDetail(
         # for the validation the serializer needs to know the collection of the
         # asset. In case of inserting, the asset doesn't exist and thus the collection
         # can't be read from the instance, which is why we pass the collection manually
-        # here. See serializers.AssetBaseSerializer._validate_href_field
+        # here.
         serializer.collection = collection
         return serializer
 

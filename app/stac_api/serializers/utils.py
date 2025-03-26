@@ -3,6 +3,7 @@ from collections import OrderedDict
 from typing import Dict
 from typing import List
 
+from django.core.exceptions import ValidationError as CoreValidationError
 from django.utils.dateparse import parse_duration
 from django.utils.duration import duration_iso_string
 from django.utils.translation import gettext_lazy as _
@@ -17,6 +18,7 @@ from stac_api.utils import build_asset_href
 from stac_api.utils import get_browser_url
 from stac_api.utils import get_url
 from stac_api.utils import is_api_version_1
+from stac_api.validators import validate_href_reachability
 from stac_api.validators import validate_href_url
 
 logger = logging.getLogger(__name__)
@@ -364,42 +366,40 @@ class DictSerializer(serializers.ListSerializer):
         return ReturnDict(ret, serializer=self)
 
 
-class ValidateHrefMixin:
-    """Mixin to validate the `href` field for external assets"""
+def validate_href_field(attrs, collection, check_reachability):
+    """
+    Validate the `href` field (stored as `file` in the model).
 
-    def validate_href_field(self, attrs):
-        """
-        Validate the `href` field (stored as `file` in the model).
+    - Ensures `href` can only be set if the collection allows external assets.
+    - Validates the URL format.
 
-        - Ensures `href` can only be set if the collection allows external assets.
-        - Validates the URL format.
+    Args:
+        attrs (dict): The validated data from the serializer.
+        collection (models.collection.Collection): The collection in which the asset is
+        check_reachability (bool): Whether to check the href's reachability
 
-        Args:
-            attrs (dict): The validated data from the serializer.
+    Raises:
+        serializers.ValidationError: If `href` is not allowed or is invalid.
+    """
+    if 'file' in attrs:
+        if not collection.allow_external_assets:
+            logger.info(
+                'Attempted external asset upload with no permission',
+                extra={
+                    'collection': collection.name, 'attrs': attrs
+                }
+            )
+            raise serializers.ValidationError({
+                'href': _("Found read-only property in payload")
+            }, code="payload")
 
-        Raises:
-            serializers.ValidationError: If `href` is not allowed or is invalid.
-        """
-        if 'file' in attrs:
-            collection = getattr(self, 'collection', None)
-            if not collection:
-                raise LookupError("No collection defined.")
-
-            if not collection.allow_external_assets:
-                logger.info(
-                    'Attempted external asset upload with no permission',
-                    extra={
-                        'collection': collection.name, 'attrs': attrs
-                    }
-                )
-                raise serializers.ValidationError({
-                    'href': _("Found read-only property in payload")
-                }, code="payload")
-
-            try:
-                validate_href_url(attrs['file'], collection)
-            except CoreValidationError as e:
-                raise serializers.ValidationError({'href': e.message}, code='payload')
+        try:
+            validate_href_url(attrs['file'], collection)
+            # disabled in bulk upload for performance reasons
+            if check_reachability:
+                validate_href_reachability(attrs['file'], collection)
+        except CoreValidationError as e:
+            raise serializers.ValidationError({'href': e.message}, code='payload')
 
 
 class AssetsDictSerializer(DictSerializer):

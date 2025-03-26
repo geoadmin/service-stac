@@ -330,7 +330,7 @@ class AssetDetail(
         # for the validation the serializer needs to know the collection of the
         # item. In case of upserting, the asset doesn't exist and thus the collection
         # can't be read from the instance, which is why we pass the collection manually
-        # here. See serializers.AssetBaseSerializer._validate_href_field
+        # here.
         serializer.collection = item.collection
         return serializer
 

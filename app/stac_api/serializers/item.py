@@ -3,7 +3,6 @@ import logging
 from datetime import timedelta
 from typing import override
 
-from django.core.exceptions import ValidationError as CoreValidationError
 from django.utils.translation import gettext_lazy as _
 
 from rest_framework import serializers
@@ -17,9 +16,9 @@ from stac_api.serializers.utils import HrefField
 from stac_api.serializers.utils import IsoDurationField
 from stac_api.serializers.utils import NonNullModelSerializer
 from stac_api.serializers.utils import UpsertModelSerializerMixin
-from stac_api.serializers.utils import ValidateHrefMixin
 from stac_api.serializers.utils import get_relation_links
 from stac_api.serializers.utils import update_or_create_links
+from stac_api.serializers.utils import validate_href_field
 from stac_api.utils import get_stac_version
 from stac_api.utils import is_api_version_1
 from stac_api.validators import normalize_and_validate_media_type
@@ -27,13 +26,6 @@ from stac_api.validators import validate_asset_name
 from stac_api.validators import validate_asset_name_with_media_type
 from stac_api.validators import validate_expires
 from stac_api.validators import validate_geoadmin_variant
-<<<<<<< HEAD
-from stac_api.validators import validate_href_reachability
-from stac_api.validators import validate_href_url
-=======
-from stac_api.validators import validate_href_url
-from stac_api.validators import validate_href_reachability
->>>>>>> 0bdc9cf (PB-1519 Skip href reachability check for bulk upload)
 from stac_api.validators import validate_item_properties_datetimes
 from stac_api.validators import validate_name
 from stac_api.validators_serializer import validate_json_payload
@@ -248,38 +240,6 @@ class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
             )
         return normalize_and_validate_media_type(value)
 
-    def _validate_href_field(self, attrs):
-        """Only allow the href field if the collection allows for external assets
-
-        Raise an exception, this replicates the previous behaviour when href
-        was always read_only
-        """
-        # the href field is translated to the file field here
-        if 'file' in attrs:
-            if self.collection:
-                collection = self.collection
-            else:
-                raise LookupError("No collection defined.")
-
-            if not collection.allow_external_assets:
-                logger.info(
-                    'Attempted external asset upload with no permission',
-                    extra={
-                        'collection': self.collection, 'attrs': attrs
-                    }
-                )
-                errors = {'href': _("Found read-only property in payload")}
-                raise serializers.ValidationError(code="payload", detail=errors)
-
-            try:
-                validate_href_url(attrs['file'], collection)
-                # disabled in bulk upload for performance reasons
-                if self.context.get("validate_href_reachability", True):
-                    validate_href_reachability(attrs['file'], collection)
-            except CoreValidationError as e:
-                errors = {'href': e.message}
-                raise serializers.ValidationError(code='payload', detail=errors)
-
     def validate(self, attrs):
         name = attrs['name'] if not self.partial else attrs.get('name', self.instance.name)
         media_type = attrs['media_type'] if not self.partial else attrs.get(
@@ -288,10 +248,6 @@ class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         validate_asset_name_with_media_type(name, media_type)
 
         validate_json_payload(self)
-
-        if "collection" in self.context:
-            self.collection = self.context["collection"]
-        self._validate_href_field(attrs)
 
         return attrs
 
@@ -314,7 +270,7 @@ class AssetBaseSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         return fields
 
 
-class AssetSerializer(ValidateHrefMixin, AssetBaseSerializer):
+class AssetSerializer(AssetBaseSerializer):
     '''Asset serializer for the asset views
 
     This serializer adds the links list attribute.
@@ -336,7 +292,13 @@ class AssetSerializer(ValidateHrefMixin, AssetBaseSerializer):
         return representation
 
     def validate(self, attrs):
-        self.validate_href_field(attrs)
+        if not self.collection:
+            raise LookupError("No collection defined.")
+        validate_href_field(
+            attrs=attrs,
+            collection=self.collection,
+            check_reachability=self.context.get("validate_href_reachability", True)
+        )
         return super().validate(attrs)
 
 
