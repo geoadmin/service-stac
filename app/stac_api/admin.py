@@ -7,6 +7,7 @@ from admin_auto_filters.filters import AutocompleteFilterFactory
 from django import forms
 from django.contrib import messages
 from django.contrib.admin import SimpleListFilter
+from django.contrib.admin.utils import unquote
 from django.contrib.gis import admin
 from django.contrib.gis.db import models
 from django.contrib.postgres.fields import ArrayField
@@ -15,6 +16,8 @@ from django.forms import CharField
 from django.forms import Textarea
 from django.http import HttpResponseRedirect
 from django.template.defaultfilters import filesizeformat
+from django.template.response import TemplateResponse
+from django.urls import path
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
@@ -34,7 +37,6 @@ from stac_api.utils import get_query_params
 from stac_api.validators import validate_href_reachability
 from stac_api.validators import validate_href_url
 from stac_api.validators import validate_text_to_geometry
-from stac_api.views.mixins import AssetUploadAdminMixin
 
 logger = logging.getLogger(__name__)
 
@@ -359,6 +361,57 @@ class ItemAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         obj.geometry = form.cleaned_data['text_geometry']
         return super().save_model(request, obj, form, change)
+
+
+class AssetUploadAdminMixin:
+    upload_template_name = "uploadtemplate.html"
+    url_suffix = "_upload"
+
+    def get_urls(self):
+        urls = super().get_urls()
+        my_urls = [
+            path(
+                "<path:object_id>/change/upload/",
+                self.admin_site.admin_view(self.upload_view),
+                name=f'{self.model._meta.app_label}_{self.model._meta.model_name}{self.url_suffix}',
+            )
+        ]
+        return my_urls + urls
+
+    def upload_view(self, request, object_id, extra_context=None):
+        model = self.model
+        obj = self.get_object(request, unquote(object_id))
+        if obj is None:
+            return self._get_obj_does_not_exist_redirect(request, model._meta, object_id)
+
+        context = dict(
+            # Include common variables for rendering the admin template.
+            self.admin_site.each_context(request),
+            # Anything else you want in the context...
+            csrf_token=request.META.get('CSRF_COOKIE'),
+            asset_name=obj.name,
+            collection_name=obj.get_collection(),
+        )
+
+        if hasattr(obj, 'item'):
+            context['item_name'] = obj.item.name
+
+        return TemplateResponse(request, self.upload_template_name, context)
+
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        obj = self.model.objects.\
+            filter(id=request.resolver_match.kwargs['object_id']).first()
+
+        if getattr(obj, "is_external", False):  #check if the object is external
+            return super().change_view(request, object_id, form_url)
+
+        extra_context = extra_context or {}
+        property_upload_url = reverse(
+            f'admin:{self.model._meta.app_label}_{self.model._meta.model_name}{self.url_suffix}',
+            args=[object_id],
+        )
+        extra_context['property_upload_url'] = property_upload_url
+        return super().change_view(request, object_id, form_url, extra_context=extra_context)
 
 
 class CollectionAssetAdminForm(forms.ModelForm):

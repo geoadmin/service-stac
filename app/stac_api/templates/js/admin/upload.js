@@ -6,11 +6,14 @@ function setStatus(text) {
 }
 
 function getAssetUploadUrlPrefix(collection, item, asset) {
-    is_collection_asset = (item === '');
-    if (is_collection_asset) {
-        return `/api/stac/v0.9/collections/${collection}/assets/${asset}/uploads`
+    const is_collection_asset = (item === '');
+    let item_str = '';
+
+    if (!is_collection_asset) {
+        item_str = `items/${item}/`;
     }
-    return `/api/stac/v0.9/collections/${collection}/items/${item}/assets/${asset}/uploads`
+
+    return `/api/stac/v0.9/collections/${collection}/${item_str}assets/${asset}/uploads`;
 }
 
 function setError(text) {
