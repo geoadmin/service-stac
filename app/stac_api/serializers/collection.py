@@ -15,6 +15,7 @@ from stac_api.serializers.utils import NonNullModelSerializer
 from stac_api.serializers.utils import UpsertModelSerializerMixin
 from stac_api.serializers.utils import get_relation_links
 from stac_api.serializers.utils import update_or_create_links
+from stac_api.serializers.utils import validate_href_field
 from stac_api.utils import get_stac_version
 from stac_api.utils import is_api_version_1
 from stac_api.utils import isoformat
@@ -87,7 +88,7 @@ class CollectionAssetBaseSerializer(NonNullModelSerializer, UpsertModelSerialize
     proj_epsg = serializers.IntegerField(source='proj_epsg', allow_null=True, required=False)
     # read only fields
     checksum_multihash = serializers.CharField(source='checksum_multihash', read_only=True)
-    href = HrefField(source='file', read_only=True)
+    href = HrefField(source='file', required=False, read_only=False)
     created = serializers.DateTimeField(read_only=True)
     updated = serializers.DateTimeField(read_only=True)
 
@@ -173,6 +174,12 @@ class CollectionAssetSerializer(CollectionAssetBaseSerializer):
             request, 'collection-asset-detail', [collection, name]
         )
         return representation
+
+    def validate(self, attrs):
+        if not self.collection:
+            raise LookupError("No collection defined.")
+        validate_href_field(attrs=attrs, collection=self.collection, check_reachability=True)
+        return super().validate(attrs)
 
 
 class CollectionAssetsForCollectionSerializer(CollectionAssetBaseSerializer):

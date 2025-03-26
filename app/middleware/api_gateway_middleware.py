@@ -36,7 +36,7 @@ class ApiGatewayUserBackend(RemoteUserBackend):
             return None
 
         user = super().authenticate(request, remote_user)
-        if user:
+        if user and not user.is_superuser:
             # promote authenticated user to superuser for now until proper authorization is
             # implemented
             user.is_superuser = True

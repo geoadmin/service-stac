@@ -1,6 +1,7 @@
 import logging
 import time
 
+from django.conf import settings
 from django.http import HttpResponse
 from django.http import JsonResponse
 
@@ -28,7 +29,8 @@ class RequestResponseLoggingMiddleware:
         ] and request.content_type == "application/json" and not request.path.startswith(
             '/api/stac/admin'
         ):
-            extra["request.payload"] = request.body.decode()[:200]
+            extra["request.payload"] = request.body.decode()[:settings.
+                                                             LOGGING_MAX_REQUEST_PAYLOAD_SIZE]
 
         logger.debug(
             "Request %s %s?%s",
@@ -54,7 +56,8 @@ class RequestResponseLoggingMiddleware:
         # HttpResponse and JSONResponse sure have
         # (e.g. WhiteNoiseFileResponse doesn't)
         if isinstance(response, (HttpResponse, JsonResponse)):
-            extra["response"]["payload"] = response.content.decode()[:200]
+            extra["response"]["payload"] = response.content.decode(
+            )[:settings.LOGGING_MAX_RESPONSE_PAYLOAD_SIZE]
 
         logger.info("Response %s", response.status_code, extra=extra)
         # Code to be executed for each request/response after

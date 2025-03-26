@@ -303,6 +303,9 @@ def get_logging_config():
 
 LOGGING = get_logging_config()
 
+LOGGING_MAX_REQUEST_PAYLOAD_SIZE = env.int('LOGGING_MAX_REQUEST_PAYLOAD_SIZE', default=200)
+LOGGING_MAX_RESPONSE_PAYLOAD_SIZE = env.int('LOGGING_MAX_RESPONSE_PAYLOAD_SIZE', default=200)
+
 # Testing
 
 TEST_RUNNER = 'tests.runner.TestRunner'

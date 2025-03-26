@@ -34,6 +34,7 @@ from stac_api.models.item import Item
 from stac_api.models.item import ItemLink
 from stac_api.utils import build_asset_href
 from stac_api.utils import get_query_params
+from stac_api.validators import validate_href_reachability
 from stac_api.validators import validate_href_url
 from stac_api.validators import validate_text_to_geometry
 
@@ -367,6 +368,14 @@ class CollectionAssetAdminForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        if self.instance and self.instance.id is not None:
+            if 'is_external' in self.fields:
+                external_field = self.fields['is_external']
+                external_field.help_text = (
+                    _('Whether this asset is hosted externally. Save the form in '
+                      'order to toggle the file field between input and file widget.')
+                )
+
 
 @admin.register(CollectionAsset)
 class CollectionAssetAdmin(admin.ModelAdmin):
@@ -382,6 +391,7 @@ class CollectionAssetAdmin(admin.ModelAdmin):
         'file',
         'collection_name',
         'href',
+        'is_external',
         'checksum_multihash',
         'created',
         'updated',
@@ -489,7 +499,12 @@ class CollectionAssetAdmin(admin.ModelAdmin):
             return fields
         # Otherwise if this is an update operation only display the read only fields
         # without help text
-        fields[0][1]['fields'] = ('name', 'collection_name', 'created', 'updated', 'etag')
+        if obj.collection.allow_external_assets:
+            fields[0][1]['fields'] = (
+                'name', 'collection_name', 'created', 'updated', 'etag', 'is_external'
+            )
+        else:
+            fields[0][1]['fields'] = ('name', 'collection_name', 'created', 'updated', 'etag')
         return fields
 
 
@@ -534,6 +549,7 @@ class AssetAdminForm(forms.ModelForm):
                 file = self.cleaned_data.get('file')
 
                 validate_href_url(file, self.instance.item.collection)
+                validate_href_reachability(file, self.instance.item.collection)
 
         return self.cleaned_data.get('file')
 

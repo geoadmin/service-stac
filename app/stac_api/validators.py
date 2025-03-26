@@ -653,7 +653,7 @@ def _validate_href_configured_pattern(url, collection):
     raise ValidationError(error)
 
 
-def _validate_href_reachability(url, collection):
+def validate_href_reachability(url, collection):
     unreachable_error = _('Provided URL is unreachable')
     invalidcontent_error = _('Provided URL returns bad content')
     try:
@@ -719,7 +719,6 @@ def validate_href_url(url, collection):
     _validate_href_scheme(url, collection)
     _validate_href_general_pattern(url, collection)
     _validate_href_configured_pattern(url, collection)
-    _validate_href_reachability(url, collection)
 
 
 def validate_cache_control_header(value):
