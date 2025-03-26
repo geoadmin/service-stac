@@ -368,6 +368,14 @@ class CollectionAssetAdminForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        if self.instance and self.instance.id is not None:
+            if 'is_external' in self.fields:
+                external_field = self.fields['is_external']
+                external_field.help_text = (
+                    _('Whether this asset is hosted externally. Save the form in '
+                      'order to toggle the file field between input and file widget.')
+                )
+
 
 @admin.register(CollectionAsset)
 class CollectionAssetAdmin(admin.ModelAdmin):
@@ -383,6 +391,7 @@ class CollectionAssetAdmin(admin.ModelAdmin):
         'file',
         'collection_name',
         'href',
+        'is_external',
         'checksum_multihash',
         'created',
         'updated',
@@ -490,7 +499,12 @@ class CollectionAssetAdmin(admin.ModelAdmin):
             return fields
         # Otherwise if this is an update operation only display the read only fields
         # without help text
-        fields[0][1]['fields'] = ('name', 'collection_name', 'created', 'updated', 'etag')
+        if obj.collection.allow_external_assets:
+            fields[0][1]['fields'] = (
+                'name', 'collection_name', 'created', 'updated', 'etag', 'is_external'
+            )
+        else:
+            fields[0][1]['fields'] = ('name', 'collection_name', 'created', 'updated', 'etag')
         return fields
 
 

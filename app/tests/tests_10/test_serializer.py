@@ -935,6 +935,7 @@ class AssetDeserializationTestCase(StacBaseTestCase):
         serializer = AssetSerializer(
             data=sample.get_json('deserialize'), context={'request': request_mocker}
         )
+        serializer.collection = self.collection.model
         serializer.is_valid(raise_exception=True)
         asset = serializer.save(
             item=self.item.model,
@@ -963,6 +964,7 @@ class AssetDeserializationTestCase(StacBaseTestCase):
         serializer = AssetSerializer(
             data=sample.get_json('deserialize'), context={'request': request_mocker}
         )
+        serializer.collection = self.collection.model
         serializer.is_valid(raise_exception=True)
         asset = serializer.save(
             item=self.item.model,

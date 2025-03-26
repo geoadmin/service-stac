@@ -5,6 +5,7 @@ from json import dumps
 from json import loads
 from pprint import pformat
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import Client
 from django.test import override_settings
@@ -17,6 +18,7 @@ from stac_api.utils import get_collection_asset_path
 from stac_api.utils import utc_aware
 
 from tests.tests_10.base_test import STAC_BASE_V
+from tests.tests_10.base_test import TEST_SERVER
 from tests.tests_10.base_test import StacBaseTestCase
 from tests.tests_10.base_test import StacBaseTransactionTestCase
 from tests.tests_10.data_factory import Factory
@@ -219,7 +221,7 @@ class CollectionAssetsCreateEndpointTestCase(StacBaseTestCase):
         # Check also, that the asset does not exist in the DB already
         self.assertFalse(
             CollectionAsset.objects.filter(name=asset_name).exists(),
-            msg="Deleted colelction asset still found in DB"
+            msg="Deleted collection asset still found in DB"
         )
 
         # Now use upsert to create the new asset
@@ -307,37 +309,87 @@ class CollectionAssetsUpdateEndpointAssetFileTestCase(StacBaseTestCase):
         self.asset = self.factory.create_collection_asset_sample(
             collection=self.collection.model, db_create=True
         )
+
+        self.collection_external = self.factory.create_collection_sample(
+            allow_external_assets=True,
+            external_asset_whitelist=[
+                settings.EXTERNAL_TEST_ASSET_URL, settings.EXTERNAL_TEST_ASSET_URL_2
+            ]
+        ).model
+
+        self.internal_asset = self.factory.create_collection_asset_sample(
+            collection=self.collection_external, sample='internal-asset', db_create=True
+        )
+        self.external_asset = self.factory.create_collection_asset_sample(
+            collection=self.collection_external, sample='external-asset', db_create=True
+        )
+
         self.client = Client(headers=get_auth_headers())
         self.maxDiff = None  # pylint: disable=invalid-name
 
-    def test_asset_endpoint_patch_put_href(self):
-        collection_name = self.collection['name']
-        asset_name = self.asset['name']
-        asset_sample = self.asset.copy()
-
-        put_payload = asset_sample.get_json('put')
-        put_payload['href'] = 'https://testserver/non-existing-asset'
-        patch_payload = {'href': 'https://testserver/non-existing-asset'}
+    def test_asset_endpoint_put_patch_internal_href_to_external_href(self):
+        collection_name = self.collection_external.name
+        asset_name = self.internal_asset['name']
+        asset_sample = self.internal_asset.copy()
 
         path = f'/{STAC_BASE_V}/collections/{collection_name}/assets/{asset_name}'
-        response = self.client.patch(path, data=patch_payload, content_type="application/json")
-        self.assertStatusCode(400, response)
-        description = response.json()['description']
-        self.assertIn('href', description, msg=f'Unexpected field error {description}')
-        self.assertEqual(
-            "Found read-only property in payload",
-            description['href'][0],
-            msg="Unexpected error message"
-        )
+
+        #verify the asset is internal before patching it
+        response = self.client.get(path)
+        self.assertStatusCode(200, response, msg="Asset not found")
+        self.assertIn(TEST_SERVER, response.json()['href'], msg="Asset is not internal")
+
+        put_payload = asset_sample.get_json('put')
+        put_payload['href'] = settings.EXTERNAL_TEST_ASSET_URL
+        patch_payload = {'href': settings.EXTERNAL_TEST_ASSET_URL_2}
 
         response = self.client.put(path, data=put_payload, content_type="application/json")
-        self.assertStatusCode(400, response)
-        description = response.json()['description']
-        self.assertIn('href', description, msg=f'Unexpected field error {description}')
+        self.assertStatusCode(200, response, msg="Asset not found")
         self.assertEqual(
-            "Found read-only property in payload",
-            description['href'][0],
-            msg="Unexpected error message"
+            put_payload['href'],
+            response.json()['href'],
+            msg="Cannot update asset's href through PUT"
+        )
+
+        response = self.client.patch(path, data=patch_payload, content_type="application/json")
+        self.assertStatusCode(200, response)
+        self.assertEqual(
+            patch_payload['href'],
+            response.json()['href'],
+            msg="Cannot update asset's href through PATCH"
+        )
+
+    def test_asset_endpoint_patch_put_external_href(self):
+        collection_name = self.collection_external.name
+        asset_name = self.external_asset['name']
+        asset_sample = self.external_asset.copy()
+
+        path = f'/{STAC_BASE_V}/collections/{collection_name}/assets/{asset_name}'
+
+        #verify that the asset is external
+        expected_href = f"{TEST_SERVER}/{settings.EXTERNAL_TEST_ASSET_URL}"
+        response = self.client.get(path)
+        self.assertStatusCode(200, response, msg="Asset not found")
+        self.assertEqual(expected_href, response.json()['href'], msg="Unexpected href")
+
+        put_payload = asset_sample.get_json('put')
+        put_payload['href'] = settings.EXTERNAL_TEST_ASSET_URL_2
+        patch_payload = {'href': settings.EXTERNAL_TEST_ASSET_URL}
+
+        response = self.client.put(path, data=put_payload, content_type="application/json")
+        self.assertStatusCode(200, response, msg="Asset not found")
+        self.assertEqual(
+            put_payload['href'],
+            response.json()['href'],
+            msg="Cannot update asset's href through PUT"
+        )
+
+        response = self.client.patch(path, data=patch_payload, content_type="application/json")
+        self.assertStatusCode(200, response, msg="Asset not found")
+        self.assertEqual(
+            patch_payload['href'],
+            response.json()['href'],
+            msg="Cannot update asset's href through PATCH"
         )
 
 

@@ -204,9 +204,22 @@ class CollectionAssetDetail(
         # for the validation the serializer needs to know the collection of the
         # asset. In case of inserting, the asset doesn't exist and thus the collection
         # can't be read from the instance, which is why we pass the collection manually
-        # here. See serializers.AssetBaseSerializer._validate_href_field
+        # here.
         serializer.collection = collection
         return serializer
+
+    def _get_file_path(self, serializer, collection, asset_name):
+        """Get the path to the file and whether it is external or not"""
+
+        if 'file' in serializer.validated_data:
+            file = serializer.validated_data['file']
+            # setting the href makes the asset be external implicitly
+            is_external = True
+        else:
+            file = get_collection_asset_path(collection, asset_name)
+            is_external = False
+
+        return file, is_external
 
     def perform_update(self, serializer):
         collection = get_object_or_404(Collection, name=self.kwargs['collection_name'])
@@ -219,10 +232,8 @@ class CollectionAssetDetail(
                 'asset': self.kwargs['asset_name']
             }
         )
-        return serializer.save(
-            collection=collection,
-            file=get_collection_asset_path(collection, self.kwargs['asset_name'])
-        )
+        file, is_external = self._get_file_path(serializer, collection, self.kwargs['asset_name'])
+        return serializer.save(collection=collection, file=file, is_external=is_external)
 
     def perform_upsert(self, serializer, lookup):
         collection = get_object_or_404(Collection, name=self.kwargs['collection_name'])
@@ -237,11 +248,8 @@ class CollectionAssetDetail(
         )
         lookup['collection__name'] = collection.name
 
-        return serializer.upsert(
-            lookup,
-            collection=collection,
-            file=get_collection_asset_path(collection, self.kwargs['asset_name'])
-        )
+        file, is_external = self._get_file_path(serializer, collection, self.kwargs['asset_name'])
+        return serializer.upsert(lookup, collection=collection, file=file, is_external=is_external)
 
     @etag(get_collection_asset_etag)
     def get(self, request, *args, **kwargs):
