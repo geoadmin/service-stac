@@ -5,7 +5,7 @@ window.onload = function() {
   const externalField = document.querySelector('#id_is_external');
   const externalFieldRow = document.querySelector('.form-row.field-is_external');
 
-  if (externalField.disabled) {
+  if (externalField && externalFieldRow && externalField.disabled) {
     externalFieldRow.style.display = 'none';
   }
 }
