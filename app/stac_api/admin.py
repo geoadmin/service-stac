@@ -414,6 +414,20 @@ class AssetUploadAdminMixin:
         return super().change_view(request, object_id, form_url, extra_context=extra_context)
 
 
+class RedirectAfterCreationMixin:
+
+    def response_add(self, request, obj, post_url_continue=None):
+        """
+        After adding a new object, redirect to the change form for the new object
+        unless the user clicked "Save and add another".
+        """
+        if "_addanother" not in request.POST:
+            request.POST = request.POST.copy()
+            request.POST["_continue"] = 1
+
+        return super().response_add(request, obj, post_url_continue)
+
+
 class CollectionAssetAdminForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
@@ -429,7 +443,7 @@ class CollectionAssetAdminForm(forms.ModelForm):
 
 
 @admin.register(CollectionAsset)
-class CollectionAssetAdmin(AssetUploadAdminMixin, admin.ModelAdmin):
+class CollectionAssetAdmin(AssetUploadAdminMixin, RedirectAfterCreationMixin, admin.ModelAdmin):
     form = CollectionAssetAdminForm
 
     class Media:
@@ -547,7 +561,14 @@ class CollectionAssetAdmin(AssetUploadAdminMixin, admin.ModelAdmin):
         base_fields = super().get_fieldsets(request, obj)
 
         if obj is None:
-            return ((None, {'fields': ('name', 'collection', 'created', 'updated', 'etag')}),)
+            return [
+                (None, {
+                    'fields': ('name', 'collection', 'created', 'updated', 'etag')
+                }),
+                ('File', {
+                    'fields': ('media_type',)
+                }),
+            ]
 
         # Define file fields conditionally based on `allow_external_assets`
         if obj.collection.allow_external_assets:
@@ -649,7 +670,7 @@ class NotUploadedYetFilter(SimpleListFilter):
 
 
 @admin.register(Asset)
-class AssetAdmin(AssetUploadAdminMixin, admin.ModelAdmin):
+class AssetAdmin(AssetUploadAdminMixin, RedirectAfterCreationMixin, admin.ModelAdmin):
     form = AssetAdminForm
 
     class Media:
@@ -827,24 +848,6 @@ class AssetAdmin(AssetUploadAdminMixin, admin.ModelAdmin):
         We allow the field to be empty in case somebody is setting the is_external flag"""
         form = super().get_form(request, obj, change, **kwargs)
         return form
-
-    def response_add(self, request, obj, post_url_continue=None):
-        """
-        Determine the HttpResponse for the add_view stage. It mostly defers to
-        its superclass implementation but is customized because the User model
-        has a slightly different workflow.
-        """
-        # We should allow further modification of the user just added i.e. the
-        # 'Save' button should behave like the 'Save and continue editing'
-        # button except for:
-        # * The user has pressed the 'Save and add another' button
-
-        # stole this from django.contrib.auth.admin.UserAdmin
-        if "_addanother" not in request.POST:
-            request.POST = request.POST.copy()
-            request.POST["_continue"] = 1
-
-        return super().response_add(request, obj, post_url_continue)
 
 
 @admin.register(AssetUpload)
