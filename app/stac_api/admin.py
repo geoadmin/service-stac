@@ -363,6 +363,71 @@ class ItemAdmin(admin.ModelAdmin):
         return super().save_model(request, obj, form, change)
 
 
+class AssetUploadAdminMixin:
+    upload_template_name = "uploadtemplate.html"
+    url_suffix = "_upload"
+
+    def get_urls(self):
+        urls = super().get_urls()
+        my_urls = [
+            path(
+                "<path:object_id>/change/upload/",
+                self.admin_site.admin_view(self.upload_view),
+                name=f'{self.model._meta.app_label}_{self.model._meta.model_name}{self.url_suffix}',
+            )
+        ]
+        return my_urls + urls
+
+    def upload_view(self, request, object_id, extra_context=None):
+        model = self.model
+        obj = self.get_object(request, unquote(object_id))
+        if obj is None:
+            return self._get_obj_does_not_exist_redirect(request, model._meta, object_id)
+
+        context = dict(
+            # Include common variables for rendering the admin template.
+            self.admin_site.each_context(request),
+            # Anything else you want in the context...
+            csrf_token=request.META.get('CSRF_COOKIE'),
+            asset_name=obj.name,
+            collection_name=obj.get_collection(),
+        )
+
+        if hasattr(obj, 'item'):
+            context['item_name'] = obj.item.name
+
+        return TemplateResponse(request, self.upload_template_name, context)
+
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        obj = self.model.objects.\
+            filter(id=request.resolver_match.kwargs['object_id']).first()
+
+        if getattr(obj, "is_external", False):  #check if the object is external
+            return super().change_view(request, object_id, form_url)
+
+        extra_context = extra_context or {}
+        property_upload_url = reverse(
+            f'admin:{self.model._meta.app_label}_{self.model._meta.model_name}{self.url_suffix}',
+            args=[object_id],
+        )
+        extra_context['property_upload_url'] = property_upload_url
+        return super().change_view(request, object_id, form_url, extra_context=extra_context)
+
+
+class RedirectAfterCreationMixin:
+
+    def response_add(self, request, obj, post_url_continue=None):
+        """
+        After adding a new object, redirect to the change form for the new object
+        unless the user clicked "Save and add another".
+        """
+        if "_addanother" not in request.POST:
+            request.POST = request.POST.copy()
+            request.POST["_continue"] = 1
+
+        return super().response_add(request, obj, post_url_continue)
+
+
 class CollectionAssetAdminForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
@@ -378,7 +443,7 @@ class CollectionAssetAdminForm(forms.ModelForm):
 
 
 @admin.register(CollectionAsset)
-class CollectionAssetAdmin(admin.ModelAdmin):
+class CollectionAssetAdmin(AssetUploadAdminMixin, RedirectAfterCreationMixin, admin.ModelAdmin):
     form = CollectionAssetAdminForm
 
     class Media:
@@ -491,21 +556,52 @@ class CollectionAssetAdmin(admin.ModelAdmin):
     # That's why some fields like the name of the asset are set readonly here
     # for update operations
     def get_fieldsets(self, request, obj=None):
-        fields = super().get_fieldsets(request, obj)
+        """Build the different field sets for the admin page."""
+
+        base_fields = super().get_fieldsets(request, obj)
+
         if obj is None:
-            # In case a new Asset is added use the normal field 'collection' from model that have
-            # a help text fort the search functionality.
-            fields[0][1]['fields'] = ('name', 'collection', 'created', 'updated', 'etag')
-            return fields
-        # Otherwise if this is an update operation only display the read only fields
-        # without help text
+            return [
+                (None, {
+                    'fields': ('name', 'collection', 'created', 'updated', 'etag')
+                }),
+                ('File', {
+                    'fields': ('media_type',)
+                }),
+            ]
+
+        # Define file fields conditionally based on `allow_external_assets`
         if obj.collection.allow_external_assets:
-            fields[0][1]['fields'] = (
-                'name', 'collection_name', 'created', 'updated', 'etag', 'is_external'
+            file_fields = (
+                'is_external',
+                'file',
+                'media_type',
+                'href',
+                'checksum_multihash',
+                'update_interval',
+                'displayed_file_size'
             )
         else:
-            fields[0][1]['fields'] = ('name', 'collection_name', 'created', 'updated', 'etag')
-        return fields
+            file_fields = (
+                'file',
+                'media_type',
+                'href',
+                'checksum_multihash',
+                'update_interval',
+                'displayed_file_size'
+            )
+
+        return [
+            (None, {
+                'fields': ('name', 'collection_name', 'created', 'updated', 'etag')
+            }),
+            ('File', {
+                'fields': file_fields
+            }),
+            ('Description', {
+                'fields': ('title', 'description', 'roles')
+            }),
+        ]
 
 
 class AssetAdminForm(forms.ModelForm):
@@ -574,7 +670,7 @@ class NotUploadedYetFilter(SimpleListFilter):
 
 
 @admin.register(Asset)
-class AssetAdmin(admin.ModelAdmin):
+class AssetAdmin(AssetUploadAdminMixin, RedirectAfterCreationMixin, admin.ModelAdmin):
     form = AssetAdminForm
 
     class Media:
@@ -752,70 +848,6 @@ class AssetAdmin(admin.ModelAdmin):
         We allow the field to be empty in case somebody is setting the is_external flag"""
         form = super().get_form(request, obj, change, **kwargs)
         return form
-
-    def response_add(self, request, obj, post_url_continue=None):
-        """
-        Determine the HttpResponse for the add_view stage. It mostly defers to
-        its superclass implementation but is customized because the User model
-        has a slightly different workflow.
-        """
-        # We should allow further modification of the user just added i.e. the
-        # 'Save' button should behave like the 'Save and continue editing'
-        # button except for:
-        # * The user has pressed the 'Save and add another' button
-
-        # stole this from django.contrib.auth.admin.UserAdmin
-        if "_addanother" not in request.POST:
-            request.POST = request.POST.copy()
-            request.POST["_continue"] = 1
-
-        return super().response_add(request, obj, post_url_continue)
-
-    def get_urls(self):
-        urls = super().get_urls()
-        my_urls = [
-            path(
-                "<path:object_id>/change/upload/",
-                self.admin_site.admin_view(self.upload_view),
-                name=f'{self.model._meta.app_label}_{self.model._meta.model_name}_upload',
-            )
-        ]
-        return my_urls + urls
-
-    def upload_view(self, request, object_id, extra_context=None):
-        model = self.model
-        obj = self.get_object(request, unquote(object_id))
-        if obj is None:
-            return self._get_obj_does_not_exist_redirect(request, model._meta, object_id)
-
-        context = dict(
-            # Include common variables for rendering the admin template.
-            self.admin_site.each_context(request),
-            # Anything else you want in the context...
-            csrf_token=request.META['CSRF_COOKIE'],
-            asset_name=obj.name,
-            item_name=obj.item.name,
-            collection_name=obj.get_collection()
-        )
-        return TemplateResponse(request, "uploadtemplate.html", context)
-
-    def change_view(self, request, object_id, form_url='', extra_context=None):
-        obj = Asset.objects.filter(id=request.resolver_match.kwargs['object_id']).first()
-        if obj.is_external:
-            return super().change_view(request, object_id, form_url)
-
-        extra_context = extra_context or {}
-
-        # Generate the transfer URL
-        property_upload_url = reverse(
-            f'admin:{self.model._meta.app_label}_{self.model._meta.model_name}_upload',
-            args=[object_id],
-        )
-
-        # Add the property upload URL to the extra context
-        extra_context['property_upload_url'] = property_upload_url
-
-        return super().change_view(request, object_id, form_url, extra_context=extra_context)
 
 
 @admin.register(AssetUpload)
