@@ -1,3 +1,4 @@
+import asyncio
 import copy
 import logging
 from datetime import timedelta
@@ -294,10 +295,12 @@ class AssetSerializer(AssetBaseSerializer):
     def validate(self, attrs):
         if not self.collection:
             raise LookupError("No collection defined.")
-        validate_href_field(
-            attrs=attrs,
-            collection=self.collection,
-            check_reachability=self.context.get("validate_href_reachability", True)
+        asyncio.run(
+            validate_href_field(
+                attrs=attrs,
+                collection=self.collection,
+                check_reachability=self.context.get("validate_href_reachability", True)
+            )
         )
         return super().validate(attrs)
 

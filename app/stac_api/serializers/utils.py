@@ -3,6 +3,8 @@ from collections import OrderedDict
 from typing import Dict
 from typing import List
 
+import aiohttp
+
 from django.core.exceptions import ValidationError as CoreValidationError
 from django.utils.dateparse import parse_duration
 from django.utils.duration import duration_iso_string
@@ -366,7 +368,7 @@ class DictSerializer(serializers.ListSerializer):
         return ReturnDict(ret, serializer=self)
 
 
-def validate_href_field(attrs, collection, check_reachability):
+async def validate_href_field(attrs, collection, check_reachability):
     """
     Validate the `href` field (stored as `file` in the model).
 
@@ -397,7 +399,8 @@ def validate_href_field(attrs, collection, check_reachability):
             validate_href_url(attrs['file'], collection)
             # disabled in bulk upload for performance reasons
             if check_reachability:
-                validate_href_reachability(attrs['file'], collection)
+                async with aiohttp.ClientSession() as session:
+                    await validate_href_reachability(attrs['file'], collection, session)
         except CoreValidationError as e:
             raise serializers.ValidationError({'href': e.message}, code='payload')
 
