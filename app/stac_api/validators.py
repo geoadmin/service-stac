@@ -5,8 +5,8 @@ from datetime import datetime
 from datetime import timezone
 from urllib.parse import urlparse
 
+import aiohttp
 import multihash
-import requests
 from multihash.constants import CODE_HASHES
 from multihash.constants import HASH_CODES
 
@@ -653,7 +653,7 @@ def _validate_href_configured_pattern(url, collection):
     raise ValidationError(error)
 
 
-def validate_href_reachability(url, collection):
+async def validate_href_reachability(url, collection, session):
     unreachable_error = _('Provided URL is unreachable')
     invalidcontent_error = _('Provided URL returns bad content')
     try:
@@ -665,43 +665,45 @@ def validate_href_reachability(url, collection):
 
         # We just wanna check reachability and aren't really interested in the content
         headers = {"Range": "bytes=0-2"}
-        response = requests.get(
-            url, headers=headers, timeout=settings.EXTERNAL_URL_REACHABLE_TIMEOUT
-        )
+        async with session.get(
+            url,
+            headers=headers,
+            timeout=aiohttp.ClientTimeout(total=settings.EXTERNAL_URL_REACHABLE_TIMEOUT)
+        ) as response:
 
-        if response.status_code >= 400:
-            logger.warning(
-                "Attempted external asset upload failed the reachability check",
-                extra={
-                    'url': url,
-                    'collection': collection,  # to have the means to know who this might have been
-                    'response': response,
-                }
-            )
-            raise ValidationError(unreachable_error)
-        if response.headers.get("Content-Length") != "3":
-            logger.warning(
-                "Attempted external asset upload failed the content length check",
-                extra={
-                    'url': url,
-                    'collection': collection,  # to have the means to know who this might have been
-                    'response': response,
-                }
-            )
-            raise ValidationError(invalidcontent_error)
-    except requests.Timeout as exc:
+            if response.status >= 400:
+                logger.warning(
+                    "Attempted external asset upload failed the reachability check",
+                    extra={
+                        'url': url,
+                        'collection': collection,
+                        'response': response,
+                    }
+                )
+                raise ValidationError(unreachable_error)
+            if response.headers.get("Content-Length") != "3":
+                logger.warning(
+                    "Attempted external asset upload failed the content length check",
+                    extra={
+                        'url': url,
+                        'collection': collection,
+                        'response': response,
+                    }
+                )
+                raise ValidationError(invalidcontent_error)
+    except TimeoutError as exc:
         logger.warning(
             "Attempted external asset upload resulted in a timeout",
             extra={
                 'url': url,
-                'collection': collection,  # to have the means to know who this might have been
+                'collection': collection,
                 'exception': exc,
                 'timeout': settings.EXTERNAL_URL_REACHABLE_TIMEOUT
             }
         )
         error = _('Checking href URL resulted in timeout')
         raise ValidationError(error) from exc
-    except requests.ConnectionError as exc:
+    except aiohttp.ClientConnectionError as exc:
         logger.warning(
             "Attempted external asset upload resulted in connection error",
             extra={
