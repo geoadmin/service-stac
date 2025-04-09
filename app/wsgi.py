@@ -27,9 +27,13 @@ It exposes the WSGI callable as a module-level variable named ``application``.
 For more information on this file, see
 https://docs.djangoproject.com/en/3.1/howto/deployment/wsgi/
 """
+import logging
 import os
 
+import gevent.util
+
 from gunicorn.app.base import BaseApplication
+from gunicorn.workers.ggevent import GeventWorker
 
 from django.core.wsgi import get_wsgi_application
 
@@ -59,6 +63,22 @@ class StandaloneApplication(BaseApplication):  # pylint: disable=abstract-method
         return self.application
 
 
+class GeventWorkerWithStackDump(GeventWorker):
+    # We want to dump the stacks when the worker receives SIGTERM regardless
+    # of whether it handles the SIGTERM gracefully. If the worker remains stuck,
+    # the next signal the master sends is SIGKILL, which means the worker_exit
+    # handler is never called. Thus, we spawn a thread to dump the stack
+    # before actually attempting to handle the signal.
+    def handle_exit(self, sig, frame):
+        gevent.spawn(self.dump_stacks)
+        super().handle_exit(sig, frame)
+
+    @staticmethod
+    def dump_stacks():
+        logger = logging.getLogger(__name__)
+        logger.error('Dumping gevent stacks:\n%s', '\n'.join(gevent.util.format_run_info()))
+
+
 # We use the port 5000 as default, otherwise we set the HTTP_PORT env variable within the container.
 if __name__ == '__main__':
     HTTP_PORT = str(os.environ.get('HTTP_PORT', "8000"))
@@ -70,6 +90,8 @@ if __name__ == '__main__':
                                       '2')),  # scaling horizontally is left to Kubernetes
         'worker_tmp_dir': os.environ.get('GUNICORN_WORKER_TMP_DIR', None),
         'timeout': 60,
-        'logconfig_dict': get_logging_config()
+        'logconfig_dict': get_logging_config(),
     }
+    if os.environ.get('GUNICORN_DUMP_STACKS_ON_EXIT', False):
+        options['worker_class'] = 'wsgi.GeventWorkerWithStackDump'
     StandaloneApplication(application, options).run()
