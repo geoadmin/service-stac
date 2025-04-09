@@ -9,6 +9,8 @@ from datetime import timedelta
 from datetime import timezone
 from pprint import pformat
 
+from aioresponses import aioresponses
+
 from django.conf import settings
 from django.contrib.gis.geos import Point
 from django.db import IntegrityError
@@ -859,11 +861,62 @@ class ItemListDeserializationTestCase(StacBaseTestCase):
                 },
             },]
         }
-        serializer = ItemListSerializer(data=update_payload, context={'request': request_mocker})
+        serializer = ItemListSerializer(
+            data=update_payload,
+            context={
+                'request': request_mocker, 'collection': self.collection.model
+            }
+        )
         self.assertTrue(serializer.is_valid())
 
         with self.assertRaises(IntegrityError) as context:
             serializer.save(collection=self.collection.model)
+
+    @aioresponses()
+    def test_itemlistserializer_throws_exception_if_assets_not_reachable(self, mocked):
+
+        mocked.get(url=settings.EXTERNAL_TEST_ASSET_URL, status=404, repeat=True)
+
+        serializer = ItemListSerializer(
+            data=self.payload, context={'collection': self.collection.model}
+        )
+
+        message = (
+            f"{{'non_field_errors': [ErrorDetail(string='"
+            f"Provided URL is unreachable: {settings.EXTERNAL_TEST_ASSET_URL}\n"
+            f"Provided URL is unreachable: {settings.EXTERNAL_TEST_ASSET_URL}"
+            f"', code='invalid')]}}"
+        )
+        with self.assertRaises(serializers.ValidationError, msg=message) as context:
+            serializer.is_valid(raise_exception=True)
+
+    @aioresponses()
+    def test_itemlistserializer_throws_exception_if_one_asset_not_reachable(self, mocked):
+
+        payload = self.payload.copy()
+        payload["features"][0]["assets"]["asset-1.txt"]["file"] = "https://test.com/asset-1.txt"
+        payload["features"][1]["assets"]["asset-2.txt"]["file"] = "https://test.com/asset-2.txt"
+        mocked.get(
+            url="https://test.com/asset-1.txt",
+            body='som',
+            status=200,
+            headers={
+                'Content-Type': 'application/json', 'Content-Length': '3'
+            },
+        )
+        mocked.get(url="https://test.com/asset-2.txt", status=404)
+
+        serializer = ItemListSerializer(
+            data=self.payload, context={'collection': self.collection.model}
+        )
+
+        message = (
+            "{{'non_field_errors': [ErrorDetail(string='"
+            "Provided URL is unreachable: https://test.com/asset-2.txt"
+            "', code='invalid')]}}"
+        )
+        with self.assertRaises(serializers.ValidationError, msg=message) as context:
+            serializer.is_valid(raise_exception=True)
 
 
 class AssetSerializationTestCase(StacBaseTestCase):

@@ -654,8 +654,8 @@ def _validate_href_configured_pattern(url, collection):
 
 
 async def validate_href_reachability(url, collection, session):
-    unreachable_error = _('Provided URL is unreachable')
-    invalidcontent_error = _('Provided URL returns bad content')
+    unreachable_error = f"{_('Provided URL is unreachable')}: {url}"
+    invalidcontent_error = f"{_('Provided URL returns bad content')}: {url}"
     try:
         # We change the way how we check reachability for MCH usecase from
         # using HTTP HEAD request to HTTP GET with range
@@ -701,7 +701,7 @@ async def validate_href_reachability(url, collection, session):
                 'timeout': settings.EXTERNAL_URL_REACHABLE_TIMEOUT
             }
         )
-        error = _('Checking href URL resulted in timeout')
+        error = f"{_('Checking href URL resulted in timeout')}: {url}"
         raise ValidationError(error) from exc
     except aiohttp.ClientConnectionError as exc:
         logger.warning(

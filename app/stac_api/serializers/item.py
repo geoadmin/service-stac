@@ -2,8 +2,12 @@ import asyncio
 import copy
 import logging
 from datetime import timedelta
+from typing import Any
 from typing import override
 
+import aiohttp
+
+from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
 from rest_framework import serializers
@@ -27,6 +31,7 @@ from stac_api.validators import validate_asset_name
 from stac_api.validators import validate_asset_name_with_media_type
 from stac_api.validators import validate_expires
 from stac_api.validators import validate_geoadmin_variant
+from stac_api.validators import validate_href_reachability
 from stac_api.validators import validate_item_properties_datetimes
 from stac_api.validators import validate_name
 from stac_api.validators_serializer import validate_json_payload
@@ -518,10 +523,38 @@ class ItemListSerializer(serializers.Serializer):
         items_serialized = [ItemSerializer(item, context=self.context).data for item in instance]
         return {"features": items_serialized}
 
+    async def _validate_assets_reachability(self, asset_urls: list[str]) -> None:
+        """Check if the given asset URLs are reachable asynchronously."""
+        collection = self.context["collection"]
+
+        async with aiohttp.ClientSession() as session:
+            try:
+                async with asyncio.TaskGroup() as group:
+                    for url in asset_urls:
+                        group.create_task(validate_href_reachability(url, collection, session))
+            except ExceptionGroup as eg:
+                message = "\n".join([exc.message for exc in eg.exceptions])
+                raise ValidationError(message) from eg
+
+    def _get_asset_urls(self, payload: dict[str, Any]) -> list[str]:
+        """Extract the href URLs from the payload."""
+        asset_urls = []
+        for item in payload["features"]:
+            if not "assets" in item:
+                continue
+            for asset in item["assets"]:
+                if not "file" in asset:
+                    continue
+                asset_urls.append(asset["file"])
+        return asset_urls
+
     @override
     def validate(self, attrs):
         max_n_items = 100
         if len(attrs["features"]) > max_n_items:
             raise serializers.ValidationError({"features": f"More than {max_n_items} features"})
+
+        asset_urls = self._get_asset_urls(attrs)
+        asyncio.run(self._validate_assets_reachability(asset_urls))
 
         return super().validate(attrs)

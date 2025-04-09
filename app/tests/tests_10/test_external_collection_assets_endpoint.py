@@ -153,7 +153,7 @@ class CollectionAssetsExternalAssetEndpointTestCase(StacBaseTestCase):
         description = response.json()['description']
         self.assertIn('href', description, msg=f'Unexpected field error {description}')
         self.assertIn(
-            'Provided URL is unreachable',
+            f"Provided URL is unreachable: {external_test_asset_url}",
             description['href'],
             msg=f'Unexpected field error {description}'
         )
@@ -198,7 +198,7 @@ class CollectionAssetsExternalAssetEndpointTestCase(StacBaseTestCase):
         description = response.json()['description']
         self.assertIn('href', description, msg=f'Unexpected field error {description}')
         self.assertIn(
-            'Provided URL returns bad content',
+            f"Provided URL returns bad content: {external_test_asset_url}",
             description['href'],
             msg=f'Unexpected field error {description}'
         )
@@ -329,7 +329,9 @@ class CollectionAssetsExternalAssetEndpointTestCase(StacBaseTestCase):
         self.assertIn('href', description, msg=f'Unexpected field error {description}')
 
         self.assertEqual(
-            "Provided URL is unreachable", description['href'][0], msg="Unexpected error message"
+            f"Provided URL is unreachable: {collection_asset_data['href']}",
+            description['href'][0],
+            msg="Unexpected error message"
         )
 
         last_collection_asset = CollectionAsset.objects.last()
@@ -346,10 +348,9 @@ class CollectionAssetsExternalAssetEndpointTestCase(StacBaseTestCase):
             'id': 'clouds.jpg',
             'description': 'High in the sky',
             'type': 'image/jpeg',  # specify the file explicitly
-            'href': settings.EXTERNAL_TEST_ASSET_URL
+            'href': 'https://swisssssssstopo.ch/inexistent.jpg'
         }
 
-        collection_asset_data['href'] = 'https://swisssssssstopo.ch/inexistent.jpg'
         # create the asset with an existing one
         response = self.client.put(
             reverse_version(
@@ -366,7 +367,9 @@ class CollectionAssetsExternalAssetEndpointTestCase(StacBaseTestCase):
         self.assertIn('href', description, msg=f'Unexpected field error {description}')
 
         self.assertEqual(
-            "Provided URL is unreachable", description['href'][0], msg="Unexpected error message"
+            f"Provided URL is unreachable: {collection_asset_data['href']}",
+            description['href'][0],
+            msg="Unexpected error message"
         )
 
         last_collection_asset = CollectionAsset.objects.last()
