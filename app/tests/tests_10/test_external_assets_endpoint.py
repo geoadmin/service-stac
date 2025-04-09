@@ -142,7 +142,7 @@ class AssetsExternalAssetEndpointTestCase(StacBaseTestCase):
         description = response.json()['description']
         self.assertIn('href', description, msg=f'Unexpected field error {description}')
         self.assertIn(
-            'Provided URL is unreachable',
+            f"Provided URL is unreachable: {asset_data['href']}",
             description['href'],
             msg=f'Unexpected field error {description}'
         )
@@ -183,7 +183,7 @@ class AssetsExternalAssetEndpointTestCase(StacBaseTestCase):
         description = response.json()['description']
         self.assertIn('href', description, msg=f'Unexpected field error {description}')
         self.assertIn(
-            'Provided URL returns bad content',
+            f'Provided URL returns bad content: {external_test_asset_url}',
             description['href'],
             msg=f'Unexpected field error {description}'
         )
@@ -300,7 +300,9 @@ class AssetsExternalAssetEndpointTestCase(StacBaseTestCase):
         self.assertIn('href', description, msg=f'Unexpected field error {description}')
 
         self.assertEqual(
-            "Provided URL is unreachable", description['href'][0], msg="Unexpected error message"
+            f"Provided URL is unreachable: {asset_data['href']}",
+            description['href'][0],
+            msg="Unexpected error message"
         )
 
     def test_create_asset_with_inexistent_domain(self):
@@ -331,7 +333,9 @@ class AssetsExternalAssetEndpointTestCase(StacBaseTestCase):
         self.assertIn('href', description, msg=f'Unexpected field error {description}')
 
         self.assertEqual(
-            "Provided URL is unreachable", description['href'][0], msg="Unexpected error message"
+            f"Provided URL is unreachable: {asset_data['href']}",
+            description['href'][0],
+            msg="Unexpected error message"
         )
 
     def test_delete_asset_with_external_url(self):
