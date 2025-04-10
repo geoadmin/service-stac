@@ -25,7 +25,7 @@ pytest-dotenv = "*"
 pytest-cov = "*"
 
 [packages]
-gevent = "~=24.2.1"
+gevent = "~=24.11.1"
 gunicorn = "~=23.0.0"
 psycopg2-binary = "~=2.9.9"
 numpy = "~=1.26.4"
