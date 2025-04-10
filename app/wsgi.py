@@ -30,7 +30,12 @@ https://docs.djangoproject.com/en/3.1/howto/deployment/wsgi/
 import logging
 import os
 
+import gevent.queue
 import gevent.util
+
+if os.environ.get('GEVENT_PATCH_URLLIB3_CPOOL_QUEUE', False):
+    import urllib3.connectionpool
+    urllib3.connectionpool.ConnectionPool.QueueCls = gevent.queue.LifoQueue
 
 from gunicorn.app.base import BaseApplication
 from gunicorn.workers.ggevent import GeventWorker
