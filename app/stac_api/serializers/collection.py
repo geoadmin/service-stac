@@ -1,4 +1,3 @@
-import asyncio
 import logging
 
 from django.contrib.gis.geos import GEOSGeometry
@@ -179,9 +178,7 @@ class CollectionAssetSerializer(CollectionAssetBaseSerializer):
     def validate(self, attrs):
         if not self.collection:
             raise LookupError("No collection defined.")
-        asyncio.run(
-            validate_href_field(attrs=attrs, collection=self.collection, check_reachability=True)
-        )
+        validate_href_field(attrs=attrs, collection=self.collection, check_reachability=True)
         return super().validate(attrs)
 
 

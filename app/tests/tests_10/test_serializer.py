@@ -9,7 +9,7 @@ from datetime import timedelta
 from datetime import timezone
 from pprint import pformat
 
-from aioresponses import aioresponses
+import responses
 
 from django.conf import settings
 from django.contrib.gis.geos import Point
@@ -872,10 +872,27 @@ class ItemListDeserializationTestCase(StacBaseTestCase):
         with self.assertRaises(IntegrityError) as context:
             serializer.save(collection=self.collection.model)
 
-    @aioresponses()
-    def test_itemlistserializer_throws_exception_if_assets_not_reachable(self, mocked):
+    @responses.activate
+    def test_itemlistserializer_throws_exception_if_assets_not_reachable(self):
 
-        mocked.get(url=settings.EXTERNAL_TEST_ASSET_URL, status=404, repeat=True)
+        responses.add(
+            method=responses.GET,
+            url=settings.EXTERNAL_TEST_ASSET_URL,
+            body='',
+            status=404,
+            content_type='application/json',
+            adding_headers={'Content-Length': '0'},
+            match=[responses.matchers.header_matcher({"Range": "bytes=0-2"})]
+        )
+        responses.add(
+            method=responses.GET,
+            url=settings.EXTERNAL_TEST_ASSET_URL,
+            body='',
+            status=404,
+            content_type='application/json',
+            adding_headers={'Content-Length': '0'},
+            match=[responses.matchers.header_matcher({"Range": "bytes=0-2"})]
+        )
 
         serializer = ItemListSerializer(
             data=self.payload, context={'collection': self.collection.model}
@@ -890,21 +907,31 @@ class ItemListDeserializationTestCase(StacBaseTestCase):
         with self.assertRaises(serializers.ValidationError, msg=message) as context:
             serializer.is_valid(raise_exception=True)
 
-    @aioresponses()
-    def test_itemlistserializer_throws_exception_if_one_asset_not_reachable(self, mocked):
+    @responses.activate
+    def test_itemlistserializer_throws_exception_if_one_asset_not_reachable(self):
 
         payload = self.payload.copy()
         payload["features"][0]["assets"]["asset-1.txt"]["file"] = "https://test.com/asset-1.txt"
         payload["features"][1]["assets"]["asset-2.txt"]["file"] = "https://test.com/asset-2.txt"
-        mocked.get(
-            url="https://test.com/asset-1.txt",
+
+        responses.add(
+            method=responses.GET,
+            url=settings.EXTERNAL_TEST_ASSET_URL,
             body='som',
             status=200,
-            headers={
-                'Content-Type': 'application/json', 'Content-Length': '3'
-            },
+            content_type='application/json',
+            adding_headers={'Content-Length': '3'},
+            match=[responses.matchers.header_matcher({"Range": "bytes=0-2"})]
         )
-        mocked.get(url="https://test.com/asset-2.txt", status=404)
+        responses.add(
+            method=responses.GET,
+            url=settings.EXTERNAL_TEST_ASSET_URL,
+            body='',
+            status=404,
+            content_type='application/json',
+            adding_headers={'Content-Length': '0'},
+            match=[responses.matchers.header_matcher({"Range": "bytes=0-2"})]
+        )
 
         serializer = ItemListSerializer(
             data=self.payload, context={'collection': self.collection.model}

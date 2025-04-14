@@ -1,6 +1,6 @@
 import logging
 
-from aioresponses import aioresponses
+import responses
 
 from django.conf import settings
 from django.test import Client
@@ -74,21 +74,22 @@ class CollectionAssetsExternalAssetEndpointTestCase(StacBaseTestCase):
         logger.debug("created asset file size %s", new_collection_asset.file_size)
         self.assertEqual(new_collection_asset.file_size, 0)
 
-    @aioresponses()
-    def test_create_collection_asset_validate_external_url(self, mocked):
+    @responses.activate
+    def test_create_collection_asset_validate_external_url(self):
         collection = self.collection
         external_test_asset_url = 'https://example.com/api/123.jpeg'
         collection.allow_external_assets = True
         collection.external_asset_whitelist = ['https://example.com']
         collection.save()
 
-        mocked.get(
+        responses.add(
+            method=responses.GET,
             url=external_test_asset_url,
             body='som',
             status=200,
-            headers={
-                'Content-Type': 'application/json', 'Content-Length': '3'
-            },
+            content_type='application/json',
+            adding_headers={'Content-Length': '3'},
+            match=[responses.matchers.header_matcher({"Range": "bytes=0-2"})]
         )
 
         collection_asset_data = {
@@ -116,21 +117,22 @@ class CollectionAssetsExternalAssetEndpointTestCase(StacBaseTestCase):
         self.assertTrue(new_collection_asset.is_external)
         self.assertEqual(new_collection_asset.file_size, 0)
 
-    @aioresponses()
-    def test_create_collection_asset_validate_external_url_not_found(self, mocked):
+    @responses.activate
+    def test_create_collection_asset_validate_external_url_not_found(self):
         collection = self.collection
         external_test_asset_url = 'https://example.com/api/123.jpeg'
         collection.allow_external_assets = True
         collection.external_asset_whitelist = ['https://example.com']
         collection.save()
 
-        mocked.get(
+        responses.add(
+            method=responses.GET,
             url=external_test_asset_url,
             body='',
             status=404,
-            headers={
-                'Content-Type': 'application/json', 'Content-Length': '0'
-            },
+            content_type='application/json',
+            adding_headers={'Content-Length': '0'},
+            match=[responses.matchers.header_matcher({"Range": "bytes=0-2"})]
         )
 
         collection_asset_data = {
@@ -161,21 +163,22 @@ class CollectionAssetsExternalAssetEndpointTestCase(StacBaseTestCase):
         last_collection_asset = CollectionAsset.objects.last()
         self.assertIsNone(last_collection_asset)  #should be none as no new asset was created
 
-    @aioresponses()
-    def test_create_collection_asset_validate_external_url_bad_content(self, mocked):
+    @responses.activate
+    def test_create_collection_asset_validate_external_url_bad_content(self):
         collection = self.collection
         external_test_asset_url = 'https://example.com/api/123.jpeg'
         collection.allow_external_assets = True
         collection.external_asset_whitelist = ['https://example.com']
         collection.save()
 
-        mocked.get(
+        responses.add(
+            method=responses.GET,
             url=external_test_asset_url,
             body='',
             status=200,
-            headers={
-                'Content-Type': 'application/json', 'Content-Length': '0'
-            },
+            content_type='application/json',
+            adding_headers={'Content-Length': '0'},
+            match=[responses.matchers.header_matcher({"Range": "bytes=0-2"})]
         )
 
         collection_asset_data = {

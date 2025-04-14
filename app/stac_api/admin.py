@@ -1,7 +1,6 @@
 import json
 import logging
 
-import aiohttp
 from admin_auto_filters.filters import AutocompleteFilter
 from admin_auto_filters.filters import AutocompleteFilterFactory
 
@@ -634,7 +633,7 @@ class AssetAdminForm(forms.ModelForm):
                     self.fields['file'].widget.attrs['placeholder'
                                                     ] = 'https://map.geo.admin.ch/external.jpg'
 
-    async def clean_file(self):
+    def clean_file(self):
         if self.instance:
             external_changed = 'is_external' in self.changed_data
             is_external = self.cleaned_data.get('is_external')
@@ -646,8 +645,7 @@ class AssetAdminForm(forms.ModelForm):
                 file = self.cleaned_data.get('file')
 
                 validate_href_url(file, self.instance.item.collection)
-                with aiohttp.ClientSession() as session:
-                    validate_href_reachability(file, self.instance.item.collection, session)
+                validate_href_reachability(file, self.instance.item.collection)
 
         return self.cleaned_data.get('file')
 

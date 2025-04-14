@@ -13,7 +13,7 @@ django_debug_toolbar = "*"
 pip = "*"
 tblib = "*"  # needed for traceback when running tests in parallel
 mock = "~=5.1.0"
-aioresponses = "*"
+responses = "!=0.12.1" # skip version 0.12.1 which has a bug see https://github.com/getsentry/responses/issues/358
 requests-mock = "~=1.12.1"
 moto = {extras = [ "s3",], version = "~=4.0.13"}
 debugpy = "*"
@@ -47,7 +47,6 @@ django-pgtrigger = "~=4.11.1"
 django-environ = "*"
 language-tags = "*"
 logging-utilities = "~=5.0.0"
-aiohttp = "*"
 
 [requires]
 python_version = "3.12"

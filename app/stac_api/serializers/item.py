@@ -1,14 +1,13 @@
-import asyncio
 import copy
 import logging
 from datetime import timedelta
 from typing import Any
 from typing import override
 
-import aiohttp
+import gevent
+from gevent.pool import Group
 
 from django.conf import settings
-from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
 from rest_framework import serializers
@@ -301,12 +300,10 @@ class AssetSerializer(AssetBaseSerializer):
     def validate(self, attrs):
         if not self.collection:
             raise LookupError("No collection defined.")
-        asyncio.run(
-            validate_href_field(
-                attrs=attrs,
-                collection=self.collection,
-                check_reachability=self.context.get("validate_href_reachability", True)
-            )
+        validate_href_field(
+            attrs=attrs,
+            collection=self.collection,
+            check_reachability=self.context.get("validate_href_reachability", True)
         )
         return super().validate(attrs)
 
@@ -524,18 +521,14 @@ class ItemListSerializer(serializers.Serializer):
         items_serialized = [ItemSerializer(item, context=self.context).data for item in instance]
         return {"features": items_serialized}
 
-    async def _validate_assets_reachability(self, asset_urls: list[str]) -> None:
+    def _validate_assets_reachability(self, asset_urls: list[str]) -> None:
         """Check if the given asset URLs are reachable asynchronously."""
         collection = self.context["collection"]
 
-        async with aiohttp.ClientSession() as session:
-            try:
-                async with asyncio.TaskGroup() as group:
-                    for url in asset_urls:
-                        group.create_task(validate_href_reachability(url, collection, session))
-            except ExceptionGroup as eg:
-                message = "\n".join([exc.message for exc in eg.exceptions])
-                raise ValidationError(message) from eg
+        group = Group()
+        for url in asset_urls:
+            group.add(gevent.spawn(validate_href_reachability(url, collection)))
+        group.join()
 
     def _get_asset_urls(self, payload: dict[str, Any]) -> list[str]:
         """Extract the href URLs from the payload."""
@@ -557,6 +550,6 @@ class ItemListSerializer(serializers.Serializer):
 
         if settings.FEATURE_CHECK_ASSET_REACHABILITY_IN_BULK_UPLOAD_ENABLED:
             asset_urls = self._get_asset_urls(attrs)
-            asyncio.run(self._validate_assets_reachability(asset_urls))
+            self._validate_assets_reachability(asset_urls)
 
         return super().validate(attrs)
