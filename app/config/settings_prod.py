@@ -358,6 +358,12 @@ MANAGED_BUCKET_COLLECTION_PATTERNS = env.list('MANAGED_BUCKET_COLLECTION_PATTERN
 # the duration in seconds that the validator should try and reach the external URL
 EXTERNAL_URL_REACHABLE_TIMEOUT = env.int('EXTERNAL_URL_REACHABLE_TIMEOUT', default=5)
 
+# Feature flag to disable the asynchronous reachability check of external assets
+# in the item bulk upload
+FEATURE_CHECK_ASSET_REACHABILITY_IN_BULK_UPLOAD_ENABLED = env(
+    'FEATURE_CHECK_ASSET_REACHABILITY_IN_BULK_UPLOAD_ENABLED', bool, default=True
+)
+
 DISALLOWED_EXTERNAL_ASSET_URL_SCHEMES = env.list(
     'DISALLOWED_EXTERNAL_ASSET_URL_SCHEMES', default=['http']
 )

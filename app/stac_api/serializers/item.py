@@ -7,6 +7,7 @@ from typing import override
 
 import aiohttp
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
@@ -554,7 +555,8 @@ class ItemListSerializer(serializers.Serializer):
         if len(attrs["features"]) > max_n_items:
             raise serializers.ValidationError({"features": f"More than {max_n_items} features"})
 
-        asset_urls = self._get_asset_urls(attrs)
-        asyncio.run(self._validate_assets_reachability(asset_urls))
+        if settings.FEATURE_CHECK_ASSET_REACHABILITY_IN_BULK_UPLOAD_ENABLED:
+            asset_urls = self._get_asset_urls(attrs)
+            asyncio.run(self._validate_assets_reachability(asset_urls))
 
         return super().validate(attrs)
