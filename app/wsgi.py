@@ -33,7 +33,9 @@ import os
 import gevent.queue
 import gevent.util
 
-if os.environ.get('GEVENT_PATCH_URLLIB3_CPOOL_QUEUE', False):
+if os.environ.get('GEVENT_PATCH_URLLIB3_CPOOL_QUEUE', True):
+    # Work around gevent deadlock https://github.com/gevent/gevent/issues/1957
+    # As seen in PB-1531.
     import urllib3.connectionpool
     urllib3.connectionpool.ConnectionPool.QueueCls = gevent.queue.LifoQueue
 
