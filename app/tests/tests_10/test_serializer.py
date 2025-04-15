@@ -910,10 +910,6 @@ class ItemListDeserializationTestCase(StacBaseTestCase):
     @responses.activate
     def test_itemlistserializer_throws_exception_if_one_asset_not_reachable(self):
 
-        payload = self.payload.copy()
-        payload["features"][0]["assets"]["asset-1.txt"]["file"] = "https://test.com/asset-1.txt"
-        payload["features"][1]["assets"]["asset-2.txt"]["file"] = "https://test.com/asset-2.txt"
-
         responses.add(
             method=responses.GET,
             url=settings.EXTERNAL_TEST_ASSET_URL,
