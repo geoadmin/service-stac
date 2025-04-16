@@ -71,13 +71,21 @@ class StandaloneApplication(BaseApplication):  # pylint: disable=abstract-method
 
 
 class GeventWorkerWithStackDump(GeventWorker):
-    # We want to dump the stacks when the worker receives SIGTERM regardless
-    # of whether it handles the SIGTERM gracefully. If the worker remains stuck,
-    # the next signal the master sends is SIGKILL, which means the worker_exit
-    # handler is never called. Thus, we spawn a thread to dump the stack
-    # before actually attempting to handle the signal.
+    # We want to dump the stacks when the worker fails to exit gracefully.
+    # The definition of gunicorn graceful termination is to send a SIGTERM,
+    # wait graceful_timeout then send a SIGKILL. So, upon receiving the SIGTERM,
+    # we schedule a thread that waits a little less than graceful_timeout then
+    # dump the stacks. If the process exited before then, no stack dumping
+    # occurs and we don't clutter the logs unnecessarily.
+    # A nicer way to resolve this has been proposed to upstream in
+    # https://github.com/benoitc/gunicorn/issues/3385
+
+    def get_stack_dump_delay(self):
+        delay = float(os.environ.get('GUNICORN_STACK_DUMP_DELAY', self.cfg.graceful_timeout - 1))
+        return max(0, delay)
+
     def handle_exit(self, sig, frame):
-        gevent.spawn(self.dump_stacks)
+        gevent.spawn_later(self.get_stack_dump_delay(), self.dump_stacks)
         super().handle_exit(sig, frame)
 
     @staticmethod
@@ -92,13 +100,12 @@ if __name__ == '__main__':
     # Bind to 0.0.0.0 to let your app listen to all network interfaces.
     options = {
         'bind': f"{'0.0.0.0'}:{HTTP_PORT}",
-        'worker_class': 'gevent',
+        'worker_class': 'wsgi.GeventWorkerWithStackDump',
         'workers': int(os.environ.get('GUNICORN_WORKERS',
                                       '2')),  # scaling horizontally is left to Kubernetes
         'worker_tmp_dir': os.environ.get('GUNICORN_WORKER_TMP_DIR', None),
         'timeout': 60,
+        'graceful_timeout': int(os.environ.get('GUNICORN_GRACEFUL_TIMEOUT', 30)),
         'logconfig_dict': get_logging_config(),
     }
-    if os.environ.get('GUNICORN_DUMP_STACKS_ON_EXIT', False):
-        options['worker_class'] = 'wsgi.GeventWorkerWithStackDump'
     StandaloneApplication(application, options).run()
