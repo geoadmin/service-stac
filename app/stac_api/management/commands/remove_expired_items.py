@@ -25,11 +25,12 @@ class Handler(CommandHandler):
         self.print_warning(f"deleting all items expired longer than {min_age_hours} hours")
         items = Item.objects.filter(
             properties_expires__lte=timezone.now() - timedelta(hours=min_age_hours)
-        ).all()
+        )
+        items_count = items.count()
         for item in items:
-            assets = item.assets.all()
+            assets_count = item.assets.count()
             uploads_in_progress = AssetUpload.objects.filter(
-                asset__in=assets, status=BaseAssetUpload.Status.IN_PROGRESS
+                asset__in=item.assets.iterator(), status=BaseAssetUpload.Status.IN_PROGRESS
             )
             if uploads_in_progress.count() > 0:
                 self.print_warning(
@@ -37,19 +38,18 @@ class Handler(CommandHandler):
                     "These are likely stale, so we'll abort them"
                 )
                 uploads_in_progress.update(status=BaseAssetUpload.Status.ABORTED)
-            assets_length = len(assets)
-            self.delete(assets, 'assets')
+            self.delete(item.assets.all(), 'assets')
             self.delete(item, 'item')
             if not self.options['dry_run']:
                 self.print_success(
-                    f"deleted item {item.name} and {assets_length}" + " assets belonging to it.",
+                    f"deleted item {item.name} and {assets_count}" + " assets belonging to it.",
                     extra={"item": item.name}
                 )
 
         if self.options['dry_run']:
-            self.print_success(f'[dry run] would have removed {len(items)} expired items')
+            self.print_success(f'[dry run] would have removed {items_count} expired items')
         else:
-            self.print_success(f'successfully removed {len(items)} expired items')
+            self.print_success(f'successfully removed {items_count} expired items')
 
 
 class Command(CustomBaseCommand):
