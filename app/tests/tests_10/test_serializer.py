@@ -17,6 +17,7 @@ from django.db import IntegrityError
 from django.urls import resolve
 
 from rest_framework import serializers
+from rest_framework.exceptions import ErrorDetail
 from rest_framework.renderers import JSONRenderer
 from rest_framework.test import APIRequestFactory
 
@@ -940,6 +941,52 @@ class ItemListDeserializationTestCase(StacBaseTestCase):
         )
         with self.assertRaises(serializers.ValidationError, msg=message) as context:
             serializer.is_valid(raise_exception=True)
+
+    @responses.activate
+    def test_itemlistserializer_throws_exception_if_one_asset_href_invalid(self):
+
+        invalid_url = "https://www.not-white-listed.com"
+        payload = self.payload.copy()
+        payload["features"][0]["assets"]["asset-1.txt"]["href"] = invalid_url
+
+        responses.add(
+            method=responses.GET,
+            url=invalid_url,
+            body='som',
+            status=200,
+            content_type='application/json',
+            adding_headers={'Content-Length': '3'},
+            match=[responses.matchers.header_matcher({"Range": "bytes=0-2"})]
+        )
+        responses.add(
+            method=responses.GET,
+            url=settings.EXTERNAL_TEST_ASSET_URL,
+            body='som',
+            status=200,
+            content_type='application/json',
+            adding_headers={'Content-Length': '3'},
+            match=[responses.matchers.header_matcher({"Range": "bytes=0-2"})]
+        )
+
+        serializer = ItemListSerializer(
+            data=payload,
+            context={
+                'collection': self.collection.model, 'validate_href_reachability': False
+            }
+        )
+
+        with self.assertRaises(serializers.ValidationError):
+            self.assertFalse(serializer.is_valid(raise_exception=True))
+
+        expected_errors = {
+            'href': [
+                ErrorDetail(
+                    string="Invalid URL provided. It doesn't match the collection whitelist",
+                    code='payload'
+                )
+            ]
+        }
+        self.assertDictEqual(serializer.errors, expected_errors)
 
 
 class AssetSerializationTestCase(StacBaseTestCase):

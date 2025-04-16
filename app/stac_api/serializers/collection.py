@@ -178,7 +178,10 @@ class CollectionAssetSerializer(CollectionAssetBaseSerializer):
     def validate(self, attrs):
         if not self.collection:
             raise LookupError("No collection defined.")
-        validate_href_field(attrs=attrs, collection=self.collection, check_reachability=True)
+        if "file" in attrs:
+            validate_href_field(
+                url=attrs["file"], collection=self.collection, check_reachability=True
+            )
         return super().validate(attrs)
 
 

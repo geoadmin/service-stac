@@ -300,11 +300,12 @@ class AssetSerializer(AssetBaseSerializer):
     def validate(self, attrs):
         if not self.collection:
             raise LookupError("No collection defined.")
-        validate_href_field(
-            attrs=attrs,
-            collection=self.collection,
-            check_reachability=self.context.get("validate_href_reachability", True)
-        )
+        if "file" in attrs:
+            validate_href_field(
+                url=attrs["file"],
+                collection=self.collection,
+                check_reachability=self.context.get("validate_href_reachability", True)
+            )
         return super().validate(attrs)
 
 
@@ -548,8 +549,12 @@ class ItemListSerializer(serializers.Serializer):
         if len(attrs["features"]) > max_n_items:
             raise serializers.ValidationError({"features": f"More than {max_n_items} features"})
 
+        asset_urls = self._get_asset_urls(attrs)
+        for url in asset_urls:
+            validate_href_field(
+                url=url, collection=self.context["collection"], check_reachability=False
+            )
         if settings.FEATURE_CHECK_ASSET_REACHABILITY_IN_BULK_UPLOAD_ENABLED:
-            asset_urls = self._get_asset_urls(attrs)
             self._validate_assets_reachability(asset_urls)
 
         return super().validate(attrs)

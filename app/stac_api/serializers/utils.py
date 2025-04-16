@@ -366,40 +366,39 @@ class DictSerializer(serializers.ListSerializer):
         return ReturnDict(ret, serializer=self)
 
 
-def validate_href_field(attrs, collection, check_reachability):
+def validate_href_field(url, collection, check_reachability):
     """
-    Validate the `href` field (stored as `file` in the model).
+    Validate the given URL.
 
     - Ensures `href` can only be set if the collection allows external assets.
     - Validates the URL format.
 
     Args:
-        attrs (dict): The validated data from the serializer.
+        url (str): The URL to validate
         collection (models.collection.Collection): The collection in which the asset is
         check_reachability (bool): Whether to check the href's reachability
 
     Raises:
         serializers.ValidationError: If `href` is not allowed or is invalid.
     """
-    if 'file' in attrs:
-        if not collection.allow_external_assets:
-            logger.info(
-                'Attempted external asset upload with no permission',
-                extra={
-                    'collection': collection.name, 'attrs': attrs
-                }
-            )
-            raise serializers.ValidationError({
-                'href': _("Found read-only property in payload")
-            }, code="payload")
+    if not collection.allow_external_assets:
+        logger.info(
+            'Attempted external asset upload with no permission',
+            extra={
+                'collection': collection.name, 'href': url
+            }
+        )
+        raise serializers.ValidationError({
+            'href': _("Found read-only property in payload")
+        }, code="payload")
 
-        try:
-            validate_href_url(attrs['file'], collection)
-            # disabled in bulk upload for performance reasons
-            if check_reachability:
-                validate_href_reachability(attrs['file'], collection)
-        except CoreValidationError as e:
-            raise serializers.ValidationError({'href': e.message}, code='payload')
+    try:
+        validate_href_url(url, collection)
+        # disabled in bulk upload for performance reasons
+        if check_reachability:
+            validate_href_reachability(url, collection)
+    except CoreValidationError as e:
+        raise serializers.ValidationError({'href': e.message}, code='payload')
 
 
 class AssetsDictSerializer(DictSerializer):
