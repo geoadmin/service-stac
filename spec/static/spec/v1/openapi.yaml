@@ -32,6 +32,14 @@ components:
       schema:
         $ref: "#/components/schemas/bbox"
       style: form
+    intersects:
+      explode: false
+      in: query
+      name: intersects
+      required: false
+      schema:
+        $ref: "#/components/schemas/intersectsFilter"
+      style: form
     collectionId:
       description: Local identifier of a collection
       in: path
@@ -2258,6 +2266,7 @@ paths:
       operationId: getSearchSTAC
       parameters:
         - $ref: "#/components/parameters/bbox"
+        - $ref: "#/components/parameters/intersects"
         - $ref: "#/components/parameters/datetime"
         - $ref: "#/components/parameters/limit"
         - $ref: "#/components/parameters/ids"

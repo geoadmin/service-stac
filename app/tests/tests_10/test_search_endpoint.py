@@ -345,6 +345,13 @@ class SearchEndpointTestCaseOne(StacBaseTestCase):
         json_data = response.json()
         self.assertEqual(json_data['features'][0]['id'], 'item-3')
 
+    def test_get_intersects_valid(self):
+        data = {"intersects": {"type": "POINT", "coordinates": [6, 47]}}
+        response = self.client.get(f"{self.path}?intersects={json.dumps(data['intersects'])}")
+        json_data_get = response.json()
+        self.assertStatusCode(200, response)
+        self.assertEqual(json_data_get['features'][0]['id'], 'item-3')
+
     def test_post_intersects_invalid(self):
         data = {"intersects": {"type": "POINT", "coordinates": [6, 47, "kaputt"]}}
         response = self.client.post(self.path, data=data, content_type="application/json")
