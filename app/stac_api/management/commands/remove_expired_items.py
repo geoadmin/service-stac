@@ -38,7 +38,7 @@ class Handler(CommandHandler):
                     "These are likely stale, so we'll abort them"
                 )
                 uploads_in_progress.update(status=BaseAssetUpload.Status.ABORTED)
-            self.delete(item.assets.all(), 'assets')
+            self.delete(item.assets.get_queryset(), 'assets')
             self.delete(item, 'item')
             if not self.options['dry_run']:
                 self.print_success(
