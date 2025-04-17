@@ -308,6 +308,8 @@ def harmonize_post_get_for_search(request):
             query_param['ids'] = query_param['ids'].split(',')  # to array
         if 'collections' in query_param:
             query_param['collections'] = query_param['collections'].split(',')  # to array
+        if 'intersects' in query_param:
+            query_param['intersects'] = json.loads(query_param['intersects'])
 
         # Forecast properties can only be filtered with method POST.
         # Decision was made as `:` need to be url encoded and (at least for now) we do not need to
