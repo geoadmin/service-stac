@@ -32,7 +32,7 @@ class RemoveExpiredItems(TestCase):
         return out.getvalue()
 
     @mock_s3_asset_file
-    def test_remove_item_dry_run(self):
+    def test_remove_one_item_dry_run(self):
         item_0 = self.factory.create_item_sample(
             self.collection,
             name='item-0',
@@ -70,7 +70,7 @@ skipping deletion of item collection-1/item-0
         )
 
     @mock_s3_asset_file
-    def test_remove_item(self):
+    def test_remove_one_item(self):
         item_1 = self.factory.create_item_sample(
             self.collection,
             name='item-1',
@@ -124,3 +124,52 @@ successfully removed 1 expired items
             Asset.objects.filter(name=assets[1]['name']).exists(),
             msg="Asset of expired item was not deleted"
         )
+
+    def test_remove_many_items_dry_run(self):
+        self.remove_many_items(dry_run=True)
+
+    def test_remove_many_items(self):
+        self.remove_many_items(dry_run=False)
+
+    @mock_s3_asset_file
+    def remove_many_items(self, dry_run=True, items_count=10, assets_per_item=10):
+        items = self.factory.create_item_samples(
+            items_count,
+            self.collection,
+            db_create=True,
+            properties_expires=timezone.now() + timedelta(hours=1)
+        )
+        assets = []
+        for item in items:
+            assets.extend(
+                self.factory.create_asset_samples(assets_per_item, item.model, db_create=True)
+            )
+
+        with patch.object(timezone, "now", return_value=timezone.now() + timedelta(hours=26)):
+            args = ["--no-color"]
+            if dry_run:
+                args.append("--dry-run")
+            out = self._call_command(*args).split("\n")
+
+        expected_out_start = (
+            "running command to remove expired items",
+            "deleting all items expired longer than 24 hours",
+        )
+        expected_out_end = f"successfully removed {items_count} expired items"
+        if dry_run:
+            expected_out_end = f"[dry run] would have removed {items_count} expired items"
+        self.assertSequenceEqual(expected_out_start, out[0:len(expected_out_start)])
+        self.assertSequenceEqual((expected_out_end, ""), out[-2:])
+
+        for item in items:
+            name = item['name']
+            msg = f"Item unexpectedly still exists: {name}"
+            if dry_run:
+                msg = f"Item was unexpectedly removed: {name}"
+            self.assertEqual(dry_run, Item.objects.filter(name=name).exists(), msg=msg)
+        for asset in assets:
+            name = asset['name']
+            msg = f"Asset unexpectedly still exists: {name}"
+            if dry_run:
+                msg = f"Asset was unexpectedly removed: {name}"
+            self.assertEqual(dry_run, Asset.objects.filter(name=name).exists(), msg=msg)
