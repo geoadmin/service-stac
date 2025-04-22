@@ -44,8 +44,11 @@ class RequestResponseLoggingMiddlewareTests(TestCase):
 
         logger.info.assert_called_once()
         logger.info.assert_called_with(
-            'Response %s',
+            'Response %s %s %s?%s',
             204,
+            'POST',
+            '/some-url/',
+            encoded,
             extra={
                 'request': request,
                 'response': {
@@ -82,8 +85,11 @@ class RequestResponseLoggingMiddlewareTests(TestCase):
 
         logger.info.assert_called_once()
         logger.info.assert_called_with(
-            'Response %s',
+            'Response %s %s %s?%s',
             200,
+            'POST',
+            '/some-url/',
+            '',
             extra={
                 'request': request,
                 'response': {
