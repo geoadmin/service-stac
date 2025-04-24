@@ -5,6 +5,7 @@ from django.core.management.base import CommandParser
 from django.utils import timezone
 
 from stac_api.models.general import BaseAssetUpload
+from stac_api.models.item import Asset
 from stac_api.models.item import AssetUpload
 from stac_api.models.item import Item
 from stac_api.utils import CommandHandler
@@ -23,28 +24,23 @@ class Handler(CommandHandler):
         self.print_success('running command to remove expired items')
         min_age_hours = self.options['min_age_hours']
         self.print_warning(f"deleting all items expired longer than {min_age_hours} hours")
-        items = Item.objects.filter(
-            properties_expires__lte=timezone.now() - timedelta(hours=min_age_hours)
-        )
+        expiration = timezone.now() - timedelta(hours=min_age_hours)
+
+        items = Item.objects.filter(properties_expires__lte=expiration)
         items_count = items.count()
-        for item in items:
-            assets_count = item.assets.count()
-            uploads_in_progress = AssetUpload.objects.filter(
-                asset__in=item.assets.iterator(), status=BaseAssetUpload.Status.IN_PROGRESS
+        assets = Asset.objects.filter(item__properties_expires__lte=expiration)
+        asset_uploads = AssetUpload.objects.filter(
+            asset__item__properties_expires__lte=expiration,
+            status=BaseAssetUpload.Status.IN_PROGRESS
+        )
+
+        if asset_uploads.update(status=BaseAssetUpload.Status.ABORTED):
+            self.print_warning(
+                "WARNING: There were still pending asset uploads for expired items. "
+                "These were likely stale, so we aborted them"
             )
-            if uploads_in_progress.count() > 0:
-                self.print_warning(
-                    "WARNING: There are still pending asset uploads for expired items. "
-                    "These are likely stale, so we'll abort them"
-                )
-                uploads_in_progress.update(status=BaseAssetUpload.Status.ABORTED)
-            self.delete(item.assets.get_queryset(), 'assets')
-            self.delete(item, 'item')
-            if not self.options['dry_run']:
-                self.print_success(
-                    f"deleted item {item.name} and {assets_count}" + " assets belonging to it.",
-                    extra={"item": item.name}
-                )
+        self.delete(assets, 'assets')
+        self.delete(items, 'items')
 
         if self.options['dry_run']:
             self.print_success(f'[dry run] would have removed {items_count} expired items')

@@ -76,10 +76,6 @@ class RemoveExpiredItemsBase(TestCase):
             f"deleting all items expired longer than {self.expected_default_min_age_hours} hours",
             f"successfully removed {self.expiring_items_count} expired items",
         ]
-        for i in range(self.expiring_items_count):
-            self.expected_output_patterns.append(
-                f"deleted item item-{i} and 2 assets belonging to it. extra={{'item': 'item-{i}'}}"
-            )
 
     def assert_object_exists(self, obj):
         cls = obj.__class__
@@ -165,7 +161,7 @@ class RemoveExpiredItemsNoDelete(RemoveExpiredItemsBase):
                     "skipping deletion of assets <QuerySet"
                     " [<Asset: asset-0.tiff>, <Asset: asset-1.tiff>]>"
                 ),
-                "skipping deletion of item collection-1/item-0",
+                "skipping deletion of items <ItemQuerySet [<Item: collection-1/item-0>]>",
                 "[dry run] would have removed 1 expired items",
             ]
         )
