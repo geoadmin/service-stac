@@ -1,3 +1,5 @@
+import time
+import tracemalloc
 from datetime import timedelta
 from io import StringIO
 from unittest.mock import patch
@@ -190,9 +192,41 @@ class RemoveExpiredItemsNoDelete(RemoveExpiredItemsBase):
         )
 
 
-class RemoveExpiredItemsMany(RemoveExpiredItemsBase):
-    expiring_items_count = 10
+class RemoveExpiredItemsManyWithProfiling(RemoveExpiredItemsBase):
+    expiring_items_count = 100
     remaining_items_count = 10
 
     def test_remove_item(self):
         self.run_test()
+
+    @staticmethod
+    def _diff_memory(before, after):
+        diff = after.compare_to(before, 'filename')
+        total = 0
+        for d in diff:
+            total += d.size_diff
+        return total
+
+    def _call_command(self, *args, **kwargs):
+        tracemalloc.start()
+        mem_before = tracemalloc.take_snapshot()
+
+        time_before = time.time_ns()
+
+        retval = super()._call_command(*args, **kwargs)
+
+        time_after = time.time_ns()
+
+        mem_after = tracemalloc.take_snapshot()
+        tracemalloc.stop()
+
+        time_consumed = (time_after - time_before) / 10**9
+        mem_consumed = self._diff_memory(mem_before, mem_after)
+        print(
+            f"memory consumed: {mem_consumed} ({mem_consumed/self.expiring_items_count} per item)"
+        )
+        print(
+            f"time consumed: {time_consumed}s ({time_consumed/self.expiring_items_count} per item)"
+        )
+
+        return retval
