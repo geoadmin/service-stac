@@ -11,6 +11,7 @@ from django.utils import timezone
 
 from stac_api.management.commands.remove_expired_items import SafetyAbort
 from stac_api.models.item import Asset
+from stac_api.models.item import AssetUpload
 from stac_api.models.item import Item
 
 from tests.tests_10.data_factory import Factory
@@ -54,6 +55,21 @@ class RemoveExpiredItemsBase(TestCase):
                 assets.append(Asset(item=item, name=f'asset-{i}.tiff'))
         return assets
 
+    def make_asset_uploads(self, assets):
+        asset_uploads = []
+        for asset in assets:
+            asset_uploads.append(
+                AssetUpload(
+                    asset=asset,
+                    upload_id=f"upload-id-{asset.item.name}/{asset.name}",
+                    checksum_multihash="this is a dummy sha256sum",
+                    number_parts=1,
+                    md5_parts="this is a dummy md5sum",
+                    status=AssetUpload.Status.IN_PROGRESS
+                )
+            )
+        return asset_uploads
+
     @mock_s3_asset_file
     def setUp(self):
         super().setUp()
@@ -66,9 +82,12 @@ class RemoveExpiredItemsBase(TestCase):
         )
         self.expiring_assets = self.make_assets(self.expiring_items)
         self.remaining_assets = self.make_assets(self.remaining_items)
+        self.expiring_asset_uploads = self.make_asset_uploads(self.expiring_assets)
+        self.remaining_asset_uploads = self.make_asset_uploads(self.remaining_assets)
 
         Item.objects.bulk_create(self.expiring_items + self.remaining_items)
         Asset.objects.bulk_create(self.expiring_assets + self.remaining_assets)
+        AssetUpload.objects.bulk_create(self.expiring_asset_uploads + self.remaining_asset_uploads)
 
         self.stderr = StringIO()
         self.expected_stderr_patterns = None
@@ -121,8 +140,12 @@ class RemoveExpiredItemsBase(TestCase):
         super().tearDown()
 
     def assert_objects_existence(self):
-        self.assert_objects_do_not_exist(self.expiring_items + self.expiring_assets)
-        self.assert_objects_exist(self.remaining_items + self.remaining_assets)
+        self.assert_objects_do_not_exist(
+            self.expiring_items + self.expiring_assets + self.expiring_asset_uploads
+        )
+        self.assert_objects_exist(
+            self.remaining_items + self.remaining_assets + self.remaining_asset_uploads
+        )
 
     def run_test(
         self,
@@ -164,7 +187,7 @@ class RemoveExpiredItemsAll(RemoveExpiredItemsBase):
     def assert_objects_existence(self):
         self.assert_objects_do_not_exist(
             self.expiring_items + self.remaining_items + self.expiring_assets +
-            self.remaining_assets
+            self.remaining_assets + self.expiring_asset_uploads + self.remaining_asset_uploads
         )
 
     def test_remove_item_min_age_hours_shorter(self):
@@ -185,7 +208,7 @@ class RemoveExpiredItemsNoDelete(RemoveExpiredItemsBase):
     def assert_objects_existence(self):
         self.assert_objects_exist(
             self.expiring_items + self.remaining_items + self.expiring_assets +
-            self.remaining_assets
+            self.remaining_assets + self.expiring_asset_uploads + self.remaining_asset_uploads
         )
 
     def test_remove_item_dry_run(self):
