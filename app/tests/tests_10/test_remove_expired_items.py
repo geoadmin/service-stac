@@ -9,6 +9,7 @@ from django.core.management.base import CommandError
 from django.test import TestCase
 from django.utils import timezone
 
+from stac_api.management.commands.remove_expired_items import SafetyAbort
 from stac_api.models.item import Asset
 from stac_api.models.item import Item
 
@@ -69,11 +70,15 @@ class RemoveExpiredItemsBase(TestCase):
         Item.objects.bulk_create(self.expiring_items + self.remaining_items)
         Asset.objects.bulk_create(self.expiring_assets + self.remaining_assets)
 
-        self.stdout = StringIO()
         self.stderr = StringIO()
-        self.expected_output_patterns = [
+        self.expected_stderr_patterns = None
+        self.stdout = StringIO()
+        self.expected_stdout_patterns = [
             "running command to remove expired items",
-            f"deleting all items expired longer than {self.expected_default_min_age_hours} hours",
+            (
+                f"deleting no more than 110000 or 50% items expired for longer than"
+                f" {self.expected_default_min_age_hours} hours"
+            ),
             f"successfully removed {self.expiring_items_count} expired items",
         ]
 
@@ -95,11 +100,23 @@ class RemoveExpiredItemsBase(TestCase):
         for obj in objs:
             self.assert_object_does_not_exist(obj)
 
+    def assert_output_patterns(self, expected_patterns, actual):
+        for pattern in expected_patterns:
+            self.assertIn(pattern, actual)
+
+    def assert_stdout(self):
+        self.assert_output_patterns(self.expected_stdout_patterns, self.stdout.getvalue())
+
+    def assert_stderr(self):
+        output = self.stderr.getvalue()
+        if self.expected_stderr_patterns is None:
+            self.assertEqual('', output)
+        else:
+            self.assert_output_patterns(self.expected_stderr_patterns, output)
+
     def tearDown(self):
-        output = self.stdout.getvalue()
-        for pattern in self.expected_output_patterns:
-            self.assertIn(pattern, output)
-        self.assertEqual('', self.stderr.getvalue())
+        self.assert_stderr()
+        self.assert_stdout()
         self.assert_objects_existence()
         super().tearDown()
 
@@ -107,11 +124,19 @@ class RemoveExpiredItemsBase(TestCase):
         self.assert_objects_do_not_exist(self.expiring_items + self.expiring_assets)
         self.assert_objects_exist(self.remaining_items + self.remaining_assets)
 
-    def run_test(self, expected_output_patterns=None, now_offset=None, command_args=None):
+    def run_test(
+        self,
+        expected_stdout_patterns=None,
+        expected_stderr_patterns=None,
+        now_offset=None,
+        command_args=None
+    ):
         if now_offset is None:
             now_offset = self.expected_default_min_age_hours + self.expiring_deadline_hours
-        if expected_output_patterns is not None:
-            self.expected_output_patterns = expected_output_patterns
+        if expected_stdout_patterns is not None:
+            self.expected_stdout_patterns = expected_stdout_patterns
+        if expected_stderr_patterns is not None:
+            self.expected_stderr_patterns = expected_stderr_patterns
         if command_args is None:
             command_args = []
         with patch.object(
@@ -125,6 +150,14 @@ class RemoveExpiredItems(RemoveExpiredItemsBase):
     def test_remove_item(self):
         self.run_test()
 
+    def test_max_deletions_small(self):
+        self.run_test(
+            command_args=["--max-deletions=1"],
+            expected_stdout_patterns=[
+                "deleting no more than 1 or 50% items expired for longer than 24 hours"
+            ]
+        )
+
 
 class RemoveExpiredItemsAll(RemoveExpiredItemsBase):
 
@@ -136,14 +169,18 @@ class RemoveExpiredItemsAll(RemoveExpiredItemsBase):
 
     def test_remove_item_min_age_hours_shorter(self):
         self.run_test(
-            command_args=["--min-age-hours=12"],
-            expected_output_patterns=[
-                "deleting all items expired longer than 12 hours",
+            command_args=["--min-age-hours=12", "--max-deletions-percentage=100"],
+            expected_stdout_patterns=[
+                "deleting no more than 110000 or 100% items expired for longer than 12 hours",
             ]
         )
 
 
 class RemoveExpiredItemsNoDelete(RemoveExpiredItemsBase):
+
+    def setUp(self):
+        super().setUp()
+        self.expected_stdout_patterns = []
 
     def assert_objects_existence(self):
         self.assert_objects_exist(
@@ -154,9 +191,9 @@ class RemoveExpiredItemsNoDelete(RemoveExpiredItemsBase):
     def test_remove_item_dry_run(self):
         self.run_test(
             command_args=["--dry-run"],
-            expected_output_patterns=[
+            expected_stdout_patterns=[
                 "running command to remove expired items",
-                "deleting all items expired longer than 24 hours",
+                "deleting no more than 110000 or 50% items expired for longer than 24 hours",
                 (
                     "skipping deletion of assets <QuerySet"
                     " [<Asset: asset-0.tiff>, <Asset: asset-1.tiff>]>"
@@ -169,9 +206,9 @@ class RemoveExpiredItemsNoDelete(RemoveExpiredItemsBase):
     def test_remove_item_no_expired_item(self):
         self.run_test(
             command_args=["--min-age-hours=30"],
-            expected_output_patterns=[
+            expected_stdout_patterns=[
                 "running command to remove expired items",
-                "deleting all items expired longer than 30 hours",
+                "deleting no more than 110000 or 50% items expired for longer than 30 hours",
                 "successfully removed 0 expired items"
             ]
         )
@@ -179,19 +216,84 @@ class RemoveExpiredItemsNoDelete(RemoveExpiredItemsBase):
     def test_min_age_hours_nan(self):
         self.assertRaisesRegex(
             CommandError,
-            "--min-age-hours: invalid int value: 'NotANumber'",
+            "--min-age-hours: invalid 'positive_int' value: 'NotANumber'",
             self.run_test,
-            expected_output_patterns=[],
             command_args=["--min-age-hours=NotANumber"]
+        )
+
+    def test_min_age_hours_negative(self):
+        self.assertRaisesRegex(
+            CommandError,
+            "--min-age-hours: invalid 'positive_int' value: '-1'",
+            self.run_test,
+            command_args=["--min-age-hours=-1"]
+        )
+
+    def test_max_deletions_nan(self):
+        self.assertRaisesRegex(
+            CommandError,
+            "--max-deletions: invalid 'positive_int' value: 'not-a-number1'",
+            self.run_test,
+            command_args=["--max-deletions=not-a-number1"]
+        )
+
+    def test_max_deletions_negative(self):
+        self.assertRaisesRegex(
+            CommandError,
+            "--max-deletions: invalid 'positive_int' value: '-1'",
+            self.run_test,
+            command_args=["--max-deletions=-1"]
+        )
+
+    def test_max_deletions_exceeded(self):
+        self.assertRaisesRegex(
+            SafetyAbort,
+            "Attempting to delete too many items: 1 > 0.",
+            self.run_test,
+            command_args=["--max-deletions=0"],
+            expected_stderr_patterns=["Attempting to delete too many items: 1 > 0."]
+        )
+
+    def test_max_deletions_percentage_nan(self):
+        self.assertRaisesRegex(
+            CommandError,
+            "--max-deletions-percentage: invalid 'percentage_int' value: 'not-a-number2'",
+            self.run_test,
+            command_args=["--max-deletions-percentage=not-a-number2"]
+        )
+
+    def test_max_deletions_percentage_negative(self):
+        self.assertRaisesRegex(
+            CommandError,
+            "--max-deletions-percentage: invalid 'percentage_int' value: '-1'",
+            self.run_test,
+            command_args=["--max-deletions-percentage=-1"]
+        )
+
+    def test_max_deletions_percentage_over_100(self):
+        self.assertRaisesRegex(
+            CommandError,
+            "--max-deletions-percentage: invalid 'percentage_int' value: '101'",
+            self.run_test,
+            command_args=["--max-deletions-percentage=101"]
+        )
+
+    def test_max_deletions_percentage_exceeded(self):
+        self.assertRaisesRegex(
+            SafetyAbort,
+            "Attempting to delete too many items: 50.00% > 1%.",
+            self.run_test,
+            command_args=["--max-deletions-percentage=1"],
+            expected_stderr_patterns="Attempting to delete too many items: 50.00% > 1%."
         )
 
 
 class RemoveExpiredItemsManyWithProfiling(RemoveExpiredItemsBase):
     expiring_items_count = 1000
-    remaining_items_count = 10
+    remaining_items_count = 20
 
     def test_remove_item(self):
-        self.run_test()
+        self.run_test(command_args=["--max-deletions-percentage=99"], expected_stdout_patterns=[])
 
     @staticmethod
     def _diff_memory(before, after):
