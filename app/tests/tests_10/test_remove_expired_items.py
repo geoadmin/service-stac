@@ -142,7 +142,7 @@ class RemoveExpiredItemsNoDelete(RemoveExpiredItemsBase):
 
     def test_remove_item_dry_run(self):
         self.run_test(
-            command_args=["--dry-run", "--no-color"],
+            command_args=["--dry-run"],
             expected_output_patterns=[
                 "running command to remove expired items",
                 "deleting all items expired longer than 24 hours",
@@ -157,7 +157,7 @@ class RemoveExpiredItemsNoDelete(RemoveExpiredItemsBase):
 
     def test_remove_item_no_expired_item(self):
         self.run_test(
-            command_args=["--no-color", "--min-age-hours=30"],
+            command_args=["--min-age-hours=30"],
             expected_output_patterns=[
                 "running command to remove expired items",
                 "deleting all items expired longer than 30 hours",
