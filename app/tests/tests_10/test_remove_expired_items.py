@@ -36,7 +36,7 @@ class RemoveExpiredItemsBase(TestCase):
             **kwargs,
         )
 
-    def make_items(self, expiration, count, name_offset=0):
+    def make_items(self, count, expiration=None, name_offset=0):
         items = []
         for i in range(count):
             items.append(
@@ -76,16 +76,25 @@ class RemoveExpiredItemsBase(TestCase):
 
         expiration = timezone.now() + timedelta(hours=self.expiring_deadline_hours)
 
-        self.expiring_items = self.make_items(expiration, self.expiring_items_count, name_offset=0)
+        self.expiring_items = self.make_items(self.expiring_items_count, expiration, name_offset=0)
         self.remaining_items = self.make_items(
-            expiration + timedelta(hours=1), self.remaining_items_count, self.expiring_items_count
+            self.remaining_items_count,
+            expiration + timedelta(hours=1),
+            name_offset=self.expiring_items_count
+        )
+        self.remaining_items_null_expiration = self.make_items(
+            count=1,
+            expiration=None,
+            name_offset=(self.expiring_items_count + self.remaining_items_count)
         )
         self.expiring_assets = self.make_assets(self.expiring_items)
         self.remaining_assets = self.make_assets(self.remaining_items)
         self.expiring_asset_uploads = self.make_asset_uploads(self.expiring_assets)
         self.remaining_asset_uploads = self.make_asset_uploads(self.remaining_assets)
 
-        Item.objects.bulk_create(self.expiring_items + self.remaining_items)
+        Item.objects.bulk_create(
+            self.expiring_items + self.remaining_items + self.remaining_items_null_expiration
+        )
         Asset.objects.bulk_create(self.expiring_assets + self.remaining_assets)
         AssetUpload.objects.bulk_create(self.expiring_asset_uploads + self.remaining_asset_uploads)
 
@@ -137,6 +146,10 @@ class RemoveExpiredItemsBase(TestCase):
         self.assert_stderr()
         self.assert_stdout()
         self.assert_objects_existence()
+        # We keep this one within tearDown so it's not overridden by subclasses.
+        # There is no reason for Items with no expiration to be deleted in these
+        # tests.
+        self.assert_objects_exist(self.remaining_items_null_expiration)
         super().tearDown()
 
     def assert_objects_existence(self):
@@ -304,10 +317,10 @@ class RemoveExpiredItemsNoDelete(RemoveExpiredItemsBase):
     def test_max_deletions_percentage_exceeded(self):
         self.assertRaisesRegex(
             SafetyAbort,
-            "Attempting to delete too many items: 50.00% > 1%.",
+            "Attempting to delete too many items: 33.33% > 1%.",
             self.run_test,
             command_args=["--max-deletions-percentage=1"],
-            expected_stderr_patterns="Attempting to delete too many items: 50.00% > 1%."
+            expected_stderr_patterns=["Attempting to delete too many items: 33.33% > 1%."]
         )
 
 
