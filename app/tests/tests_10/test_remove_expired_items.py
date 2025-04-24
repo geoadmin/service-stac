@@ -3,6 +3,7 @@ from io import StringIO
 from unittest.mock import patch
 
 from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.test import TestCase
 from django.utils import timezone
 
@@ -25,15 +26,11 @@ class RemoveExpiredItemsBase(TestCase):
         cls.collection = cls.factory.create_collection_sample().model
 
     def _call_command(self, *args, **kwargs):
-        out = StringIO()
-        call_command(
+        return call_command(
             "remove_expired_items",
             *args,
-            stdout=out,
-            stderr=StringIO(),
             **kwargs,
         )
-        return out.getvalue()
 
     def make_items(self, expiration, count, name_offset=0):
         items = []
@@ -70,7 +67,8 @@ class RemoveExpiredItemsBase(TestCase):
         self.expiring_assets = self.make_assets(self.expiring_items)
         self.remaining_assets = self.make_assets(self.remaining_items)
 
-        self.out = None
+        self.stdout = StringIO()
+        self.stderr = StringIO()
         self.expected_output_patterns = [
             "running command to remove expired items",
             f"deleting all items expired longer than {self.expected_default_min_age_hours} hours",
@@ -104,8 +102,10 @@ class RemoveExpiredItemsBase(TestCase):
             self.assert_object_does_not_exist(cls, obj)
 
     def tearDown(self):
+        output = self.stdout.getvalue()
         for pattern in self.expected_output_patterns:
-            self.assertIn(pattern, self.out)
+            self.assertIn(pattern, output)
+        self.assertEqual('', self.stderr.getvalue())
         self.assert_objects_existence()
         super().tearDown()
 
@@ -125,13 +125,28 @@ class RemoveExpiredItemsBase(TestCase):
         with patch.object(
             timezone, "now", return_value=timezone.now() + timedelta(hours=now_offset)
         ):
-            self.out = self._call_command(*command_args)
+            return self._call_command(*command_args, stdout=self.stdout, stderr=self.stderr)
 
 
 class RemoveExpiredItems(RemoveExpiredItemsBase):
 
     def test_remove_item(self):
         self.run_test()
+
+
+class RemoveExpiredItemsAll(RemoveExpiredItemsBase):
+
+    def assert_objects_existence(self):
+        self.assert_objects_do_not_exist(Item, self.expiring_items + self.remaining_items)
+        self.assert_objects_do_not_exist(Asset, self.expiring_assets + self.remaining_assets)
+
+    def test_remove_item_min_age_hours_shorter(self):
+        self.run_test(
+            command_args=["--min-age-hours=12"],
+            expected_output_patterns=[
+                "deleting all items expired longer than 12 hours",
+            ]
+        )
 
 
 class RemoveExpiredItemsNoDelete(RemoveExpiredItemsBase):
@@ -163,6 +178,15 @@ class RemoveExpiredItemsNoDelete(RemoveExpiredItemsBase):
                 "deleting all items expired longer than 30 hours",
                 "successfully removed 0 expired items"
             ]
+        )
+
+    def test_min_age_hours_nan(self):
+        self.assertRaisesRegex(
+            CommandError,
+            "--min-age-hours: invalid int value: 'NotANumber'",
+            self.run_test,
+            expected_output_patterns=[],
+            command_args=["--min-age-hours=NotANumber"]
         )
 
 
