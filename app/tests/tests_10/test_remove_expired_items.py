@@ -38,10 +38,9 @@ class RemoveExpiredItemsBase(TestCase):
         items = []
         for i in range(count):
             items.append(
-                self.factory.create_item_sample(
-                    self.collection,
+                Item(
+                    collection=self.collection,
                     name=f'item-{i+name_offset}',
-                    db_create=True,
                     properties_expires=expiration
                 )
             )
@@ -50,11 +49,8 @@ class RemoveExpiredItemsBase(TestCase):
     def make_assets(self, items, count=2):
         assets = []
         for item in items:
-            assets.extend(
-                self.factory.create_asset_samples(
-                    count, item.model, name=['asset-0.tiff', 'asset-1.tiff'], db_create=True
-                )
-            )
+            for i in range(count):
+                assets.append(Asset(item=item, name=f'asset-{i}.tiff'))
         return assets
 
     @mock_s3_asset_file
@@ -62,12 +58,16 @@ class RemoveExpiredItemsBase(TestCase):
         super().setUp()
 
         expiration = timezone.now() + timedelta(hours=self.expiring_deadline_hours)
+
         self.expiring_items = self.make_items(expiration, self.expiring_items_count, name_offset=0)
         self.remaining_items = self.make_items(
             expiration + timedelta(hours=1), self.remaining_items_count, self.expiring_items_count
         )
         self.expiring_assets = self.make_assets(self.expiring_items)
         self.remaining_assets = self.make_assets(self.remaining_items)
+
+        Item.objects.bulk_create(self.expiring_items + self.remaining_items)
+        Asset.objects.bulk_create(self.expiring_assets + self.remaining_assets)
 
         self.stdout = StringIO()
         self.stderr = StringIO()
@@ -81,27 +81,23 @@ class RemoveExpiredItemsBase(TestCase):
                 f"deleted item item-{i} and 2 assets belonging to it. extra={{'item': 'item-{i}'}}"
             )
 
-    def assert_object_exists(self, cls, obj):
-        class_name = cls.__name__
-        obj_name = obj['name']
-        self.assertTrue(
-            cls.objects.contains(obj.model), msg=f"{class_name} unexpectedly absent: {obj_name}"
-        )
+    def assert_object_exists(self, obj):
+        cls = obj.__class__
+        self.assertTrue(cls.objects.contains(obj), msg=f"{cls.__name__} unexpectedly absent: {obj}")
 
-    def assert_objects_exist(self, cls, objs):
+    def assert_objects_exist(self, objs):
         for obj in objs:
-            self.assert_object_exists(cls, obj)
+            self.assert_object_exists(obj)
 
-    def assert_object_does_not_exist(self, cls, obj):
-        class_name = cls.__name__
-        obj_name = obj['name']
+    def assert_object_does_not_exist(self, obj):
+        cls = obj.__class__
         self.assertFalse(
-            cls.objects.contains(obj.model), msg=f"{class_name} unexpectedly present: {obj_name}"
+            cls.objects.contains(obj), msg=f"{cls.__name__} unexpectedly present: {obj}"
         )
 
-    def assert_objects_do_not_exist(self, cls, objs):
+    def assert_objects_do_not_exist(self, objs):
         for obj in objs:
-            self.assert_object_does_not_exist(cls, obj)
+            self.assert_object_does_not_exist(obj)
 
     def tearDown(self):
         output = self.stdout.getvalue()
@@ -112,10 +108,8 @@ class RemoveExpiredItemsBase(TestCase):
         super().tearDown()
 
     def assert_objects_existence(self):
-        self.assert_objects_do_not_exist(Item, self.expiring_items)
-        self.assert_objects_do_not_exist(Asset, self.expiring_assets)
-        self.assert_objects_exist(Item, self.remaining_items)
-        self.assert_objects_exist(Asset, self.remaining_assets)
+        self.assert_objects_do_not_exist(self.expiring_items + self.expiring_assets)
+        self.assert_objects_exist(self.remaining_items + self.remaining_assets)
 
     def run_test(self, expected_output_patterns=None, now_offset=None, command_args=None):
         if now_offset is None:
@@ -139,8 +133,10 @@ class RemoveExpiredItems(RemoveExpiredItemsBase):
 class RemoveExpiredItemsAll(RemoveExpiredItemsBase):
 
     def assert_objects_existence(self):
-        self.assert_objects_do_not_exist(Item, self.expiring_items + self.remaining_items)
-        self.assert_objects_do_not_exist(Asset, self.expiring_assets + self.remaining_assets)
+        self.assert_objects_do_not_exist(
+            self.expiring_items + self.remaining_items + self.expiring_assets +
+            self.remaining_assets
+        )
 
     def test_remove_item_min_age_hours_shorter(self):
         self.run_test(
@@ -154,8 +150,10 @@ class RemoveExpiredItemsAll(RemoveExpiredItemsBase):
 class RemoveExpiredItemsNoDelete(RemoveExpiredItemsBase):
 
     def assert_objects_existence(self):
-        self.assert_objects_exist(Item, self.expiring_items + self.remaining_items)
-        self.assert_objects_exist(Asset, self.expiring_assets + self.remaining_assets)
+        self.assert_objects_exist(
+            self.expiring_items + self.remaining_items + self.expiring_assets +
+            self.remaining_assets
+        )
 
     def test_remove_item_dry_run(self):
         self.run_test(
@@ -193,7 +191,7 @@ class RemoveExpiredItemsNoDelete(RemoveExpiredItemsBase):
 
 
 class RemoveExpiredItemsManyWithProfiling(RemoveExpiredItemsBase):
-    expiring_items_count = 100
+    expiring_items_count = 1000
     remaining_items_count = 10
 
     def test_remove_item(self):
