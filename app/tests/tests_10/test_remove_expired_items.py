@@ -32,95 +32,78 @@ class RemoveExpiredItems(TestCase):
         return out.getvalue()
 
     @mock_s3_asset_file
-    def test_remove_item_dry_run(self):
-        item_0 = self.factory.create_item_sample(
+    def setUp(self):
+        super().setUp()
+        self.item_0 = self.factory.create_item_sample(
             self.collection,
             name='item-0',
             db_create=True,
             properties_expires=timezone.now() + timedelta(hours=1)
         )
-        assets = self.factory.create_asset_samples(
-            2, item_0.model, name=['asset-0.tiff', 'asset-1.tiff'], db_create=True
+        self.assets = self.factory.create_asset_samples(
+            2, self.item_0.model, name=['asset-0.tiff', 'asset-1.tiff'], db_create=True
         )
 
-        with patch.object(timezone, "now", return_value=timezone.now() + timedelta(hours=26)):
-            out = self._call_command("--dry-run", "--no-color")
+        self.out = None
+        self.expected_output = "invalid output from test fixture"
+        self.expect_deletions = None
 
-        self.assertEqual(
-            out,
-            """running command to remove expired items
+    def assert_object_exists(self, cls, obj):
+        class_name = type(cls).__name__
+        obj_name = obj['name']
+        self.assertTrue(
+            cls.objects.filter(name=obj_name).exists(),
+            msg=f"{class_name} unexpectedly absent: {obj_name}"
+        )
+
+    def assert_object_does_not_exist(self, cls, obj):
+        class_name = type(cls).__name__
+        obj_name = obj['name']
+        self.assertFalse(
+            cls.objects.filter(name=obj_name).exists(),
+            msg=f"{class_name} unexpectedly present: {obj_name}"
+        )
+
+    def tearDown(self):
+        self.assertEqual(self.expected_output, self.out)
+
+        if self.expect_deletions is None:
+            raise ValueError("self.expect_deletions was not set by the test")
+        if self.expect_deletions:
+            self.assert_object_does_not_exist(Item, self.item_0)
+            self.assert_object_does_not_exist(Asset, self.assets[0])
+            self.assert_object_does_not_exist(Asset, self.assets[1])
+        else:
+            self.assert_object_exists(Item, self.item_0)
+            self.assert_object_exists(Asset, self.assets[0])
+            self.assert_object_exists(Asset, self.assets[1])
+        super().tearDown()
+
+    def test_remove_item_dry_run(self):
+        self.expected_output = """running command to remove expired items
 deleting all items expired longer than 24 hours
 skipping deletion of assets <QuerySet [<Asset: asset-0.tiff>, <Asset: asset-1.tiff>]>
 skipping deletion of item collection-1/item-0
 [dry run] would have removed 1 expired items
 """
-        )
+        self.expect_deletions = False
+        with patch.object(timezone, "now", return_value=timezone.now() + timedelta(hours=26)):
+            self.out = self._call_command("--dry-run", "--no-color")
 
-        self.assertTrue(
-            Item.objects.filter(name=item_0['name']).exists(),
-            msg="Item has been deleted by dry run"
-        )
-        self.assertTrue(
-            Asset.objects.filter(name=assets[0]['name']).exists(),
-            msg="Asset has been deleted by dry run"
-        )
-        self.assertTrue(
-            Asset.objects.filter(name=assets[1]['name']).exists(),
-            msg="Asset has been deleted by dry run"
-        )
-
-    @mock_s3_asset_file
-    def test_remove_item(self):
-        item_1 = self.factory.create_item_sample(
-            self.collection,
-            name='item-1',
-            db_create=True,
-            properties_expires=timezone.now() + timedelta(hours=1)
-        )
-        assets = self.factory.create_asset_samples(
-            2, item_1.model, name=['asset-2.tiff', 'asset-3.tiff'], db_create=True
-        )
-
-        out = self._call_command("--no-color")
-        self.assertEqual(
-            out,
-            """running command to remove expired items
+    def test_remove_item_no_expired_item(self):
+        self.expected_output = """running command to remove expired items
 deleting all items expired longer than 24 hours
 successfully removed 0 expired items
 """
-        )
+        self.expect_deletions = False
+        self.out = self._call_command("--no-color")
 
-        self.assertTrue(
-            Item.objects.filter(name=item_1['name']).exists(),
-            msg="not expired item has been deleted"
-        )
-        self.assertTrue(
-            Asset.objects.filter(name=assets[0]['name']).exists(),
-            msg="not expired asset has been deleted"
-        )
-        self.assertTrue(
-            Asset.objects.filter(name=assets[1]['name']).exists(),
-            msg="not expired asset has been deleted"
-        )
-
-        with patch.object(timezone, "now", return_value=timezone.now() + timedelta(hours=10)):
-            out = self._call_command("--min-age-hours=9", "--no-color")
-        self.assertEqual(
-            out,
-            """running command to remove expired items
+    def test_remove_item(self):
+        self.expected_output = """running command to remove expired items
 deleting all items expired longer than 9 hours
-deleted item item-1 and 2 assets belonging to it. extra={'item': 'item-1'}
+deleted item item-0 and 2 assets belonging to it. extra={'item': 'item-0'}
 successfully removed 1 expired items
 """
-        )
-        self.assertFalse(
-            Item.objects.filter(name=item_1['name']).exists(), msg="Expired item was not deleted"
-        )
-        self.assertFalse(
-            Asset.objects.filter(name=assets[0]['name']).exists(),
-            msg="Asset of expired item was not deleted"
-        )
-        self.assertFalse(
-            Asset.objects.filter(name=assets[1]['name']).exists(),
-            msg="Asset of expired item was not deleted"
-        )
+        self.expect_deletions = True
+        with patch.object(timezone, "now", return_value=timezone.now() + timedelta(hours=10)):
+            self.out = self._call_command("--min-age-hours=9", "--no-color")
