@@ -59,7 +59,14 @@ class RequestResponseLoggingMiddleware:
             extra["response"]["payload"] = response.content.decode(
             )[:settings.LOGGING_MAX_RESPONSE_PAYLOAD_SIZE]
 
-        logger.info("Response %s", response.status_code, extra=extra)
+        logger.info(
+            "Response %s %s %s?%s",
+            response.status_code,
+            request.method.upper(),
+            request.path,
+            request.GET.urlencode(RequestResponseLoggingMiddleware.url_safe),
+            extra=extra
+        )
         # Code to be executed for each request/response after
         # the view is called.
 
