@@ -1,8 +1,6 @@
 {% extends "admin/change_form.html" %}
 {% load i18n admin_urls %}
-{% load context_variables %}
 {% block object-tools-items %}
-    {% get_context_variable 'property_upload_url' None as property_upload_url %}
     {% if property_upload_url %}
         <li>
             <a href="upload/" class="historylink">Upload file</a>
