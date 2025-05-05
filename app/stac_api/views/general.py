@@ -3,6 +3,8 @@ import logging
 from datetime import datetime
 
 from django.conf import settings
+from django.db.models import Q
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from rest_framework import generics
@@ -70,8 +72,10 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
 
     # pylint: disable=too-many-branches
     def get_queryset(self):
-        queryset = Item.objects.filter(collection__published=True
-                                      ).prefetch_related('assets', 'links')
+        is_active = Q(properties_expires=None) | Q(properties_expires__gte=timezone.now())
+        is_public = Q(collection__published=True)
+        queryset = Item.objects.filter(is_public & is_active).prefetch_related('assets', 'links')
+
         # harmonize GET and POST query
         query_param = harmonize_post_get_for_search(self.request)
 
