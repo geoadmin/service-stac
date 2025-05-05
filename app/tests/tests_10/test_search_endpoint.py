@@ -2,10 +2,12 @@ import json
 import logging
 from datetime import datetime
 from datetime import timedelta
+from unittest.mock import patch
 from urllib.parse import quote_plus
 
 from django.test import Client
 from django.test import override_settings
+from django.utils import timezone
 
 from stac_api.utils import fromisoformat
 from stac_api.utils import get_link
@@ -506,6 +508,34 @@ class SearchEndpointTestCaseTwo(StacBaseTestCase):
     def test_datetime_invalid_format_query_get(self):
         response = self.client.get(f"/{STAC_BASE_V}/search?datetime=NotADate&limit=100")
         self.assertStatusCode(400, response)
+
+    def test_get_does_not_show_expired_items(self):
+        tomorrow = timezone.now() + timedelta(days=1)
+        self.factory.create_item_sample(
+            self.collection, name='item-expired', db_create=True, properties_expires=tomorrow
+        )
+
+        after_tomorrow = timezone.now() + timedelta(days=2)
+        with patch.object(timezone, "now", return_value=after_tomorrow):
+            response = self.client.get(self.path)
+
+        self.assertStatusCode(200, response)
+        feature_ids = [feature["id"] for feature in response.json()['features']]
+        self.assertNotIn('item-expired', feature_ids)
+
+    def test_post_does_not_show_expired_items(self):
+        tomorrow = timezone.now() + timedelta(days=1)
+        self.factory.create_item_sample(
+            self.collection, name='item-expired', db_create=True, properties_expires=tomorrow
+        )
+
+        after_tomorrow = timezone.now() + timedelta(days=2)
+        with patch.object(timezone, "now", return_value=after_tomorrow):
+            response = self.client.post(self.path)
+
+        self.assertStatusCode(200, response)
+        feature_ids = [feature["id"] for feature in response.json()['features']]
+        self.assertNotIn('item-expired', feature_ids)
 
 
 @override_settings(CACHE_MIDDLEWARE_SECONDS=3600)
