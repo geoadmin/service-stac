@@ -74,7 +74,7 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
     def get_queryset(self):
         filter_condition = Q(collection__published=True)
         if settings.FEATURE_HIDE_EXPIRED_ITEMS_IN_SEARCH_ENABLED:
-            is_active = Q(properties_expires=None) | Q(properties_expires__gte=timezone.now())
+            is_active = Q(properties_expires__gte=timezone.now()) | Q(properties_expires=None)
             filter_condition &= is_active
         queryset = Item.objects.filter(filter_condition).prefetch_related('assets', 'links')
 
