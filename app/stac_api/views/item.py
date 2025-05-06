@@ -27,6 +27,7 @@ from stac_api.validators_view import validate_collection
 from stac_api.validators_view import validate_item
 from stac_api.validators_view import validate_renaming
 from stac_api.views import mixins
+from stac_api.views.filters import create_is_active_filter
 from stac_api.views.general import get_etag
 
 logger = logging.getLogger(__name__)
@@ -93,8 +94,7 @@ class ItemsList(generics.GenericAPIView):
     def get_queryset(self):
         # filter based on the url
         queryset = Item.objects.filter(
-            # filter expired items
-            Q(properties_expires__gte=timezone.now()) | Q(properties_expires=None),
+            create_is_active_filter(),
             # Using a subquery to get the collection id and then filter on the id greatly improves
             # the performance over filtering by 'collection__name'.
             collection__id=Subquery(
@@ -202,8 +202,7 @@ class ItemDetail(
     def get_queryset(self):
         # filter based on the url
         queryset = Item.objects.filter(
-            # filter expired items
-            Q(properties_expires__gte=timezone.now()) | Q(properties_expires=None),
+            create_is_active_filter(),
             # Using a subquery to get the collection id and then filter on the id greatly improves
             # the performance over filtering by 'collection__name'.
             collection__id=Subquery(
