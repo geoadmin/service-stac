@@ -72,9 +72,11 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
 
     # pylint: disable=too-many-branches
     def get_queryset(self):
-        is_active = Q(properties_expires=None) | Q(properties_expires__gte=timezone.now())
-        is_public = Q(collection__published=True)
-        queryset = Item.objects.filter(is_public & is_active).prefetch_related('assets', 'links')
+        filter_condition = Q(collection__published=True)
+        if settings.FEATURE_HIDE_EXPIRED_ITEMS_IN_SEARCH_ENABLED:
+            is_active = Q(properties_expires=None) | Q(properties_expires__gte=timezone.now())
+            filter_condition &= is_active
+        queryset = Item.objects.filter(filter_condition).prefetch_related('assets', 'links')
 
         # harmonize GET and POST query
         query_param = harmonize_post_get_for_search(self.request)
