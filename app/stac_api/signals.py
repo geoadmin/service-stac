@@ -54,8 +54,9 @@ def delete_s3_asset(sender, instance, **kwargs):
     # The file is not automatically deleted by Django
     # when the object holding its reference is deleted
     # hence it has to be done here.
-    logger.info("The asset %s is deleted from s3", instance.file.name)
-    instance.file.delete(save=False)
+    if not instance.is_external:
+        logger.info("The asset %s is deleted from s3", instance.file.name)
+        instance.file.delete(save=False)
 
 
 @receiver(pre_delete, sender=CollectionAsset)
@@ -63,5 +64,6 @@ def delete_s3_collection_asset(sender, instance, **kwargs):
     # The file is not automatically deleted by Django
     # when the object holding its reference is deleted
     # hence it has to be done here.
-    logger.info("The collection asset %s is deleted from s3", instance.file.name)
-    instance.file.delete(save=False)
+    if not instance.is_external:
+        logger.info("The collection asset %s is deleted from s3", instance.file.name)
+        instance.file.delete(save=False)
