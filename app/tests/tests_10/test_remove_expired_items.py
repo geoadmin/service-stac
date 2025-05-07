@@ -230,11 +230,6 @@ class RemoveExpiredItemsNoDelete(RemoveExpiredItemsBase):
             expected_stdout_patterns=[
                 "running command to remove expired items",
                 "deleting no more than 110000 or 50% items expired for longer than 24 hours",
-                (
-                    "skipping deletion of assets <QuerySet"
-                    " [<Asset: asset-0.tiff>, <Asset: asset-1.tiff>]>"
-                ),
-                "skipping deletion of items <ItemQuerySet [<Item: collection-1/item-0>]>",
                 "[dry run] would have removed 1 expired items",
             ]
         )
@@ -330,6 +325,12 @@ class RemoveExpiredItemsManyWithProfiling(RemoveExpiredItemsBase):
 
     def test_remove_item(self):
         self.run_test(command_args=["--max-deletions-percentage=99"], expected_stdout_patterns=[])
+
+    def test_multiple_batches(self):
+        self.run_test(
+            command_args=["--max-deletions-percentage=99", "--batch-size=7"],
+            expected_stdout_patterns=[]
+        )
 
     @staticmethod
     def _diff_memory(before, after):
