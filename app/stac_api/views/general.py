@@ -73,7 +73,7 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
     # pylint: disable=too-many-branches
     def get_queryset(self):
         filter_condition = Q(collection__published=True)
-        if settings.FEATURE_HIDE_EXPIRED_ITEMS_IN_SEARCH_ENABLED:
+        if settings.HIDE_EXPIRED_ITEMS_IN_SEARCH:
             is_active = create_is_active_filter()
             filter_condition &= is_active
         queryset = Item.objects.filter(filter_condition).prefetch_related('assets', 'links')
