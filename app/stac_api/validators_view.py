@@ -1,8 +1,6 @@
 import logging
 
-from django.db.models import Q
 from django.http import Http404
-from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from rest_framework import serializers
@@ -11,6 +9,7 @@ from stac_api.models.collection import Collection
 from stac_api.models.collection import CollectionAsset
 from stac_api.models.item import Asset
 from stac_api.models.item import Item
+from stac_api.views.filters import create_is_active_filter
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +40,7 @@ def validate_item(kwargs):
         Http404: when the item doesn't exists
     '''
     if not Item.objects.filter(
-        Q(properties_expires=None) | Q(properties_expires__gte=timezone.now()),
+        create_is_active_filter(),
         name=kwargs['item_name'],
         collection__name=kwargs['collection_name']
     ).exists():
