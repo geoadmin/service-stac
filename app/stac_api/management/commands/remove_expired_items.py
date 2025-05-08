@@ -3,7 +3,6 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.core.management.base import CommandParser
-from django.core.paginator import Paginator
 from django.utils import timezone
 
 from stac_api.models.general import BaseAssetUpload
@@ -42,20 +41,16 @@ class Handler(CommandHandler):
         # than waiting forever, to fail and to have to start from scratch next
         # time.
         type_name = f'stac_api.{object_type.__name__}'
+        total = queryset.count()
         deleted_count = 0
-        # We delete rows as we iterate over them. This only works if we iterate
-        # from the end to the beginning. But we also want to delete the objects
-        # in the order of the QuerySet we received. Hence, we first reverse the
-        # the QuerySet then we reverse the iterator.
-        queryset = queryset.reverse()
-        paginator = Paginator(queryset, batch_size)
-        for page_number in reversed(paginator.page_range):
-            page = paginator.page(page_number)
-            # We cannot just call page.object_list.delete() because DELETE
+        while deleted_count < total:
+            # We cannot just call queryset[:batch_size].delete() because DELETE
             # does not support LIMIT/OFFSET. So instead we extract the ids
             # then we'll build a new QuerySet to DELETE them.
-            ids = page.object_list.values('id')
+            ids = queryset.values('id')[:batch_size]
             expected_deletions = len(ids)
+            if expected_deletions == 0:
+                break
             dry_run_prefix = ''
             if self.options['dry_run']:
                 dry_run_prefix = '[dry run]: '
@@ -66,7 +61,7 @@ class Handler(CommandHandler):
                 actual_deletions = deleted_objs.get(type_name, 0)
             deleted_count += actual_deletions
             self.print_success(
-                f'{dry_run_prefix}Deleted {deleted_count}/{paginator.count} {type_name}.'
+                f'{dry_run_prefix}Deleted {deleted_count}/{total} {type_name}.'
                 f' In this batch: {actual_deletions}/{expected_deletions}.'
                 f' All objects in this batch: {deleted_objs}.'
             )
