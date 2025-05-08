@@ -514,6 +514,13 @@ class SearchEndpointTestCaseTwo(StacBaseTestCase):
         self.factory.create_item_sample(
             self.collection, name='item-expired', db_create=True, properties_expires=tomorrow
         )
+        in_a_week = timezone.now() + timedelta(days=7)
+        self.factory.create_item_sample(
+            self.collection,
+            name='item-with-expiration-date-but-active',
+            db_create=True,
+            properties_expires=in_a_week
+        )
 
         after_tomorrow = timezone.now() + timedelta(days=2)
         with patch.object(timezone, "now", return_value=after_tomorrow):
@@ -522,11 +529,19 @@ class SearchEndpointTestCaseTwo(StacBaseTestCase):
         self.assertStatusCode(200, response)
         feature_ids = [feature["id"] for feature in response.json()['features']]
         self.assertNotIn('item-expired', feature_ids)
+        self.assertIn('item-with-expiration-date-but-active', feature_ids)
 
     def test_post_does_not_show_expired_items(self):
         tomorrow = timezone.now() + timedelta(days=1)
         self.factory.create_item_sample(
             self.collection, name='item-expired', db_create=True, properties_expires=tomorrow
+        )
+        in_a_week = timezone.now() + timedelta(days=7)
+        self.factory.create_item_sample(
+            self.collection,
+            name='item-with-expiry-date-but-active',
+            db_create=True,
+            properties_expires=in_a_week
         )
 
         after_tomorrow = timezone.now() + timedelta(days=2)
@@ -536,6 +551,7 @@ class SearchEndpointTestCaseTwo(StacBaseTestCase):
         self.assertStatusCode(200, response)
         feature_ids = [feature["id"] for feature in response.json()['features']]
         self.assertNotIn('item-expired', feature_ids)
+        self.assertIn('item-with-expiry-date-but-active', feature_ids)
 
 
 @override_settings(CACHE_MIDDLEWARE_SECONDS=3600)
