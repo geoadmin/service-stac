@@ -51,7 +51,7 @@ def isoformat(date_time):
 def fromisoformat(date_time):
     '''Return a datetime object from a isoformated datetime string
     '''
-    return datetime.fromisoformat(date_time.replace('Z', '+00:00'))
+    return datetime.fromisoformat(date_time.upper().replace('Z', '+00:00'))
 
 
 def utc_aware(date_time):
