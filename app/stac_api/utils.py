@@ -458,6 +458,8 @@ def geometry_from_bbox(bbox):
         ValueError, IndexError, GDALException
     '''
     list_bbox_values = bbox.split(',')
+    if len(list_bbox_values) == 6:
+        raise ValueError('3-dimensional bbox is currently not supported')
     if len(list_bbox_values) != 4:
         raise ValueError('A bbox is based of four values')
     try:
