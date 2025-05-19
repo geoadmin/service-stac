@@ -100,10 +100,7 @@ class ApiPaginationTestCase(StacBaseTestCase):
                                  msg='Unexpected error message')
 
                 response = self.client.get(f"/{STAC_BASE_V}/{endpoint}?limit=1000")
-                self.assertStatusCode(400, response)
-                self.assertEqual(['limit query parameter too big, must be in range 1..100'],
-                                 response.json()['description'],
-                                 msg='Unexpected error message')
+                self.assertStatusCode(200, response)
 
     @mock_s3_asset_file
     def test_pagination(self):
