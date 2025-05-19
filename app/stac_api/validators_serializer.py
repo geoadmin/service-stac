@@ -250,6 +250,8 @@ class ValidateSearchRequest:
                 The datetime to get validated
         '''
         start, sep, end = date_time.partition('/')
+        if start == '':
+            start = '..'
         message = None
         try:
             if start != '..':
