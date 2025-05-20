@@ -99,8 +99,29 @@ class ApiPaginationTestCase(StacBaseTestCase):
                                  response.json()['description'],
                                  msg='Unexpected error message')
 
-                response = self.client.get(f"/{STAC_BASE_V}/{endpoint}?limit=1000")
-                self.assertStatusCode(200, response)
+    def test_max_limit_query(self):
+        items = self.factory.create_item_samples(110, self.collections[0].model, db_create=True)
+        endpoint = 'collections'
+        with self.subTest(endpoint=endpoint):
+            # If limit is greater than max_limit, we expect max_limit to be used.
+            response = self.client.get(f"/{STAC_BASE_V}/{endpoint}?limit=1000")
+            self.assertStatusCode(200, response)
+            # test setup creates 3 collections
+            self.assertEqual(len(response.json()['collections']), 3)
+        endpoint = f'collections/{self.collections[0]["name"]}/items'
+        with self.subTest(endpoint=endpoint):
+            # If limit is greater than max_limit, we expect max_limit to be used.
+            response = self.client.get(f"/{STAC_BASE_V}/{endpoint}?limit=1000")
+            self.assertStatusCode(200, response)
+            page_1 = response.json()
+            self.assertEqual(len(page_1['features']), 100)
+            # Make sure previous link is not present
+            self.assertIsNone(
+                get_link(page_1['links'], 'previous'),
+                msg='Pagination previous link present for initial query'
+            )
+            # Get and check next link is present
+            next_link_2 = self._get_check_link(page_1['links'], 'next', endpoint)
 
     @mock_s3_asset_file
     def test_pagination(self):
