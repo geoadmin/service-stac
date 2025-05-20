@@ -19,6 +19,7 @@ from django.template.defaultfilters import filesizeformat
 from django.template.response import TemplateResponse
 from django.urls import path
 from django.urls import reverse
+from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
 from stac_api.models.collection import Collection
@@ -544,7 +545,11 @@ class CollectionAssetAdmin(AssetUploadAdminMixin, RedirectAfterCreationMixin, ad
         return super().get_form(request, obj, **kwargs)
 
     def href(self, instance):
-        return build_asset_href(self.request, instance.file.name)
+        if instance.is_external:
+            url = instance.file.name
+        else:
+            url = build_asset_href(self.request, instance.file.name)
+        return format_html("<a href='{url}'>{url}</a>", url=url)
 
     #helper function which displays the bytes in human-readable format
     def displayed_file_size(self, instance):
@@ -773,8 +778,10 @@ class AssetAdmin(AssetUploadAdminMixin, RedirectAfterCreationMixin, admin.ModelA
 
     def href(self, instance):
         if instance.is_external:
-            return instance.file.name
-        return build_asset_href(self.request, instance.file.name)
+            url = instance.file.name
+        else:
+            url = build_asset_href(self.request, instance.file.name)
+        return format_html("<a href='{url}'>{url}</a>", url=url)
 
     #helper function which displays the bytes in human-readable format
     def displayed_file_size(self, instance):
