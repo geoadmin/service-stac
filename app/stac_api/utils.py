@@ -24,6 +24,8 @@ from django.core.management import call_command
 from django.core.management.base import BaseCommand
 from django.urls import reverse
 
+from stac_api.exceptions import NotImplementedException
+
 logger = logging.getLogger(__name__)
 
 AVAILABLE_S3_BUCKETS = Enum('AVAILABLE_S3_BUCKETS', list(settings.AWS_SETTINGS.keys()))
@@ -51,7 +53,7 @@ def isoformat(date_time):
 def fromisoformat(date_time):
     '''Return a datetime object from a isoformated datetime string
     '''
-    return datetime.fromisoformat(date_time.replace('Z', '+00:00'))
+    return datetime.fromisoformat(date_time.upper().replace('Z', '+00:00'))
 
 
 def utc_aware(date_time):
@@ -308,6 +310,8 @@ def harmonize_post_get_for_search(request):
             query_param['ids'] = query_param['ids'].split(',')  # to array
         if 'collections' in query_param:
             query_param['collections'] = query_param['collections'].split(',')  # to array
+        if 'intersects' in query_param:
+            query_param['intersects'] = json.loads(query_param['intersects'])
 
         # Forecast properties can only be filtered with method POST.
         # Decision was made as `:` need to be url encoded and (at least for now) we do not need to
@@ -453,9 +457,14 @@ def geometry_from_bbox(bbox):
         Geometry
 
     Raises:
-        ValueError, IndexError, GDALException
+        ValueError, IndexError, GDALException, NotImplementedException
     '''
     list_bbox_values = bbox.split(',')
+    if len(list_bbox_values) == 6:
+        # According to stac search extension the bbox may contain 6 values to represent
+        # 3-dimensional bounding box. As the current implementation does not support this,
+        # return 501 Not Implemented.
+        raise NotImplementedException(detail='3-dimensional bbox is currently not supported')
     if len(list_bbox_values) != 4:
         raise ValueError('A bbox is based of four values')
     try:

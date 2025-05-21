@@ -32,3 +32,9 @@ class UploadInProgressError(StacAPIException):
     status_code = status.HTTP_409_CONFLICT
     default_detail = _('Upload already in progress')
     default_code = 'conflict'
+
+
+class NotImplementedException(StacAPIException):
+    status_code = status.HTTP_501_NOT_IMPLEMENTED
+    default_detail = _('Not Implemented')
+    default_code = 'not_implemented'

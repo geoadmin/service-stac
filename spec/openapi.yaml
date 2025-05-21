@@ -324,6 +324,7 @@ paths:
       operationId: getSearchSTAC
       parameters:
         - $ref: "./components/parameters.yaml#/components/parameters/bbox"
+        - $ref: "./components/parameters.yaml#/components/parameters/intersects"
         - $ref: "./components/parameters.yaml#/components/parameters/datetime"
         - $ref: "./components/parameters.yaml#/components/parameters/limit"
         - $ref: "./components/parameters.yaml#/components/parameters/ids"

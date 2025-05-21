@@ -89,15 +89,13 @@ def validate_page_size(size_string, max_page_size, log_extra=None):
             _('limit query parameter too small, must be in range 1..%d') % (max_page_size),
         )
     if max_page_size and page_size > max_page_size:
-        logger.error(
-            'Invalid query parameter limit=%d: number bigger than the max size of %d',
+        logger.warning(
+            'Invalid query parameter limit=%d: using the the max size of %d',
             page_size,
             max_page_size,
             extra=log_extra
         )
-        raise serializers.ValidationError(
-            _('limit query parameter too big, must be in range 1..%d') % (max_page_size)
-        )
+        page_size = max_page_size
     return page_size
 
 
