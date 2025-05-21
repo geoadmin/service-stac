@@ -114,7 +114,9 @@ class ApiPaginationTestCase(StacBaseTestCase):
             response = self.client.get(f"/{STAC_BASE_V}/{endpoint}?limit=1000")
             self.assertStatusCode(200, response)
             page_1 = response.json()
-            self.assertEqual(len(page_1['features']), 100)
+            self.assertEqual(
+                len(page_1['features']), 100, msg='Number of features not equal to max_page_size'
+            )
             # Make sure previous link is not present
             self.assertIsNone(
                 get_link(page_1['links'], 'previous'),

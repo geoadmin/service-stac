@@ -24,6 +24,8 @@ from django.core.management import call_command
 from django.core.management.base import BaseCommand
 from django.urls import reverse
 
+from stac_api.exceptions import NotImplementedException
+
 logger = logging.getLogger(__name__)
 
 AVAILABLE_S3_BUCKETS = Enum('AVAILABLE_S3_BUCKETS', list(settings.AWS_SETTINGS.keys()))
@@ -455,11 +457,14 @@ def geometry_from_bbox(bbox):
         Geometry
 
     Raises:
-        ValueError, IndexError, GDALException
+        ValueError, IndexError, GDALException, NotImplementedException
     '''
     list_bbox_values = bbox.split(',')
     if len(list_bbox_values) == 6:
-        raise ValueError('3-dimensional bbox is currently not supported')
+        # According to stac search extension the bbox may contain 6 values to represent
+        # 3-dimensional bounding box. As the current implementation does not support this,
+        # return 501 Not Implemented.
+        raise NotImplementedException(detail='3-dimensional bbox is currently not supported')
     if len(list_bbox_values) != 4:
         raise ValueError('A bbox is based of four values')
     try:
