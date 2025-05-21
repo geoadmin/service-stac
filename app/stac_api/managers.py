@@ -1,5 +1,4 @@
 import logging
-from datetime import datetime
 
 from django.contrib.gis.db import models
 from django.contrib.gis.geos import GEOSGeometry
@@ -8,6 +7,7 @@ from django.utils.translation import gettext_lazy as _
 
 from rest_framework import serializers
 
+from stac_api.utils import fromisoformat
 from stac_api.utils import geometry_from_bbox
 from stac_api.validators import validate_geometry
 
@@ -158,11 +158,13 @@ class ItemQuerySet(models.QuerySet):
             ValidationError: When the date_time string is not a valid isoformat
         '''
         start, sep, end = date_time.partition('/')
+        if start == '':
+            start = '..'
         try:
             if start != '..':
-                start = datetime.fromisoformat(start.replace('Z', '+00:00'))
+                start = fromisoformat(start)
             if end and end != '..':
-                end = datetime.fromisoformat(end.replace('Z', '+00:00'))
+                end = fromisoformat(end)
         except ValueError as error:
             logger.error(
                 'Invalid datetime query parameter "%s", must be isoformat; %s', date_time, error

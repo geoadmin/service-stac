@@ -76,11 +76,27 @@ class ItemsBboxQueryEndpointTestCase(StacBaseTestCase):
         )
         self.assertStatusCode(400, response)
 
+        # test invalid bbox with 5 values
+        response = self.client.get(
+            f"/{STAC_BASE_V}/collections/{self.collection.name}/items"
+            f"?bbox=5.96,45.82,10.49,47.81,42;&limit=100"
+        )
+        self.assertStatusCode(400, response)
+
+        # test invalid bbox with 7 values
+        response = self.client.get(
+            f"/{STAC_BASE_V}/collections/{self.collection.name}/items"
+            f"?bbox=5.96,45.82,10.49,47.81,42,42,42;&limit=100"
+        )
+        self.assertStatusCode(400, response)
+
+    def test_items_endpoint_bbox_not_implemented_query(self):
+        # 3-dimensional bbox (6 values) is not (yet) implemented
         response = self.client.get(
             f"/{STAC_BASE_V}/collections/{self.collection.name}/items"
             f"?bbox=5.96,45.82,10.49,47.81,42,42&limit=100"
         )
-        self.assertStatusCode(400, response)
+        self.assertStatusCode(501, response)
 
     def test_items_endpoint_bbox_from_pseudo_point(self):
         response = self.client.get(
