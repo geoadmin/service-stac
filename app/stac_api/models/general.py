@@ -261,6 +261,11 @@ def upload_asset_to_path_hook(instance, filename=None):
 
 class DynamicStorageFileField(models.FileField):
 
+    # Beware! The current implementation changes the storage for all model instances that use
+    # this field. It may happen that reading a file size, for example, will attend to read from
+    # the wrong bucket if another model instance has uploaded something to a different bucket
+    # before. See PB-1669.
+
     def pre_save(self, model_instance: "AssetBase", add):
         """Determine the storage to use for this file
 

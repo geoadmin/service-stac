@@ -38,7 +38,10 @@ class Handler(CommandHandler):
                 # We set file_size to None to indicate that this asset couldn't be
                 # found on the bucket. That way the script won't get stuck with the
                 # same 100 inexistent assets on one hand and we'll be able to
-                # produce a list of missing files on the other hand
+                # produce a list of missing files on the other hand.
+                # Beware! Attention! Due to the current implementation of DynamicStorageFileFields,
+                # it is possible that an attempt is made to read the file size from the wrong
+                # bucket.
                 asset.file_size = None
                 asset.save()
                 print("_", end="", flush=True)
@@ -64,7 +67,10 @@ class Handler(CommandHandler):
                 # We set file_size to None to indicate that this asset couldn't be
                 # found on the bucket. That way the script won't get stuck with the
                 # same 100 inexistent assets on one hand and we'll be able to
-                # produce a list of missing files on the other hand
+                # produce a list of missing files on the other hand.
+                # Beware! Attention! Due to the current implementation of DynamicStorageFileFields,
+                # it is possible that an attempt is made to read the file size from the wrong
+                # bucket.
                 collection_asset.file_size = None
                 collection_asset.save()
                 print("_", end="", flush=True)
