@@ -317,7 +317,10 @@ TEST_RUNNER = 'tests.runner.TestRunner'
 # set authentication schemes
 
 REST_FRAMEWORK = {
-    'DEFAULT_RENDERER_CLASSES': ['rest_framework.renderers.JSONRenderer'],
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+        'helpers.renderers.GeoJSONRenderer',
+    ],
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'middleware.api_gateway_authentication.ApiGatewayAuthentication',
         'middleware.rest_framework_authentication.RestrictedBasicAuthentication',
