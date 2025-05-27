@@ -17,10 +17,10 @@ from tests.tests_09.base_test import StacBaseTestCase
 from tests.tests_09.base_test import StacBaseTransactionTestCase
 from tests.tests_09.data_factory import Factory
 from tests.tests_09.utils import reverse_version
+from tests.utils import MockS3PerTestMixin
 from tests.utils import S3TestMixin
 from tests.utils import client_login
 from tests.utils import disableLogger
-from tests.utils import mock_s3_asset_file
 
 logger = logging.getLogger(__name__)
 
@@ -29,10 +29,10 @@ def to_dict(input_ordered_dict):
     return loads(dumps(input_ordered_dict))
 
 
-class AssetsEndpointTestCase(StacBaseTestCase):
+class AssetsEndpointTestCase(MockS3PerTestMixin, StacBaseTestCase):
 
-    @mock_s3_asset_file
     def setUp(self):  # pylint: disable=invalid-name
+        super().setUp()
         self.client = Client()
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample().model
@@ -106,10 +106,10 @@ class AssetsEndpointTestCase(StacBaseTestCase):
         self.assertEtagHeader(None, response)
 
 
-class AssetsUnimplementedEndpointTestCase(StacBaseTestCase):
+class AssetsUnimplementedEndpointTestCase(MockS3PerTestMixin, StacBaseTestCase):
 
-    @mock_s3_asset_file
     def setUp(self):  # pylint: disable=invalid-name
+        super().setUp()
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample().model
         self.item = self.factory.create_item_sample(collection=self.collection).model
@@ -129,10 +129,10 @@ class AssetsUnimplementedEndpointTestCase(StacBaseTestCase):
         self.assertStatusCode(405, response)
 
 
-class AssetsCreateEndpointTestCase(StacBaseTestCase):
+class AssetsCreateEndpointTestCase(MockS3PerTestMixin, StacBaseTestCase):
 
-    @mock_s3_asset_file
     def setUp(self):  # pylint: disable=invalid-name
+        super().setUp()
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample().model
         self.item = self.factory.create_item_sample(collection=self.collection).model
@@ -408,10 +408,10 @@ class AssetsCreateEndpointTestCase(StacBaseTestCase):
         self.assertStatusCode(404, response)
 
 
-class AssetsWriteEndpointAssetFileTestCase(StacBaseTestCase):
+class AssetsWriteEndpointAssetFileTestCase(MockS3PerTestMixin, StacBaseTestCase):
 
-    @mock_s3_asset_file
     def setUp(self):  # pylint: disable=invalid-name
+        super().setUp()
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample().model
         self.item = self.factory.create_item_sample(collection=self.collection).model
@@ -443,10 +443,10 @@ class AssetsWriteEndpointAssetFileTestCase(StacBaseTestCase):
     #     )
 
 
-class AssetsUpdateEndpointAssetFileTestCase(StacBaseTestCase):
+class AssetsUpdateEndpointAssetFileTestCase(MockS3PerTestMixin, StacBaseTestCase):
 
-    @mock_s3_asset_file
     def setUp(self):  # pylint: disable=invalid-name
+        super().setUp()
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample(db_create=True)
         self.item = self.factory.create_item_sample(
@@ -489,10 +489,10 @@ class AssetsUpdateEndpointAssetFileTestCase(StacBaseTestCase):
         )
 
 
-class AssetsUpdateEndpointTestCase(StacBaseTestCase):
+class AssetsUpdateEndpointTestCase(MockS3PerTestMixin, StacBaseTestCase):
 
-    @mock_s3_asset_file
     def setUp(self):  # pylint: disable=invalid-name
+        super().setUp()
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample(db_create=True)
         self.item = self.factory.create_item_sample(
@@ -885,10 +885,10 @@ class AssetRaceConditionTest(StacBaseTransactionTestCase):
         self.assertEqual(status_201, 1, msg="Not only one upsert did a create !")
 
 
-class AssetsDeleteEndpointTestCase(StacBaseTestCase, S3TestMixin):
+class AssetsDeleteEndpointTestCase(S3TestMixin, MockS3PerTestMixin, StacBaseTestCase):
 
-    @mock_s3_asset_file
     def setUp(self):  # pylint: disable=invalid-name
+        super().setUp()
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample().model
         self.item = self.factory.create_item_sample(collection=self.collection).model
@@ -929,10 +929,10 @@ class AssetsDeleteEndpointTestCase(StacBaseTestCase, S3TestMixin):
         self.assertStatusCode(404, response)
 
 
-class AssetsEndpointUnauthorizedTestCase(StacBaseTestCase):
+class AssetsEndpointUnauthorizedTestCase(MockS3PerTestMixin, StacBaseTestCase):
 
-    @mock_s3_asset_file
     def setUp(self):  # pylint: disable=invalid-name
+        super().setUp()
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample().model
         self.item = self.factory.create_item_sample(collection=self.collection).model

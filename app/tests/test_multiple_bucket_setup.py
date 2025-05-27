@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 import environ
+from moto import mock_aws
 from parameterized import parameterized
 
 from django.conf import settings
@@ -19,6 +20,9 @@ from tests.utils import mock_s3_bucket
 class MultipartUploadMultipleBucketTest(TestCase):
 
     def setUp(self):  # pylint: disable=invalid-name
+        self.mock_aws = mock_aws()
+        self.mock_aws.start()
+
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample().model
         self.item = self.factory.create_item_sample(collection=self.collection).model
@@ -26,6 +30,9 @@ class MultipartUploadMultipleBucketTest(TestCase):
 
         mock_s3_bucket(AVAILABLE_S3_BUCKETS.legacy)
         mock_s3_bucket(AVAILABLE_S3_BUCKETS.managed)
+
+    def tearDown(self):
+        self.mock_aws.stop()
 
     def test_create_multipart_upload(self):
         _, checksum_multihash = get_file_like_object(1024)

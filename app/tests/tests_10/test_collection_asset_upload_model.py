@@ -12,7 +12,7 @@ from stac_api.utils import get_sha256_multihash
 from stac_api.utils import utc_aware
 
 from tests.tests_10.data_factory import Factory
-from tests.utils import mock_s3_asset_file
+from tests.utils import MockS3PerClassMixin
 
 logger = logging.getLogger(__name__)
 
@@ -59,10 +59,11 @@ class CollectionAssetUploadTestCaseMixin:
         self.assertNotEqual(etag, '', msg='Etag should not be empty')
 
 
-class CollectionAssetUploadModelTestCase(TestCase, CollectionAssetUploadTestCaseMixin):
+class CollectionAssetUploadModelTestCase(
+    CollectionAssetUploadTestCaseMixin, MockS3PerClassMixin, TestCase
+):
 
     @classmethod
-    @mock_s3_asset_file
     def setUpTestData(cls):
         cls.factory = Factory()
         cls.collection = cls.factory.create_collection_sample().model
@@ -137,10 +138,9 @@ class CollectionAssetUploadModelTestCase(TestCase, CollectionAssetUploadTestCase
 
 
 class CollectionAssetUploadDeleteProtectModelTestCase(
-    TransactionTestCase, CollectionAssetUploadTestCaseMixin
+    CollectionAssetUploadTestCaseMixin, MockS3PerClassMixin, TransactionTestCase
 ):
 
-    @mock_s3_asset_file
     def setUp(self):
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample().model

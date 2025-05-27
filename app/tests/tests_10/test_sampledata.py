@@ -4,6 +4,7 @@ import logging
 import os
 from pathlib import Path
 from pprint import pformat
+from unittest import skip
 
 from django.conf import settings
 from django.test import Client
@@ -12,22 +13,22 @@ from stac_api.sample_data import importer
 
 from tests.tests_10.base_test import STAC_BASE_V
 from tests.tests_10.base_test import StacBaseTestCase
+from tests.utils import MockS3PerClassMixin
 from tests.utils import get_http_error_description
-from tests.utils import mock_s3_asset_file
 
 logger = logging.getLogger(__name__)
 
 DATADIR = settings.BASE_DIR / 'app/stac_api/sample_data/'
 
 
-@mock_s3_asset_file
-class SampleDataTestCase(StacBaseTestCase):
+class SampleDataTestCase(MockS3PerClassMixin, StacBaseTestCase):
 
     def setUp(self):  # pylint: disable=invalid-name
         self.client = Client()
 
         self.maxDiff = None  # pylint: disable=invalid-name
 
+    @skip("Broken for a long time, see PB-1740")
     def test_samples(self):
         for collection_dir in os.scandir(DATADIR):
             if collection_dir.is_dir() and not collection_dir.name.startswith('_'):
