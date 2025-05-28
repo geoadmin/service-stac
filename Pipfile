@@ -15,7 +15,7 @@ tblib = "*"  # needed for traceback when running tests in parallel
 mock = "~=5.1.0"
 responses = "!=0.12.1" # skip version 0.12.1 which has a bug see https://github.com/getsentry/responses/issues/358
 requests-mock = "~=1.12.1"
-moto = {extras = [ "s3",], version = "~=4.0.13"}
+moto = {extras = [ "s3",], version = "~=5.1.5"}
 debugpy = "*"
 parameterized = "*"
 stac-api-validator = "~=0.6.2"
@@ -37,7 +37,7 @@ whitenoise = "~=6.6.0"
 djangorestframework-gis = "~=1.0"
 python-dateutil = "~=2.9.0.post0"
 django-storages = "~=1.14.3"
-boto3 = "~=1.34.115"
+boto3 = "~=1.38.23"
 django-rest-framework-condition = "~=0.1.1"
 requests = "~=2.32.3"
 py-multihash = "~=2.0.1"

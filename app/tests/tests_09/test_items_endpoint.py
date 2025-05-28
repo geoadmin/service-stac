@@ -20,14 +20,15 @@ from tests.tests_09.data_factory import CollectionFactory
 from tests.tests_09.data_factory import Factory
 from tests.tests_09.data_factory import ItemFactory
 from tests.tests_09.utils import reverse_version
+from tests.utils import MockS3PerClassMixin
+from tests.utils import MockS3PerTestMixin
 from tests.utils import client_login
 from tests.utils import disableLogger
-from tests.utils import mock_s3_asset_file
 
 logger = logging.getLogger(__name__)
 
 
-class ItemsReadEndpointTestCase(StacBaseTestCase):
+class ItemsReadEndpointTestCase(MockS3PerClassMixin, StacBaseTestCase):
 
     @classmethod
     def setUpTestData(cls):
@@ -40,7 +41,6 @@ class ItemsReadEndpointTestCase(StacBaseTestCase):
     def setUp(self):
         self.client = Client()
 
-    @mock_s3_asset_file
     def test_items_endpoint(self):
         # To make sure that item sorting is working, make sure that the items where not
         # created in ascending order, same for assets
@@ -939,14 +939,14 @@ class ItemRaceConditionTest(StacBaseTransactionTestCase):
         self.assertEqual(status_201, 1, msg="Not only one upsert did a create !")
 
 
-class ItemsDeleteEndpointTestCase(StacBaseTestCase):
+class ItemsDeleteEndpointTestCase(MockS3PerTestMixin, StacBaseTestCase):
 
     @classmethod
     def setUpTestData(cls):
         cls.factory = Factory()
 
-    @mock_s3_asset_file
     def setUp(self):
+        super().setUp()
         self.client = Client()
         client_login(self.client)
         self.collection = self.factory.create_collection_sample().model

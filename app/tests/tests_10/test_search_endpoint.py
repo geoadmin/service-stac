@@ -18,7 +18,7 @@ from tests.tests_10.base_test import STAC_BASE_V
 from tests.tests_10.base_test import StacBaseTestCase
 from tests.tests_10.data_factory import Factory
 from tests.tests_10.utils import reverse_version
-from tests.utils import mock_s3_asset_file
+from tests.utils import MockS3PerClassMixin
 
 logger = logging.getLogger(__name__)
 
@@ -562,10 +562,9 @@ class SearchEndpointTestCaseTwo(StacBaseTestCase):
 
 
 @override_settings(CACHE_MIDDLEWARE_SECONDS=3600)
-class SearchEndpointCacheSettingTestCase(StacBaseTestCase):
+class SearchEndpointCacheSettingTestCase(MockS3PerClassMixin, StacBaseTestCase):
 
     @classmethod
-    @mock_s3_asset_file
     def setUpTestData(cls):
         cls.title_for_query = 'Item for cache settings test'
         cls.factory = Factory()

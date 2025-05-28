@@ -9,15 +9,15 @@ from stac_api.models.item import Asset
 from tests.tests_10.base_test import StacBaseTestCase
 from tests.tests_10.data_factory import Factory
 from tests.tests_10.utils import reverse_version
+from tests.utils import MockS3PerTestMixin
 from tests.utils import get_auth_headers
-from tests.utils import mock_s3_asset_file
 
 
 @override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
-class AssetsExternalAssetEndpointTestCase(StacBaseTestCase):
+class AssetsExternalAssetEndpointTestCase(MockS3PerTestMixin, StacBaseTestCase):
 
-    @mock_s3_asset_file
     def setUp(self):  # pylint: disable=invalid-name
+        super().setUp()
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample().model
         self.item = self.factory.create_item_sample(collection=self.collection).model

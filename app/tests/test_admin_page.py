@@ -11,8 +11,9 @@ from stac_api.models.item import Item
 from stac_api.models.item import ItemLink
 
 from tests.base_test_admin_page import AdminBaseTestCase
+from tests.utils import MockS3PerClassMixin
+from tests.utils import MockS3PerTestMixin
 from tests.utils import S3TestMixin
-from tests.utils import mock_s3_asset_file
 
 logger = logging.getLogger(__name__)
 
@@ -144,7 +145,7 @@ class AdminTestCase(AdminBaseTestCase):
 #--------------------------------------------------------------------------------------------------
 
 
-class AdminCollectionTestCase(AdminBaseTestCase):
+class AdminCollectionTestCase(MockS3PerClassMixin, AdminBaseTestCase):
 
     def setUp(self):
         super().setUp()
@@ -383,7 +384,6 @@ class AdminCollectionTestCase(AdminBaseTestCase):
             msg="Deleted link still in DB"
         )
 
-    @mock_s3_asset_file
     def test_add_remove_collection(self):
         collection, data, link, provider = self._create_collection(
             with_link=True,
@@ -442,7 +442,7 @@ class AdminCollectionTestCase(AdminBaseTestCase):
 #--------------------------------------------------------------------------------------------------
 
 
-class AdminItemTestCase(AdminBaseTestCase):
+class AdminItemTestCase(MockS3PerClassMixin, AdminBaseTestCase):
 
     def setUp(self):
         super().setUp()
@@ -566,7 +566,6 @@ class AdminItemTestCase(AdminBaseTestCase):
             msg="Deleted link still in DB"
         )
 
-    @mock_s3_asset_file
     def test_add_remove_item(self):
         item, data, link = self._create_item(self.collection, with_link=True)
         asset = self._create_asset(item)[0]
@@ -606,7 +605,7 @@ class AdminItemTestCase(AdminBaseTestCase):
 #--------------------------------------------------------------------------------------------------
 
 
-class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
+class AdminAssetTestCase(S3TestMixin, MockS3PerTestMixin, AdminBaseTestCase):
 
     def setUp(self):
         super().setUp()
@@ -614,11 +613,9 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
 
         self.client.login(username=self.username, password=self.password)
 
-    @mock_s3_asset_file
     def test_add_asset_minimal(self):
         self._create_asset_minimal(self.item)
 
-    @mock_s3_asset_file
     def test_add_update_asset(self):
 
         asset, data = self._create_asset(self.item)
@@ -657,7 +654,6 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
             msg="Asset with invalid data has been added to db"
         )
 
-    @mock_s3_asset_file
     def test_add_remove_asset(self):
 
         asset, data = self._create_asset(self.item)
@@ -674,7 +670,6 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
             Asset.objects.filter(name=data["name"]).exists(), msg="Admin page asset still in DB"
         )
 
-    @mock_s3_asset_file
     def test_add_update_asset_invalid_media_type(self):
         sample = self.factory.create_asset_sample(
             self.item, name='asset.txt', media_type='image/tiff; application=geotiff'
@@ -690,7 +685,6 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
             msg="Asset with invalid data has been added to db"
         )
 
-    @mock_s3_asset_file
     def test_asset_file_metadata(self):
         content_type = 'image/tiff; application=geotiff'
 
@@ -722,7 +716,6 @@ class AdminAssetTestCase(AdminBaseTestCase, S3TestMixin):
         self.assertEqual(asset.media_type, content_type)
         self.assertEqual(asset.description, None)
 
-    @mock_s3_asset_file
     def test_asset_custom_upload(self):
 
         asset, _ = self._create_asset(self.item)

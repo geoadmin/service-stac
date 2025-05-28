@@ -7,12 +7,7 @@
 
     isort:skip_file
 """
-# pylint: disable=wildcard-import,unused-wildcard-import,wrong-import-position,wrong-import-order
-from moto import mock_s3
-
-s3mock = mock_s3()
-s3mock.start()
-
+# pylint: disable=wildcard-import,unused-wildcard-import
 from config.settings import *
 
 AWS_SETTINGS = {

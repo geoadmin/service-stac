@@ -1,4 +1,3 @@
-import functools
 import hashlib
 import logging
 import os
@@ -6,7 +5,7 @@ import time
 from io import BytesIO
 
 import botocore
-from moto import mock_s3
+from moto import mock_aws
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -107,6 +106,45 @@ class S3TestMixin():
         )
 
 
+class MockS3PerTestMixin:
+    """A mixin that ensures that a separate AWS mock is used for each test.
+
+    Note: Include this mixin *before* your base class so that method resolution order works.
+    """
+
+    def setUp(self):  # pylint: disable=invalid-name
+        super().setUp()
+        self.mock_aws = mock_aws()
+        self.mock_aws.start()
+        mock_s3_bucket()
+
+    def tearDown(self):  # pylint: disable=invalid-name
+        if hasattr(self, 'mock_aws'):
+            self.mock_aws.stop()
+        super().tearDown()
+
+
+class MockS3PerClassMixin:
+    """A mixin that uses one AWS mock for all tests in the class.
+
+    Note: Include this mixin *before* your base class so that method resolution order works.
+    """
+
+    @classmethod
+    def setUpClass(cls):  # pylint: disable=invalid-name
+        # Set up the mock before parent's setUpClass because it will call setUpTestData
+        cls.mock_aws = mock_aws()
+        cls.mock_aws.start()
+        mock_s3_bucket()
+        super().setUpClass()
+
+    @classmethod
+    def tearDownClass(cls):  # pylint: disable=invalid-name
+        if hasattr(cls, 'mock_aws'):
+            cls.mock_aws.stop()
+        super().tearDownClass()
+
+
 def mock_s3_bucket(s3_bucket: AVAILABLE_S3_BUCKETS = AVAILABLE_S3_BUCKETS.legacy):
     '''Mock an S3 bucket
 
@@ -135,22 +173,6 @@ def mock_s3_bucket(s3_bucket: AVAILABLE_S3_BUCKETS = AVAILABLE_S3_BUCKETS.legacy
                 f"Unable to mock the s3 bucket: {error.response['Error']['Message']}"
             ) from error
     logger.debug('Mock S3 bucket in %fs', time.time() - start)
-
-
-def mock_s3_asset_file(test_function):
-    '''Mock S3 Asset file decorator
-
-    This decorator can be used to mock Asset file on S3. This can be used for unittest that want
-    to create/update Assets.
-    '''
-
-    @mock_s3
-    @functools.wraps(test_function)
-    def wrapper(*args, **kwargs):
-        mock_s3_bucket()
-        test_function(*args, **kwargs)
-
-    return wrapper
 
 
 def upload_file_on_s3(file_path, file, params=None):

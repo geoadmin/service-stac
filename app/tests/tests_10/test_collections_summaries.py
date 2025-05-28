@@ -5,20 +5,20 @@ from stac_api.utils import utc_aware
 
 from tests.tests_10.base_test import StacBaseTransactionTestCase
 from tests.tests_10.data_factory import Factory
-from tests.utils import mock_s3_asset_file
+from tests.utils import MockS3PerTestMixin
 
 logger = logging.getLogger(__name__)
 
 
 # Here we need to use TransactionTestCase due to the pgtrigger, in a normal
 # test case we cannot test effect of pgtrigger.
-class CollectionsSummariesTestCase(StacBaseTransactionTestCase):
+class CollectionsSummariesTestCase(MockS3PerTestMixin, StacBaseTransactionTestCase):
 
     y200 = utc_aware(datetime.strptime('0200-01-01T00:00:00Z', '%Y-%m-%dT%H:%M:%SZ'))
     y8000 = utc_aware(datetime.strptime('8000-01-01T00:00:00Z', '%Y-%m-%dT%H:%M:%SZ'))
 
-    @mock_s3_asset_file
     def setUp(self):
+        super().setUp()
         self.data_factory = Factory()
         self.collection = self.data_factory.create_collection_sample(
             name='collection-test-summaries-auto-update', db_create=True

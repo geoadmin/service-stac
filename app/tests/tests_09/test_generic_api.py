@@ -14,11 +14,12 @@ from stac_api.utils import utc_aware
 from tests.tests_09.base_test import STAC_BASE_V
 from tests.tests_09.base_test import StacBaseTestCase
 from tests.tests_09.data_factory import Factory
+from tests.utils import MockS3PerClassMixin
+from tests.utils import MockS3PerTestMixin
 from tests.utils import S3TestMixin
 from tests.utils import client_login
 from tests.utils import disableLogger
 from tests.utils import get_http_error_description
-from tests.utils import mock_s3_asset_file
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +40,7 @@ class ApiGenericTestCase(StacBaseTestCase):
             self.assertEqual(response.json()['description'], "AttributeError('test exception')")
 
 
-class ApiPaginationTestCase(StacBaseTestCase):
+class ApiPaginationTestCase(MockS3PerClassMixin, StacBaseTestCase):
 
     @classmethod
     def setUpTestData(cls):
@@ -125,7 +126,6 @@ class ApiPaginationTestCase(StacBaseTestCase):
             # Get and check next link is present
             next_link_2 = self._get_check_link(page_1['links'], 'next', endpoint)
 
-    @mock_s3_asset_file
     def test_pagination(self):
         # pylint: disable=too-many-locals
         items = self.factory.create_item_samples(3, self.collections[0].model, db_create=True)
@@ -213,10 +213,10 @@ class ApiPaginationTestCase(StacBaseTestCase):
                 )
 
 
-class ApiETagPreconditionTestCase(StacBaseTestCase):
+class ApiETagPreconditionTestCase(MockS3PerTestMixin, StacBaseTestCase):
 
-    @mock_s3_asset_file
     def setUp(self):
+        super().setUp()
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample(
             name='collection-1',
@@ -420,10 +420,10 @@ class ApiETagPreconditionTestCase(StacBaseTestCase):
                 self.assertStatusCode(200, response)
 
 
-class ApiCacheHeaderTestCase(StacBaseTestCase, S3TestMixin):
+class ApiCacheHeaderTestCase(S3TestMixin, MockS3PerTestMixin, StacBaseTestCase):
 
-    @mock_s3_asset_file
     def setUp(self):
+        super().setUp()
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample(
             name='collection-1',
@@ -555,10 +555,10 @@ class ApiCacheHeaderTestCase(StacBaseTestCase, S3TestMixin):
                                        delta=2)
 
 
-class ApiDynamicCacheHeaderTestCase(StacBaseTestCase, S3TestMixin):
+class ApiDynamicCacheHeaderTestCase(S3TestMixin, MockS3PerTestMixin, StacBaseTestCase):
 
-    @mock_s3_asset_file
     def setUp(self):
+        super().setUp()
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample(
             name='collection-1',
@@ -590,10 +590,10 @@ class ApiDynamicCacheHeaderTestCase(StacBaseTestCase, S3TestMixin):
         self.assertS3ObjectCacheControl(obj, key, max_age=8)
 
 
-class ApiNoCacheHeaderTestCase(StacBaseTestCase, S3TestMixin):
+class ApiNoCacheHeaderTestCase(S3TestMixin, MockS3PerTestMixin, StacBaseTestCase):
 
-    @mock_s3_asset_file
     def setUp(self):
+        super().setUp()
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample(
             name='collection-1',
@@ -624,10 +624,10 @@ class ApiNoCacheHeaderTestCase(StacBaseTestCase, S3TestMixin):
         self.assertS3ObjectCacheControl(obj, key, no_cache=True)
 
 
-class ApiCORSHeaderTestCase(StacBaseTestCase):
+class ApiCORSHeaderTestCase(MockS3PerTestMixin, StacBaseTestCase):
 
-    @mock_s3_asset_file
     def setUp(self):
+        super().setUp()
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample(db_create=True,)
         self.item = self.factory.create_item_sample(

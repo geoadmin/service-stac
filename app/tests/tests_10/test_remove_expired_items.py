@@ -15,10 +15,10 @@ from stac_api.models.item import AssetUpload
 from stac_api.models.item import Item
 
 from tests.tests_10.data_factory import Factory
-from tests.utils import mock_s3_asset_file
+from tests.utils import MockS3PerTestMixin
 
 
-class RemoveExpiredItemsBase(TestCase):
+class RemoveExpiredItemsBase(MockS3PerTestMixin, TestCase):
     expiring_items_count = 1
     remaining_items_count = 1
     expiring_deadline_hours = 1
@@ -70,7 +70,6 @@ class RemoveExpiredItemsBase(TestCase):
             )
         return asset_uploads
 
-    @mock_s3_asset_file
     def setUp(self):
         super().setUp()
 
