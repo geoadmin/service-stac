@@ -30,16 +30,17 @@ from tests.tests_10.data_factory import CollectionFactory
 from tests.tests_10.data_factory import Factory
 from tests.tests_10.data_factory import ItemFactory
 from tests.tests_10.utils import reverse_version
+from tests.utils import MockS3PerClassMixin
+from tests.utils import MockS3PerTestMixin
 from tests.utils import disableLogger
 from tests.utils import get_auth_headers
-from tests.utils import mock_s3_asset_file
 
 from .data_factory import SampleData
 
 logger = logging.getLogger(__name__)
 
 
-class ItemsReadEndpointTestCase(StacBaseTestCase):
+class ItemsReadEndpointTestCase(MockS3PerClassMixin, StacBaseTestCase):
 
     @classmethod
     def setUpTestData(cls):
@@ -52,7 +53,6 @@ class ItemsReadEndpointTestCase(StacBaseTestCase):
     def setUp(self):
         self.client = Client()
 
-    @mock_s3_asset_file
     def test_items_endpoint(self):
         # To make sure that item sorting is working, make sure that the items where not
         # created in ascending order, same for assets
@@ -1204,14 +1204,14 @@ class ItemRaceConditionTest(StacBaseTransactionTestCase):
 
 
 @override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
-class ItemsDeleteEndpointTestCase(StacBaseTestCase):
+class ItemsDeleteEndpointTestCase(MockS3PerTestMixin, StacBaseTestCase):
 
     @classmethod
     def setUpTestData(cls):
         cls.factory = Factory()
 
-    @mock_s3_asset_file
     def setUp(self):
+        super().setUp()
         self.client = Client(headers=get_auth_headers())
         self.collection = self.factory.create_collection_sample().model
         self.item = self.factory.create_item_sample(self.collection, sample='item-1').model

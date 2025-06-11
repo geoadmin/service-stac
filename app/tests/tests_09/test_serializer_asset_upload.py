@@ -14,15 +14,14 @@ from tests.tests_09.base_test import STAC_BASE_V
 from tests.tests_09.base_test import StacBaseTestCase
 from tests.tests_09.data_factory import Factory
 from tests.tests_09.test_serializer import request_with_resolver
-from tests.utils import mock_s3_asset_file
+from tests.utils import MockS3PerClassMixin
 
 logger = logging.getLogger(__name__)
 
 
-class AssetUploadSerializationTestCase(StacBaseTestCase):
+class AssetUploadSerializationTestCase(MockS3PerClassMixin, StacBaseTestCase):
 
     @classmethod
-    @mock_s3_asset_file
     def setUpTestData(cls):
         cls.data_factory = Factory()
         cls.collection = cls.data_factory.create_collection_sample().model
@@ -303,10 +302,9 @@ class AssetUploadSerializationTestCase(StacBaseTestCase):
             serializer.is_valid(raise_exception=True)
 
 
-class TestAssetUploadSerializationContentEncoding(StacBaseTestCase):
+class TestAssetUploadSerializationContentEncoding(MockS3PerClassMixin, StacBaseTestCase):
 
     @classmethod
-    @mock_s3_asset_file
     def setUpTestData(cls):
         cls.data_factory = Factory()
         cls.collection = cls.data_factory.create_collection_sample().model
@@ -360,10 +358,9 @@ class TestAssetUploadSerializationContentEncoding(StacBaseTestCase):
         self.assertEqual(data['content_encoding'], 'br')
 
 
-class TestAssetUploadDeserializationContentEncoding(StacBaseTestCase):
+class TestAssetUploadDeserializationContentEncoding(MockS3PerClassMixin, StacBaseTestCase):
 
     @classmethod
-    @mock_s3_asset_file
     def setUpTestData(cls):
         cls.data_factory = Factory()
         cls.collection = cls.data_factory.create_collection_sample().model

@@ -25,10 +25,10 @@ from tests.tests_10.base_test import StacBaseTestCase
 from tests.tests_10.base_test import StacBaseTransactionTestCase
 from tests.tests_10.data_factory import Factory
 from tests.tests_10.utils import reverse_version
+from tests.utils import MockS3PerTestMixin
 from tests.utils import S3TestMixin
 from tests.utils import get_auth_headers
 from tests.utils import get_file_like_object
-from tests.utils import mock_s3_asset_file
 
 logger = logging.getLogger(__name__)
 
@@ -47,10 +47,10 @@ def create_md5_parts(number_parts, offset, file_like):
     } for i in range(number_parts)]
 
 
-class AssetUploadBaseTest(StacBaseTestCase, S3TestMixin):
+class AssetUploadBaseTest(S3TestMixin, MockS3PerTestMixin, StacBaseTestCase):
 
-    @mock_s3_asset_file
     def setUp(self):  # pylint: disable=invalid-name
+        super().setUp()
         self.client = Client(headers=get_auth_headers())
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample().model
@@ -319,10 +319,12 @@ class AssetUploadCreateEndpointTestCase(AssetUploadBaseTest):
 
 
 @override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
-class AssetUploadCreateRaceConditionTest(StacBaseTransactionTestCase, S3TestMixin):
+class AssetUploadCreateRaceConditionTest(
+    S3TestMixin, MockS3PerTestMixin, StacBaseTransactionTestCase
+):
 
-    @mock_s3_asset_file
     def setUp(self):
+        super().setUp()
         self.auth_headers = get_auth_headers()
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample().model
@@ -1367,14 +1369,9 @@ class ExternalAssetUploadtestCase(AssetUploadBaseTest):
 
 class AssetUploadDisabledAuthenticationEndpointTestCase(AssetUploadBaseTest):
 
-    @mock_s3_asset_file
     def setUp(self):  # pylint: disable=invalid-name
+        super().setUp()
         self.client = Client()
-        self.factory = Factory()
-        self.collection = self.factory.create_collection_sample().model
-        self.item = self.factory.create_item_sample(collection=self.collection).model
-        self.asset = self.factory.create_asset_sample(item=self.item, sample='asset-no-file').model
-        self.maxDiff = None  # pylint: disable=invalid-name
         self.username = 'SherlockHolmes'
         self.password = '221B_BakerStreet'
         self.user = get_user_model().objects.create_superuser(

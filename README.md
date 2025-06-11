@@ -2,7 +2,7 @@
 
 | Branch | Status |
 |--------|-----------|
-| develop | ![Build Status]([https://codebuild.eu-central-1.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoiaE1nOXJ6Zk5YYWZRWGd5MlY3SGZCUUV6c0pIVEM1Z0lmWHdpYWFxZzdKOW1LbTJ1YUZXT0lpaUVzUVZrZ0dTNlhDdDlUYm0rSE9yNmE5TlcrZ3RoclNZPSIsIml2UGFyYW1ldGVyU3BlYyI6Ii8rdldNQUt5MnZDdHpMT0siLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=develop](https://codebuild.eu-central-1.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoiSGhjclY5dDF1OE5XMEhmYjYwV05jNkJFcGc2SjNwODZVeENmczk4d2Z2MEpVaFVOdit3RHFEeUhacU1lbDhaN0dUQmFkclBnTnZtbTdWTjdVWDJiNXFNPSIsIml2UGFyYW1ldGVyU3BlYyI6IjYwczhwTmk2Qkd4eWFITkUiLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=develop)) |
+| develop | ![Build Status](https://codebuild.eu-central-1.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoiSGhjclY5dDF1OE5XMEhmYjYwV05jNkJFcGc2SjNwODZVeENmczk4d2Z2MEpVaFVOdit3RHFEeUhacU1lbDhaN0dUQmFkclBnTnZtbTdWTjdVWDJiNXFNPSIsIml2UGFyYW1ldGVyU3BlYyI6IjYwczhwTmk2Qkd4eWFITkUiLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=develop) |
 | master | ![Build Status](https://codebuild.eu-central-1.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoiSGhjclY5dDF1OE5XMEhmYjYwV05jNkJFcGc2SjNwODZVeENmczk4d2Z2MEpVaFVOdit3RHFEeUhacU1lbDhaN0dUQmFkclBnTnZtbTdWTjdVWDJiNXFNPSIsIml2UGFyYW1ldGVyU3BlYyI6IjYwczhwTmk2Qkd4eWFITkUiLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=master) |
 
 ## Table of Content
@@ -496,7 +496,8 @@ The service is configured by Environment Variable:
 | STAC_BROWSER_BASE_PATH | `browser/index.html` | STAC Browser base path. |
 | GUNICORN_WORKERS | `2` | Number of Gunicorn workers |
 | GUNICORN_WORKER_TMP_DIR | `None` | Path to a tmpfs directory for Gunicorn. If `None` let gunicorn decide which path to use. See https://docs.gunicorn.org/en/stable/settings.html#worker-tmp-dir. |
-| GUNICORN_DUMP_STACKS_ON_EXIT | `False` | Whether to log stack trace of all threads upon exit. |
+| GUNICORN_STACK_DUMP_DELAY | `29` | Upon exit, how long to wait before logging stack traces. The default is one second less than `GUNICORN_GRACEFUL_TIMEOUT`. Setting this to a value equal or greater to `GUNICORN_GRACEFUL_TIMEOUT` effectively disables stack dumping.
+| GUNICORN_GRACEFUL_TIMEOUT | `30` | The [`graceful_timeout`](https://docs.gunicorn.org/en/stable/settings.html#graceful-timeout) setting passed to gunicorn.
 
 #### **Database settings**
 

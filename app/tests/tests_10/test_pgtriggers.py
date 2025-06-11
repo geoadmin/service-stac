@@ -3,15 +3,15 @@ import logging
 from tests.tests_10.base_test import StacBaseTransactionTestCase
 from tests.tests_10.data_factory import Factory
 from tests.tests_10.sample_data.asset_samples import FILE_CONTENT_1
-from tests.utils import mock_s3_asset_file
+from tests.utils import MockS3PerTestMixin
 
 logger = logging.getLogger(__name__)
 
 
-class PgTriggersFileSizeTestCase(StacBaseTransactionTestCase):
+class PgTriggersFileSizeTestCase(MockS3PerTestMixin, StacBaseTransactionTestCase):
 
-    @mock_s3_asset_file
     def setUp(self):
+        super().setUp()
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample().model
         self.item = self.factory.create_item_sample(collection=self.collection).model
@@ -19,7 +19,6 @@ class PgTriggersFileSizeTestCase(StacBaseTransactionTestCase):
         # Add a second item
         self.item2 = self.factory.create_item_sample(collection=self.collection,).model
 
-    @mock_s3_asset_file
     def test_pgtrigger_file_size(self):
         self.factory = Factory()
         file_size = len(FILE_CONTENT_1)

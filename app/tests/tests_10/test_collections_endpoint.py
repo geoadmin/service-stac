@@ -23,14 +23,14 @@ from tests.tests_10.data_factory import CollectionFactory
 from tests.tests_10.data_factory import Factory
 from tests.tests_10.data_factory import SampleData
 from tests.tests_10.utils import reverse_version
+from tests.utils import MockS3PerClassMixin
 from tests.utils import disableLogger
 from tests.utils import get_auth_headers
-from tests.utils import mock_s3_asset_file
 
 logger = logging.getLogger(__name__)
 
 
-class CollectionsEndpointTestCase(StacBaseTestCase):
+class CollectionsEndpointTestCase(MockS3PerClassMixin, StacBaseTestCase):
 
     def setUp(self):  # pylint: disable=invalid-name
         self.client = Client()
@@ -96,7 +96,6 @@ class CollectionsEndpointTestCase(StacBaseTestCase):
             msg=f"Only one collection should be returned. Response: {response_json}"
         )
 
-    @mock_s3_asset_file
     def test_single_collection_assets_endpoint(self):
         asset_count = 3
         collection = self.collection_1.model

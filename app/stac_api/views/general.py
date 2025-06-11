@@ -3,6 +3,7 @@ import logging
 from datetime import datetime
 
 from django.conf import settings
+from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
 from rest_framework import generics
@@ -25,6 +26,7 @@ from stac_api.utils import harmonize_post_get_for_search
 from stac_api.utils import is_api_version_1
 from stac_api.utils import utc_aware
 from stac_api.validators_serializer import ValidateSearchRequest
+from stac_api.views.filters import create_is_active_filter
 from stac_api.views.mixins import patch_collections_aggregate_cache_control_header
 
 logger = logging.getLogger(__name__)
@@ -70,8 +72,12 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
 
     # pylint: disable=too-many-branches
     def get_queryset(self):
-        queryset = Item.objects.filter(collection__published=True
-                                      ).prefetch_related('assets', 'links')
+        filter_condition = Q(collection__published=True)
+        if settings.HIDE_EXPIRED_ITEMS_IN_SEARCH:
+            is_active = create_is_active_filter()
+            filter_condition &= is_active
+        queryset = Item.objects.filter(filter_condition).prefetch_related('assets', 'links')
+
         # harmonize GET and POST query
         query_param = harmonize_post_get_for_search(self.request)
 

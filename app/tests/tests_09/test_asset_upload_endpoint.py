@@ -22,10 +22,10 @@ from tests.tests_09.base_test import StacBaseTestCase
 from tests.tests_09.base_test import StacBaseTransactionTestCase
 from tests.tests_09.data_factory import Factory
 from tests.tests_09.utils import reverse_version
+from tests.utils import MockS3PerTestMixin
 from tests.utils import S3TestMixin
 from tests.utils import client_login
 from tests.utils import get_file_like_object
-from tests.utils import mock_s3_asset_file
 
 logger = logging.getLogger(__name__)
 
@@ -44,10 +44,10 @@ def create_md5_parts(number_parts, offset, file_like):
     } for i in range(number_parts)]
 
 
-class AssetUploadBaseTest(StacBaseTestCase, S3TestMixin):
+class AssetUploadBaseTest(S3TestMixin, MockS3PerTestMixin, StacBaseTestCase):
 
-    @mock_s3_asset_file
     def setUp(self):  # pylint: disable=invalid-name
+        super().setUp()
         self.client = Client()
         client_login(self.client)
         self.factory = Factory()
@@ -315,10 +315,12 @@ class AssetUploadCreateEndpointTestCase(AssetUploadBaseTest):
         self.assertEqual(len(response['Uploads']), 1, msg='More or less uploads found on S3')
 
 
-class AssetUploadCreateRaceConditionTest(StacBaseTransactionTestCase, S3TestMixin):
+class AssetUploadCreateRaceConditionTest(
+    S3TestMixin, MockS3PerTestMixin, StacBaseTransactionTestCase
+):
 
-    @mock_s3_asset_file
     def setUp(self):
+        super().setUp()
         self.username = 'user'
         self.password = 'dummy-password'
         get_user_model().objects.create_superuser(self.username, password=self.password)

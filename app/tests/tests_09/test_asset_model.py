@@ -6,15 +6,15 @@ from stac_api.models.item import Asset
 
 from tests.tests_09.base_test import StacBaseTransactionTestCase
 from tests.tests_09.data_factory import Factory
-from tests.utils import mock_s3_asset_file
+from tests.utils import MockS3PerTestMixin
 
 logger = logging.getLogger(__name__)
 
 
-class AssetsModelTestCase(StacBaseTransactionTestCase):
+class AssetsModelTestCase(MockS3PerTestMixin, StacBaseTransactionTestCase):
 
-    @mock_s3_asset_file
     def setUp(self):
+        super().setUp()
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample(db_create=True).model
         self.item = self.factory.create_item_sample(

@@ -207,6 +207,9 @@ WHITENOISE_MIMETYPES = {
 }
 
 DELETE_EXPIRED_ITEMS_OLDER_THAN_HOURS = 24
+DELETE_EXPIRED_ITEMS_MAX = 110 * 1000
+DELETE_EXPIRED_ITEMS_MAX_PERCENTAGE = 50
+DELETE_EXPIRED_ITEMS_BATCH_SIZE = 10 * 1000
 
 # Media files (i.e. uploaded content=assets in this project)
 UPLOAD_FILE_CHUNK_SIZE = 1024 * 1024  # Size in Bytes
@@ -314,7 +317,10 @@ TEST_RUNNER = 'tests.runner.TestRunner'
 # set authentication schemes
 
 REST_FRAMEWORK = {
-    'DEFAULT_RENDERER_CLASSES': ['rest_framework.renderers.JSONRenderer'],
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+        'helpers.renderers.GeoJSONRenderer',
+    ],
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'middleware.api_gateway_authentication.ApiGatewayAuthentication',
         'middleware.rest_framework_authentication.RestrictedBasicAuthentication',
@@ -361,6 +367,9 @@ EXTERNAL_URL_REACHABLE_TIMEOUT = env.int('EXTERNAL_URL_REACHABLE_TIMEOUT', defau
 DISALLOWED_EXTERNAL_ASSET_URL_SCHEMES = env.list(
     'DISALLOWED_EXTERNAL_ASSET_URL_SCHEMES', default=['http']
 )
+
+# Feature flag to hide/show expired items in the search endpoint
+HIDE_EXPIRED_ITEMS_IN_SEARCH = env('HIDE_EXPIRED_ITEMS_IN_SEARCH', bool, default=True)
 
 # These are the default values from Django as per
 # https://docs.djangoproject.com/en/5.1/ref/settings/

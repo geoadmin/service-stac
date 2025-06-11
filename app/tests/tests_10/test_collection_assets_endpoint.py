@@ -23,10 +23,10 @@ from tests.tests_10.base_test import StacBaseTestCase
 from tests.tests_10.base_test import StacBaseTransactionTestCase
 from tests.tests_10.data_factory import Factory
 from tests.tests_10.utils import reverse_version
+from tests.utils import MockS3PerTestMixin
 from tests.utils import S3TestMixin
 from tests.utils import disableLogger
 from tests.utils import get_auth_headers
-from tests.utils import mock_s3_asset_file
 
 logger = logging.getLogger(__name__)
 
@@ -35,10 +35,10 @@ def to_dict(input_ordered_dict):
     return loads(dumps(input_ordered_dict))
 
 
-class CollectionAssetsEndpointTestCase(StacBaseTestCase):
+class CollectionAssetsEndpointTestCase(MockS3PerTestMixin, StacBaseTestCase):
 
-    @mock_s3_asset_file
     def setUp(self):  # pylint: disable=invalid-name
+        super().setUp()
         self.client = Client()
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample().model
@@ -98,10 +98,10 @@ class CollectionAssetsEndpointTestCase(StacBaseTestCase):
 
 
 @override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
-class CollectionAssetsUnimplementedEndpointTestCase(StacBaseTestCase):
+class CollectionAssetsUnimplementedEndpointTestCase(MockS3PerTestMixin, StacBaseTestCase):
 
-    @mock_s3_asset_file
     def setUp(self):  # pylint: disable=invalid-name
+        super().setUp()
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample().model
         self.client = Client(headers=get_auth_headers())
@@ -121,10 +121,10 @@ class CollectionAssetsUnimplementedEndpointTestCase(StacBaseTestCase):
 
 
 @override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
-class CollectionAssetsCreateEndpointTestCase(StacBaseTestCase):
+class CollectionAssetsCreateEndpointTestCase(MockS3PerTestMixin, StacBaseTestCase):
 
-    @mock_s3_asset_file
     def setUp(self):  # pylint: disable=invalid-name
+        super().setUp()
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample().model
         self.client = Client(headers=get_auth_headers())
@@ -300,10 +300,10 @@ class CollectionAssetsCreateEndpointTestCase(StacBaseTestCase):
 
 
 @override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
-class CollectionAssetsUpdateEndpointAssetFileTestCase(StacBaseTestCase):
+class CollectionAssetsUpdateEndpointAssetFileTestCase(MockS3PerTestMixin, StacBaseTestCase):
 
-    @mock_s3_asset_file
     def setUp(self):  # pylint: disable=invalid-name
+        super().setUp()
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample(db_create=True)
         self.asset = self.factory.create_collection_asset_sample(
@@ -394,10 +394,10 @@ class CollectionAssetsUpdateEndpointAssetFileTestCase(StacBaseTestCase):
 
 
 @override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
-class CollectionAssetsUpdateEndpointTestCase(StacBaseTestCase):
+class CollectionAssetsUpdateEndpointTestCase(MockS3PerTestMixin, StacBaseTestCase):
 
-    @mock_s3_asset_file
     def setUp(self):  # pylint: disable=invalid-name
+        super().setUp()
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample(db_create=True)
         self.asset = self.factory.create_collection_asset_sample(
@@ -783,10 +783,10 @@ class CollectionAssetRaceConditionTest(StacBaseTransactionTestCase):
 
 
 @override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
-class CollectionAssetsDeleteEndpointTestCase(StacBaseTestCase, S3TestMixin):
+class CollectionAssetsDeleteEndpointTestCase(S3TestMixin, MockS3PerTestMixin, StacBaseTestCase):
 
-    @mock_s3_asset_file
     def setUp(self):  # pylint: disable=invalid-name
+        super().setUp()
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample().model
         self.asset = self.factory.create_collection_asset_sample(collection=self.collection).model
@@ -820,10 +820,10 @@ class CollectionAssetsDeleteEndpointTestCase(StacBaseTestCase, S3TestMixin):
         self.assertStatusCode(404, response)
 
 
-class CollectionAssetsEndpointUnauthorizedTestCase(StacBaseTestCase):
+class CollectionAssetsEndpointUnauthorizedTestCase(MockS3PerTestMixin, StacBaseTestCase):
 
-    @mock_s3_asset_file
     def setUp(self):  # pylint: disable=invalid-name
+        super().setUp()
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample().model
         self.asset = self.factory.create_collection_asset_sample(collection=self.collection).model
@@ -860,10 +860,10 @@ class CollectionAssetsEndpointUnauthorizedTestCase(StacBaseTestCase):
         self.assertStatusCode(401, response, msg="Unexpected status.")
 
 
-class CollectionAssetsDisabledAuthenticationEndpointTestCase(StacBaseTestCase):
+class CollectionAssetsDisabledAuthenticationEndpointTestCase(MockS3PerTestMixin, StacBaseTestCase):
 
-    @mock_s3_asset_file
     def setUp(self):  # pylint: disable=invalid-name
+        super().setUp()
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample().model
         self.asset = self.factory.create_collection_asset_sample(collection=self.collection).model

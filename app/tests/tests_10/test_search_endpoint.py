@@ -2,10 +2,12 @@ import json
 import logging
 from datetime import datetime
 from datetime import timedelta
+from unittest.mock import patch
 from urllib.parse import quote_plus
 
 from django.test import Client
 from django.test import override_settings
+from django.utils import timezone
 
 from stac_api.utils import fromisoformat
 from stac_api.utils import get_link
@@ -16,7 +18,7 @@ from tests.tests_10.base_test import STAC_BASE_V
 from tests.tests_10.base_test import StacBaseTestCase
 from tests.tests_10.data_factory import Factory
 from tests.tests_10.utils import reverse_version
-from tests.utils import mock_s3_asset_file
+from tests.utils import MockS3PerClassMixin
 
 logger = logging.getLogger(__name__)
 
@@ -514,12 +516,55 @@ class SearchEndpointTestCaseTwo(StacBaseTestCase):
         response = self.client.get(f"/{STAC_BASE_V}/search?datetime=NotADate&limit=100")
         self.assertStatusCode(400, response)
 
+    def test_get_does_not_show_expired_items(self):
+        tomorrow = timezone.now() + timedelta(days=1)
+        self.factory.create_item_sample(
+            self.collection, name='item-expired', db_create=True, properties_expires=tomorrow
+        )
+        in_a_week = timezone.now() + timedelta(days=7)
+        self.factory.create_item_sample(
+            self.collection,
+            name='item-with-expiration-date-but-active',
+            db_create=True,
+            properties_expires=in_a_week
+        )
+
+        after_tomorrow = timezone.now() + timedelta(days=2)
+        with patch.object(timezone, "now", return_value=after_tomorrow):
+            response = self.client.get(self.path)
+
+        self.assertStatusCode(200, response)
+        feature_ids = [feature["id"] for feature in response.json()['features']]
+        self.assertNotIn('item-expired', feature_ids)
+        self.assertIn('item-with-expiration-date-but-active', feature_ids)
+
+    def test_post_does_not_show_expired_items(self):
+        tomorrow = timezone.now() + timedelta(days=1)
+        self.factory.create_item_sample(
+            self.collection, name='item-expired', db_create=True, properties_expires=tomorrow
+        )
+        in_a_week = timezone.now() + timedelta(days=7)
+        self.factory.create_item_sample(
+            self.collection,
+            name='item-with-expiry-date-but-active',
+            db_create=True,
+            properties_expires=in_a_week
+        )
+
+        after_tomorrow = timezone.now() + timedelta(days=2)
+        with patch.object(timezone, "now", return_value=after_tomorrow):
+            response = self.client.post(self.path)
+
+        self.assertStatusCode(200, response)
+        feature_ids = [feature["id"] for feature in response.json()['features']]
+        self.assertNotIn('item-expired', feature_ids)
+        self.assertIn('item-with-expiry-date-but-active', feature_ids)
+
 
 @override_settings(CACHE_MIDDLEWARE_SECONDS=3600)
-class SearchEndpointCacheSettingTestCase(StacBaseTestCase):
+class SearchEndpointCacheSettingTestCase(MockS3PerClassMixin, StacBaseTestCase):
 
     @classmethod
-    @mock_s3_asset_file
     def setUpTestData(cls):
         cls.title_for_query = 'Item for cache settings test'
         cls.factory = Factory()

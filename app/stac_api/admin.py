@@ -19,6 +19,7 @@ from django.template.defaultfilters import filesizeformat
 from django.template.response import TemplateResponse
 from django.urls import path
 from django.urls import reverse
+from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
 from stac_api.models.collection import Collection
@@ -34,8 +35,6 @@ from stac_api.models.item import Item
 from stac_api.models.item import ItemLink
 from stac_api.utils import build_asset_href
 from stac_api.utils import get_query_params
-from stac_api.validators import validate_href_reachability
-from stac_api.validators import validate_href_url
 from stac_api.validators import validate_text_to_geometry
 
 logger = logging.getLogger(__name__)
@@ -428,23 +427,8 @@ class RedirectAfterCreationMixin:
         return super().response_add(request, obj, post_url_continue)
 
 
-class CollectionAssetAdminForm(forms.ModelForm):
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        if self.instance and self.instance.id is not None:
-            if 'is_external' in self.fields:
-                external_field = self.fields['is_external']
-                external_field.help_text = (
-                    _('Whether this asset is hosted externally. Save the form in '
-                      'order to toggle the file field between input and file widget.')
-                )
-
-
 @admin.register(CollectionAsset)
 class CollectionAssetAdmin(AssetUploadAdminMixin, RedirectAfterCreationMixin, admin.ModelAdmin):
-    form = CollectionAssetAdminForm
 
     class Media:
         js = ('js/admin/asset_help_search.js',)
@@ -453,7 +437,6 @@ class CollectionAssetAdmin(AssetUploadAdminMixin, RedirectAfterCreationMixin, ad
     autocomplete_fields = ['collection']
     search_fields = ['name', 'collection__name']
     readonly_fields = [
-        'file',
         'collection_name',
         'href',
         'is_external',
@@ -473,7 +456,6 @@ class CollectionAssetAdmin(AssetUploadAdminMixin, RedirectAfterCreationMixin, ad
             'File',
             {
                 'fields': (
-                    'file',
                     'media_type',
                     'href',
                     'checksum_multihash',
@@ -537,14 +519,12 @@ class CollectionAssetAdmin(AssetUploadAdminMixin, RedirectAfterCreationMixin, ad
 
         super().save_model(request, obj, form, change)
 
-    # Note: this is a bit hacky and only required to get access
-    # to the request object in 'href' method.
-    def get_form(self, request, obj=None, **kwargs):  # pylint: disable=arguments-differ
-        self.request = request  # pylint: disable=attribute-defined-outside-init
-        return super().get_form(request, obj, **kwargs)
-
     def href(self, instance):
-        return build_asset_href(self.request, instance.file.name)
+        if instance.is_external:
+            url = instance.file.name
+        else:
+            url = build_asset_href(self.request, instance.file.name)
+        return format_html("<a href='{url}'>{url}</a>", url=url)
 
     #helper function which displays the bytes in human-readable format
     def displayed_file_size(self, instance):
@@ -558,7 +538,8 @@ class CollectionAssetAdmin(AssetUploadAdminMixin, RedirectAfterCreationMixin, ad
     def get_fieldsets(self, request, obj=None):
         """Build the different field sets for the admin page."""
 
-        base_fields = super().get_fieldsets(request, obj)
+        # Save the request for use in the href field
+        self.request = request  # pylint: disable=attribute-defined-outside-init
 
         if obj is None:
             return [
@@ -570,84 +551,27 @@ class CollectionAssetAdmin(AssetUploadAdminMixin, RedirectAfterCreationMixin, ad
                 }),
             ]
 
-        # Define file fields conditionally based on `allow_external_assets`
-        if obj.collection.allow_external_assets:
-            file_fields = (
-                'is_external',
-                'file',
-                'media_type',
-                'href',
-                'checksum_multihash',
-                'update_interval',
-                'displayed_file_size'
-            )
-        else:
-            file_fields = (
-                'file',
-                'media_type',
-                'href',
-                'checksum_multihash',
-                'update_interval',
-                'displayed_file_size'
-            )
-
         return [
             (None, {
                 'fields': ('name', 'collection_name', 'created', 'updated', 'etag')
             }),
-            ('File', {
-                'fields': file_fields
-            }),
+            (
+                'File',
+                {
+                    'fields': (
+                        'is_external',
+                        'media_type',
+                        'href',
+                        'checksum_multihash',
+                        'update_interval',
+                        'displayed_file_size'
+                    )
+                }
+            ),
             ('Description', {
                 'fields': ('title', 'description', 'roles')
             }),
         ]
-
-
-class AssetAdminForm(forms.ModelForm):
-
-    def __init__(self, *args, **kwargs):
-        """If it's an external asset, we switch the file field to a char field"""
-        super().__init__(*args, **kwargs)
-
-        if self.instance is not None and self.instance.id is not None:
-            are_external_assets_allowed = self.instance.item.collection.allow_external_assets
-
-            if are_external_assets_allowed:
-
-                external_field = self.fields['is_external']
-                external_field.help_text = (
-                    _('Whether this asset is hosted externally. Save the form in '
-                      'order to toggle the file field between input and file widget.')
-                )
-
-                if self.instance.is_external:
-                    # can't just change the widget, otherwise it is impossible to
-                    # change the value!
-                    self.fields['file'] = forms.CharField(
-                        label='File',
-                        required=False,
-                        widget=forms.TextInput(attrs={'size': 150}),
-                    )
-
-                    self.fields['file'].widget.attrs['placeholder'
-                                                    ] = 'https://map.geo.admin.ch/external.jpg'
-
-    def clean_file(self):
-        if self.instance:
-            external_changed = 'is_external' in self.changed_data
-            is_external = self.cleaned_data.get('is_external')
-
-            # if we're just changing from internal to external, so we don't
-            # validate the url, because it is potentially still the previous,
-            # internal file
-            if is_external and not external_changed:
-                file = self.cleaned_data.get('file')
-
-                validate_href_url(file, self.instance.item.collection)
-                validate_href_reachability(file, self.instance.item.collection)
-
-        return self.cleaned_data.get('file')
 
 
 class NotUploadedYetFilter(SimpleListFilter):
@@ -671,13 +595,10 @@ class NotUploadedYetFilter(SimpleListFilter):
 
 @admin.register(Asset)
 class AssetAdmin(AssetUploadAdminMixin, RedirectAfterCreationMixin, admin.ModelAdmin):
-    form = AssetAdminForm
 
     class Media:
-        js = ('js/admin/asset_help_search.js', 'js/admin/asset_external_fields.js')
+        js = ('js/admin/asset_help_search.js',)
         css = {'all': ('style/hover.css',)}
-
-    file = forms.FileField(required=False)
 
     autocomplete_fields = ['item']
     search_fields = ['name', 'item__name', 'item__collection__name']
@@ -688,6 +609,7 @@ class AssetAdmin(AssetUploadAdminMixin, RedirectAfterCreationMixin, admin.ModelA
     readonly_fields = [
         'item_name',
         'collection_name',
+        'is_external',
         'href',
         'checksum_multihash',
         'created',
@@ -712,11 +634,6 @@ class AssetAdmin(AssetUploadAdminMixin, RedirectAfterCreationMixin, admin.ModelA
         if obj:
             # Don't allow to modify Asset name and media type, because they are tightly coupled
             # with the asset data file. Changing them require to re-upload the data.
-            # As file upload through admin has been disabled,
-            # the field is read-only unless the asset is external.
-            if not obj.is_external:
-                return self.readonly_fields + ['file', 'name', 'media_type']
-
             return self.readonly_fields + ['name', 'media_type']
         return self.readonly_fields
 
@@ -773,8 +690,10 @@ class AssetAdmin(AssetUploadAdminMixin, RedirectAfterCreationMixin, admin.ModelA
 
     def href(self, instance):
         if instance.is_external:
-            return instance.file.name
-        return build_asset_href(self.request, instance.file.name)
+            url = instance.file.name
+        else:
+            url = build_asset_href(self.request, instance.file.name)
+        return format_html("<a href='{url}'>{url}</a>", url=url)
 
     #helper function which displays the bytes in human-readable format
     def displayed_file_size(self, instance):
@@ -785,69 +704,51 @@ class AssetAdmin(AssetUploadAdminMixin, RedirectAfterCreationMixin, admin.ModelA
     def get_fieldsets(self, request, obj=None):
         """Build the different field sets for the admin page
 
-        The create page takes less fields than the edit page. This is because
-        at creation time we don't know yet if the collection allows for external
-        assets and thus can't determine whether to show the flag or not
+        The create page takes less fields than the edit page.
         """
 
         # Save the request for use in the href field
         self.request = request  # pylint: disable=attribute-defined-outside-init
 
-        fields = []
         if obj is None:
-            fields.append((None, {'fields': ('name', 'item', 'created', 'updated', 'etag')}))
-            fields.append(('File', {'fields': ('media_type',)}))
-        else:
-            # add one section after another
-            fields.append((
+            return [
+                (None, {
+                    'fields': ('name', 'item', 'created', 'updated', 'etag')
+                }),
+                ('File', {
+                    'fields': ('media_type',)
+                }),
+            ]
+
+        return [
+            (
                 None, {
                     'fields':
                         ('name', 'item_name', 'collection_name', 'created', 'updated', 'etag')
                 }
-            ))
-
-            # is_external is only available if the collection allows it
-            if obj.item.collection.allow_external_assets:
-                file_fields = (
-                    'is_external',
-                    'file',
-                    'media_type',
-                    'href',
-                    'checksum_multihash',
-                    'update_interval',
-                    'displayed_file_size'
-                )
-            else:
-                file_fields = (
-                    'file',
-                    'media_type',
-                    'href',
-                    'checksum_multihash',
-                    'update_interval',
-                    'displayed_file_size'
-                )
-
-            fields.append(('File', {'fields': file_fields}))
-
-            fields.append(('Description', {'fields': ('title', 'description', 'roles')}))
-
-            fields.append((
+            ),
+            (
+                'File',
+                {
+                    'fields': (
+                        'is_external',
+                        'media_type',
+                        'href',
+                        'checksum_multihash',
+                        'update_interval',
+                        'displayed_file_size'
+                    )
+                }
+            ),
+            ('Description', {
+                'fields': ('title', 'description', 'roles')
+            }),
+            (
                 'Attributes', {
                     'fields': ('eo_gsd', 'proj_epsg', 'geoadmin_variant', 'geoadmin_lang')
                 }
-            ))
-
-        return fields
-
-    def get_form(self, request, obj=None, change=False, **kwargs):
-        """Make the file field optional
-
-        It is perfectly possible to not specify any file in the file field when saving,
-        even when the field *isn't* blank=True or null=True. The multipart-upload
-        process does it too.
-        We allow the field to be empty in case somebody is setting the is_external flag"""
-        form = super().get_form(request, obj, change, **kwargs)
-        return form
+            ),
+        ]
 
 
 @admin.register(AssetUpload)

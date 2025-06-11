@@ -26,7 +26,8 @@ from tests.tests_09.base_test import StacBaseTestCase
 from tests.tests_09.base_test import StacBaseTransactionTestCase
 from tests.tests_09.data_factory import Factory
 from tests.tests_09.utils import calculate_extent
-from tests.utils import mock_s3_asset_file
+from tests.utils import MockS3PerClassMixin
+from tests.utils import MockS3PerTestMixin
 
 logger = logging.getLogger(__name__)
 
@@ -41,10 +42,10 @@ def request_with_resolver(path):
 
 # Here we need to use TransactionTestCase due to the pgtrigger, in a normal
 # test case we cannot test effect of pgtrigger.
-class CollectionSerializationTestCase(StacBaseTransactionTestCase):
+class CollectionSerializationTestCase(MockS3PerTestMixin, StacBaseTransactionTestCase):
 
-    @mock_s3_asset_file
     def setUp(self):
+        super().setUp()
         self.data_factory = Factory()
         self.collection_created_after = utc_aware(datetime.now())
         self.collection = self.data_factory.create_collection_sample(db_create=True)
@@ -323,10 +324,10 @@ class CollectionDeserializationTestCase(StacBaseTestCase):
             serializer.is_valid(raise_exception=True)
 
 
-class ItemSerializationTestCase(StacBaseTestCase):
+class ItemSerializationTestCase(MockS3PerTestMixin, StacBaseTestCase):
 
-    @mock_s3_asset_file
     def setUp(self):  # pylint: disable=invalid-name
+        super().setUp()
         self.data_factory = Factory()
         self.collection = self.data_factory.create_collection_sample(db_create=True)
         self.item = self.data_factory.create_item_sample(
@@ -584,10 +585,10 @@ class ItemDeserializationTestCase(StacBaseTestCase):
             serializer.is_valid(raise_exception=True)
 
 
-class AssetSerializationTestCase(StacBaseTestCase):
+class AssetSerializationTestCase(MockS3PerTestMixin, StacBaseTestCase):
 
-    @mock_s3_asset_file
     def setUp(self):
+        super().setUp()
         self.data_factory = Factory()
         self.collection = self.data_factory.create_collection_sample(db_create=True)
         self.item = self.data_factory.create_item_sample(
@@ -622,10 +623,9 @@ class AssetSerializationTestCase(StacBaseTestCase):
         )
 
 
-class AssetDeserializationTestCase(StacBaseTestCase):
+class AssetDeserializationTestCase(MockS3PerClassMixin, StacBaseTestCase):
 
     @classmethod
-    @mock_s3_asset_file
     def setUpTestData(cls):
         cls.data_factory = Factory()
         cls.collection = cls.data_factory.create_collection_sample(db_create=True)
