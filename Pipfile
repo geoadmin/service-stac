@@ -23,6 +23,7 @@ pytest = "*"
 pytest-django = "*"
 pytest-dotenv = "*"
 pytest-cov = "*"
+pytest-xdist = "*"
 
 [packages]
 gevent = "~=25.4.1"

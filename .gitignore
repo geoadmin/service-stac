@@ -74,3 +74,8 @@ nose2-junit.xml
 
 # Node modules
 node_modules/*
+
+# Coverage
+.coverage*
+coverage.xml
+htmlcov

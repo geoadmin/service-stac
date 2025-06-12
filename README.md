@@ -245,7 +245,7 @@ Alternatively you can use `make` to run the tests which will run all tests in pa
 make test
 ```
 
-or use the container environment like on the CI.
+Or use the container environment like on the CI.
 
 ```bash
 docker compose -f docker-compose-ci.yml up --build --abort-on-container-exit
@@ -253,6 +253,18 @@ docker compose -f docker-compose-ci.yml up --build --abort-on-container-exit
 
 **NOTE:** the `--build` option is important otherwise the container will not be rebuild and you don't have the latest modification
 of the code.
+
+Or use pytest. Either directly in Visual Studio Code via the `ms-python.python` extension or with the CLI:
+
+```
+pytest -k test_pgtrigger_file_size
+```
+
+Or generate a coverage report:
+
+```
+make test-coverage
+```
 
 #### Unit test logging
 
