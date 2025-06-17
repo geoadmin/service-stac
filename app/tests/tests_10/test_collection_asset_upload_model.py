@@ -1,4 +1,5 @@
 import logging
+from datetime import UTC
 from datetime import datetime
 
 from django.core.exceptions import ValidationError
@@ -9,7 +10,6 @@ from django.test import TransactionTestCase
 from stac_api.models.collection import CollectionAsset
 from stac_api.models.collection import CollectionAssetUpload
 from stac_api.utils import get_sha256_multihash
-from stac_api.utils import utc_aware
 
 from tests.tests_10.data_factory import Factory
 from tests.utils import MockS3PerClassMixin
@@ -75,7 +75,7 @@ class CollectionAssetUploadModelTestCase(
         self.assertEqual(asset_upload.urls, [], msg="Wrong default value")
         self.assertEqual(asset_upload.ended, None, msg="Wrong default value")
         self.assertAlmostEqual(
-            utc_aware(datetime.utcnow()).timestamp(),
+            datetime.now(UTC).timestamp(),
             asset_upload.created.timestamp(),  # pylint: disable=no-member
             delta=1,
             msg="Wrong default value"
@@ -154,9 +154,7 @@ class CollectionAssetUploadDeleteProtectModelTestCase(
             asset_upload.delete()
 
         asset_upload = self.update_asset_upload(
-            asset_upload,
-            status=CollectionAssetUpload.Status.COMPLETED,
-            ended=utc_aware(datetime.utcnow())
+            asset_upload, status=CollectionAssetUpload.Status.COMPLETED, ended=datetime.now(UTC)
         )
 
         asset_upload.delete()
@@ -172,19 +170,19 @@ class CollectionAssetUploadDeleteProtectModelTestCase(
             self.asset,
             'upload-completed',
             status=CollectionAssetUpload.Status.COMPLETED,
-            ended=utc_aware(datetime.utcnow())
+            ended=datetime.now(UTC)
         )
         asset_upload_3 = self.create_asset_upload(
             self.asset,
             'upload-aborted',
             status=CollectionAssetUpload.Status.ABORTED,
-            ended=utc_aware(datetime.utcnow())
+            ended=datetime.now(UTC)
         )
         asset_upload_4 = self.create_asset_upload(
             self.asset,
             'upload-aborted-2',
             status=CollectionAssetUpload.Status.ABORTED,
-            ended=utc_aware(datetime.utcnow())
+            ended=datetime.now(UTC)
         )
 
         # Try to delete parent asset
@@ -198,9 +196,7 @@ class CollectionAssetUploadDeleteProtectModelTestCase(
         )
 
         self.update_asset_upload(
-            asset_upload_1,
-            status=CollectionAssetUpload.Status.ABORTED,
-            ended=utc_aware(datetime.utcnow())
+            asset_upload_1, status=CollectionAssetUpload.Status.ABORTED, ended=datetime.now(UTC)
         )
 
         self.asset.delete()

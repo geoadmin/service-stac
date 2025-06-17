@@ -1,4 +1,5 @@
 import logging
+from datetime import UTC
 from datetime import datetime
 from operator import itemgetter
 
@@ -29,7 +30,6 @@ from stac_api.serializers.upload import CollectionAssetUploadSerializer
 from stac_api.utils import get_asset_path
 from stac_api.utils import get_collection_asset_path
 from stac_api.utils import select_s3_bucket
-from stac_api.utils import utc_aware
 from stac_api.validators_view import validate_asset
 from stac_api.validators_view import validate_collection_asset
 from stac_api.views.general import get_etag
@@ -153,7 +153,7 @@ class SharedAssetUploadBase(generics.GenericAPIView):
         )
         asset_upload.update_asset_from_upload()
         asset_upload.status = BaseAssetUpload.Status.COMPLETED
-        asset_upload.ended = utc_aware(datetime.utcnow())
+        asset_upload.ended = datetime.now(UTC)
         asset_upload.urls = []
         asset_upload.save()
 
@@ -161,7 +161,7 @@ class SharedAssetUploadBase(generics.GenericAPIView):
         key = self.get_path(asset)
         executor.abort_multipart_upload(key, asset, asset_upload.upload_id)
         asset_upload.status = BaseAssetUpload.Status.ABORTED
-        asset_upload.ended = utc_aware(datetime.utcnow())
+        asset_upload.ended = datetime.now(UTC)
         asset_upload.urls = []
         asset_upload.save()
 
