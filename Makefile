@@ -45,6 +45,7 @@ PYTHON := $(PIPENV_RUN) python3
 YAPF := $(PIPENV_RUN) yapf
 ISORT := $(PIPENV_RUN) isort
 PYLINT := $(PIPENV_RUN) pylint
+PYTEST := DEBUG=True PYTHONPATH=app DJANGO_SETTINGS_MODULE=config.settings_test  $(PIPENV_RUN) pytest
 
 # Set summon only if not already set, this allow to disable summon on environment
 # that don't use it like for CodeBuild env
@@ -215,6 +216,18 @@ test-conformance:
 	--conformance features \
 	--geometry '{"type": "Polygon", "coordinates": [[[0, 0], [90, 0], [90, 90], [0, 90], [0, 0]]]}' \
     --collection $(collection)
+
+.PHONY: test-coverage
+test-coverage:
+	# Collect static first to avoid warning in the test
+	$(PYTHON) $(DJANGO_MANAGER) collectstatic --noinput
+	$(PYTEST) -n 20 --cov --cov-report=html
+
+.PHONY: test-ci
+test-ci:
+	# Collect static first to avoid warning in the test
+	$(PYTHON) $(DJANGO_MANAGER) collectstatic --noinput
+	$(PYTEST) -n 20 --cov --cov-report=xml
 
 ###################
 # Specs
