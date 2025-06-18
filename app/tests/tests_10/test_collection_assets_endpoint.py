@@ -1,5 +1,6 @@
 import logging
 from base64 import b64encode
+from datetime import UTC
 from datetime import datetime
 from json import dumps
 from json import loads
@@ -15,7 +16,6 @@ from rest_framework.authtoken.models import Token
 
 from stac_api.models.collection import CollectionAsset
 from stac_api.utils import get_collection_asset_path
-from stac_api.utils import utc_aware
 
 from tests.tests_10.base_test import STAC_BASE_V
 from tests.tests_10.base_test import TEST_SERVER
@@ -462,7 +462,7 @@ class CollectionAssetsUpdateEndpointTestCase(MockS3PerTestMixin, StacBaseTestCas
             name=asset_name,
             sample='asset-1-updated',
             media_type=self.asset['media_type'],
-            created=utc_aware(datetime.utcnow()),
+            created=datetime.now(UTC),
             create_asset_file=False,
             checksum_multihash=self.asset['checksum_multihash'],
         )
@@ -659,7 +659,7 @@ class CollectionAssetsUpdateEndpointTestCase(MockS3PerTestMixin, StacBaseTestCas
             name=asset_name,
             sample='asset-1-updated',
             media_type=self.asset['media_type'],
-            created=utc_aware(datetime.utcnow())
+            created=datetime.now(UTC)
         )
 
         path = f'/{STAC_BASE_V}/collections/{collection_name}/assets/{asset_name}'

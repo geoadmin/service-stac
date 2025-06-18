@@ -1,5 +1,6 @@
 import json
 import logging
+from datetime import UTC
 from datetime import datetime
 from datetime import timedelta
 from unittest.mock import patch
@@ -12,7 +13,6 @@ from django.utils import timezone
 from stac_api.utils import fromisoformat
 from stac_api.utils import get_link
 from stac_api.utils import isoformat
-from stac_api.utils import utc_aware
 
 from tests.tests_10.base_test import STAC_BASE_V
 from tests.tests_10.base_test import StacBaseTestCase
@@ -189,7 +189,7 @@ class SearchEndpointTestCaseOne(StacBaseTestCase):
             cls.collection,
             db_create=True,
         )
-        cls.now = utc_aware(datetime.utcnow())
+        cls.now = datetime.now(UTC)
         cls.yesterday = cls.now - timedelta(days=1)
 
     def setUp(self):  # pylint: disable=invalid-name
@@ -405,7 +405,7 @@ class SearchEndpointTestCaseTwo(StacBaseTestCase):
             cls.collection,
             db_create=True,
         )
-        cls.now = utc_aware(datetime.utcnow())
+        cls.now = datetime.now(UTC)
         cls.yesterday = cls.now - timedelta(days=1)
 
     def setUp(self):  # pylint: disable=invalid-name
@@ -640,7 +640,7 @@ class SearchEndpointTestForecast(StacBaseTestCase):
         cls.factory.create_item_sample(
             cls.collection, 'item-forecast-5', 'item-forecast-5', db_create=True
         )
-        cls.now = utc_aware(datetime.utcnow())
+        cls.now = datetime.now(UTC)
         cls.yesterday = cls.now - timedelta(days=1)
 
     def setUp(self):  # pylint: disable=invalid-name

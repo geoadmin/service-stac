@@ -1,4 +1,5 @@
 import logging
+from datetime import UTC
 from datetime import datetime
 from datetime import timedelta
 
@@ -9,7 +10,6 @@ from stac_api.models.item import AssetUpload
 from stac_api.utils import get_asset_path
 from stac_api.utils import get_link
 from stac_api.utils import get_sha256_multihash
-from stac_api.utils import utc_aware
 
 from tests.tests_10.base_test import STAC_BASE_V
 from tests.tests_10.base_test import StacBaseTestCase
@@ -137,7 +137,7 @@ class ApiPaginationTestCase(MockS3PerClassMixin, StacBaseTestCase):
                 status=AssetUpload.Status.ABORTED,
                 checksum_multihash=get_sha256_multihash(b'upload-%d' % i),
                 number_parts=2,
-                ended=utc_aware(datetime.utcnow()),
+                ended=datetime.now(UTC),
                 md5_parts=[f'md5-{i}-1', f'md5-{i}-2']
             )
         for endpoint, result_attribute in [

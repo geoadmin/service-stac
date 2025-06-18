@@ -1,4 +1,5 @@
 import logging
+from datetime import UTC
 from datetime import datetime
 from datetime import timedelta
 
@@ -8,7 +9,6 @@ from django.test import TestCase
 
 from stac_api.models.collection import Collection
 from stac_api.models.item import Item
-from stac_api.utils import utc_aware
 
 from tests.tests_09.data_factory import CollectionFactory
 
@@ -26,9 +26,7 @@ class ItemsModelTestCase(TestCase):
 
     def test_item_create_model(self):
         item = Item(
-            collection=self.collection,
-            name='item-1',
-            properties_datetime=utc_aware(datetime.utcnow())
+            collection=self.collection, name='item-1', properties_datetime=datetime.now(UTC)
         )
         item.full_clean()
         item.save()
@@ -44,7 +42,7 @@ class ItemsModelTestCase(TestCase):
             item = Item(
                 collection=self.collection,
                 name='item-2',
-                properties_start_datetime=utc_aware(datetime.utcnow())
+                properties_start_datetime=datetime.now(UTC)
             )
             item.full_clean()
             item.save()
@@ -53,7 +51,7 @@ class ItemsModelTestCase(TestCase):
             item = Item(
                 collection=self.collection,
                 name='item-3',
-                properties_end_datetime=utc_aware(datetime.utcnow())
+                properties_end_datetime=datetime.now(UTC)
             )
             item.full_clean()
             item.save()
@@ -62,9 +60,9 @@ class ItemsModelTestCase(TestCase):
             item = Item(
                 collection=self.collection,
                 name='item-4',
-                properties_datetime=utc_aware(datetime.utcnow()),
-                properties_start_datetime=utc_aware(datetime.utcnow()),
-                properties_end_datetime=utc_aware(datetime.utcnow())
+                properties_datetime=datetime.now(UTC),
+                properties_start_datetime=datetime.now(UTC),
+                properties_end_datetime=datetime.now(UTC)
             )
             item.full_clean()
             item.save()
@@ -87,13 +85,13 @@ class ItemsModelTestCase(TestCase):
         with self.assertRaises(
             ValidationError, msg="end_datetime must not be earlier than start_datetime"
         ):
-            today = datetime.utcnow()
+            today = datetime.now(UTC)
             yesterday = today - timedelta(days=1)
             item = Item(
                 collection=self.collection,
                 name='item-5',
-                properties_start_datetime=utc_aware(today),
-                properties_end_datetime=utc_aware(yesterday)
+                properties_start_datetime=today,
+                properties_end_datetime=yesterday
             )
             item.full_clean()
             item.save()
@@ -102,7 +100,7 @@ class ItemsModelTestCase(TestCase):
         # a correct geometry should not pose any problems
         item = Item(
             collection=self.collection,
-            properties_datetime=utc_aware(datetime.utcnow()),
+            properties_datetime=datetime.now(UTC),
             name='item-1',
             geometry=GEOSGeometry(
                 'SRID=4326;POLYGON '
@@ -117,7 +115,7 @@ class ItemsModelTestCase(TestCase):
         with self.assertRaises(ValidationError):
             item = Item(
                 collection=self.collection,
-                properties_datetime=utc_aware(datetime.utcnow()),
+                properties_datetime=datetime.now(UTC),
                 name='item-1',
                 geometry=GEOSGeometry(
                     'SRID=4326;POLYGON '
@@ -132,7 +130,7 @@ class ItemsModelTestCase(TestCase):
         with self.assertRaises(ValidationError):
             item = Item(
                 collection=self.collection,
-                properties_datetime=utc_aware(datetime.utcnow()),
+                properties_datetime=datetime.now(UTC),
                 name='item-1',
                 geometry=GEOSGeometry(
                     'SRID=2056;POLYGON ((2500000 1100000, 2600000 1100000, 2600000 1200000, ' \
@@ -147,7 +145,7 @@ class ItemsModelTestCase(TestCase):
         with self.assertRaises(ValidationError):
             item = Item(
                 collection=self.collection,
-                properties_datetime=utc_aware(datetime.utcnow()),
+                properties_datetime=datetime.now(UTC),
                 name='item-1',
                 geometry=GEOSGeometry(
                     'SRID=4326;POLYGON '
@@ -162,7 +160,7 @@ class ItemsModelTestCase(TestCase):
         with self.assertRaises(ValidationError):
             item = Item(
                 collection=self.collection,
-                properties_datetime=utc_aware(datetime.utcnow()),
+                properties_datetime=datetime.now(UTC),
                 name='item-empty',
                 geometry=GEOSGeometry('POLYGON EMPTY')
             )
@@ -174,7 +172,7 @@ class ItemsModelTestCase(TestCase):
         with self.assertRaises(ValidationError):
             item = Item(
                 collection=self.collection,
-                properties_datetime=utc_aware(datetime.utcnow()),
+                properties_datetime=datetime.now(UTC),
                 name='item-empty',
                 geometry=None
             )
@@ -185,7 +183,7 @@ class ItemsModelTestCase(TestCase):
         # a correct geometry should not pose any problems
         item = Item(
             collection=self.collection,
-            properties_datetime=utc_aware(datetime.utcnow()),
+            properties_datetime=datetime.now(UTC),
             name='item-1',
             geometry=GEOSGeometry('SRID=4326;POINT (5.96 45.82)')
         )
@@ -197,7 +195,7 @@ class ItemsModelTestCase(TestCase):
         with self.assertRaises(ValidationError):
             item = Item(
                 collection=self.collection,
-                properties_datetime=utc_aware(datetime.utcnow()),
+                properties_datetime=datetime.now(UTC),
                 name='item-1',
                 geometry=GEOSGeometry('SRID=4326;POINT (5.96 95.82)')
             )
@@ -208,7 +206,7 @@ class ItemsModelTestCase(TestCase):
         # a correct geometry should not pose any problems
         item = Item(
             collection=self.collection,
-            properties_datetime=utc_aware(datetime.utcnow()),
+            properties_datetime=datetime.now(UTC),
             name='item-1',
             geometry=GEOSGeometry('SRID=4326;LINESTRING (5.96 45.82, 5.96 47.81)')
         )

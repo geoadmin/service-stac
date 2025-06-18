@@ -1,4 +1,5 @@
 import logging
+from datetime import UTC
 from datetime import datetime
 
 from django.contrib.auth import get_user_model
@@ -8,7 +9,6 @@ from django.urls import reverse
 from stac_api.models.collection import Collection
 from stac_api.models.collection import CollectionLink
 from stac_api.models.general import Provider
-from stac_api.utils import utc_aware
 
 from tests.tests_09.base_test import STAC_BASE_V
 from tests.tests_09.base_test import StacBaseTestCase
@@ -290,9 +290,7 @@ class CollectionsUpdateEndpointTestCase(StacBaseTestCase):
 
     def test_collections_put_read_only_in_payload(self):
         sample = self.collection_factory.create_sample(
-            name=self.collection['name'],
-            sample='collection-2',
-            created=utc_aware(datetime.utcnow())
+            name=self.collection['name'], sample='collection-2', created=datetime.now(UTC)
         )
 
         response = self.client.put(
@@ -388,7 +386,7 @@ class CollectionsUpdateEndpointTestCase(StacBaseTestCase):
 
     def test_collection_patch_read_only_in_payload(self):
         collection_name = self.collection['name']  # get a name that is registered in the service
-        payload_json = {'license': 'open-source', 'created': utc_aware(datetime.utcnow())}
+        payload_json = {'license': 'open-source', 'created': datetime.now(UTC)}
         # for the start, the collection[1] has to have a different licence than the payload
         self.assertNotEqual(self.collection['license'], payload_json['license'])
         response = self.client.patch(

@@ -3,6 +3,7 @@ import gzip
 import hashlib
 import logging
 from base64 import b64encode
+from datetime import UTC
 from datetime import datetime
 from urllib import parse
 
@@ -19,7 +20,6 @@ from stac_api.utils import fromisoformat
 from stac_api.utils import get_collection_asset_path
 from stac_api.utils import get_s3_client
 from stac_api.utils import get_sha256_multihash
-from stac_api.utils import utc_aware
 
 from tests.tests_10.base_test import StacBaseTestCase
 from tests.tests_10.base_test import StacBaseTransactionTestCase
@@ -140,7 +140,7 @@ class CollectionAssetUploadBaseTest(S3TestMixin, MockS3PerTestMixin, StacBaseTes
         return parts
 
     def check_urls_response(self, urls, number_parts):
-        now = utc_aware(datetime.utcnow())
+        now = datetime.now(UTC)
         self.assertEqual(len(urls), number_parts)
         for i, url in enumerate(urls):
             self.assertListEqual(
@@ -1140,7 +1140,7 @@ class GetCollectionAssetUploadsEndpointTestCase(CollectionAssetUploadBaseTest):
                 status=CollectionAssetUpload.Status.ABORTED,
                 checksum_multihash=get_sha256_multihash(b'upload-%d' % i),
                 number_parts=2,
-                ended=utc_aware(datetime.utcnow()),
+                ended=datetime.now(UTC),
                 md5_parts=[]
             )
         for i in range(4, 8):
@@ -1150,7 +1150,7 @@ class GetCollectionAssetUploadsEndpointTestCase(CollectionAssetUploadBaseTest):
                 status=CollectionAssetUpload.Status.COMPLETED,
                 checksum_multihash=get_sha256_multihash(b'upload-%d' % i),
                 number_parts=2,
-                ended=utc_aware(datetime.utcnow()),
+                ended=datetime.now(UTC),
                 md5_parts=[]
             )
         CollectionAssetUpload.objects.create(
@@ -1218,7 +1218,7 @@ class GetCollectionAssetUploadsEndpointTestCase(CollectionAssetUploadBaseTest):
             status=CollectionAssetUpload.Status.COMPLETED,
             checksum_multihash=get_sha256_multihash(b'upload-content-encoding'),
             number_parts=2,
-            ended=utc_aware(datetime.utcnow()),
+            ended=datetime.now(UTC),
             md5_parts=[],
             content_encoding='gzip'
         )
