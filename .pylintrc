@@ -68,6 +68,7 @@ disable=missing-docstring,
     unused-variable,
     pointless-string-statement,
     too-many-arguments,
+    too-many-positional-arguments,
     too-few-public-methods,
     useless-object-inheritance,
     similarities        # currently similarities has a bug when running pylint with jobs>=2
