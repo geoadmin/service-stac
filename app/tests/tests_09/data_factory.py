@@ -275,8 +275,7 @@ class SampleData:
         self._check_get_json_method(method)
         return {
             self.key_mapped(key): value
-            for key,
-            value in self.get_attributes(remove_relations=False).items()
+            for key, value in self.get_attributes(remove_relations=False).items()
             if keep_read_only or self._filter_read_only_field(method, self.key_mapped(key))
         }
 
@@ -617,8 +616,7 @@ class ItemSample(SampleData):
         '''
         json_data = {
             key: value
-            for key,
-            value in super().get_json(method, keep_read_only).items()
+            for key, value in super().get_json(method, keep_read_only).items()
             if not key.startswith('properties_')
         }
         if method in ['get', 'serialize']:
@@ -861,8 +859,8 @@ class FactoryBase:
             samples = map(lambda i: None, range(samples))
         for i, sample_name in enumerate(samples):
             sample_kwargs = {
-                key: value[i] if isinstance(value, list) and kwargs_list else value for key,
-                value in kwargs.items()
+                key: value[i] if isinstance(value, list) and kwargs_list else value
+                for key, value in kwargs.items()
             }
             if sample_name:
                 sample_kwargs['sample'] = sample_name
