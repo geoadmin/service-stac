@@ -86,6 +86,7 @@ help:
 	@echo "- django-checks            Run the django checks"
 	@echo "- django-check-migrations  Check that no django migration file is missing"
 	@echo "- test                     Run the tests"
+	@echo "- test-coverage            Run the tests and create a coverage report"
 	@echo "- test-conformance         Run stac-api-validator, needs a valid collection name, e.g. collection=ch.are.agglomerationsverkehr"
 	@echo -e " \033[1mSPEC TARGETS\033[0m "
 	@echo "- lint-specs               Lint the openapi specs  (openapi.yaml and openapitransactional.yaml)"
@@ -222,12 +223,6 @@ test-coverage:
 	# Collect static first to avoid warning in the test
 	$(PYTHON) $(DJANGO_MANAGER) collectstatic --noinput
 	$(PYTEST) -n 20 --cov --cov-report=html
-
-.PHONY: test-ci
-test-ci:
-	# Collect static first to avoid warning in the test
-	$(PYTHON) $(DJANGO_MANAGER) collectstatic --noinput
-	$(PYTEST) -n 20 --cov --cov-report=xml
 
 ###################
 # Specs
