@@ -1,6 +1,6 @@
 #!/bin/bash
 # This script updates the Pipfile automatically. It will update all version strings of type
-# "~=x.x.x" to their respective latest version. Version strings of dependencies that use other
+# "~=x.x" to their respective latest version. Version strings of dependencies that use other
 # version specifiers (like "*") will be left untouched. All dependencies will be updated
 # (with "pipenv update") in the process.
 # A regex can be optionally specified as first argument. In this case, only the version strings
@@ -16,7 +16,7 @@ line_regexp="^($regexp) = \"~=[0-9\\.]+\"(.*)$"
 #Generate an array of all packages that need to be updated and switch their version to "*"
 packages_to_modify=( $(cat Pipfile | sed -En "s/$line_regexp/\1/ip") )
 echo "The script will try to update the following packages: ${packages_to_modify[*]}"
-read -p "Do you want to contnue? [Y|N] " -n 1 -r
+read -p "Do you want to continue? [Y|N] " -n 1 -r
 echo
 [[ ! $REPLY =~ ^[Yy]$ ]] && exit
 sed -Ei "s/$line_regexp/\1 = \"*\"\2/i" Pipfile
@@ -31,5 +31,5 @@ while read -r name version ; do
         updateVersions+="/^$name =/s/\"\\*\"/$version/"
         updateVersions+=$'\n'
     fi
-done < <(pipenv run pip freeze | sed -E 's/==([0-9\.]+\w*)/ "~=\1"/')
+done < <(pipenv run pip freeze | sed -E 's/==([0-9]+)\.([0-9]+)\.[0-9]+\w*/ "~=\1.\2"/')
 sed -Ei -f <(echo "$updateVersions") Pipfile
