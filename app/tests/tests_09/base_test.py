@@ -129,7 +129,7 @@ class StacTestMixin:
 
     def assertCors(self, response):  # pylint: disable=invalid-name
         for header, value in {
-            'Access-Control-Allow-Headers': 'Content-Type,Accept',
+            'Access-Control-Allow-Headers': 'Content-Type,Accept,Accept-Language',
             'Access-Control-Allow-Methods': 'GET,HEAD',
             'Access-Control-Allow-Origin': '*'
         }.items():

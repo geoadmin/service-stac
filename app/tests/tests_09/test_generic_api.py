@@ -684,7 +684,7 @@ class ApiCORSHeaderTestCase(MockS3PerTestMixin, StacBaseTestCase):
 
                 self.assertEqual(
                     response['Access-Control-Allow-Headers'],
-                    'Content-Type,Accept',
+                    'Content-Type,Accept,Accept-Language',
                     msg='Wrong CORS allow-Headers value'
                 )
 
@@ -719,6 +719,6 @@ class ApiCORSHeaderTestCase(MockS3PerTestMixin, StacBaseTestCase):
 
         self.assertEqual(
             response['Access-Control-Allow-Headers'],
-            'Content-Type,Accept',
+            'Content-Type,Accept,Accept-Language',
             msg='Wrong CORS allow-Headers value'
         )
