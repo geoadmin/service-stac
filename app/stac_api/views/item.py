@@ -1,4 +1,5 @@
 import logging
+from datetime import UTC
 from datetime import datetime
 
 from django.conf import settings
@@ -22,7 +23,6 @@ from stac_api.serializers.item import ItemListSerializer
 from stac_api.serializers.item import ItemSerializer
 from stac_api.serializers.utils import get_relation_links
 from stac_api.utils import get_asset_path
-from stac_api.utils import utc_aware
 from stac_api.validators_view import validate_collection
 from stac_api.validators_view import validate_item
 from stac_api.validators_view import validate_renaming
@@ -130,7 +130,7 @@ class ItemsList(generics.GenericAPIView):
 
         data = {
             'type': 'FeatureCollection',
-            'timeStamp': utc_aware(datetime.utcnow()),
+            'timeStamp': datetime.now(UTC),
             'features': serializer.data,
             'links': get_relation_links(request, self.name, [self.kwargs['collection_name']])
         }

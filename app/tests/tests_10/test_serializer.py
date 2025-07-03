@@ -4,6 +4,7 @@ import logging
 import unittest
 import zoneinfo
 from collections import OrderedDict
+from datetime import UTC
 from datetime import datetime
 from datetime import timedelta
 from datetime import timezone
@@ -26,7 +27,6 @@ from stac_api.serializers.item import ItemsPropertiesSerializer
 from stac_api.utils import get_asset_path
 from stac_api.utils import get_link
 from stac_api.utils import isoformat
-from stac_api.utils import utc_aware
 
 from tests.tests_10.base_test import STAC_BASE_V
 from tests.tests_10.base_test import STAC_VERSION
@@ -54,7 +54,7 @@ class CollectionSerializationTestCase(MockS3PerTestMixin, StacBaseTransactionTes
     def setUp(self):
         super().setUp()
         self.data_factory = Factory()
-        self.collection_created_after = utc_aware(datetime.now())
+        self.collection_created_after = datetime.now(UTC)
         self.collection = self.data_factory.create_collection_sample(db_create=True)
         self.item = self.data_factory.create_item_sample(
             collection=self.collection.model, db_create=True
@@ -149,7 +149,7 @@ class EmptyCollectionSerializationTestCase(StacBaseTransactionTestCase):
 
     def setUp(self):
         self.data_factory = Factory()
-        self.collection_created_after = utc_aware(datetime.now())
+        self.collection_created_after = datetime.now(UTC)
         self.collection = self.data_factory.create_collection_sample(db_create=True)
         self.maxDiff = None  # pylint: disable=invalid-name
 
@@ -517,7 +517,7 @@ class ItemDeserializationTestCase(StacBaseTestCase):
             collection=self.collection.model,
             sample='item-2',
             name=original_sample["name"],
-            properties={"datetime": isoformat(utc_aware(datetime.utcnow()))}
+            properties={"datetime": isoformat(datetime.now(UTC))}
         )
         serializer = ItemSerializer(original_sample.model, data=sample.get_json('deserialize'))
         serializer.is_valid(raise_exception=True)
@@ -558,14 +558,13 @@ class ItemDeserializationTestCase(StacBaseTestCase):
             serializer.is_valid(raise_exception=True)
 
     def test_item_deserialization_end_date_before_start_date(self):
-        today = datetime.utcnow()
+        today = datetime.now(UTC)
         yesterday = today - timedelta(days=1)
         sample = self.data_factory.create_item_sample(
             collection=self.collection.model,
             sample='item-1',
             properties={
-                'start_datetime': isoformat(utc_aware(today)),
-                "end_datetime": isoformat(utc_aware(yesterday))
+                'start_datetime': isoformat(today), "end_datetime": isoformat(yesterday)
             }
         )
 

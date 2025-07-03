@@ -33,6 +33,6 @@ class CORSHeadersMiddleware:
         if request.path in (f'/{STAC_BASE}/v0.9/search', f'/{STAC_BASE}/v1/search'):
             allow_methods.append('POST')
         response['Access-Control-Allow-Methods'] = ','.join(allow_methods)
-        response['Access-Control-Allow-Headers'] = 'Content-Type,Accept'
+        response['Access-Control-Allow-Headers'] = 'Content-Type,Accept,Accept-Language'
 
         return response

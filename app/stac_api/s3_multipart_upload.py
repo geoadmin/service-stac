@@ -1,5 +1,6 @@
 import logging
 import time
+from datetime import UTC
 from datetime import datetime
 from datetime import timedelta
 
@@ -19,7 +20,6 @@ from stac_api.utils import get_s3_cache_control_value
 from stac_api.utils import get_s3_client
 from stac_api.utils import isoformat
 from stac_api.utils import parse_multihash
-from stac_api.utils import utc_aware
 
 logger = logging.getLogger(__name__)
 
@@ -149,9 +149,7 @@ class MultipartUpload:
         Returns: dict(string, int, datetime)
             Dict {'url': string, 'part': int, 'expires': datetime}
         '''
-        expires = utc_aware(
-            datetime.utcnow() + timedelta(seconds=settings.AWS_PRESIGNED_URL_EXPIRES)
-        )
+        expires = datetime.now(UTC) + timedelta(seconds=settings.AWS_PRESIGNED_URL_EXPIRES)
         params = {
             'Bucket': self.settings['S3_BUCKET_NAME'],
             'Key': key,

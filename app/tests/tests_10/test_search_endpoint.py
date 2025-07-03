@@ -1,5 +1,6 @@
 import json
 import logging
+from datetime import UTC
 from datetime import datetime
 from datetime import timedelta
 from unittest.mock import patch
@@ -12,7 +13,6 @@ from django.utils import timezone
 from stac_api.utils import fromisoformat
 from stac_api.utils import get_link
 from stac_api.utils import isoformat
-from stac_api.utils import utc_aware
 
 from tests.tests_10.base_test import STAC_BASE_V
 from tests.tests_10.base_test import StacBaseTestCase
@@ -189,7 +189,7 @@ class SearchEndpointTestCaseOne(StacBaseTestCase):
             cls.collection,
             db_create=True,
         )
-        cls.now = utc_aware(datetime.utcnow())
+        cls.now = datetime.now(UTC)
         cls.yesterday = cls.now - timedelta(days=1)
 
     def setUp(self):  # pylint: disable=invalid-name
@@ -405,7 +405,7 @@ class SearchEndpointTestCaseTwo(StacBaseTestCase):
             cls.collection,
             db_create=True,
         )
-        cls.now = utc_aware(datetime.utcnow())
+        cls.now = datetime.now(UTC)
         cls.yesterday = cls.now - timedelta(days=1)
 
     def setUp(self):  # pylint: disable=invalid-name
@@ -574,16 +574,14 @@ class SearchEndpointCacheSettingTestCase(MockS3PerClassMixin, StacBaseTestCase):
                 cls.factory.create_item_samples,
                 [10] * len(cls.collections),
                 map(lambda c: c.model, cls.collections),
-                [True] * len(cls.collections),
-            ) for item in items
+                [True] * len(cls.collections),) for item in items
         ]
         cls.assets = [
             asset for assets in map(
                 cls.factory.create_asset_samples,
                 [3] * len(cls.items),
                 map(lambda i: i.model, cls.items),
-                [True] * len(cls.items),
-            ) for asset in assets
+                [True] * len(cls.items),) for asset in assets
         ]
 
     def test_get_search_dft_cache_setting(self):
@@ -640,7 +638,7 @@ class SearchEndpointTestForecast(StacBaseTestCase):
         cls.factory.create_item_sample(
             cls.collection, 'item-forecast-5', 'item-forecast-5', db_create=True
         )
-        cls.now = utc_aware(datetime.utcnow())
+        cls.now = datetime.now(UTC)
         cls.yesterday = cls.now - timedelta(days=1)
 
     def setUp(self):  # pylint: disable=invalid-name

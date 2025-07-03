@@ -1,5 +1,6 @@
 import json
 import logging
+from datetime import UTC
 from datetime import datetime
 
 from django.conf import settings
@@ -24,7 +25,6 @@ from stac_api.serializers.utils import get_relation_links
 from stac_api.utils import call_calculate_extent
 from stac_api.utils import harmonize_post_get_for_search
 from stac_api.utils import is_api_version_1
-from stac_api.utils import utc_aware
 from stac_api.validators_serializer import ValidateSearchRequest
 from stac_api.views.filters import create_is_active_filter
 from stac_api.views.mixins import patch_collections_aggregate_cache_control_header
@@ -135,7 +135,7 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
 
         data = {
             'type': 'FeatureCollection',
-            'timeStamp': utc_aware(datetime.utcnow()),
+            'timeStamp': datetime.now(UTC),
             'features': serializer.data,
             'links': get_relation_links(request, self.name)
         }

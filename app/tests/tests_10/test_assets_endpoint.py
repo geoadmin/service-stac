@@ -1,6 +1,7 @@
 # pylint: disable=too-many-lines
 import logging
 from base64 import b64encode
+from datetime import UTC
 from datetime import datetime
 from datetime import timedelta
 from json import dumps
@@ -18,7 +19,6 @@ from rest_framework.authtoken.models import Token
 
 from stac_api.models.item import Asset
 from stac_api.utils import get_asset_path
-from stac_api.utils import utc_aware
 
 from tests.tests_10.base_test import STAC_BASE_V
 from tests.tests_10.base_test import StacBaseTestCase
@@ -600,7 +600,7 @@ class AssetsUpdateEndpointTestCase(MockS3PerTestMixin, StacBaseTestCase):
             name=asset_name,
             sample='asset-1-updated',
             media_type=self.asset['media_type'],
-            created=utc_aware(datetime.utcnow()),
+            created=datetime.now(UTC),
             create_asset_file=False,
             checksum_multihash=self.asset['checksum_multihash'],
         )
@@ -809,7 +809,7 @@ class AssetsUpdateEndpointTestCase(MockS3PerTestMixin, StacBaseTestCase):
             name=asset_name,
             sample='asset-1-updated',
             media_type=self.asset['media_type'],
-            created=utc_aware(datetime.utcnow())
+            created=datetime.now(UTC)
         )
 
         path = f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'

@@ -1,5 +1,6 @@
 # pylint: disable=too-many-lines
 import logging
+from datetime import UTC
 from datetime import datetime
 from datetime import timedelta
 
@@ -11,7 +12,6 @@ from stac_api.models.item import Item
 from stac_api.utils import fromisoformat
 from stac_api.utils import get_link
 from stac_api.utils import isoformat
-from stac_api.utils import utc_aware
 
 from tests.tests_09.base_test import STAC_BASE_V
 from tests.tests_09.base_test import StacBaseTestCase
@@ -166,7 +166,7 @@ class ItemsDatetimeQueryEndpointTestCase(StacBaseTestCase):
             db_create=True,
         )
 
-        cls.now = utc_aware(datetime.utcnow())
+        cls.now = datetime.now(UTC)
         cls.yesterday = cls.now - timedelta(days=1)
 
         cls.item_now = cls.factory.create_item_sample(
@@ -282,7 +282,7 @@ class ItemsDatetimeQueryPaginationEndpointTestCase(StacBaseTestCase):
             db_create=True,
         )
 
-        cls.now = utc_aware(datetime.utcnow())
+        cls.now = datetime.now(UTC)
         cls.yesterday = cls.now - timedelta(days=1)
 
         cls.items_now = cls.factory.create_item_samples(
@@ -829,7 +829,7 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
         self.assertStatusCode(400, response)
 
     def test_item_endpoint_patch_read_only_in_payload(self):
-        data = {"created": utc_aware(datetime.utcnow())}
+        data = {"created": datetime.now(UTC)}
         path = f'/{STAC_BASE_V}/collections/{self.collection["name"]}/items/{self.item["name"]}'
         response = self.client.patch(path, data=data, content_type="application/json")
         self.assertStatusCode(400, response)

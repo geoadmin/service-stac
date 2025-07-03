@@ -45,6 +45,7 @@ PYTHON := $(PIPENV_RUN) python3
 YAPF := $(PIPENV_RUN) yapf
 ISORT := $(PIPENV_RUN) isort
 PYLINT := $(PIPENV_RUN) pylint
+PYTEST := DEBUG=True PYTHONPATH=app DJANGO_SETTINGS_MODULE=config.settings_test  $(PIPENV_RUN) pytest
 
 # Set summon only if not already set, this allow to disable summon on environment
 # that don't use it like for CodeBuild env
@@ -85,6 +86,7 @@ help:
 	@echo "- django-checks            Run the django checks"
 	@echo "- django-check-migrations  Check that no django migration file is missing"
 	@echo "- test                     Run the tests"
+	@echo "- test-coverage            Run the tests and create a coverage report"
 	@echo "- test-conformance         Run stac-api-validator, needs a valid collection name, e.g. collection=ch.are.agglomerationsverkehr"
 	@echo -e " \033[1mSPEC TARGETS\033[0m "
 	@echo "- lint-specs               Lint the openapi specs  (openapi.yaml and openapitransactional.yaml)"
@@ -215,6 +217,12 @@ test-conformance:
 	--conformance features \
 	--geometry '{"type": "Polygon", "coordinates": [[[0, 0], [90, 0], [90, 90], [0, 90], [0, 0]]]}' \
     --collection $(collection)
+
+.PHONY: test-coverage
+test-coverage:
+	# Collect static first to avoid warning in the test
+	$(PYTHON) $(DJANGO_MANAGER) collectstatic --noinput
+	$(PYTEST) -n 20 --cov --cov-report=html
 
 ###################
 # Specs

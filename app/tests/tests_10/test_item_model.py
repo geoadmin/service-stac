@@ -1,4 +1,5 @@
 import logging
+from datetime import UTC
 from datetime import datetime
 from datetime import timedelta
 from datetime import timezone
@@ -9,7 +10,6 @@ from django.test import TestCase
 
 from stac_api.models.collection import Collection
 from stac_api.models.item import Item
-from stac_api.utils import utc_aware
 
 from tests.tests_10.data_factory import CollectionFactory
 
@@ -28,9 +28,7 @@ class ItemsModelTestCase(TestCase):
 
     def test_item_create_model(self):
         item = Item(
-            collection=self.collection,
-            name='item-1',
-            properties_datetime=utc_aware(datetime.utcnow())
+            collection=self.collection, name='item-1', properties_datetime=datetime.now(UTC)
         )
         item.full_clean()
         item.save()
@@ -46,7 +44,7 @@ class ItemsModelTestCase(TestCase):
             item = Item(
                 collection=self.collection,
                 name='item-2',
-                properties_start_datetime=utc_aware(datetime.utcnow())
+                properties_start_datetime=datetime.now(UTC)
             )
             item.full_clean()
             item.save()
@@ -55,16 +53,14 @@ class ItemsModelTestCase(TestCase):
             item = Item(
                 collection=self.collection,
                 name='item-3',
-                properties_end_datetime=utc_aware(datetime.utcnow())
+                properties_end_datetime=datetime.now(UTC)
             )
             item.full_clean()
             item.save()
 
         with self.assertRaises(ValidationError, msg="only expires is invalid"):
             item = Item(
-                collection=self.collection,
-                name='item-3',
-                properties_expires=utc_aware(datetime.utcnow())
+                collection=self.collection, name='item-3', properties_expires=datetime.now(UTC)
             )
             item.full_clean()
             item.save()
@@ -73,9 +69,9 @@ class ItemsModelTestCase(TestCase):
             item = Item(
                 collection=self.collection,
                 name='item-4',
-                properties_datetime=utc_aware(datetime.utcnow()),
-                properties_start_datetime=utc_aware(datetime.utcnow()),
-                properties_end_datetime=utc_aware(datetime.utcnow())
+                properties_datetime=datetime.now(UTC),
+                properties_start_datetime=datetime.now(UTC),
+                properties_end_datetime=datetime.now(UTC)
             )
             item.full_clean()
             item.save()
@@ -102,46 +98,46 @@ class ItemsModelTestCase(TestCase):
 
     def test_item_create_model_raises_exception_if_end_datetime_before_start_datetime(self):
         with self.assertRaises(ValidationError):
-            today = datetime.utcnow()
+            today = datetime.now(UTC)
             yesterday = today - timedelta(days=1)
             item = Item(
                 collection=self.collection,
                 name='item-5',
-                properties_start_datetime=utc_aware(today),
-                properties_end_datetime=utc_aware(yesterday)
+                properties_start_datetime=today,
+                properties_end_datetime=yesterday
             )
             item.full_clean()
             item.save()
 
     def test_item_create_model_raises_exception_if_expires_in_the_past(self):
         with self.assertRaises(ValidationError):
-            yesterday = datetime.now(timezone.utc) - timedelta(days=1)
+            yesterday = datetime.now(UTC) - timedelta(days=1)
             item = Item(collection=self.collection, name='item-5', properties_expires=yesterday)
             item.full_clean()
             item.save()
 
     def test_item_create_model_expires_can_be_before_datetime(self):
-        today = datetime.utcnow() + timedelta(milliseconds=100)
+        today = datetime.now(UTC) + timedelta(milliseconds=100)
         tomorrow = today + timedelta(days=1)
         item = Item(
             collection=self.collection,
             name='item-expires-before-datetime',
-            properties_datetime=utc_aware(tomorrow),
-            properties_expires=utc_aware(today)
+            properties_datetime=tomorrow,
+            properties_expires=today
         )
         item.full_clean()
         item.save()
 
     def test_item_create_model_expires_can_be_before_end_datetime(self):
-        today = datetime.utcnow()
+        today = datetime.now(UTC)
         middle = today + timedelta(days=0.5)
         tomorrow = today + timedelta(days=1)
         item = Item(
             collection=self.collection,
             name='item-expires-before-end-datetime',
-            properties_start_datetime=utc_aware(today),
-            properties_end_datetime=utc_aware(tomorrow),
-            properties_expires=utc_aware(middle)
+            properties_start_datetime=today,
+            properties_end_datetime=tomorrow,
+            properties_expires=middle
         )
         item.full_clean()
         item.save()
@@ -150,7 +146,7 @@ class ItemsModelTestCase(TestCase):
         # a correct geometry should not pose any problems
         item = Item(
             collection=self.collection,
-            properties_datetime=utc_aware(datetime.utcnow()),
+            properties_datetime=datetime.now(UTC),
             name='item-1',
             geometry=GEOSGeometry(
                 'SRID=4326;POLYGON '
@@ -165,7 +161,7 @@ class ItemsModelTestCase(TestCase):
         with self.assertRaises(ValidationError):
             item = Item(
                 collection=self.collection,
-                properties_datetime=utc_aware(datetime.utcnow()),
+                properties_datetime=datetime.now(UTC),
                 name='item-1',
                 geometry=GEOSGeometry(
                     'SRID=4326;POLYGON '
@@ -180,7 +176,7 @@ class ItemsModelTestCase(TestCase):
         with self.assertRaises(ValidationError):
             item = Item(
                 collection=self.collection,
-                properties_datetime=utc_aware(datetime.utcnow()),
+                properties_datetime=datetime.now(UTC),
                 name='item-1',
                 geometry=GEOSGeometry(
                     'SRID=2056;POLYGON ((2500000 1100000, 2600000 1100000, 2600000 1200000, ' \
@@ -195,7 +191,7 @@ class ItemsModelTestCase(TestCase):
         with self.assertRaises(ValidationError):
             item = Item(
                 collection=self.collection,
-                properties_datetime=utc_aware(datetime.utcnow()),
+                properties_datetime=datetime.now(UTC),
                 name='item-1',
                 geometry=GEOSGeometry(
                     'SRID=4326;POLYGON '
@@ -210,7 +206,7 @@ class ItemsModelTestCase(TestCase):
         with self.assertRaises(ValidationError):
             item = Item(
                 collection=self.collection,
-                properties_datetime=utc_aware(datetime.utcnow()),
+                properties_datetime=datetime.now(UTC),
                 name='item-empty',
                 geometry=GEOSGeometry('POLYGON EMPTY')
             )
@@ -222,7 +218,7 @@ class ItemsModelTestCase(TestCase):
         with self.assertRaises(ValidationError):
             item = Item(
                 collection=self.collection,
-                properties_datetime=utc_aware(datetime.utcnow()),
+                properties_datetime=datetime.now(UTC),
                 name='item-empty',
                 geometry=None
             )
@@ -233,7 +229,7 @@ class ItemsModelTestCase(TestCase):
         # a correct geometry should not pose any problems
         item = Item(
             collection=self.collection,
-            properties_datetime=utc_aware(datetime.utcnow()),
+            properties_datetime=datetime.now(UTC),
             name='item-1',
             geometry=GEOSGeometry('SRID=4326;POINT (5.96 45.82)')
         )
@@ -245,7 +241,7 @@ class ItemsModelTestCase(TestCase):
         with self.assertRaises(ValidationError):
             item = Item(
                 collection=self.collection,
-                properties_datetime=utc_aware(datetime.utcnow()),
+                properties_datetime=datetime.now(UTC),
                 name='item-1',
                 geometry=GEOSGeometry('SRID=4326;POINT (5.96 95.82)')
             )
@@ -256,7 +252,7 @@ class ItemsModelTestCase(TestCase):
         # a correct geometry should not pose any problems
         item = Item(
             collection=self.collection,
-            properties_datetime=utc_aware(datetime.utcnow()),
+            properties_datetime=datetime.now(UTC),
             name='item-1',
             geometry=GEOSGeometry('SRID=4326;LINESTRING (5.96 45.82, 5.96 47.81)')
         )
@@ -268,7 +264,7 @@ class ItemsModelTestCase(TestCase):
     ):
         item = Item(
             collection=self.collection,
-            properties_datetime=utc_aware(datetime.utcnow()),
+            properties_datetime=datetime.now(UTC),
             name='item-1',
             forecast_reference_datetime="2024-11-06T12:34:56Z",
         )
@@ -285,7 +281,7 @@ class ItemsModelTestCase(TestCase):
         with self.assertRaises(ValidationError):
             item = Item(
                 collection=self.collection,
-                properties_datetime=utc_aware(datetime.utcnow()),
+                properties_datetime=datetime.now(UTC),
                 name='item-1',
                 forecast_reference_datetime="06-11-2024T12:34:56Z",
             )
@@ -294,7 +290,7 @@ class ItemsModelTestCase(TestCase):
     def test_item_create_model_sets_forecast_horizon_as_expected(self):
         item = Item(
             collection=self.collection,
-            properties_datetime=utc_aware(datetime.utcnow()),
+            properties_datetime=datetime.now(UTC),
             name='item-1',
             forecast_horizon=timedelta(days=1, hours=2),
         )
@@ -305,7 +301,7 @@ class ItemsModelTestCase(TestCase):
     def test_item_create_model_sets_forecast_duration_as_expected(self):
         item = Item(
             collection=self.collection,
-            properties_datetime=utc_aware(datetime.utcnow()),
+            properties_datetime=datetime.now(UTC),
             name='item-1',
             forecast_duration=timedelta(days=1, hours=2),
         )
@@ -316,7 +312,7 @@ class ItemsModelTestCase(TestCase):
     def test_item_create_model_sets_forecast_variable_as_expected(self):
         item = Item(
             collection=self.collection,
-            properties_datetime=utc_aware(datetime.utcnow()),
+            properties_datetime=datetime.now(UTC),
             name='item-1',
             forecast_variable="air_temperature",
         )
@@ -327,7 +323,7 @@ class ItemsModelTestCase(TestCase):
     def test_item_create_model_sets_forecast_perturbed_as_expected_if_mode_known(self):
         item = Item(
             collection=self.collection,
-            properties_datetime=utc_aware(datetime.utcnow()),
+            properties_datetime=datetime.now(UTC),
             name='item-1',
             forecast_perturbed=True,
         )
@@ -337,9 +333,7 @@ class ItemsModelTestCase(TestCase):
 
     def test_item_create_model_sets_forecast_perturbed_to_none_if_undefined(self):
         item = Item(
-            collection=self.collection,
-            properties_datetime=utc_aware(datetime.utcnow()),
-            name='item-1'
+            collection=self.collection, properties_datetime=datetime.now(UTC), name='item-1'
         )
         item.full_clean()
         item.save()

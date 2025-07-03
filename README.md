@@ -42,7 +42,7 @@
     - [**Asset Storage settings (AWS S3)**](#asset-storage-settings-aws-s3)
     - [**Development settings (only for local environment and DEV staging)**](#development-settings-only-for-local-environment-and-dev-staging)
 - [Utility scripts](#utility-scripts)
-- ["update\_to\_latest.sh" script](#update_to_latestsh-script)
+- [Updating Packages](#updating-packages)
 
 ## Summary of the project
 
@@ -60,7 +60,7 @@ Prerequisites on host for development and build:
 
 - python version 3.12
 - libgdal-dev
-- [pipenv](https://pipenv-fork.readthedocs.io/en/latest/install.html)
+- [pipenv](https://pipenv.pypa.io/en/latest/)
 - `docker` and `docker compose`
 
 #### Python3.12
@@ -75,15 +75,13 @@ sudo apt-get install python3.12
 
 #### pipenv
 
-Generally, all modern distributions have already a [pipenv](https://pipenv-fork.readthedocs.io) package.
+Generally, all modern distributions have already a [pipenv](https://pipenv.pypa.io/en/latest/) package.
 However, the version may be dated, which could result in problems during the installation. In this case,
 uninstall the version from apt and install it manually like this:
 
 ```bash
 pip install --user pipenv
 ```
-
-At the time of writing, version `2022.11.30`, should be working fine.
 
 The other services that are used (Postgres with PostGIS extension for metadata and [MinIO](https://www.min.io) as local S3 replacement) are wrapped in a docker compose.
 
@@ -245,7 +243,7 @@ Alternatively you can use `make` to run the tests which will run all tests in pa
 make test
 ```
 
-or use the container environment like on the CI.
+Or use the container environment like on the CI.
 
 ```bash
 docker compose -f docker-compose-ci.yml up --build --abort-on-container-exit
@@ -253,6 +251,18 @@ docker compose -f docker-compose-ci.yml up --build --abort-on-container-exit
 
 **NOTE:** the `--build` option is important otherwise the container will not be rebuild and you don't have the latest modification
 of the code.
+
+Or use pytest. Either directly in Visual Studio Code via the `ms-python.python` extension or with the CLI:
+
+```
+pytest -k test_pgtrigger_file_size
+```
+
+Or generate a coverage report:
+
+```
+make test-coverage
+```
 
 #### Unit test logging
 
@@ -543,8 +553,31 @@ These settings are read from `settings_dev.py`
 The folder `scripts` contains several utility scripts that can be used for setting up local DBs,
 filling it with random data and the like and also for uploading files via the API.
 
-## "update_to_latest.sh" script
+## Updating Packages
 
-In the main directory, there is a script named "update_to_latest.sh" which can be used to
-automatically update the version strings of the dependencies in the Pipfile. See the comment at
-the top of the script to learn how to use it.
+All packages used in production are pinned to a major version. Automatically updating these packages
+will use the latest minor (or patch) version available. Packages used for development, on the other
+hand, are not pinned unless they need to be used with a specific version of a production package
+(for example, boto3-stubs for boto3).
+
+To update the packages to the latest minor/compatible versions, run:
+
+```bash
+pipenv update --dev
+```
+
+To see what major/incompatible releases would be available, run:
+
+```bash
+pipenv update --dev --outdated
+```
+
+To update packages to a new major release, run:
+
+```bash
+pipenv install logging-utilities~=5.0
+```
+
+Or you can also use the script named "update_to_latest.sh" to automatically update the version
+strings of the dependencies in the Pipfile. See the comment at the top of the script to learn how
+to use it.

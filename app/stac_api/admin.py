@@ -69,6 +69,13 @@ class ProviderInline(admin.TabularInline):
         },
     }
 
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        # Set default scheme of URLs to https to resolve deprecation warning, can be removed with
+        # django 6+
+        if isinstance(db_field, models.URLField):
+            kwargs['assume_scheme'] = 'https'
+        return super().formfield_for_dbfield(db_field, request, **kwargs)
+
 
 class LinkInline(admin.TabularInline):
 
@@ -78,6 +85,10 @@ class LinkInline(admin.TabularInline):
         if db_field.attname == 'hreflang':
             attrs = {'size': 10}
             kwargs['widget'] = forms.TextInput(attrs=attrs)
+        # Set default scheme of URLs to https to resolve deprecation warning, can be removed with
+        # django 6+
+        if isinstance(db_field, models.URLField):
+            kwargs['assume_scheme'] = 'https'
         return super().formfield_for_dbfield(db_field, request, **kwargs)
 
 
