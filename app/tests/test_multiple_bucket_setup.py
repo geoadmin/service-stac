@@ -163,7 +163,7 @@ class TestBucketSelector(TestCase):
     ])
     def test_bucket_selection(self, collection_name, expected_bucket):
         """Test if the pattern selection works"""
-        patterns = [r'ch\.meteoschweiz\.ogd-.*', r'ch\.swisstopo\.bgdi.*', r'ch\.are\..*']
+        patterns = ['ch.meteoschweiz.ogd-', 'ch.swisstopo.bgdi', 'ch.are.']
         with self.settings(MANAGED_BUCKET_COLLECTION_PATTERNS=patterns):
             bucket_name = select_s3_bucket(collection_name)
 

@@ -3,7 +3,6 @@ import inspect
 import json
 import logging
 import os
-import re
 from base64 import b64decode
 from datetime import datetime
 from datetime import timezone
@@ -571,8 +570,7 @@ def select_s3_bucket(collection_name) -> AVAILABLE_S3_BUCKETS:
     patterns = settings.MANAGED_BUCKET_COLLECTION_PATTERNS
 
     for pattern in patterns:
-        match = re.fullmatch(pattern, collection_name)
-        if match is not None:
+        if collection_name.startswith(pattern):
             return AVAILABLE_S3_BUCKETS.managed
 
     return AVAILABLE_S3_BUCKETS.legacy
