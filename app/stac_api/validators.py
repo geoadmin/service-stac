@@ -104,7 +104,8 @@ MEDIA_TYPES = [
     MediaType('image/jpeg', 'JPEG', ['.jpeg', '.jpg']),
     MediaType('image/png', 'PNG', ['.png']),
     MediaType('application/vnd.sqlite3', 'sqlite', ['.sqlite']),
-    MediaType('application/grib', 'GRIB/GRIB2', ['.grib', '.grib2'])
+    MediaType('application/grib', 'GRIB/GRIB2', ['.grib', '.grib2']),
+    MediaType('application/x-hdf5', 'HDF5', ['.h5'])
 ]
 
 MT_VAR = "[0-9A-Za-z!#$%&'*+.^_`|~-]+"
