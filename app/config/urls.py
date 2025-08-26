@@ -24,7 +24,6 @@ STAC_BASE = settings.STAC_BASE
 
 def checker(request):
     data = {"success": True, "message": "OK"}
-
     return JsonResponse(data)
 
 
