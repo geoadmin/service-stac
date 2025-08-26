@@ -29,7 +29,6 @@ def checker(request):
         time.sleep(settings.CHECKER_DELAY)
 
     data = {"success": True, "message": "OK"}
-
     return JsonResponse(data)
 
 
