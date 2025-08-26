@@ -544,6 +544,7 @@ These settings are read from `settings_dev.py`
 
 | Env         | Default               | Description                            |
 |-------------|-----------------------|----------------------------------------|
+| CHECKER_DELAY | `0`                 | Delay the response of the checker endpoint by that number of seconds. |
 | DEBUG | `False` | Set django DEBUG flag |
 | DEBUG_PROPAGATE_API_EXCEPTIONS | `False` | When `True` the API exception are treated as in production, using a JSON response. Otherwise in DEBUG mode the API exception returns an HTML response with backtrace. |
 | EXTERNAL_TEST_ASSET_URL | `"https://prod-[...].jpg"`  | The URL of an externally hosted jpg file that's used in the external asset tests |
