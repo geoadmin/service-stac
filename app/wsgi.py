@@ -100,6 +100,7 @@ if __name__ == '__main__':
         'worker_tmp_dir': os.environ.get('GUNICORN_WORKER_TMP_DIR', None),
         'timeout': 60,
         'graceful_timeout': int(os.environ.get('GUNICORN_GRACEFUL_TIMEOUT', 30)),
+        'keepalive': int(os.environ.get('GUNICORN_KEEPALIVE', 2)),
         'logconfig_dict': get_logging_config(),
     }
     StandaloneApplication(application, options).run()
