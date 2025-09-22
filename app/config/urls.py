@@ -13,6 +13,8 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+import time
+
 from django.conf import settings
 from django.contrib import admin
 from django.http import JsonResponse
@@ -23,6 +25,9 @@ STAC_BASE = settings.STAC_BASE
 
 
 def checker(request):
+    if settings.CHECKER_DELAY > 0:
+        time.sleep(settings.CHECKER_DELAY)
+
     data = {"success": True, "message": "OK"}
 
     return JsonResponse(data)

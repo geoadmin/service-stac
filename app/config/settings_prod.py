@@ -378,3 +378,7 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = env('SESSION_EXPIRE_AT_BROWSER_CLOSE', bool, d
 SESSION_COOKIE_AGE = env('SESSION_COOKIE_AGE', int, default=60 * 60 * 24 * 7 * 2)
 SESSION_COOKIE_SAMESITE = env('SESSION_COOKIE_SAMESITE', str, default='Lax')
 SESSION_COOKIE_SECURE = env('SESSION_COOKIE_SECURE', bool, default=False)
+
+# Delay to inject in the checker endpoint, in seconds. This is only meant to be
+# used for test purpose.
+CHECKER_DELAY = env('CHECKER_DELAY', int, default=0)
