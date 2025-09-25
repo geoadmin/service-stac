@@ -3,9 +3,7 @@ disable_existing_loggers: False # this allow to get logger at module level
 
 root:
   handlers:
-    - console
-    - file-standard
-    - file-json
+    - queue_listener
   level: DEBUG
   propagate: True
 
@@ -156,4 +154,15 @@ handlers:
     formatter: json
     filename: ${BASE_DIR}/${LOGS_DIR}/server-json-logs.json
     mode: w
+  queue_listener:
+    class: logging.handlers.QueueHandler
+    listener: helpers.logging.AutoStartQueueListener
+    queue:
+      (): queue.Queue
+      maxsize: 1000
+    level: DEBUG
+    handlers:
+      - console
+      - file-standard
+      - file-json
 
