@@ -1,54 +1,26 @@
 #!/usr/bin/env python
 """
-The gevent monkey import and patch suppress a warning, and a potential problem.
-Gunicorn would call it anyway, but if it tries to call it after the ssl module
-has been initialized in another module (like, in our code, by the botocore library),
-then it could lead to inconsistencies in how the ssl module is used. Thus we patch
-the ssl module through gevent.monkey.patch_all before any other import, especially
-the app import, which would cause the boto module to be loaded, which would in turn
-load the ssl module.
-
-NOTE: We do this only if wsgi.py is the main program, when running django runserver
-for local development, monkey patching creates the following error:
-
-    `RuntimeError: cannot release un-acquired lock`
-
-isort:skip_file
-"""
-# pylint: disable=wrong-import-position
-if __name__ == '__main__':
-    import gevent.monkey
-    gevent.monkey.patch_all()
-"""
 WSGI config for project project.
-
-It exposes the WSGI callable as a module-level variable named ``application``.
 
 For more information on this file, see
 https://docs.djangoproject.com/en/3.1/howto/deployment/wsgi/
 """
 import logging
 import os
+import sys
 
 import gevent.util
 
 from gunicorn.app.base import BaseApplication
 from gunicorn.workers.ggevent import GeventWorker
 
-from django.core.wsgi import get_wsgi_application
-
-# Here we cannot uses `from django.conf import settings` because it breaks the `make gunicornserver`
-from config.settings import get_logging_config
-
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
-application = get_wsgi_application()
 
 
 class StandaloneApplication(BaseApplication):  # pylint: disable=abstract-method
 
-    def __init__(self, app, options=None):  # pylint: disable=redefined-outer-name
+    def __init__(self, options=None):  # pylint: disable=redefined-outer-name
         self.options = options or {}
-        self.application = app
         super().__init__()
 
     def load_config(self):
@@ -61,7 +33,8 @@ class StandaloneApplication(BaseApplication):  # pylint: disable=abstract-method
             self.cfg.set(key.lower(), value)
 
     def load(self):
-        return self.application
+        from django.core.wsgi import get_wsgi_application
+        return get_wsgi_application()
 
 
 class GeventWorkerWithStackDump(GeventWorker):
@@ -101,6 +74,5 @@ if __name__ == '__main__':
         'timeout': 60,
         'graceful_timeout': int(os.environ.get('GUNICORN_GRACEFUL_TIMEOUT', 30)),
         'keepalive': int(os.environ.get('GUNICORN_KEEPALIVE', 2)),
-        'logconfig_dict': get_logging_config(),
     }
-    StandaloneApplication(application, options).run()
+    StandaloneApplication(options).run()
