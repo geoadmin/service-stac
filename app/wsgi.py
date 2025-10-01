@@ -14,12 +14,8 @@ import gevent.util
 from gunicorn.app.base import BaseApplication
 from gunicorn.workers.ggevent import GeventWorker
 
-from django.core.wsgi import get_wsgi_application
-
-# Here we cannot uses `from django.conf import settings` because it breaks the `make gunicornserver`
-from config.settings import get_logging_config
-
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+
 
 class StandaloneApplication(BaseApplication):  # pylint: disable=abstract-method
 
@@ -37,6 +33,7 @@ class StandaloneApplication(BaseApplication):  # pylint: disable=abstract-method
             self.cfg.set(key.lower(), value)
 
     def load(self):
+        from django.core.wsgi import get_wsgi_application
         return get_wsgi_application()
 
 
@@ -77,6 +74,5 @@ if __name__ == '__main__':
         'timeout': 60,
         'graceful_timeout': int(os.environ.get('GUNICORN_GRACEFUL_TIMEOUT', 30)),
         'keepalive': int(os.environ.get('GUNICORN_KEEPALIVE', 2)),
-        'logconfig_dict': get_logging_config(),
     }
     StandaloneApplication(options).run()
