@@ -2,8 +2,6 @@
 """
 WSGI config for project project.
 
-It exposes the WSGI callable as a module-level variable named ``application``.
-
 For more information on this file, see
 https://docs.djangoproject.com/en/3.1/howto/deployment/wsgi/
 """
@@ -22,10 +20,6 @@ from django.core.wsgi import get_wsgi_application
 from config.settings import get_logging_config
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
-
-class _LazyApplication(sys.modules[__name__].__class__):
-  application = property(lambda self: get_wsgi_application)
-sys.modules[__name__].__class__ = _LazyApplication
 
 class StandaloneApplication(BaseApplication):  # pylint: disable=abstract-method
 
