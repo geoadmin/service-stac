@@ -3623,7 +3623,7 @@ paths:
     put:
       summary: Update or create a collection asset
       description: >-
-        Update or create a collection asset with Id `assetId` with a complete asset definition. If the asset doesn't exist it is then created.
+        Update or create a collection asset with Id `assetId` with a complete asset definition. If the asset doesn't exist it is then created. When updating an existing asset, optional fields can be deleted by setting them to `null`.
 
 
         *Note: to upload an asset file see [Collection Asset Upload Management](#tag/Collection-Asset-Upload-Management)*
@@ -3955,7 +3955,7 @@ paths:
     put:
       summary: Update or create an asset
       description: >-
-        Update or create an asset with Id `assetId` with a complete asset definition. If the asset doesn't exist it is then created.
+        Update or create an asset with Id `assetId` with a complete asset definition. If the asset doesn't exist it is then created. When updating an existing asset, optional fields can be deleted by setting them to `null`.
 
 
         *Note: to upload an asset file see [Asset Upload Management](#tag/Asset-Upload-Management)*
