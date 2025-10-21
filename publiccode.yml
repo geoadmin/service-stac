@@ -1,0 +1,47 @@
+publiccodeYmlVersion: 0.4.0
+name: STAC API
+applicationSuite: geo.admin.ch
+url: https://github.com/geoadmin/service-stac.git
+landingURL: https://github.com/geoadmin/service-stac
+platforms:
+  - web
+categories:
+  - geographic-information-systems
+usedBy:
+  - Federal Office of Topography swisstopo
+  - Federal Office of Meteorology and Climatology MeteoSwiss
+developmentStatus: stable
+softwareType: standalone/web
+description:
+  en:
+    localisedName: STAC API
+    shortDescription: The STAC API to interact with Swiss federal geodata
+    longDescription: The STAC API of geo.admin.ch consists of standardized RESTful
+      API endpoints designed for interacting with federal geodata. All datasets
+      are organized according to the SpatioTemporal Asset Catalog (STAC)
+      specification, which simplifies data discovery and usage. This STAC API
+      implementation conforms to the core STAC API specification. The underlying
+      data model follows the STAC schema and is extended by the forecast
+      extension to support weather forecast data.
+    documentation: https://www.geo.admin.ch/en/rest-interface-stac-api
+    apiDocumentation: https://data.geo.admin.ch/api/stac/static/spec/v1/api.html
+    features:
+      - List geodata organized into collections, items and assets (STAC compatible)
+      - Search items by field value or by spatial criteria, e.g., a bounding box
+      - Data management of a STAC catalog, like uploading and deleting assets
+      - Web UI to browse, preview and manage the STAC catalog
+      - Specifications of the API in a website as OpenAPI definition
+      - Support of weather forecast data through an extension of the data model
+legal:
+  license: BSD-3-Clause-Modification
+maintenance:
+  type: internal
+  contacts:
+    - name: Helpdesk geo.admin.ch
+      email: info@geo.admin.ch
+      phone: +41 58 469 01 11
+      affiliation: Swisstopo
+localisation:
+  localisationReady: false
+  availableLanguages:
+    - en
