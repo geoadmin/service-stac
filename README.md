@@ -43,6 +43,7 @@
     - [**Development settings (only for local environment and DEV staging)**](#development-settings-only-for-local-environment-and-dev-staging)
 - [Utility scripts](#utility-scripts)
 - [Updating Packages](#updating-packages)
+- [publiccode.yaml](#publiccodeyaml)
 
 ## Summary of the project
 
@@ -583,3 +584,8 @@ pipenv install logging-utilities~=5.0
 Or you can also use the script named "update_to_latest.sh" to automatically update the version
 strings of the dependencies in the Pipfile. See the comment at the top of the script to learn how
 to use it.
+
+## publiccode.yaml
+
+This file adds the repository to catalogs like the [OSS Catalogue](https://opensource.admin.ch) by the Swiss Confederation.
+It follows a [metadata standard](https://yml.publiccode.tools/) for repositories with software developed by public administrations.

@@ -368,9 +368,6 @@ DISALLOWED_EXTERNAL_ASSET_URL_SCHEMES = env.list(
     'DISALLOWED_EXTERNAL_ASSET_URL_SCHEMES', default=['http']
 )
 
-# Feature flag to hide/show expired items in the search endpoint
-HIDE_EXPIRED_ITEMS_IN_SEARCH = env('HIDE_EXPIRED_ITEMS_IN_SEARCH', bool, default=True)
-
 # These are the default values from Django as per
 # https://docs.djangoproject.com/en/5.1/ref/settings/
 # We add them here so they can be changed through environment variables.

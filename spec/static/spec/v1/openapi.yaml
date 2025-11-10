@@ -274,7 +274,7 @@ components:
                 rel: search
                 type: application/json
                 title: Search across feature collections
-            stac_version: 0.9.0
+            stac_version: 1.0.0
             title: data.geo.admin.ch
             type: Catalog
             conformsTo:
@@ -1915,7 +1915,7 @@ components:
       description: The search criteria
       type: object
     stac_version:
-      example: 0.9.0
+      example: 1.0.0
       title: STAC version
       type: string
       readOnly: true
@@ -1958,8 +1958,12 @@ info:
   contact:
     name: API Specification (based on STAC)
     url: http://data.geo.admin.ch/api/stac/v1/
-  description: >-
-    This is an OpenAPI definition of the API to query and access federal geodata on data.geo.admin.ch. The API is based on the core SpatioTemporal Asset Catalog API specification [STAC](http://stacspec.org) and adds two extensions for extended searching possibilities.
+  description: |
+    This is an OpenAPI definition of the API to query and access federal geodata on
+    data.geo.admin.ch. The API is based on the core SpatioTemporal Asset Catalog API specification
+    [STAC](http://stacspec.org) and adds two extensions for extended searching possibilities.
+
+    Find tutorials, examples and best practices around the STAC API in the [Tech Docs](https://docs.geo.admin.ch/download-data/stac-api/overview.html).
   title: The SpatioTemporal Asset Catalog API for data.geo.admin.ch
   version: 1.0.0
 servers:
