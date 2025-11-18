@@ -105,7 +105,9 @@ MEDIA_TYPES = [
     MediaType('image/png', 'PNG', ['.png']),
     MediaType('application/vnd.sqlite3', 'sqlite', ['.sqlite']),
     MediaType('application/grib', 'GRIB/GRIB2', ['.grib', '.grib2']),
-    MediaType('application/x-hdf5', 'HDF5', ['.h5'])
+    MediaType('application/x-hdf5', 'HDF5', ['.h5']),
+    MediaType('application/x.aixm', 'AIXM', ['.aixm']),
+    MediaType('application/x.aixm+zip', 'Zipped AIXM', ['.zip'])
 ]
 
 MT_VAR = "[0-9A-Za-z!#$%&'*+.^_`|~-]+"
