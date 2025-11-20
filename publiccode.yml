@@ -14,7 +14,7 @@ developmentStatus: stable
 softwareType: standalone/web
 organisation:
   uri: https://ld.admin.ch/office/IV.1.5a
-  name: Bundesamt für Landestopografie
+  name: Federal Office of Topography
 description:
   en:
     localisedName: STAC API
