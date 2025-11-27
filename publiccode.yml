@@ -26,8 +26,6 @@ description:
       implementation conforms to the core STAC API specification. The underlying
       data model follows the STAC schema and is extended by the forecast
       extension to support weather forecast data.
-    documentation: https://www.geo.admin.ch/en/rest-interface-stac-api
-    apiDocumentation: https://data.geo.admin.ch/api/stac/static/spec/v1/api.html
     features:
       - List geodata organized into collections, items and assets (STAC compatible)
       - Search items by field value or by spatial criteria, e.g., a bounding box
