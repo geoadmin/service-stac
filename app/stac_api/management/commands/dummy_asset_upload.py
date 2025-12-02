@@ -1,8 +1,6 @@
-import logging
 import os
 
 from django.conf import settings
-from django.core.management.base import BaseCommand
 
 from stac_api.models.general import BaseAssetUpload
 from stac_api.models.item import Asset
@@ -10,10 +8,9 @@ from stac_api.models.item import AssetUpload
 from stac_api.s3_multipart_upload import MultipartUpload
 from stac_api.utils import AVAILABLE_S3_BUCKETS
 from stac_api.utils import CommandHandler
+from stac_api.utils import CustomBaseCommand
 from stac_api.utils import get_asset_path
 from stac_api.utils import get_sha256_multihash
-
-logger = logging.getLogger(__name__)
 
 
 class DummyAssetUploadHandler(CommandHandler):
@@ -59,7 +56,7 @@ class DummyAssetUploadHandler(CommandHandler):
 
     def list(self):
         for upload in AssetUpload.objects.filter(status=BaseAssetUpload.Status.IN_PROGRESS):
-            print(f"> {upload.upload_id} (asset: {upload.asset.name})")
+            self.print(f"> {upload.upload_id} (asset: {upload.asset.name})")
 
     def complete(self):
         try:
@@ -78,11 +75,12 @@ class DummyAssetUploadHandler(CommandHandler):
             self.print_error(f"upload_id {self.options['upload_id']} doesn't exist")
 
 
-class Command(BaseCommand):
+class Command(CustomBaseCommand):
     help = """Start dummy Multipart upload for asset file on S3 for testing.
     """
 
     def add_arguments(self, parser):
+        super().add_arguments(parser)
 
         subparsers = parser.add_subparsers(
             dest='action',

@@ -1,16 +1,13 @@
-import logging
 import time
 from statistics import mean
 
 import requests
 
 from django.contrib.gis.geos import GEOSGeometry
-from django.core.management.base import BaseCommand
 
 from stac_api.utils import CommandHandler
+from stac_api.utils import CustomBaseCommand
 from stac_api.validators import get_media_type
-
-logger = logging.getLogger(__name__)
 
 GEOMETRIES = {
     'switzerland-west':
@@ -231,7 +228,7 @@ class Handler(CommandHandler):
         return properties[i % len(properties)]
 
 
-class Command(BaseCommand):
+class Command(CustomBaseCommand):
     help = """Run write performance tests
 
     The following three steps are consecutively runned:
@@ -241,6 +238,8 @@ class Command(BaseCommand):
     """
 
     def add_arguments(self, parser):
+        super().add_arguments(parser)
+
         parser.add_argument(
             'object_type',
             type=str,

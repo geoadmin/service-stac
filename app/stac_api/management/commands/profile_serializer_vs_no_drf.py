@@ -1,16 +1,13 @@
 import json
-import logging
 from timeit import timeit
 
 from django.conf import settings
-from django.core.management.base import BaseCommand
 
 from rest_framework.test import APIRequestFactory
 
 from stac_api.models.item import Item
 from stac_api.utils import CommandHandler
-
-logger = logging.getLogger(__name__)
+from stac_api.utils import CustomBaseCommand
 
 STAC_BASE_V = f'{settings.STAC_BASE}/v1'
 
@@ -85,7 +82,7 @@ class Handler(CommandHandler):
         self.print_success('NO DRF time: %fms', no_drf_time / self.options['repeat'] * 1000)
 
 
-class Command(BaseCommand):
+class Command(CustomBaseCommand):
     help = """ItemSerializer vs simple serializer profiling command
 
     Profiling of the serialization of many items using DRF vs using a simple function.
@@ -94,6 +91,7 @@ class Command(BaseCommand):
     """
 
     def add_arguments(self, parser):
+        super().add_arguments(parser)
         parser.add_argument(
             '--collection',
             type=str,

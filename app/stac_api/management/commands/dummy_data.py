@@ -1,5 +1,4 @@
 import datetime
-import logging
 import random
 import string
 import time
@@ -11,15 +10,13 @@ from dateutil.parser import isoparse
 
 from django.contrib.gis.geos import Polygon
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.core.management.base import BaseCommand
 
 from stac_api.models.collection import Collection
 from stac_api.models.item import Asset
 from stac_api.models.item import Item
 from stac_api.utils import CommandHandler
+from stac_api.utils import CustomBaseCommand
 from stac_api.validators import MEDIA_TYPES
-
-logger = logging.getLogger(__name__)
 
 # Min/Max extent (roughly) of CH in LV95
 XMIN = 2570000
@@ -252,7 +249,7 @@ class DummyDataHandler(CommandHandler):
         self.print('Asset %s/%s/%s created', item.collection.name, item.name, asset_id, level=3)
 
 
-class Command(BaseCommand):
+class Command(CustomBaseCommand):
     help = """Manage dummy data for performance testing.
 
     The command populates the database by default with
@@ -264,6 +261,7 @@ class Command(BaseCommand):
     """
 
     def add_arguments(self, parser):
+        super().add_arguments(parser)
         parser.add_argument(
             'action',
             type=str,

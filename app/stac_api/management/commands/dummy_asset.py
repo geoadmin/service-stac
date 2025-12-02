@@ -1,18 +1,15 @@
 import hashlib
-import logging
 import random
 import uuid
 from io import BytesIO
 
 from django.conf import settings
-from django.core.management.base import BaseCommand
 
 from stac_api.utils import CommandHandler
+from stac_api.utils import CustomBaseCommand
 from stac_api.utils import get_s3_resource
 from stac_api.utils import get_sha256_multihash
 from stac_api.validators import MEDIA_TYPES
-
-logger = logging.getLogger(__name__)
 
 PREFIX = 'dummy-obj-'
 
@@ -66,7 +63,7 @@ class DummyAssetHandler(CommandHandler):
         self.print_success('Done')
 
 
-class Command(BaseCommand):
+class Command(CustomBaseCommand):
     help = f"""Upload dummy asset file on S3 for testing.
 
     The command upload dummy asset file with random data on S3 for testing.
@@ -80,6 +77,7 @@ class Command(BaseCommand):
     """
 
     def add_arguments(self, parser):
+        super().add_arguments(parser)
         parser.add_argument(
             'action',
             type=str,

@@ -1,9 +1,9 @@
 import time
 
-from django.core.management.base import BaseCommand
 from django.db import connection
 
 from stac_api.utils import CommandHandler
+from stac_api.utils import CustomBaseCommand
 
 
 class Handler(CommandHandler):
@@ -59,7 +59,7 @@ class Handler(CommandHandler):
         )
 
 
-class Command(BaseCommand):
+class Command(CustomBaseCommand):
     help = """Reset the summary counter tables.
 
     Truncates all the summary counter tables and repopulates with current data to make sure they are

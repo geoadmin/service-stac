@@ -1,15 +1,13 @@
-import logging
 import os
 
 from django.conf import settings
-from django.core.management.base import BaseCommand
 
 from stac_api.sample_data import importer
 from stac_api.utils import CommandHandler
+from stac_api.utils import CustomBaseCommand
 
 # path definition relative to the directory that contains manage.py
 DATADIR = settings.BASE_DIR / 'app/stac_api/sample_data/'
-logger = logging.getLogger(__name__)
 
 
 class Handler(CommandHandler):
@@ -25,7 +23,7 @@ class Handler(CommandHandler):
         self.print_success('Done')
 
 
-class Command(BaseCommand):
+class Command(CustomBaseCommand):
     help = """Populates the local test database with sample data
 
     The sample data has to be located in stac_api/management/sample_data and
