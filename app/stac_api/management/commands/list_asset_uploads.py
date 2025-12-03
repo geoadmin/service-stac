@@ -1,16 +1,13 @@
 import json
-import logging
 
-from django.core.management.base import BaseCommand
 from django.core.serializers.json import DjangoJSONEncoder
 
 from stac_api.models.item import AssetUpload
 from stac_api.s3_multipart_upload import MultipartUpload
 from stac_api.serializers.upload import AssetUploadSerializer
 from stac_api.utils import CommandHandler
+from stac_api.utils import CustomBaseCommand
 from stac_api.utils import get_asset_path
-
-logger = logging.getLogger(__name__)
 
 
 class ListAssetUploadsHandler(CommandHandler):
@@ -98,7 +95,7 @@ class ListAssetUploadsHandler(CommandHandler):
         elif self.options['s3_only']:
             only_s3_uploads = s3_uploads
 
-        print(
+        self.print(
             json.dumps(
                 {
                     'uploads': uploads,
@@ -119,7 +116,7 @@ class ListAssetUploadsHandler(CommandHandler):
         )
 
 
-class Command(BaseCommand):
+class Command(CustomBaseCommand):
     help = """List all asset uploads object (DB and/or S3)
 
     This checks for all asset uploads object in DB (by default only returning the `in-progress`
@@ -138,6 +135,7 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         self.prog = parser.prog  # pylint: disable=attribute-defined-outside-init
+        super().add_arguments(parser)
 
         parser.add_argument(
             '--status',
