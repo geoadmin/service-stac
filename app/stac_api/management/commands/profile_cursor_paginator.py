@@ -9,36 +9,9 @@ from rest_framework.request import Request
 from rest_framework.test import APIRequestFactory
 
 from stac_api.models.item import Item
-from stac_api.utils import CommandHandler
 from stac_api.utils import CustomBaseCommand
 
 STAC_BASE_V = f'{settings.STAC_BASE}/v1'
-
-
-class Handler(CommandHandler):
-
-    def profiling(self):
-        # pylint: disable=import-outside-toplevel,possibly-unused-variable
-        collection_id = self.options["collection"]
-        qs = Item.objects.filter(collection__name=collection_id).prefetch_related('assets', 'links')
-        request = Request(
-            APIRequestFactory().
-            get(f'{STAC_BASE_V}/collections/{collection_id}/items?limit={self.options["limit"]}')
-        )
-        paginator = CursorPagination()
-
-        cProfile.runctx(
-            'paginator.paginate_queryset(qs, request)',
-            None,
-            locals(),
-            f'{settings.BASE_DIR}/{os.environ["LOGS_DIR"]}/stats-file',
-            sort=self.options['sort']
-        )
-        # pylint: disable=duplicate-code
-        stats = pstats.Stats(f'{settings.BASE_DIR}/{os.environ["LOGS_DIR"]}/stats-file')
-        stats.sort_stats(self.options['sort']).print_stats()
-
-        self.print_success('Done')
 
 
 class Command(CustomBaseCommand):
@@ -64,4 +37,24 @@ class Command(CustomBaseCommand):
         )
 
     def handle(self, *args, **options):
-        Handler(self, options).profiling()
+        # pylint: disable=import-outside-toplevel,possibly-unused-variable
+        collection_id = self.options["collection"]
+        qs = Item.objects.filter(collection__name=collection_id).prefetch_related('assets', 'links')
+        request = Request(
+            APIRequestFactory().
+            get(f'{STAC_BASE_V}/collections/{collection_id}/items?limit={self.options["limit"]}')
+        )
+        paginator = CursorPagination()
+
+        cProfile.runctx(
+            'paginator.paginate_queryset(qs, request)',
+            None,
+            locals(),
+            f'{settings.BASE_DIR}/{os.environ["LOGS_DIR"]}/stats-file',
+            sort=self.options['sort']
+        )
+        # pylint: disable=duplicate-code
+        stats = pstats.Stats(f'{settings.BASE_DIR}/{os.environ["LOGS_DIR"]}/stats-file')
+        stats.sort_stats(self.options['sort']).print_stats()
+
+        self.print_success('Done')

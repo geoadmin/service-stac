@@ -5,7 +5,6 @@ from io import BytesIO
 
 from django.conf import settings
 
-from stac_api.utils import CommandHandler
 from stac_api.utils import CustomBaseCommand
 from stac_api.utils import get_s3_resource
 from stac_api.utils import get_sha256_multihash
@@ -14,7 +13,53 @@ from stac_api.validators import MEDIA_TYPES
 PREFIX = 'dummy-obj-'
 
 
-class DummyAssetHandler(CommandHandler):
+class Command(CustomBaseCommand):
+    help = f"""Upload dummy asset file on S3 for testing.
+
+    The command upload dummy asset file with random data on S3 for testing.
+    By default only one file is uploaded to
+    /{PREFIX}collection-1/{PREFIX}item-1/{PREFIX}asset-1.txt
+
+    Optionally you can create more than one asset on several items and collections.
+    If more than one asset is uploaded, then its extension is chosen randomly.
+
+    The asset uploaded is then printed to the console with its checksum:multishash.
+    """
+
+    def add_arguments(self, parser):
+        super().add_arguments(parser)
+        parser.add_argument(
+            'action',
+            type=str,
+            choices=['upload', 'clean'],
+            default='upload',
+            help='Define the action to be performed, either "upload" (default) to create and '
+            'upload dummy asset file or "clean" to delete them',
+        )
+
+        parser.add_argument(
+            '--collections',
+            type=int,
+            default=1,
+            help="Number of collections to create (default 1)"
+        )
+
+        parser.add_argument(
+            '--items',
+            type=int,
+            default=1,
+            help="Number of items per collection to create (default 1)"
+        )
+
+        parser.add_argument(
+            '--assets', type=int, default=1, help="Number of assets per item to create (default 1)"
+        )
+
+    def handle(self, *args, **options):
+        if options['action'] == 'clean':
+            self.clean()
+        elif options['action'] == 'upload':
+            self.upload()
 
     def clean(self):
         self.print_warning("Deleting all assets with prefix %s on S3...", PREFIX)
@@ -61,53 +106,3 @@ class DummyAssetHandler(CommandHandler):
                     self.print('%s,%s', file, get_sha256_multihash(content), level=2)
         self.print('-' * 100, level=2)
         self.print_success('Done')
-
-
-class Command(CustomBaseCommand):
-    help = f"""Upload dummy asset file on S3 for testing.
-
-    The command upload dummy asset file with random data on S3 for testing.
-    By default only one file is uploaded to
-    /{PREFIX}collection-1/{PREFIX}item-1/{PREFIX}asset-1.txt
-
-    Optionally you can create more than one asset on several items and collections.
-    If more than one asset is uploaded, then its extension is chosen randomly.
-
-    The asset uploaded is then printed to the console with its checksum:multishash.
-    """
-
-    def add_arguments(self, parser):
-        super().add_arguments(parser)
-        parser.add_argument(
-            'action',
-            type=str,
-            choices=['upload', 'clean'],
-            default='upload',
-            help='Define the action to be performed, either "upload" (default) to create and '
-            'upload dummy asset file or "clean" to delete them',
-        )
-
-        parser.add_argument(
-            '--collections',
-            type=int,
-            default=1,
-            help="Number of collections to create (default 1)"
-        )
-
-        parser.add_argument(
-            '--items',
-            type=int,
-            default=1,
-            help="Number of items per collection to create (default 1)"
-        )
-
-        parser.add_argument(
-            '--assets', type=int, default=1, help="Number of assets per item to create (default 1)"
-        )
-
-    def handle(self, *args, **options):
-        handler = DummyAssetHandler(self, options)
-        if options['action'] == 'clean':
-            handler.clean()
-        elif options['action'] == 'upload':
-            handler.upload()

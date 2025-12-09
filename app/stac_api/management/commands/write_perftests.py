@@ -5,7 +5,6 @@ import requests
 
 from django.contrib.gis.geos import GEOSGeometry
 
-from stac_api.utils import CommandHandler
 from stac_api.utils import CustomBaseCommand
 from stac_api.validators import get_media_type
 
@@ -49,7 +48,64 @@ GEOMETRIES = {
 }
 
 
-class Handler(CommandHandler):
+class Command(CustomBaseCommand):
+    help = """Run write performance tests
+
+    The following three steps are consecutively runned:
+    1. create n (items | assets)
+    2. update n (items | assets)
+    3. delete n (items | assets)
+    """
+
+    def add_arguments(self, parser):
+        super().add_arguments(parser)
+
+        parser.add_argument(
+            'object_type',
+            type=str,
+            choices=['items', 'assets'],
+            help='Define which object type to create/update/deletes',
+        )
+
+        parser.add_argument(
+            '--clean',
+            action='store_true',
+            help='Clean all object created by the scripts. Usefull if the script failed.'
+        )
+
+        parser.add_argument(
+            '-n', type=int, default=50, help="Number of object to create/update/delete"
+        )
+
+        parser.add_argument(
+            '--url', type=str, default='http://localhost:8000', help="Url to run the test against"
+        )
+
+        parser.add_argument('--key', type=str, help='Token used for authentication')
+        parser.add_argument('--auth', type=str, help='Basic authentication in form user:pass')
+
+        parser.add_argument(
+            '--collection',
+            type=str,
+            default='perftest-collection-1',
+            help="Collection on which to run the tests."
+        )
+
+        parser.add_argument(
+            '--item',
+            type=str,
+            default='perftest-item-1',
+            help="Item on which to run the tests, only valid for 'assets' object_type."
+        )
+
+    def handle(self, *args, **options):
+        try:
+            if options['clean']:
+                self.clean()
+            else:
+                self.start()
+        except RuntimeError:
+            pass
 
     def clean(self):
         # pylint: disable=missing-timeout
@@ -121,13 +177,13 @@ class Handler(CommandHandler):
         self.print_success('Done')
 
     def get_auth(self):
-        if 'auth' in self.options:
+        if self.options.get('auth'):
             return (*self.options['auth'].split(':', maxsplit=1),)
         return None
 
     def get_headers(self):
         headers = {}
-        if 'key' in self.options:
+        if self.options.get('key'):
             headers['Authorization'] = f'Token {self.options["key"]}'
         return headers
 
@@ -226,63 +282,3 @@ class Handler(CommandHandler):
             },
         ]
         return properties[i % len(properties)]
-
-
-class Command(CustomBaseCommand):
-    help = """Run write performance tests
-
-    The following three steps are consecutively runned:
-    1. create n (items | assets)
-    2. update n (items | assets)
-    3. delete n (items | assets)
-    """
-
-    def add_arguments(self, parser):
-        super().add_arguments(parser)
-
-        parser.add_argument(
-            'object_type',
-            type=str,
-            choices=['items', 'assets'],
-            help='Define which object type to create/update/deletes',
-        )
-
-        parser.add_argument(
-            '--clean',
-            action='store_true',
-            help='Clean all object created by the scripts. Usefull if the script failed.'
-        )
-
-        parser.add_argument(
-            '-n', type=int, default=50, help="Number of object to create/update/delete"
-        )
-
-        parser.add_argument(
-            '--url', type=str, default='http://localhost:8000', help="Url to run the test against"
-        )
-
-        parser.add_argument('--key', type=str, help='Token used for authentication')
-        parser.add_argument('--auth', type=str, help='Basic authentication in form user:pass')
-
-        parser.add_argument(
-            '--collection',
-            type=str,
-            default='perftest-collection-1',
-            help="Collection on which to run the tests."
-        )
-
-        parser.add_argument(
-            '--item',
-            type=str,
-            default='perftest-item-1',
-            help="Item on which to run the tests, only valid for 'assets' object_type."
-        )
-
-    def handle(self, *args, **options):
-        try:
-            if options['clean']:
-                Handler(self, options).clean()
-            else:
-                Handler(self, options).start()
-        except RuntimeError:
-            pass

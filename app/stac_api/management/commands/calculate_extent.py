@@ -4,7 +4,6 @@ from django.core.management.base import CommandParser
 from django.db import connection
 
 from stac_api.models.collection import Collection
-from stac_api.utils import CommandHandler
 from stac_api.utils import CustomBaseCommand
 
 
@@ -15,18 +14,30 @@ def boolean_input(question, default=None):
     return len(result) > 0 and result[0].lower() == "y"
 
 
-class Handler(CommandHandler):
+class Command(CustomBaseCommand):
+    help = """Calculate the collection spacial and temporal extent for all collections that have
+    'extent_out_of_sync' set to true. After update, 'extent_out_of_sync' will be set to False.
+    This command is thought to be scheduled as cron job.
+    """
 
-    def run(self):
+    def add_arguments(self, parser: CommandParser) -> None:
+        super().add_arguments(parser)
+        parser.add_argument(
+            '-a', '--all', action='store_true', help='Update extent for all collections'
+        )
+        parser.add_argument(
+            '-f', '--force', action='store_true', help='Run all without confirmation'
+        )
+
+    def handle(self, *args, **options):
         self.print_success('running command to update collection extents')
-        # print(self.options)
         qry = Collection.objects.filter(extent_out_of_sync=True)
-        if self.options['all']:
+        if options['all']:
             qry = Collection.objects
         collections = qry.values_list('id', flat=True)
 
         # Prompt user to confirm update of all collections if force was not provided.
-        if self.options['all'] and not self.options['force']:
+        if options['all'] and not options['force']:
             cont = boolean_input(
                 f"You are about to update {len(collections)} collections!\n" +
                 "Are you sure you want to continue? (y/n): ",
@@ -78,22 +89,3 @@ class Handler(CommandHandler):
             f"successfully updated extent of {len(collections)} collections",
             extra={"duration": time.monotonic() - start}
         )
-
-
-class Command(CustomBaseCommand):
-    help = """Calculate the collection spacial and temporal extent for all collections that have
-    'extent_out_of_sync' set to true. After update, 'extent_out_of_sync' will be set to False.
-    This command is thought to be scheduled as cron job.
-    """
-
-    def add_arguments(self, parser: CommandParser) -> None:
-        super().add_arguments(parser)
-        parser.add_argument(
-            '-a', '--all', action='store_true', help='Update extent for all collections'
-        )
-        parser.add_argument(
-            '-f', '--force', action='store_true', help='Run all without confirmation'
-        )
-
-    def handle(self, *args, **options):
-        Handler(self, options).run()

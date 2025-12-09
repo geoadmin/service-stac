@@ -7,34 +7,9 @@ from django.conf import settings
 from rest_framework.test import APIRequestFactory
 
 from stac_api.models.item import Item
-from stac_api.utils import CommandHandler
 from stac_api.utils import CustomBaseCommand
 
 STAC_BASE_V = f'{settings.STAC_BASE}/v1'
-
-
-class Handler(CommandHandler):
-
-    def profiling(self):
-        # pylint: disable=import-outside-toplevel,possibly-unused-variable
-        from stac_api.serializers.item import ItemSerializer
-        collection_id = self.options["collection"]
-        qs = Item.objects.filter(collection__name=collection_id
-                                ).prefetch_related('assets', 'links')[:self.options['limit']]
-        context = {
-            'request': APIRequestFactory().get(f'{STAC_BASE_V}/collections/{collection_id}/items')
-        }
-        cProfile.runctx(
-            'ItemSerializer(qs, context=context, many=True).data',
-            None,
-            locals(),
-            f'{settings.BASE_DIR}/{os.environ["LOGS_DIR"]}/stats-file',
-            sort=self.options['sort']
-        )
-        stats = pstats.Stats(f'{settings.BASE_DIR}/{os.environ["LOGS_DIR"]}/stats-file')
-        stats.sort_stats(self.options['sort']).print_stats()
-
-        self.print_success('Done')
 
 
 class Command(CustomBaseCommand):
@@ -57,4 +32,22 @@ class Command(CustomBaseCommand):
         parser.add_argument('--sort', type=str, default='tottime', help="Profiling output sorting")
 
     def handle(self, *args, **options):
-        Handler(self, options).profiling()
+        # pylint: disable=import-outside-toplevel,possibly-unused-variable
+        from stac_api.serializers.item import ItemSerializer
+        collection_id = self.options["collection"]
+        qs = Item.objects.filter(collection__name=collection_id
+                                ).prefetch_related('assets', 'links')[:self.options['limit']]
+        context = {
+            'request': APIRequestFactory().get(f'{STAC_BASE_V}/collections/{collection_id}/items')
+        }
+        cProfile.runctx(
+            'ItemSerializer(qs, context=context, many=True).data',
+            None,
+            locals(),
+            f'{settings.BASE_DIR}/{os.environ["LOGS_DIR"]}/stats-file',
+            sort=self.options['sort']
+        )
+        stats = pstats.Stats(f'{settings.BASE_DIR}/{os.environ["LOGS_DIR"]}/stats-file')
+        stats.sort_stats(self.options['sort']).print_stats()
+
+        self.print_success('Done')

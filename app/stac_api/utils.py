@@ -1,5 +1,4 @@
 import hashlib
-import inspect
 import json
 import logging
 import os
@@ -10,6 +9,8 @@ from decimal import Decimal
 from decimal import InvalidOperation
 from enum import Enum
 from io import StringIO
+from typing import Any
+from typing import TextIO
 from urllib import parse
 
 import boto3
@@ -21,6 +22,7 @@ from django.contrib.gis.geos import Point
 from django.contrib.gis.geos import Polygon
 from django.core.management import call_command
 from django.core.management.base import BaseCommand
+from django.core.management.base import CommandParser
 from django.urls import reverse
 
 from stac_api.exceptions import NotImplementedException
@@ -370,40 +372,72 @@ def remove_query_params(url, keys):
     return parse.urlunsplit((scheme, netloc, path, query, fragment))
 
 
+# This class is also used in service-control. Ensure that any changes made here are reflected there
+# as well.
 class CustomBaseCommand(BaseCommand):
+    """
+    A custom Django management command that adds proper support for logging.
 
-    def handle(self, *args, **options):
-        """
-        The actual logic of the command. Subclasses must implement
-        this method.
-        """
-        raise NotImplementedError("subclasses of CustomBaseCommand must provide a handle() method")
+    Example how to subclass:
 
-    def add_arguments(self, parser):
+        class MyCommand(CustomBaseCommand):
+
+            def add_arguments(self, parser: CommandParser) -> None:
+                super().add_arguments(parser)
+                parser.add_argument('--flag', action='store_true')
+
+            def handle(self, *args: Any, **options: dict['str', Any]) -> None:
+                if options['flag']:  # or self.options['flag']
+                    self.print('flag was set')
+                self.print_success('done')
+
+    """
+
+    def __init__(
+        self,
+        stdout: TextIO | None = None,
+        stderr: TextIO | None = None,
+        no_color: bool = False,
+        force_color: bool = False
+    ):
+        super().__init__(stdout, stderr, no_color, force_color)
+        self.logger = logging.getLogger(self.__module__)
+        self.options: dict['str', Any] = {}
+
+    def add_arguments(self, parser: CommandParser) -> None:
+        """
+        Entry point for add custom arguments. Options will also be available as self.options during
+        handle.
+
+        Subclasses may want to extend this method.
+        """
+
         parser.add_argument('--logger', action='store_true', help='use logger configuration')
 
+    def handle(self, *args: Any, **options: dict['str', Any]) -> None:
+        """
+        The actual logic of the command.
 
-class CommandHandler():
-    '''Base class for management command handler
+        Subclasses must implement this method.
+        """
 
-    This class add proper support for printing to the console for management command
-    '''
+        raise NotImplementedError("subclasses of CustomBaseCommand must provide a handle() method")
 
-    def __init__(self, command, options):
-        frm = inspect.stack()[1]
-        mod = inspect.getmodule(frm[0])
-        self.logger = logging.getLogger(mod.__name__)
+    def execute(self, *args: Any, **options: dict['str', Any]) -> None:
+        """ Try to execute the command and log any exceptions if the logger is configured. """
+
         self.options = options
-        self.verbosity = options['verbosity']
-        self.use_logger = options.get('logger')
-        self.stdout = command.stdout
-        self.stderr = command.stderr
-        self.style = command.style
-        self.command = command
+        if self.options['logger']:
+            try:
+                super().execute(*args, **options)
+            except Exception as e:  # pylint: disable=broad-exception-caught
+                self.print_error(e, exc_info=True)
+        else:
+            super().execute(*args, **options)
 
-    def print(self, message, *args, level=2, **kwargs):
-        if self.verbosity >= level:
-            if self.use_logger:
+    def print(self, message: str, *args: Any, level: int = 2, **kwargs: Any) -> None:
+        if self.options['verbosity'] >= level:
+            if self.options['logger']:
                 self.logger.info(message, *args, **kwargs)
             else:
                 if len(kwargs) > 0:
@@ -412,9 +446,9 @@ class CommandHandler():
                     )
                 self.stdout.write(message % (args))
 
-    def print_warning(self, message, *args, level=1, **kwargs):
-        if self.verbosity >= level:
-            if self.use_logger:
+    def print_warning(self, message: str, *args: Any, level: int = 1, **kwargs: Any) -> None:
+        if self.options['verbosity'] >= level:
+            if self.options['logger']:
                 self.logger.warning(message, *args, **kwargs)
             else:
                 if len(kwargs) > 0:
@@ -423,9 +457,9 @@ class CommandHandler():
                     )
                 self.stdout.write(self.style.WARNING(message % (args)))
 
-    def print_success(self, message, *args, level=1, **kwargs):
-        if self.verbosity >= level:
-            if self.use_logger:
+    def print_success(self, message: str, *args: Any, level: int = 1, **kwargs: Any) -> None:
+        if self.options['verbosity'] >= level:
+            if self.options['logger']:
                 self.logger.info(message, *args, **kwargs)
             else:
                 if len(kwargs) > 0:
@@ -434,10 +468,11 @@ class CommandHandler():
                     )
                 self.stdout.write(self.style.SUCCESS(message % (args)))
 
-    def print_error(self, message, *args, **kwargs):
-        if self.use_logger:
+    def print_error(self, message: str | Exception, *args: Any, **kwargs: Any) -> None:
+        if self.options['logger']:
             self.logger.error(message, *args, **kwargs)
         else:
+            message = str(message)
             if len(kwargs) > 0:
                 message = message + "\n" + ", ".join(
                     f"{key}={value}" for key, value in kwargs.items()
