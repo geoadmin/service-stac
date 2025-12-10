@@ -10,6 +10,7 @@
 - [Table of Content](#table-of-content)
 - [Summary of the project](#summary-of-the-project)
 - [SPEC](#spec)
+- [Logging Standard Django Management Commands](#logging-standard-django-management-commands)
 - [Local development](#local-development)
   - [Dependencies](#dependencies)
     - [Python3.12](#python312)
@@ -52,6 +53,15 @@
 ## SPEC
 
 See [SPEC](./spec/README.md)
+
+## Logging Standard Django Management Commands
+
+This project uses a modified `manage.py` that supports redirecting the output of the standard
+Django management commands to the logger. For this, simply add `--redirect-std-to-logger`, e.g.:
+
+```bash
+app/manage.py migrate --redirect-std-to-logger
+```
 
 ## Local development
 

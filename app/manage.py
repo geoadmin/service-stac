@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
+from helpers.logging import redirect_std_to_logger
 
 
 def main():
@@ -41,4 +42,9 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    if '--redirect-std-to-logger' in sys.argv:
+        sys.argv.remove('--redirect-std-to-logger')
+        with redirect_std_to_logger(__name__):
+            main()
+    else:
+        main()
