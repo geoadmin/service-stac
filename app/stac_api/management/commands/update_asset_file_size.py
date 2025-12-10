@@ -4,7 +4,6 @@ from django.core.management.base import CommandParser
 
 from stac_api.models.collection import CollectionAsset
 from stac_api.models.item import Asset
-from stac_api.utils import CommandHandler
 from stac_api.utils import CustomBaseCommand
 
 # increase the log level so boto3 doesn't spam the output
@@ -12,9 +11,21 @@ logging.getLogger('boto3').setLevel(logging.WARNING)
 logging.getLogger('botocore').setLevel(logging.WARNING)
 
 
-class Handler(CommandHandler):
+class Command(CustomBaseCommand):
+    help = """Requests the file size of every asset / collection asset from the s3 bucket and
+        updates the value in the database"""
 
-    def update(self):
+    def add_arguments(self, parser: CommandParser) -> None:
+        super().add_arguments(parser)
+        parser.add_argument(
+            '-c',
+            '--count',
+            help="The amount of assets to process at once",
+            required=True,
+            type=int
+        )
+
+    def handle(self, *args, **options):
         self.print('Running command to update file size')
 
         asset_limit = self.options['count']
@@ -73,21 +84,3 @@ class Handler(CommandHandler):
                 self.print_error('file %s could not be found', collection_asset.file)
 
         self.print_success('Update completed')
-
-
-class Command(CustomBaseCommand):
-    help = """Requests the file size of every asset / collection asset from the s3 bucket and
-        updates the value in the database"""
-
-    def add_arguments(self, parser: CommandParser) -> None:
-        super().add_arguments(parser)
-        parser.add_argument(
-            '-c',
-            '--count',
-            help="The amount of assets to process at once",
-            required=True,
-            type=int
-        )
-
-    def handle(self, *args, **options):
-        Handler(self, options).update()

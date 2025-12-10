@@ -3,24 +3,10 @@ import os
 from django.conf import settings
 
 from stac_api.sample_data import importer
-from stac_api.utils import CommandHandler
 from stac_api.utils import CustomBaseCommand
 
 # path definition relative to the directory that contains manage.py
 DATADIR = settings.BASE_DIR / 'app/stac_api/sample_data/'
-
-
-class Handler(CommandHandler):
-
-    def populate(self):
-        # loop over the collection directories inside sample_data
-        for collection_dir in os.scandir(DATADIR):
-            if collection_dir.is_dir() and not collection_dir.name.startswith('_'):
-                self.print('Import collection %s', collection_dir.name, level=1)
-                importer.import_collection(collection_dir)
-            else:
-                self.print('Ignore file %s', collection_dir.name, level=2)
-        self.print_success('Done')
 
 
 class Command(CustomBaseCommand):
@@ -36,4 +22,11 @@ class Command(CustomBaseCommand):
     """
 
     def handle(self, *args, **options):
-        Handler(self, options).populate()
+        # loop over the collection directories inside sample_data
+        for collection_dir in os.scandir(DATADIR):
+            if collection_dir.is_dir() and not collection_dir.name.startswith('_'):
+                self.print('Import collection %s', collection_dir.name, level=1)
+                importer.import_collection(collection_dir)
+            else:
+                self.print('Ignore file %s', collection_dir.name, level=2)
+        self.print_success('Done')

@@ -2,13 +2,18 @@ import time
 
 from django.db import connection
 
-from stac_api.utils import CommandHandler
 from stac_api.utils import CustomBaseCommand
 
 
-class Handler(CommandHandler):
+class Command(CustomBaseCommand):
+    help = """Reset the summary counter tables.
 
-    def run(self):
+    Truncates all the summary counter tables and repopulates with current data to make sure they are
+    in sync with the values in the asset table. Unless the triggers are disabled or values in the
+    counter tables are changed manually, this should not be required.
+    """
+
+    def handle(self, *args, **options):
         self.print_success('running query to update counter tables...')
 
         start = time.monotonic()
@@ -57,15 +62,3 @@ class Handler(CommandHandler):
         self.print_success(
             f"successfully updated counter tables in {(time.monotonic()-start):.3f}s"
         )
-
-
-class Command(CustomBaseCommand):
-    help = """Reset the summary counter tables.
-
-    Truncates all the summary counter tables and repopulates with current data to make sure they are
-    in sync with the values in the asset table. Unless the triggers are disabled or values in the
-    counter tables are changed manually, this should not be required.
-    """
-
-    def handle(self, *args, **options):
-        Handler(self, options).run()
