@@ -1,5 +1,4 @@
 import datetime
-import logging
 import random
 import string
 import time
@@ -11,15 +10,12 @@ from dateutil.parser import isoparse
 
 from django.contrib.gis.geos import Polygon
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.core.management.base import BaseCommand
 
 from stac_api.models.collection import Collection
 from stac_api.models.item import Asset
 from stac_api.models.item import Item
-from stac_api.utils import CommandHandler
+from stac_api.utils import CustomBaseCommand
 from stac_api.validators import MEDIA_TYPES
-
-logger = logging.getLogger(__name__)
 
 # Min/Max extent (roughly) of CH in LV95
 XMIN = 2570000
@@ -41,7 +37,67 @@ def random_datetime(start, end):
     )
 
 
-class DummyDataHandler(CommandHandler):
+class Command(CustomBaseCommand):
+    help = """Manage dummy data for performance testing.
+
+    The command populates the database by default with
+    30 collections, 300 items per collection and 2 assets per item.
+    Number of collections, items and assets can be changed.
+
+    The generated data is randomized where necessary, i.e. the field
+    that are also likely to be queried.
+    """
+
+    def add_arguments(self, parser):
+        super().add_arguments(parser)
+        parser.add_argument(
+            'action',
+            type=str,
+            choices=['populate', 'clean'],
+            default='populate',
+            help='Define the action to be performed, either "populate" (default) to create '
+            'dummy data or "clean" to delete it',
+        )
+
+        parser.add_argument(
+            '--collections',
+            type=str,
+            default='30',
+            help="Number of collections to create (default 30), or alternatively a comma separated "
+            f"list of collection names to create (a common prefix '{NAME_PREFIX}' is added to "
+            "these names)"
+        )
+
+        parser.add_argument(
+            '--items',
+            type=int,
+            default=300,
+            help="Number of items per collection to create (default 300)"
+        )
+
+        parser.add_argument(
+            '--assets', type=int, default=2, help="Number of assets per item to create (default 2)"
+        )
+
+        parser.add_argument(
+            '--parallel-collections',
+            type=int,
+            default=1,
+            help="Number of collection created in parallel (default 1)"
+        )
+
+        parser.add_argument(
+            '--parallel-items',
+            type=int,
+            default=5,
+            help="Number of items created in parallel (default 5)"
+        )
+
+    def handle(self, *args, **options):
+        if options['action'] == 'clean':
+            self.clean()
+        elif options['action'] == 'populate':
+            self.populate()
 
     def clean(self):
         self.print_warning('Deleting all collections starting with "%s"...', NAME_PREFIX)
@@ -250,67 +306,3 @@ class DummyDataHandler(CommandHandler):
             }
         )
         self.print('Asset %s/%s/%s created', item.collection.name, item.name, asset_id, level=3)
-
-
-class Command(BaseCommand):
-    help = """Manage dummy data for performance testing.
-
-    The command populates the database by default with
-    30 collections, 300 items per collection and 2 assets per item.
-    Number of collections, items and assets can be changed.
-
-    The generated data is randomized where necessary, i.e. the field
-    that are also likely to be queried.
-    """
-
-    def add_arguments(self, parser):
-        parser.add_argument(
-            'action',
-            type=str,
-            choices=['populate', 'clean'],
-            default='populate',
-            help='Define the action to be performed, either "populate" (default) to create '
-            'dummy data or "clean" to delete it',
-        )
-
-        parser.add_argument(
-            '--collections',
-            type=str,
-            default='30',
-            help="Number of collections to create (default 30), or alternatively a comma separated "
-            f"list of collection names to create (a common prefix '{NAME_PREFIX}' is added to "
-            "these names)"
-        )
-
-        parser.add_argument(
-            '--items',
-            type=int,
-            default=300,
-            help="Number of items per collection to create (default 300)"
-        )
-
-        parser.add_argument(
-            '--assets', type=int, default=2, help="Number of assets per item to create (default 2)"
-        )
-
-        parser.add_argument(
-            '--parallel-collections',
-            type=int,
-            default=1,
-            help="Number of collection created in parallel (default 1)"
-        )
-
-        parser.add_argument(
-            '--parallel-items',
-            type=int,
-            default=5,
-            help="Number of items created in parallel (default 5)"
-        )
-
-    def handle(self, *args, **options):
-        handler = DummyDataHandler(self, options)
-
-        if options['action'] == 'clean':
-            handler.clean()
-        elif options['action'] == 'populate':
-            handler.populate()

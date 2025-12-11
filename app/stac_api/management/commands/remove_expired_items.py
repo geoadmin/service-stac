@@ -9,7 +9,6 @@ from stac_api.models.general import BaseAssetUpload
 from stac_api.models.item import Asset
 from stac_api.models.item import AssetUpload
 from stac_api.models.item import Item
-from stac_api.utils import CommandHandler
 from stac_api.utils import CustomBaseCommand
 
 
@@ -18,104 +17,6 @@ class SafetyAbort(Exception):
     def __str__(self):
         return (f"Attempting to delete too many items:"
                 f" {self.args[1]} > {self.args[0]}.")
-
-
-class Handler(CommandHandler):
-
-    def delete_by_batch(self, queryset, object_type, batch_size):
-        # When many rows are involved, looping over each one is very slow.
-        # Running a single delete() against all of them consumes a lot of memory
-        # and does not delete anything if it fails mid-way. Hence, we batch.
-        #
-        # Django's delete() method already batches deletions in groups of 100
-        # rows. These batches are wrapped within transactions. It does not seem
-        # to be designed to allow disabling the transaction or tweaking the
-        # batch size.
-        # https://github.com/django/django/blob/main/django/db/models/sql/subqueries.py#L26
-        # https://github.com/django/django/blob/main/django/db/models/deletion.py#L454
-        # Also, it does not seem to do anything to reduce memory consumption.
-        #
-        # In our case, we don't need the deletions to be transactional. If we
-        # die in the middle, it's fine if some rows are deleted and some are
-        # not. We can remove the remaining rows next time we run. That's better
-        # than waiting forever, to fail and to have to start from scratch next
-        # time.
-        type_name = f'stac_api.{object_type.__name__}'
-        total = queryset.count()
-        deleted_count = 0
-        while deleted_count < total:
-            # We cannot just call queryset[:batch_size].delete() because DELETE
-            # does not support LIMIT/OFFSET. So instead we extract the ids
-            # then we'll build a new QuerySet to DELETE them.
-            ids = queryset.values('id')[:batch_size]
-            expected_deletions = len(ids)
-            if expected_deletions == 0:
-                break
-            dry_run_prefix = ''
-            if self.options['dry_run']:
-                dry_run_prefix = '[dry run]: '
-                deleted_objs = {}
-                actual_deletions = expected_deletions
-            else:
-                (_, deleted_objs) = object_type.objects.filter(id__in=ids).delete()
-                actual_deletions = deleted_objs.get(type_name, 0)
-            deleted_count += actual_deletions
-            self.print_success(
-                f'{dry_run_prefix}Deleted {deleted_count}/{total} {type_name}.'
-                f' In this batch: {actual_deletions}/{expected_deletions}.'
-                f' All objects in this batch: {deleted_objs}.'
-            )
-
-    def _raise_if_too_many_deletions(self, max_deletions, max_deletions_pct, items_count):
-        if items_count > max_deletions:
-            exception = SafetyAbort(max_deletions, items_count)
-            self.print_error("%s", str(exception))
-            raise exception
-
-        items_deleted_pct = 100 * items_count / Item.objects.count()
-        if items_deleted_pct > max_deletions_pct:
-            exception = SafetyAbort(f"{int(max_deletions_pct)}%", f"{items_deleted_pct:.2f}%")
-            self.print_error("%s", str(exception))
-            raise exception
-
-    def run(self):
-        self.print_success('running command to remove expired items')
-        batch_size = self.options['batch_size']
-        min_age_hours = self.options['min_age_hours']
-        max_deletions = self.options['max_deletions']
-        max_deletions_pct = self.options['max_deletions_percentage']
-        self.print_warning(
-            f"deleting no more than {max_deletions} or "
-            f"{max_deletions_pct}%% items expired for longer"
-            f" than {min_age_hours} hours, {batch_size} at a time"
-        )
-
-        expiration = timezone.now() - timedelta(hours=min_age_hours)
-
-        items = Item.objects.filter(properties_expires__lte=expiration
-                                   ).order_by('properties_expires')
-        items_count = items.count()
-
-        self._raise_if_too_many_deletions(max_deletions, max_deletions_pct, items_count)
-
-        assets = Asset.objects.filter(item__properties_expires__lte=expiration)
-        asset_uploads = AssetUpload.objects.filter(
-            asset__item__properties_expires__lte=expiration,
-            status=BaseAssetUpload.Status.IN_PROGRESS
-        )
-
-        if asset_uploads.update(status=BaseAssetUpload.Status.ABORTED):
-            self.print_warning(
-                "WARNING: There were still pending asset uploads for expired items. "
-                "These were likely stale, so we aborted them"
-            )
-        self.delete_by_batch(assets, Asset, batch_size)
-        self.delete_by_batch(items, Item, batch_size)
-
-        if self.options['dry_run']:
-            self.print_success(f'[dry run] would have removed {items_count} expired items')
-        else:
-            self.print_success(f'successfully removed {items_count} expired items')
 
 
 class Command(CustomBaseCommand):
@@ -182,5 +83,97 @@ class Command(CustomBaseCommand):
             )
         )
 
+    def delete_by_batch(self, queryset, object_type, batch_size):
+        # When many rows are involved, looping over each one is very slow.
+        # Running a single delete() against all of them consumes a lot of memory
+        # and does not delete anything if it fails mid-way. Hence, we batch.
+        #
+        # Django's delete() method already batches deletions in groups of 100
+        # rows. These batches are wrapped within transactions. It does not seem
+        # to be designed to allow disabling the transaction or tweaking the
+        # batch size.
+        # https://github.com/django/django/blob/main/django/db/models/sql/subqueries.py#L26
+        # https://github.com/django/django/blob/main/django/db/models/deletion.py#L454
+        # Also, it does not seem to do anything to reduce memory consumption.
+        #
+        # In our case, we don't need the deletions to be transactional. If we
+        # die in the middle, it's fine if some rows are deleted and some are
+        # not. We can remove the remaining rows next time we run. That's better
+        # than waiting forever, to fail and to have to start from scratch next
+        # time.
+        type_name = f'stac_api.{object_type.__name__}'
+        total = queryset.count()
+        deleted_count = 0
+        while deleted_count < total:
+            # We cannot just call queryset[:batch_size].delete() because DELETE
+            # does not support LIMIT/OFFSET. So instead we extract the ids
+            # then we'll build a new QuerySet to DELETE them.
+            ids = queryset.values('id')[:batch_size]
+            expected_deletions = len(ids)
+            if expected_deletions == 0:
+                break
+            dry_run_prefix = ''
+            if self.options['dry_run']:
+                dry_run_prefix = '[dry run]: '
+                deleted_objs = {}
+                actual_deletions = expected_deletions
+            else:
+                (_, deleted_objs) = object_type.objects.filter(id__in=ids).delete()
+                actual_deletions = deleted_objs.get(type_name, 0)
+            deleted_count += actual_deletions
+            self.print_success(
+                f'{dry_run_prefix}Deleted {deleted_count}/{total} {type_name}.'
+                f' In this batch: {actual_deletions}/{expected_deletions}.'
+                f' All objects in this batch: {deleted_objs}.'
+            )
+
+    def _raise_if_too_many_deletions(self, max_deletions, max_deletions_pct, items_count):
+        if items_count > max_deletions:
+            exception = SafetyAbort(max_deletions, items_count)
+            self.print_error("%s", str(exception))
+            raise exception
+
+        items_deleted_pct = 100 * items_count / Item.objects.count()
+        if items_deleted_pct > max_deletions_pct:
+            exception = SafetyAbort(f"{int(max_deletions_pct)}%", f"{items_deleted_pct:.2f}%")
+            self.print_error("%s", str(exception))
+            raise exception
+
     def handle(self, *args, **options):
-        Handler(self, options).run()
+        self.print_success('running command to remove expired items')
+        batch_size = self.options['batch_size']
+        min_age_hours = self.options['min_age_hours']
+        max_deletions = self.options['max_deletions']
+        max_deletions_pct = self.options['max_deletions_percentage']
+        self.print_warning(
+            f"deleting no more than {max_deletions} or "
+            f"{max_deletions_pct}%% items expired for longer"
+            f" than {min_age_hours} hours, {batch_size} at a time"
+        )
+
+        expiration = timezone.now() - timedelta(hours=min_age_hours)
+
+        items = Item.objects.filter(properties_expires__lte=expiration
+                                   ).order_by('properties_expires')
+        items_count = items.count()
+
+        self._raise_if_too_many_deletions(max_deletions, max_deletions_pct, items_count)
+
+        assets = Asset.objects.filter(item__properties_expires__lte=expiration)
+        asset_uploads = AssetUpload.objects.filter(
+            asset__item__properties_expires__lte=expiration,
+            status=BaseAssetUpload.Status.IN_PROGRESS
+        )
+
+        if asset_uploads.update(status=BaseAssetUpload.Status.ABORTED):
+            self.print_warning(
+                "WARNING: There were still pending asset uploads for expired items. "
+                "These were likely stale, so we aborted them"
+            )
+        self.delete_by_batch(assets, Asset, batch_size)
+        self.delete_by_batch(items, Item, batch_size)
+
+        if self.options['dry_run']:
+            self.print_success(f'[dry run] would have removed {items_count} expired items')
+        else:
+            self.print_success(f'successfully removed {items_count} expired items')

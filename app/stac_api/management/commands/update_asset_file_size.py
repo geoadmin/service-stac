@@ -1,23 +1,32 @@
 import logging
 
-from django.core.management.base import BaseCommand
 from django.core.management.base import CommandParser
 
 from stac_api.models.collection import CollectionAsset
 from stac_api.models.item import Asset
-from stac_api.utils import CommandHandler
-
-logger = logging.getLogger(__name__)
+from stac_api.utils import CustomBaseCommand
 
 # increase the log level so boto3 doesn't spam the output
 logging.getLogger('boto3').setLevel(logging.WARNING)
 logging.getLogger('botocore').setLevel(logging.WARNING)
 
 
-class Handler(CommandHandler):
+class Command(CustomBaseCommand):
+    help = """Requests the file size of every asset / collection asset from the s3 bucket and
+        updates the value in the database"""
 
-    def update(self):
-        self.print_success('Running command to update file size')
+    def add_arguments(self, parser: CommandParser) -> None:
+        super().add_arguments(parser)
+        parser.add_argument(
+            '-c',
+            '--count',
+            help="The amount of assets to process at once",
+            required=True,
+            type=int
+        )
+
+    def handle(self, *args, **options):
+        self.print('Running command to update file size')
 
         asset_limit = self.options['count']
 
@@ -25,7 +34,7 @@ class Handler(CommandHandler):
         total_asset_count = asset_qs.count()
         assets = asset_qs.all()[:asset_limit]
 
-        self.print_success(f'Update file size for {len(assets)} assets out of {total_asset_count}')
+        self.print(f'Update file size for {len(assets)} assets out of {total_asset_count}')
 
         for asset in assets:
             try:
@@ -45,14 +54,13 @@ class Handler(CommandHandler):
                 asset.file_size = None
                 asset.save()
                 print("_", end="", flush=True)
-                logger.error('file %s could not be found', asset.file)
-        print()
+                self.print_error('file %s could not be found', asset.file)
 
         collection_asset_qs = CollectionAsset.objects.filter(file_size=0)
         total_asset_count = collection_asset_qs.count()
         collection_assets = collection_asset_qs.all()[:asset_limit]
 
-        self.print_success(
+        self.print(
             f"Update file size for {len(collection_assets)} collection assets out of "
             f"{total_asset_count}"
         )
@@ -73,26 +81,6 @@ class Handler(CommandHandler):
                 # bucket.
                 collection_asset.file_size = None
                 collection_asset.save()
-                print("_", end="", flush=True)
-                logger.error('file %s could not be found', collection_asset.file)
+                self.print_error('file %s could not be found', collection_asset.file)
 
-        print()
         self.print_success('Update completed')
-
-
-class Command(BaseCommand):
-    help = """Requests the file size of every asset / collection asset from the s3 bucket and
-        updates the value in the database"""
-
-    def add_arguments(self, parser: CommandParser) -> None:
-        super().add_arguments(parser)
-        parser.add_argument(
-            '-c',
-            '--count',
-            help="The amount of assets to process at once",
-            required=True,
-            type=int
-        )
-
-    def handle(self, *args, **options):
-        Handler(self, options).update()

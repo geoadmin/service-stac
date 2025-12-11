@@ -1,24 +1,37 @@
 import cProfile
-import logging
 import os
 import pstats
 
 from django.conf import settings
-from django.core.management.base import BaseCommand
 
 from rest_framework.test import APIRequestFactory
 
 from stac_api.models.item import Item
-from stac_api.utils import CommandHandler
-
-logger = logging.getLogger(__name__)
+from stac_api.utils import CustomBaseCommand
 
 STAC_BASE_V = f'{settings.STAC_BASE}/v1'
 
 
-class Handler(CommandHandler):
+class Command(CustomBaseCommand):
+    help = """ItemSerializer profiling command
 
-    def profiling(self):
+    Profiling of the serialization of many items.
+
+    See https://docs.python.org/3.7/library/profile.html
+    """
+
+    def add_arguments(self, parser):
+        super().add_arguments(parser)
+        parser.add_argument(
+            '--collection',
+            type=str,
+            default='perftest-collection-0',
+            help="Collection ID to use for the ItemSerializer profiling"
+        )
+        parser.add_argument('--limit', type=int, default=100, help="Limit to use for the query")
+        parser.add_argument('--sort', type=str, default='tottime', help="Profiling output sorting")
+
+    def handle(self, *args, **options):
         # pylint: disable=import-outside-toplevel,possibly-unused-variable
         from stac_api.serializers.item import ItemSerializer
         collection_id = self.options["collection"]
@@ -38,25 +51,3 @@ class Handler(CommandHandler):
         stats.sort_stats(self.options['sort']).print_stats()
 
         self.print_success('Done')
-
-
-class Command(BaseCommand):
-    help = """ItemSerializer profiling command
-
-    Profiling of the serialization of many items.
-
-    See https://docs.python.org/3.7/library/profile.html
-    """
-
-    def add_arguments(self, parser):
-        parser.add_argument(
-            '--collection',
-            type=str,
-            default='perftest-collection-0',
-            help="Collection ID to use for the ItemSerializer profiling"
-        )
-        parser.add_argument('--limit', type=int, default=100, help="Limit to use for the query")
-        parser.add_argument('--sort', type=str, default='tottime', help="Profiling output sorting")
-
-    def handle(self, *args, **options):
-        Handler(self, options).profiling()
