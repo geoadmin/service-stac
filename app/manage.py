@@ -6,6 +6,9 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from helpers.logging import redirect_std_to_logger
+from helpers.otel import initialize_tracing
+from helpers.otel import setup_trace_provider
+from opentelemetry import trace
 
 
 def main():
@@ -38,7 +41,16 @@ def main():
             "available on your PYTHONPATH environment variable? Did you "
             "forget to activate a virtual environment?"
         ) from exc
-    execute_from_command_line(sys.argv)
+
+    tracing_enabled = initialize_tracing()
+    if tracing_enabled:
+        name = sys.argv[1] if len(sys.argv) > 1 else sys.argv[0]
+        setup_trace_provider()
+        tracer = trace.get_tracer(name)
+        with tracer.start_as_current_span(name=name):
+            execute_from_command_line(sys.argv)
+    else:
+        execute_from_command_line(sys.argv)
 
 
 if __name__ == '__main__':
