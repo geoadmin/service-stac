@@ -1,4 +1,5 @@
 import logging
+import re
 import time
 
 from django.contrib.auth import get_user_model
@@ -16,6 +17,15 @@ from stac_api.models.item import ItemLink
 from tests.tests_09.data_factory import Factory
 
 logger = logging.getLogger(__name__)
+
+
+def normalize_wkt(wkt_string):
+    """Normalize WKT string by rounding floating point numbers to 10 decimal places.
+
+    This handles floating point precision differences that occur during
+    database storage/retrieval.
+    """
+    return re.sub(r'(\d+\.\d+)', lambda m: str(round(float(m.group(1)), 10)), wkt_string)
 
 
 class AdminBaseTestCase(TestCase):
@@ -175,7 +185,17 @@ class AdminBaseTestCase(TestCase):
             elif key.startswith('links-'):
                 continue
             else:
-                self.assertEqual(getattr(item, key), value, msg=f"Item field {key} value missmatch")
+                if key == 'geometry':
+                    geom_obj = getattr(item, key)
+                    actual_wkt = normalize_wkt(str(geom_obj))
+                    expected_wkt = normalize_wkt(value)
+                    self.assertEqual(
+                        actual_wkt, expected_wkt, msg=f"Item field {key} value missmatch"
+                    )
+                else:
+                    self.assertEqual(
+                        getattr(item, key), value, msg=f"Item field {key} value missmatch"
+                    )
 
         return item, data, link
 
