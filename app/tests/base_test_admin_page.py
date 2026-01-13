@@ -25,7 +25,14 @@ def normalize_wkt(wkt_string):
     This handles floating point precision differences that occur during
     database storage/retrieval.
     """
-    return re.sub(r'(\d+\.\d+)', lambda m: str(round(float(m.group(1)), 10)), wkt_string)
+    wkt = re.sub(r'(\d+\.\d+)', lambda m: str(round(float(m.group(1)), 10)), wkt_string)
+    # Canonicalize spacing so POLYGON ((.. becomes POLYGON((.. and commas have single spaces
+    wkt = re.sub(r'([A-Z]+)\s+\(', r'\1(', wkt)
+    wkt = re.sub(r'\(\s+', '(', wkt)
+    wkt = re.sub(r'\s+\)', ')', wkt)
+    wkt = re.sub(r',\s*', ', ', wkt)
+    wkt = re.sub(r'\s+', ' ', wkt)
+    return wkt.strip()
 
 
 class AdminBaseTestCase(TestCase):
