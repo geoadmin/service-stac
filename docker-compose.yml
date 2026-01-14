@@ -1,11 +1,11 @@
 services:
   db:
-    image: kartoza/postgis:16
+    image: kartoza/postgis:18-3.6
     environment:
       - POSTGRES_DB=${DB_NAME:-service_stac_local}
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      - POSTGRES_MULTIPLE_EXTENSIONS=postgis,postgis_topology
+      - POSTGRES_MULTIPLE_EXTENSIONS=postgis
       - EXTRA_CONF=log_min_messages = ${DB_LOG_LEVEL:-FATAL}
     user: ${UID}
     ports:
