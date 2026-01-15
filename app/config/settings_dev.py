@@ -52,9 +52,14 @@ if DEBUG:
 
 SHELL_PLUS_POST_IMPORTS = ['from tests.data_factory import Factory']
 
-# Regex patterns of collections that should go to the managed bucket
+# Patterns prefixes of collections that should go to the managed bucket
 MANAGED_BUCKET_COLLECTION_PATTERNS = env.list(
     'MANAGED_BUCKET_COLLECTION_PATTERNS', default=["ch.meteoschweiz.ogd-"]
+)
+
+# Patterns prefixes of collections that should should *not* go to the managed bucket
+MANAGED_BUCKET_COLLECTION_PATTERNS_BLACKLIST = env.list(
+    'MANAGED_BUCKET_COLLECTION_PATTERNS_BLACKLIST', default=["ch.meteoschweiz.ogd-precipitation"]
 )
 
 # Since it's impossible to recreate the service-account situation with minio
