@@ -602,10 +602,15 @@ def select_s3_bucket(collection_name) -> AVAILABLE_S3_BUCKETS:
     Select the correct s3 bucket based on matching patterns with the collection
     name
     """
-    patterns = settings.MANAGED_BUCKET_COLLECTION_PATTERNS
+    whitelist_patterns = settings.MANAGED_BUCKET_COLLECTION_PATTERNS
+    blacklist_patterns = settings.MANAGED_BUCKET_COLLECTION_PATTERNS_BLACKLIST
 
-    for pattern in patterns:
-        if collection_name.startswith(pattern):
+    for whitelist_pattern in whitelist_patterns:
+        if collection_name.startswith(whitelist_pattern):
+            # if a pattern is found, let's also check it against the blacklist
+            for blacklist_pattern in blacklist_patterns:
+                if collection_name.startswith(blacklist_pattern):
+                    return AVAILABLE_S3_BUCKETS.legacy
             return AVAILABLE_S3_BUCKETS.managed
 
     return AVAILABLE_S3_BUCKETS.legacy

@@ -548,6 +548,7 @@ The service is configured by Environment Variable:
 | AWS_S3_CUSTOM_DOMAIN | `None` | |
 | AWS_PRESIGNED_URL_EXPIRES | 3600 | AWS presigned url for asset upload expire time in seconds |
 | MANAGED_BUCKET_COLLECTION_PATTERNS | - | A list of prefix patterns for collections that go to the managed bucket |
+| MANAGED_BUCKET_COLLECTION_PATTERNS_BLACKLIST | - | A list of prefix patterns for collection that explicitly should not go to the managed bucket |
 | EXTERNAL_URL_REACHABLE_TIMEOUT | `5` | How long the external asset URL validator should try to connect to given asset in seconds |
 
 #### **Development settings (only for local environment and DEV staging)**

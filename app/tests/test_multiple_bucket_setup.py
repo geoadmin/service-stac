@@ -178,7 +178,7 @@ class TestBucketSelector(TestCase):
         default environment explicitly here.
         This might appear a bit artificial, but otherwise we have no way
         to machine-test the functioning of getting the values from the env
-        list, use them as regex, and match the collection name.
+        list and match the collection name.
         """
         env = environ.Env()
         env.read_env("../.local.default")
@@ -188,3 +188,22 @@ class TestBucketSelector(TestCase):
             bucket_name = select_s3_bucket(collection_name)
 
         self.assertEqual(bucket_name, AVAILABLE_S3_BUCKETS.managed)
+
+    @parameterized.expand([
+        'ch.meteoschweiz.ogd-precipitation',
+    ])
+    def test_managed_bucket_patterns_blacklist(self, collection_name):
+        """Test if the patterns in the environment work correctly. We take the
+        default environment explicitly here.
+        This might appear a bit artificial, but otherwise we have no way
+        to machine-test the functioning of getting the values from the env
+        list and match the collection name.
+        """
+        env = environ.Env()
+        env.read_env("../.local.default")
+
+        patterns = env.list('MANAGED_BUCKET_COLLECTION_PATTERNS_BLACKLIST')
+        with self.settings(MANAGED_BUCKET_COLLECTION_PATTERNS=patterns):
+            bucket_name = select_s3_bucket(collection_name)
+
+        self.assertEqual(bucket_name, AVAILABLE_S3_BUCKETS.legacy)
