@@ -1,32 +1,43 @@
 #!/usr/bin/env python
 """
-The gevent monkey import and patch suppress a warning, and a potential problem.
-Gunicorn would call it anyway, but if it tries to call it after the ssl module
-has been initialized in another module (like, in our code, by the botocore library),
-then it could lead to inconsistencies in how the ssl module is used. Thus we patch
-the ssl module through gevent.monkey.patch_all before any other import, especially
-the app import, which would cause the boto module to be loaded, which would in turn
-load the ssl module.
-
-NOTE: We do this only if wsgi.py is the main program, when running django runserver
-for local development, monkey patching creates the following error:
-
-    `RuntimeError: cannot release un-acquired lock`
-
-isort:skip_file
-"""
-# pylint: disable=wrong-import-position
-if __name__ == '__main__':
-    import gevent.monkey
-    gevent.monkey.patch_all()
-"""
-WSGI config for project project.
+WSGI config for project.
 
 It exposes the WSGI callable as a module-level variable named ``application``.
 
 For more information on this file, see
 https://docs.djangoproject.com/en/3.1/howto/deployment/wsgi/
 """
+
+# isort:skip_file
+# pylint: disable=wrong-import-position,wrong-import-order,ungrouped-imports
+
+# The gevent monkey import and patch suppress a warning, and a potential problem.
+# Gunicorn would call it anyway, but if it tries to call it after the ssl module
+# has been initialized in another module (like, in our code, by the botocore library),
+# then it could lead to inconsistencies in how the ssl module is used. Thus we patch
+# the ssl module through gevent.monkey.patch_all before any other import, especially
+# the app import, which would cause the boto module to be loaded, which would in turn
+# load the ssl module.
+# NOTE: We do this only if wsgi.py is the main program, when running django runserver
+# for local development, monkey patching creates the following error:
+#     `RuntimeError: cannot release un-acquired lock`
+if __name__ == '__main__':
+    import gevent.monkey
+    gevent.monkey.patch_all()
+
+# default to the setting that's being created in DOCKERFILE
+from os import environ
+
+environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+
+# Initialize OTEL.
+# Initialize should be called as early as possible, but at least before the app is imported
+# The order has a impact on how the libraries are instrumented. If called after app import,
+# e.g. the django instrumentation has no effect.
+from helpers.otel import initialize_tracing, setup_trace_provider
+
+initialize_tracing()
+
 import logging
 import os
 
@@ -40,7 +51,6 @@ from django.core.wsgi import get_wsgi_application
 # Here we cannot uses `from django.conf import settings` because it breaks the `make gunicornserver`
 from config.settings import get_logging_config
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 application = get_wsgi_application()
 
 
@@ -88,6 +98,14 @@ class GeventWorkerWithStackDump(GeventWorker):
         logger.error('Dumping gevent stacks:\n%s', '\n'.join(gevent.util.format_run_info()))
 
 
+def post_fork(server, worker):
+    if server.log:
+        server.log.info("Worker spawned (pid: %s)", worker.pid)
+
+    # Setup OTEL providers for this worker
+    setup_trace_provider()
+
+
 # We use the port 5000 as default, otherwise we set the HTTP_PORT env variable within the container.
 if __name__ == '__main__':
     HTTP_PORT = str(os.environ.get('HTTP_PORT', "8000"))
@@ -102,5 +120,6 @@ if __name__ == '__main__':
         'graceful_timeout': int(os.environ.get('GUNICORN_GRACEFUL_TIMEOUT', 30)),
         'keepalive': int(os.environ.get('GUNICORN_KEEPALIVE', 2)),
         'logconfig_dict': get_logging_config(),
+        'post_fork': post_fork,
     }
     StandaloneApplication(application, options).run()

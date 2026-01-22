@@ -30,7 +30,7 @@ from stac_api.exceptions import NotImplementedException
 logger = logging.getLogger(__name__)
 
 AVAILABLE_S3_BUCKETS = Enum('AVAILABLE_S3_BUCKETS', list(settings.AWS_SETTINGS.keys()))
-API_VERSION = Enum('API_VERSION', ['v09', 'v1'])
+API_VERSION = Enum('API_VERSION', ['v09', 'v1'])  # pylint: disable=invalid-name
 
 
 def call_calculate_extent(*args, **kwargs):
