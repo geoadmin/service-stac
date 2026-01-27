@@ -55,6 +55,8 @@ opentelemetry-instrumentation-botocore = "0.60b1"
 opentelemetry-instrumentation-django = "0.60b1"
 opentelemetry-instrumentation-logging = "0.60b1"
 opentelemetry-instrumentation-psycopg = "0.60b1"
+opentelemetry-instrumentation-asgi = "0.60b1"
+uvicorn_worker = "~=0.4"
 
 [requires]
 python_version = "3.12"

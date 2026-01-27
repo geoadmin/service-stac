@@ -260,7 +260,8 @@ serve-debug: setup-logs
 
 .PHONY: gunicornserve
 gunicornserve: setup-logs
-	$(PYTHON) $(APP_SRC_DIR)/wsgi.py
+	cd $(APP_SRC_DIR) && \
+	$(PIPENV_RUN) gunicorn asgi:application
 
 .PHONY: serve-specs
 serve-specs:
@@ -301,7 +302,8 @@ dockerrun: dockerbuild-debug setup-logs
 		--env-file .env.local \
 		--net=host \
 		--mount type=bind,source="${PWD}/${LOGS_DIR}",target=/opt/service-stac/logs \
-		$(DOCKER_IMG_LOCAL_TAG_DEV) ./wsgi.py
+		--entrypoint gunicorn \
+		$(DOCKER_IMG_LOCAL_TAG_DEV) asgi:application
 
 .PHONY: dockerrun-prod
 dockerrun-prod: dockerbuild-prod setup-logs
@@ -311,7 +313,8 @@ dockerrun-prod: dockerbuild-prod setup-logs
 		--env-file .env.local \
 		--net=host \
 		--mount type=bind,source="${PWD}/${LOGS_DIR}",target=/opt/service-stac/logs \
-		$(DOCKER_IMG_LOCAL_TAG) ./wsgi.py
+		--entrypoint gunicorn \
+		$(DOCKER_IMG_LOCAL_TAG) asgi:application
 
 .PHONY: dockerpush-debug
 dockerpush-debug: dockerbuild-debug

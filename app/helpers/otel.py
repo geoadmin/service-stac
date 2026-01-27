@@ -1,27 +1,14 @@
 from os import getenv
 
+from helpers.strtobool import strtobool
+
 # Opentelemetry tends to do a bit too much magic, we therefore only import the packages if we
 # really need them.
 # pylint: disable=import-outside-toplevel
 
 
-def strtobool(value: str) -> bool:
-    """Convert a string representation of truth to true (1) or false (0).
-    True values are 'y', 'yes', 't', 'true', 'on', and '1'; false values
-    are 'n', 'no', 'f', 'false', 'off', and '0'.  Raises ValueError if
-    'val' is anything else.
-    """
-    value = value.lower()
-    if value in ('y', 'yes', 't', 'true', 'on', '1'):
-        return True
-    if value in ('n', 'no', 'f', 'false', 'off', '0'):
-        return False
-    raise ValueError(f"invalid truth value \'{value}\'")
-
-
-def initialize_tracing() -> bool:
-    tracing_enabled = not strtobool(getenv("OTEL_SDK_DISABLED", "false"))
-    if tracing_enabled:
+def initialize_tracing():
+    if not strtobool(getenv("OTEL_SDK_DISABLED", "false")):
         if strtobool(getenv("OTEL_ENABLE_DJANGO", "false")):
             from opentelemetry.instrumentation.django import DjangoInstrumentor
             DjangoInstrumentor().instrument()
@@ -34,12 +21,10 @@ def initialize_tracing() -> bool:
         if strtobool(getenv("OTEL_ENABLE_LOGGING", "false")):
             from opentelemetry.instrumentation.logging import LoggingInstrumentor
             LoggingInstrumentor().instrument()
-    return tracing_enabled
 
 
-def setup_trace_provider() -> None:
-    tracing_enabled = not strtobool(getenv("OTEL_SDK_DISABLED", "false"))
-    if tracing_enabled:
+def setup_trace_provider():
+    if not strtobool(getenv("OTEL_SDK_DISABLED", "false")):
         from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
         from opentelemetry.sdk.resources import Resource
         from opentelemetry.sdk.trace import TracerProvider
