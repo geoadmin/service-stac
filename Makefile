@@ -260,8 +260,7 @@ serve-debug: setup-logs
 
 .PHONY: gunicornserve
 gunicornserve: setup-logs
-	cd $(APP_SRC_DIR) && \
-	$(PIPENV_RUN) gunicorn asgi:application
+	$(PYTHON) $(APP_SRC_DIR)/asgi.py
 
 .PHONY: serve-specs
 serve-specs:
@@ -302,8 +301,7 @@ dockerrun: dockerbuild-debug setup-logs
 		--env-file .env.local \
 		--net=host \
 		--mount type=bind,source="${PWD}/${LOGS_DIR}",target=/opt/service-stac/logs \
-		--entrypoint gunicorn \
-		$(DOCKER_IMG_LOCAL_TAG_DEV) asgi:application
+		$(DOCKER_IMG_LOCAL_TAG_DEV) ./asgi.py
 
 .PHONY: dockerrun-prod
 dockerrun-prod: dockerbuild-prod setup-logs
@@ -313,8 +311,7 @@ dockerrun-prod: dockerbuild-prod setup-logs
 		--env-file .env.local \
 		--net=host \
 		--mount type=bind,source="${PWD}/${LOGS_DIR}",target=/opt/service-stac/logs \
-		--entrypoint gunicorn \
-		$(DOCKER_IMG_LOCAL_TAG) asgi:application
+		$(DOCKER_IMG_LOCAL_TAG) ./asgi.py
 
 .PHONY: dockerpush-debug
 dockerpush-debug: dockerbuild-debug

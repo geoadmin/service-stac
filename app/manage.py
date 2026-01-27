@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from helpers.logging import redirect_std_to_logger
 from helpers.otel import initialize_tracing
 from helpers.otel import setup_trace_provider
-from helpers.strtobool import strtobool
+from helpers.otel import tracing_enabled
 from opentelemetry import trace
 
 
@@ -43,7 +43,7 @@ def main():
             "forget to activate a virtual environment?"
         ) from exc
 
-    if not strtobool(os.getenv("OTEL_SDK_DISABLED", "false")):
+    if tracing_enabled():
         setup_trace_provider()
         initialize_tracing()
         name = sys.argv[1] if len(sys.argv) > 1 else sys.argv[0]
