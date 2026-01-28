@@ -139,7 +139,7 @@ WSGI_APPLICATION = 'wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.contrib.gis.db.backends.postgis',
+        'ENGINE': 'dj_db_conn_pool.backends.postgis',
         'CONN_MAX_AGE': 30,
         'NAME': env('DB_NAME', default='service_stac'),
         'USER': env('DB_USER', default='service_stac'),
@@ -148,6 +148,11 @@ DATABASES = {
         'PORT': env.int('DB_PORT', default=5432),
         'TEST': {
             'NAME': env('DB_NAME_TEST', default='test_service_stac'),
+        },
+        'POOL_OPTIONS': {
+            'POOL_SIZE': int(os.environ.get('GUNICORN_THREADS', '4')) + 1,
+            # 'MAX_OVERFLOW': 10,
+            # 'RECYCLE': 24 * 60 * 60 # in seconds, default = -1
         }
     }
 }

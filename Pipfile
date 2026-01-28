@@ -54,6 +54,7 @@ opentelemetry-instrumentation-botocore = "0.60b1"
 opentelemetry-instrumentation-django = "0.60b1"
 opentelemetry-instrumentation-logging = "0.60b1"
 opentelemetry-instrumentation-psycopg = "0.60b1"
+django-db-connection-pool = {extras = ["postgresql"], version = "~=1.2"}
 
 [requires]
 python_version = "3.12"
