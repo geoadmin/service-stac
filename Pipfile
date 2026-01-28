@@ -27,7 +27,7 @@ pytest-xdist = "*"
 
 [packages]
 gunicorn = "~=23.0"
-psycopg = {extras = ["binary"], version = "~=3.2"}
+psycopg = {extras = ["binary", "pool"], version = "~=3.2"}
 numpy = "~=2.3"
 python-dotenv = "~=1.1"
 djangorestframework = "~=3.16"
