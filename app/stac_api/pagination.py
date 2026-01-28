@@ -195,22 +195,49 @@ class GetPostCursorPagination(CursorPagination):
             )
         return super().get_page_size(request)
 
+    # FIXME: AsgiRequest request doesn't have an environ attribue
+    # def decode_cursor(self, request):
+    #     if request.method == 'POST':
+    #         # Patched the cursor in the url query from POST payload
+    #         cursor_encoded = request.data.get(self.cursor_query_param)
+    #         if cursor_encoded:
+    #             # Here we need to patch the request with the cursor. The original
+    #             # decode_cursor() method is taking the cursor from the URL query
+    #             # that's why we create a new request object being a copy of the
+    #             # original one plus the cursor as URL query. We need to do this
+    #             # copy because request objects are immutable.
+    #             environ = request.environ.copy()
+    #             environ['QUERY_STRING'] += parse.urlencode(
+    #                 {self.cursor_query_param: cursor_encoded},
+    #                 doseq=True,
+    #             )
+    #             request = Request(WSGIRequest(environ))
+    #     return super().decode_cursor(request)
+
+
     def decode_cursor(self, request):
         if request.method == 'POST':
-            # Patched the cursor in the url query from POST payload
+            # Get the cursor from POST data
             cursor_encoded = request.data.get(self.cursor_query_param)
             if cursor_encoded:
-                # Here we need to patch the request with the cursor. The original
-                # decode_cursor() method is taking the cursor from the URL query
-                # that's why we create a new request object being a copy of the
-                # original one plus the cursor as URL query. We need to do this
-                # copy because request objects are immutable.
-                environ = request.environ.copy()
-                environ['QUERY_STRING'] += parse.urlencode(
-                    {self.cursor_query_param: cursor_encoded},
-                    doseq=True,
+                # Create a copy of the query params and add the cursor
+                query_params = request.query_params.copy()
+                query_params[self.cursor_query_param] = cursor_encoded
+
+                # Patch the request with the new query params
+                # For DRF Request, you can replace _request._request.GET safely
+                # or create a new DRF Request object
+                # Here we create a new DRF Request instance
+                request = Request(
+                    request._request,  # underlying Django request (ASGI or WSGI)
+                    parsers=request.parsers,
+                    authenticators=request.authenticators,
+                    negotiator=request.negotiator,
+                    parser_context=request.parser_context,
                 )
-                request = Request(WSGIRequest(environ))
+                # Override the query_params
+                request._request.GET = query_params
+
         return super().decode_cursor(request)
 
     def patch_link(self, link, request):

@@ -25,6 +25,8 @@ def validate_username_header(request):
 
     Based on discussion in https://code.djangoproject.com/ticket/35971
     """
-    apigw_auth = request.META.get("HTTP_GEOADMIN_AUTHENTICATED", "false").lower() == "true"
+    # FIXME: AsgiRequest request seem to differe with header names
+    # apigw_auth = request.META.get("HTTP_GEOADMIN_AUTHENTICATED", "false").lower() == "true"
+    apigw_auth = request.headers.get("Geoadmin-Authenticated", "false").lower() == "true"
     if not apigw_auth and REMOTE_USER_HEADER in request.META:
         del request.META[REMOTE_USER_HEADER]

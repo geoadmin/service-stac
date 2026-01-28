@@ -398,7 +398,9 @@ class AssetUploadAdminMixin:
             # Include common variables for rendering the admin template.
             self.admin_site.each_context(request),
             # Anything else you want in the context...
-            csrf_token=request.META.get('CSRF_COOKIE'),
+            # FIXME: AsgiRequest request seem to differe with header names
+            # csrf_token=request.META.get('CSRF_COOKIE'),
+            csrf_token = request.COOKIES.get('csrftoken'),
             asset_name=obj.name,
             collection_name=obj.get_collection(),
         )
