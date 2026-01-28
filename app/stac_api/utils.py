@@ -154,7 +154,11 @@ def _get_boto_access_kwargs(s3_bucket: AVAILABLE_S3_BUCKETS = AVAILABLE_S3_BUCKE
     client_access_kwargs = {
         "endpoint_url": s3_config['S3_ENDPOINT_URL'],
         "region_name": s3_config['S3_REGION_NAME'],
-        "config": Config(signature_version=s3_config['S3_SIGNATURE_VERSION']),
+        "config":
+            Config(
+                signature_version=s3_config['S3_SIGNATURE_VERSION'],
+                max_pool_connections=s3_config['MAX_POOL_CONNECTIONS']
+            ),
     }
 
     # for the key access type, use the configured key/secret
@@ -191,15 +195,18 @@ def get_s3_resource(s3_bucket: AVAILABLE_S3_BUCKETS = AVAILABLE_S3_BUCKETS.legac
     return boto3.resource('s3', **(_get_boto_access_kwargs(s3_bucket)))
 
 
+_S3_CLIENTS = {}
+
+
 def get_s3_client(s3_bucket: AVAILABLE_S3_BUCKETS = AVAILABLE_S3_BUCKETS.legacy):
     '''Returns an AWS S3 client
 
     Returns:
         AWS S3 client
     '''
-    client = boto3.client('s3', **(_get_boto_access_kwargs(s3_bucket)))
-
-    return client
+    if s3_bucket not in _S3_CLIENTS:
+        _S3_CLIENTS[s3_bucket] = boto3.client('s3', **(_get_boto_access_kwargs(s3_bucket)))
+    return _S3_CLIENTS[s3_bucket]
 
 
 def build_asset_href(request, path):

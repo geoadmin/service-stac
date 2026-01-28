@@ -246,7 +246,8 @@ try:
             # a link to the file in the admin UI. It must only contain the domain, but not
             # the scheme (http/https).
             "S3_CUSTOM_DOMAIN": env('LEGACY_AWS_S3_CUSTOM_DOMAIN', default=None),
-            "S3_SIGNATURE_VERSION": "s3v4"
+            "S3_SIGNATURE_VERSION": "s3v4",
+            "MAX_POOL_CONNECTIONS": int(env('LEGACY_MAX_POOL_CONNECTIONS', default="50")),
         },
         'managed': {
             # The managed configuration will be passed directly via env
@@ -256,7 +257,8 @@ try:
             "S3_REGION_NAME": env('AWS_S3_REGION_NAME', default='eu-central-1'),
             "S3_ENDPOINT_URL": env('AWS_S3_ENDPOINT_URL', default=None),
             "S3_CUSTOM_DOMAIN": env('AWS_S3_CUSTOM_DOMAIN', default=None),
-            "S3_SIGNATURE_VERSION": "s3v4"
+            "S3_SIGNATURE_VERSION": "s3v4",
+            "MAX_POOL_CONNECTIONS": int(env('MAX_POOL_CONNECTIONS', default="50")),
         }
     }
 except KeyError as err:

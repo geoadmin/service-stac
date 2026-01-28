@@ -20,7 +20,8 @@ AWS_SETTINGS = {
         "S3_ENDPOINT_URL": None,
         "S3_CUSTOM_DOMAIN": 'testserver',
         "S3_BUCKET_NAME": 'legacy',
-        "S3_SIGNATURE_VERSION": "s3v4"
+        "S3_SIGNATURE_VERSION": "s3v4",
+        "MAX_POOL_CONNECTIONS": 50,
     },
     "managed": {
         "access_type": "service_account",
@@ -30,7 +31,8 @@ AWS_SETTINGS = {
         "S3_ENDPOINT_URL": None,
         "S3_CUSTOM_DOMAIN": 'testserver',
         "S3_BUCKET_NAME": 'managed',
-        "S3_SIGNATURE_VERSION": "s3v4"
+        "S3_SIGNATURE_VERSION": "s3v4",
+        "MAX_POOL_CONNECTIONS": 50,
     }
 }
 
