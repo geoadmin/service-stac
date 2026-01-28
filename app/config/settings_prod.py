@@ -140,6 +140,7 @@ WSGI_APPLICATION = 'wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.contrib.gis.db.backends.postgis',
+        'CONN_MAX_AGE': 30,
         'NAME': env('DB_NAME', default='service_stac'),
         'USER': env('DB_USER', default='service_stac'),
         'PASSWORD': env('DB_PW', default='service_stac'),
