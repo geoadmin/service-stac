@@ -26,7 +26,6 @@ pytest-cov = "*"
 pytest-xdist = "*"
 
 [packages]
-gevent = "~=25.5"
 gunicorn = "~=23.0"
 psycopg = {extras = ["binary"], version = "~=3.2"}
 numpy = "~=2.3"
