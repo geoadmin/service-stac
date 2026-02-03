@@ -14,6 +14,7 @@ services:
       - type: bind
         source: ${PWD}/.volumes/postgresql
         target: /var/lib/postgresql
+
   s3:
     image: minio/minio
     env_file: ./minio.env
@@ -26,6 +27,7 @@ services:
     ports:
       - 9090:${S3_PORT:-9000}
       - 9001:9001
+
   s3-client:
     image: minio/mc
     links:
@@ -45,3 +47,16 @@ services:
         /usr/bin/mc policy set download minio/service-stac-local;
         exit 0;
       "
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    command: --config otel-local-config.yaml
+    volumes:
+      - ./otel-local-config.yaml:/otel-local-config.yaml
+    ports:
+      - "4317:4317"
+
+  zipkin:
+    image: openzipkin/zipkin:latest
+    ports:
+      - "9411:9411"
