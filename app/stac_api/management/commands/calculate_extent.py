@@ -64,7 +64,10 @@ class Command(CustomBaseCommand):
                                 as extent_end_datetime
                         FROM stac_api_item AS item
                         WHERE item.collection_id = %s
-                        GROUP BY item.collection_id
+                          AND (
+                            item.properties_expires IS NULL OR
+                            item.properties_expires > NOW()
+                        ) GROUP BY item.collection_id
                     UNION
                         -- This covers the case that the last item of a collection is deleted.
                         SELECT %s AS collection_id, NULL, NULL, NULL
