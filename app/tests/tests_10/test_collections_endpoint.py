@@ -402,6 +402,8 @@ class CollectionsUpdateEndpointTestCase(StacBaseTestCase):
         self.assertNotEqual(self.collection["license"], payload_json['license'])
         # for start the payload has no description
         self.assertNotIn('title', payload_json.keys())
+        providers_before_patch = self.collection['providers']
+        links_before_patch = self.collection['links']
 
         response = self.client.patch(
             f"/{STAC_BASE_V}/collections/{collection_name}",
@@ -413,8 +415,13 @@ class CollectionsUpdateEndpointTestCase(StacBaseTestCase):
         # licence affected by patch
         self.assertEqual(payload_json['license'], response_json['license'])
 
+        db_collection = Collection.objects.get(name=collection_name)
         # description not affected by patch
         self.assertEqual(self.collection["description"], response_json['description'])
+        # providers not affected by patch
+        self.assertEqual(db_collection.providers.count(), len(providers_before_patch))
+        # links not affected by patch
+        self.assertEqual(db_collection.links.count(), len(links_before_patch))
 
     def test_collection_patch_extra_payload(self):
         collection_name = self.collection['name']  # get a name that is registered in the service

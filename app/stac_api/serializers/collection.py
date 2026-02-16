@@ -360,16 +360,20 @@ class CollectionSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
     def update(self, instance, validated_data):
         """
         Update and return an existing `Collection` instance, given the validated data.
+        In case of partial update, only update providers and links if they are present
+        in the payload.
         """
-        providers_data = validated_data.pop('providers', [])
-        links_data = validated_data.pop('links', [])
-        self._update_or_create_providers(collection=instance, providers_data=providers_data)
-        update_or_create_links(
-            instance_type="collection",
-            model=CollectionLink,
-            instance=instance,
-            links_data=links_data
-        )
+        if not self.partial or validated_data.get('providers') is not None:
+            providers_data = validated_data.pop('providers', [])
+            self._update_or_create_providers(collection=instance, providers_data=providers_data)
+        if not self.partial or validated_data.get('links') is not None:
+            links_data = validated_data.pop('links', [])
+            update_or_create_links(
+                instance_type="collection",
+                model=CollectionLink,
+                instance=instance,
+                links_data=links_data
+            )
         return super().update(instance, validated_data)
 
     def update_or_create(self, look_up, validated_data):
