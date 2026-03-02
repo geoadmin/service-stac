@@ -108,6 +108,7 @@ MEDIA_TYPES = [
     MediaType('application/x-hdf5', 'HDF5', ['.h5']),
     MediaType('application/x.aixm', 'AIXM', ['.aixm']),
     MediaType('application/x.aixm+zip', 'Zipped AIXM', ['.zip'])
+    MediaType('application/x-tar', 'TAR', ['.tar'])
 ]
 
 MT_VAR = "[0-9A-Za-z!#$%&'*+.^_`|~-]+"
