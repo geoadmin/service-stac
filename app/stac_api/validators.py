@@ -107,7 +107,7 @@ MEDIA_TYPES = [
     MediaType('application/grib', 'GRIB/GRIB2', ['.grib', '.grib2']),
     MediaType('application/x-hdf5', 'HDF5', ['.h5']),
     MediaType('application/x.aixm', 'AIXM', ['.aixm']),
-    MediaType('application/x.aixm+zip', 'Zipped AIXM', ['.zip'])
+    MediaType('application/x.aixm+zip', 'Zipped AIXM', ['.zip']),
     MediaType('application/x-tar', 'TAR', ['.tar'])
 ]
 
