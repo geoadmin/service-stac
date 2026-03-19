@@ -668,7 +668,9 @@ components:
           readOnly: true
         type:
           example: Collection
+          const: Collection
           type: string
+          readOnly: true
         license:
           $ref: "#/components/schemas/license"
         providers:
