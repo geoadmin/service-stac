@@ -261,7 +261,7 @@ components:
           readOnly: true
         type:
           example: Collection
-          const: Collection
+          description: 'Value: `"Collection"`'
           type: string
           readOnly: true
         license:
