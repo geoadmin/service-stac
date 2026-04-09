@@ -127,14 +127,14 @@ The python SDK supports ratio based [head sampling](https://opentelemetry.io/doc
 Local telemetry can be tested by using one of the serve commands that use gunicorn, either 
 
 ```bash
-make start-local-db
+make setup-s3-and-db
 make gunicornserve
 ```
 
 or
 
 ```bash
-make start-local-db
+make setup-s3-and-db
 make dockerrun
 ```
 
