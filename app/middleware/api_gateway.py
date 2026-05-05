@@ -24,6 +24,12 @@ def validate_username_header(request):
     Geoadmin-Authenticated is set to "true".
 
     Based on discussion in https://code.djangoproject.com/ticket/35971
+    That ticket requested to add a `get_username` method to `RemoteUserMiddleware`.
+    It was rejected and we implemented this workaround. It has since been
+    implemented for other reasons. Once that change has propagated to a release
+    that we use, we can remove this workaround and just override `get_username`.
+
+    TODO: remove this workaround and just override `get_username`
     """
     apigw_auth = request.META.get("HTTP_GEOADMIN_AUTHENTICATED", "false").lower() == "true"
     if not apigw_auth and REMOTE_USER_HEADER in request.META:
