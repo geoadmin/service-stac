@@ -3,7 +3,7 @@ from enum import Enum
 import pgtrigger
 
 
-def auto_variables_triggers(name):
+def auto_variables_triggers(name, *fields):
     '''Triggers used by various tables to update the `etag` and `updated` fields.'''
     auto_variables_func = '''
     -- update auto variables
@@ -25,7 +25,7 @@ def auto_variables_triggers(name):
             name=f"update_{name}_auto_variables_trigger",
             operation=pgtrigger.Update,
             when=pgtrigger.Before,
-            condition=pgtrigger.Condition('OLD.* IS DISTINCT FROM NEW.*'),
+            condition=pgtrigger.AnyChange(*fields),
             func=auto_variables_func
         )
     ]
