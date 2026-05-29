@@ -66,3 +66,24 @@ class PgTriggersFileSizeTestCase(MockS3PerTestMixin, StacBaseTransactionTestCase
 
         self.assertEqual(self.collection.total_data_size, 2 * file_size)
         self.assertEqual(self.item.total_data_size, 1 * file_size)
+
+
+class PgTriggersUpdated(MockS3PerTestMixin, StacBaseTransactionTestCase):
+
+    def setUp(self):
+        super().setUp()
+        self.factory = Factory()
+        self.collection = self.factory.create_collection_sample().model
+        self.item = self.factory.create_item_sample(collection=self.collection).model
+        self.asset = self.factory.create_asset_sample(
+            self.item, sample='asset-1', db_create=True
+        ).model
+
+    def test_file_update_changes_timestamps(self):
+        prev_mtime = self.asset.updated
+
+        self.asset.checksum_multihash = 'new hash'
+        self.asset.save()
+        self.asset.refresh_from_db()
+
+        self.assertGreater(self.asset.updated, prev_mtime)
