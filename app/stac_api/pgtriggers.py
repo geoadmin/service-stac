@@ -63,7 +63,7 @@ def child_triggers(parent_name, child_name):
             name=f"update_{parent_name}_child_trigger",
             operation=pgtrigger.Update,
             when=pgtrigger.After,
-            condition=pgtrigger.Condition('OLD.* IS DISTINCT FROM NEW.*'),
+            condition=pgtrigger.AnyChange(),
             func=child_update_func.format(
                 parent_name=parent_name, child_obj="NEW", child_name=child_name
             )
@@ -154,8 +154,7 @@ def asset_counter_trigger(count_table, value_field):
         DecreaseCounterTrigger(
             name=f'upd_dec_{value_field}_trigger',
             operation=pgtrigger.Update,
-            condition=pgtrigger.
-            Condition(f'''OLD.{value_field} IS DISTINCT FROM NEW.{value_field}''')
+            condition=pgtrigger.AnyChange(value_field)
         ),
         DecreaseCounterTrigger(
             name=f'del_{value_field}_trigger',
@@ -164,8 +163,7 @@ def asset_counter_trigger(count_table, value_field):
         IncreaseCounterTrigger(
             name=f'upd_inc_{value_field}_trigger',
             operation=pgtrigger.Update,
-            condition=pgtrigger.
-            Condition(f'''OLD.{value_field} IS DISTINCT FROM NEW.{value_field}''')
+            condition=pgtrigger.AnyChange(value_field)
         ),
         IncreaseCounterTrigger(
             name=f'add_{value_field}_trigger',
@@ -225,7 +223,7 @@ def generates_asset_triggers():
         ItemFileSizeTrigger(
             name='update_asset_item_file_size_trigger',
             operation=pgtrigger.Update,
-            condition=pgtrigger.Condition('OLD.file_size IS DISTINCT FROM NEW.file_size'),
+            condition=pgtrigger.AnyChange('file_size'),
         )
     ]
 
@@ -327,7 +325,7 @@ def generates_collection_asset_triggers():
         DecreaseCounterTrigger(
             name='upd_dec_col_asset_proj_epsg_trigger',
             operation=pgtrigger.Update,
-            condition=pgtrigger.Condition('''OLD.proj_epsg IS DISTINCT FROM NEW.proj_epsg''')
+            condition=pgtrigger.AnyChange('proj_epsg')
         ),
         DecreaseCounterTrigger(
             name='del_col_asset_proj_epsg_trigger',
@@ -336,7 +334,7 @@ def generates_collection_asset_triggers():
         IncreaseCounterTrigger(
             name='upd_inc_col_asset_proj_epsg_trigger',
             operation=pgtrigger.Update,
-            condition=pgtrigger.Condition('''OLD.proj_epsg IS DISTINCT FROM NEW.proj_epsg''')
+            condition=pgtrigger.AnyChange('proj_epsg')
         ),
         IncreaseCounterTrigger(
             name='add_col_asset_proj_epsg_trigger',
@@ -349,7 +347,7 @@ def generates_collection_asset_triggers():
         CollectionFileSizeTrigger(
             name='update_col_asset_col_file_size_trigger',
             operation=pgtrigger.Update,
-            condition=pgtrigger.Condition('OLD.* IS DISTINCT FROM NEW.*'),
+            condition=pgtrigger.AnyChange(),
         )
     ]
 
@@ -415,11 +413,9 @@ def generates_item_triggers():
         CollectionExtentTrigger(
             name='update_item_collection_extent_trigger',
             operation=pgtrigger.Update,
-            condition=pgtrigger.Condition(
-                '''NOT ST_EQUALS(OLD.geometry, NEW.geometry) OR
-                OLD.properties_start_datetime IS DISTINCT FROM NEW.properties_start_datetime OR
-                OLD.properties_end_datetime IS DISTINCT FROM NEW.properties_end_datetime OR
-                OLD.properties_datetime IS DISTINCT FROM NEW.properties_datetime'''
+            condition=(
+                pgtrigger.Q(old__geometry__poly__equals=pgtrigger.F('new__geometry')) |
+                pgtrigger.AnyChange('start_datetime', 'end_datetime', 'datetime')
             )
         ),
         CollectionExtentTrigger(
@@ -433,8 +429,7 @@ def generates_item_triggers():
         CollectionFileSizeTrigger(
             name='update_item_collection_file_size_trigger',
             operation=pgtrigger.Update,
-            condition=pgtrigger.
-            Condition('OLD.total_data_size IS DISTINCT FROM NEW.total_data_size'),
+            condition=pgtrigger.AnyChange('total_data_size'),
         )
     ]
 
@@ -480,7 +475,7 @@ def generates_asset_upload_triggers():
         pgtrigger.Trigger(
             name="update_asset_upload_trigger",
             operation=pgtrigger.Update,
-            condition=pgtrigger.Condition('OLD.* IS DISTINCT FROM NEW.*'),
+            condition=pgtrigger.AnyChange(),
             when=pgtrigger.Before,
             func=etag_func
         ),
@@ -531,7 +526,7 @@ def generates_summary_count_triggers(summary_field, count_table):
             operation=pgtrigger.Update,
             # If the count is larger than 1 for OLD and NEW, the change has no impact on the list of
             # values, so we don't need to recalculate the summary.
-            condition=pgtrigger.Condition('NOT (OLD.count > 1 AND NEW.count > 1)')
+            condition=~(pgtrigger.Q(old__count_gt=1) & pgtrigger.Q(new__count_gt=1))
         ),
         CollectionSummaryTrigger(
             name=f'add_del_collection_{count_table}_trigger',
