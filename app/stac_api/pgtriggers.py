@@ -3,7 +3,7 @@ from enum import Enum
 import pgtrigger
 
 
-def auto_variables_triggers(name, *fields):
+def auto_variables_triggers(name, data_fields=()):
     '''Triggers used by various tables to update the `etag` and `updated` fields.'''
     auto_variables_func = '''
     -- update auto variables
@@ -25,7 +25,7 @@ def auto_variables_triggers(name, *fields):
             name=f"update_{name}_auto_variables_trigger",
             operation=pgtrigger.Update,
             when=pgtrigger.Before,
-            condition=pgtrigger.AnyChange(*fields),
+            condition=pgtrigger.AnyChange(*data_fields),
             func=auto_variables_func
         )
     ]
@@ -212,7 +212,7 @@ def generates_asset_triggers():
         '''
 
     return [
-        *auto_variables_triggers('asset'),
+        *auto_variables_triggers('asset', ('file', 'checksum_multihash', 'file_size')),
         *child_triggers('item', 'Asset'),
         *asset_counter_trigger('gsdcount', 'eo_gsd'),
         *asset_counter_trigger('geoadminlangcount', 'geoadmin_lang'),
