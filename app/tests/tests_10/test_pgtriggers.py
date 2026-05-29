@@ -87,3 +87,12 @@ class PgTriggersUpdated(MockS3PerTestMixin, StacBaseTransactionTestCase):
         self.asset.refresh_from_db()
 
         self.assertGreater(self.asset.updated, prev_mtime)
+
+    def test_metadata_update_does_not_change_timestamp(self):
+        prev_mtime = self.asset.updated
+
+        self.asset.description = 'new description'
+        self.asset.save()
+        self.asset.refresh_from_db()
+
+        self.assertEqual(prev_mtime, self.asset.updated)
