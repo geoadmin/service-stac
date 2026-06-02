@@ -422,6 +422,14 @@ class ApiETagPreconditionTestCase(MockS3PerTestMixin, StacBaseTestCase):
 
 class ApiCacheHeaderTestCase(S3TestMixin, MockS3PerTestMixin, StacBaseTestCase):
 
+    def assert_expires(
+        self, response, before, how_soon=timedelta(seconds=0), tolerance=timedelta(seconds=1)
+    ):
+        self.assertIn('Expires', response.headers)
+        expires = datetime.strptime(response['Expires'], '%a, %d %b %Y %H:%M:%S GMT')
+        expected = before + how_soon
+        self.assertAlmostEqual(expected, expires, delta=tolerance)
+
     def setUp(self):
         super().setUp()
         self.factory = Factory()
@@ -455,10 +463,7 @@ class ApiCacheHeaderTestCase(S3TestMixin, MockS3PerTestMixin, StacBaseTestCase):
                     'max-age=0, no-cache, no-store, must-revalidate, private',
                     msg='Wrong cache-control values'
                 )
-
-                self.assertTrue(response.has_header('Expires'), msg="Expires header missing")
-                expires = datetime.strptime(response['Expires'], '%a, %d %b %Y %H:%M:%S GMT')
-                self.assertAlmostEqual((expires - now).total_seconds(), 0, delta=1)
+                self.assert_expires(response, now)
 
     @override_settings(COLLECTIONS_AGGREGATE_CACHE_SECONDS=10)
     def test_get_cache_header_collections_and_search(self):
@@ -477,10 +482,9 @@ class ApiCacheHeaderTestCase(S3TestMixin, MockS3PerTestMixin, StacBaseTestCase):
                     'max-age=10, public',
                     msg='Wrong cache-control values'
                 )
-
-                self.assertTrue(response.has_header('Expires'), msg="Expires header missing")
-                expires = datetime.strptime(response['Expires'], '%a, %d %b %Y %H:%M:%S GMT')
-                self.assertAlmostEqual((expires - now).total_seconds(), 10, delta=1)
+                self.assert_expires(
+                    response, now, how_soon=timedelta(seconds=10), tolerance=timedelta(seconds=1)
+                )
 
     @override_settings(CACHE_MIDDLEWARE_SECONDS=3600)
     def test_get_cache_header(self):
@@ -505,13 +509,9 @@ class ApiCacheHeaderTestCase(S3TestMixin, MockS3PerTestMixin, StacBaseTestCase):
                     'max-age=3600, public',
                     msg='Wrong cache-control values'
                 )
-
-                self.assertTrue(response.has_header('Expires'), msg="Expires header missing")
-
-                expires = datetime.strptime(response['Expires'], '%a, %d %b %Y %H:%M:%S GMT')
-                self.assertAlmostEqual((expires - now).total_seconds(),
-                                       timedelta(seconds=3600).total_seconds(),
-                                       delta=2)
+                self.assert_expires(
+                    response, now, how_soon=timedelta(seconds=3600), tolerance=timedelta(seconds=2)
+                )
 
     def test_get_asset_object_cache_header(self):
         key = get_asset_path(self.item.model, self.asset["name"])
@@ -542,13 +542,9 @@ class ApiCacheHeaderTestCase(S3TestMixin, MockS3PerTestMixin, StacBaseTestCase):
                     'max-age=3600, public',
                     msg='Wrong cache-control values'
                 )
-
-                self.assertTrue(response.has_header('Expires'), msg="Expires header missing")
-
-                expires = datetime.strptime(response['Expires'], '%a, %d %b %Y %H:%M:%S GMT')
-                self.assertAlmostEqual((expires - now).total_seconds(),
-                                       timedelta(seconds=3600).total_seconds(),
-                                       delta=2)
+                self.assert_expires(
+                    response, now, how_soon=timedelta(seconds=3600), tolerance=timedelta(seconds=2)
+                )
 
 
 class ApiDynamicCacheHeaderTestCase(S3TestMixin, MockS3PerTestMixin, StacBaseTestCase):
