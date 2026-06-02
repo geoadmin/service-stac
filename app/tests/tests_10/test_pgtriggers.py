@@ -74,6 +74,9 @@ class PgTriggersUpdated(MockS3PerTestMixin, StacBaseTransactionTestCase):
         super().setUp()
         self.factory = Factory()
         self.collection = self.factory.create_collection_sample().model
+        self.collection_asset = self.factory.create_collection_asset_sample(
+            collection=self.collection, db_create=True
+        ).model
         self.item = self.factory.create_item_sample(collection=self.collection).model
         self.asset = self.factory.create_asset_sample(
             self.item, sample='asset-1', db_create=True
@@ -87,3 +90,30 @@ class PgTriggersUpdated(MockS3PerTestMixin, StacBaseTransactionTestCase):
         self.asset.refresh_from_db()
 
         self.assertGreater(self.asset.updated, prev_mtime)
+
+    def test_asset_update_changes_item(self):
+        prev_mtime = self.item.updated
+
+        self.asset.checksum_multihash = 'new hash'
+        self.asset.save()
+        self.item.refresh_from_db()
+
+        self.assertGreater(self.item.updated, prev_mtime)
+
+    def test_item_update_changes_collection(self):
+        prev_mtime = self.collection.updated
+
+        self.item.name = 'new name'
+        self.item.save()
+        self.collection.refresh_from_db()
+
+        self.assertGreater(self.collection.updated, prev_mtime)
+
+    def test_collection_asset_update_changes_collection(self):
+        prev_mtime = self.collection.updated
+
+        self.collection_asset.checksum_multihash = 'new hash'
+        self.collection_asset.save()
+        self.collection.refresh_from_db()
+
+        self.assertGreater(self.collection.updated, prev_mtime)
