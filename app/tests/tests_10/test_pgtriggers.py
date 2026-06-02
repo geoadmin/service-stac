@@ -75,11 +75,11 @@ class PgTriggersUpdated(MockS3PerTestMixin, StacBaseTransactionTestCase):
     def setUp(self):
         super().setUp()
         self.factory = Factory()
-        self.collection = self.factory.create_collection_sample().model
+        self.collection = self.factory.create_collection_sample(db_create=True).model
         self.collection_asset = self.factory.create_collection_asset_sample(
             collection=self.collection, db_create=True
         ).model
-        self.item = self.factory.create_item_sample(collection=self.collection).model
+        self.item = self.factory.create_item_sample(collection=self.collection, db_create=True).model
         self.asset = self.factory.create_asset_sample(
             self.item, sample='asset-1', db_create=True
         ).model
