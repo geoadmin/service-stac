@@ -1,5 +1,7 @@
 import logging
 
+from parameterized import parameterized
+
 from tests.tests_10.base_test import StacBaseTransactionTestCase
 from tests.tests_10.data_factory import Factory
 from tests.tests_10.sample_data.asset_samples import FILE_CONTENT_1
@@ -82,38 +84,19 @@ class PgTriggersUpdated(MockS3PerTestMixin, StacBaseTransactionTestCase):
             self.item, sample='asset-1', db_create=True
         ).model
 
-    def test_checksum_update_changes_timestamps(self):
-        prev_mtime = self.asset.updated
+    @parameterized.expand([
+        ('asset', 'asset', 'checksum_multihash'),
+        ('asset', 'item', 'checksum_multihash'),
+        ('item', 'collection', 'name'),
+        ('collection_asset', 'collection', 'checksum_multihash'),
+    ])
+    def test_timestamp_updated(self, source_name, destination_name, field_name):
+        destination = getattr(self, destination_name)
+        source = getattr(self, source_name)
 
-        self.asset.checksum_multihash = 'new hash'
-        self.asset.save()
-        self.asset.refresh_from_db()
+        prev_mtime = destination.updated
+        setattr(source, field_name, 'new value')
+        source.save()
+        destination.refresh_from_db()
 
-        self.assertGreater(self.asset.updated, prev_mtime)
-
-    def test_asset_update_changes_item(self):
-        prev_mtime = self.item.updated
-
-        self.asset.checksum_multihash = 'new hash'
-        self.asset.save()
-        self.item.refresh_from_db()
-
-        self.assertGreater(self.item.updated, prev_mtime)
-
-    def test_item_update_changes_collection(self):
-        prev_mtime = self.collection.updated
-
-        self.item.name = 'new name'
-        self.item.save()
-        self.collection.refresh_from_db()
-
-        self.assertGreater(self.collection.updated, prev_mtime)
-
-    def test_collection_asset_update_changes_collection(self):
-        prev_mtime = self.collection.updated
-
-        self.collection_asset.checksum_multihash = 'new hash'
-        self.collection_asset.save()
-        self.collection.refresh_from_db()
-
-        self.assertGreater(self.collection.updated, prev_mtime)
+        self.assertGreater(destination.updated, prev_mtime)
