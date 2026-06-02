@@ -79,7 +79,7 @@ class PgTriggersUpdated(MockS3PerTestMixin, StacBaseTransactionTestCase):
             self.item, sample='asset-1', db_create=True
         ).model
 
-    def test_file_update_changes_timestamps(self):
+    def test_checksum_update_changes_timestamps(self):
         prev_mtime = self.asset.updated
 
         self.asset.checksum_multihash = 'new hash'
