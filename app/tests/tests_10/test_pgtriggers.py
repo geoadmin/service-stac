@@ -94,9 +94,11 @@ class PgTriggersUpdated(MockS3PerTestMixin, StacBaseTransactionTestCase):
         destination = getattr(self, destination_name)
         source = getattr(self, source_name)
 
+        prev_etag = destination.etag
         prev_mtime = destination.updated
         setattr(source, field_name, 'new value')
         source.save()
         destination.refresh_from_db()
 
         self.assertGreater(destination.updated, prev_mtime)
+        self.assertNotEqual(destination.etag, prev_etag)
