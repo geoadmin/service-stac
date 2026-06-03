@@ -92,6 +92,7 @@ class PgTriggersUpdated(MockS3PerTestMixin, StacBaseTransactionTestCase):
         ('asset', 'asset', 'checksum_multihash', True),
         ('asset', 'asset', 'description', False),
         ('asset', 'item', 'checksum_multihash', True),
+        ('asset', 'item', 'title', False),
         ('item', 'collection', 'name', True),
         ('collection_asset', 'collection', 'checksum_multihash', True),
     ])
