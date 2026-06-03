@@ -349,7 +349,7 @@ def generates_collection_asset_triggers():
         CollectionFileSizeTrigger(
             name='update_col_asset_col_file_size_trigger',
             operation=pgtrigger.Update,
-            condition=pgtrigger.Condition('OLD.* IS DISTINCT FROM NEW.*'),
+            condition=pgtrigger.AnyChange('file_size'),
         )
     ]
 
