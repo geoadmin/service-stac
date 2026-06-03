@@ -31,7 +31,7 @@ def auto_variables_triggers(name, *fields):
     ]
 
 
-def child_triggers(parent_name, child_name):
+def child_triggers(parent_name, child_name, *fields):
     '''Triggers used by various tables to update the `updated` and `etag` fields
     of the parent table when a child gets inserted, updated or deleted.
 
@@ -63,7 +63,7 @@ def child_triggers(parent_name, child_name):
             name=f"update_{parent_name}_child_trigger",
             operation=pgtrigger.Update,
             when=pgtrigger.After,
-            condition=pgtrigger.Condition('OLD.* IS DISTINCT FROM NEW.*'),
+            condition=pgtrigger.AnyChange(*fields),
             func=child_update_func.format(
                 parent_name=parent_name, child_obj="NEW", child_name=child_name
             )
