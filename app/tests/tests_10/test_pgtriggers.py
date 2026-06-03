@@ -2,6 +2,8 @@ import logging
 
 from parameterized import parameterized
 
+from stac_api.models.item import AssetUpload
+
 from tests.tests_10.base_test import StacBaseTransactionTestCase
 from tests.tests_10.data_factory import Factory
 from tests.tests_10.sample_data.asset_samples import FILE_CONTENT_1
@@ -102,3 +104,34 @@ class PgTriggersUpdated(MockS3PerTestMixin, StacBaseTransactionTestCase):
 
         self.assertGreater(destination.updated, prev_mtime)
         self.assertNotEqual(destination.etag, prev_etag)
+
+class PgTriggerAssetUploads(MockS3PerTestMixin, StacBaseTransactionTestCase):
+
+    def setUp(self):
+        super().setUp()
+        self.factory = Factory()
+        self.collection = self.factory.create_collection_sample(db_create=True).model
+        self.collection_asset = self.factory.create_collection_asset_sample(
+            collection=self.collection, db_create=True
+        ).model
+        self.item = self.factory.create_item_sample(collection=self.collection, db_create=True).model
+        self.asset = self.factory.create_asset_sample(
+            self.item, sample='asset-1', db_create=True
+        ).model
+        self.asset_upload = AssetUpload(
+            asset=self.asset,
+            upload_id=42,
+            checksum_multihash=b'some hash',
+            md5_parts=['totally a valid md5'],
+            number_parts=1,
+        )
+        self.asset_upload.full_clean()
+        self.asset_upload.save()
+        self.asset_upload.refresh_from_db()
+
+    def test_etag_updated(self):
+        prev_etag = self.asset_upload.etag
+        self.asset_upload.status = AssetUpload.Status.ABORTED
+        self.asset_upload.save()
+        self.asset_upload.refresh_from_db()
+        self.assertNotEqual(self.asset_upload.etag, prev_etag)
