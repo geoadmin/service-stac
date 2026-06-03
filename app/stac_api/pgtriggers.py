@@ -225,7 +225,7 @@ def generates_asset_triggers():
         ItemFileSizeTrigger(
             name='update_asset_item_file_size_trigger',
             operation=pgtrigger.Update,
-            condition=pgtrigger.Condition('OLD.file_size IS DISTINCT FROM NEW.file_size'),
+            condition=pgtrigger.AnyChange('file_size'),
         )
     ]
 
