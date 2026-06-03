@@ -480,7 +480,7 @@ def generates_asset_upload_triggers():
         pgtrigger.Trigger(
             name="update_asset_upload_trigger",
             operation=pgtrigger.Update,
-            condition=pgtrigger.Condition('OLD.* IS DISTINCT FROM NEW.*'),
+            condition=pgtrigger.AnyChange(),
             when=pgtrigger.Before,
             func=etag_func
         ),
