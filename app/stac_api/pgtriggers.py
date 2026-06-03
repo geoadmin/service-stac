@@ -327,7 +327,7 @@ def generates_collection_asset_triggers():
         DecreaseCounterTrigger(
             name='upd_dec_col_asset_proj_epsg_trigger',
             operation=pgtrigger.Update,
-            condition=pgtrigger.Condition('''OLD.proj_epsg IS DISTINCT FROM NEW.proj_epsg''')
+            condition=pgtrigger.AnyChange('proj_epsg')
         ),
         DecreaseCounterTrigger(
             name='del_col_asset_proj_epsg_trigger',
@@ -336,7 +336,7 @@ def generates_collection_asset_triggers():
         IncreaseCounterTrigger(
             name='upd_inc_col_asset_proj_epsg_trigger',
             operation=pgtrigger.Update,
-            condition=pgtrigger.Condition('''OLD.proj_epsg IS DISTINCT FROM NEW.proj_epsg''')
+            condition=pgtrigger.AnyChange('proj_epsg')
         ),
         IncreaseCounterTrigger(
             name='add_col_asset_proj_epsg_trigger',
