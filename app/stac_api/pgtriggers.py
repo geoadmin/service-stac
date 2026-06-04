@@ -212,7 +212,7 @@ def generates_asset_triggers():
         '''
 
     return [
-        *auto_variables_triggers('asset'),
+        *auto_variables_triggers('asset', 'file', 'checksum_multihash'),
         *child_triggers('item', 'Asset'),
         *asset_counter_trigger('gsdcount', 'eo_gsd'),
         *asset_counter_trigger('geoadminlangcount', 'geoadmin_lang'),

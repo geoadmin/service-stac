@@ -89,12 +89,13 @@ class PgTriggersUpdated(MockS3PerTestMixin, StacBaseTransactionTestCase):
         ).model
 
     @parameterized.expand([
-        ('asset', 'asset', 'checksum_multihash'),
-        ('asset', 'item', 'checksum_multihash'),
-        ('item', 'collection', 'name'),
-        ('collection_asset', 'collection', 'checksum_multihash'),
+        ('asset', 'asset', 'checksum_multihash', True),
+        ('asset', 'asset', 'description', False),
+        ('asset', 'item', 'checksum_multihash', True),
+        ('item', 'collection', 'name', True),
+        ('collection_asset', 'collection', 'checksum_multihash', True),
     ])
-    def test_timestamp_updated(self, source_name, destination_name, field_name):
+    def test_timestamp_updated(self, source_name, destination_name, field_name, expect_update):
         destination = getattr(self, destination_name)
         source = getattr(self, source_name)
 
@@ -104,8 +105,12 @@ class PgTriggersUpdated(MockS3PerTestMixin, StacBaseTransactionTestCase):
         source.save()
         destination.refresh_from_db()
 
-        self.assertGreater(destination.updated, prev_mtime)
-        self.assertNotEqual(destination.etag, prev_etag)
+        if expect_update:
+            self.assertGreater(destination.updated, prev_mtime)
+            self.assertNotEqual(destination.etag, prev_etag)
+        else:
+            self.assertEqual(destination.updated, prev_mtime)
+            self.assertEqual(destination.etag, prev_etag)
 
 
 class PgTriggerAssetUploads(MockS3PerTestMixin, StacBaseTransactionTestCase):
