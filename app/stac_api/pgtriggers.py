@@ -5,13 +5,10 @@ import pgtrigger
 
 def auto_variables_triggers(name, *fields):
     '''Triggers used by various tables to update the `etag` and `updated` fields.'''
-    auto_variables_func = '''
-    -- update auto variables
-    NEW.etag = gen_random_uuid();
-    NEW.updated = now();
-
+    etag_func = 'NEW.etag = gen_random_uuid();'
+    timestamp_func = 'NEW.updated = now();'
+    epilogue = '''
     RAISE INFO 'Updated auto fields of %.id=% due to table updates.', TG_TABLE_NAME, NEW.id;
-
     RETURN NEW;
     '''
     return [
@@ -19,14 +16,21 @@ def auto_variables_triggers(name, *fields):
             name=f"add_{name}_auto_variables_trigger",
             operation=pgtrigger.Insert,
             when=pgtrigger.Before,
-            func=auto_variables_func
+            func=(etag_func + timestamp_func + epilogue),
         ),
         pgtrigger.Trigger(
-            name=f"update_{name}_auto_variables_trigger",
+            name=f"update_{name}_timestamp_trigger",
             operation=pgtrigger.Update,
             when=pgtrigger.Before,
             condition=pgtrigger.AnyChange(*fields),
-            func=auto_variables_func
+            func=(timestamp_func + epilogue),
+        ),
+        pgtrigger.Trigger(
+            name=f"update_{name}_etag_trigger",
+            operation=pgtrigger.Update,
+            when=pgtrigger.Before,
+            condition=pgtrigger.AnyChange(),
+            func=(etag_func + epilogue),
         )
     ]
 
