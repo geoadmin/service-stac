@@ -1,3 +1,4 @@
+import textwrap
 from enum import Enum
 
 import pgtrigger
@@ -5,28 +6,42 @@ import pgtrigger
 
 def auto_variables_triggers(name, *fields):
     '''Triggers used by various tables to update the `etag` and `updated` fields.'''
-    auto_variables_func = '''
-    -- update auto variables
-    NEW.etag = gen_random_uuid();
-    NEW.updated = now();
 
-    RAISE INFO 'Updated auto fields of %.id=% due to table updates.', TG_TABLE_NAME, NEW.id;
+    class AutoVariableTrigger(pgtrigger.Trigger):
+        when = pgtrigger.Before
 
-    RETURN NEW;
-    '''
+        def get_func(self, model):
+            # We deindent to avoid spurious DB migration caused by whitespace
+            # changes. This could be made a little nicer once PEP-822 is
+            # implemented.
+            epilogue = textwrap.dedent(
+                '''
+            RAISE INFO 'Updated auto fields of %.id=% due to table updates.', TG_TABLE_NAME, NEW.id;
+            RETURN NEW;
+            '''
+            )
+            return super().get_func(model) + epilogue
+
+    etag_func = 'NEW.etag = gen_random_uuid();'
+    timestamp_func = 'NEW.updated = now();'
+
     return [
-        pgtrigger.Trigger(
+        AutoVariableTrigger(
             name=f"add_{name}_auto_variables_trigger",
             operation=pgtrigger.Insert,
-            when=pgtrigger.Before,
-            func=auto_variables_func
+            func=(etag_func + timestamp_func),
         ),
-        pgtrigger.Trigger(
-            name=f"update_{name}_auto_variables_trigger",
+        AutoVariableTrigger(
+            name=f"update_{name}_timestamp_trigger",
             operation=pgtrigger.Update,
-            when=pgtrigger.Before,
             condition=pgtrigger.AnyChange(*fields),
-            func=auto_variables_func
+            func=timestamp_func,
+        ),
+        AutoVariableTrigger(
+            name=f"update_{name}_etag_trigger",
+            operation=pgtrigger.Update,
+            condition=pgtrigger.AnyChange(),
+            func=etag_func,
         )
     ]
 

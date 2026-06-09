@@ -105,12 +105,11 @@ class PgTriggersUpdated(MockS3PerTestMixin, StacBaseTransactionTestCase):
         source.save()
         destination.refresh_from_db()
 
+        self.assertNotEqual(destination.etag, prev_etag)
         if expect_update:
             self.assertGreater(destination.updated, prev_mtime)
-            self.assertNotEqual(destination.etag, prev_etag)
         else:
             self.assertEqual(destination.updated, prev_mtime)
-            self.assertEqual(destination.etag, prev_etag)
 
 
 class PgTriggerAssetUploads(MockS3PerTestMixin, StacBaseTransactionTestCase):
