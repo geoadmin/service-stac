@@ -5,7 +5,20 @@ import pgtrigger
 
 
 def auto_variables_triggers(name, *fields):
-    '''Triggers used by various tables to update the `etag` and `updated` fields.'''
+    '''Generates triggers to update ETag and timestamp.
+
+    Generate triggers on INSERT and UPDATE that will set the `etag` and
+    `updated` fields to a random value and the current time respectively.
+
+    Parameters:
+        name (str): used to generate trigger names.
+        *fields (str): name of the fields that will trigger a timestamp update.
+            If no field is specified, the timestamp will only be set when the
+            row is inserted.
+
+    Returns:
+        A sequence of pgtrigger.Trigger that can be associated to a `Model.Meta`.
+    '''
 
     class AutoVariableTrigger(pgtrigger.Trigger):
         when = pgtrigger.Before
@@ -51,11 +64,25 @@ def auto_variables_triggers(name, *fields):
 
 
 def child_triggers(parent_name, child_name, triggering_field='updated'):
-    '''Triggers used by various tables to update the `updated` and `etag` fields
-    of the parent table when a child gets inserted, updated or deleted.
+    '''Generates triggers to update ETag and timestamp of the parent table.
 
-    Returns: tuple
-        Tuple of Trigger
+    Generate triggers on INSERT, UPDATE and DELETE that will set the `etag` and
+    `updated` fields of the corresponding row in the parent table to a random
+    value and the current time respectively.
+
+    The `etag` field is always updated. The `updated` field is only set when a
+    child row is inserted or deleted, or when the `triggering_field` field is
+    updated in the child.
+
+    Parameters:
+        parent_name: name of the parent table to update without the `stac_api_` prefix.
+        child_name: name of the table associated to the triggers without the `stac_api_` prefix.
+        triggering_field: name of the field that will trigger a timestamp update.
+            If no field is specified, the timestamp will only be set when a row
+            is inserted or deleted.
+
+    Returns:
+        As sequence of `pgtrigger.Trigger` that can be associated to a `Model.Meta`.
     '''
 
     func_template = """
