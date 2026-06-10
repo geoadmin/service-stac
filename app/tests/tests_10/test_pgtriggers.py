@@ -2,7 +2,10 @@ import logging
 
 from parameterized import parameterized
 
+from stac_api.models.collection import CollectionLink
+from stac_api.models.general import Provider
 from stac_api.models.item import AssetUpload
+from stac_api.models.item import ItemLink
 
 from tests.tests_10.base_test import StacBaseTransactionTestCase
 from tests.tests_10.data_factory import Factory
@@ -87,6 +90,30 @@ class PgTriggersUpdated(MockS3PerTestMixin, StacBaseTransactionTestCase):
         self.asset = self.factory.create_asset_sample(
             self.item, sample='asset-1', db_create=True
         ).model
+        self.collection_link = self.create_object(
+            CollectionLink,
+            collection=self.collection,
+            href='https://example.com/collection/link/test',
+            rel='whatever',
+        )
+        self.provider = self.create_object(
+            Provider,
+            collection=self.collection,
+            name='Totally legit provider name',
+        )
+        self.item_link = self.create_object(
+            ItemLink,
+            item=self.item,
+            href='https://example.com/item/link/test',
+            rel='whatever',
+        )
+
+    def create_object(self, obj_type, **kwargs):
+        obj = obj_type(**kwargs)
+        obj.full_clean()
+        obj.save()
+        obj.refresh_from_db()
+        return obj
 
     @parameterized.expand([
         ('asset', 'asset', 'checksum_multihash', True),
@@ -96,8 +123,13 @@ class PgTriggersUpdated(MockS3PerTestMixin, StacBaseTransactionTestCase):
         ('collection_asset', 'collection_asset', 'name', False),
         ('collection_asset', 'collection_asset', 'checksum_multihash', True),
         ('asset', 'item', 'checksum_multihash', True),
-        ('item', 'collection', 'name', True),
+        ('asset', 'item', 'title', False),
+        ('item', 'collection', 'name', False),
         ('collection_asset', 'collection', 'checksum_multihash', True),
+        ('collection_asset', 'collection', 'name', False),
+        ('collection_link', 'collection', 'title', False),
+        ('item_link', 'item', 'title', False),
+        ('provider', 'collection', 'name', False),
     ])
     def test_timestamp_updated(self, source_name, destination_name, field_name, expect_update):
         destination = getattr(self, destination_name)

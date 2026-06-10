@@ -221,7 +221,7 @@ class ItemLink(Link):
     class Meta:
         unique_together = (('rel', 'item'),)
         ordering = ['pk']
-        triggers = child_triggers('item', 'ItemLink')
+        triggers = child_triggers('item', 'ItemLink', triggering_field=None)
 
 
 class Asset(AssetBase):
