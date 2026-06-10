@@ -25,17 +25,11 @@ def auto_variables_triggers(name, *fields):
     etag_func = 'NEW.etag = gen_random_uuid();'
     timestamp_func = 'NEW.updated = now();'
 
-    return [
+    triggers = [
         AutoVariableTrigger(
             name=f"add_{name}_auto_variables_trigger",
             operation=pgtrigger.Insert,
             func=(etag_func + timestamp_func),
-        ),
-        AutoVariableTrigger(
-            name=f"update_{name}_timestamp_trigger",
-            operation=pgtrigger.Update,
-            condition=pgtrigger.AnyChange(*fields),
-            func=timestamp_func,
         ),
         AutoVariableTrigger(
             name=f"update_{name}_etag_trigger",
@@ -44,6 +38,16 @@ def auto_variables_triggers(name, *fields):
             func=etag_func,
         )
     ]
+    if fields:
+        triggers.append(
+            AutoVariableTrigger(
+                name=f"update_{name}_timestamp_trigger",
+                operation=pgtrigger.Update,
+                condition=pgtrigger.AnyChange(*fields),
+                func=timestamp_func,
+            )
+        )
+    return triggers
 
 
 def child_triggers(parent_name, child_name, *fields):
@@ -337,7 +341,7 @@ def generates_collection_asset_triggers():
         '''
 
     return [
-        *auto_variables_triggers('col_asset'),
+        *auto_variables_triggers('col_asset', 'file', 'checksum_multihash'),
         *child_triggers('collection', "CollectionAsset"),
         DecreaseCounterTrigger(
             name='upd_dec_col_asset_proj_epsg_trigger',
