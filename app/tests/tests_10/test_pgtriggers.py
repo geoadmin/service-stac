@@ -101,7 +101,9 @@ class PgTriggersUpdated(MockS3PerTestMixin, StacBaseTransactionTestCase):
     ])
     def test_timestamp_updated(self, source_name, destination_name, field_name, expect_update):
         destination = getattr(self, destination_name)
+        destination.refresh_from_db()
         source = getattr(self, source_name)
+        source.refresh_from_db()
 
         prev_etag = destination.etag
         prev_mtime = destination.updated
