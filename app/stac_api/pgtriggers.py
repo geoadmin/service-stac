@@ -5,7 +5,20 @@ import pgtrigger
 
 
 def auto_variables_triggers(name, *fields):
-    '''Triggers used by various tables to update the `etag` and `updated` fields.'''
+    '''Generates triggers to update ETag and timestamp.
+
+    Generate triggers on INSERT and UPDATE that will set the `etag` and
+    `updated` fields to a random value and the current time respectively.
+
+    Parameters:
+        name (str): used to generate trigger names.
+        *fields (str): name of the fields that will trigger a timestamp update.
+            If no field is specified, the timestamp will only be set when the
+            row is inserted.
+
+    Returns:
+        A sequence of pgtrigger.Trigger that can be associated to a `Model.Meta`.
+    '''
 
     class AutoVariableTrigger(pgtrigger.Trigger):
         when = pgtrigger.Before
@@ -50,52 +63,88 @@ def auto_variables_triggers(name, *fields):
     return triggers
 
 
-def child_triggers(parent_name, child_name, *fields):
-    '''Triggers used by various tables to update the `updated` and `etag` fields
-    of the parent table when a child gets inserted, updated or deleted.
+def child_triggers(parent_name, child_name, triggering_field='updated'):
+    '''Generates triggers to update ETag and timestamp of the parent table.
 
-    Returns: tuple
-        Tuple of Trigger
+    Generate triggers on INSERT, UPDATE and DELETE that will set the `etag` and
+    `updated` fields of the corresponding row in the parent table to a random
+    value and the current time respectively.
+
+    The `etag` field is always updated. The `updated` field is only set when a
+    child row is inserted or deleted, or when the `triggering_field` field is
+    updated in the child.
+
+    Parameters:
+        parent_name: name of the parent table to update without the `stac_api_` prefix.
+        child_name: name of the table associated to the triggers without the `stac_api_` prefix.
+        triggering_field: name of the field that will trigger a timestamp update.
+            If no field is specified, the timestamp will only be set when a row
+            is inserted or deleted.
+
+    Returns:
+        As sequence of `pgtrigger.Trigger` that can be associated to a `Model.Meta`.
     '''
-    child_update_func = """
+
+    func_template = """
     -- update related {parent_name}
+    child = COALESCE(NEW, OLD);
     UPDATE stac_api_{parent_name} SET
-        updated = now(),
-        etag = public.gen_random_uuid()
-    WHERE id = {child_obj}.{parent_name}_id;
+        {set_expression}
+    WHERE id = child.{parent_name}_id;
 
     RAISE INFO 'Parent table {parent_name}.id=% auto fields updated due to child {child_name}.id=% updates.',
-        {child_obj}.{parent_name}_id, {child_obj}.id;
+        child.{parent_name}_id, child.id;
 
-    RETURN {child_obj};
+    RETURN child;
     """
-    return [
-        pgtrigger.Trigger(
-            name=f"add_{parent_name}_child_trigger",
-            operation=pgtrigger.Insert,
-            when=pgtrigger.After,
-            func=child_update_func.format(
-                parent_name=parent_name, child_obj="NEW", child_name=child_name
+
+    class ChildTrigger(pgtrigger.Trigger):
+        when = pgtrigger.After
+
+        def __init__(self, update_timestamp=False, **kwargs):
+            forbidden_kwargs = ('func', 'declare')
+            for k in forbidden_kwargs:
+                if k in kwargs:
+                    raise ValueError(f'"{k}" is not a supported kwargs: {kwargs[k]}')
+
+            set_expression = 'etag = public.gen_random_uuid()'
+            if update_timestamp:
+                set_expression += ', updated = now()'
+
+            func = textwrap.dedent(func_template).format(
+                parent_name=parent_name, child_name=child_name, set_expression=set_expression
             )
+            child_type = f'stac_api_{child_name}%ROWTYPE'
+            super().__init__(func=func, declare=[('child', child_type)], **kwargs)
+
+    triggers = [
+        ChildTrigger(
+            name=f"add_or_del_{parent_name}_child_trigger",
+            operation=pgtrigger.Insert | pgtrigger.Delete,
+            update_timestamp=True,
         ),
-        pgtrigger.Trigger(
-            name=f"update_{parent_name}_child_trigger",
-            operation=pgtrigger.Update,
-            when=pgtrigger.After,
-            condition=pgtrigger.AnyChange(*fields),
-            func=child_update_func.format(
-                parent_name=parent_name, child_obj="NEW", child_name=child_name
-            )
-        ),
-        pgtrigger.Trigger(
-            name=f"del_{parent_name}_child_trigger",
-            operation=pgtrigger.Delete,
-            when=pgtrigger.After,
-            func=child_update_func.format(
-                parent_name=parent_name, child_obj="OLD", child_name=child_name
+    ]
+    if not triggering_field:
+        etag_only_condition = pgtrigger.AnyChange()
+    else:
+        etag_only_condition = pgtrigger.AnyChange(exclude=(triggering_field,))
+        triggers.append(
+            ChildTrigger(
+                name=f"update_{parent_name}_child_trigger",
+                operation=pgtrigger.Update,
+                condition=pgtrigger.AnyChange(triggering_field),
+                update_timestamp=True,
             )
         )
-    ]
+    triggers.append(
+        ChildTrigger(
+            name=f"update_{parent_name}_child_trigger_etag_only",
+            operation=pgtrigger.Update,
+            condition=etag_only_condition,
+            update_timestamp=False,
+        )
+    )
+    return triggers
 
 
 def asset_counter_trigger(count_table, value_field):

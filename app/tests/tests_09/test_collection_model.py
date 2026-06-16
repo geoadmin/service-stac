@@ -147,7 +147,7 @@ class CollectionsModelTestCase(MockS3PerTestMixin, StacBaseTransactionTestCase):
         # check collection's update on asset update
         initial_last_modified = self.collection.model.updated
         sleep(0.01)
-        asset.model.title = f"new-{asset.model.title}"
+        asset.model.checksum_multihash = b"new-hash"
         asset.model.full_clean()
         asset.model.save()
         self.collection.model.refresh_from_db()
