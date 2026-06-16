@@ -91,6 +91,10 @@ class PgTriggersUpdated(MockS3PerTestMixin, StacBaseTransactionTestCase):
     @parameterized.expand([
         ('asset', 'asset', 'checksum_multihash', True),
         ('asset', 'asset', 'description', False),
+        ('item', 'item', 'name', False),
+        ('collection', 'collection', 'name', False),
+        ('collection_asset', 'collection_asset', 'name', False),
+        ('collection_asset', 'collection_asset', 'checksum_multihash', True),
         ('asset', 'item', 'checksum_multihash', True),
         ('item', 'collection', 'name', True),
         ('collection_asset', 'collection', 'checksum_multihash', True),
