@@ -682,7 +682,9 @@ components:
         STAC entity
       properties:
         assets:
-          $ref: "#/components/schemas/itemAssets"
+          readOnly: true
+          allOf:
+            - $ref: "#/components/schemas/itemAssets"
         bbox:
           $ref: "#/components/schemas/bbox"
         geometry:
