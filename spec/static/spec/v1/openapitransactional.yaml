@@ -522,7 +522,7 @@ components:
         file:checksum:
           $ref: "#/components/schemas/checksumMultihashReadOnly"
         roles:
-          $ref: '#/components/schemas/roles'
+          $ref: "#/components/schemas/roles"
         geoadmin:variant:
           $ref: "#/components/schemas/geoadminVariant"
         geoadmin:lang:
@@ -894,7 +894,7 @@ components:
           type: string
           example: N9hTgbJmEuiMnvb+W9Y1Y+fhFoZh92NYG13Z3K19PBZOZ4hbn7F7i3yYpjJgM7bIFmDH2BnE81U=
       xml:
-        name: 'Error'
+        name: "Error"
       required:
         - Code
         - Message
@@ -1521,6 +1521,10 @@ components:
           $ref: "#/components/schemas/forecast_variable"
         forecast:perturbed:
           $ref: "#/components/schemas/forecast_perturbed"
+        cf:standard_name:
+          $ref: "#/components/schemas/cf_standard_name"
+        unit:
+          $ref: "#/components/schemas/unit"
       required:
         - created
         - updated
@@ -1907,10 +1911,30 @@ components:
       properties:
         forecast:perturbed:
           $ref: "#/components/schemas/forecast_perturbed"
+    cf_standard_nameFilter:
+      properties:
+        cf:standard_name:
+          $ref: "#/components/schemas/cf_standard_name"
+    unitFilter:
+      properties:
+        unit:
+          $ref: "#/components/schemas/unit"
     forecast_perturbed:
       description: >-
         Denotes whether the data corresponds to the control run (`false`) or perturbed runs (`true`). The property needs to be specified in both cases as no default value is specified and as such the meaning is "unknown" in case it's missing.
       type: boolean
+      nullable: true
+    cf_standard_name:
+      description: >-
+        Corresponds to the CF Standard Name from the [CF Standard Name Table](https://cfconventions.org/Data/cf-standard-names/current/build/cf-standard-name-table.html).
+      example: air_temperature
+      type: string
+      nullable: true
+    unit:
+      description: >-
+        Corresponds to the [CF units](https://cfconventions.org/cf-conventions/cf-conventions.html#units).
+      example: K
+      type: string
       nullable: true
     queryProp:
       anyOf:
@@ -2003,6 +2027,8 @@ components:
         - $ref: "#/components/schemas/forecast_durationFilter"
         - $ref: "#/components/schemas/forecast_variableFilter"
         - $ref: "#/components/schemas/forecast_perturbedFilter"
+        - $ref: "#/components/schemas/cf_standard_nameFilter"
+        - $ref: "#/components/schemas/unitFilter"
       description: The search criteria
       type: object
     stac_version:
