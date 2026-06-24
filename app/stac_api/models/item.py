@@ -212,6 +212,17 @@ class Item(models.Model):
         "Collection's stac_extensions_enabled field.",
     )
 
+    cf_standard_name = models.CharField(
+        null=True,
+        blank=True,
+        max_length=255,
+        help_text="Corresponds to the CF Standard Name from the CF Standard Name Table."
+    )
+
+    unit = models.CharField(
+        null=True, blank=True, max_length=255, help_text="Corresponds to the CF units."
+    )
+
     # Custom Manager that preselects the collection
     objects = ItemManager()
 
