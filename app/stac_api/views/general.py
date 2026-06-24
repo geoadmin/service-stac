@@ -107,6 +107,10 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
                 queryset = queryset.filter_by_forecast_variable(query_param['forecast:variable'])
             if 'forecast:perturbed' in query_param:
                 queryset = queryset.filter_by_forecast_perturbed(query_param['forecast:perturbed'])
+            if 'cf:standard_name' in query_param:
+                queryset = queryset.filter_by_cf_standard_name(query_param['cf:standard_name'])
+            if 'unit' in query_param:
+                queryset = queryset.filter_by_unit(query_param['unit'])
 
         if settings.DEBUG_ENABLE_DB_EXPLAIN_ANALYZE:
             logger.debug(

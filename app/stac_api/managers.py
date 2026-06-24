@@ -276,6 +276,30 @@ class ItemQuerySet(models.QuerySet):
         '''
         return self.filter(forecast_perturbed=pert)
 
+    def filter_by_cf_standard_name(self, val):
+        '''Filter by CF standard name
+
+        Args:
+            val: string
+                CF standard name value
+
+        Returns:
+            queryset filtered by CF standard name
+        '''
+        return self.filter(cf_standard_name=val)
+
+    def filter_by_unit(self, val):
+        '''Filter by unit
+
+        Args:
+            val: string
+                unit value
+
+        Returns:
+            queryset filtered by unit
+        '''
+        return self.filter(unit=val)
+
     def filter_by_query(self, query):
         '''Filter by the query parameter
 
@@ -337,6 +361,12 @@ class ItemManager(models.Manager):
 
     def filter_by_forecast_perturbed(self, pert):
         return self.get_queryset().filter_by_forecast_perturbed(pert)
+
+    def filter_by_cf_standard_name(self, val):
+        return self.get_queryset().filter_by_cf_standard_name(val)
+
+    def filter_by_unit(self, val):
+        return self.get_queryset().filter_by_unit(val)
 
 
 class AssetUploadQuerySet(models.QuerySet):

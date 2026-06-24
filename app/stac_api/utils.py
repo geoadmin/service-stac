@@ -327,6 +327,13 @@ def harmonize_post_get_for_search(request):
             del query_param['forecast:variable']
         if 'forecast:perturbed' in query_param:
             del query_param['forecast:perturbed']
+        # CF extension properties can only be filtered with method POST.
+        # Decision was made as `:` need to be url encoded and (at least for now) we do not need to
+        # support CF filtering in the GET request.
+        if 'cf:standard_name' in query_param:
+            del query_param['cf:standard_name']
+        if 'unit' in query_param:
+            del query_param['unit']
     return query_param
 
 

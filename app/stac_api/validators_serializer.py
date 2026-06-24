@@ -370,7 +370,9 @@ class ValidateSearchRequest:
             "forecast:horizon",
             "forecast:duration",
             "forecast:variable",
-            "forecast:perturbed"
+            "forecast:perturbed",
+            "cf:standard_name",
+            "unit"
         ]
         wrong_query_parameters = set(query_param.keys()).difference(set(accepted_query_parameters))
         if wrong_query_parameters:
