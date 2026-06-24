@@ -417,7 +417,7 @@ class ItemSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
             extensions.append("https://stac-extensions.github.io/forecast/v0.2.0/schema.json")
         # Add CF extension when CF properties are present
         if obj.cf_standard_name is not None or obj.unit is not None:
-            extensions.append("https://stac-extensions.github.io/cf/v0.3.0/schema.json")
+            extensions.append("https://stac-extensions.github.io/cf/v0.2.0/schema.json")
         return extensions
 
     def get_stac_version(self, obj):
