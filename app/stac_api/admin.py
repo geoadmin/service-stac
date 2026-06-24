@@ -326,6 +326,12 @@ class ItemAdmin(admin.ModelAdmin):
                 )
             }
         ),
+        ('CF Extension', {
+            'fields': (
+                'cf_standard_name',
+                'unit',
+            )
+        }),
     )
 
     list_display = ['name', 'collection', 'collection_published']
