@@ -269,4 +269,25 @@ items = {
         'forecast_variable': 'air_temperature',
         'forecast_perturbed': 'False',
     },
+    'item-cf-1': {
+        'name': 'item-cf-1',
+        'geometry': geometries['covers-switzerland'],
+        'properties_datetime': fromisoformat('2020-10-28T13:05:10Z'),
+        'cf_standard_name': 'air_temperature',
+        'unit': 'K',
+    },
+    'item-cf-2': {
+        'name': 'item-cf-2',
+        'geometry': geometries['covers-switzerland'],
+        'properties_datetime': fromisoformat('2020-10-28T13:05:10Z'),
+        'cf_standard_name': 'air_temperature',
+        'unit': 'celsius',
+    },
+    'item-cf-3': {
+        'name': 'item-cf-3',
+        'geometry': geometries['covers-switzerland'],
+        'properties_datetime': fromisoformat('2020-10-28T13:05:10Z'),
+        'cf_standard_name': 'precipitation',
+        'unit': 'mm',
+    },
 }

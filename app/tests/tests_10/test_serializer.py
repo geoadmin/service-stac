@@ -805,6 +805,32 @@ class ItemsPropertiesSerializerTestCase(unittest.TestCase):
         self.assertEqual(actual["forecast:variable"], data["forecast:variable"])
         self.assertEqual(actual["forecast:perturbed"], data["forecast:perturbed"])
 
+    def test_deserialization_works_as_expected_for_valid_cf_data(self):
+        data = {
+            "cf:standard_name": "air_temperature",
+            "unit": "K",
+        }
+
+        serializer = ItemsPropertiesSerializer(data=data)
+        self.assertTrue(serializer.is_valid())
+
+        self.assertEqual(serializer.validated_data["cf_standard_name"], data["cf:standard_name"])
+        self.assertEqual(serializer.validated_data["unit"], data["unit"])
+
+    def test_serialization_works_as_expected_for_valid_cf_data(self):
+        data = {
+            "cf:standard_name": "air_temperature",
+            "unit": "K",
+        }
+
+        serializer = ItemsPropertiesSerializer(data=data)
+        self.assertTrue(serializer.is_valid())
+
+        actual = serializer.to_representation(serializer.validated_data)
+
+        self.assertEqual(actual["cf:standard_name"], data["cf:standard_name"])
+        self.assertEqual(actual["unit"], data["unit"])
+
 
 class ItemListDeserializationTestCase(StacBaseTestCase):
 

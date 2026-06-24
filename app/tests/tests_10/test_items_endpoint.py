@@ -831,7 +831,9 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
                 "forecast:horizon": "P3DT06H00M00S",
                 "forecast:duration": "P3DT06H00M00S",
                 "forecast:variable": "air_temperature",
-                "forecast:perturbed": True
+                "forecast:perturbed": True,
+                "cf:standard_name": "air_temperature",
+                "unit": "K",
             },
         }
         path = f'/{STAC_BASE_V}/collections/{self.collection["name"]}/items/{self.item["name"]}'
@@ -851,7 +853,9 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
                 "forecast:horizon": None,
                 "forecast:duration": None,
                 "forecast:variable": None,
-                "forecast:perturbed": None
+                "forecast:perturbed": None,
+                "cf:standard_name": None,
+                "unit": None,
             },
         }
         path = f'/{STAC_BASE_V}/collections/{self.collection["name"]}/items/{self.item["name"]}'
@@ -866,6 +870,8 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
         self.assertNotIn("forecast:duration", json_data['properties'].keys())
         self.assertNotIn("forecast:variable", json_data['properties'].keys())
         self.assertNotIn("forecast:perturbed", json_data['properties'].keys())
+        self.assertNotIn("cf:standard_name", json_data['properties'].keys())
+        self.assertNotIn("unit", json_data['properties'].keys())
 
         # Check the data by reading it back
         response = self.client.get(path)
@@ -879,6 +885,8 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
         self.assertNotIn("forecast:duration", json_data['properties'].keys())
         self.assertNotIn("forecast:variable", json_data['properties'].keys())
         self.assertNotIn("forecast:perturbed", json_data['properties'].keys())
+        self.assertNotIn("cf:standard_name", json_data['properties'].keys())
+        self.assertNotIn("unit", json_data['properties'].keys())
 
     def test_item_endpoint_patch_remove_properties_title(self):
         path = f'/{STAC_BASE_V}/collections/{self.collection["name"]}/items/{self.item["name"]}'
