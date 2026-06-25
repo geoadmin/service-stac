@@ -314,26 +314,22 @@ def harmonize_post_get_for_search(request):
         if 'intersects' in query_param:
             query_param['intersects'] = json.loads(query_param['intersects'])
 
-        # Forecast properties can only be filtered with method POST.
+        # Forecast and CF extension properties can only be filtered with method POST.
         # Decision was made as `:` need to be url encoded and (at least for now) we do not need to
         # support forecast filtering in the GET request.
-        if 'forecast:reference_datetime' in query_param:
-            del query_param['forecast:reference_datetime']
-        if 'forecast:horizon' in query_param:
-            del query_param['forecast:horizon']
-        if 'forecast:duration' in query_param:
-            del query_param['forecast:duration']
-        if 'forecast:variable' in query_param:
-            del query_param['forecast:variable']
-        if 'forecast:perturbed' in query_param:
-            del query_param['forecast:perturbed']
-        # CF extension properties can only be filtered with method POST.
-        # Decision was made as `:` need to be url encoded and (at least for now) we do not need to
-        # support CF filtering in the GET request.
-        if 'cf:standard_name' in query_param:
-            del query_param['cf:standard_name']
-        if 'unit' in query_param:
-            del query_param['unit']
+        forecast_properties = [
+            'forecast:reference_datetime',
+            'forecast:horizon',
+            'forecast:duration',
+            'forecast:variable',
+            'forecast:perturbed'
+        ]
+        cf_properties = ['cf:standard_name', 'unit']
+        properties_to_remove = forecast_properties + cf_properties
+        for p in properties_to_remove:
+            if p in query_param:
+                del query_param[p]
+
     return query_param
 
 
