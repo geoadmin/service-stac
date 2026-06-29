@@ -183,7 +183,7 @@ class Provider(models.Model):
     class Meta:
         unique_together = (('collection', 'name'),)
         ordering = ['pk']
-        triggers = child_triggers('collection', 'Provider')
+        triggers = child_triggers('collection', 'Provider', triggering_field=None)
 
     def __str__(self):
         return self.name

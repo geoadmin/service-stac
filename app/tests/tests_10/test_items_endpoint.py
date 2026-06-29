@@ -694,6 +694,19 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
             msg="Renamed item shouldn't exist"
         )
 
+    def test_item_endpoint_put_assets_in_body_rejected(self):
+        sample = self.factory.create_item_sample(
+            self.collection.model, sample='item-2', name=self.item['name']
+        )
+        payload = sample.get_json('put')
+        payload['assets'] = {'asset-1.tiff': {'type': 'image/tiff; application=geotiff',}}
+        path = f'/{STAC_BASE_V}/collections/{self.collection["name"]}/items/{self.item["name"]}'
+        response = self.client.put(path, data=payload, content_type='application/json')
+        self.assertStatusCode(400, response)
+        self.assertEqual(
+            response.json()['description'], {'assets': ['Found read-only property in payload']}
+        )
+
     def test_item_endpoint_patch(self):
         data = {"properties": {"title": "patched title"}}
         path = f'/{STAC_BASE_V}/collections/{self.collection["name"]}/items/{self.item["name"]}'

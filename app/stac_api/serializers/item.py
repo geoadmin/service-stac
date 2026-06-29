@@ -467,6 +467,15 @@ class ItemSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         return attrs
 
 
+class ItemDetailSerializer(ItemSerializer):
+    '''ItemSerializer variant used by the single-item detail view.
+
+    We set assets to read-only because they should not be supplied in single-item write payloads.
+    Instead, the dedicated asset endpoints or the bulk item upload should be used for that.
+    '''
+    assets = AssetsForItemSerializer(many=True, read_only=True)
+
+
 class ItemListSerializer(serializers.Serializer):
     '''Handle serialization and deserialization of a list of Items.'''
 

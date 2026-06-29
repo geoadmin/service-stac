@@ -19,6 +19,7 @@ from stac_api.models.collection import Collection
 from stac_api.models.item import Asset
 from stac_api.models.item import Item
 from stac_api.serializers.item import AssetSerializer
+from stac_api.serializers.item import ItemDetailSerializer
 from stac_api.serializers.item import ItemListSerializer
 from stac_api.serializers.item import ItemSerializer
 from stac_api.serializers.utils import get_relation_links
@@ -195,7 +196,7 @@ class ItemDetail(
 ):
     # this name must match the name in urls.py and is used by the DestroyModelMixin
     name = 'item-detail'
-    serializer_class = ItemSerializer
+    serializer_class = ItemDetailSerializer
     lookup_url_kwarg = "item_name"
     lookup_field = "name"
 

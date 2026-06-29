@@ -117,7 +117,7 @@ class CollectionLink(Link):
 
     class Meta:
         ordering = ['pk']
-        triggers = child_triggers('collection', 'CollectionLink')
+        triggers = child_triggers('collection', 'CollectionLink', triggering_field=None)
 
 
 class CollectionAsset(AssetBase):
