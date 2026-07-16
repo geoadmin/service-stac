@@ -34,6 +34,24 @@ class StacExtension(TextChoices):
     FORECAST = 'https://stac-extensions.github.io/forecast/v0.2.0/schema.json', 'Forecast'
 
 
+def validate_stac_extensions_enabled(stac_extensions, collection):
+    '''Validate that the given stac_extensions are enabled for the given Collection.
+
+    Args:
+        stac_extensions: list[str]
+            STAC extension schema URLs set on the Item
+        collection: Collection
+            The Collection the Item belongs (or will belong) to
+
+    Raises:
+        ValidationError: when one of the stac_extensions is not enabled for the collection
+    '''
+    not_enabled = set(stac_extensions) - set(collection.stac_extensions_enabled)
+    if not_enabled:
+        message = f'STAC extension not enabled for collection "{collection.name}": {not_enabled}'
+        raise ValidationError({"stac_extensions": message}, code='invalid')
+
+
 MediaType = namedtuple('MediaType', 'media_type_str, description, extensions')
 '''A MediaType is a tuple containing information about a media type that is accepted for asset data
 

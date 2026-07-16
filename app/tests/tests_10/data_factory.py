@@ -549,7 +549,6 @@ class ItemSample(SampleData):
         'bbox',
         'collection',
         'assets',
-        'stac_extensions',
         'stac_version',
         'properties_created',
         'properties_updated'

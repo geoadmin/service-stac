@@ -29,6 +29,7 @@ from stac_api.validators import validate_expires
 from stac_api.validators import validate_geoadmin_variant
 from stac_api.validators import validate_item_properties_datetimes
 from stac_api.validators import validate_name
+from stac_api.validators import validate_stac_extensions_enabled
 from stac_api.validators_serializer import validate_json_payload
 from stac_api.validators_serializer import validate_uniqueness_and_create
 
@@ -371,22 +372,10 @@ class ItemSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
     collection = serializers.SlugRelatedField(slug_field='name', read_only=True)
     bbox = BboxSerializer(source='*', read_only=True)
     assets = AssetsForItemSerializer(many=True, required=False)
-    stac_extensions = serializers.SerializerMethodField()
     stac_version = serializers.SerializerMethodField()
 
     def get_type(self, obj):
         return 'Feature'
-
-    def get_stac_extensions(self, obj):
-        extensions = [
-            # Extension provides schema for the 'expires' timestamp
-            "https://stac-extensions.github.io/timestamps/v1.1.0/schema.json"
-        ]
-        # IMPROVEMENT: This could be improved if there are other extensions coming by
-        # keeping the information on collection object itself
-        if obj.collection.name.startswith('ch.meteoschweiz.ogd-forecasting-icon'):
-            extensions.append("https://stac-extensions.github.io/forecast/v0.2.0/schema.json")
-        return extensions
 
     def get_stac_version(self, obj):
         return get_stac_version(self.context.get('request'))
@@ -470,6 +459,13 @@ class ItemSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
             logger.info(
                 'Skip validation of item properties datetimes; partial update without datetimes'
             )
+
+        stac_extensions = attrs.get(
+            'stac_extensions', self.instance.stac_extensions if self.instance else []
+        )
+        collection = self.context.get('collection')
+        if collection is not None:
+            validate_stac_extensions_enabled(stac_extensions, collection)
 
         validate_json_payload(self)
 

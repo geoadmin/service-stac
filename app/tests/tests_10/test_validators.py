@@ -8,6 +8,7 @@ from django.core.exceptions import ValidationError
 from django.test import TestCase
 
 from stac_api.validators import MediaType
+from stac_api.validators import StacExtension
 from stac_api.validators import _validate_href_configured_pattern
 from stac_api.validators import _validate_href_scheme
 from stac_api.validators import get_media_type
@@ -16,6 +17,7 @@ from stac_api.validators import validate_cache_control_header
 from stac_api.validators import validate_content_encoding
 from stac_api.validators import validate_expires
 from stac_api.validators import validate_item_properties_datetimes
+from stac_api.validators import validate_stac_extensions_enabled
 
 from tests.tests_10.data_factory import Factory
 
@@ -183,3 +185,27 @@ class TestExternalAssetValidators(TestCase):
             url = 'http://map.geo.admin.ch'
             with self.assertRaises(ValidationError):
                 _validate_href_scheme(url, collection)
+
+
+class StacExtensionsValidatorsTestCase(TestCase):
+
+    def setUp(self):  # pylint: disable=invalid-name
+        self.factory = Factory()
+
+    def test_validate_stac_extensions_enabled_does_nothing_for_empty_list(self):
+        collection = self.factory.create_collection_sample().model
+        validate_stac_extensions_enabled([], collection)
+
+    def test_validate_stac_extensions_enabled_does_nothing_when_enabled(self):
+        collection = self.factory.create_collection_sample(
+            stac_extensions_enabled=[StacExtension.TIMESTAMPS, StacExtension.FORECAST]
+        ).model
+        validate_stac_extensions_enabled([StacExtension.TIMESTAMPS, StacExtension.FORECAST],
+                                         collection)
+
+    def test_validate_stac_extensions_enabled_raises_when_not_enabled(self):
+        collection = self.factory.create_collection_sample(
+            stac_extensions_enabled=[StacExtension.TIMESTAMPS]
+        ).model
+        with self.assertRaises(ValidationError):
+            validate_stac_extensions_enabled([StacExtension.FORECAST], collection)

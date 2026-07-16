@@ -12,6 +12,7 @@ from stac_api.models.item import Item
 from stac_api.utils import fromisoformat
 from stac_api.utils import get_link
 from stac_api.utils import isoformat
+from stac_api.validators import StacExtension
 
 from tests.tests_09.base_test import STAC_BASE_V
 from tests.tests_09.base_test import StacBaseTestCase
@@ -677,8 +678,16 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
         self.assertIn("title", json_data['properties'].keys())
 
     def test_item_endpoint_patch_remove_all_optional_properties(self):
+        # This test uses the expires/forecast:* properties, which requires the timestamps and
+        # forecast extensions to be enabled for the collection.
+        self.collection.model.stac_extensions_enabled = [
+            StacExtension.TIMESTAMPS, StacExtension.FORECAST
+        ]
+        self.collection.model.save()
+
         # First add all properties
         data = {
+            "stac_extensions": [StacExtension.TIMESTAMPS, StacExtension.FORECAST],
             "properties": {
                 "title": "patched title",
                 "expires": "2060-02-12T23:20:50Z",
