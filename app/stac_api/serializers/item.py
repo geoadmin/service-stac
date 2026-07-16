@@ -21,6 +21,7 @@ from stac_api.serializers.utils import update_or_create_links
 from stac_api.serializers.utils import validate_href_field
 from stac_api.utils import get_stac_version
 from stac_api.utils import is_api_version_1
+from stac_api.validators import StacExtension
 from stac_api.validators import normalize_and_validate_media_type
 from stac_api.validators import validate_asset_name
 from stac_api.validators import validate_asset_name_with_media_type
@@ -357,6 +358,14 @@ class ItemSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
     properties = ItemsPropertiesSerializer(source='*', required=True)
     geometry = gis_serializers.GeometryField(required=True)
     links = ItemLinkSerializer(required=False, many=True)
+    stac_extensions = serializers.ListField(
+        child=serializers.ChoiceField(
+            choices=StacExtension.choices,
+            error_messages={'invalid_choice': _('"{input}" is not a valid STAC extension.')}
+        ),
+        required=False,
+        default=list,
+    )
     # read only fields
     type = serializers.SerializerMethodField()
     collection = serializers.SlugRelatedField(slug_field='name', read_only=True)
