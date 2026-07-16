@@ -325,6 +325,31 @@ class CollectionDeserializationTestCase(StacBaseTestCase):
         with self.assertRaises(serializers.ValidationError):
             serializer.is_valid(raise_exception=True)
 
+    def test_collection_deserialization_rejects_stac_extensions_enabled_in_payload(self):
+        # stac_extensions_enabled is an internal/admin-only field, it must not be settable
+        # through the API.
+        data = self.data_factory.create_collection_sample(required_only=True
+                                                         ).get_json('deserialize')
+        data['stac_extensions_enabled'] = [
+            "https://stac-extensions.github.io/timestamps/v1.1.0/schema.json"
+        ]
+
+        serializer = CollectionSerializer(data=data)
+        with self.assertRaises(serializers.ValidationError):
+            serializer.is_valid(raise_exception=True)
+
+    def test_collection_serialization_does_not_expose_stac_extensions_enabled(self):
+        collection = self.data_factory.create_collection_sample(
+            stac_extensions_enabled=[
+                "https://stac-extensions.github.io/timestamps/v1.1.0/schema.json"
+            ]
+        ).model
+        context = {
+            'request': request_with_resolver(f'/{STAC_BASE_V}/collections/{collection.name}')
+        }
+        serializer = CollectionSerializer(collection, context=context)
+        self.assertNotIn('stac_extensions_enabled', serializer.data)
+
 
 class ItemSerializationTestCase(MockS3PerTestMixin, StacBaseTestCase):
 
