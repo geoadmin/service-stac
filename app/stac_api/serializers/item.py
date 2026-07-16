@@ -28,6 +28,7 @@ from stac_api.validators import validate_asset_name_with_media_type
 from stac_api.validators import validate_expires
 from stac_api.validators import validate_geoadmin_variant
 from stac_api.validators import validate_item_properties_datetimes
+from stac_api.validators import validate_item_properties_extensions
 from stac_api.validators import validate_name
 from stac_api.validators import validate_stac_extensions_enabled
 from stac_api.validators_serializer import validate_json_payload
@@ -331,10 +332,30 @@ class AssetsForItemSerializer(AssetBaseSerializer):
         ]
 
 
+class ItemChildListSerializer(serializers.ListSerializer):
+    '''ListSerializer for ItemSerializer used for bulk creation of Items.
+
+    DRF doesn't set `initial_data` on the child serializer when validating a list of Items (see
+    `ListSerializer.run_child_validation`), but `ItemSerializer.validate()` needs access to the
+    raw "properties" payload (via `self.initial_data`) to validate it against the Item's
+    stac_extensions. This override makes sure `initial_data` is available on the child serializer
+    in that case too.
+    '''
+
+    # pylint: disable=abstract-method
+    # Bulk update is not supported (see ItemListSerializer.update()), so ListSerializer.update()
+    # is intentionally left unimplemented
+
+    def run_child_validation(self, data):
+        self.child.initial_data = data
+        return super().run_child_validation(data)
+
+
 class ItemSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
 
     class Meta:
         model = Item
+        list_serializer_class = ItemChildListSerializer
         fields = [
             'id',
             'collection',
@@ -466,6 +487,10 @@ class ItemSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         collection = self.context.get('collection')
         if collection is not None:
             validate_stac_extensions_enabled(stac_extensions, collection)
+
+        properties = self.initial_data.get('properties', {})
+        if isinstance(properties, dict):
+            validate_item_properties_extensions(properties, stac_extensions)
 
         validate_json_payload(self)
 

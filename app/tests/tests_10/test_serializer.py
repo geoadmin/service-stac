@@ -645,6 +645,39 @@ class ItemStacExtensionsDeserializationTestCase(StacBaseTestCase):
         with self.assertRaises(serializers.ValidationError):
             serializer.is_valid(raise_exception=True)
 
+    def test_item_deserialization_rejects_property_not_covered_by_extensions(self):
+        sample = self.data_factory.create_item_sample(
+            collection=self.collection.model,
+            sample='item-1',
+            properties={
+                "datetime": "2020-10-28T13:05:10Z",
+                "forecast:variable": "air_temperature",
+            },
+            # forecast extension not listed, even though it is enabled for the collection
+            stac_extensions=[StacExtension.TIMESTAMPS]
+        )
+        serializer = ItemSerializer(
+            data=sample.get_json('deserialize'), context={'collection': self.collection.model}
+        )
+        with self.assertRaises(serializers.ValidationError):
+            serializer.is_valid(raise_exception=True)
+
+    def test_item_deserialization_rejects_expires_without_timestamps_extension(self):
+        sample = self.data_factory.create_item_sample(
+            collection=self.collection.model,
+            sample='item-1',
+            properties={
+                "datetime": "2020-10-28T13:05:10Z",
+                "expires": "2099-01-01T00:00:00Z",
+            },
+            stac_extensions=[StacExtension.FORECAST]
+        )
+        serializer = ItemSerializer(
+            data=sample.get_json('deserialize'), context={'collection': self.collection.model}
+        )
+        with self.assertRaises(serializers.ValidationError):
+            serializer.is_valid(raise_exception=True)
+
 
 class ItemsPropertiesSerializerTestCase(unittest.TestCase):
 

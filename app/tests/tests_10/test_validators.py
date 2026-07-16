@@ -17,6 +17,7 @@ from stac_api.validators import validate_cache_control_header
 from stac_api.validators import validate_content_encoding
 from stac_api.validators import validate_expires
 from stac_api.validators import validate_item_properties_datetimes
+from stac_api.validators import validate_item_properties_extensions
 from stac_api.validators import validate_stac_extensions_enabled
 
 from tests.tests_10.data_factory import Factory
@@ -209,3 +210,27 @@ class StacExtensionsValidatorsTestCase(TestCase):
         ).model
         with self.assertRaises(ValidationError):
             validate_stac_extensions_enabled([StacExtension.FORECAST], collection)
+
+    def test_validate_item_properties_extensions_allows_default_properties(self):
+        properties = {'datetime': '2020-01-01T00:00:00Z', 'title': 'a title'}
+        validate_item_properties_extensions(properties, [])
+
+    def test_validate_item_properties_extensions_allows_extension_properties_when_declared(self):
+        properties = {
+            'datetime': '2020-01-01T00:00:00Z',
+            'forecast:variable': 'air_temperature',
+            'expires': '2099-01-01T00:00:00Z',
+        }
+        validate_item_properties_extensions(
+            properties, [StacExtension.TIMESTAMPS, StacExtension.FORECAST]
+        )
+
+    def test_validate_item_properties_extensions_raises_for_undeclared_extension_property(self):
+        properties = {'datetime': '2020-01-01T00:00:00Z', 'forecast:variable': 'air_temperature'}
+        with self.assertRaises(ValidationError):
+            validate_item_properties_extensions(properties, [])
+
+    def test_validate_item_properties_extensions_raises_for_expires_without_timestamps(self):
+        properties = {'datetime': '2020-01-01T00:00:00Z', 'expires': '2099-01-01T00:00:00Z'}
+        with self.assertRaises(ValidationError):
+            validate_item_properties_extensions(properties, [StacExtension.FORECAST])

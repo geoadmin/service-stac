@@ -52,6 +52,50 @@ def validate_stac_extensions_enabled(stac_extensions, collection):
         raise ValidationError({"stac_extensions": message}, code='invalid')
 
 
+def validate_item_properties_extensions(properties, stac_extensions):
+    '''Validate that each Item property is either a default property or is provided by one of
+    the given stac_extensions.
+
+    Args:
+        properties: dict
+            Raw Item properties payload (with colon-separated extension field names)
+        stac_extensions: list[str]
+            STAC extension schema URLs set on the Item
+
+    Raises:
+        ValidationError: when a property is neither a default property nor provided by one of
+            the stac_extensions
+    '''
+    default_properties = frozenset({
+        'datetime', 'start_datetime', 'end_datetime', 'title', 'created', 'updated'
+    })
+    extension_properties = {
+        'expires': StacExtension.TIMESTAMPS,
+        'forecast:reference_datetime': StacExtension.FORECAST,
+        'forecast:horizon': StacExtension.FORECAST,
+        'forecast:duration': StacExtension.FORECAST,
+        'forecast:variable': StacExtension.FORECAST,
+        'forecast:perturbed': StacExtension.FORECAST,
+    }
+
+    errors = {}
+    properties_to_check = set(properties) - default_properties
+    for prop in properties_to_check:
+        extension = extension_properties.get(prop)
+        if extension is None:
+            errors[prop] = (
+                'Property is not part of the default properties or a known extension property'
+            )
+            continue
+        if extension not in stac_extensions:
+            errors[prop] = (
+                f'Property requires the STAC extension "{extension}" to be part of the specified '
+                f'stac_extensions'
+            )
+    if errors:
+        raise ValidationError(errors, code='invalid')
+
+
 MediaType = namedtuple('MediaType', 'media_type_str, description, extensions')
 '''A MediaType is a tuple containing information about a media type that is accepted for asset data
 

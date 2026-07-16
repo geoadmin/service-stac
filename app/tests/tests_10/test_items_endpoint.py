@@ -618,6 +618,26 @@ class ItemsCreateStacExtensionsEndpointTestCase(StacBaseTestCase):
         self.assertStatusCode(400, response)
         self.assertFalse(Item.objects.filter(collection=collection, name=sample["name"]).exists())
 
+    def test_put_feature_with_property_not_covered_by_declared_extensions_returns_400(self):
+        sample = self.factory.create_item_sample(
+            self.collection,
+            properties={
+                "datetime": "2020-10-28T13:05:10Z",
+                "forecast:variable": "air_temperature",
+            },
+            # forecast extension not declared, even though enabled for the collection
+            stac_extensions=[StacExtension.TIMESTAMPS]
+        )
+        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{sample["name"]}'
+        response = self.client.put(
+            path, data=sample.get_json('put'), content_type="application/json"
+        )
+        self.assertStatusCode(400, response)
+        self.assertFalse(
+            Item.objects.filter(collection=self.collection, name=sample["name"]).exists()
+        )
+
+
 @override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class ItemsUpdateEndpointTestCase(StacBaseTestCase):
 
@@ -1321,6 +1341,38 @@ class ItemsBulkCreateEndpointTestCase(StacBaseTransactionTestCase):
                 },
                 "stac_extensions": [StacExtension.FORECAST],
             },]
+        }
+        response = self.client.post(
+            path=f'/{STAC_BASE_V}/collections/{self.collection["name"]}/items',
+            data=payload,
+            content_type="application/json",
+            headers={"Idempotency-Key": "abc-123"},
+        )
+        self.assertStatusCode(400, response)
+        self.assertFalse(
+            Item.objects.filter(collection=self.collection.model, name="item-1").exists()
+        )
+
+    def test_items_endpoint_post_returns_400_for_property_not_covered_by_extensions(self):
+        self.collection.model.stac_extensions_enabled = [
+            StacExtension.TIMESTAMPS, StacExtension.FORECAST
+        ]
+        self.collection.model.save()
+
+        payload = {
+            "features": [
+                {
+                    "id": "item-1",
+                    "geometry": {
+                        "type": "Point", "coordinates": [1.1, 1.2]
+                    },
+                    "properties": {
+                        "datetime": "2018-02-12T23:20:50Z",
+                        "forecast:variable": "air_temperature",
+                    },  # forecast extension not declared, even though enabled for the collection
+                    "stac_extensions": [StacExtension.TIMESTAMPS],
+                },
+            ]
         }
         response = self.client.post(
             path=f'/{STAC_BASE_V}/collections/{self.collection["name"]}/items',
