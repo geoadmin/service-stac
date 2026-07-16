@@ -703,6 +703,25 @@ class ItemStacExtensionsDeserializationTestCase(StacBaseTestCase):
         with self.assertRaises(serializers.ValidationError):
             serializer.is_valid(raise_exception=True)
 
+    def test_item_deserialization_rejects_forecast_extension_without_required_reference_datetime(
+        self
+    ):
+        sample = self.data_factory.create_item_sample(
+            collection=self.collection.model,
+            sample='item-1',
+            properties={
+                "datetime": "2020-10-28T13:05:10Z",
+                "forecast:horizon": "PT6H",
+            },
+            stac_extensions=[StacExtension.FORECAST]
+        )
+        serializer = ItemSerializer(
+            data=sample.get_json('deserialize'), context={'collection': self.collection.model}
+        )
+        with self.assertRaises(serializers.ValidationError) as context:
+            serializer.is_valid(raise_exception=True)
+        self.assertIn('forecast:reference_datetime', str(context.exception))
+
 
 class ItemsPropertiesSerializerTestCase(unittest.TestCase):
 

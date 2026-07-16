@@ -96,6 +96,36 @@ def validate_item_properties_extensions(properties, stac_extensions):
         raise ValidationError(errors, code='invalid')
 
 
+def validate_extension_required_properties(properties, stac_extensions):
+    '''Validate that required properties for STAC extensions are present in the Item properties.
+
+    Args:
+        properties: dict
+            Raw Item properties payload (with colon-separated extension field names)
+        stac_extensions: list[str]
+            STAC extension schema URLs set on the Item
+
+    Raises:
+        ValidationError: when a required property for an extension is missing
+    '''
+    # Map of extension URLs to their required properties
+    extension_required_properties = {
+        StacExtension.FORECAST: ['forecast:reference_datetime'],
+    }
+
+    errors = {}
+    for extension_url, required_props in extension_required_properties.items():
+        if extension_url in stac_extensions:
+            for prop in required_props:
+                if prop not in properties:
+                    errors[prop] = (
+                        f'Property is required when using the "{extension_url}" STAC extension'
+                    )
+
+    if errors:
+        raise ValidationError(errors, code='invalid')
+
+
 MediaType = namedtuple('MediaType', 'media_type_str, description, extensions')
 '''A MediaType is a tuple containing information about a media type that is accepted for asset data
 

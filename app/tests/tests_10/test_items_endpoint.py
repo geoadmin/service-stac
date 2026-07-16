@@ -1287,6 +1287,7 @@ class ItemsBulkCreateEndpointTestCase(StacBaseTransactionTestCase):
                 "properties": {
                     "datetime": "2018-02-12T23:20:50Z",
                     "expires": "2099-01-01T00:00:00Z",
+                    "forecast:reference_datetime": "2018-02-12T00:00:00Z",
                     "forecast:variable": "air_temperature",
                 },
                 "stac_extensions": [StacExtension.TIMESTAMPS, StacExtension.FORECAST],

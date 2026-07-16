@@ -26,6 +26,7 @@ from stac_api.validators import normalize_and_validate_media_type
 from stac_api.validators import validate_asset_name
 from stac_api.validators import validate_asset_name_with_media_type
 from stac_api.validators import validate_expires
+from stac_api.validators import validate_extension_required_properties
 from stac_api.validators import validate_geoadmin_variant
 from stac_api.validators import validate_item_properties_datetimes
 from stac_api.validators import validate_item_properties_extensions
@@ -491,6 +492,7 @@ class ItemSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
         properties = self.initial_data.get('properties', {})
         if isinstance(properties, dict):
             validate_item_properties_extensions(properties, stac_extensions)
+            validate_extension_required_properties(properties, stac_extensions)
 
         validate_json_payload(self)
 

@@ -16,6 +16,7 @@ from stac_api.validators import normalize_and_validate_media_type
 from stac_api.validators import validate_cache_control_header
 from stac_api.validators import validate_content_encoding
 from stac_api.validators import validate_expires
+from stac_api.validators import validate_extension_required_properties
 from stac_api.validators import validate_item_properties_datetimes
 from stac_api.validators import validate_item_properties_extensions
 from stac_api.validators import validate_stac_extensions_enabled
@@ -234,3 +235,26 @@ class StacExtensionsValidatorsTestCase(TestCase):
         properties = {'datetime': '2020-01-01T00:00:00Z', 'expires': '2099-01-01T00:00:00Z'}
         with self.assertRaises(ValidationError):
             validate_item_properties_extensions(properties, [StacExtension.FORECAST])
+
+    def test_validate_extension_required_properties_does_nothing_when_extension_not_used(self):
+        properties = {'datetime': '2020-01-01T00:00:00Z'}
+        validate_extension_required_properties(properties, [])
+        validate_extension_required_properties(properties, [StacExtension.TIMESTAMPS])
+
+    def test_validate_extension_required_properties_allows_with_required_field(self):
+        properties = {
+            'datetime': '2020-01-01T00:00:00Z',
+            'forecast:reference_datetime': '2020-01-01T00:00:00Z',
+            'forecast:horizon': 'PT6H',
+        }
+        validate_extension_required_properties(properties, [StacExtension.FORECAST])
+
+    def test_validate_extension_required_properties_raises_for_missing_forecast_reference_datetime(
+        self
+    ):
+        properties = {
+            'datetime': '2020-01-01T00:00:00Z',
+            'forecast:horizon': 'PT6H',
+        }
+        with self.assertRaises(ValidationError):
+            validate_extension_required_properties(properties, [StacExtension.FORECAST])
