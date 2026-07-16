@@ -35,6 +35,7 @@ from stac_api.models.item import Item
 from stac_api.models.item import ItemLink
 from stac_api.utils import build_asset_href
 from stac_api.utils import get_query_params
+from stac_api.validators import StacExtension
 from stac_api.validators import validate_text_to_geometry
 
 logger = logging.getLogger(__name__)
@@ -106,8 +107,24 @@ class CollectionAssetInline(admin.StackedInline):
     extra = 0
 
 
+# helper form to render stac_extensions_enabled as a suggested multi-select instead of a plain
+# comma-separated text field (the default ArrayField widget)
+class CollectionAdminForm(forms.ModelForm):
+    stac_extensions_enabled = forms.MultipleChoiceField(
+        choices=StacExtension.choices,
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+        help_text=(
+            "STAC extensions that are enabled for the Items in this Collection. Only Items "
+            "using one of the selected extensions can be created or updated. This field is for "
+            "internal/admin use only, it is not exposed through the STAC API."
+        )
+    )
+
+
 @admin.register(Collection)
 class CollectionAdmin(admin.ModelAdmin):
+    form = CollectionAdminForm
 
     class Media:
         js = ('js/admin/collection_help_search.js',)
@@ -133,6 +150,7 @@ class CollectionAdmin(admin.ModelAdmin):
         'allow_external_assets',
         'external_asset_whitelist',
         'cache_control_header',
+        'stac_extensions_enabled',
     ]
     readonly_fields = [
         'extent_start_datetime',

@@ -9,6 +9,7 @@ from stac_api.models.general import Provider
 from stac_api.models.item import Asset
 from stac_api.models.item import Item
 from stac_api.models.item import ItemLink
+from stac_api.validators import StacExtension
 
 from tests.base_test_admin_page import AdminBaseTestCase
 from tests.utils import MockS3PerClassMixin
@@ -166,6 +167,36 @@ class AdminCollectionTestCase(MockS3PerClassMixin, AdminBaseTestCase):
         collection.refresh_from_db()
         self.assertEqual(
             collection.title, data['title'], msg="Admin page collection title update did not work"
+        )
+
+    def test_add_collection_with_stac_extensions_enabled(self):
+        collection = self._create_collection(
+            extra={'stac_extensions_enabled': [StacExtension.TIMESTAMPS, StacExtension.FORECAST]}
+        )[0]
+
+        self.assertEqual(
+            sorted(collection.stac_extensions_enabled),
+            sorted([StacExtension.TIMESTAMPS, StacExtension.FORECAST]),
+            msg="Admin page did not save stac_extensions_enabled as expected"
+        )
+
+    def test_update_collection_remove_stac_extensions_enabled(self):
+        collection, data = self._create_collection(
+            extra={'stac_extensions_enabled': [StacExtension.TIMESTAMPS]}
+        )[:2]
+        collection.refresh_from_db()
+        self.assertEqual(collection.stac_extensions_enabled, [StacExtension.TIMESTAMPS])
+
+        # remove the checkbox selection entirely
+        data.pop('stac_extensions_enabled', None)
+        response = self.client.post(
+            reverse('admin:stac_api_collection_change', args=[collection.id]), data
+        )
+        self.assertEqual(response.status_code, 302, msg="Admin page failed to update collection")
+        collection.refresh_from_db()
+        self.assertEqual(
+            collection.stac_extensions_enabled, [],
+            msg="Admin page did not clear stac_extensions_enabled as expected"
         )
 
     def test_publish_collection(self):
