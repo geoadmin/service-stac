@@ -231,6 +231,11 @@ paths:
            2. Less partial uploads to mess with: Either all features are uploaded or none is.
 
         A maximum of 100 features per call is allowed.
+
+
+        **Note:** When using STAC extensions in `stac_extensions`, certain properties may be required
+        in the feature's `properties` field. For example, the Forecast extension requires
+        `forecast:reference_datetime`.
       operationId: bulkCreateItems
       parameters:
         - $ref: "../components/parameters.yaml#/components/parameters/collectionId"
@@ -267,6 +272,11 @@ paths:
         *NOTE: Optional fields that are not part of the PUT payload, will be erased
         in the resource. For example if the resource has a properties.title and the
         PUT payload doesn't, then the resource's properties.title will be removed.*
+
+
+        *NOTE: When using STAC extensions in `stac_extensions`, certain properties may be required
+        in the feature's `properties` field. For example, the Forecast extension requires
+        `forecast:reference_datetime`.*
       operationId: putFeature
       tags:
         - Data Management
