@@ -17,6 +17,7 @@ from django.contrib.gis.geos.error import GEOSException
 from django.core import exceptions
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
+from django.db.models import TextChoices
 from django.utils.translation import gettext_lazy as _
 
 from stac_api.utils import fromisoformat
@@ -25,6 +26,13 @@ from stac_api.utils import is_valid_b64
 from stac_api.utils import parse_cache_control_header
 
 logger = logging.getLogger(__name__)
+
+
+class StacExtension(TextChoices):
+    '''STAC extensions that can be enabled for a Collection and used by its Items.'''
+    TIMESTAMPS = 'https://stac-extensions.github.io/timestamps/v1.1.0/schema.json', 'Timestamps'
+    FORECAST = 'https://stac-extensions.github.io/forecast/v0.2.0/schema.json', 'Forecast'
+
 
 MediaType = namedtuple('MediaType', 'media_type_str, description, extensions')
 '''A MediaType is a tuple containing information about a media type that is accepted for asset data
