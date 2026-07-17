@@ -1,8 +1,12 @@
 import logging
 
+from django.contrib import admin
+from django.test import RequestFactory
 from django.test import override_settings
 from django.urls import reverse
 
+from stac_api.admin import CollectionAdmin
+from stac_api.admin import StacExtensionsEnabledFilter
 from stac_api.models.collection import Collection
 from stac_api.models.collection import CollectionLink
 from stac_api.models.general import Provider
@@ -759,3 +763,119 @@ class AdminAssetTestCase(S3TestMixin, MockS3PerTestMixin, AdminBaseTestCase):
             response,
             f"<h1>Upload file for {self.collection.name}/{self.item.name}/{asset.name}</h1>"
         )
+
+
+#--------------------------------------------------------------------------------------------------
+
+
+class AdminCollectionStacExtensionsEnabledFilterTestCase(AdminBaseTestCase):
+
+    def setUp(self):
+        super().setUp()
+        self.client.login(username=self.username, password=self.password)
+        self.request_factory = RequestFactory()
+        self.model_admin = CollectionAdmin(Collection, admin.site)
+
+    def _make_filter(self, query_params):
+        request = self.request_factory.get(
+            reverse('admin:stac_api_collection_changelist'), query_params
+        )
+        request.user = self.admin_user
+        return StacExtensionsEnabledFilter(
+            request, request.GET.copy(), Collection, self.model_admin
+        )
+
+    def _create_collection_with_extensions(self, name, extensions=None):
+        kwargs = {'name': name, 'license': 'free', 'description': 'test'}
+        if extensions is not None:
+            kwargs['stac_extensions_enabled'] = extensions
+        return Collection.objects.create(**kwargs)
+
+    def test_filter_none_returns_collections_without_extensions(self):
+        coll_none = self._create_collection_with_extensions('coll-none')
+        self._create_collection_with_extensions('coll-forecast', [StacExtension.FORECAST])
+
+        filter_spec = self._make_filter({'stac_extensions_enabled': 'none'})
+        qs = filter_spec.queryset(filter_spec.request, Collection.objects.all())
+
+        self.assertEqual(list(qs), [coll_none])
+
+    def test_filter_timestamps_returns_collections_with_timestamps(self):
+        coll_timestamps = self._create_collection_with_extensions(
+            'coll-timestamps', [StacExtension.TIMESTAMPS]
+        )
+        coll_both = self._create_collection_with_extensions(
+            'coll-both', [StacExtension.FORECAST, StacExtension.TIMESTAMPS]
+        )
+
+        filter_spec = self._make_filter({'stac_extensions_enabled': StacExtension.TIMESTAMPS})
+        qs = filter_spec.queryset(filter_spec.request, Collection.objects.all())
+
+        self.assertCountEqual(list(qs), [coll_timestamps, coll_both])
+
+    def test_filter_both_extensions_returns_only_collections_with_both(self):
+        coll_both = self._create_collection_with_extensions(
+            'coll-both3', [StacExtension.FORECAST, StacExtension.TIMESTAMPS]
+        )
+        self._create_collection_with_extensions('coll-forecast-only', [StacExtension.FORECAST])
+        self._create_collection_with_extensions('coll-timestamps-only', [StacExtension.TIMESTAMPS])
+        self._create_collection_with_extensions('coll-none3')
+
+        filter_spec = self._make_filter({
+            'stac_extensions_enabled': [StacExtension.FORECAST, StacExtension.TIMESTAMPS]
+        })
+        qs = filter_spec.queryset(filter_spec.request, Collection.objects.all())
+
+        self.assertEqual(list(qs), [coll_both])
+
+    def test_filter_none_deselects_others_and_returns_empty_only(self):
+        coll_none = self._create_collection_with_extensions('coll-none4')
+        self._create_collection_with_extensions('coll-forecast3', [StacExtension.FORECAST])
+
+        filter_spec = self._make_filter({
+            'stac_extensions_enabled': ['none', StacExtension.FORECAST]
+        })
+        qs = filter_spec.queryset(filter_spec.request, Collection.objects.all())
+
+        self.assertEqual(list(qs), [coll_none])
+
+    def test_filter_no_params_returns_all_collections(self):
+        coll = self._create_collection_with_extensions('coll-no-filter')
+
+        filter_spec = self._make_filter({})
+        qs = filter_spec.queryset(filter_spec.request, Collection.objects.all())
+
+        self.assertEqual(list(qs), [coll])
+
+    def test_filter_choices_marks_selected_values(self):
+        filter_spec = self._make_filter({
+            'stac_extensions_enabled': [StacExtension.FORECAST, 'none']
+        })
+        choices = list(filter_spec.choices(None))
+        selected_values = {c['value'] for c in choices if c['selected']}
+
+        self.assertEqual(selected_values, {StacExtension.FORECAST, 'none'})
+
+        forecast_choice = next(c for c in choices if c['value'] == StacExtension.FORECAST)
+        self.assertEqual(forecast_choice['display'], 'Forecast')
+
+    def test_filter_changelist_none_returns_200(self):
+        self._create_collection_with_extensions('coll-changelist')
+        url = reverse('admin:stac_api_collection_changelist')
+        response = self.client.get(url, {'stac_extensions_enabled': 'none'})
+        self.assertEqual(response.status_code, 200)
+
+    def test_filter_changelist_none_shows_only_matching_collections(self):
+        self._create_collection_with_extensions('coll-none-ui')
+        self._create_collection_with_extensions('coll-forecast-ui', [StacExtension.FORECAST])
+        url = reverse('admin:stac_api_collection_changelist')
+        response = self.client.get(url, {'stac_extensions_enabled': 'none'})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'coll-none-ui')
+        self.assertNotContains(response, 'coll-forecast-ui')
+
+    def test_filter_changelist_renders_checkbox_template(self):
+        url = reverse('admin:stac_api_collection_changelist')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'stac-extensions-enabled-filter')

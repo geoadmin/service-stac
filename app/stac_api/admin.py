@@ -122,6 +122,42 @@ class CollectionAdminForm(forms.ModelForm):
     )
 
 
+class StacExtensionsEnabledFilter(SimpleListFilter):
+    title = _('STAC extensions enabled')
+    parameter_name = 'stac_extensions_enabled'
+    template = 'admin/stac_extensions_enabled_filter.html'
+
+    value_none = 'none'
+    value_forecast = StacExtension.FORECAST
+    value_timestamps = StacExtension.TIMESTAMPS
+
+    def lookups(self, request, model_admin):
+        return [
+            (self.value_none, _('None')),
+            (self.value_forecast, _('Forecast')),
+            (self.value_timestamps, _('Timestamps')),
+        ]
+
+    def queryset(self, request, queryset):
+        values = request.GET.getlist(self.parameter_name)
+        if not values:
+            return queryset
+
+        if self.value_none in values:
+            return queryset.filter(stac_extensions_enabled=[])
+
+        return queryset.filter(stac_extensions_enabled__contains=values)
+
+    def choices(self, changelist):
+        values = set(self.request.GET.getlist(self.parameter_name))
+        for lookup, title in self.lookup_choices:
+            yield {
+                'selected': str(lookup) in values,
+                'value': lookup,
+                'display': title,
+            }
+
+
 @admin.register(Collection)
 class CollectionAdmin(admin.ModelAdmin):
     form = CollectionAdminForm
@@ -168,7 +204,7 @@ class CollectionAdmin(admin.ModelAdmin):
     inlines = [ProviderInline, CollectionLinkInline, CollectionAssetInline]
     search_fields = ['name']
     list_display = ['name', 'published']
-    list_filter = ['published']
+    list_filter = ['published', StacExtensionsEnabledFilter]
 
     #helper function which displays the bytes in human-readable format
     def displayed_total_data_size(self, instance):
