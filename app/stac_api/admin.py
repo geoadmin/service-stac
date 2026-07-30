@@ -295,6 +295,7 @@ class ItemAdmin(admin.ModelAdmin):
                     'updated',
                     'etag',
                     'displayed_total_data_size',
+                    'stac_extensions',
                 )
             }
         ),
@@ -397,6 +398,7 @@ class ItemAdmin(admin.ModelAdmin):
                 'updated',
                 'etag',
                 'displayed_total_data_size',
+                'stac_extensions',
             )
             return fields
         # Otherwise if this is an update operation only display the read only field
@@ -408,6 +410,7 @@ class ItemAdmin(admin.ModelAdmin):
             'updated',
             'etag',
             'displayed_total_data_size',
+            'stac_extensions',
         )
         return fields
 
