@@ -1492,7 +1492,10 @@ components:
         * A datetime range with a `start_datetime` and an `end_datetime`
 
 
-        One of the two is required
+        One of the two is required.
+
+
+        **Note on STAC extensions:** When a STAC extension is listed in the `stac_extensions` field, certain properties may be required. For example, when using the [Forecast extension](`https://github.com/stac-extensions/forecast`), the `forecast:reference_datetime` property is required.
       properties:
         created:
           $ref: "#/components/schemas/created"
@@ -2011,8 +2014,16 @@ components:
       type: array
       items:
         type: string
-      description: List of relevant extensions for an object
+        enum:
+          - https://stac-extensions.github.io/timestamps/v1.1.0/schema.json
+          - https://stac-extensions.github.io/forecast/v0.2.0/schema.json
+      description: >-
+        List of STAC extensions used by this feature. Properties that are not part of the default feature properties (`datetime`, `start_datetime`, `end_datetime`, `title`, `created`, `updated`) must be covered by one of the extensions listed here, otherwise the request is rejected.
+
+
+        Additionally, when an extension is listed here, certain properties required by that extension must be present in the `properties` field. For example, when using the Forecast extension, the `forecast:reference_datetime` property is required.
       example:
+        - https://stac-extensions.github.io/timestamps/v1.1.0/schema.json
         - https://stac-extensions.github.io/forecast/v0.2.0/schema.json
     timeStamp:
       description: This property indicates the time and date when the response was generated.
@@ -3035,6 +3046,11 @@ paths:
            2. Less partial uploads to mess with: Either all features are uploaded or none is.
 
         A maximum of 100 features per call is allowed.
+
+
+        **Note:** When using STAC extensions in `stac_extensions`, certain properties may be required
+        in the feature's `properties` field. For example, the Forecast extension requires
+        `forecast:reference_datetime`.
       operationId: bulkCreateItems
       parameters:
         - $ref: "#/components/parameters/collectionId"
@@ -3093,6 +3109,9 @@ paths:
 
 
         *NOTE: Optional fields that are not part of the PUT payload, will be erased in the resource. For example if the resource has a properties.title and the PUT payload doesn't, then the resource's properties.title will be removed.*
+
+
+        *NOTE: When using STAC extensions in `stac_extensions`, certain properties may be required in the feature's `properties` field. For example, the Forecast extension requires `forecast:reference_datetime`.*
       operationId: putFeature
       tags:
         - Data Management
@@ -3128,6 +3147,9 @@ paths:
                 forecast:duration: PT4H
                 forecast:variable: air_temperature
                 forecast:perturbed: true
+              stac_extensions:
+                - https://stac-extensions.github.io/timestamps/v1.1.0/schema.json
+                - https://stac-extensions.github.io/forecast/v0.2.0/schema.json
               links:
                 - href: https://www.swisstopo.admin.ch/en/home/meta/conditions/geodata/free-geodata.html
                   rel: license

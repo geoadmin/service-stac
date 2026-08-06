@@ -1412,7 +1412,10 @@ components:
         * A datetime range with a `start_datetime` and an `end_datetime`
 
 
-        One of the two is required
+        One of the two is required.
+
+
+        **Note on STAC extensions:** When a STAC extension is listed in the `stac_extensions` field, certain properties may be required. For example, when using the [Forecast extension](`https://github.com/stac-extensions/forecast`), the `forecast:reference_datetime` property is required.
       properties:
         created:
           $ref: "#/components/schemas/created"
@@ -1927,8 +1930,16 @@ components:
       type: array
       items:
         type: string
-      description: List of relevant extensions for an object
+        enum:
+          - https://stac-extensions.github.io/timestamps/v1.1.0/schema.json
+          - https://stac-extensions.github.io/forecast/v0.2.0/schema.json
+      description: >-
+        List of STAC extensions used by this feature. Properties that are not part of the default feature properties (`datetime`, `start_datetime`, `end_datetime`, `title`, `created`, `updated`) must be covered by one of the extensions listed here, otherwise the request is rejected.
+
+
+        Additionally, when an extension is listed here, certain properties required by that extension must be present in the `properties` field. For example, when using the Forecast extension, the `forecast:reference_datetime` property is required.
       example:
+        - https://stac-extensions.github.io/timestamps/v1.1.0/schema.json
         - https://stac-extensions.github.io/forecast/v0.2.0/schema.json
     timeStamp:
       description: This property indicates the time and date when the response was generated.

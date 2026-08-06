@@ -10,6 +10,7 @@ from django.test import TestCase
 
 from stac_api.models.collection import Collection
 from stac_api.models.item import Item
+from stac_api.validators import StacExtension
 
 from tests.tests_10.data_factory import CollectionFactory
 
@@ -338,3 +339,32 @@ class ItemsModelTestCase(TestCase):
         item.full_clean()
         item.save()
         self.assertEqual(item.forecast_perturbed, None)
+
+    def test_item_create_model_stac_extensions_defaults_to_empty_list(self):
+        item = Item(
+            collection=self.collection, properties_datetime=datetime.now(UTC), name='item-1'
+        )
+        item.full_clean()
+        item.save()
+        self.assertEqual(item.stac_extensions, [])
+
+    def test_item_create_model_sets_stac_extensions_as_expected(self):
+        item = Item(
+            collection=self.collection,
+            properties_datetime=datetime.now(UTC),
+            name='item-1',
+            stac_extensions=[StacExtension.TIMESTAMPS, StacExtension.FORECAST],
+        )
+        item.full_clean()
+        item.save()
+        self.assertEqual(item.stac_extensions, [StacExtension.TIMESTAMPS, StacExtension.FORECAST])
+
+    def test_item_create_model_invalid_stac_extensions_value(self):
+        with self.assertRaises(ValidationError):
+            item = Item(
+                collection=self.collection,
+                properties_datetime=datetime.now(UTC),
+                name='item-1',
+                stac_extensions=["https://unknown-extension.com/schema.json"],
+            )
+            item.full_clean()

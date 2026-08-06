@@ -17,6 +17,7 @@ from django.contrib.gis.geos.error import GEOSException
 from django.core import exceptions
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
+from django.db.models import TextChoices
 from django.utils.translation import gettext_lazy as _
 
 from stac_api.utils import fromisoformat
@@ -25,6 +26,105 @@ from stac_api.utils import is_valid_b64
 from stac_api.utils import parse_cache_control_header
 
 logger = logging.getLogger(__name__)
+
+
+class StacExtension(TextChoices):
+    '''STAC extensions that can be enabled for a Collection and used by its Items.'''
+    TIMESTAMPS = 'https://stac-extensions.github.io/timestamps/v1.1.0/schema.json', 'Timestamps'
+    FORECAST = 'https://stac-extensions.github.io/forecast/v0.2.0/schema.json', 'Forecast'
+
+
+def validate_stac_extensions_enabled(stac_extensions, collection):
+    '''Validate that the given stac_extensions are enabled for the given Collection.
+
+    Args:
+        stac_extensions: list[str]
+            STAC extension schema URLs set on the Item
+        collection: Collection
+            The Collection the Item belongs (or will belong) to
+
+    Raises:
+        ValidationError: when one of the stac_extensions is not enabled for the collection
+    '''
+    not_enabled = set(stac_extensions) - set(collection.stac_extensions_enabled)
+    if not_enabled:
+        message = f'STAC extension not enabled for collection "{collection.name}": {not_enabled}'
+        raise ValidationError({"stac_extensions": message}, code='invalid')
+
+
+def validate_item_properties_extensions(properties, stac_extensions):
+    '''Validate that each Item property is either a default property or is provided by one of
+    the given stac_extensions.
+
+    Args:
+        properties: dict
+            Raw Item properties payload (with colon-separated extension field names)
+        stac_extensions: list[str]
+            STAC extension schema URLs set on the Item
+
+    Raises:
+        ValidationError: when a property is neither a default property nor provided by one of
+            the stac_extensions
+    '''
+    default_properties = frozenset({
+        'datetime', 'start_datetime', 'end_datetime', 'title', 'created', 'updated'
+    })
+    extension_properties = {
+        'expires': StacExtension.TIMESTAMPS,
+        'forecast:reference_datetime': StacExtension.FORECAST,
+        'forecast:horizon': StacExtension.FORECAST,
+        'forecast:duration': StacExtension.FORECAST,
+        'forecast:variable': StacExtension.FORECAST,
+        'forecast:perturbed': StacExtension.FORECAST,
+    }
+
+    errors = {}
+    properties_to_check = set(properties) - default_properties
+    for prop in properties_to_check:
+        extension = extension_properties.get(prop)
+        if extension is None:
+            errors[prop] = (
+                'Property is not part of the default properties or a known extension property'
+            )
+            continue
+        if extension not in stac_extensions:
+            errors[prop] = (
+                f'Property requires the STAC extension "{extension}" to be part of the specified '
+                f'stac_extensions'
+            )
+    if errors:
+        raise ValidationError(errors, code='invalid')
+
+
+def validate_extension_required_properties(properties, stac_extensions):
+    '''Validate that required properties for STAC extensions are present in the Item properties.
+
+    Args:
+        properties: dict
+            Raw Item properties payload (with colon-separated extension field names)
+        stac_extensions: list[str]
+            STAC extension schema URLs set on the Item
+
+    Raises:
+        ValidationError: when a required property for an extension is missing
+    '''
+    # Map of extension URLs to their required properties
+    extension_required_properties = {
+        StacExtension.FORECAST: ['forecast:reference_datetime'],
+    }
+
+    errors = {}
+    for extension_url, required_props in extension_required_properties.items():
+        if extension_url in stac_extensions:
+            for prop in required_props:
+                if prop not in properties:
+                    errors[prop] = (
+                        f'Property is required when using the "{extension_url}" STAC extension'
+                    )
+
+    if errors:
+        raise ValidationError(errors, code='invalid')
+
 
 MediaType = namedtuple('MediaType', 'media_type_str, description, extensions')
 '''A MediaType is a tuple containing information about a media type that is accepted for asset data

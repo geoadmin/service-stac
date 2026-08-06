@@ -4,6 +4,7 @@ from time import sleep
 from django.core.exceptions import ValidationError
 
 from stac_api.models.collection import Collection
+from stac_api.validators import StacExtension
 
 from tests.tests_10.base_test import StacBaseTransactionTestCase
 from tests.tests_10.data_factory import Factory
@@ -84,6 +85,35 @@ class CollectionsModelTestCase(MockS3PerTestMixin, StacBaseTransactionTestCase):
             db_create=True,
             required_only=True
         )
+
+    def test_create_collection_stac_extensions_enabled_defaults_to_empty_list(self):
+        sample = self.factory.create_collection_sample(
+            name="collection-stac-extensions-default", sample="collection-1", db_create=True
+        )
+        self.assertEqual(sample.model.stac_extensions_enabled, [])
+
+    def test_create_collection_with_stac_extensions_enabled(self):
+        sample = self.factory.create_collection_sample(
+            name="collection-stac-extensions-enabled",
+            sample="collection-1",
+            db_create=True,
+            stac_extensions_enabled=[StacExtension.TIMESTAMPS, StacExtension.FORECAST]
+        )
+        self.assertEqual(
+            sample.model.stac_extensions_enabled,
+            [StacExtension.TIMESTAMPS, StacExtension.FORECAST]
+        )
+
+    def test_create_collection_invalid_stac_extensions_enabled_value(self):
+        with self.assertRaises(
+            ValidationError, msg="Collection with unknown stac_extensions_enabled was accepted."
+        ):
+            self.factory.create_collection_sample(
+                name="collection-invalid-stac-extensions",
+                sample="collection-1",
+                db_create=True,
+                stac_extensions_enabled=["https://unknown-extension.com/schema.json"]
+            )
 
     def test_collection_update_on_item_write_operations(self):
         # assert that collection's updated property is updated when an item is

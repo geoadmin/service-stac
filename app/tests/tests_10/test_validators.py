@@ -8,6 +8,7 @@ from django.core.exceptions import ValidationError
 from django.test import TestCase
 
 from stac_api.validators import MediaType
+from stac_api.validators import StacExtension
 from stac_api.validators import _validate_href_configured_pattern
 from stac_api.validators import _validate_href_scheme
 from stac_api.validators import get_media_type
@@ -15,7 +16,10 @@ from stac_api.validators import normalize_and_validate_media_type
 from stac_api.validators import validate_cache_control_header
 from stac_api.validators import validate_content_encoding
 from stac_api.validators import validate_expires
+from stac_api.validators import validate_extension_required_properties
 from stac_api.validators import validate_item_properties_datetimes
+from stac_api.validators import validate_item_properties_extensions
+from stac_api.validators import validate_stac_extensions_enabled
 
 from tests.tests_10.data_factory import Factory
 
@@ -183,3 +187,74 @@ class TestExternalAssetValidators(TestCase):
             url = 'http://map.geo.admin.ch'
             with self.assertRaises(ValidationError):
                 _validate_href_scheme(url, collection)
+
+
+class StacExtensionsValidatorsTestCase(TestCase):
+
+    def setUp(self):  # pylint: disable=invalid-name
+        self.factory = Factory()
+
+    def test_validate_stac_extensions_enabled_does_nothing_for_empty_list(self):
+        collection = self.factory.create_collection_sample().model
+        validate_stac_extensions_enabled([], collection)
+
+    def test_validate_stac_extensions_enabled_does_nothing_when_enabled(self):
+        collection = self.factory.create_collection_sample(
+            stac_extensions_enabled=[StacExtension.TIMESTAMPS, StacExtension.FORECAST]
+        ).model
+        validate_stac_extensions_enabled([StacExtension.TIMESTAMPS, StacExtension.FORECAST],
+                                         collection)
+
+    def test_validate_stac_extensions_enabled_raises_when_not_enabled(self):
+        collection = self.factory.create_collection_sample(
+            stac_extensions_enabled=[StacExtension.TIMESTAMPS]
+        ).model
+        with self.assertRaises(ValidationError):
+            validate_stac_extensions_enabled([StacExtension.FORECAST], collection)
+
+    def test_validate_item_properties_extensions_allows_default_properties(self):
+        properties = {'datetime': '2020-01-01T00:00:00Z', 'title': 'a title'}
+        validate_item_properties_extensions(properties, [])
+
+    def test_validate_item_properties_extensions_allows_extension_properties_when_declared(self):
+        properties = {
+            'datetime': '2020-01-01T00:00:00Z',
+            'forecast:variable': 'air_temperature',
+            'expires': '2099-01-01T00:00:00Z',
+        }
+        validate_item_properties_extensions(
+            properties, [StacExtension.TIMESTAMPS, StacExtension.FORECAST]
+        )
+
+    def test_validate_item_properties_extensions_raises_for_undeclared_extension_property(self):
+        properties = {'datetime': '2020-01-01T00:00:00Z', 'forecast:variable': 'air_temperature'}
+        with self.assertRaises(ValidationError):
+            validate_item_properties_extensions(properties, [])
+
+    def test_validate_item_properties_extensions_raises_for_expires_without_timestamps(self):
+        properties = {'datetime': '2020-01-01T00:00:00Z', 'expires': '2099-01-01T00:00:00Z'}
+        with self.assertRaises(ValidationError):
+            validate_item_properties_extensions(properties, [StacExtension.FORECAST])
+
+    def test_validate_extension_required_properties_does_nothing_when_extension_not_used(self):
+        properties = {'datetime': '2020-01-01T00:00:00Z'}
+        validate_extension_required_properties(properties, [])
+        validate_extension_required_properties(properties, [StacExtension.TIMESTAMPS])
+
+    def test_validate_extension_required_properties_allows_with_required_field(self):
+        properties = {
+            'datetime': '2020-01-01T00:00:00Z',
+            'forecast:reference_datetime': '2020-01-01T00:00:00Z',
+            'forecast:horizon': 'PT6H',
+        }
+        validate_extension_required_properties(properties, [StacExtension.FORECAST])
+
+    def test_validate_extension_required_properties_raises_for_missing_forecast_reference_datetime(
+        self
+    ):
+        properties = {
+            'datetime': '2020-01-01T00:00:00Z',
+            'forecast:horizon': 'PT6H',
+        }
+        with self.assertRaises(ValidationError):
+            validate_extension_required_properties(properties, [StacExtension.FORECAST])

@@ -220,8 +220,19 @@ class ItemDetail(
 
         return queryset
 
+    def get_serializer_context(self):
+        # The serializer needs the Collection to validate the Item's stac_extensions against the
+        # Collection's stac_extensions_enabled field. Only needed for write requests;
+        # perform_update()/perform_upsert() reuse this same fetch instead of looking it up again.
+        context = super().get_serializer_context()
+        if self.request.method in ('PUT', 'PATCH'):
+            context['collection'] = get_object_or_404(
+                Collection, name=self.kwargs['collection_name']
+            )
+        return context
+
     def perform_update(self, serializer):
-        collection = get_object_or_404(Collection, name=self.kwargs['collection_name'])
+        collection = serializer.context['collection']
         validate_renaming(
             serializer,
             self.kwargs['item_name'],
@@ -234,7 +245,7 @@ class ItemDetail(
         serializer.save(collection=collection)
 
     def perform_upsert(self, serializer, lookup):
-        collection = get_object_or_404(Collection, name=self.kwargs['collection_name'])
+        collection = serializer.context['collection']
         validate_renaming(
             serializer,
             self.kwargs['item_name'],

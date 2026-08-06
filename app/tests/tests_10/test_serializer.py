@@ -27,6 +27,7 @@ from stac_api.serializers.item import ItemsPropertiesSerializer
 from stac_api.utils import get_asset_path
 from stac_api.utils import get_link
 from stac_api.utils import isoformat
+from stac_api.validators import StacExtension
 
 from tests.tests_10.base_test import STAC_BASE_V
 from tests.tests_10.base_test import STAC_VERSION
@@ -324,6 +325,31 @@ class CollectionDeserializationTestCase(StacBaseTestCase):
         with self.assertRaises(serializers.ValidationError):
             serializer.is_valid(raise_exception=True)
 
+    def test_collection_deserialization_rejects_stac_extensions_enabled_in_payload(self):
+        # stac_extensions_enabled is an internal/admin-only field, it must not be settable
+        # through the API.
+        data = self.data_factory.create_collection_sample(required_only=True
+                                                         ).get_json('deserialize')
+        data['stac_extensions_enabled'] = [
+            "https://stac-extensions.github.io/timestamps/v1.1.0/schema.json"
+        ]
+
+        serializer = CollectionSerializer(data=data)
+        with self.assertRaises(serializers.ValidationError):
+            serializer.is_valid(raise_exception=True)
+
+    def test_collection_serialization_does_not_expose_stac_extensions_enabled(self):
+        collection = self.data_factory.create_collection_sample(
+            stac_extensions_enabled=[
+                "https://stac-extensions.github.io/timestamps/v1.1.0/schema.json"
+            ]
+        ).model
+        context = {
+            'request': request_with_resolver(f'/{STAC_BASE_V}/collections/{collection.name}')
+        }
+        serializer = CollectionSerializer(collection, context=context)
+        self.assertNotIn('stac_extensions_enabled', serializer.data)
+
 
 class ItemSerializationTestCase(MockS3PerTestMixin, StacBaseTestCase):
 
@@ -585,6 +611,118 @@ class ItemDeserializationTestCase(StacBaseTestCase):
             serializer.is_valid(raise_exception=True)
 
 
+class ItemStacExtensionsDeserializationTestCase(StacBaseTestCase):
+
+    @classmethod
+    def setUpTestData(cls):  # pylint: disable=invalid-name
+        cls.data_factory = Factory()
+        cls.collection = cls.data_factory.create_collection_sample(
+            db_create=True,
+            stac_extensions_enabled=[StacExtension.TIMESTAMPS, StacExtension.FORECAST]
+        )
+
+    def setUp(self):  # pylint: disable=invalid-name
+        self.maxDiff = None  # pylint: disable=invalid-name
+
+    def test_item_deserialization_accepts_enabled_stac_extensions_and_matching_properties(self):
+        sample = self.data_factory.create_item_sample(
+            collection=self.collection.model,
+            sample='item-1',
+            properties={
+                "datetime": "2020-10-28T13:05:10Z",
+                "expires": "2099-01-01T00:00:00Z",
+                "forecast:reference_datetime": "2024-11-19T16:15:00Z",
+                "forecast:horizon": "P3DT2H",
+                "forecast:variable": "air_temperature",
+                "forecast:perturbed": False,
+            },
+            stac_extensions=[StacExtension.TIMESTAMPS, StacExtension.FORECAST]
+        )
+        serializer = ItemSerializer(
+            data=sample.get_json('deserialize'), context={'collection': self.collection.model}
+        )
+        serializer.is_valid(raise_exception=True)
+        item = serializer.save(collection=self.collection.model)
+        self.assertEqual(item.stac_extensions, [StacExtension.TIMESTAMPS, StacExtension.FORECAST])
+
+    def test_item_deserialization_rejects_unknown_stac_extension_value(self):
+        sample = self.data_factory.create_item_sample(
+            collection=self.collection.model,
+            sample='item-1',
+            stac_extensions=["https://not-a-known-extension.example.com/schema.json"]
+        )
+        serializer = ItemSerializer(
+            data=sample.get_json('deserialize'), context={'collection': self.collection.model}
+        )
+        with self.assertRaises(serializers.ValidationError):
+            serializer.is_valid(raise_exception=True)
+
+    def test_item_deserialization_rejects_stac_extension_not_enabled_for_collection(self):
+        collection = self.data_factory.create_collection_sample(
+            db_create=True, stac_extensions_enabled=[StacExtension.TIMESTAMPS]
+        ).model
+        sample = self.data_factory.create_item_sample(
+            collection=collection, sample='item-1', stac_extensions=[StacExtension.FORECAST]
+        )
+        serializer = ItemSerializer(
+            data=sample.get_json('deserialize'), context={'collection': collection}
+        )
+        with self.assertRaises(serializers.ValidationError):
+            serializer.is_valid(raise_exception=True)
+
+    def test_item_deserialization_rejects_property_not_covered_by_extensions(self):
+        sample = self.data_factory.create_item_sample(
+            collection=self.collection.model,
+            sample='item-1',
+            properties={
+                "datetime": "2020-10-28T13:05:10Z",
+                "forecast:variable": "air_temperature",
+            },
+            # forecast extension not listed, even though it is enabled for the collection
+            stac_extensions=[StacExtension.TIMESTAMPS]
+        )
+        serializer = ItemSerializer(
+            data=sample.get_json('deserialize'), context={'collection': self.collection.model}
+        )
+        with self.assertRaises(serializers.ValidationError):
+            serializer.is_valid(raise_exception=True)
+
+    def test_item_deserialization_rejects_expires_without_timestamps_extension(self):
+        sample = self.data_factory.create_item_sample(
+            collection=self.collection.model,
+            sample='item-1',
+            properties={
+                "datetime": "2020-10-28T13:05:10Z",
+                "expires": "2099-01-01T00:00:00Z",
+            },
+            stac_extensions=[StacExtension.FORECAST]
+        )
+        serializer = ItemSerializer(
+            data=sample.get_json('deserialize'), context={'collection': self.collection.model}
+        )
+        with self.assertRaises(serializers.ValidationError):
+            serializer.is_valid(raise_exception=True)
+
+    def test_item_deserialization_rejects_forecast_extension_without_required_reference_datetime(
+        self
+    ):
+        sample = self.data_factory.create_item_sample(
+            collection=self.collection.model,
+            sample='item-1',
+            properties={
+                "datetime": "2020-10-28T13:05:10Z",
+                "forecast:horizon": "PT6H",
+            },
+            stac_extensions=[StacExtension.FORECAST]
+        )
+        serializer = ItemSerializer(
+            data=sample.get_json('deserialize'), context={'collection': self.collection.model}
+        )
+        with self.assertRaises(serializers.ValidationError) as context:
+            serializer.is_valid(raise_exception=True)
+        self.assertIn('forecast:reference_datetime', str(context.exception))
+
+
 class ItemsPropertiesSerializerTestCase(unittest.TestCase):
 
     def test_deserialization_works_as_expected_for_valid_forecast_data(self):
@@ -768,6 +906,7 @@ class ItemListDeserializationTestCase(StacBaseTestCase):
                     "geometry": Point(1.1, 1.2, srid=4326),
                     "properties_datetime":
                         datetime(2018, 2, 12, 23, 20, 50, tzinfo=zoneinfo.ZoneInfo(key='UTC')),
+                    "stac_extensions": [],
                 },
                 {
                     "name": "item-2",
@@ -786,6 +925,7 @@ class ItemListDeserializationTestCase(StacBaseTestCase):
                     "geometry": Point(2.1, 2.2, srid=4326),
                     "properties_datetime":
                         datetime(2019, 1, 13, 13, 30, 0, tzinfo=zoneinfo.ZoneInfo(key='UTC')),
+                    "stac_extensions": [],
                 },
             ]
         }

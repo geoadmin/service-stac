@@ -35,6 +35,7 @@ from stac_api.models.item import Item
 from stac_api.models.item import ItemLink
 from stac_api.utils import build_asset_href
 from stac_api.utils import get_query_params
+from stac_api.validators import StacExtension
 from stac_api.validators import validate_text_to_geometry
 
 logger = logging.getLogger(__name__)
@@ -106,8 +107,60 @@ class CollectionAssetInline(admin.StackedInline):
     extra = 0
 
 
+# helper form to render stac_extensions_enabled as a suggested multi-select instead of a plain
+# comma-separated text field (the default ArrayField widget)
+class CollectionAdminForm(forms.ModelForm):
+    stac_extensions_enabled = forms.MultipleChoiceField(
+        choices=StacExtension.choices,
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+        help_text=(
+            "STAC extensions that are enabled for the Items in this Collection. Only Items "
+            "using one of the selected extensions can be created or updated. This field is for "
+            "internal/admin use only, it is not exposed through the STAC API."
+        )
+    )
+
+
+class StacExtensionsEnabledFilter(SimpleListFilter):
+    title = _('STAC extensions enabled')
+    parameter_name = 'stac_extensions_enabled'
+    template = 'admin/stac_extensions_enabled_filter.html'
+
+    value_none = 'none'
+    value_forecast = StacExtension.FORECAST
+    value_timestamps = StacExtension.TIMESTAMPS
+
+    def lookups(self, request, model_admin):
+        return [
+            (self.value_none, _('None')),
+            (self.value_forecast, _('Forecast')),
+            (self.value_timestamps, _('Timestamps')),
+        ]
+
+    def queryset(self, request, queryset):
+        values = request.GET.getlist(self.parameter_name)
+        if not values:
+            return queryset
+
+        if self.value_none in values:
+            return queryset.filter(stac_extensions_enabled=[])
+
+        return queryset.filter(stac_extensions_enabled__contains=values)
+
+    def choices(self, changelist):
+        values = set(self.request.GET.getlist(self.parameter_name))
+        for lookup, title in self.lookup_choices:
+            yield {
+                'selected': str(lookup) in values,
+                'value': lookup,
+                'display': title,
+            }
+
+
 @admin.register(Collection)
 class CollectionAdmin(admin.ModelAdmin):
+    form = CollectionAdminForm
 
     class Media:
         js = ('js/admin/collection_help_search.js',)
@@ -133,6 +186,7 @@ class CollectionAdmin(admin.ModelAdmin):
         'allow_external_assets',
         'external_asset_whitelist',
         'cache_control_header',
+        'stac_extensions_enabled',
     ]
     readonly_fields = [
         'extent_start_datetime',
@@ -150,7 +204,7 @@ class CollectionAdmin(admin.ModelAdmin):
     inlines = [ProviderInline, CollectionLinkInline, CollectionAssetInline]
     search_fields = ['name']
     list_display = ['name', 'published']
-    list_filter = ['published']
+    list_filter = ['published', StacExtensionsEnabledFilter]
 
     #helper function which displays the bytes in human-readable format
     def displayed_total_data_size(self, instance):
@@ -241,6 +295,7 @@ class ItemAdmin(admin.ModelAdmin):
                     'updated',
                     'etag',
                     'displayed_total_data_size',
+                    'stac_extensions',
                 )
             }
         ),
@@ -343,6 +398,7 @@ class ItemAdmin(admin.ModelAdmin):
                 'updated',
                 'etag',
                 'displayed_total_data_size',
+                'stac_extensions',
             )
             return fields
         # Otherwise if this is an update operation only display the read only field
@@ -354,6 +410,7 @@ class ItemAdmin(admin.ModelAdmin):
             'updated',
             'etag',
             'displayed_total_data_size',
+            'stac_extensions',
         )
         return fields
 

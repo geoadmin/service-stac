@@ -21,13 +21,17 @@ from stac_api.serializers.utils import update_or_create_links
 from stac_api.serializers.utils import validate_href_field
 from stac_api.utils import get_stac_version
 from stac_api.utils import is_api_version_1
+from stac_api.validators import StacExtension
 from stac_api.validators import normalize_and_validate_media_type
 from stac_api.validators import validate_asset_name
 from stac_api.validators import validate_asset_name_with_media_type
 from stac_api.validators import validate_expires
+from stac_api.validators import validate_extension_required_properties
 from stac_api.validators import validate_geoadmin_variant
 from stac_api.validators import validate_item_properties_datetimes
+from stac_api.validators import validate_item_properties_extensions
 from stac_api.validators import validate_name
+from stac_api.validators import validate_stac_extensions_enabled
 from stac_api.validators_serializer import validate_json_payload
 from stac_api.validators_serializer import validate_uniqueness_and_create
 
@@ -329,10 +333,30 @@ class AssetsForItemSerializer(AssetBaseSerializer):
         ]
 
 
+class ItemChildListSerializer(serializers.ListSerializer):
+    '''ListSerializer for ItemSerializer used for bulk creation of Items.
+
+    DRF doesn't set `initial_data` on the child serializer when validating a list of Items (see
+    `ListSerializer.run_child_validation`), but `ItemSerializer.validate()` needs access to the
+    raw "properties" payload (via `self.initial_data`) to validate it against the Item's
+    stac_extensions. This override makes sure `initial_data` is available on the child serializer
+    in that case too.
+    '''
+
+    # pylint: disable=abstract-method
+    # Bulk update is not supported (see ItemListSerializer.update()), so ListSerializer.update()
+    # is intentionally left unimplemented
+
+    def run_child_validation(self, data):
+        self.child.initial_data = data
+        return super().run_child_validation(data)
+
+
 class ItemSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
 
     class Meta:
         model = Item
+        list_serializer_class = ItemChildListSerializer
         fields = [
             'id',
             'collection',
@@ -357,27 +381,23 @@ class ItemSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
     properties = ItemsPropertiesSerializer(source='*', required=True)
     geometry = gis_serializers.GeometryField(required=True)
     links = ItemLinkSerializer(required=False, many=True)
+    stac_extensions = serializers.ListField(
+        child=serializers.ChoiceField(
+            choices=StacExtension.choices,
+            error_messages={'invalid_choice': _('"{input}" is not a valid STAC extension.')}
+        ),
+        required=False,
+        default=list,
+    )
     # read only fields
     type = serializers.SerializerMethodField()
     collection = serializers.SlugRelatedField(slug_field='name', read_only=True)
     bbox = BboxSerializer(source='*', read_only=True)
     assets = AssetsForItemSerializer(many=True, required=False)
-    stac_extensions = serializers.SerializerMethodField()
     stac_version = serializers.SerializerMethodField()
 
     def get_type(self, obj):
         return 'Feature'
-
-    def get_stac_extensions(self, obj):
-        extensions = [
-            # Extension provides schema for the 'expires' timestamp
-            "https://stac-extensions.github.io/timestamps/v1.1.0/schema.json"
-        ]
-        # IMPROVEMENT: This could be improved if there are other extensions coming by
-        # keeping the information on collection object itself
-        if obj.collection.name.startswith('ch.meteoschweiz.ogd-forecasting-icon'):
-            extensions.append("https://stac-extensions.github.io/forecast/v0.2.0/schema.json")
-        return extensions
 
     def get_stac_version(self, obj):
         return get_stac_version(self.context.get('request'))
@@ -461,6 +481,18 @@ class ItemSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
             logger.info(
                 'Skip validation of item properties datetimes; partial update without datetimes'
             )
+
+        stac_extensions = attrs.get(
+            'stac_extensions', self.instance.stac_extensions if self.instance else []
+        )
+        collection = self.context.get('collection')
+        if collection is not None:
+            validate_stac_extensions_enabled(stac_extensions, collection)
+
+        properties = self.initial_data.get('properties', {})
+        if isinstance(properties, dict):
+            validate_item_properties_extensions(properties, stac_extensions)
+            validate_extension_required_properties(properties, stac_extensions)
 
         validate_json_payload(self)
 
