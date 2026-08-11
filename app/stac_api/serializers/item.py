@@ -406,20 +406,6 @@ class ItemSerializer(NonNullModelSerializer, UpsertModelSerializerMixin):
     def get_type(self, obj):
         return 'Feature'
 
-    def get_stac_extensions(self, obj):
-        extensions = [
-            # Extension provides schema for the 'expires' timestamp
-            "https://stac-extensions.github.io/timestamps/v1.1.0/schema.json"
-        ]
-        # IMPROVEMENT: This could be improved if there are other extensions coming by
-        # keeping the information on collection object itself
-        if obj.collection.name.startswith('ch.meteoschweiz.ogd-forecasting-icon'):
-            extensions.append("https://stac-extensions.github.io/forecast/v0.2.0/schema.json")
-        # Add CF extension when CF properties are present
-        if obj.cf_standard_name is not None or obj.unit is not None:
-            extensions.append("https://stac-extensions.github.io/cf/v0.2.0/schema.json")
-        return extensions
-
     def get_stac_version(self, obj):
         return get_stac_version(self.context.get('request'))
 
