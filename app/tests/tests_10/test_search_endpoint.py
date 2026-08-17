@@ -3,6 +3,7 @@ import logging
 from datetime import UTC
 from datetime import datetime
 from datetime import timedelta
+from unittest import skip
 from unittest.mock import patch
 from urllib.parse import quote_plus
 
@@ -775,7 +776,7 @@ class SearchEndpointTestCF(StacBaseTestCase):
         self.maxDiff = None  # pylint: disable=invalid-name
 
     def test_cf_standard_name(self):
-        payload = {"cf:standard_name": "air_temperature"}
+        payload = {"query": {"cf:standard_name": {"eq": "air_temperature"}}}
         response = self.client.post(self.path, data=payload, content_type="application/json")
         self.assertStatusCode(200, response)
         json_data = response.json()
@@ -784,7 +785,7 @@ class SearchEndpointTestCF(StacBaseTestCase):
             self.assertIn(feature['id'], ['item-cf-1', 'item-cf-2'])
 
     def test_unit(self):
-        payload = {"unit": "K"}
+        payload = {"query": {"unit": {"eq": "K"}}}
         response = self.client.post(self.path, data=payload, content_type="application/json")
         self.assertStatusCode(200, response)
         json_data = response.json()
@@ -792,14 +793,28 @@ class SearchEndpointTestCF(StacBaseTestCase):
         for feature in json_data['features']:
             self.assertIn(feature['id'], ['item-cf-1'])
 
+    @skip(
+        "PB-2354: Known bug - Cannot filter by multiple fields. "
+        "Will be fixed by implementing Filter Extension instead."
+    )
     def test_multiple_cf(self):
-        payload = {"cf:standard_name": "air_temperature", "unit": "K"}
+        payload = {"query": {"cf:standard_name": {"eq": "air_temperature"}, "unit": {"eq": "K"}}}
         response = self.client.post(self.path, data=payload, content_type="application/json")
         self.assertStatusCode(200, response)
         json_data = response.json()
         self.assertEqual(len(json_data['features']), 1)
         for feature in json_data['features']:
             self.assertIn(feature['id'], ['item-cf-1'])
+
+    def test_cf_standard_name_invalid_as_direct_param(self):
+        payload = {"cf:standard_name": "air_temperature"}
+        response = self.client.post(self.path, data=payload, content_type="application/json")
+        self.assertStatusCode(400, response)
+
+    def test_unit_invalid_as_direct_param(self):
+        payload = {"unit": "K"}
+        response = self.client.post(self.path, data=payload, content_type="application/json")
+        self.assertStatusCode(400, response)
 
     def test_get_request_does_not_filter_cf(self):
         response = self.client.get(

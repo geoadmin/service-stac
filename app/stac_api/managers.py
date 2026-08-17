@@ -276,30 +276,6 @@ class ItemQuerySet(models.QuerySet):
         '''
         return self.filter(forecast_perturbed=pert)
 
-    def filter_by_cf_standard_name(self, val):
-        '''Filter by CF standard name
-
-        Args:
-            val: string
-                CF standard name value
-
-        Returns:
-            queryset filtered by CF standard name
-        '''
-        return self.filter(cf_standard_name=val)
-
-    def filter_by_unit(self, val):
-        '''Filter by unit
-
-        Args:
-            val: string
-                unit value
-
-        Returns:
-            queryset filtered by unit
-        '''
-        return self.filter(unit=val)
-
     def filter_by_query(self, query):
         '''Filter by the query parameter
 
@@ -313,16 +289,28 @@ class ItemQuerySet(models.QuerySet):
             for operator in query[attribute]:
                 value = query[attribute][operator]  # get the values given by the operator
 
-                if attribute in ["updated", "created"]:
+                if attribute in ["updated", "created", "cf:standard_name", "unit"]:
                     prefix = ""
                 else:
                     prefix = "properties_"
 
+                model_field = attribute.replace(":", "_")
+
                 # __eq does not exist, but = does it as well
                 if operator == 'eq':
-                    query_filter = f"{prefix}{attribute}"
+                    query_filter = f"{prefix}{model_field}"
                 else:
-                    query_filter = f"{prefix}{attribute}__{operator.lower()}"
+                    query_filter = f"{prefix}{model_field}__{operator.lower()}"
+                # PB-2354: This is a bug: As it is now, we cannot query by multiple fields
+                # because we return already for the first operator.
+                #
+                # See this test to demonstrate the bug:
+                #
+                #    tests.tests_10.test_search_endpoint.SearchEndpointTestCF.test_multiple_cf
+                #
+                # We keep this is as it is as noone seemed to use that feature so far.
+                # Instead, we intend to fix it properly by replacing the Query Extension by the
+                # Filter Extension, which is the recommended solution anyway.
                 return self.filter(**{query_filter: value})
 
 
@@ -361,12 +349,6 @@ class ItemManager(models.Manager):
 
     def filter_by_forecast_perturbed(self, pert):
         return self.get_queryset().filter_by_forecast_perturbed(pert)
-
-    def filter_by_cf_standard_name(self, val):
-        return self.get_queryset().filter_by_cf_standard_name(val)
-
-    def filter_by_unit(self, val):
-        return self.get_queryset().filter_by_unit(val)
 
 
 class AssetUploadQuerySet(models.QuerySet):

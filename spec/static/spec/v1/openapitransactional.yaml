@@ -1878,6 +1878,10 @@ components:
           lte: "2021-01-01T00:00:00.000Z"
         updated:
           gte: "2020-01-01T00:00:00.000Z"
+        cf:standard_name:
+          eq: air_temperature
+        unit:
+          neq: K
       type: object
     queryFilter:
       description: Allows users to query properties for specific values
@@ -1911,14 +1915,6 @@ components:
       properties:
         forecast:perturbed:
           $ref: "#/components/schemas/forecast_perturbed"
-    cf_standard_nameFilter:
-      properties:
-        cf:standard_name:
-          $ref: "#/components/schemas/cf_standard_name"
-    unitFilter:
-      properties:
-        unit:
-          $ref: "#/components/schemas/unit"
     forecast_perturbed:
       description: >-
         Denotes whether the data corresponds to the control run (`false`) or perturbed runs (`true`). The property needs to be specified in both cases as no default value is specified and as such the meaning is "unknown" in case it's missing.
@@ -2004,7 +2000,7 @@ components:
               type: string
           type: object
       description: >-
-        Apply query operations to a specific property. The following properties are currently supported: `created`, `updated`, `title`.
+        Apply query operations to a specific property. The following properties are currently supported: `created`, `updated`, `title`, `cf:standard_name`, `unit`.
     roles:
       type: array
       items:
@@ -2027,8 +2023,6 @@ components:
         - $ref: "#/components/schemas/forecast_durationFilter"
         - $ref: "#/components/schemas/forecast_variableFilter"
         - $ref: "#/components/schemas/forecast_perturbedFilter"
-        - $ref: "#/components/schemas/cf_standard_nameFilter"
-        - $ref: "#/components/schemas/unitFilter"
       description: The search criteria
       type: object
     stac_version:
@@ -3570,7 +3564,7 @@ paths:
   /search:
     get:
       description: >-
-        Retrieve Items matching filters. Intended as a shorthand API for simple queries. To filter by forecast properties please use the [POST /search](#tag/STAC/operation/postSearchSTAC) request.
+        Retrieve Items matching filters. Intended as a shorthand API for simple queries. To filter by fields in "properties" please use the [POST /search](#tag/STAC/operation/postSearchSTAC) request.
       operationId: getSearchSTAC
       parameters:
         - $ref: "#/components/parameters/bbox"

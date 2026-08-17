@@ -70,7 +70,7 @@ class ValidateSearchRequest:
         # Note: if these values are adapted, don't forget to
         # update the spec accordingly.
         self.queriable_date_fields = ['created', 'updated']
-        self.queriable_str_fields = ['title']
+        self.queriable_str_fields = ['title', 'cf:standard_name', 'unit']
 
     def validate(self, request):
         '''Validates the request of the search endpoint
@@ -370,9 +370,7 @@ class ValidateSearchRequest:
             "forecast:horizon",
             "forecast:duration",
             "forecast:variable",
-            "forecast:perturbed",
-            "cf:standard_name",
-            "unit"
+            "forecast:perturbed"
         ]
         wrong_query_parameters = set(query_param.keys()).difference(set(accepted_query_parameters))
         if wrong_query_parameters:
