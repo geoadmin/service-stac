@@ -522,7 +522,7 @@ components:
         file:checksum:
           $ref: "#/components/schemas/checksumMultihashReadOnly"
         roles:
-          $ref: '#/components/schemas/roles'
+          $ref: "#/components/schemas/roles"
         geoadmin:variant:
           $ref: "#/components/schemas/geoadminVariant"
         geoadmin:lang:
@@ -894,7 +894,7 @@ components:
           type: string
           example: N9hTgbJmEuiMnvb+W9Y1Y+fhFoZh92NYG13Z3K19PBZOZ4hbn7F7i3yYpjJgM7bIFmDH2BnE81U=
       xml:
-        name: 'Error'
+        name: "Error"
       required:
         - Code
         - Message
@@ -1521,6 +1521,10 @@ components:
           $ref: "#/components/schemas/forecast_variable"
         forecast:perturbed:
           $ref: "#/components/schemas/forecast_perturbed"
+        cf:standard_name:
+          $ref: "#/components/schemas/cf_standard_name"
+        unit:
+          $ref: "#/components/schemas/unit"
       required:
         - created
         - updated
@@ -1874,6 +1878,10 @@ components:
           lte: "2021-01-01T00:00:00.000Z"
         updated:
           gte: "2020-01-01T00:00:00.000Z"
+        cf:standard_name:
+          eq: air_temperature
+        unit:
+          neq: K
       type: object
     queryFilter:
       description: Allows users to query properties for specific values
@@ -1911,6 +1919,18 @@ components:
       description: >-
         Denotes whether the data corresponds to the control run (`false`) or perturbed runs (`true`). The property needs to be specified in both cases as no default value is specified and as such the meaning is "unknown" in case it's missing.
       type: boolean
+      nullable: true
+    cf_standard_name:
+      description: >-
+        Corresponds to the CF Standard Name from the [CF Standard Name Table](https://cfconventions.org/Data/cf-standard-names/current/build/cf-standard-name-table.html).
+      example: air_temperature
+      type: string
+      nullable: true
+    unit:
+      description: >-
+        Corresponds to the [CF units](https://cfconventions.org/cf-conventions/cf-conventions.html#units).
+      example: K
+      type: string
       nullable: true
     queryProp:
       anyOf:
@@ -1980,7 +2000,7 @@ components:
               type: string
           type: object
       description: >-
-        Apply query operations to a specific property. The following properties are currently supported: `created`, `updated`, `title`.
+        Apply query operations to a specific property. The following properties are currently supported: `created`, `updated`, `title`, `cf:standard_name`, `unit`.
     roles:
       type: array
       items:
@@ -3544,7 +3564,7 @@ paths:
   /search:
     get:
       description: >-
-        Retrieve Items matching filters. Intended as a shorthand API for simple queries. To filter by forecast properties please use the [POST /search](#tag/STAC/operation/postSearchSTAC) request.
+        Retrieve Items matching filters. Intended as a shorthand API for simple queries. To filter by fields in "properties" please use the [POST /search](#tag/STAC/operation/postSearchSTAC) request.
       operationId: getSearchSTAC
       parameters:
         - $ref: "#/components/parameters/bbox"

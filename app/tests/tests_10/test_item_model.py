@@ -368,3 +368,41 @@ class ItemsModelTestCase(TestCase):
                 stac_extensions=["https://unknown-extension.com/schema.json"],
             )
             item.full_clean()
+
+    def test_item_create_model_sets_cf_standard_name_as_expected_if_defined(self):
+        item = Item(
+            collection=self.collection,
+            properties_datetime=datetime.now(UTC),
+            name='item-1',
+            cf_standard_name="air_temperature",
+        )
+        item.full_clean()
+        item.save()
+        self.assertEqual(item.cf_standard_name, "air_temperature")
+
+    def test_item_create_model_sets_cf_standard_name_to_none_if_undefined(self):
+        item = Item(
+            collection=self.collection, properties_datetime=datetime.now(UTC), name='item-1'
+        )
+        item.full_clean()
+        item.save()
+        self.assertEqual(item.cf_standard_name, None)
+
+    def test_item_create_model_sets_unit_as_expected_if_defined(self):
+        item = Item(
+            collection=self.collection,
+            properties_datetime=datetime.now(UTC),
+            name='item-1',
+            unit="K",
+        )
+        item.full_clean()
+        item.save()
+        self.assertEqual(item.unit, "K")
+
+    def test_item_create_model_sets_unit_to_none_if_undefined(self):
+        item = Item(
+            collection=self.collection, properties_datetime=datetime.now(UTC), name='item-1'
+        )
+        item.full_clean()
+        item.save()
+        self.assertEqual(item.unit, None)

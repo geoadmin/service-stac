@@ -678,16 +678,14 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
         self.assertIn("title", json_data['properties'].keys())
 
     def test_item_endpoint_patch_remove_all_optional_properties(self):
-        # This test uses the expires/forecast:* properties, which requires the timestamps and
-        # forecast extensions to be enabled for the collection.
         self.collection.model.stac_extensions_enabled = [
-            StacExtension.TIMESTAMPS, StacExtension.FORECAST
+            StacExtension.TIMESTAMPS, StacExtension.FORECAST, StacExtension.CF
         ]
         self.collection.model.save()
 
         # First add all properties
         data = {
-            "stac_extensions": [StacExtension.TIMESTAMPS, StacExtension.FORECAST],
+            "stac_extensions": [StacExtension.TIMESTAMPS, StacExtension.FORECAST, StacExtension.CF],
             "properties": {
                 "title": "patched title",
                 "expires": "2060-02-12T23:20:50Z",
@@ -695,7 +693,9 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
                 "forecast:horizon": "P3DT06H00M00S",
                 "forecast:duration": "P3DT06H00M00S",
                 "forecast:variable": "air_temperature",
-                "forecast:perturbed": True
+                "forecast:perturbed": True,
+                "cf:standard_name": "air_temperature",
+                "unit": "K",
             },
         }
         path = f'/{STAC_BASE_V}/collections/{self.collection["name"]}/items/{self.item["name"]}'
@@ -715,7 +715,9 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
                 "forecast:horizon": None,
                 "forecast:duration": None,
                 "forecast:variable": None,
-                "forecast:perturbed": None
+                "forecast:perturbed": None,
+                "cf:standard_name": None,
+                "unit": None,
             },
         }
         path = f'/{STAC_BASE_V}/collections/{self.collection["name"]}/items/{self.item["name"]}'
@@ -730,6 +732,8 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
         self.assertNotIn("forecast:duration", json_data['properties'].keys())
         self.assertNotIn("forecast:variable", json_data['properties'].keys())
         self.assertNotIn("forecast:perturbed", json_data['properties'].keys())
+        self.assertNotIn("cf:standard_name", json_data['properties'].keys())
+        self.assertNotIn("unit", json_data['properties'].keys())
 
         # Check the data by reading it back
         response = self.client.get(path)
@@ -743,6 +747,8 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
         self.assertNotIn("forecast:duration", json_data['properties'].keys())
         self.assertNotIn("forecast:variable", json_data['properties'].keys())
         self.assertNotIn("forecast:perturbed", json_data['properties'].keys())
+        self.assertNotIn("cf:standard_name", json_data['properties'].keys())
+        self.assertNotIn("unit", json_data['properties'].keys())
 
     def test_item_endpoint_patch_remove_properties_title(self):
         path = f'/{STAC_BASE_V}/collections/{self.collection["name"]}/items/{self.item["name"]}'

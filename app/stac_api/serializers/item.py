@@ -102,6 +102,9 @@ class ItemsPropertiesSerializer(serializers.Serializer):
     forecast_variable = serializers.CharField(required=False, allow_null=True, default=None)
     forecast_perturbed = serializers.BooleanField(required=False, allow_null=True, default=None)
 
+    cf_standard_name = serializers.CharField(required=False, allow_null=True, default=None)
+    unit = serializers.CharField(required=False, allow_null=True, default=None)
+
     def to_internal_value(self, data) -> timedelta:
         '''Map forecast extension fields with a colon in the name to the corresponding model field.
 
@@ -115,6 +118,8 @@ class ItemsPropertiesSerializer(serializers.Serializer):
             'forecast:duration': 'forecast_duration',
             'forecast:variable': 'forecast_variable',
             'forecast:perturbed': 'forecast_perturbed',
+            'cf:standard_name': 'cf_standard_name',
+            'unit': 'unit',
         }
         data_mapped = copy.deepcopy(data)
         for with_colon, with_underscore in fields.items():
@@ -139,6 +144,8 @@ class ItemsPropertiesSerializer(serializers.Serializer):
             'forecast_duration': 'forecast:duration',
             'forecast_variable': 'forecast:variable',
             'forecast_perturbed': 'forecast:perturbed',
+            'cf_standard_name': 'cf:standard_name',
+            'unit': 'unit',
         }
         for with_colon, with_underscore in fields.items():
             if with_colon in ret:

@@ -3,6 +3,7 @@ import logging
 from datetime import UTC
 from datetime import datetime
 from datetime import timedelta
+from unittest import skip
 from unittest.mock import patch
 from urllib.parse import quote_plus
 
@@ -757,3 +758,69 @@ class SearchEndpointTestForecast(StacBaseTestCase):
         json_data = response.json()
         # As GET request should not filter for forecast expect all 5 features to be returned.
         self.assertEqual(len(json_data['features']), 5)
+
+
+class SearchEndpointTestCF(StacBaseTestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.factory = Factory()
+        cls.collection = cls.factory.create_collection_sample().model
+        cls.factory.create_item_sample(cls.collection, 'item-cf-1', 'item-cf-1', db_create=True)
+        cls.factory.create_item_sample(cls.collection, 'item-cf-2', 'item-cf-2', db_create=True)
+        cls.factory.create_item_sample(cls.collection, 'item-cf-3', 'item-cf-3', db_create=True)
+
+    def setUp(self):  # pylint: disable=invalid-name
+        self.client = Client()
+        self.path = f'/{STAC_BASE_V}/search'
+        self.maxDiff = None  # pylint: disable=invalid-name
+
+    def test_cf_standard_name(self):
+        payload = {"query": {"cf:standard_name": {"eq": "air_temperature"}}}
+        response = self.client.post(self.path, data=payload, content_type="application/json")
+        self.assertStatusCode(200, response)
+        json_data = response.json()
+        self.assertEqual(len(json_data['features']), 2)
+        for feature in json_data['features']:
+            self.assertIn(feature['id'], ['item-cf-1', 'item-cf-2'])
+
+    def test_unit(self):
+        payload = {"query": {"unit": {"eq": "K"}}}
+        response = self.client.post(self.path, data=payload, content_type="application/json")
+        self.assertStatusCode(200, response)
+        json_data = response.json()
+        self.assertEqual(len(json_data['features']), 1)
+        for feature in json_data['features']:
+            self.assertIn(feature['id'], ['item-cf-1'])
+
+    @skip(
+        "PB-2354: Known bug - Cannot filter by multiple fields. "
+        "Will be fixed by implementing Filter Extension instead."
+    )
+    def test_multiple_cf(self):
+        payload = {"query": {"cf:standard_name": {"eq": "air_temperature"}, "unit": {"eq": "K"}}}
+        response = self.client.post(self.path, data=payload, content_type="application/json")
+        self.assertStatusCode(200, response)
+        json_data = response.json()
+        self.assertEqual(len(json_data['features']), 1)
+        for feature in json_data['features']:
+            self.assertIn(feature['id'], ['item-cf-1'])
+
+    def test_cf_standard_name_invalid_as_direct_param(self):
+        payload = {"cf:standard_name": "air_temperature"}
+        response = self.client.post(self.path, data=payload, content_type="application/json")
+        self.assertStatusCode(400, response)
+
+    def test_unit_invalid_as_direct_param(self):
+        payload = {"unit": "K"}
+        response = self.client.post(self.path, data=payload, content_type="application/json")
+        self.assertStatusCode(400, response)
+
+    def test_get_request_does_not_filter_cf(self):
+        response = self.client.get(
+            f"{self.path}?" + quote_plus("cf:standard_name=air_temperature&" + "unit=K")
+        )
+        self.assertStatusCode(200, response)
+        json_data = response.json()
+        # As GET request should not filter for CF expect all 3 features to be returned.
+        self.assertEqual(len(json_data['features']), 3)

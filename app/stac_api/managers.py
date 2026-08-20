@@ -289,16 +289,28 @@ class ItemQuerySet(models.QuerySet):
             for operator in query[attribute]:
                 value = query[attribute][operator]  # get the values given by the operator
 
-                if attribute in ["updated", "created"]:
+                if attribute in ["updated", "created", "cf:standard_name", "unit"]:
                     prefix = ""
                 else:
                     prefix = "properties_"
 
+                model_field = attribute.replace(":", "_")
+
                 # __eq does not exist, but = does it as well
                 if operator == 'eq':
-                    query_filter = f"{prefix}{attribute}"
+                    query_filter = f"{prefix}{model_field}"
                 else:
-                    query_filter = f"{prefix}{attribute}__{operator.lower()}"
+                    query_filter = f"{prefix}{model_field}__{operator.lower()}"
+                # PB-2354: This is a bug: As it is now, we cannot query by multiple fields
+                # because we return already for the first operator.
+                #
+                # See this test to demonstrate the bug:
+                #
+                #    tests.tests_10.test_search_endpoint.SearchEndpointTestCF.test_multiple_cf
+                #
+                # We keep this is as it is as noone seemed to use that feature so far.
+                # Instead, we intend to fix it properly by replacing the Query Extension by the
+                # Filter Extension, which is the recommended solution anyway.
                 return self.filter(**{query_filter: value})
 
 

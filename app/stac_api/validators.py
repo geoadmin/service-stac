@@ -32,6 +32,7 @@ class StacExtension(TextChoices):
     '''STAC extensions that can be enabled for a Collection and used by its Items.'''
     TIMESTAMPS = 'https://stac-extensions.github.io/timestamps/v1.1.0/schema.json', 'Timestamps'
     FORECAST = 'https://stac-extensions.github.io/forecast/v0.2.0/schema.json', 'Forecast'
+    CF = 'https://stac-extensions.github.io/cf/v1.0.0/schema.json', 'CF'
 
 
 def validate_stac_extensions_enabled(stac_extensions, collection):
@@ -76,6 +77,8 @@ def validate_item_properties_extensions(properties, stac_extensions):
         'forecast:duration': StacExtension.FORECAST,
         'forecast:variable': StacExtension.FORECAST,
         'forecast:perturbed': StacExtension.FORECAST,
+        'cf:standard_name': StacExtension.CF,
+        'unit': StacExtension.CF,
     }
 
     errors = {}
