@@ -215,6 +215,7 @@ class Item(models.Model):
         "Collection's stac_extensions_enabled field.",
     )
 
+    # Part of the Climate and Forecast (CF) extension
     cf_standard_name = models.CharField(
         null=True,
         blank=True,
@@ -222,6 +223,7 @@ class Item(models.Model):
         help_text="Corresponds to the CF Standard Name from the CF Standard Name Table."
     )
 
+    # Part of the Climate and Forecast (CF) extension
     unit = models.CharField(
         null=True, blank=True, max_length=255, help_text="Corresponds to the CF units."
     )
