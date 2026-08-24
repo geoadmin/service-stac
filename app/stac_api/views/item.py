@@ -18,6 +18,7 @@ from rest_framework_condition import etag
 from stac_api.models.collection import Collection
 from stac_api.models.item import Asset
 from stac_api.models.item import Item
+from stac_api.pagination import SortedCursorPagination
 from stac_api.serializers.item import AssetSerializer
 from stac_api.serializers.item import ItemDetailSerializer
 from stac_api.serializers.item import ItemListSerializer
@@ -89,7 +90,7 @@ def get_asset_etag(request, *args, **kwargs):
 
 class ItemsList(generics.GenericAPIView):
     serializer_class = ItemSerializer
-    ordering = ['name']
+    pagination_class = SortedCursorPagination
     name = 'items-list'  # this name must match the name in urls.py
 
     def get_queryset(self):

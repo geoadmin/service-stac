@@ -20,6 +20,7 @@ from botocore.client import Config
 from django.conf import settings
 from django.contrib.gis.geos import Point
 from django.contrib.gis.geos import Polygon
+from django.core.exceptions import ValidationError
 from django.core.management import call_command
 from django.core.management.base import BaseCommand
 from django.core.management.base import CommandParser
@@ -629,3 +630,65 @@ def parse_cache_control_header(cache_control_header):
     parts = [i.strip() for i in cache_control_header.split(',')]
     args = {i.split('=')[0].strip(): i.split('=')[-1].strip() for i in parts if i}
     return {k: True if v == k else v for k, v in args.items()}
+
+
+def parse_sortby(sortby_param):
+    '''Parse and validate the sortby parameter.
+
+    The sortby parameter follows the format defined in the STAC sort extension:
+    - Fields can be prefixed with + (ascending, default) or - (descending)
+    - Multiple fields are comma-separated
+
+    Example: "-properties.created,title" sorts by created descending, then title ascending.
+
+    Args:
+        sortby_param: string or None
+            The sortby query parameter value
+
+    Returns:
+        list: List of tuples (field, direction) where `direction` is True for ascending,
+              False for descending and `field` is the Django model field corresponding to
+              the given input field. Returns empty list if sortby_param is None or empty.
+
+    Raises:
+        ValidationError: If an invalid field is specified
+    '''
+    if not sortby_param:
+        return []
+
+    sort_fields = []
+    for sort_field in sortby_param.split(','):
+        sort_field = sort_field.strip()
+        if not sort_field:
+            continue
+
+        if sort_field.startswith('-'):
+            is_ascending = False
+            field_name = sort_field[1:]
+        elif sort_field.startswith('+'):
+            is_ascending = True
+            field_name = sort_field[1:]
+        else:
+            is_ascending = True
+            field_name = sort_field
+
+        # Maps sortby parameter values to Django model field
+        sortable_fields = {
+            'id': 'name',
+            'collection': 'collection__name',
+            'properties.datetime': 'properties_datetime',
+            'properties.title': 'properties_title',
+            'properties.created': 'created',
+            'properties.updated': 'updated',
+        }
+
+        if field_name not in sortable_fields:
+            raise ValidationError(
+                f"Invalid sort field '{field_name}'. "
+                f"Allowed fields are: {', '.join(sortable_fields.keys())}"
+            )
+
+        model_field = sortable_fields[field_name]
+        sort_fields.append((model_field, is_ascending))
+
+    return sort_fields
