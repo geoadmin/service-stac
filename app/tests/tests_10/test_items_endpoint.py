@@ -188,6 +188,102 @@ class ItemsReadEndpointTestCase(MockS3PerClassMixin, StacBaseTestCase):
         response = self.client.get(f"/{STAC_BASE_V}/collections/non-existing-collection/items")
         self.assertStatusCode(404, response)
 
+    def test_sortby_id_ascending(self):
+        response = self.client.get(
+            f"/{STAC_BASE_V}/collections/{self.collection.name}/items?sortby=id"
+        )
+
+        self.assertStatusCode(200, response)
+        item_ids = [item['id'] for item in response.json()['features']]
+        self.assertEqual(item_ids, ["item-1", "item-2"])
+
+    def test_sortby_id_descending(self):
+        response = self.client.get(
+            f"/{STAC_BASE_V}/collections/{self.collection.name}/items?sortby=-id"
+        )
+        self.assertStatusCode(200, response)
+        item_ids = [item['id'] for item in response.json()['features']]
+        self.assertEqual(item_ids, ["item-2", "item-1"])
+
+    def test_sortby_properties_datetime(self):
+
+        self.factory.create_item_sample(
+            self.collection,
+            name='item-dt-1',
+            properties_datetime=timezone.now() + timedelta(days=2),
+            db_create=True
+        )
+        self.factory.create_item_sample(
+            self.collection,
+            name='item-dt-2',
+            properties_datetime=timezone.now() + timedelta(days=1),
+            db_create=True
+        )
+        self.factory.create_item_sample(
+            self.collection,
+            name='item-dt-3',
+            properties_datetime=timezone.now() + timedelta(days=3),
+            db_create=True
+        )
+
+        # Test ascending sort
+        response = self.client.get(
+            f"/{STAC_BASE_V}/collections/{self.collection.name}/items?sortby=properties.datetime"
+        )
+
+        self.assertStatusCode(200, response)
+        item_ids = [item['id'] for item in response.json()['features']]
+        self.assertEqual(item_ids, ['item-1', 'item-2', 'item-dt-2', 'item-dt-1', 'item-dt-3'])
+
+        # Test descending sort
+        response = self.client.get(
+            f"/{STAC_BASE_V}/collections/{self.collection.name}/items?sortby=-properties.datetime"
+        )
+        self.assertStatusCode(200, response)
+        item_ids = [item['id'] for item in response.json()['features']]
+        self.assertEqual(item_ids, ['item-dt-3', 'item-dt-1', 'item-dt-2', 'item-1', 'item-2'])
+
+    def test_sortby_multiple_fields(self):
+        tomorrow = timezone.now() + timedelta(days=1)
+        self.factory.create_item_sample(
+            self.collection,
+            name='item-multi-1',
+            properties_datetime=tomorrow,
+            properties_title='AAA',
+            db_create=True
+        )
+        self.factory.create_item_sample(
+            self.collection,
+            name='item-multi-2',
+            properties_datetime=tomorrow,
+            properties_title='BBB',
+            db_create=True
+        )
+        self.factory.create_item_sample(
+            self.collection,
+            name='item-multi-3',
+            properties_datetime=tomorrow + timedelta(days=1),
+            properties_title='CCC',
+            db_create=True
+        )
+
+        # Sort by datetime ascending, then by title descending
+        response = self.client.get((
+            f"/{STAC_BASE_V}/collections/{self.collection.name}/items?"
+            f"sortby=properties.datetime,-properties.title"
+        ))
+        self.assertStatusCode(200, response)
+        item_ids = [item['id'] for item in response.json()['features']]
+        self.assertEqual(
+            item_ids, ['item-1', 'item-2', 'item-multi-2', 'item-multi-1', 'item-multi-3']
+        )
+
+    def test_sortby_invalid_field(self):
+        response = self.client.get(
+            f"/{STAC_BASE_V}/collections/{self.collection.name}/items?sortby=expires"
+        )
+        self.assertStatusCode(400, response)
+
 
 class ItemsDatetimeQueryEndpointTestCase(StacBaseTestCase):
 
