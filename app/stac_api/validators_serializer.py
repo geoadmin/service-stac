@@ -3,15 +3,19 @@ import logging
 
 from django.contrib.gis.gdal.error import GDALException
 from django.contrib.gis.geos import GEOSGeometry
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import IntegrityError
 from django.db import transaction
 from django.utils.translation import gettext_lazy as _
 
 from rest_framework import serializers
 
+from stac_api.utils import SORTABLE_FIELDS
 from stac_api.utils import fromisoformat
 from stac_api.utils import geometry_from_bbox
 from stac_api.utils import harmonize_post_get_for_search
+from stac_api.utils import parse_sortby_get
+from stac_api.utils import parse_sortby_post
 from stac_api.validators import validate_geometry
 
 logger = logging.getLogger(__name__)
@@ -72,7 +76,7 @@ class ValidateSearchRequest:
         self.queriable_date_fields = ['created', 'updated']
         self.queriable_str_fields = ['title', 'cf:standard_name', 'unit']
 
-    def validate(self, request):
+    def validate(self, request):  # pylint: disable=too-many-branches
         '''Validates the request of the search endpoint
 
         This function validates the request of the search endpoint. As a simplification the
@@ -92,6 +96,15 @@ class ValidateSearchRequest:
 
         if request.method == "POST":
             self.validate_query_parameters_post_search(query_param)
+
+        try:
+            if 'sortby' in query_param:
+                if request.method == "POST":
+                    request.sort_fields = parse_sortby_post(query_param['sortby'], SORTABLE_FIELDS)
+                else:
+                    request.sort_fields = parse_sortby_get(query_param['sortby'], SORTABLE_FIELDS)
+        except DjangoValidationError as error:
+            self.errors['sortby'] = _(error.message)
 
         if 'bbox' in query_param:
             self.validate_bbox(query_param['bbox'])
@@ -366,6 +379,7 @@ class ValidateSearchRequest:
             "limit",
             "cursor",
             "query",
+            "sortby",
             "forecast:reference_datetime",
             "forecast:horizon",
             "forecast:duration",

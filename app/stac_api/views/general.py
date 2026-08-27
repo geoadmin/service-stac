@@ -69,6 +69,8 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
     # search overall collections and that the item name is only unique within a collection
     # we must use the pk as ordering attribute, otherwise the cursor pagination will not work
     ordering = ['pk']
+    # Resolved sortby fields. None means no sortby was provided and the default ordering is used.
+    sort_fields = None
 
     # pylint: disable=too-many-branches
     def get_queryset(self):
@@ -121,6 +123,7 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
 
         validate_search_request = ValidateSearchRequest()
         validate_search_request.validate(request)  # validate the search request
+        self.sort_fields = getattr(request, 'sort_fields', None)
         queryset = self.filter_queryset(self.get_queryset())
 
         page = self.paginate_queryset(queryset)
