@@ -130,6 +130,15 @@ components:
       required: false
       schema:
         type: string
+    sortby:
+      name: sortby
+      in: query
+      description: >-
+        An array of property names, prefixed by either "+" for ascending or "-" for descending. If no prefix is provided, "+" is assumed.
+      required: false
+      schema:
+        type: string
+        example: '-properties.created,id'
     uploadId:
       name: uploadId
       in: path
@@ -2008,6 +2017,34 @@ components:
       description: Purposes of the asset
       example:
         - thumbnail
+    sortby:
+      type: array
+      description: >-
+        An array of objects containing a property name and sort direction.
+      items:
+        type: object
+        required:
+          - field
+        properties:
+          field:
+            type: string
+          direction:
+            type: string
+            default: asc
+            enum:
+              - asc
+              - desc
+      example:
+        - field: properties.created
+          direction: asc
+        - field: collection
+          direction: desc
+    sortbyFilter:
+      description: Sort the results by the specified fields.
+      properties:
+        sortby:
+          $ref: "#/components/schemas/sortby"
+      type: object
     searchBody:
       allOf:
         #        - $ref: "#/components/schemas/assetQueryFilter"
@@ -2018,6 +2055,7 @@ components:
         - $ref: "#/components/schemas/collectionsFilter"
         - $ref: "#/components/schemas/idsFilter"
         - $ref: "#/components/schemas/limitFilter"
+        - $ref: "#/components/schemas/sortbyFilter"
         - $ref: "#/components/schemas/forecast_reference_datetimeFilter"
         - $ref: "#/components/schemas/forecast_horizonFilter"
         - $ref: "#/components/schemas/forecast_durationFilter"
@@ -3040,6 +3078,7 @@ paths:
         - $ref: "#/components/parameters/limit"
         - $ref: "#/components/parameters/bbox"
         - $ref: "#/components/parameters/datetime"
+        - $ref: "#/components/parameters/sortby"
       responses:
         "200":
           $ref: "#/components/responses/Features"
@@ -3573,6 +3612,7 @@ paths:
         - $ref: "#/components/parameters/limit"
         - $ref: "#/components/parameters/ids"
         - $ref: "#/components/parameters/collectionsArray"
+        - $ref: "#/components/parameters/sortby"
       responses:
         "200":
           content:

@@ -1700,6 +1700,34 @@ components:
       description: Purposes of the asset
       example:
         - thumbnail
+    sortby:
+      type: array
+      description: >-
+        An array of objects containing a property name and sort direction.
+      items:
+        type: object
+        required:
+          - field
+        properties:
+          field:
+            type: string
+          direction:
+            type: string
+            default: asc
+            enum:
+              - asc
+              - desc
+      example:
+        - field: properties.created
+          direction: asc
+        - field: collection
+          direction: desc
+    sortbyFilter:
+      description: Sort the results by the specified fields.
+      properties:
+        sortby:
+          $ref: "#/components/schemas/sortby"
+      type: object
     searchBody:
       allOf:
         #        - $ref: "#/components/schemas/assetQueryFilter"
@@ -1710,6 +1738,7 @@ components:
         - $ref: "#/components/schemas/collectionsFilter"
         - $ref: "#/components/schemas/idsFilter"
         - $ref: "#/components/schemas/limitFilter"
+        - $ref: "#/components/schemas/sortbyFilter"
         - $ref: "#/components/schemas/forecast_reference_datetimeFilter"
         - $ref: "#/components/schemas/forecast_horizonFilter"
         - $ref: "#/components/schemas/forecast_durationFilter"
