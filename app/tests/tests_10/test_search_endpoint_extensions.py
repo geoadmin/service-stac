@@ -336,6 +336,13 @@ class SearchEndpointSortTestCase(StacBaseTestCase):
         response = self.client.get(f"{self.path}?sortby=expires")
         self.assertStatusCode(400, response)
 
+    def test_post_sortby_empty_list(self):
+        payload = {"sortby": []}
+        response = self.client.post(self.path, data=payload, content_type="application/json")
+        self.assertStatusCode(200, response)
+        item_ids = [item['id'] for item in response.json()['features']]
+        self.assertEqual(item_ids, ["item-1", "item-2"])
+
     def test_post_sortby_id_ascending(self):
         payload = {"sortby": [{"field": "id", "direction": "asc"}]}
         response = self.client.post(self.path, data=payload, content_type="application/json")
