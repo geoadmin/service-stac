@@ -14,6 +14,7 @@ from rest_framework.decorators import api_view
 from rest_framework.decorators import permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from stac_api.models.general import LandingPage
 from stac_api.models.item import Item
@@ -161,3 +162,45 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
 def recalculate_extent(request):
     call_calculate_extent()
     return Response()
+
+
+class SortablesList(APIView):
+    name = 'sortables-list'  # this name must match the name in urls.py
+    # Override the default model-based permission class since this view has no queryset.
+    permission_classes = [AllowAny]
+
+    def get(self, request, *args, **kwargs):
+        '''Return a JSON Schema describing the fields that can be used with the sortby parameter.
+
+        The schema is served with content type `application/schema+json`. Its `properties` match
+        the keys of `SORTABLE_FIELDS` so that the advertised fields are exactly what `sortby`
+        accepts.
+        '''
+        schema = {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": request.build_absolute_uri(),
+            "title": "Sortables",
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "collection": {
+                    "type": "string"
+                },
+                "properties.datetime": {
+                    "type": "string", "format": "date-time"
+                },
+                "properties.title": {
+                    "type": "string"
+                },
+                "properties.created": {
+                    "type": "string", "format": "date-time"
+                },
+                "properties.updated": {
+                    "type": "string", "format": "date-time"
+                },
+            },
+            "additionalProperties": False,
+        }
+        return Response(schema, content_type="application/schema+json")

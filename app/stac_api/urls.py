@@ -11,6 +11,7 @@ from stac_api.views.collection import CollectionList
 from stac_api.views.general import ConformancePageDetail
 from stac_api.views.general import LandingPageDetail
 from stac_api.views.general import SearchList
+from stac_api.views.general import SortablesList
 from stac_api.views.general import recalculate_extent
 from stac_api.views.item import AssetDetail
 from stac_api.views.item import AssetsList
@@ -110,6 +111,7 @@ urlpatterns = [
             path("", LandingPageDetail.as_view(), name='landing-page'),
             path("conformance", ConformancePageDetail.as_view(), name='conformance'),
             path("search", SearchList.as_view(), name='search-list'),
+            path("sortables", SortablesList.as_view(), name='sortables-list'),
             path("collections", CollectionList.as_view(), name='collections-list'),
             path("collections/", include(collection_urls)),
             path("update-extent", recalculate_extent)
