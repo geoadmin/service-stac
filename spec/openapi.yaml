@@ -92,6 +92,7 @@ paths:
         - $ref: "./components/parameters.yaml#/components/parameters/limit"
         - $ref: "./components/parameters.yaml#/components/parameters/bbox"
         - $ref: "./components/parameters.yaml#/components/parameters/datetime"
+        - $ref: "./components/parameters.yaml#/components/parameters/sortby"
       responses:
         "200":
           $ref: "./components/responses.yaml#/components/responses/Features"
@@ -331,6 +332,7 @@ paths:
         - $ref: "./components/parameters.yaml#/components/parameters/limit"
         - $ref: "./components/parameters.yaml#/components/parameters/ids"
         - $ref: "./components/parameters.yaml#/components/parameters/collectionsArray"
+        - $ref: "./components/parameters.yaml#/components/parameters/sortby"
       responses:
         "200":
           content:

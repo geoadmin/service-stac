@@ -132,3 +132,13 @@ components:
       required: false
       schema:
         type: string
+    sortby:
+      name: sortby
+      in: query
+      description: >-
+        An array of property names, prefixed by either "+" for ascending or
+        "-" for descending. If no prefix is provided, "+" is assumed.
+      required: false
+      schema:
+        type: string
+        example: '-properties.created,id'
