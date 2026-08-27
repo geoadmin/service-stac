@@ -13,7 +13,6 @@ from rest_framework.utils.urls import remove_query_param
 from rest_framework.utils.urls import replace_query_param
 
 from stac_api.utils import get_query_params
-from stac_api.utils import parse_sortby
 from stac_api.utils import remove_query_params
 
 logger = logging.getLogger(__name__)
@@ -178,12 +177,10 @@ class SortedCursorPagination(CursorPagination):
 
     def get_ordering(self, request, queryset, view):
         '''Get the ordering from the sortby query parameter if present.'''
-        sortby_param = request.query_params.get('sortby', None)
-
-        if not sortby_param:
+        sort_fields = getattr(view, 'sort_fields', None)
+        if not sort_fields:
             return super().get_ordering(request, queryset, view)
 
-        sort_fields = parse_sortby(sortby_param)
         ordering = []
         for model_field, is_ascending in sort_fields:
             if not is_ascending:
@@ -192,7 +189,7 @@ class SortedCursorPagination(CursorPagination):
         return ordering
 
 
-class GetPostCursorPagination(CursorPagination):
+class GetPostCursorPagination(SortedCursorPagination):
     '''Pagination to be used for the GET/POST /search endpoint where the
     pagination is either in query or in payload depending on the method.
     '''

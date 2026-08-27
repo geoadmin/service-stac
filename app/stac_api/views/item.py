@@ -24,7 +24,9 @@ from stac_api.serializers.item import ItemDetailSerializer
 from stac_api.serializers.item import ItemListSerializer
 from stac_api.serializers.item import ItemSerializer
 from stac_api.serializers.utils import get_relation_links
+from stac_api.utils import SORTABLE_FIELDS
 from stac_api.utils import get_asset_path
+from stac_api.utils import parse_sortby_get
 from stac_api.validators_view import validate_collection
 from stac_api.validators_view import validate_item
 from stac_api.validators_view import validate_renaming
@@ -92,6 +94,8 @@ class ItemsList(generics.GenericAPIView):
     serializer_class = ItemSerializer
     pagination_class = SortedCursorPagination
     name = 'items-list'  # this name must match the name in urls.py
+    # Resolved sortby fields. None means no sortby was provided and the default ordering is used.
+    sort_fields = None
 
     def get_queryset(self):
         # filter based on the url
@@ -123,6 +127,11 @@ class ItemsList(generics.GenericAPIView):
 
     def list(self, request, *args, **kwargs):
         validate_collection(self.kwargs)
+
+        sort_fields = request.query_params.get('sortby')
+        if sort_fields:
+            self.sort_fields = parse_sortby_get(sort_fields, SORTABLE_FIELDS)
+
         queryset = self.filter_queryset(self.get_queryset())
         page = self.paginate_queryset(queryset)
         if page is not None:
