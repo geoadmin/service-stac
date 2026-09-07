@@ -636,10 +636,10 @@ def parse_cache_control_header(cache_control_header):
 SORTABLE_FIELDS = {
     'id': 'name',
     'collection': 'collection__name',
-    'properties.datetime': 'properties_datetime',
-    'properties.title': 'properties_title',
-    'properties.created': 'created',
-    'properties.updated': 'updated',
+    'datetime': 'properties_datetime',
+    'title': 'properties_title',
+    'created': 'created',
+    'updated': 'updated',
 }
 
 
@@ -649,7 +649,7 @@ def parse_sortby_get(sortby_param, sortable_fields):
     The sortby parameter is a comma-separated string of fields prefixed with '+'
     (ascending, default) or '-' (descending).
 
-    Example: "-properties.created,title".
+    Example: "-created,title".
 
     Args:
         sortby_param: string
@@ -695,7 +695,7 @@ def parse_sortby_post(sortby_param, sortable_fields):
     The sortby parameter in the request body is a list of objects with a 'field'
     and a 'direction' ('asc' or 'desc') property.
 
-    Example: [{"field": "properties.created", "direction": "desc"}].
+    Example: [{"field": "created", "direction": "desc"}].
 
     Args:
         sortby_param: list

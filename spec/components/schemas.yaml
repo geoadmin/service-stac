@@ -1750,7 +1750,7 @@ components:
               - asc
               - desc
       example:
-        - field: properties.created
+        - field: created
           direction: asc
         - field: collection
           direction: desc
