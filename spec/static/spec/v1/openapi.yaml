@@ -1399,38 +1399,37 @@ components:
                 minItems: 2
                 items:
                   type: number
-    itemProperties:
-      title: Properties
-      description: >-
-        Provides the core metadata fields plus extensions
-
-
-        The item's data timing information can be specified either with
-
-        * One datetime value in the field `datetime`
-
-        * A datetime range with a `start_datetime` and an `end_datetime`
-
-
-        One of the two is required.
-
-
-        **Note on STAC extensions:** When a STAC extension is listed in the `stac_extensions` field, certain properties may be required. For example, when using the [Forecast extension](`https://github.com/stac-extensions/forecast`), the `forecast:reference_datetime` property is required.
+    itemPropertiesCore:
+      title: Core Properties
+      description: Core STAC metadata fields for Items
       properties:
         created:
           $ref: "#/components/schemas/created"
+        updated:
+          $ref: "#/components/schemas/updated"
         datetime:
           $ref: "#/components/schemas/datetime"
         start_datetime:
           $ref: "#/components/schemas/datetime"
         end_datetime:
           $ref: "#/components/schemas/datetime"
-        expires:
-          $ref: "#/components/schemas/datetime"
-        updated:
-          $ref: "#/components/schemas/updated"
         title:
           $ref: "#/components/schemas/featureTitle"
+      required:
+        - created
+        - updated
+    itemPropertiesTimestamps:
+      title: Timestamps Extension
+      description: >-
+        Properties from the [STAC Timestamps extension](https://github.com/stac-extensions/timestamps)
+      properties:
+        expires:
+          $ref: "#/components/schemas/datetime"
+    itemPropertiesForecast:
+      title: Forecast Extension
+      description: >-
+        Properties from the [STAC Forecast extension](https://github.com/stac-extensions/forecast)
+      properties:
         forecast:reference_datetime:
           $ref: "#/components/schemas/datetime"
         forecast:horizon:
@@ -1441,14 +1440,45 @@ components:
           $ref: "#/components/schemas/forecast_variable"
         forecast:perturbed:
           $ref: "#/components/schemas/forecast_perturbed"
+      required:
+        - forecast:reference_datetime
+    itemPropertiesCF:
+      title: CF Extension
+      description: >-
+        Properties from the [STAC CF extension](https://github.com/stac-extensions/cf.
+      properties:
         cf:standard_name:
           $ref: "#/components/schemas/cf_standard_name"
         unit:
           $ref: "#/components/schemas/unit"
-      required:
-        - created
-        - updated
+    itemProperties:
+      title: Properties
+      description: |-
+        Provides the core metadata fields for a feature together with additional
+        fields from the declared STAC extensions.
+
+
+        An feature's temporal information is expressed either as a single point
+        in time through `datetime`, or as a range through `start_datetime`
+        and `end_datetime` (in which case `datetime` is `null`). One of these
+        two forms is required.
+
+
+        STAC extensions:
+
+        * Every feature carries the mandatory core properties.
+        * To use an extension's additional fields, list that extension in the
+          `stac_extensions` array.
+        * Declaring an extension may make some of its properties required.
+          For example, the
+          [Forecast extension](`https://github.com/stac-extensions/forecast`)
+          requires `forecast:reference_datetime`.
       type: object
+      anyOf:
+        - $ref: "#/components/schemas/itemPropertiesCore"
+        - $ref: "#/components/schemas/itemPropertiesTimestamps"
+        - $ref: "#/components/schemas/itemPropertiesForecast"
+        - $ref: "#/components/schemas/itemPropertiesCF"
     itemType:
       title: type
       description: The GeoJSON type
