@@ -99,3 +99,18 @@ class CollectionSortablesTestCase(StacBaseTestCase):
     def test_get_collection_sortables_not_found(self):
         response = self.client.get(f'/{STAC_BASE_V}/collections/nonexistent/sortables')
         self.assertStatusCode(404, response)
+
+    def test_collection_detail_has_sortables_link(self):
+        response = self.client.get(f'/{STAC_BASE_V}/collections/{self.collection_name}')
+        self.assertStatusCode(200, response)
+        expected_link = {
+            "rel": "http://www.opengis.net/def/rel/ogc/1.0/sortables",
+            "href": f'http://testserver/{STAC_BASE_V}/collections/{self.collection_name}/sortables',
+            "type": "application/schema+json",
+            "title": "Sortable fields for the sortby parameter",
+        }
+        sortables_links = [
+            link for link in response.json()['links']
+            if link['rel'] == "http://www.opengis.net/def/rel/ogc/1.0/sortables"
+        ]
+        self.assertEqual(sortables_links, [expected_link])
