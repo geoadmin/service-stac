@@ -28,6 +28,7 @@ from stac_api.utils import call_calculate_extent
 from stac_api.utils import harmonize_post_get_for_search
 from stac_api.utils import is_api_version_1
 from stac_api.validators_serializer import ValidateSearchRequest
+from stac_api.validators_view import validate_collection
 from stac_api.views.filters import create_is_active_filter
 from stac_api.views.mixins import patch_collections_aggregate_cache_control_header
 
@@ -165,6 +166,24 @@ def recalculate_extent(request):
     return Response()
 
 
+def build_sortables_schema(request):
+    '''Build a JSON Schema describing the sortable fields for the sortby parameter.'''
+    properties = {}
+    for field_name, field in SORTABLE_FIELDS.items():
+        prop = {"type": field.type}
+        if field.format:
+            prop["format"] = field.format
+        properties[field_name] = prop
+    return {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": request.build_absolute_uri(),
+        "title": "Sortables",
+        "type": "object",
+        "properties": properties,
+        "additionalProperties": False,
+    }
+
+
 class Sortables(APIView):
     name = 'sortables'  # this name must match the name in urls.py
     # Override the default model-based permission class since this view has no queryset.
@@ -172,18 +191,15 @@ class Sortables(APIView):
 
     def get(self, request, *args, **kwargs):
         '''Return a JSON Schema describing the fields that can be used with the sortby parameter.'''
-        properties = {}
-        for field_name, field in SORTABLE_FIELDS.items():
-            prop = {"type": field.type}
-            if field.format:
-                prop["format"] = field.format
-            properties[field_name] = prop
-        schema = {
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "$id": request.build_absolute_uri(),
-            "title": "Sortables",
-            "type": "object",
-            "properties": properties,
-            "additionalProperties": False,
-        }
-        return Response(schema, content_type="application/schema+json")
+        return Response(build_sortables_schema(request), content_type="application/schema+json")
+
+
+class CollectionSortables(APIView):
+    name = 'collection-sortables'  # this name must match the name in urls.py
+    # Override the default model-based permission class since this view has no queryset.
+    permission_classes = [AllowAny]
+
+    def get(self, request, *args, **kwargs):
+        '''Return a JSON Schema describing the fields that can be used with the sortby parameter.'''
+        validate_collection(kwargs)
+        return Response(build_sortables_schema(request), content_type="application/schema+json")

@@ -4,6 +4,7 @@ from django.test import Client
 
 from tests.tests_10.base_test import STAC_BASE_V
 from tests.tests_10.base_test import StacBaseTestCase
+from tests.tests_10.data_factory import Factory
 
 logger = logging.getLogger(__name__)
 
@@ -47,3 +48,54 @@ class SortablesTestCase(StacBaseTestCase):
             "additionalProperties": False,
         }
         self.assertEqual(response.json(), expected_schema)
+
+
+class CollectionSortablesTestCase(StacBaseTestCase):
+
+    @classmethod
+    def setUpTestData(cls):  # pylint: disable=invalid-name
+        cls.factory = Factory()
+        cls.collection = cls.factory.create_collection_sample().model
+
+    def setUp(self):  # pylint: disable=invalid-name
+        self.client = Client()
+        self.collection_name = self.collection.name
+        self.path = f'/{STAC_BASE_V}/collections/{self.collection_name}/sortables'
+        self.maxDiff = None  # pylint: disable=invalid-name
+
+    def test_get_collection_sortables(self):
+        response = self.client.get(self.path)
+        self.assertStatusCode(200, response)
+        self.assertEqual(response['Content-Type'], 'application/schema+json')
+        expected_schema = {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": f'http://testserver/{STAC_BASE_V}/collections/{self.collection_name}/sortables',
+            "title": "Sortables",
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "collection": {
+                    "type": "string"
+                },
+                "datetime": {
+                    "type": "string", "format": "date-time"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "created": {
+                    "type": "string", "format": "date-time"
+                },
+                "updated": {
+                    "type": "string", "format": "date-time"
+                },
+            },
+            "additionalProperties": False,
+        }
+        self.assertEqual(response.json(), expected_schema)
+
+    def test_get_collection_sortables_not_found(self):
+        response = self.client.get(f'/{STAC_BASE_V}/collections/nonexistent/sortables')
+        self.assertStatusCode(404, response)

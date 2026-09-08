@@ -8,6 +8,7 @@ from stac_api.views.collection import CollectionAssetDetail
 from stac_api.views.collection import CollectionAssetsList
 from stac_api.views.collection import CollectionDetail
 from stac_api.views.collection import CollectionList
+from stac_api.views.general import CollectionSortables
 from stac_api.views.general import ConformancePageDetail
 from stac_api.views.general import LandingPageDetail
 from stac_api.views.general import SearchList
@@ -84,6 +85,7 @@ collection_urls = [
     path("<collection_name>", CollectionDetail.as_view(), name='collection-detail'),
     path("<collection_name>/items", ItemsList.as_view(), name='items-list'),
     path("<collection_name>/items/", include(item_urls)),
+    path("<collection_name>/sortables", CollectionSortables.as_view(), name='collection-sortables'),
     path("<collection_name>/assets", CollectionAssetsList.as_view(), name='collection-assets-list'),
     path("<collection_name>/assets/", include(collection_asset_urls))
 ]
