@@ -20,6 +20,7 @@ from botocore.client import Config
 from django.conf import settings
 from django.contrib.gis.geos import Point
 from django.contrib.gis.geos import Polygon
+from django.core.exceptions import ValidationError
 from django.core.management import call_command
 from django.core.management.base import BaseCommand
 from django.core.management.base import CommandParser
@@ -629,3 +630,125 @@ def parse_cache_control_header(cache_control_header):
     parts = [i.strip() for i in cache_control_header.split(',')]
     args = {i.split('=')[0].strip(): i.split('=')[-1].strip() for i in parts if i}
     return {k: True if v == k else v for k, v in args.items()}
+
+
+# Maps sortby parameter values to Django model field
+SORTABLE_FIELDS = {
+    'id': 'name',
+    'collection': 'collection__name',
+    'datetime': 'properties_datetime',
+    'title': 'properties_title',
+    'created': 'created',
+    'updated': 'updated',
+}
+
+
+def parse_sortby_get(sortby_param, sortable_fields):
+    '''Parse and validate the GET (string) format of the sortby parameter.
+
+    The sortby parameter is a comma-separated string of fields prefixed with '+'
+    (ascending, default) or '-' (descending).
+
+    Example: "-created,title".
+
+    Args:
+        sortby_param: string
+            Comma-separated list of fields prefixed with '+' or '-'
+        sortable_fields: dict
+            Mapping of allowed sortby field names to Django model fields
+
+    Returns:
+        list: List of tuples (field, direction) where `direction` is True for ascending,
+              False for descending and `field` is the Django model field corresponding to
+              the given input field. Returns empty list if sortby_param is None or empty.
+
+    Raises:
+        ValidationError: If an invalid field is specified
+    '''
+    if not sortby_param:
+        return []
+
+    sort_fields = []
+    for sort_field in sortby_param.split(','):
+        sort_field = sort_field.strip()
+        if not sort_field:
+            continue
+
+        if sort_field.startswith('-'):
+            is_ascending = False
+            field_name = sort_field[1:]
+        elif sort_field.startswith('+'):
+            is_ascending = True
+            field_name = sort_field[1:]
+        else:
+            is_ascending = True
+            field_name = sort_field
+
+        internal_field = _resolve_sort_field(field_name, sortable_fields)
+        sort_fields.append((internal_field, is_ascending))
+    return sort_fields
+
+
+def parse_sortby_post(sortby_param, sortable_fields):
+    '''Parse the POST (list of objects) format of the sortby parameter.
+
+    The sortby parameter in the request body is a list of objects with a 'field'
+    and a 'direction' ('asc' or 'desc') property.
+
+    Example: [{"field": "created", "direction": "desc"}].
+
+    Args:
+        sortby_param: list
+            List of {"field": ..., "direction": ...} objects
+        sortable_fields: dict
+            Mapping of allowed sortby field names to Django model fields
+
+    Returns:
+        list: List of tuples (field, direction) where `direction` is True for ascending,
+              False for descending and `field` is the Django model field corresponding to
+              the given input field. Returns empty list if sortby_param is None or empty.
+
+    Raises:
+        ValidationError: If an invalid field or direction is specified
+    '''
+    sort_fields = []
+    for sort_item in sortby_param:
+        if not isinstance(sort_item, dict) or 'field' not in sort_item:
+            raise ValidationError("Each sortby entry must be an object with a 'field' property")
+        field_name = sort_item['field']
+        direction = str(sort_item.get('direction', 'asc')).lower()
+        if direction == 'asc':
+            is_ascending = True
+        elif direction == 'desc':
+            is_ascending = False
+        else:
+            raise ValidationError(
+                f"Invalid sort direction '{direction}'. "
+                f"Allowed values are: 'asc', 'desc'"
+            )
+        internal_field = _resolve_sort_field(field_name, sortable_fields)
+        sort_fields.append((internal_field, is_ascending))
+    return sort_fields
+
+
+def _resolve_sort_field(field_name, sortable_fields):
+    '''Resolve a sortby field name to its Django model field, validating it.
+
+    Args:
+        field_name: string
+            The field name provided in the sortby parameter
+        sortable_fields: dict
+            Mapping of allowed sortby field names to Django model fields
+
+    Returns:
+        string: The Django model field corresponding to the given field name
+
+    Raises:
+        ValidationError: If the field name is not allowed for sorting
+    '''
+    if field_name not in sortable_fields:
+        raise ValidationError(
+            f"Invalid sort field '{field_name}'. "
+            f"Allowed fields are: {', '.join(sortable_fields.keys())}"
+        )
+    return sortable_fields[field_name]

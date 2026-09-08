@@ -171,7 +171,25 @@ class CursorPagination(pagination.CursorPagination):
         )
 
 
-class GetPostCursorPagination(CursorPagination):
+class SortedCursorPagination(CursorPagination):
+    '''Pagination class that supports sorting via the sortby parameter'''
+    ordering = 'name'
+
+    def get_ordering(self, request, queryset, view):
+        '''Get the ordering from the sortby query parameter if present.'''
+        sort_fields = getattr(view, 'sort_fields', None)
+        if not sort_fields:
+            return super().get_ordering(request, queryset, view)
+
+        ordering = []
+        for model_field, is_ascending in sort_fields:
+            if not is_ascending:
+                model_field = "-" + model_field
+            ordering.append(model_field)
+        return ordering
+
+
+class GetPostCursorPagination(SortedCursorPagination):
     '''Pagination to be used for the GET/POST /search endpoint where the
     pagination is either in query or in payload depending on the method.
     '''
