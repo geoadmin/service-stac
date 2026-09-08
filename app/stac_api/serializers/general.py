@@ -121,6 +121,12 @@ class LandingPageSerializer(serializers.ModelSerializer):
                 ("title", "Search across feature collections"),
             ]),
             OrderedDict([
+                ("rel", "http://www.opengis.net/def/rel/ogc/1.0/sortables"),
+                ("href", get_url(request, 'sortables')),
+                ("type", "application/schema+json"),
+                ("title", "Sortable fields for the sortby parameter"),
+            ]),
+            OrderedDict([
                 ("href", get_browser_url(request, 'browser-catalog')),
                 ("rel", "alternate"),
                 ("type", "text/html"),
