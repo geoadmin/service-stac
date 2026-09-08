@@ -31,16 +31,16 @@ class SortablesTestCase(StacBaseTestCase):
                 "collection": {
                     "type": "string"
                 },
-                "properties.datetime": {
+                "datetime": {
                     "type": "string", "format": "date-time"
                 },
-                "properties.title": {
+                "title": {
                     "type": "string"
                 },
-                "properties.created": {
+                "created": {
                     "type": "string", "format": "date-time"
                 },
-                "properties.updated": {
+                "updated": {
                     "type": "string", "format": "date-time"
                 },
             },

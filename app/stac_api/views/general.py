@@ -23,6 +23,7 @@ from stac_api.serializers.general import ConformancePageSerializer
 from stac_api.serializers.general import LandingPageSerializer
 from stac_api.serializers.item import ItemSerializer
 from stac_api.serializers.utils import get_relation_links
+from stac_api.utils import SORTABLE_FIELDS
 from stac_api.utils import call_calculate_extent
 from stac_api.utils import harmonize_post_get_for_search
 from stac_api.utils import is_api_version_1
@@ -171,31 +172,18 @@ class Sortables(APIView):
 
     def get(self, request, *args, **kwargs):
         '''Return a JSON Schema describing the fields that can be used with the sortby parameter.'''
+        properties = {}
+        for field_name, field in SORTABLE_FIELDS.items():
+            prop = {"type": field.type}
+            if field.format:
+                prop["format"] = field.format
+            properties[field_name] = prop
         schema = {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "$id": request.build_absolute_uri(),
             "title": "Sortables",
             "type": "object",
-            "properties": {
-                "id": {
-                    "type": "string"
-                },
-                "collection": {
-                    "type": "string"
-                },
-                "properties.datetime": {
-                    "type": "string", "format": "date-time"
-                },
-                "properties.title": {
-                    "type": "string"
-                },
-                "properties.created": {
-                    "type": "string", "format": "date-time"
-                },
-                "properties.updated": {
-                    "type": "string", "format": "date-time"
-                },
-            },
+            "properties": properties,
             "additionalProperties": False,
         }
         return Response(schema, content_type="application/schema+json")
