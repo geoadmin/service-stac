@@ -70,7 +70,7 @@ class LandingPageSerializer(serializers.ModelSerializer):
         # We use OrderedDict, although it is not necessary, because the default serializer/model for
         # links already uses OrderedDict, this way we keep consistency between auto link and user
         # link
-        representation['links'][:0] = [
+        links = [
             OrderedDict([
                 ('rel', 'root'),
                 ('href', get_url(request, 'landing-page')),
@@ -120,17 +120,23 @@ class LandingPageSerializer(serializers.ModelSerializer):
                 ("type", "application/json"),
                 ("title", "Search across feature collections"),
             ]),
-            OrderedDict([
-                ("rel", "http://www.opengis.net/def/rel/ogc/1.0/sortables"),
-                ("href", get_url(request, 'sortables')),
-                ("type", "application/schema+json"),
-                ("title", "Sortable fields for the sortby parameter"),
-            ]),
+        ]
+        if is_api_version_1(request):
+            links.append(
+                OrderedDict([
+                    ("rel", "http://www.opengis.net/def/rel/ogc/1.0/sortables"),
+                    ("href", get_url(request, 'sortables')),
+                    ("type", "application/schema+json"),
+                    ("title", "Sortable fields for the sortby parameter"),
+                ])
+            )
+        links.append(
             OrderedDict([
                 ("href", get_browser_url(request, 'browser-catalog')),
                 ("rel", "alternate"),
                 ("type", "text/html"),
                 ("title", "STAC Browser"),
-            ]),
-        ]
+            ])
+        )
+        representation['links'][:0] = links
         return representation
