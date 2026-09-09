@@ -2,6 +2,7 @@ from unittest import TestCase
 
 from django.core.exceptions import ValidationError
 
+from stac_api.utils import SortableField
 from stac_api.utils import parse_cache_control_header
 from stac_api.utils import parse_sortby_get
 from stac_api.utils import parse_sortby_post
@@ -39,7 +40,7 @@ class TestUtils(TestCase):
         self.assertEqual(result, [])
 
     def test_parse_sortby_get_handles_single_field_correctly(self):
-        sortable_fields = {'external': 'internal'}
+        sortable_fields = {'external': SortableField(model_field='internal')}
 
         result = parse_sortby_get('external', sortable_fields)
         self.assertEqual(result, [('internal', True)])
@@ -52,9 +53,9 @@ class TestUtils(TestCase):
 
     def test_parse_sortby_get_handles_multiple_fields_correctly(self):
         sortable_fields = {
-            'external_1': 'internal_1',
-            'external_2': 'internal_2',
-            'external_3': 'internal_3',
+            'external_1': SortableField(model_field='internal_1'),
+            'external_2': SortableField(model_field='internal_2'),
+            'external_3': SortableField(model_field='internal_3'),
         }
 
         result = parse_sortby_get('external_1,-external_2', sortable_fields)
@@ -70,22 +71,22 @@ class TestUtils(TestCase):
 
     def test_parse_sortby_get_ignores_whitespace(self):
         sortable_fields = {
-            'external_1': 'internal_1',
-            'external_2': 'internal_2',
+            'external_1': SortableField(model_field='internal_1'),
+            'external_2': SortableField(model_field='internal_2'),
         }
         result = parse_sortby_get('external_1 , -external_2', sortable_fields)
         self.assertEqual(result, [('internal_1', True), ('internal_2', False)])
 
     def test_parse_sortby_get_raises_for_invalid_field(self):
         with self.assertRaises(ValidationError):
-            parse_sortby_get('invalid_field', {'external': 'internal'})
+            parse_sortby_get('invalid_field', {'external': SortableField(model_field='internal')})
 
     def test_parse_sortby_post_format_empty(self):
         result = parse_sortby_post([], {})
         self.assertEqual(result, [])
 
     def test_parse_sortby_post_format_handles_single_field_correctly(self):
-        sortable_fields = {'external': 'internal'}
+        sortable_fields = {'external': SortableField(model_field='internal')}
 
         result = parse_sortby_post([{'field': 'external', 'direction': 'asc'}], sortable_fields)
         self.assertEqual(result, [('internal', True)])
@@ -99,8 +100,8 @@ class TestUtils(TestCase):
 
     def test_parse_sortby_post_format_handles_multiple_fields_correctly(self):
         sortable_fields = {
-            'external_1': 'internal_1',
-            'external_2': 'internal_2',
+            'external_1': SortableField(model_field='internal_1'),
+            'external_2': SortableField(model_field='internal_2'),
         }
         sortby_param = [{
             'field': 'external_1',
@@ -126,14 +127,16 @@ class TestUtils(TestCase):
         with self.assertRaises(ValidationError):
             parse_sortby_post([{
                 'field': 'invalid_field', 'direction': 'asc'
-            }], {'external': 'internal'})
+            }], {'external': SortableField(model_field='internal')})
 
     def test_parse_sortby_post_format_raises_for_invalid_direction(self):
         with self.assertRaises(ValidationError):
             parse_sortby_post([{
                 'field': 'external', 'direction': 'sideways'
-            }], {'external': 'internal'})
+            }], {'external': SortableField(model_field='internal')})
 
     def test_parse_sortby_post_format_raises_for_missing_field(self):
         with self.assertRaises(ValidationError):
-            parse_sortby_post([{'direction': 'asc'}], {'external': 'internal'})
+            parse_sortby_post([{
+                'direction': 'asc'
+            }], {'external': SortableField(model_field='internal')})
