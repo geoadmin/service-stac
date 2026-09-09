@@ -32,16 +32,16 @@ class SortablesTestCase(StacBaseTestCase):
                 "collection": {
                     "type": "string"
                 },
-                "datetime": {
+                "properties.datetime": {
                     "type": "string", "format": "date-time"
                 },
-                "title": {
+                "properties.title": {
                     "type": "string"
                 },
-                "created": {
+                "properties.created": {
                     "type": "string", "format": "date-time"
                 },
-                "updated": {
+                "properties.updated": {
                     "type": "string", "format": "date-time"
                 },
             },
@@ -84,16 +84,16 @@ class CollectionSortablesTestCase(StacBaseTestCase):
                 "collection": {
                     "type": "string"
                 },
-                "datetime": {
+                "properties.datetime": {
                     "type": "string", "format": "date-time"
                 },
-                "title": {
+                "properties.title": {
                     "type": "string"
                 },
-                "created": {
+                "properties.created": {
                     "type": "string", "format": "date-time"
                 },
-                "updated": {
+                "properties.updated": {
                     "type": "string", "format": "date-time"
                 },
             },

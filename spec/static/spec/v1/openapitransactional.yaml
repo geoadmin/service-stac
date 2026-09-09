@@ -141,7 +141,7 @@ components:
       required: false
       schema:
         type: string
-        example: '-created,id'
+        example: '-properties.created,id'
     uploadId:
       name: uploadId
       in: path
@@ -2098,7 +2098,7 @@ components:
               - asc
               - desc
       example:
-        - field: created
+        - field: properties.created
           direction: asc
         - field: collection
           direction: desc
@@ -2147,7 +2147,7 @@ components:
                 type:
                   type: string
                   example: string
-            datetime:
+            properties.datetime:
               type: object
               properties:
                 type:
@@ -2156,13 +2156,13 @@ components:
                 format:
                   type: string
                   example: date-time
-            title:
+            properties.title:
               type: object
               properties:
                 type:
                   type: string
                   example: string
-            created:
+            properties.created:
               type: object
               properties:
                 type:
@@ -2171,7 +2171,7 @@ components:
                 format:
                   type: string
                   example: date-time
-            updated:
+            properties.updated:
               type: object
               properties:
                 type:
