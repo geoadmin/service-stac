@@ -138,6 +138,9 @@ components:
       description: >-
         An array of property names, prefixed by either "+" for ascending or
         "-" for descending. If no prefix is provided, "+" is assumed.
+
+
+        This parameter is part of the [sort extension](https://github.com/stac-api-extensions/sort).
       required: false
       schema:
         type: string

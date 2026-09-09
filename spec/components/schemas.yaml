@@ -371,6 +371,10 @@ components:
                   title: Licence for the free geodata of the Federal Office of Topography swisstopo
                 - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
                   rel: describedby
+                - href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/sortables
+                  rel: http://www.opengis.net/def/rel/ogc/1.0/sortables
+                  type: application/schema+json
+                  title: Sortable fields for the sortby parameter
     collections:
       properties:
         collections:
@@ -1760,6 +1764,98 @@ components:
         sortby:
           $ref: "#/components/schemas/sortby"
       type: object
+    sortables:
+      title: Sortables
+      description: >-
+        A JSON Schema describing the fields that can be used with the `sortby`
+        parameter.
+      type: object
+      properties:
+        $schema:
+          type: string
+          format: url
+          enum:
+            - https://json-schema.org/draft/2020-12/schema
+          example: https://json-schema.org/draft/2020-12/schema
+        $id:
+          type: string
+          format: url
+          example: https://data.geo.admin.ch/api/stac/v1/sortables
+        title:
+          type: string
+          example: Sortables
+        type:
+          type: string
+          enum:
+            - object
+          example: object
+        properties:
+          type: object
+          properties:
+            id:
+              type: object
+              properties:
+                type:
+                  type: string
+                  example: string
+            collection:
+              type: object
+              properties:
+                type:
+                  type: string
+                  example: string
+            datetime:
+              type: object
+              properties:
+                type:
+                  type: string
+                  example: string
+                format:
+                  type: string
+                  example: date-time
+            title:
+              type: object
+              properties:
+                type:
+                  type: string
+                  example: string
+            created:
+              type: object
+              properties:
+                type:
+                  type: string
+                  example: string
+                format:
+                  type: string
+                  example: date-time
+            updated:
+              type: object
+              properties:
+                type:
+                  type: string
+                  example: string
+                format:
+                  type: string
+                  example: date-time
+          additionalProperties: false
+        additionalProperties:
+          description: >-
+            If `additionalProperties` is not included, any property name is valid
+            in a sorting expression on the collection that is evaluated by the
+            server and the property reference SHALL evaluate to `null`, if the
+            property does not exist for a resource.
+
+
+            If `additionalProperties` is set to `false`, property references that
+            are not explicitly declared in the sortables schema SHALL result in a
+            400 response.
+          type: boolean
+          example: false
+      required:
+        - $schema
+        - $id
+        - type
+        - properties
     searchBody:
       allOf:
         #        - $ref: "#/components/schemas/assetQueryFilter"
