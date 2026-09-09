@@ -13,6 +13,7 @@ from rest_framework import permissions
 from rest_framework.decorators import api_view
 from rest_framework.decorators import permission_classes
 from rest_framework.permissions import AllowAny
+from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -33,6 +34,12 @@ from stac_api.views.filters import create_is_active_filter
 from stac_api.views.mixins import patch_collections_aggregate_cache_control_header
 
 logger = logging.getLogger(__name__)
+
+
+class SchemaJSONRenderer(JSONRenderer):
+    '''Renders responses with the `application/schema+json` media type.'''
+    media_type = "application/schema+json"
+    format = "schema+json"
 
 
 def get_etag(queryset):
@@ -188,6 +195,7 @@ class Sortables(APIView):
     name = 'sortables'  # this name must match the name in urls.py
     # Override the default model-based permission class since this view has no queryset.
     permission_classes = [AllowAny]
+    renderer_classes = [SchemaJSONRenderer]
 
     def get(self, request, *args, **kwargs):
         '''Return a JSON Schema describing the fields that can be used with the sortby parameter.'''
@@ -198,6 +206,7 @@ class CollectionSortables(APIView):
     name = 'collection-sortables'  # this name must match the name in urls.py
     # Override the default model-based permission class since this view has no queryset.
     permission_classes = [AllowAny]
+    renderer_classes = [SchemaJSONRenderer]
 
     def get(self, request, *args, **kwargs):
         '''Return a JSON Schema describing the fields that can be used with the sortby parameter.'''

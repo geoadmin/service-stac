@@ -49,6 +49,11 @@ class SortablesTestCase(StacBaseTestCase):
         }
         self.assertEqual(response.json(), expected_schema)
 
+    def test_get_sortables_accept_schema_json(self):
+        response = self.client.get(self.path, HTTP_ACCEPT='application/schema+json')
+        self.assertStatusCode(200, response)
+        self.assertEqual(response['Content-Type'], 'application/schema+json')
+
 
 class CollectionSortablesTestCase(StacBaseTestCase):
 
@@ -95,6 +100,11 @@ class CollectionSortablesTestCase(StacBaseTestCase):
             "additionalProperties": False,
         }
         self.assertEqual(response.json(), expected_schema)
+
+    def test_get_collection_sortables_accept_schema_json(self):
+        response = self.client.get(self.path, HTTP_ACCEPT='application/schema+json')
+        self.assertStatusCode(200, response)
+        self.assertEqual(response['Content-Type'], 'application/schema+json')
 
     def test_get_collection_sortables_not_found(self):
         response = self.client.get(f'/{STAC_BASE_V}/collections/nonexistent/sortables')
