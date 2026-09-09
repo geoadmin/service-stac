@@ -144,4 +144,4 @@ components:
       required: false
       schema:
         type: string
-        example: '-created,id'
+        example: '-properties.created,id'

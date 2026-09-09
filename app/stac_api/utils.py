@@ -651,10 +651,10 @@ class SortableField:
 SORTABLE_FIELDS: dict[str, SortableField] = {
     'id': SortableField(model_field='name'),
     'collection': SortableField(model_field='collection__name'),
-    'datetime': SortableField(model_field='properties_datetime', format='date-time'),
-    'title': SortableField(model_field='properties_title'),
-    'created': SortableField(model_field='created', format='date-time'),
-    'updated': SortableField(model_field='updated', format='date-time'),
+    'properties.datetime': SortableField(model_field='properties_datetime', format='date-time'),
+    'properties.title': SortableField(model_field='properties_title'),
+    'properties.created': SortableField(model_field='created', format='date-time'),
+    'properties.updated': SortableField(model_field='updated', format='date-time'),
 }
 
 
@@ -710,7 +710,7 @@ def parse_sortby_post(sortby_param, sortable_fields):
     The sortby parameter in the request body is a list of objects with a 'field'
     and a 'direction' ('asc' or 'desc') property.
 
-    Example: [{"field": "created", "direction": "desc"}].
+    Example: [{"field": "properties.created", "direction": "desc"}].
 
     Args:
         sortby_param: list
