@@ -194,7 +194,7 @@ components:
                 title: Information about the feature collections
               - href: http://data.geo.admin.ch/api/stac/v1/search
                 rel: search
-                type: application/json
+                type: application/geo+json
                 title: Search across feature collections
               - href: http://data.geo.admin.ch/api/stac/v1/sortables
                 rel: http://www.opengis.net/def/rel/ogc/1.0/sortables

@@ -110,14 +110,14 @@ class LandingPageSerializer(serializers.ModelSerializer):
                 ("href", get_url(request, 'search-list')),
                 ("rel", "search"),
                 ("method", "GET"),
-                ("type", "application/json"),
+                ("type", "application/geo+json"),
                 ("title", "Search across feature collections"),
             ]),
             OrderedDict([
                 ("href", get_url(request, 'search-list')),
                 ("rel", "search"),
                 ("method", "POST"),
-                ("type", "application/json"),
+                ("type", "application/geo+json"),
                 ("title", "Search across feature collections"),
             ]),
         ]
