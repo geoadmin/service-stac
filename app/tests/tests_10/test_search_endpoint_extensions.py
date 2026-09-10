@@ -289,13 +289,13 @@ class SearchEndpointSortTestCase(StacBaseTestCase):
         )
 
         # ascending sort
-        response = self.client.get(f"{self.path}?sortby=datetime")
+        response = self.client.get(f"{self.path}?sortby=properties.datetime")
         self.assertStatusCode(200, response)
         item_ids = [item['id'] for item in response.json()['features']]
         self.assertEqual(item_ids, ['item-1', 'item-2', 'item-dt-2', 'item-dt-1', 'item-dt-3'])
 
         # descending sort
-        response = self.client.get(f"{self.path}?sortby=-datetime")
+        response = self.client.get(f"{self.path}?sortby=-properties.datetime")
         self.assertStatusCode(200, response)
         item_ids = [item['id'] for item in response.json()['features']]
         self.assertEqual(item_ids, ['item-dt-3', 'item-dt-1', 'item-dt-2', 'item-2', 'item-1'])
@@ -325,7 +325,7 @@ class SearchEndpointSortTestCase(StacBaseTestCase):
         )
 
         # Sort by datetime ascending, then by title descending
-        response = self.client.get(f"{self.path}?sortby=datetime,-title")
+        response = self.client.get(f"{self.path}?sortby=properties.datetime,-properties.title")
         self.assertStatusCode(200, response)
         item_ids = [item['id'] for item in response.json()['features']]
         self.assertEqual(
@@ -378,14 +378,14 @@ class SearchEndpointSortTestCase(StacBaseTestCase):
         )
 
         # ascending sort
-        payload = {"sortby": [{"field": "datetime", "direction": "asc"}]}
+        payload = {"sortby": [{"field": "properties.datetime", "direction": "asc"}]}
         response = self.client.post(self.path, data=payload, content_type="application/json")
         self.assertStatusCode(200, response)
         item_ids = [item['id'] for item in response.json()['features']]
         self.assertEqual(item_ids, ['item-1', 'item-2', 'item-dt-2', 'item-dt-1', 'item-dt-3'])
 
         # descending sort
-        payload = {"sortby": [{"field": "datetime", "direction": "desc"}]}
+        payload = {"sortby": [{"field": "properties.datetime", "direction": "desc"}]}
         response = self.client.post(self.path, data=payload, content_type="application/json")
         self.assertStatusCode(200, response)
         item_ids = [item['id'] for item in response.json()['features']]
@@ -418,9 +418,9 @@ class SearchEndpointSortTestCase(StacBaseTestCase):
         # Sort by datetime ascending, then by title descending
         payload = {
             "sortby": [{
-                "field": "datetime", "direction": "asc"
+                "field": "properties.datetime", "direction": "asc"
             }, {
-                "field": "title", "direction": "desc"
+                "field": "properties.title", "direction": "desc"
             }]
         }
         response = self.client.post(self.path, data=payload, content_type="application/json")

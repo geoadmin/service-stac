@@ -106,6 +106,10 @@ view_relations = {
         'parent': 'collection-detail',
         'browser': 'browser-collection',
     },
+    'collection-sortables': {
+        'parent': 'collection-detail',
+        'browser': None,
+    },
     'item-detail': {
         'parent': 'collection-detail',
         'browser': 'browser-item',
@@ -195,6 +199,14 @@ def get_relation_links(request, view, view_args=()):
                 OrderedDict([
                     ('rel', 'assets'),
                     ('href', get_url(request, 'collection-assets-list', view_args)),
+                ])
+            )
+            links.append(
+                OrderedDict([
+                    ("rel", "http://www.opengis.net/def/rel/ogc/1.0/sortables"),
+                    ("href", get_url(request, 'collection-sortables', view_args)),
+                    ("type", "application/schema+json"),
+                    ("title", "Sortable fields for the sortby parameter"),
                 ])
             )
     elif view.startswith('item') or view.startswith('asset') or view.startswith('collection-asset'):

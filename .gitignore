@@ -60,6 +60,7 @@ nose2-junit.xml
 # IDE config files
 *.sublime-*
 *.code*
+*.zed
 
 # Makefile
 .timestamps
