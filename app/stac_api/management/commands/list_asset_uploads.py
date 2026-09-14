@@ -22,7 +22,7 @@ class Command(CustomBaseCommand):
       - Although pagination is implemented, if there is more uploads than the limit, the sync
         algorithm will not work because it only search for common upload on the page context and
         uploads are not sorted.
-      - The S3 minio server for local development doesn't supports the list_multipart_uploads
+      - The S3 moto-server for local development doesn't supports the list_multipart_uploads
         methods, therefore the output will only contains the DB entries.
     """
 
