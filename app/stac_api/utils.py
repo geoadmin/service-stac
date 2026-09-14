@@ -3,6 +3,7 @@ import json
 import logging
 import os
 from base64 import b64decode
+from dataclasses import dataclass
 from datetime import datetime
 from datetime import timezone
 from decimal import Decimal
@@ -632,14 +633,28 @@ def parse_cache_control_header(cache_control_header):
     return {k: True if v == k else v for k, v in args.items()}
 
 
-# Maps sortby parameter values to Django model field
-SORTABLE_FIELDS = {
-    'id': 'name',
-    'collection': 'collection__name',
-    'datetime': 'properties_datetime',
-    'title': 'properties_title',
-    'created': 'created',
-    'updated': 'updated',
+@dataclass(frozen=True)
+class SortableField:
+    '''Describes a field that can be used with the sortby parameter.
+
+    Attributes:
+        model_field: The Django ORM field name to use for ordering.
+        type: The JSON Schema type of the field.
+        format: Optional JSON Schema format (e.g. "date-time").
+    '''
+    model_field: str
+    type: str = "string"
+    format: str | None = None
+
+
+# Maps sortby parameter values to their Django model field and JSON Schema metadata.
+SORTABLE_FIELDS: dict[str, SortableField] = {
+    'id': SortableField(model_field='name'),
+    'collection': SortableField(model_field='collection__name'),
+    'properties.datetime': SortableField(model_field='properties_datetime', format='date-time'),
+    'properties.title': SortableField(model_field='properties_title'),
+    'properties.created': SortableField(model_field='created', format='date-time'),
+    'properties.updated': SortableField(model_field='updated', format='date-time'),
 }
 
 
@@ -695,7 +710,7 @@ def parse_sortby_post(sortby_param, sortable_fields):
     The sortby parameter in the request body is a list of objects with a 'field'
     and a 'direction' ('asc' or 'desc') property.
 
-    Example: [{"field": "created", "direction": "desc"}].
+    Example: [{"field": "properties.created", "direction": "desc"}].
 
     Args:
         sortby_param: list
@@ -738,7 +753,7 @@ def _resolve_sort_field(field_name, sortable_fields):
         field_name: string
             The field name provided in the sortby parameter
         sortable_fields: dict
-            Mapping of allowed sortby field names to Django model fields
+            Mapping of allowed sortby field names to SortableField instances
 
     Returns:
         string: The Django model field corresponding to the given field name
@@ -751,4 +766,4 @@ def _resolve_sort_field(field_name, sortable_fields):
             f"Invalid sort field '{field_name}'. "
             f"Allowed fields are: {', '.join(sortable_fields.keys())}"
         )
-    return sortable_fields[field_name]
+    return sortable_fields[field_name].model_field

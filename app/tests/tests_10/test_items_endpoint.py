@@ -228,7 +228,7 @@ class ItemsReadEndpointTestCase(MockS3PerClassMixin, StacBaseTestCase):
 
         # Test ascending sort
         response = self.client.get(
-            f"/{STAC_BASE_V}/collections/{self.collection.name}/items?sortby=datetime"
+            f"/{STAC_BASE_V}/collections/{self.collection.name}/items?sortby=properties.datetime"
         )
 
         self.assertStatusCode(200, response)
@@ -237,7 +237,7 @@ class ItemsReadEndpointTestCase(MockS3PerClassMixin, StacBaseTestCase):
 
         # Test descending sort
         response = self.client.get(
-            f"/{STAC_BASE_V}/collections/{self.collection.name}/items?sortby=-datetime"
+            f"/{STAC_BASE_V}/collections/{self.collection.name}/items?sortby=-properties.datetime"
         )
         self.assertStatusCode(200, response)
         item_ids = [item['id'] for item in response.json()['features']]
@@ -268,10 +268,10 @@ class ItemsReadEndpointTestCase(MockS3PerClassMixin, StacBaseTestCase):
         )
 
         # Sort by datetime ascending, then by title descending
-        response = self.client.get(
-            (f"/{STAC_BASE_V}/collections/{self.collection.name}/items?"
-             f"sortby=datetime,-title")
-        )
+        response = self.client.get((
+            f"/{STAC_BASE_V}/collections/{self.collection.name}/items?"
+            f"sortby=properties.datetime,-properties.title"
+        ))
         self.assertStatusCode(200, response)
         item_ids = [item['id'] for item in response.json()['features']]
         self.assertEqual(

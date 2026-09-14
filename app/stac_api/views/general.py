@@ -13,7 +13,9 @@ from rest_framework import permissions
 from rest_framework.decorators import api_view
 from rest_framework.decorators import permission_classes
 from rest_framework.permissions import AllowAny
+from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from stac_api.models.general import LandingPage
 from stac_api.models.item import Item
@@ -22,14 +24,22 @@ from stac_api.serializers.general import ConformancePageSerializer
 from stac_api.serializers.general import LandingPageSerializer
 from stac_api.serializers.item import ItemSerializer
 from stac_api.serializers.utils import get_relation_links
+from stac_api.utils import SORTABLE_FIELDS
 from stac_api.utils import call_calculate_extent
 from stac_api.utils import harmonize_post_get_for_search
 from stac_api.utils import is_api_version_1
 from stac_api.validators_serializer import ValidateSearchRequest
+from stac_api.validators_view import validate_collection
 from stac_api.views.filters import create_is_active_filter
 from stac_api.views.mixins import patch_collections_aggregate_cache_control_header
 
 logger = logging.getLogger(__name__)
+
+
+class SchemaJSONRenderer(JSONRenderer):
+    '''Renders responses with the `application/schema+json` media type.'''
+    media_type = "application/schema+json"
+    format = "schema+json"
 
 
 def get_etag(queryset):
@@ -161,3 +171,44 @@ class SearchList(generics.GenericAPIView, mixins.ListModelMixin):
 def recalculate_extent(request):
     call_calculate_extent()
     return Response()
+
+
+def build_sortables_schema(request):
+    '''Build a JSON Schema describing the sortable fields for the sortby parameter.'''
+    properties = {}
+    for field_name, field in SORTABLE_FIELDS.items():
+        prop = {"type": field.type}
+        if field.format:
+            prop["format"] = field.format
+        properties[field_name] = prop
+    return {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": request.build_absolute_uri(),
+        "title": "Sortables",
+        "type": "object",
+        "properties": properties,
+        "additionalProperties": False,
+    }
+
+
+class Sortables(APIView):
+    name = 'sortables'  # this name must match the name in urls.py
+    # Override the default model-based permission class since this view has no queryset.
+    permission_classes = [AllowAny]
+    renderer_classes = [SchemaJSONRenderer]
+
+    def get(self, request, *args, **kwargs):
+        '''Return a JSON Schema describing the fields that can be used with the sortby parameter.'''
+        return Response(build_sortables_schema(request), content_type="application/schema+json")
+
+
+class CollectionSortables(APIView):
+    name = 'collection-sortables'  # this name must match the name in urls.py
+    # Override the default model-based permission class since this view has no queryset.
+    permission_classes = [AllowAny]
+    renderer_classes = [SchemaJSONRenderer]
+
+    def get(self, request, *args, **kwargs):
+        '''Return a JSON Schema describing the fields that can be used with the sortby parameter.'''
+        validate_collection(kwargs)
+        return Response(build_sortables_schema(request), content_type="application/schema+json")

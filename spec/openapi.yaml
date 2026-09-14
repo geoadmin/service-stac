@@ -21,6 +21,10 @@ tags:
     name: Data
   - description: Extension to OGC API - Features to support STAC metadata model and search API
     name: STAC
+  - name: Sort Extension
+    description: |
+      [An extension to the STAC API](https://github.com/stac-api-extensions/sort) that allows sorting
+      of results based on specified properties.
 
 paths:
   /:
@@ -368,3 +372,41 @@ paths:
       summary: Search STAC items with full-featured filtering.
       tags:
         - STAC
+  /sortables:
+    get:
+      description: >-
+        This endpoint returns a list of properties (or aliases) that can be used in the `sortby` parameter
+        for the cross-collection item search (i.e. `GET /search` and `POST /search`).
+        It returns a JSON Schema that defines the properties allowed in `sortby`.
+        The precise definition of this can be found in the
+        [OGC API - Features - Part 5: Schemas](https://docs.ogc.org/is/23-058r2/23-058r2.html).
+      operationId: getSortables
+      responses:
+        "200":
+          $ref: "./components/responses.yaml#/components/responses/Sortables"
+        "500":
+          $ref: "./components/responses.yaml#/components/responses/ServerError"
+      summary: Fetch sortable fields for /search
+      tags:
+        - Sort Extension
+  /collections/{collectionId}/sortables:
+    get:
+      description: >-
+        This endpoint returns a list of properties (or aliases) that can be used in the `sortby` parameter
+        for the item lists of a collection (i.e. `GET /collections/{collectionId}/items`).
+        It returns a JSON Schema that defines the properties allowed in `sortby`.
+        The precise definition of this can be found in the
+        [OGC API - Features - Part 5: Schemas](https://docs.ogc.org/is/23-058r2/23-058r2.html).
+      operationId: getCollectionSortables
+      parameters:
+        - $ref: "./components/parameters.yaml#/components/parameters/collectionId"
+      responses:
+        "200":
+          $ref: "./components/responses.yaml#/components/responses/Sortables"
+        "404":
+          $ref: "./components/responses.yaml#/components/responses/NotFound"
+        "500":
+          $ref: "./components/responses.yaml#/components/responses/ServerError"
+      summary: Fetch sortable fields for features in a collection
+      tags:
+        - Sort Extension
