@@ -62,7 +62,7 @@ MANAGED_BUCKET_COLLECTION_PATTERNS_BLACKLIST = env.list(
     'MANAGED_BUCKET_COLLECTION_PATTERNS_BLACKLIST', default=["ch.meteoschweiz.ogd-precipitation"]
 )
 
-# Since it's impossible to recreate the service-account situation with minio
+# Since it's impossible to recreate the service-account situation with moto-server
 # we inject some configuration in here to access the second bucket
 # in the same way as first bucket, via access/secrets
 # Like this we can leave the base (prod) configuration clean, while fixing
