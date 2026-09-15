@@ -1,6 +1,7 @@
 import logging
 
 from django.contrib.gis.db import models
+from django.contrib.postgres.fields import ArrayField
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
@@ -17,6 +18,7 @@ from stac_api.pgtriggers import generates_asset_triggers
 from stac_api.pgtriggers import generates_asset_upload_triggers
 from stac_api.pgtriggers import generates_item_triggers
 from stac_api.utils import get_asset_path
+from stac_api.validators import StacExtension
 from stac_api.validators import validate_eo_gsd
 from stac_api.validators import validate_expires
 from stac_api.validators import validate_geoadmin_variant
@@ -84,6 +86,9 @@ class Item(models.Model):
             models.Index(fields=['forecast_duration'], name='item_fc_duration_idx'),
             models.Index(fields=['forecast_variable'], name='item_fc_variable_idx'),
             models.Index(fields=['forecast_perturbed'], name='item_fc_perturbed_idx'),
+            # CF extension properties are "queryable" in the search endpoint
+            models.Index(fields=['cf_standard_name'], name='item_cf_standard_name_idx'),
+            models.Index(fields=['unit'], name='item_unit_idx'),
             # combination of datetime and start_ and end_datetimes are used in
             # managers.py:110 and following
             models.Index(
@@ -195,6 +200,32 @@ class Item(models.Model):
         "perturbed runs (`true`). The property needs to be specified in both "
         "cases as no default value is specified and as such the meaning is "
         "\"unknown\" in case it's missing."
+    )
+
+    # STAC extensions used by this Item. STAC extensions are defined as schema URLs, for example
+    # https://stac-extensions.github.io/timestamps/v1.1.0/schema.json.
+    # They are validated against the extensions enabled on the Collection (field
+    # stac_extensions_enabled).
+    stac_extensions = ArrayField(
+        models.CharField(max_length=255, choices=StacExtension.choices),
+        blank=True,
+        default=list,
+        help_text=
+        "STAC extensions used by this Item. Defined as JSON schema URLs. Must be a subset of the "
+        "Collection's stac_extensions_enabled field.",
+    )
+
+    # Part of the Climate and Forecast (CF) extension
+    cf_standard_name = models.CharField(
+        null=True,
+        blank=True,
+        max_length=255,
+        help_text="Corresponds to the CF Standard Name from the CF Standard Name Table."
+    )
+
+    # Part of the Climate and Forecast (CF) extension
+    unit = models.CharField(
+        null=True, blank=True, max_length=255, help_text="Corresponds to the CF units."
     )
 
     # Custom Manager that preselects the collection

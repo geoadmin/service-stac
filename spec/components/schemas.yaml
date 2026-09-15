@@ -13,74 +13,74 @@ components:
         filename.
       example: smr50-263-2016-2056-kgrs-2.5.tiff
     assetQuery:
-     additionalProperties:
-       $ref: "#/components/schemas/assetQueryProp"
-     description: >-
-       Define which properties of the asset to query and the operations to apply.
+      additionalProperties:
+        $ref: "#/components/schemas/assetQueryProp"
+      description: >-
+        Define which properties of the asset to query and the operations to apply.
 
 
-       The following properties can be queried:
+        The following properties can be queried:
 
-       - `type`: query for assets with this specific media type
+        - `type`: query for assets with this specific media type
 
-       - `proj:epsg`: query for assets with this specific epsg
+        - `proj:epsg`: query for assets with this specific epsg
 
-       - `gsd`: query for assets with this specific gsd
+        - `gsd`: query for assets with this specific gsd
 
-       - `geoadmin:variant`: query for assets with this specific variant
-     example:
-       type:
-         eq: image/tiff
-     type: object
+        - `geoadmin:variant`: query for assets with this specific variant
+      example:
+        type:
+          eq: image/tiff
+      type: object
     assetQueryFilter:
-     description: Allows users to query asset properties for specific values
-     properties:
-       assetQuery:
-         $ref: "#/components/schemas/assetQuery"
-     type: object
+      description: Allows users to query asset properties for specific values
+      properties:
+        assetQuery:
+          $ref: "#/components/schemas/assetQuery"
+      type: object
     assetQueryProp:
-     anyOf:
-       - description: >-
-           If the object doesn't contain any of the operators, it is equivalent to using the
-           equals operator
-       - description: Match using an operator
-         properties:
-           contains:
-             description: >-
-               Find items with a property that contains the specified
-               literal string, e.g., matches ".*<STRING>.*".
-               A case-insensitive comparison must be performed.
-             type: string
-           endsWith:
-             description: >-
-               Find items with a property that ends with the specified string. A case-insensitive
-               comparison must be performed.
-             type: string
-           eq:
-             description: >-
-               Find items with a property that is equal to the specified value. For strings, a
-               case-insensitive comparison must be performed.
-             nullable: true
-             oneOf:
-               - type: string
-               - type: number
-               - type: boolean
-           in:
-             description: >-
-               Find items with a property that equals at least one entry in the specified array.
-               A case-insensitive comparison must be performed.
-             items:
-               oneOf:
-                 - type: string
-                 - type: number
-             type: array
-           startsWith:
-             description: >-
-               Find items with a property that begins with the specified string. A case-insensitive
-               comparison must be performed.
-             type: string
-         type: object
-     description: Apply query operations to a specific property
+      anyOf:
+        - description: >-
+            If the object doesn't contain any of the operators, it is equivalent to using the
+            equals operator
+        - description: Match using an operator
+          properties:
+            contains:
+              description: >-
+                Find items with a property that contains the specified
+                literal string, e.g., matches ".*<STRING>.*".
+                A case-insensitive comparison must be performed.
+              type: string
+            endsWith:
+              description: >-
+                Find items with a property that ends with the specified string. A case-insensitive
+                comparison must be performed.
+              type: string
+            eq:
+              description: >-
+                Find items with a property that is equal to the specified value. For strings, a
+                case-insensitive comparison must be performed.
+              nullable: true
+              oneOf:
+                - type: string
+                - type: number
+                - type: boolean
+            in:
+              description: >-
+                Find items with a property that equals at least one entry in the specified array.
+                A case-insensitive comparison must be performed.
+              items:
+                oneOf:
+                  - type: string
+                  - type: number
+              type: array
+            startsWith:
+              description: >-
+                Find items with a property that begins with the specified string. A case-insensitive
+                comparison must be performed.
+              type: string
+          type: object
+      description: Apply query operations to a specific property
     assetBase:
       title: Asset
       description: The `property name` defines the ID of the Asset.
@@ -98,7 +98,7 @@ components:
         file:checksum:
           $ref: "#/components/schemas/checksumMultihashReadOnly"
         roles:
-          $ref: '#/components/schemas/roles'
+          $ref: "#/components/schemas/roles"
         "geoadmin:variant":
           $ref: "#/components/schemas/geoadminVariant"
         "geoadmin:lang":
@@ -371,6 +371,10 @@ components:
                   title: Licence for the free geodata of the Federal Office of Topography swisstopo
                 - href: https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4c8c7c58-61c7-4a61-8e7a-6ffb95d183df
                   rel: describedby
+                - href: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/sortables
+                  rel: http://www.opengis.net/def/rel/ogc/1.0/sortables
+                  type: application/schema+json
+                  title: Sortable fields for the sortby parameter
     collections:
       properties:
         collections:
@@ -408,8 +412,8 @@ components:
       type: object
       example:
         collections:
-        - ch.swisstopo.swisstlmregio
-        - ch.bfe.energieschweiz
+          - ch.swisstopo.swisstlmregio
+          - ch.bfe.energieschweiz
     confClasses:
       properties:
         conformsTo:
@@ -517,7 +521,7 @@ components:
           type: string
           example: N9hTgbJmEuiMnvb+W9Y1Y+fhFoZh92NYG13Z3K19PBZOZ4hbn7F7i3yYpjJgM7bIFmDH2BnE81U=
       xml:
-        name: 'Error'
+        name: "Error"
       required:
         - Code
         - Message
@@ -656,19 +660,19 @@ components:
       type: object
       example:
         ids:
-        - swisstlmregio-2019
-        - swisstlmregio-2020
+          - swisstlmregio-2019
+          - swisstlmregio-2020
     intersectsFilter:
       description: Only returns items that intersect with the provided polygon.
       properties:
         intersects:
           oneOf:
-          - $ref: "#/components/schemas/geoJsonPoint"
-          - $ref: "#/components/schemas/geoJsonLineString"
-          - $ref: "#/components/schemas/geoJsonPolygon"
-          - $ref: "#/components/schemas/geoJsonMultiPoint"
-          - $ref: "#/components/schemas/geoJsonMultiLineString"
-          - $ref: "#/components/schemas/geoJsonMultiPolygon"
+            - $ref: "#/components/schemas/geoJsonPoint"
+            - $ref: "#/components/schemas/geoJsonLineString"
+            - $ref: "#/components/schemas/geoJsonPolygon"
+            - $ref: "#/components/schemas/geoJsonMultiPoint"
+            - $ref: "#/components/schemas/geoJsonMultiLineString"
+            - $ref: "#/components/schemas/geoJsonMultiPolygon"
       type: object
       example:
         intersects:
@@ -954,8 +958,7 @@ components:
             For type "Point", the "coordinates" member is a single position.
             The coordinate reference system of the values is WGS84
             longitude/latitude (http://www.opengis.net/def/crs/OGC/1.3/CRS84).
-          example:
-            [7.0906823, 45.9160584]
+          example: [7.0906823, 45.9160584]
           type: array
           minItems: 2
           items:
@@ -978,9 +981,7 @@ components:
             The coordinate reference system of the values is WGS84
             longitude/latitude (http://www.opengis.net/def/crs/OGC/1.3/CRS84).
           example:
-            - [
-              [7.0906823, 45.9160584], [7.1035698, 45.9160977]
-            ]
+            - [[7.0906823, 45.9160584], [7.1035698, 45.9160977]]
           type: array
           minItems: 2
           items:
@@ -1012,8 +1013,8 @@ components:
                 [7.1035698, 45.9160977],
                 [7.1035146, 45.925093],
                 [7.0906249, 45.9250537],
-                [7.0906823, 45.9160584]
-              ]
+                [7.0906823, 45.9160584],
+              ],
             ]
           type: array
           items:
@@ -1045,7 +1046,7 @@ components:
             [
               [7.0906823, 45.9160584],
               [7.1035698, 45.9160977],
-              [7.1035146, 45.925093]
+              [7.1035146, 45.925093],
             ]
           type: array
           items:
@@ -1072,8 +1073,8 @@ components:
             longitude/latitude (http://www.opengis.net/def/crs/OGC/1.3/CRS84).
           example:
             [
-                [[7.0906823, 45.9160584], [7.1035698, 45.9160977]],
-                [[7.1035146, 45.925093], [7.0906249, 45.9250537]]
+              [[7.0906823, 45.9160584], [7.1035698, 45.9160977]],
+              [[7.1035146, 45.925093], [7.0906249, 45.9250537]],
             ]
           type: array
           items:
@@ -1109,8 +1110,8 @@ components:
                   [7.1035698, 45.9160977],
                   [7.1035146, 45.925093],
                   [7.0906249, 45.9250537],
-                  [7.0906823, 45.9160584]
-                ]
+                  [7.0906823, 45.9160584],
+                ],
               ],
               [
                 [
@@ -1118,9 +1119,9 @@ components:
                   [8.5944806, 45.7217417],
                   [8.5946699, 45.7307358],
                   [8.581827, 45.7308676],
-                  [8.5816399, 45.7218735]
-                ]
-              ]
+                  [8.5816399, 45.7218735],
+                ],
+              ],
             ]
           type: array
           items:
@@ -1133,35 +1134,39 @@ components:
                 minItems: 2
                 items:
                   type: number
-    itemProperties:
-      title: Properties
-      description: >-
-        Provides the core metadata fields plus extensions
-
-
-        The item's data timing information can be specified either with
-
-        * One datetime value in the field `datetime`
-
-        * A datetime range with a `start_datetime` and an `end_datetime`
-
-
-        One of the two is required
+    itemPropertiesCore:
+      title: Core Properties
+      description: Core STAC metadata fields for Items
       properties:
         created:
           $ref: "#/components/schemas/created"
+        updated:
+          $ref: "#/components/schemas/updated"
         datetime:
           $ref: "#/components/schemas/datetime"
         start_datetime:
           $ref: "#/components/schemas/datetime"
         end_datetime:
           $ref: "#/components/schemas/datetime"
-        expires:
-          $ref: "#/components/schemas/datetime"
-        updated:
-          $ref: "#/components/schemas/updated"
         title:
           $ref: "#/components/schemas/featureTitle"
+      required:
+        - created
+        - updated
+
+    itemPropertiesTimestamps:
+      title: Timestamps Extension
+      description: >-
+        Properties from the [STAC Timestamps extension](https://github.com/stac-extensions/timestamps)
+      properties:
+        expires:
+          $ref: "#/components/schemas/datetime"
+
+    itemPropertiesForecast:
+      title: Forecast Extension
+      description: >-
+        Properties from the [STAC Forecast extension](https://github.com/stac-extensions/forecast)
+      properties:
         forecast:reference_datetime:
           $ref: "#/components/schemas/datetime"
         forecast:horizon:
@@ -1173,9 +1178,47 @@ components:
         forecast:perturbed:
           $ref: "#/components/schemas/forecast_perturbed"
       required:
-        - created
-        - updated
+        - forecast:reference_datetime
+
+    itemPropertiesCF:
+      title: CF Extension
+      description: >-
+        Properties from the [STAC CF extension](https://github.com/stac-extensions/cf.
+      properties:
+        cf:standard_name:
+          $ref: "#/components/schemas/cf_standard_name"
+        unit:
+          $ref: "#/components/schemas/unit"
+
+    itemProperties:
+      title: Properties
+      description: |-
+        Provides the core metadata fields for a feature together with additional
+        fields from the declared STAC extensions.
+
+
+        An feature's temporal information is expressed either as a single point
+        in time through `datetime`, or as a range through `start_datetime`
+        and `end_datetime` (in which case `datetime` is `null`). One of these
+        two forms is required.
+
+
+        STAC extensions:
+
+        * Every feature carries the mandatory core properties.
+        * To use an extension's additional fields, list that extension in the
+          `stac_extensions` array.
+        * Declaring an extension may make some of its properties required.
+          For example, the
+          [Forecast extension](`https://github.com/stac-extensions/forecast`)
+          requires `forecast:reference_datetime`.
+
       type: object
+      anyOf:
+        - $ref: "#/components/schemas/itemPropertiesCore"
+        - $ref: "#/components/schemas/itemPropertiesTimestamps"
+        - $ref: "#/components/schemas/itemPropertiesForecast"
+        - $ref: "#/components/schemas/itemPropertiesCF"
     itemType:
       title: type
       description: The GeoJSON type
@@ -1547,6 +1590,10 @@ components:
           lte: "2021-01-01T00:00:00.000Z"
         updated:
           gte: "2020-01-01T00:00:00.000Z"
+        cf:standard_name:
+          eq: air_temperature
+        unit:
+          neq: K
       type: object
     queryFilter:
       description: Allows users to query properties for specific values
@@ -1585,11 +1632,25 @@ components:
           $ref: "#/components/schemas/forecast_perturbed"
     forecast_perturbed:
       description: >-
-            Denotes whether the data corresponds to the control run (`false`) or
-            perturbed runs (`true`). The property needs to be specified in both
-            cases as no default value is specified and as such the meaning is "unknown"
-            in case it's missing.
+        Denotes whether the data corresponds to the control run (`false`) or
+        perturbed runs (`true`). The property needs to be specified in both
+        cases as no default value is specified and as such the meaning is "unknown"
+        in case it's missing.
       type: boolean
+      nullable: true
+    cf_standard_name:
+      description: >-
+        Corresponds to the CF Standard Name from the
+        [CF Standard Name Table](https://cfconventions.org/Data/cf-standard-names/current/build/cf-standard-name-table.html).
+      example: air_temperature
+      type: string
+      nullable: true
+    unit:
+      description: >-
+        Corresponds to the
+        [CF units](https://cfconventions.org/cf-conventions/cf-conventions.html#units).
+      example: K
+      type: string
       nullable: true
     queryProp:
       anyOf:
@@ -1667,7 +1728,7 @@ components:
           type: object
       description: >-
         Apply query operations to a specific property. The following properties
-        are currently supported: `created`, `updated`, `title`.
+        are currently supported: `created`, `updated`, `title`, `cf:standard_name`, `unit`.
     roles:
       type: array
       items:
@@ -1675,6 +1736,126 @@ components:
       description: Purposes of the asset
       example:
         - thumbnail
+    sortby:
+      type: array
+      description: >-
+        An array of objects containing a property name and sort direction.
+      items:
+        type: object
+        required:
+          - field
+        properties:
+          field:
+            type: string
+          direction:
+            type: string
+            default: asc
+            enum:
+              - asc
+              - desc
+      example:
+        - field: properties.created
+          direction: asc
+        - field: collection
+          direction: desc
+    sortbyFilter:
+      description: Sort the results by the specified fields.
+      properties:
+        sortby:
+          $ref: "#/components/schemas/sortby"
+      type: object
+    sortables:
+      title: Sortables
+      description: >-
+        A JSON Schema describing the fields that can be used with the `sortby`
+        parameter.
+      type: object
+      properties:
+        $schema:
+          type: string
+          format: url
+          enum:
+            - https://json-schema.org/draft/2020-12/schema
+          example: https://json-schema.org/draft/2020-12/schema
+        $id:
+          type: string
+          format: url
+          example: https://data.geo.admin.ch/api/stac/v1/sortables
+        title:
+          type: string
+          example: Sortables
+        type:
+          type: string
+          enum:
+            - object
+          example: object
+        properties:
+          type: object
+          properties:
+            id:
+              type: object
+              properties:
+                type:
+                  type: string
+                  example: string
+            collection:
+              type: object
+              properties:
+                type:
+                  type: string
+                  example: string
+            properties.datetime:
+              type: object
+              properties:
+                type:
+                  type: string
+                  example: string
+                format:
+                  type: string
+                  example: date-time
+            properties.title:
+              type: object
+              properties:
+                type:
+                  type: string
+                  example: string
+            properties.created:
+              type: object
+              properties:
+                type:
+                  type: string
+                  example: string
+                format:
+                  type: string
+                  example: date-time
+            properties.updated:
+              type: object
+              properties:
+                type:
+                  type: string
+                  example: string
+                format:
+                  type: string
+                  example: date-time
+          additionalProperties: false
+        additionalProperties:
+          description: >-
+            If `additionalProperties` is not included, any property name is valid
+            in a sorting expression on the collection that is evaluated by the
+            server and the property reference SHALL evaluate to `null`, if the
+            property does not exist for a resource.
+
+
+            If `additionalProperties` is set to `false`, property references that
+            are not explicitly declared in the sortables schema SHALL result in a
+            400 response.
+          type: boolean
+          example: false
+      required:
+        - $schema
+        - $id
+        - type
+        - properties
     searchBody:
       allOf:
         #        - $ref: "#/components/schemas/assetQueryFilter"
@@ -1685,6 +1866,7 @@ components:
         - $ref: "#/components/schemas/collectionsFilter"
         - $ref: "#/components/schemas/idsFilter"
         - $ref: "#/components/schemas/limitFilter"
+        - $ref: "#/components/schemas/sortbyFilter"
         - $ref: "#/components/schemas/forecast_reference_datetimeFilter"
         - $ref: "#/components/schemas/forecast_horizonFilter"
         - $ref: "#/components/schemas/forecast_durationFilter"
@@ -1701,8 +1883,21 @@ components:
       type: array
       items:
         type: string
-      description: List of relevant extensions for an object
+        enum:
+          - https://stac-extensions.github.io/timestamps/v1.1.0/schema.json
+          - https://stac-extensions.github.io/forecast/v0.2.0/schema.json
+      description: >-
+        List of STAC extensions used by this feature. Properties that are not part of
+        the default feature properties (`datetime`, `start_datetime`, `end_datetime`, `title`,
+        `created`, `updated`) must be covered by one of the extensions listed here, otherwise the
+        request is rejected.
+
+
+        Additionally, when an extension is listed here, certain properties required by that
+        extension must be present in the `properties` field. For example, when using the Forecast
+        extension, the `forecast:reference_datetime` property is required.
       example:
+        - https://stac-extensions.github.io/timestamps/v1.1.0/schema.json
         - https://stac-extensions.github.io/forecast/v0.2.0/schema.json
     timeStamp:
       description: This property indicates the time and date when the response was generated.

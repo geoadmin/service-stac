@@ -1,0 +1,54 @@
+{% load i18n %}
+<h3>{% blocktranslate with filter_title=title %} By {{ filter_title }} {% endblocktranslate %}</h3>
+<ul class="stac-extensions-enabled-filter">
+{% for choice in choices %}
+    <li>
+        <label>
+            <input
+                type="checkbox"
+                name="{{ spec.parameter_name }}"
+                value="{{ choice.value }}"
+                {% if choice.selected %}checked{% endif %}
+            >
+            {{ choice.display }}
+        </label>
+    </li>
+{% endfor %}
+</ul>
+<script>
+(function() {
+    var paramName = '{{ spec.parameter_name|escapejs }}';
+    var ul = document.currentScript.previousElementSibling;
+    var inputs = ul.querySelectorAll('input[type="checkbox"]');
+
+    function updateUrl() {
+        var url = new URL(window.location.href);
+        var params = url.searchParams;
+
+        // Remove all existing instances of our parameter
+        params.delete(paramName);
+
+        var checkedValues = [];
+        inputs.forEach(function(input) {
+            if (input.checked) {
+                checkedValues.push(input.value);
+            }
+        });
+
+        // If "None" is selected, deselect all others and only keep "None"
+        if (checkedValues.indexOf('none') !== -1) {
+            checkedValues = ['none'];
+        }
+
+        checkedValues.forEach(function(val) {
+            params.append(paramName, val);
+        });
+
+        window.location.href = url.toString();
+    }
+
+    inputs.forEach(function(input) {
+        input.addEventListener('change', updateUrl);
+    });
+})();
+</script>

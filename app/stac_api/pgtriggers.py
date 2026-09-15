@@ -23,32 +23,35 @@ def auto_variables_triggers(name, *fields):
     class AutoVariableTrigger(pgtrigger.Trigger):
         when = pgtrigger.Before
 
-        def get_func(self, model):
+        def __init__(self, update_etag=True, update_timestamp=False, **kwargs):
+            func = ''
+            if update_etag:
+                func += 'NEW.etag = gen_random_uuid();'
+            if update_timestamp:
+                func += 'NEW.updated = now();'
+            func += '''
+            RAISE INFO '%: updated % where id=%', TG_NAME, TG_TABLE_NAME, NEW.id;
+            RETURN NEW;
+            '''
             # We deindent to avoid spurious DB migration caused by whitespace
             # changes. This could be made a little nicer once PEP-822 is
             # implemented.
-            epilogue = textwrap.dedent(
-                '''
-            RAISE INFO 'Updated auto fields of %.id=% due to table updates.', TG_TABLE_NAME, NEW.id;
-            RETURN NEW;
-            '''
-            )
-            return super().get_func(model) + epilogue
-
-    etag_func = 'NEW.etag = gen_random_uuid();'
-    timestamp_func = 'NEW.updated = now();'
+            func = textwrap.dedent(func)
+            super().__init__(func=func, **kwargs)
 
     triggers = [
         AutoVariableTrigger(
             name=f"add_{name}_auto_variables_trigger",
             operation=pgtrigger.Insert,
-            func=(etag_func + timestamp_func),
+            update_timestamp=True,
+            update_etag=True,
         ),
         AutoVariableTrigger(
             name=f"update_{name}_etag_trigger",
             operation=pgtrigger.Update,
             condition=pgtrigger.AnyChange(),
-            func=etag_func,
+            update_etag=True,
+            update_timestamp=False,
         )
     ]
     if fields:
@@ -57,7 +60,8 @@ def auto_variables_triggers(name, *fields):
                 name=f"update_{name}_timestamp_trigger",
                 operation=pgtrigger.Update,
                 condition=pgtrigger.AnyChange(*fields),
-                func=timestamp_func,
+                update_timestamp=True,
+                update_etag=False,
             )
         )
     return triggers
@@ -92,8 +96,8 @@ def child_triggers(parent_name, child_name, triggering_field='updated'):
         {set_expression}
     WHERE id = child.{parent_name}_id;
 
-    RAISE INFO 'Parent table {parent_name}.id=% auto fields updated due to child {child_name}.id=% updates.',
-        child.{parent_name}_id, child.id;
+    RAISE INFO '%: updated {parent_name}.id=% due to {child_name}.id=%',
+        TG_NAME, child.{parent_name}_id, child.id;
 
     RETURN child;
     """
@@ -102,17 +106,14 @@ def child_triggers(parent_name, child_name, triggering_field='updated'):
         when = pgtrigger.After
 
         def __init__(self, update_timestamp=False, **kwargs):
-            forbidden_kwargs = ('func', 'declare')
-            for k in forbidden_kwargs:
-                if k in kwargs:
-                    raise ValueError(f'"{k}" is not a supported kwargs: {kwargs[k]}')
-
             set_expression = 'etag = public.gen_random_uuid()'
             if update_timestamp:
                 set_expression += ', updated = now()'
 
-            func = textwrap.dedent(func_template).format(
-                parent_name=parent_name, child_name=child_name, set_expression=set_expression
+            func = textwrap.dedent(
+                func_template.format(
+                    parent_name=parent_name, child_name=child_name, set_expression=set_expression
+                )
             )
             child_type = f'stac_api_{child_name}%ROWTYPE'
             super().__init__(func=func, declare=[('child', child_type)], **kwargs)

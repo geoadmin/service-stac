@@ -18,6 +18,7 @@ from stac_api.pgtriggers import generates_collection_asset_triggers
 from stac_api.pgtriggers import generates_collection_triggers
 from stac_api.pgtriggers import generates_summary_count_triggers
 from stac_api.utils import get_collection_asset_path
+from stac_api.validators import StacExtension
 from stac_api.validators import validate_cache_control_header
 from stac_api.validators import validate_name
 
@@ -103,6 +104,20 @@ class Collection(models.Model):
             'Cache-Control header value to use for this collection. When set it override the '
             'default cache control header value for all API call related to the collection as well '
             'as for the data download call.'
+        )
+    )
+
+    # This field is for internal/admin use only, it is not exposed through the STAC API and
+    # can only be set via the Django admin page. It defines which STAC extensions are allowed to
+    # be used by the Items in this Collection.
+    stac_extensions_enabled = ArrayField(
+        models.CharField(max_length=255, choices=StacExtension.choices),
+        blank=True,
+        default=list,
+        help_text=_(
+            "STAC extensions that are enabled for the Items in this Collection. It defines which "
+            "STAC extensions are allowed to be used by the Items in this Collection. "
+            "This field is for internal/admin use only, it is not exposed through the STAC API."
         )
     )
 

@@ -171,15 +171,15 @@ uninstall the version from apt and install it manually like this:
 pip install --user pipenv
 ```
 
-The other services that are used (Postgres with PostGIS extension for metadata and [MinIO](https://www.min.io) as local S3 replacement) are wrapped in a docker compose.
+The other services that are used (Postgres with PostGIS extension for metadata and [Moto Server](https://docs.getmoto.org/en/latest/) as local S3 replacement) are wrapped in a docker compose.
 
-Starting postgres and MinIO is done with a simple
+Starting postgres and Moto Server is done with a simple
 
 ```bash
 docker compose up
 ```
 
-in the source root folder (this is automatically done if you `make setup`). Make sure to run `make setup` before to ensure the necessary folders `.volumes/*` are in place. These folders are mounted in the services and allow data persistency over restarts of the containers.
+in the source root folder (this is automatically done if you `make setup`). Make sure to run `make setup` before to ensure the necessary folder `.volumes/postgresql` is in place. This folder is mounted in the postgres container and allows data persistency over restarts of the container. Note that there's no data persistancy for the Moto Server container! Instead, the required S3 buckets are (re-)created on every `docker compose up` by the `moto-init` service, which waits for `moto-server` to become healthy and then exits once the buckets exist.
 
 ### Using Postgres on local host
 
@@ -201,7 +201,7 @@ These steps will ensure you have everything needed to start working locally.
 
 - You can create and adapt your local environment variable in `.env.local`. This files is not under source control and if it doesn't exists during `make setup` it will be created from `.env.default`.
 
-- Install and prepare all the dependencies (pip packages, minio, postgresql, .env.local, ...) by running
+- Install and prepare all the dependencies (pip packages, moto-server, postgresql, .env.local, ...) by running
 
   ```bash
   make setup
@@ -209,10 +209,10 @@ These steps will ensure you have everything needed to start working locally.
 
 - The command above has generated the following for you
   - python virtual environment with all dependencies (inclusive dev dependencies), you can locate the `venv` with `pipenv --venv`
-  - started a `minio` docker container as S3 storage for the assets
+  - started a `moto-server` docker container as S3 storage for the assets
   - started a PostGIS DB docker container
 
-- You manually stop/start the minio and PostGIS DB with (see also [Setting up the local database](#setting-up-the-local-database))
+- You manually stop/start the moto-server and PostGIS DB with (see also [Setting up the local database](#setting-up-the-local-database))
 
   ```bash
   docker compose down
@@ -238,7 +238,8 @@ These steps will ensure you have everything needed to start working locally.
 
 The service use two other services to run, Postgres with a PostGIS extension and S3.
 For local development, we recommend using the services given through the [docker-compose.yml](docker-compose.yml) file, which will
-instantiate a Postgres container and a [MinIO](https://www.min.io/) container which act as a local S3 replacement.
+instantiate a Postgres container and a [moto-server](https://docs.getmoto.org/en/latest/) container which act as a local S3 replacement.
+A one-shot `moto-init` container waits for `moto-server` to be healthy and creates the S3 buckets on it before exiting.
 
 If you used the ```make setup``` command during the local environment creation, those two services
 should be already be up. You can check with
@@ -251,16 +252,12 @@ which should give you a result like this :
 
   ```text
   CONTAINER ID   IMAGE                  COMMAND                   CREATED        STATUS                      PORTS                     NAMES
-  a63582388800   minio/mc               "/bin/sh -c '\n  set …"   39 hours ago   Exited (0) 40 seconds ago                             service-stac_s3-client_1
-  33deededf690   minio/minio            "/usr/bin/docker-ent…"    39 hours ago   Up 41 seconds               0.0.0.0:9090->9000/tcp    service-stac_s3_1
-  d158be863ac1   kartoza/postgis:12.0   "/bin/sh -c /docker-…"    39 hours ago   Up 41 seconds               0.0.0.0:15432->5432/tcp   service-stac_db_1
+  72bfba256e11   motoserver/moto        "/usr/local/bin/moto…"    39 minutes ago Up 18 minutes (healthy)     0.0.0.0:9000->5000/tcp    moto-server
+  d158be863ac1   kartoza/postgis:18-3.6 "/bin/sh -c /docker-…"    39 hours ago   Up 41 seconds               0.0.0.0:15432->5432/tcp   service-stac_db_1
   ```
 
-As you can see, MinIO is using two containers, one is the local S3 server, the other is a S3 client used to set the
-download policy of the bucket which allows anonymous downloads, and exits once its job is done. You should also have a postGIS container.
-
-`make setup` also creates some necessary directories : `.volumes/minio` and `.volumes/postgresql`, which are mounted to the
-corresponding containers in order to allow data persistency.
+`make setup` also creates the directory `.volumes/postgresql`, which is mounted to the
+Postgres container in order to allow data persistency.
 
 Another way to start these containers (if, for example, they stopped) is with a simple
 

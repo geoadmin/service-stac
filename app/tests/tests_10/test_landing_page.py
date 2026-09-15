@@ -31,6 +31,21 @@ class IndexTestCase(StacBaseTestCase):
                 msg="missing required attribute in the answer['links'] array"
             )
 
+    def test_landing_page_sortables_link(self):
+        response = self.client.get(f"/{STAC_BASE_V}/")
+        self.assertStatusCode(200, response)
+        expected_link = {
+            "rel": "http://www.opengis.net/def/rel/ogc/1.0/sortables",
+            "href": f"http://testserver/{STAC_BASE_V}/sortables",
+            "type": "application/schema+json",
+            "title": "Sortable fields for the sortby parameter",
+        }
+        sortables_links = [
+            link for link in response.json()['links']
+            if link['rel'] == "http://www.opengis.net/def/rel/ogc/1.0/sortables"
+        ]
+        self.assertEqual(sortables_links, [expected_link])
+
     def test_landing_page_redirect(self):
         response = self.client.get(f"/{STAC_BASE_V}")
         self.assertEqual(response.status_code, 301)

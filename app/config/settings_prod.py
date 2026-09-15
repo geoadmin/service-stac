@@ -245,7 +245,7 @@ try:
             "ACCESS_KEY_ID": env('LEGACY_AWS_ACCESS_KEY_ID'),
             "SECRET_ACCESS_KEY": env('LEGACY_AWS_SECRET_ACCESS_KEY'),
             "S3_REGION_NAME": env('LEGACY_AWS_S3_REGION_NAME', default='eu-west-1'),
-            # This is the URL where to reach the S3 service and is either minio
+            # This is the URL where to reach the S3 service and is either moto-server
             # on localhost or https://s3.<region>.amazonaws.com
             "S3_ENDPOINT_URL": env('LEGACY_AWS_S3_ENDPOINT_URL', default=None),
             # The CUSTOM_DOMAIN is used to construct the correct URL when displaying

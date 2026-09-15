@@ -22,6 +22,7 @@ from stac_api.models.item import ItemLink
 from stac_api.utils import fromisoformat
 from stac_api.utils import get_link
 from stac_api.utils import isoformat
+from stac_api.validators import StacExtension
 
 from tests.tests_10.base_test import STAC_BASE_V
 from tests.tests_10.base_test import StacBaseTestCase
@@ -186,6 +187,102 @@ class ItemsReadEndpointTestCase(MockS3PerClassMixin, StacBaseTestCase):
     def test_items_endpoint_non_existing_collection(self):
         response = self.client.get(f"/{STAC_BASE_V}/collections/non-existing-collection/items")
         self.assertStatusCode(404, response)
+
+    def test_sortby_id_ascending(self):
+        response = self.client.get(
+            f"/{STAC_BASE_V}/collections/{self.collection.name}/items?sortby=id"
+        )
+
+        self.assertStatusCode(200, response)
+        item_ids = [item['id'] for item in response.json()['features']]
+        self.assertEqual(item_ids, ["item-1", "item-2"])
+
+    def test_sortby_id_descending(self):
+        response = self.client.get(
+            f"/{STAC_BASE_V}/collections/{self.collection.name}/items?sortby=-id"
+        )
+        self.assertStatusCode(200, response)
+        item_ids = [item['id'] for item in response.json()['features']]
+        self.assertEqual(item_ids, ["item-2", "item-1"])
+
+    def test_sortby_properties_datetime(self):
+
+        self.factory.create_item_sample(
+            self.collection,
+            name='item-dt-1',
+            properties_datetime=timezone.now() + timedelta(days=2),
+            db_create=True
+        )
+        self.factory.create_item_sample(
+            self.collection,
+            name='item-dt-2',
+            properties_datetime=timezone.now() + timedelta(days=1),
+            db_create=True
+        )
+        self.factory.create_item_sample(
+            self.collection,
+            name='item-dt-3',
+            properties_datetime=timezone.now() + timedelta(days=3),
+            db_create=True
+        )
+
+        # Test ascending sort
+        response = self.client.get(
+            f"/{STAC_BASE_V}/collections/{self.collection.name}/items?sortby=properties.datetime"
+        )
+
+        self.assertStatusCode(200, response)
+        item_ids = [item['id'] for item in response.json()['features']]
+        self.assertEqual(item_ids, ['item-1', 'item-2', 'item-dt-2', 'item-dt-1', 'item-dt-3'])
+
+        # Test descending sort
+        response = self.client.get(
+            f"/{STAC_BASE_V}/collections/{self.collection.name}/items?sortby=-properties.datetime"
+        )
+        self.assertStatusCode(200, response)
+        item_ids = [item['id'] for item in response.json()['features']]
+        self.assertEqual(item_ids, ['item-dt-3', 'item-dt-1', 'item-dt-2', 'item-1', 'item-2'])
+
+    def test_sortby_multiple_fields(self):
+        tomorrow = timezone.now() + timedelta(days=1)
+        self.factory.create_item_sample(
+            self.collection,
+            name='item-multi-1',
+            properties_datetime=tomorrow,
+            properties_title='AAA',
+            db_create=True
+        )
+        self.factory.create_item_sample(
+            self.collection,
+            name='item-multi-2',
+            properties_datetime=tomorrow,
+            properties_title='BBB',
+            db_create=True
+        )
+        self.factory.create_item_sample(
+            self.collection,
+            name='item-multi-3',
+            properties_datetime=tomorrow + timedelta(days=1),
+            properties_title='CCC',
+            db_create=True
+        )
+
+        # Sort by datetime ascending, then by title descending
+        response = self.client.get((
+            f"/{STAC_BASE_V}/collections/{self.collection.name}/items?"
+            f"sortby=properties.datetime,-properties.title"
+        ))
+        self.assertStatusCode(200, response)
+        item_ids = [item['id'] for item in response.json()['features']]
+        self.assertEqual(
+            item_ids, ['item-1', 'item-2', 'item-multi-2', 'item-multi-1', 'item-multi-3']
+        )
+
+    def test_sortby_invalid_field(self):
+        response = self.client.get(
+            f"/{STAC_BASE_V}/collections/{self.collection.name}/items?sortby=expires"
+        )
+        self.assertStatusCode(400, response)
 
 
 class ItemsDatetimeQueryEndpointTestCase(StacBaseTestCase):
@@ -551,6 +648,93 @@ class ItemsCreateEndpointTestCase(StacBaseTestCase):
 
 
 @override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
+class ItemsCreateStacExtensionsEndpointTestCase(StacBaseTestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.factory = Factory()
+        cls.collection = cls.factory.create_collection_sample(
+            db_create=True,
+            stac_extensions_enabled=[StacExtension.TIMESTAMPS, StacExtension.FORECAST]
+        ).model
+
+    def setUp(self):
+        self.client = Client(headers=get_auth_headers())
+
+    def test_put_feature_with_enabled_stac_extensions_is_created(self):
+        sample = self.factory.create_item_sample(
+            self.collection,
+            properties={
+                "datetime": "2020-10-28T13:05:10Z",
+                "expires": "2099-01-01T00:00:00Z",
+                "forecast:reference_datetime": "2024-11-19T16:15:00Z",
+                "forecast:horizon": "P3DT2H",
+                "forecast:variable": "air_temperature",
+                "forecast:perturbed": False,
+            },
+            stac_extensions=[StacExtension.TIMESTAMPS, StacExtension.FORECAST]
+        )
+        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{sample["name"]}'
+        response = self.client.put(
+            path, data=sample.get_json('put'), content_type="application/json"
+        )
+        json_data = response.json()
+        self.assertStatusCode(201, response)
+        self.assertEqual(
+            json_data['stac_extensions'], [StacExtension.TIMESTAMPS, StacExtension.FORECAST]
+        )
+
+        item = Item.objects.get(collection=self.collection, name=sample["name"])
+        self.assertEqual(item.stac_extensions, [StacExtension.TIMESTAMPS, StacExtension.FORECAST])
+
+    def test_put_feature_with_unknown_stac_extension_returns_400(self):
+        sample = self.factory.create_item_sample(
+            self.collection, stac_extensions=["https://unknown-extension.com/schema.json"]
+        )
+        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{sample["name"]}'
+        response = self.client.put(
+            path, data=sample.get_json('put'), content_type="application/json"
+        )
+        self.assertStatusCode(400, response)
+        self.assertFalse(
+            Item.objects.filter(collection=self.collection, name=sample["name"]).exists()
+        )
+
+    def test_put_feature_with_stac_extension_not_enabled_for_collection_returns_400(self):
+        collection = self.factory.create_collection_sample(
+            db_create=True, stac_extensions_enabled=[StacExtension.TIMESTAMPS]
+        ).model
+        sample = self.factory.create_item_sample(
+            collection, stac_extensions=[StacExtension.FORECAST]
+        )
+        path = f'/{STAC_BASE_V}/collections/{collection.name}/items/{sample["name"]}'
+        response = self.client.put(
+            path, data=sample.get_json('put'), content_type="application/json"
+        )
+        self.assertStatusCode(400, response)
+        self.assertFalse(Item.objects.filter(collection=collection, name=sample["name"]).exists())
+
+    def test_put_feature_with_property_not_covered_by_declared_extensions_returns_400(self):
+        sample = self.factory.create_item_sample(
+            self.collection,
+            properties={
+                "datetime": "2020-10-28T13:05:10Z",
+                "forecast:variable": "air_temperature",
+            },
+            # forecast extension not declared, even though enabled for the collection
+            stac_extensions=[StacExtension.TIMESTAMPS]
+        )
+        path = f'/{STAC_BASE_V}/collections/{self.collection.name}/items/{sample["name"]}'
+        response = self.client.put(
+            path, data=sample.get_json('put'), content_type="application/json"
+        )
+        self.assertStatusCode(400, response)
+        self.assertFalse(
+            Item.objects.filter(collection=self.collection, name=sample["name"]).exists()
+        )
+
+
+@override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
 class ItemsUpdateEndpointTestCase(StacBaseTestCase):
 
     @classmethod
@@ -726,8 +910,14 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
         self.assertIn("title", json_data['properties'].keys())
 
     def test_item_endpoint_patch_remove_all_optional_properties(self):
+        self.collection.model.stac_extensions_enabled = [
+            StacExtension.TIMESTAMPS, StacExtension.FORECAST, StacExtension.CF
+        ]
+        self.collection.model.save()
+
         # First add all properties
         data = {
+            "stac_extensions": [StacExtension.TIMESTAMPS, StacExtension.FORECAST, StacExtension.CF],
             "properties": {
                 "title": "patched title",
                 "expires": "2060-02-12T23:20:50Z",
@@ -735,7 +925,9 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
                 "forecast:horizon": "P3DT06H00M00S",
                 "forecast:duration": "P3DT06H00M00S",
                 "forecast:variable": "air_temperature",
-                "forecast:perturbed": True
+                "forecast:perturbed": True,
+                "cf:standard_name": "air_temperature",
+                "unit": "K",
             },
         }
         path = f'/{STAC_BASE_V}/collections/{self.collection["name"]}/items/{self.item["name"]}'
@@ -755,7 +947,9 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
                 "forecast:horizon": None,
                 "forecast:duration": None,
                 "forecast:variable": None,
-                "forecast:perturbed": None
+                "forecast:perturbed": None,
+                "cf:standard_name": None,
+                "unit": None,
             },
         }
         path = f'/{STAC_BASE_V}/collections/{self.collection["name"]}/items/{self.item["name"]}'
@@ -770,6 +964,8 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
         self.assertNotIn("forecast:duration", json_data['properties'].keys())
         self.assertNotIn("forecast:variable", json_data['properties'].keys())
         self.assertNotIn("forecast:perturbed", json_data['properties'].keys())
+        self.assertNotIn("cf:standard_name", json_data['properties'].keys())
+        self.assertNotIn("unit", json_data['properties'].keys())
 
         # Check the data by reading it back
         response = self.client.get(path)
@@ -783,6 +979,8 @@ class ItemsUpdateEndpointTestCase(StacBaseTestCase):
         self.assertNotIn("forecast:duration", json_data['properties'].keys())
         self.assertNotIn("forecast:variable", json_data['properties'].keys())
         self.assertNotIn("forecast:perturbed", json_data['properties'].keys())
+        self.assertNotIn("cf:standard_name", json_data['properties'].keys())
+        self.assertNotIn("unit", json_data['properties'].keys())
 
     def test_item_endpoint_patch_remove_properties_title(self):
         path = f'/{STAC_BASE_V}/collections/{self.collection["name"]}/items/{self.item["name"]}'
@@ -1175,6 +1373,120 @@ class ItemsBulkCreateEndpointTestCase(StacBaseTransactionTestCase):
         self.assertStatusCode(400, response)
         self.assertEqual(response_json["code"], 400)
         self.assertEqual(response_json["description"], "No header parameter 'Idempotency-Key'")
+
+    def test_items_endpoint_post_accepts_enabled_stac_extensions(self):
+        self.collection.model.stac_extensions_enabled = [
+            StacExtension.TIMESTAMPS, StacExtension.FORECAST
+        ]
+        self.collection.model.save()
+
+        payload = {
+            "features": [{
+                "id": "item-1",
+                "geometry": {
+                    "type": "Point", "coordinates": [1.1, 1.2]
+                },
+                "properties": {
+                    "datetime": "2018-02-12T23:20:50Z",
+                    "expires": "2099-01-01T00:00:00Z",
+                    "forecast:reference_datetime": "2018-02-12T00:00:00Z",
+                    "forecast:variable": "air_temperature",
+                },
+                "stac_extensions": [StacExtension.TIMESTAMPS, StacExtension.FORECAST],
+            },]
+        }
+        response = self.client.post(
+            path=f'/{STAC_BASE_V}/collections/{self.collection["name"]}/items',
+            data=payload,
+            content_type="application/json",
+            headers={"Idempotency-Key": "abc-123"},
+        )
+        self.assertStatusCode(201, response)
+        item = Item.objects.get(collection=self.collection.model, name="item-1")
+        self.assertEqual(item.stac_extensions, [StacExtension.TIMESTAMPS, StacExtension.FORECAST])
+
+    def test_items_endpoint_post_returns_400_for_unknown_stac_extension(self):
+        payload = {
+            "features": [{
+                "id": "item-1",
+                "geometry": {
+                    "type": "Point", "coordinates": [1.1, 1.2]
+                },
+                "properties": {
+                    "datetime": "2018-02-12T23:20:50Z",
+                },
+                "stac_extensions": ["https://unknown-extension.com/schema.json"],
+            },]
+        }
+        response = self.client.post(
+            path=f'/{STAC_BASE_V}/collections/{self.collection["name"]}/items',
+            data=payload,
+            content_type="application/json",
+            headers={"Idempotency-Key": "abc-123"},
+        )
+        self.assertStatusCode(400, response)
+        self.assertFalse(
+            Item.objects.filter(collection=self.collection.model, name="item-1").exists()
+        )
+
+    def test_items_endpoint_post_returns_400_for_stac_extension_not_enabled(self):
+        self.collection.model.stac_extensions_enabled = [StacExtension.TIMESTAMPS]
+        self.collection.model.save()
+
+        payload = {
+            "features": [{
+                "id": "item-1",
+                "geometry": {
+                    "type": "Point", "coordinates": [1.1, 1.2]
+                },
+                "properties": {
+                    "datetime": "2018-02-12T23:20:50Z",
+                },
+                "stac_extensions": [StacExtension.FORECAST],
+            },]
+        }
+        response = self.client.post(
+            path=f'/{STAC_BASE_V}/collections/{self.collection["name"]}/items',
+            data=payload,
+            content_type="application/json",
+            headers={"Idempotency-Key": "abc-123"},
+        )
+        self.assertStatusCode(400, response)
+        self.assertFalse(
+            Item.objects.filter(collection=self.collection.model, name="item-1").exists()
+        )
+
+    def test_items_endpoint_post_returns_400_for_property_not_covered_by_extensions(self):
+        self.collection.model.stac_extensions_enabled = [
+            StacExtension.TIMESTAMPS, StacExtension.FORECAST
+        ]
+        self.collection.model.save()
+
+        payload = {
+            "features": [
+                {
+                    "id": "item-1",
+                    "geometry": {
+                        "type": "Point", "coordinates": [1.1, 1.2]
+                    },
+                    "properties": {
+                        "datetime": "2018-02-12T23:20:50Z",
+                        "forecast:variable": "air_temperature",
+                    },  # forecast extension not declared, even though enabled for the collection
+                    "stac_extensions": [StacExtension.TIMESTAMPS],
+                },
+            ]
+        }
+        response = self.client.post(
+            path=f'/{STAC_BASE_V}/collections/{self.collection["name"]}/items',
+            data=payload,
+            content_type="application/json",
+            headers={"Idempotency-Key": "abc-123"},
+        )
+        self.assertStatusCode(400, response)
+        self.assertFalse(
+            Item.objects.filter(collection=self.collection.model, name="item-1").exists()
+        )
 
 
 @override_settings(FEATURE_AUTH_ENABLE_APIGW=True)
