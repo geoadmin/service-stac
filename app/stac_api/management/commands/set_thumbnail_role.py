@@ -17,14 +17,31 @@ class Command(CustomBaseCommand):
 
     def add_arguments(self, parser: CommandParser) -> None:
         super().add_arguments(parser)
+        parser.add_argument(
+            '-c',
+            '--collections',
+            type=str,
+            nargs='+',
+            default=[
+                'ch.swisstopo.spezialbefliegungen',
+                'ch.swisstopo.swisseo_ndvi_diff_v100',
+                'ch.swisstopo.swisseo_ndvi_z_v100',
+                'ch.swisstopo.swisseo_s2-sr_v100',
+                'ch.swisstopo.swisseo_s2-sr_v200',
+                'ch.swisstopo.swisseo_vhi_v100',
+            ],
+            help="Only update assets belonging to these collections (space separated list). "
+            "Defaults to a predefined set of collections."
+        )
 
     def handle(self, *args, **options):
         self.print_success('running command to set asset thumbnail roles')
         start = time.monotonic()
         counter = 0
+        collections = options['collections']
 
         for asset in Asset.objects.filter(Q(name='thumbnail.png') | Q(name='thumbnail.jpg')).filter(
-            roles=None
+            roles=None, item__collection__name__in=collections
         ).iterator(chunk_size=1000):
             asset.roles = ['thumbnail']
             asset.save()

@@ -15,7 +15,16 @@ class SetThumbnailRoleTestCase(MockS3PerTestMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.factory = Factory()
-        cls.collection = cls.factory.create_collection_sample().model
+        # This collection's name is part of the command's default collection list.
+        cls.collection = cls.factory.create_collection_sample(
+            name='ch.swisstopo.spezialbefliegungen'
+        ).model
+        # This collection's name is NOT part of the command's default collection list, so it
+        # is used to verify that assets outside of the (default or given) collections list are
+        # left untouched.
+        cls.other_collection = cls.factory.create_collection_sample(
+            name='ch.swisstopo.not-in-default-list'
+        ).model
 
     def _call_command(self, *args, **kwargs):
         return call_command(
@@ -24,8 +33,8 @@ class SetThumbnailRoleTestCase(MockS3PerTestMixin, TestCase):
             **kwargs,
         )
 
-    def make_item(self, name):
-        item = Item(collection=self.collection, name=name)
+    def make_item(self, name, collection=None):
+        item = Item(collection=collection or self.collection, name=name)
         item.save()
         return item
 
@@ -34,6 +43,7 @@ class SetThumbnailRoleTestCase(MockS3PerTestMixin, TestCase):
 
         self.item = self.make_item('item-1')
         self.item_with_existing_role = self.make_item('item-2')
+        self.other_collection_item = self.make_item('item-3', collection=self.other_collection)
 
         # Assets without any role set, matching the thumbnail names, should be updated.
         self.thumbnail_png_no_role = Asset(item=self.item, name='thumbnail.png', roles=None)
@@ -51,12 +61,19 @@ class SetThumbnailRoleTestCase(MockS3PerTestMixin, TestCase):
             item=self.item, name='other-asset-2.tiff', roles=['data']
         )
 
+        # An otherwise matching asset that belongs to a collection outside of the default
+        # collection list, used to verify collection-based filtering.
+        self.other_collection_thumbnail_no_role = Asset(
+            item=self.other_collection_item, name='thumbnail.png', roles=None
+        )
+
         Asset.objects.bulk_create([
             self.thumbnail_png_no_role,
             self.thumbnail_jpg_no_role,
             self.thumbnail_png_with_role,
             self.other_asset_no_role,
             self.other_asset_with_role,
+            self.other_collection_thumbnail_no_role,
         ])
 
         self.stderr = StringIO()
@@ -70,8 +87,10 @@ class SetThumbnailRoleTestCase(MockS3PerTestMixin, TestCase):
     def assert_no_stderr(self):
         self.assertEqual('', self.stderr.getvalue())
 
-    def run_command(self, *args):
-        return self._call_command(*args, stdout=self.stdout, stderr=self.stderr)
+    def run_command(self, *args, **kwargs):
+        kwargs.setdefault('stdout', self.stdout)
+        kwargs.setdefault('stderr', self.stderr)
+        return self._call_command(*args, **kwargs)
 
     def test_set_thumbnail_role_updates_matching_assets_without_role(self):
         self.run_command()
@@ -111,4 +130,52 @@ class SetThumbnailRoleTestCase(MockS3PerTestMixin, TestCase):
         self.assert_stdout_patterns([
             "running command to set asset thumbnail roles",
             "successfully updated roles for 0 thumbnail assets",
+        ])
+
+    def test_set_thumbnail_role_does_not_touch_assets_outside_default_collections(self):
+        self.run_command()
+
+        self.other_collection_thumbnail_no_role.refresh_from_db()
+        self.assertIsNone(self.other_collection_thumbnail_no_role.roles)
+
+        self.assert_stdout_patterns([
+            "successfully updated roles for 2 thumbnail assets",
+        ])
+
+    def test_set_thumbnail_role_with_explicit_collections_argument(self):
+        # Only pass the collection that is NOT part of the default list, so only assets
+        # belonging to it should be updated.
+        self.run_command('--collections', self.other_collection.name)
+
+        self.other_collection_thumbnail_no_role.refresh_from_db()
+        self.thumbnail_png_no_role.refresh_from_db()
+        self.thumbnail_jpg_no_role.refresh_from_db()
+
+        self.assertEqual(['thumbnail'], self.other_collection_thumbnail_no_role.roles)
+        # Assets from the default-list collection should be untouched since it wasn't
+        # included in the explicit --collections argument.
+        self.assertIsNone(self.thumbnail_png_no_role.roles)
+        self.assertIsNone(self.thumbnail_jpg_no_role.roles)
+
+        self.assert_no_stderr()
+        self.assert_stdout_patterns([
+            "successfully updated roles for 1 thumbnail assets",
+        ])
+
+    def test_set_thumbnail_role_with_explicit_collections_keyword_argument(self):
+        # call_command also allows passing the option as a keyword argument using the list
+        # of collection names directly.
+        self.run_command(collections=[self.collection.name, self.other_collection.name])
+
+        self.thumbnail_png_no_role.refresh_from_db()
+        self.thumbnail_jpg_no_role.refresh_from_db()
+        self.other_collection_thumbnail_no_role.refresh_from_db()
+
+        self.assertEqual(['thumbnail'], self.thumbnail_png_no_role.roles)
+        self.assertEqual(['thumbnail'], self.thumbnail_jpg_no_role.roles)
+        self.assertEqual(['thumbnail'], self.other_collection_thumbnail_no_role.roles)
+
+        self.assert_no_stderr()
+        self.assert_stdout_patterns([
+            "successfully updated roles for 3 thumbnail assets",
         ])
