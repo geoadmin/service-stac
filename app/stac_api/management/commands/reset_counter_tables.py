@@ -26,6 +26,7 @@ class Command(CustomBaseCommand):
                 SELECT item.collection_id, asset.eo_gsd, COUNT(*) AS count
                 FROM stac_api_asset asset
                     INNER JOIN stac_api_item item ON asset.item_id = item.id
+                WHERE asset.eo_gsd IS NOT NULL
                 GROUP BY item.collection_id, asset.eo_gsd;
 
                 -- Fill geoadmin_lang count based on asset values.
@@ -34,6 +35,7 @@ class Command(CustomBaseCommand):
                 SELECT item.collection_id, asset.geoadmin_lang, COUNT(*) AS count
                 FROM stac_api_asset asset
                     INNER JOIN stac_api_item item ON asset.item_id = item.id
+                WHERE asset.geoadmin_lang IS NOT NULL
                 GROUP BY item.collection_id, asset.geoadmin_lang;
 
                 -- Fill geoadmin_variant count based on asset values.
@@ -42,6 +44,7 @@ class Command(CustomBaseCommand):
                 SELECT item.collection_id, asset.geoadmin_variant, COUNT(*) AS count
                 FROM stac_api_asset asset
                     INNER JOIN stac_api_item item ON asset.item_id = item.id
+                WHERE asset.geoadmin_variant IS NOT NULL
                 GROUP BY item.collection_id, asset.geoadmin_variant;
 
                 -- Fill proj_epsg count based on asset and collection asset values.
@@ -56,6 +59,7 @@ class Command(CustomBaseCommand):
                     SELECT collection_id, proj_epsg
                     FROM stac_api_collectionasset
                 ) assets
+                WHERE proj_epsg IS NOT NULL
                 GROUP BY collection_id, proj_epsg;
                 """
             )
