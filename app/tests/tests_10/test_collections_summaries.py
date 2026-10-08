@@ -1,6 +1,12 @@
 import logging
 from datetime import datetime
 
+from django.core.management import call_command
+
+from stac_api.models.collection import GeoadminLangCount
+from stac_api.models.collection import GeoadminVariantCount
+from stac_api.models.collection import GSDCount
+from stac_api.models.collection import ProjEPSGCount
 from stac_api.utils import utc_aware
 
 from tests.tests_10.base_test import StacBaseTransactionTestCase
@@ -384,3 +390,65 @@ class CollectionsSummariesTestCase(MockS3PerTestMixin, StacBaseTransactionTestCa
         self.assertListEqual(self.collection.summaries_eo_gsd, [2.0])
         self.assertListEqual(self.collection.summaries_geoadmin_variant, ['krel'])
         self.assertListEqual(self.collection.summaries_geoadmin_lang, ['rm'])
+
+    def counter_values(self, count_model):
+        return sorted(
+            count_model.objects.filter(collection=self.collection).values_list('value', 'count'),
+            key=str
+        )
+
+    def assert_counter_values(self, gsd, variant, epsg, lang):
+        self.assertListEqual(self.counter_values(GSDCount), gsd)
+        self.assertListEqual(self.counter_values(GeoadminVariantCount), variant)
+        self.assertListEqual(self.counter_values(ProjEPSGCount), epsg)
+        self.assertListEqual(self.counter_values(GeoadminLangCount), lang)
+
+    def test_counter_tables_ignore_null_values_on_asset_insert(self):
+        item = self.data_factory.create_item_sample(collection=self.collection).model
+        self.add_asset(item, None, None, None, None)
+        self.add_asset(item, None, None, None, None)
+        self.add_asset(item, 2, 'krel', 2056, 'de')
+
+        self.assert_counter_values(
+            gsd=[(2.0, 1)], variant=[('krel', 1)], epsg=[(2056, 1)], lang=[('de', 1)]
+        )
+
+    def test_counter_tables_ignore_null_values_on_collection_asset_insert(self):
+        self.add_collection_asset(None)
+        self.add_collection_asset(None)
+
+        self.assertListEqual(self.counter_values(ProjEPSGCount), [])
+
+    def test_counter_tables_ignore_null_values_on_asset_update(self):
+        item = self.data_factory.create_item_sample(collection=self.collection).model
+        asset = self.add_asset(item, None, None, None, None)
+
+        asset.eo_gsd = 2
+        asset.geoadmin_variant = 'krel'
+        asset.proj_epsg = 2056
+        asset.geoadmin_lang = 'de'
+        asset.full_clean()
+        asset.save()
+        self.assert_counter_values(
+            gsd=[(2.0, 1)], variant=[('krel', 1)], epsg=[(2056, 1)], lang=[('de', 1)]
+        )
+
+        asset.eo_gsd = None
+        asset.geoadmin_variant = None
+        asset.proj_epsg = None
+        asset.geoadmin_lang = None
+        asset.full_clean()
+        asset.save()
+        self.assert_counter_values(gsd=[], variant=[], epsg=[], lang=[])
+
+    def test_reset_counter_tables_ignores_null_values(self):
+        item = self.data_factory.create_item_sample(collection=self.collection).model
+        self.add_asset(item, None, None, None, None)
+        self.add_asset(item, 2, 'krel', 2056, 'de')
+        self.add_collection_asset(None)
+
+        call_command('reset_counter_tables')
+
+        self.assert_counter_values(
+            gsd=[(2.0, 1)], variant=[('krel', 1)], epsg=[(2056, 1)], lang=[('de', 1)]
+        )

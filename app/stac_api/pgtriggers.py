@@ -165,6 +165,11 @@ def asset_counter_trigger(count_table, value_field):
         func = f'''
         asset_instance = OLD;
 
+        -- NULL values are not part of the summaries and are not counted
+        IF asset_instance.{value_field} IS NULL THEN
+            RETURN asset_instance;
+        END IF;
+
         related_collection_id = (
             SELECT collection_id FROM stac_api_item
             WHERE id = asset_instance.item_id
@@ -201,6 +206,11 @@ def asset_counter_trigger(count_table, value_field):
         declare = [('asset_instance', 'stac_api_asset%ROWTYPE'), ('related_collection_id', 'INT')]
         func = f'''
         asset_instance = NEW;
+
+        -- NULL values are not part of the summaries and are not counted
+        IF asset_instance.{value_field} IS NULL THEN
+            RETURN asset_instance;
+        END IF;
 
         related_collection_id = (
             SELECT collection_id FROM stac_api_item
@@ -341,6 +351,11 @@ def generates_collection_asset_triggers():
         func = '''
         asset_instance = OLD;
 
+        -- NULL values are not part of the summaries and are not counted
+        IF asset_instance.proj_epsg IS NULL THEN
+            RETURN asset_instance;
+        END IF;
+
         related_collection_id = asset_instance.collection_id;
 
         -- Remove entry when count will reach 0
@@ -375,6 +390,11 @@ def generates_collection_asset_triggers():
                    ('related_collection_id', 'INT')]
         func = '''
         asset_instance = NEW;
+
+        -- NULL values are not part of the summaries and are not counted
+        IF asset_instance.proj_epsg IS NULL THEN
+            RETURN asset_instance;
+        END IF;
 
         related_collection_id = asset_instance.collection_id;
 
