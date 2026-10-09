@@ -118,7 +118,7 @@ class ItemsModelTestCase(TestCase):
             item.save()
 
     def test_item_create_model_expires_can_be_before_datetime(self):
-        today = datetime.now(UTC) + timedelta(milliseconds=100)
+        today = datetime.now(UTC) + timedelta(minutes=10)
         tomorrow = today + timedelta(days=1)
         item = Item(
             collection=self.collection,
