@@ -275,6 +275,7 @@ dockerlogin:
 .PHONY: dockerbuild-debug
 dockerbuild-debug:
 	docker build \
+		--pull \
 		--build-arg GIT_HASH="$(GIT_HASH)" \
 		--build-arg GIT_BRANCH="$(GIT_BRANCH)" \
 		--build-arg GIT_DIRTY="$(GIT_DIRTY)" \
@@ -284,6 +285,7 @@ dockerbuild-debug:
 .PHONY: dockerbuild-prod
 dockerbuild-prod:
 	docker build \
+		--pull \
 		--build-arg GIT_HASH="$(GIT_HASH)" \
 		--build-arg GIT_BRANCH="$(GIT_BRANCH)" \
 		--build-arg GIT_DIRTY="$(GIT_DIRTY)" \
