@@ -99,11 +99,9 @@ The following env variables can be used to configure OTEL
 
 ### Adding a New Instrumentation
 
-1. Use `edot-bootstrap --action=requirements` to get a list of possible instrumentation libraries
+1. Use `uv run --with elastic-opentelemetry edot-bootstrap --action=requirements` to get a list of possible instrumentation libraries
 2. Add all or the desired ones to the Pipfile.
 3. Add the initialization to [otel.py](app/helpers/otel.py) together with a feature flag
-
-Note: `edot-bootstrap` should be already installed via `infra-ansible-bgdi-dev`. If not, install it with `pipx install elastic-opentelemetry`.
 
 ### Log Correlation
 
