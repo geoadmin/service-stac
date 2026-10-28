@@ -317,13 +317,20 @@ components:
             $ref: "#/components/schemas/landingPage"
       description: >-
         The landing page provides links to the API definition (link relations `service-desc` and `service-doc`), the Conformance declaration (path `/conformance`, link relation `conformance`), and the Feature Collections (path `/collections`, link relation `data`).
-    Sortables:
+    SortablesGlobal:
       content:
         application/schema+json:
           schema:
-            $ref: "#/components/schemas/sortables"
+            $ref: "#/components/schemas/sortablesGlobal"
       description: >-
         A JSON Schema defining the properties allowed in `sortby`.
+    SortablesCollection:
+      content:
+        application/schema+json:
+          schema:
+            $ref: "#/components/schemas/sortablesCollection"
+      description: >-
+        A JSON Schema defining the properties allowed in `sortby` for items within a single collection. The `collection` property is not sortable in this context.
     NotFound:
       description: The specified resource/URI was not found
       content:
@@ -2024,7 +2031,7 @@ components:
         sortby:
           $ref: "#/components/schemas/sortby"
       type: object
-    sortables:
+    sortablesGlobal:
       title: Sortables
       description: >-
         A JSON Schema describing the fields that can be used with the `sortby` parameter.
@@ -2058,6 +2065,86 @@ components:
                   type: string
                   example: string
             collection:
+              type: object
+              properties:
+                type:
+                  type: string
+                  example: string
+            properties.datetime:
+              type: object
+              properties:
+                type:
+                  type: string
+                  example: string
+                format:
+                  type: string
+                  example: date-time
+            properties.title:
+              type: object
+              properties:
+                type:
+                  type: string
+                  example: string
+            properties.created:
+              type: object
+              properties:
+                type:
+                  type: string
+                  example: string
+                format:
+                  type: string
+                  example: date-time
+            properties.updated:
+              type: object
+              properties:
+                type:
+                  type: string
+                  example: string
+                format:
+                  type: string
+                  example: date-time
+          additionalProperties: false
+        additionalProperties:
+          description: >-
+            If `additionalProperties` is not included, any property name is valid in a sorting expression on the collection that is evaluated by the server and the property reference SHALL evaluate to `null`, if the property does not exist for a resource.
+
+
+            If `additionalProperties` is set to `false`, property references that are not explicitly declared in the sortables schema SHALL result in a 400 response.
+          type: boolean
+          example: false
+      required:
+        - $schema
+        - $id
+        - type
+        - properties
+    sortablesCollection:
+      title: Sortables
+      description: >-
+        A JSON Schema describing the fields that can be used with the `sortby` parameter for items within a single collection.
+      type: object
+      properties:
+        $schema:
+          type: string
+          format: url
+          enum:
+            - https://json-schema.org/draft/2020-12/schema
+          example: https://json-schema.org/draft/2020-12/schema
+        $id:
+          type: string
+          format: url
+          example: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/sortables
+        title:
+          type: string
+          example: Sortables
+        type:
+          type: string
+          enum:
+            - object
+          example: object
+        properties:
+          type: object
+          properties:
+            id:
               type: object
               properties:
                 type:
@@ -2543,7 +2630,7 @@ paths:
       operationId: getSortables
       responses:
         "200":
-          $ref: "#/components/responses/Sortables"
+          $ref: "#/components/responses/SortablesGlobal"
         "500":
           $ref: "#/components/responses/ServerError"
       summary: Fetch sortable fields for /search
@@ -2558,7 +2645,7 @@ paths:
         - $ref: "#/components/parameters/collectionId"
       responses:
         "200":
-          $ref: "#/components/responses/Sortables"
+          $ref: "#/components/responses/SortablesCollection"
         "404":
           $ref: "#/components/responses/NotFound"
         "500":

@@ -1764,7 +1764,7 @@ components:
         sortby:
           $ref: "#/components/schemas/sortby"
       type: object
-    sortables:
+    sortablesGlobal:
       title: Sortables
       description: >-
         A JSON Schema describing the fields that can be used with the `sortby`
@@ -1799,6 +1799,92 @@ components:
                   type: string
                   example: string
             collection:
+              type: object
+              properties:
+                type:
+                  type: string
+                  example: string
+            properties.datetime:
+              type: object
+              properties:
+                type:
+                  type: string
+                  example: string
+                format:
+                  type: string
+                  example: date-time
+            properties.title:
+              type: object
+              properties:
+                type:
+                  type: string
+                  example: string
+            properties.created:
+              type: object
+              properties:
+                type:
+                  type: string
+                  example: string
+                format:
+                  type: string
+                  example: date-time
+            properties.updated:
+              type: object
+              properties:
+                type:
+                  type: string
+                  example: string
+                format:
+                  type: string
+                  example: date-time
+          additionalProperties: false
+        additionalProperties:
+          description: >-
+            If `additionalProperties` is not included, any property name is valid
+            in a sorting expression on the collection that is evaluated by the
+            server and the property reference SHALL evaluate to `null`, if the
+            property does not exist for a resource.
+
+
+            If `additionalProperties` is set to `false`, property references that
+            are not explicitly declared in the sortables schema SHALL result in a
+            400 response.
+          type: boolean
+          example: false
+      required:
+        - $schema
+        - $id
+        - type
+        - properties
+    sortablesCollection:
+      title: Sortables
+      description: >-
+        A JSON Schema describing the fields that can be used with the `sortby`
+        parameter for items within a single collection.
+      type: object
+      properties:
+        $schema:
+          type: string
+          format: url
+          enum:
+            - https://json-schema.org/draft/2020-12/schema
+          example: https://json-schema.org/draft/2020-12/schema
+        $id:
+          type: string
+          format: url
+          example: https://data.geo.admin.ch/api/stac/v1/collections/ch.swisstopo.pixelkarte-farbe-pk50.noscale/sortables
+        title:
+          type: string
+          example: Sortables
+        type:
+          type: string
+          enum:
+            - object
+          example: object
+        properties:
+          type: object
+          properties:
+            id:
               type: object
               properties:
                 type:

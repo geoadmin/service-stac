@@ -2,6 +2,7 @@ import json
 import logging
 from datetime import UTC
 from datetime import datetime
+from typing import Any
 
 from django.conf import settings
 from django.db.models import Q
@@ -24,7 +25,9 @@ from stac_api.serializers.general import ConformancePageSerializer
 from stac_api.serializers.general import LandingPageSerializer
 from stac_api.serializers.item import ItemSerializer
 from stac_api.serializers.utils import get_relation_links
-from stac_api.utils import SORTABLE_FIELDS
+from stac_api.utils import SORTABLE_FIELDS_COLLECTION
+from stac_api.utils import SORTABLE_FIELDS_GLOBAL
+from stac_api.utils import SortableField
 from stac_api.utils import call_calculate_extent
 from stac_api.utils import harmonize_post_get_for_search
 from stac_api.utils import is_api_version_1
@@ -173,17 +176,17 @@ def recalculate_extent(request):
     return Response()
 
 
-def build_sortables_schema(request):
+def build_sortables_schema(url: str, sortable_fields: dict[str, SortableField]) -> dict[str, Any]:
     '''Build a JSON Schema describing the sortable fields for the sortby parameter.'''
     properties = {}
-    for field_name, field in SORTABLE_FIELDS.items():
+    for field_name, field in sortable_fields.items():
         prop = {"type": field.type}
         if field.format:
             prop["format"] = field.format
         properties[field_name] = prop
     return {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "$id": request.build_absolute_uri(),
+        "$id": url,
         "title": "Sortables",
         "type": "object",
         "properties": properties,
@@ -199,7 +202,8 @@ class Sortables(APIView):
 
     def get(self, request, *args, **kwargs):
         '''Return a JSON Schema describing the fields that can be used with the sortby parameter.'''
-        return Response(build_sortables_schema(request), content_type="application/schema+json")
+        data = build_sortables_schema(request.build_absolute_uri(), SORTABLE_FIELDS_GLOBAL)
+        return Response(data, content_type="application/schema+json")
 
 
 class CollectionSortables(APIView):
@@ -211,4 +215,5 @@ class CollectionSortables(APIView):
     def get(self, request, *args, **kwargs):
         '''Return a JSON Schema describing the fields that can be used with the sortby parameter.'''
         validate_collection(kwargs)
-        return Response(build_sortables_schema(request), content_type="application/schema+json")
+        data = build_sortables_schema(request.build_absolute_uri(), SORTABLE_FIELDS_COLLECTION)
+        return Response(data, content_type="application/schema+json")
