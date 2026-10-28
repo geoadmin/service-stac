@@ -224,13 +224,22 @@ components:
         link relation `conformance`), and the Feature
         Collections (path `/collections`, link relation
         `data`).
-    Sortables:
+    SortablesGlobal:
       content:
         application/schema+json:
           schema:
-            $ref: "./schemas.yaml#/components/schemas/sortables"
+            $ref: "./schemas.yaml#/components/schemas/sortablesGlobal"
       description: >-
         A JSON Schema defining the properties allowed in `sortby`.
+    SortablesCollection:
+      content:
+        application/schema+json:
+          schema:
+            $ref: "./schemas.yaml#/components/schemas/sortablesCollection"
+      description: >-
+        A JSON Schema defining the properties allowed in `sortby` for items
+        within a single collection. The `collection` property is not sortable
+        in this context.
     NotFound:
       description: The specified resource/URI was not found
       content:
