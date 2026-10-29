@@ -17,6 +17,7 @@ from django.utils import timezone
 from rest_framework.authtoken.models import Token
 
 from stac_api.models.collection import Collection
+from stac_api.models.item import Asset
 from stac_api.models.item import Item
 from stac_api.models.item import ItemLink
 from stac_api.utils import fromisoformat
@@ -1102,7 +1103,7 @@ class ItemsBulkCreateEndpointTestCase(StacBaseTransactionTestCase):
                             "description": "My description 1",
                             "type": "text/plain",
                             "href": settings.EXTERNAL_TEST_ASSET_URL,
-                            "roles": ["myrole"],
+                            "roles": ["data"],
                             "geoadmin:variant": "komb",
                             "geoadmin:lang": "de",
                             "proj:epsg": 2056,
@@ -1130,7 +1131,7 @@ class ItemsBulkCreateEndpointTestCase(StacBaseTransactionTestCase):
                             "description": "My description 2",
                             "type": "text/plain",
                             "href": settings.EXTERNAL_TEST_ASSET_URL,
-                            "roles": ["myrole"],
+                            "roles": ["data"],
                             "geoadmin:variant": "komb",
                             "geoadmin:lang": "de",
                             "proj:epsg": 2056,
@@ -1311,7 +1312,7 @@ class ItemsBulkCreateEndpointTestCase(StacBaseTransactionTestCase):
                     "description": f"My description {i}",
                     "type": "text/plain",
                     "href": settings.EXTERNAL_TEST_ASSET_URL,
-                    "roles": ["myrole"],
+                    "roles": ["data"],
                     "geoadmin:variant": "komb",
                     "geoadmin:lang": "de",
                     "proj:epsg": 2056,
@@ -1342,6 +1343,45 @@ class ItemsBulkCreateEndpointTestCase(StacBaseTransactionTestCase):
                 f"{{'features': [ErrorDetail(string='More than {max_n_items} features', "
                 f"code='invalid')]}}"
             )
+        )
+
+    def test_items_endpoint_post_returns_400_if_asset_has_invalid_role(self):
+        collection_name = self.collection["name"]
+        payload = {
+            "features": [
+                {
+                    "id": "item-with-invalid-role",
+                    "assets": {
+                        "asset-1.txt": {
+                            "type": "text/plain",
+                            "href": settings.EXTERNAL_TEST_ASSET_URL,
+                            "roles": ["illegal-role"],
+                        }
+                    },
+                    "geometry": {
+                        "type": "Point", "coordinates": [1.1, 1.2]
+                    },
+                    "properties": {
+                        "datetime": "2018-02-12T23:20:50Z",
+                    },
+                },
+            ]
+        }
+        response = self.client.post(
+            path=f'/{STAC_BASE_V}/collections/{collection_name}/items',
+            data=payload,
+            content_type="application/json",
+            headers={"Idempotency-Key": "abc-123"},
+        )
+        response_json = response.json()
+
+        self.assertStatusCode(400, response)
+        self.assertEqual(response_json["code"], 400)
+        self.assertIn('roles', response_json["description"])
+        self.assertIn('illegal-role', response_json["description"])
+        self.assertFalse(
+            Item.objects.filter(name="item-with-invalid-role").exists(),
+            msg="Item with an asset with an invalid role has been created in DB"
         )
 
     def test_items_endpoint_post_returns_400_if_no_idempotency_key(self):

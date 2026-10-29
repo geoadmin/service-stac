@@ -8,6 +8,7 @@ from django.urls import reverse
 from stac_api.admin import CollectionAdmin
 from stac_api.admin import StacExtensionsEnabledFilter
 from stac_api.models.collection import Collection
+from stac_api.models.collection import CollectionAsset
 from stac_api.models.collection import CollectionLink
 from stac_api.models.general import Provider
 from stac_api.models.item import Asset
@@ -689,6 +690,21 @@ class AdminAssetTestCase(S3TestMixin, MockS3PerTestMixin, AdminBaseTestCase):
             msg="Asset with invalid data has been added to db"
         )
 
+    def test_update_asset_with_invalid_role(self):
+
+        asset, data = self._create_asset(self.item)
+        roles_before = asset.roles
+        data["roles"] = "illegal-role"
+        response = self.client.post(reverse('admin:stac_api_asset_change', args=[asset.id]), data)
+
+        # Status code for unsuccessful update is 200, since in the admin UI
+        # is returning an error message
+        self.assertEqual(response.status_code, 200)
+        asset.refresh_from_db()
+        self.assertEqual(
+            asset.roles, roles_before, msg="Asset with invalid role has been saved to db"
+        )
+
     def test_add_remove_asset(self):
 
         asset, data = self._create_asset(self.item)
@@ -762,6 +778,48 @@ class AdminAssetTestCase(S3TestMixin, MockS3PerTestMixin, AdminBaseTestCase):
         self.assertContains(
             response,
             f"<h1>Upload file for {self.collection.name}/{self.item.name}/{asset.name}</h1>"
+        )
+
+
+class AdminCollectionAssetTestCase(S3TestMixin, MockS3PerTestMixin, AdminBaseTestCase):
+
+    def setUp(self):
+        super().setUp()
+        self._setup(create_collection=True)
+
+        self.client.login(username=self.username, password=self.password)
+
+    def test_update_collection_asset_with_invalid_role(self):
+        # create a collection asset through the admin add form
+        data = {
+            "collection": self.collection.id,
+            "name": "test_collection_asset.txt",
+            "media_type": "text/plain",
+        }
+        response = self.client.post(reverse('admin:stac_api_collectionasset_add'), data)
+        self.assertEqual(response.status_code, 302, msg="Admin page failed to add new asset")
+        asset = CollectionAsset.objects.get(collection=self.collection, name=data["name"])
+        roles_before = asset.roles
+
+        # try to save an illegal role through the admin change form
+        data = {
+            "title": "My collection asset",
+            "description": "This is a description",
+            "proj_epsg": 2056,
+            "roles": "illegal-role",
+        }
+        response = self.client.post(
+            reverse('admin:stac_api_collectionasset_change', args=[asset.id]), data
+        )
+
+        # Status code for unsuccessful update is 200, since in the admin UI
+        # is returning an error message
+        self.assertEqual(response.status_code, 200)
+        asset.refresh_from_db()
+        self.assertEqual(
+            asset.roles,
+            roles_before,
+            msg="Collection asset with invalid role has been saved to db"
         )
 
 
