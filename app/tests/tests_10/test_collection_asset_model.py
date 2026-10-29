@@ -48,6 +48,17 @@ class CollectionAssetsModelTestCase(MockS3PerTestMixin, StacBaseTransactionTestC
                 db_create=True,
             )
 
+    def test_create_asset_invalid_role(self):
+        # try to create a collection asset with an invalid role
+        with self.assertRaises(
+            ValidationError, msg="collection asset with invalid role was accepted."
+        ):
+            self.factory.create_collection_asset_sample(
+                collection=self.collection,
+                roles=['illegal-role'],
+                db_create=True,
+            )
+
     def test_create_update_asset_invalid_media_type(self):
         # try to create an asset with invalid media type
         with self.assertRaises(

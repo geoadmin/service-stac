@@ -329,6 +329,62 @@ class AssetsCreateEndpointTestCase(MockS3PerTestMixin, StacBaseTestCase):
         for field in ['description', 'title', 'geoadmin:lang', 'geoadmin:variant']:
             self.assertIn(field, json_data['description'], msg=f'Field {field} error missing')
 
+    def test_asset_upsert_create_invalid_role(self):
+        collection_name = self.collection.name
+        item_name = self.item.name
+        asset = self.factory.create_asset_sample(
+            item=self.item, required_only=True, roles=['illegal-role']
+        )
+        path = \
+            f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets/{asset["name"]}'
+        response = self.client.put(
+            path, data=asset.get_json('put'), content_type="application/json"
+        )
+        self.assertStatusCode(400, response)
+        description = response.json()['description']
+        self.assertIn('roles', description, msg=f'Unexpected field error {description}')
+
+        # Make sure that the asset is not found in DB
+        self.assertFalse(
+            Asset.objects.filter(name=asset.json['id']).exists(),
+            msg="Invalid asset has been created in DB"
+        )
+
+    def test_asset_upsert_create_all_allowed_roles(self):
+        collection_name = self.collection.name
+        item_name = self.item.name
+        asset = self.factory.create_asset_sample(
+            item=self.item, required_only=True, roles=['data', 'overview', 'thumbnail', 'metadata']
+        )
+        path = \
+            f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets/{asset["name"]}'
+        response = self.client.put(
+            path, data=asset.get_json('put'), content_type="application/json"
+        )
+        json_data = response.json()
+        self.assertStatusCode(201, response)
+        self.check_stac_asset(asset.json, json_data, collection_name, item_name)
+        self.assertListEqual(
+            json_data['roles'], ['data', 'overview', 'thumbnail', 'metadata'],
+            msg="Asset roles don't match the expected"
+        )
+
+    def test_asset_upsert_create_empty_roles(self):
+        collection_name = self.collection.name
+        item_name = self.item.name
+        asset = self.factory.create_asset_sample(item=self.item, required_only=True, roles=[])
+        path = \
+            f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets/{asset["name"]}'
+        response = self.client.put(
+            path, data=asset.get_json('put'), content_type="application/json"
+        )
+        self.assertStatusCode(201, response)
+        self.assertEqual(
+            Asset.objects.get(name=asset["name"]).roles,
+            [],
+            msg="Asset with an empty roles list has not been created with roles=[]"
+        )
+
     def invalid_request_wrapper(self, sample_name, expected_error_messages, **extra_params):
         collection_name = self.collection.name
         item_name = self.item.name
@@ -822,6 +878,39 @@ class AssetsUpdateEndpointTestCase(MockS3PerTestMixin, StacBaseTestCase):
         self.assertEqual({'created': ['Found read-only property in payload']},
                          response.json()['description'],
                          msg='Unexpected error message')
+
+    def test_asset_endpoint_patch_invalid_role(self):
+        collection_name = self.collection['name']
+        item_name = self.item['name']
+        asset_name = self.asset['name']
+        path = f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
+        roles_before = Asset.objects.get(name=asset_name).roles
+        response = self.client.patch(
+            path, data={"roles": ["illegal-role"]}, content_type="application/json"
+        )
+        self.assertStatusCode(400, response)
+        description = response.json()['description']
+        self.assertIn('roles', description, msg=f'Unexpected field error {description}')
+        self.assertEqual(
+            Asset.objects.get(name=asset_name).roles,
+            roles_before,
+            msg="Asset roles have been changed despite the invalid role"
+        )
+
+    def test_asset_endpoint_patch_empty_roles(self):
+        collection_name = self.collection['name']
+        item_name = self.item['name']
+        asset_name = self.asset['name']
+        path = f'/{STAC_BASE_V}/collections/{collection_name}/items/{item_name}/assets/{asset_name}'
+        response = self.client.patch(
+            path, data={"roles": []}, content_type="application/json"
+        )
+        self.assertStatusCode(200, response)
+        self.assertEqual(
+            Asset.objects.get(name=asset_name).roles,
+            [],
+            msg="Asset roles have not been set to an empty list"
+        )
 
     def test_asset_atomic_upsert_update_500(self):
         sample = self.factory.create_asset_sample(
