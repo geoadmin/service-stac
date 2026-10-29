@@ -323,9 +323,25 @@ class AssetBase(models.Model):
     # pylint: disable=no-value-for-parameter
 
     file = DynamicStorageFileField(upload_to=upload_asset_to_path_hook, max_length=255)
+
+    class Role(models.TextChoices):
+        # pylint: disable=invalid-name
+        DATA = 'data', 'Data'
+        OVERVIEW = 'overview', 'Overview'
+        THUMBNAIL = 'thumbnail', 'Thumbnail'
+        METADATA = 'metadata', 'Metadata'
+
     roles = ArrayField(
-        models.CharField(max_length=255), editable=True, blank=True, null=True, default=None,
-        help_text=_("Comma-separated list of roles to describe the purpose of the asset"))
+        models.CharField(max_length=255, choices=Role.choices),
+        editable=True,
+        blank=True,
+        null=True,
+        default=None,
+        help_text=_(
+            f"Comma-separated list of roles to describe the purpose of the asset. "
+            f"Possible values are {', '.join(Role.values)}"
+        ),
+    )
 
     @property
     def filename(self):

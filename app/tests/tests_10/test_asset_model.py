@@ -86,6 +86,15 @@ class AssetsModelTestCase(MockS3PerTestMixin, StacBaseTransactionTestCase):
                 db_create=True,
             )
 
+    def test_create_asset_invalid_role(self):
+        # try to create an asset with an invalid role
+        with self.assertRaises(ValidationError, msg="asset with invalid role was accepted."):
+            self.factory.create_asset_sample(
+                item=self.item,
+                roles=['illegal-role'],
+                db_create=True,
+            )
+
     def test_create_asset_only_required_attributes(self):
         # try to create an asset with with only the required attributes.
         # Should not raise any errors.
