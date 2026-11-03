@@ -1732,6 +1732,11 @@ components:
     roles:
       type: array
       items:
+        enum:
+          - data
+          - overview
+          - thumbnail
+          - metadata
         type: string
       description: Purposes of the asset
       example:
