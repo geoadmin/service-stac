@@ -81,9 +81,6 @@ class CollectionSortablesTestCase(StacBaseTestCase):
                 "id": {
                     "type": "string"
                 },
-                "collection": {
-                    "type": "string"
-                },
                 "properties.datetime": {
                     "type": "string", "format": "date-time"
                 },

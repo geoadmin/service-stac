@@ -24,7 +24,7 @@ from stac_api.serializers.item import ItemDetailSerializer
 from stac_api.serializers.item import ItemListSerializer
 from stac_api.serializers.item import ItemSerializer
 from stac_api.serializers.utils import get_relation_links
-from stac_api.utils import SORTABLE_FIELDS
+from stac_api.utils import SORTABLE_FIELDS_COLLECTION
 from stac_api.utils import get_asset_path
 from stac_api.utils import parse_sortby_get
 from stac_api.validators_view import validate_collection
@@ -130,7 +130,7 @@ class ItemsList(generics.GenericAPIView):
 
         sort_fields = request.query_params.get('sortby')
         if sort_fields:
-            self.sort_fields = parse_sortby_get(sort_fields, SORTABLE_FIELDS)
+            self.sort_fields = parse_sortby_get(sort_fields, SORTABLE_FIELDS_COLLECTION)
 
         queryset = self.filter_queryset(self.get_queryset())
         page = self.paginate_queryset(queryset)

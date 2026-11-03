@@ -23,7 +23,16 @@ def update_stac_extensions(apps, schema_editor):
     forecast_collections_updated = set()
     timestamps_collections_updated = set()
 
-    for item in Item.objects.filter(forecast_reference_datetime__isnull=False):
+    # Note: it's bad practice to modify already applied migrations, but the original version
+    # `for item in Item.objects.filter(forecast_reference_datetime__isnull=False):`
+    # is extremely inefficient for large datasets and breaks on
+    # PROD because it loads all items into memory at once.
+    # I leave it here as a reference for future data migrations and add an
+    # optimized version that uses an iterator.
+    # (see https://docs.djangoproject.com/en/6.1/ref/models/querysets/#iterator)
+    for item in Item.objects.exclude(stac_extensions__contains=[FORECAST_EXT]
+                                    ).filter(forecast_reference_datetime__isnull=False
+                                            ).iterator(chunk_size=1000):
         extensions = list(item.stac_extensions)
         if FORECAST_EXT not in extensions:
             extensions.append(FORECAST_EXT)
@@ -39,7 +48,9 @@ def update_stac_extensions(apps, schema_editor):
                 collection.save()
             forecast_collections_updated.add(item.collection_id)
 
-    for item in Item.objects.filter(properties_expires__isnull=False):
+    for item in Item.objects.exclude(stac_extensions__contains=[TIMESTAMPS_EXT]
+                                    ).filter(properties_expires__isnull=False
+                                            ).iterator(chunk_size=1000):
         extensions = list(item.stac_extensions)
         if TIMESTAMPS_EXT not in extensions:
             extensions.append(TIMESTAMPS_EXT)

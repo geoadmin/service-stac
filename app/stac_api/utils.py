@@ -647,15 +647,21 @@ class SortableField:
     format: str | None = None
 
 
-# Maps sortby parameter values to their Django model field and JSON Schema metadata.
-SORTABLE_FIELDS: dict[str, SortableField] = {
+# Maps sortby parameter values for collection search to their Django model field
+# and JSON Schema metadata.
+SORTABLE_FIELDS_COLLECTION: dict[str, SortableField] = {
     'id': SortableField(model_field='name'),
-    'collection': SortableField(model_field='collection__name'),
     'properties.datetime': SortableField(model_field='properties_datetime', format='date-time'),
     'properties.title': SortableField(model_field='properties_title'),
     'properties.created': SortableField(model_field='created', format='date-time'),
     'properties.updated': SortableField(model_field='updated', format='date-time'),
 }
+
+# Maps sortby parameter values for global search to their Django model field
+# and JSON Schema metadata.
+SORTABLE_FIELDS_GLOBAL: dict[str, SortableField] = {
+    'collection': SortableField(model_field='collection__name'),
+} | SORTABLE_FIELDS_COLLECTION
 
 
 def parse_sortby_get(sortby_param, sortable_fields):

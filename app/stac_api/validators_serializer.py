@@ -10,7 +10,7 @@ from django.utils.translation import gettext_lazy as _
 
 from rest_framework import serializers
 
-from stac_api.utils import SORTABLE_FIELDS
+from stac_api.utils import SORTABLE_FIELDS_GLOBAL
 from stac_api.utils import fromisoformat
 from stac_api.utils import geometry_from_bbox
 from stac_api.utils import harmonize_post_get_for_search
@@ -100,9 +100,13 @@ class ValidateSearchRequest:
         try:
             if 'sortby' in query_param:
                 if request.method == "POST":
-                    request.sort_fields = parse_sortby_post(query_param['sortby'], SORTABLE_FIELDS)
+                    request.sort_fields = parse_sortby_post(
+                        query_param['sortby'], SORTABLE_FIELDS_GLOBAL
+                    )
                 else:
-                    request.sort_fields = parse_sortby_get(query_param['sortby'], SORTABLE_FIELDS)
+                    request.sort_fields = parse_sortby_get(
+                        query_param['sortby'], SORTABLE_FIELDS_GLOBAL
+                    )
         except DjangoValidationError as error:
             self.errors['sortby'] = _(error.message)
 
